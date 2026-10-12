@@ -179,25 +179,25 @@ const gatekeeperVersionId = gatekeeperVersion
     })
   : undefined;
 if (gatekeeperVersionId) {
-  new cloudflare.WorkersDeployment('gatekeeper', {
+  const deployment = new cloudflare.WorkersDeployment('gatekeeper', {
     accountId,
     scriptName: gatekeeperWorker.name,
     strategy: 'percentage',
     versions: [{ versionId: gatekeeperVersionId, percentage: 100 }],
     annotations: { workersMessage: `Deploy ${gatekeeperVersion}` }
   });
-  new cloudflare.WorkersCustomDomain('gatekeeper', {
-    accountId,
-    zoneId,
-    hostname: gatekeeperDomain,
-    service: gatekeeperWorker.name
-  });
+  // Cloudflare only attaches domains to a Worker that has a deployment.
+  new cloudflare.WorkersCustomDomain(
+    'gatekeeper',
+    { accountId, zoneId, hostname: gatekeeperDomain, service: gatekeeperWorker.name },
+    { dependsOn: deployment }
+  );
   // Matches the trigger in gatekeeper's cloudflare.config.ts, which only local development applies.
-  new cloudflare.WorkersCronTrigger('gatekeeper', {
-    accountId,
-    scriptName: gatekeeperWorker.name,
-    schedules: [{ cron: '*/15 * * * *' }]
-  });
+  new cloudflare.WorkersCronTrigger(
+    'gatekeeper',
+    { accountId, scriptName: gatekeeperWorker.name, schedules: [{ cron: '*/15 * * * *' }] },
+    { dependsOn: deployment }
+  );
 }
 
 /** Gatekeeper's build settings, read from STACK_OUTPUT_JSON. */

@@ -12,3 +12,4 @@ config:
   controlplane:moqSigningKids:
     - controlplane-moq-2026-10-12
   controlplane:moqSigningActiveKid: controlplane-moq-2026-10-12
+  controlplane:gatekeeperVersion: d65fe2ea4f40de5d42f861966b201b425d2b240f

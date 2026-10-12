@@ -18,4 +18,4 @@ pulumi -C "$here/infrastructure" stack output gatekeeperSecrets --json --show-se
 STACK_OUTPUT_JSON=$(pulumi -C "$here/infrastructure" stack output --json --stack "$stack") \
   pnpm --dir "$here/gatekeeper" run upload --tag "$tag" --message "gatekeeper $tag" --secrets-file "$secrets"
 
-pulumi -C "$here/infrastructure" up --stack "$stack" --config "gatekeeperVersion=$tag"
+pulumi -C "$here/infrastructure" up --stack "$stack" --yes --config "gatekeeperVersion=$tag"

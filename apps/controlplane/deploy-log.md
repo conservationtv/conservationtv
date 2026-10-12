@@ -224,3 +224,88 @@ curl https://iroh.ldn1.nodes.conservation.tv/
 
 **Result:** both names resolve to their droplets and serve valid Let's Encrypt certificates. MoQ `/health` returns
 `200 ok`; the Iroh relay returns `200`. Relay admission depends on gatekeeper, which is not deployed yet.
+
+## 17. Commit for the release
+
+**Reason:** `release.sh` tags the uploaded version with the commit and refuses to run with uncommitted changes.
+
+```sh
+git add -A && git commit -m 'controlplane: deploy gatekeeper from Pulumi with a PlanetScale database'
+```
+
+**Result:** `d65fe2ea4f40de5d42f861966b201b425d2b240f` on `main` (not pushed).
+
+## 18. Release gatekeeper (partly failed)
+
+**Reason:** migrate the database, upload the version and deploy it.
+
+```sh
+op run --no-masking … -- env CLOUDFLARE_ACCOUNT_ID=0def86f295b15a1a2d012774b38b04f9 apps/controlplane/release.sh prod
+```
+
+`--no-masking` because `op run` masks the string `postgres` in output; `CLOUDFLARE_ACCOUNT_ID` because the `cf` login
+sees several accounts.
+
+**Result:**
+
+- Migrations applied as `gatekeeper_migrate`. Checked afterwards with
+  `PGSSLROOTCERT=system psql "$(pulumi stack output gatekeeperMigrationUrl --show-secrets)" -c '<list tables>'`:
+  `public.assertion_replays`, `public.grants`, `public.iroh_leases`, `public.jwks_cache` and
+  `drizzle.__drizzle_migrations` exist.
+- Version `0e5ec55a-d219-4b0c-bbff-e1197702c6ca` uploaded, tagged `d65fe2ea…`, with the Hyperdrive binding
+  `8cfa50f7…`, the three text bindings and the four secrets. The upload did not touch domains or cron triggers.
+- The final `pulumi up` failed: `--yes or --skip-preview or --preview-only must be passed in to proceed when running in
+  non-interactive mode`.
+
+## 19. Fix `release.sh` and deploy the uploaded version (partly failed)
+
+**Reason:** `release.sh` needs `--yes` on its `pulumi up`; deploy the version that was already uploaded.
+
+```sh
+sed -i '' 's|up --stack "$stack" --config|up --stack "$stack" --yes --config|' apps/controlplane/release.sh
+op run --no-masking … -- pulumi up --stack prod --yes --non-interactive --config gatekeeperVersion=d65fe2e8f8d5d07b4cb31e43d7e6b17da6f0d1f5
+op run --no-masking … -- pulumi up --stack prod --yes --non-interactive --config gatekeeperVersion=$(git rev-parse d65fe2e)
+```
+
+**Result:** the first attempt used a mistyped full hash (`d65fe2e8f8d5…`, not the commit's) and failed with "No
+gatekeeper version is tagged …" before creating anything. With the real hash, the `WorkersDeployment` (100% to
+`0e5ec55a…`) and the cron trigger were created, but the custom domain failed:
+`400 [100124] Cannot attach custom domain: Worker 'gatekeeper' has no deployments`, because Pulumi created it in
+parallel with the deployment. `gatekeeperVersion` is now saved in `Pulumi.prod.yaml`.
+
+## 20. Order the domain and cron trigger after the deployment
+
+**Reason:** make the custom domain (and the cron trigger) wait for the deployment so a fresh stack does not race.
+
+```sh
+# index.ts: WorkersCustomDomain and WorkersCronTrigger get { dependsOn: deployment }
+pnpm --filter @conservationtv/controlplane-infrastructure build
+op run --no-masking … -- pulumi up --stack prod --yes --non-interactive
+```
+
+**Result:** 1 created (the custom domain), 53 unchanged. `gatekeeper.conservation.tv` is attached to `gatekeeper` and
+enabled.
+
+## 21. Check gatekeeper
+
+**Reason:** confirm the Worker serves on its domain.
+
+```sh
+dig +short gatekeeper.conservation.tv @1.1.1.1
+curl --doh-url https://1.1.1.1/dns-query https://gatekeeper.conservation.tv/health
+curl --doh-url https://1.1.1.1/dns-query -X POST https://gatekeeper.conservation.tv/relays/iroh/admission
+```
+
+**Result:** resolves to Cloudflare (`104.21.7.110`, `172.67.130.34`); the local resolver had cached the name as
+missing, hence DNS-over-HTTPS. `/health` returns `200 {"status":"ok"}`; relay admission without credentials returns
+`401`. `/health` does not query the database, so the Hyperdrive-to-PlanetScale path is not yet exercised by a request.
+
+## Outcome
+
+Deployed: both relays, the gatekeeper Worker on `gatekeeper.conservation.tv` (version `0e5ec55a…`), Hyperdrive, the
+cron trigger and the PlanetScale `gatekeeper` database (HA `PS_5_AWS_X86`) with migrations applied. Follow-ups:
+
+- The fleet package crashes in targeted updates on a partly created stack
+  (`packages/fleet/src/core/compose/lifecycle.ts:223`).
+- The old Cloudflare token `b45e10d4…` is unused and can be deleted.
+- Database connectivity through Hyperdrive is unverified until a request or the 15-minute cron touches it.
