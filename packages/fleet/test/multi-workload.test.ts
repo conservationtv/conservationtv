@@ -1,229 +1,260 @@
 import * as pulumi from '@pulumi/pulumi';
-import { describe, expect, it } from 'vitest';
-import { Addon, type AddonAttachmentContext, type HostAddonContribution } from '../src/core/addons/types';
-import type { ServiceEndpoint } from '../src/core/endpoints';
-import { Fleet, type HostnameSubject } from '../src/core/fleet';
-import type { Machine, MachineArgs, MachineIngressArgs } from '../src/core/machine';
-import { MachineProvider } from '../src/core/machine';
-import { Node } from '../src/core/node';
-import { ComposeWorkload } from '../src/core/workload';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { ComposeDeployment } from '../src/core/compose/deployment';
+import { ComposeWorkload } from '../src/core/compose/workload';
+import type { ComposeApp, ComposeWorkloadArgs, Machine, WorkloadTarget } from '../src/core/contracts';
+import { MachineClaimLedger } from '../src/core/machines/claims';
+
+const inputs = new Map<string, Record<string, unknown>>();
 
 pulumi.runtime.setMocks({
-  newResource: args => ({ id: `${args.name}-id`, state: args.inputs }),
+  newResource: args => {
+    inputs.set(args.name, args.inputs);
+    return { id: `${args.name}-id`, state: args.inputs };
+  },
   call: args => args.inputs
 });
 
-describe('multiple workloads per node', () => {
-  it('reuses one machine, adds ingress per workload, and serializes host deployment', () => {
-    const fleet = testFleet('shared-fleet');
-    const provider = new TestMachineProvider('provider');
-    const node = new Node('shared-node', {
-      fleet,
-      provider,
-      providerRegion: 'test-1',
-      hostname: 'shared.example.test'
-    });
+interface Registration {
+  resource: pulumi.Resource;
+  type: string;
+  name: string;
+  opts: pulumi.ResourceOptions;
+}
 
-    const first = node.attach({
-      workloadName: 'one',
-      hostname: 'one.example.test',
-      ingress: [],
-      endpoints: {},
-      paths: ['/opt/one/docker-compose.yml'],
-      containerNames: []
-    });
-    const firstDeployment = new pulumi.ComponentResource('test:index:Deployment', 'first-deployment');
-    node.completeAttachment('one', firstDeployment);
-    const second = node.attach({
-      workloadName: 'two',
-      hostname: 'two.example.test',
-      ingress: [],
-      endpoints: {},
-      paths: ['/opt/two/docker-compose.yml'],
-      containerNames: []
-    });
+let registrations: Registration[] = [];
 
-    expect(provider.machineCreations).toBe(1);
-    expect(provider.ingressRegistrations).toBe(2);
-    expect(second.machine).toBe(first.machine);
-    expect(second.deployAfter).toContain(firstDeployment);
-    expect(node.attachedWorkloads).toEqual(['one', 'two']);
-    expect(node.hostname).toBe('shared.example.test');
+beforeEach(() => {
+  registrations = [];
+  inputs.clear();
+});
+
+// Transformations are inherited by every descendant, so this sees exactly what each child was given.
+const record: pulumi.ResourceTransformation = ({ resource, type, name, opts }) => {
+  registrations.push({ resource, type, name, opts });
+  return undefined;
+};
+
+describe('compose workloads on shared machines', () => {
+  it('gives each workload its own ingress on a shared machine without collisions', async () => {
+    const machine = fakeMachine('shared');
+    const one = workload('one', { targets: [target(machine, 'one')], app: app('one', 8081) });
+    const two = workload('two', { targets: [target(machine, 'two')], app: app('two', 8082) });
+    await settle();
+
+    const ingress = registrations.filter(registration => registration.type === 'fleet:machines:MachineIngress');
+    expect(ingress.map(registration => registration.name)).toEqual(['one-shared-ingress', 'two-shared-ingress']);
+    expect(one.deployments[0].endpoints['one.http']).toMatchObject({ owner: 'one', port: 8081 });
+    expect(await promiseOf(two.summary)).toEqual([
+      {
+        machine: 'shared',
+        provider: 'test',
+        region: 'test-1',
+        hostname: 'two.example.test',
+        address: '192.0.2.10',
+        endpoints: two.deployments[0].endpoints
+      }
+    ]);
   });
 
-  it('deploys a node-scoped addon only once per shared node', () => {
-    const fleet = testFleet('addon-fleet');
-    const node = new Node('addon-node', {
-      fleet,
-      provider: new TestMachineProvider('addon-provider'),
-      providerRegion: 'test-1'
-    });
-    const addon = new TestNodeAddon('shared-addon');
-    const first = node.attachAddon(addon, { fleet, node, workloadName: 'one', hostname: 'one.example.test' });
-    const second = node.attachAddon(addon, { fleet, node, workloadName: 'two', hostname: 'two.example.test' });
-
-    expect(addon.attachments).toBe(1);
-    expect(first.deploy).toBe(true);
-    expect(second.deploy).toBe(false);
-    expect(second.contribution).toBe(first.contribution);
-  });
-
-  it('rejects listeners, paths, and explicit container names claimed by another workload', () => {
-    const listenerNode = testNode('listener-node');
-    listenerNode.attach(
-      attachment('one', {
-        endpoints: { https: endpoint('one.https', 443) }
-      })
-    );
-    expect(() =>
-      listenerNode.attach(
-        attachment('two', {
-          endpoints: { https: endpoint('two.https', 443) }
-        })
-      )
-    ).toThrow(/Host listener collision.*one.*two/);
-
-    const pathNode = testNode('path-node');
-    pathNode.attach(attachment('one', { paths: ['/etc/systemd/system/shared.service'] }));
-    expect(() => pathNode.attach(attachment('two', { paths: ['/etc/systemd/system/shared.service'] }))).toThrow(
-      /Remote file path collision/
+  it('rejects listeners, paths and container names claimed by another workload', () => {
+    const listener = fakeMachine('listener');
+    workload('one', { targets: [target(listener, 'one')], app: app('one', 8080) });
+    expect(() => workload('two', { targets: [target(listener, 'two')], app: app('two', 8080) })).toThrow(
+      /listener "tcp:8080" is claimed by both "one-listener" and "two-listener"/
     );
 
-    const containerNode = testNode('container-node');
-    containerNode.attach(attachment('one', { containerNames: ['shared-container'] }));
-    expect(() => containerNode.attach(attachment('two', { containerNames: ['shared-container'] }))).toThrow(
-      /Container name collision/
+    const path = fakeMachine('path');
+    workload('one', { targets: [target(path, 'one')], app: app('same', 8081) });
+    expect(() => workload('two', { targets: [target(path, 'two')], app: app('same', 8082) })).toThrow(
+      /path "\/opt\/same\/docker-compose.yml"/
     );
-  });
 
-  it('keeps node-scoped addon Compose ownership outside either workload', () => {
-    const fleet = testFleet();
-    const node = new Node('compose-shared-node', {
-      fleet,
-      provider: new TestMachineProvider('compose-shared-provider'),
-      providerRegion: 'test-1'
-    });
-    const addon = new TestNodeAddon('compose-shared-addon');
-    const one = new ComposeWorkload('compose-one', {
-      fleet,
-      nodes: [node],
-      domain: 'one.example.test',
-      addons: [addon],
-      app: () => app('one', 8081)
-    });
-    const two = new ComposeWorkload('compose-two', {
-      fleet,
-      nodes: [node],
-      domain: 'two.example.test',
-      addons: [addon],
-      app: () => app('two', 8082)
-    });
-
-    expect(one.nodes.get('compose-shared-node')?.nodeAddonHosts).toHaveLength(1);
-    expect(two.nodes.get('compose-shared-node')?.nodeAddonHosts).toHaveLength(0);
-    expect(addon.attachments).toBe(1);
+    const container = fakeMachine('container');
+    const named = (name: string, port: number): ComposeApp => {
+      const base = app(name, port);
+      return { ...base, services: { app: { ...base.services.app, container_name: 'shared' } } };
+    };
+    workload('one', { targets: [target(container, 'one')], app: named('one', 8081) });
+    expect(() => workload('two', { targets: [target(container, 'two')], app: named('two', 8082) })).toThrow(
+      /container "shared"/
+    );
   });
 });
 
-function testNode(name: string): Node {
-  const fleet = testFleet(`${name}-fleet`);
-  return new Node(name, {
-    fleet,
-    provider: new TestMachineProvider(`${name}-provider`),
-    providerRegion: 'test-1'
+describe('rollout ordering', () => {
+  it('makes each serial deployment wait for the previous one and orders by priority', async () => {
+    const [a, b, c] = ['a', 'b', 'c'].map(id => fakeMachine(id));
+    const serial = workload('serial', {
+      targets: [target(a, 'a', 1), target(c, 'c'), target(b, 'b')],
+      app: app('web', 8080),
+      rollout: 'serial'
+    });
+    await settle();
+
+    expect(serial.deployments.map(deployment => deployment.target.machine.id)).toEqual(['b', 'c', 'a']);
+    const [first, second, third] = serial.deployments;
+    expect(dependencies('serial-b')).not.toContain(first);
+    expect(dependencies('serial-c')).toContain(first);
+    expect(dependencies('serial-a')).toContain(second);
+    // The predecessor is a component, so depending on it waits for all of its commands and health gates.
+    expect(dependencies('serial-a-redeploy')).toContain(second);
+    expect(dependencies('serial-a-files')).not.toContain(third);
   });
+
+  it('runs parallel deployments independently', async () => {
+    const parallel = workload('parallel', {
+      targets: [target(fakeMachine('a'), 'a'), target(fakeMachine('b'), 'b')],
+      app: app('web', 8080)
+    });
+    await settle();
+    expect(dependencies('parallel-b-files')).not.toContain(parallel.deployments[0]);
+  });
+
+  it('forwards a workload dependsOn to every remote command', async () => {
+    const upstream = new pulumi.ComponentResource('test:index:Upstream', 'upstream');
+    workload(
+      'gated',
+      { targets: [target(fakeMachine('a'), 'a'), target(fakeMachine('b'), 'b')], app: app('web', 8080, true) },
+      { dependsOn: [upstream] }
+    );
+    await settle();
+    const commands = registrations.filter(registration => registration.type === 'command:remote:Command');
+    expect(commands.map(command => command.name)).toEqual([
+      'gated-a-files',
+      'gated-a-redeploy',
+      'gated-a-restart',
+      'gated-a-step-migrate',
+      'gated-b-files',
+      'gated-b-redeploy',
+      'gated-b-restart',
+      'gated-b-step-migrate'
+    ]);
+    for (const command of commands) expect(dependencies(command.name)).toContain(upstream);
+  });
+
+  it('validates targets', () => {
+    const machine = fakeMachine('one');
+    expect(() => workload('empty', { targets: [], app: app('web', 8080) })).toThrow(/at least one target/);
+    expect(() =>
+      workload('twice', { targets: [target(machine, 'a'), target(machine, 'b')], app: app('web', 8080) })
+    ).toThrow(/targets machine "one" twice/);
+    expect(() =>
+      workload('dup', {
+        targets: [target(fakeMachine('a'), 'same'), { machine: fakeMachine('b'), hostname: 'SAME.example.test.' }],
+        app: app('web', 8080)
+      })
+    ).toThrow(/hostname "same.example.test" twice/);
+  });
+});
+
+describe('managed lifecycle', () => {
+  it('writes files, redeploys, restarts on restart files only, then runs steps', async () => {
+    new ComposeDeployment(
+      'life',
+      { target: target(fakeMachine('m', true), 'life'), app: app('web', 8080, true) },
+      { transformations: [record] }
+    );
+    await settle();
+
+    const files = String(inputs.get('life-files')?.create);
+    expect(files).toMatch(/^sudo \/bin\/sh -s <<'__FLEET_SUDO__'/);
+    for (const path of ['/opt/web/docker-compose.yml', '/etc/systemd/system/web.service', '/opt/web/certs/key.pem']) {
+      expect(files).toContain(`base64 -d > '${path}'`);
+    }
+    expect(files).toContain("chmod 0600 '/opt/web/docker-compose.yml'");
+
+    const redeploy = inputs.get('life-redeploy');
+    expect(redeploy?.create).toContain("cd '/opt/web'");
+    expect(redeploy?.create).toContain('docker compose up -d --force-recreate --remove-orphans');
+    expect(redeploy?.create).toContain("curl -fsS --max-time 2 'http://127.0.0.1:8080/health' | grep -Eq '^ok$'");
+    expect(redeploy?.create).toContain('docker compose logs --tail=100');
+    expect(redeploy?.triggers).toHaveLength(3);
+    expect(redeploy?.triggers).toContain('mode = 1');
+
+    const restart = inputs.get('life-restart');
+    expect(restart?.create).toContain('docker compose restart');
+    expect(restart?.triggers).toEqual(['KEY']);
+    expect(dependencies('life-restart')).toContain(resourceNamed('life-redeploy'));
+    expect(dependencies('life-step-migrate')).toContain(resourceNamed('life-restart'));
+
+    const compose = Buffer.from(/docker-compose.yml'.*?\n(.*?)\n__FLEET_FILE__/s.exec(files)?.[1] ?? '', 'base64');
+    expect(compose.toString()).toMatch(/^name: web\nservices:\n {2}app:/);
+  });
+
+  it('rejects malformed apps', () => {
+    const reject = (overrides: Partial<ComposeApp>, message: RegExp) =>
+      expect(
+        () =>
+          new ComposeDeployment('bad', {
+            target: target(fakeMachine('m'), 'bad'),
+            app: { ...app('web', 80), ...overrides }
+          })
+      ).toThrow(message);
+    reject({ name: 'Web App' }, /sanitized name/);
+    reject({ dir: 'opt/web' }, /absolute path/);
+    reject({ files: [{ path: 'docker-compose.yml', content: 'x' }] }, /more than once/);
+    reject({ files: [{ path: 'a', content: 'x', mode: '999' }] }, /invalid mode/);
+    reject({ steps: [{ name: 'Not ok', script: 'true', triggers: [] }] }, /step "Not ok"/);
+    reject({ health: [{ url: 'localhost:80' }] }, /HTTP\(S\) URL/);
+  });
+});
+
+function workload(name: string, args: ComposeWorkloadArgs, opts: pulumi.ComponentResourceOptions = {}) {
+  return new ComposeWorkload(name, args, { ...opts, transformations: [record] });
 }
 
-function testFleet(name = 'test-fleet'): Fleet {
-  return new Fleet(name, {
-    namePrefix: 'test',
-    environment: 'test',
-    ssh: { port: 2222, allowedCidrs: ['192.0.2.0/24'] },
-    hostnameStrategy: (node: HostnameSubject, domain: string) => `${node.id}.${domain}`
-  });
-}
-
-function app(name: string, port: number) {
+function app(name: string, port: number, full = false): ComposeApp {
   return {
     name,
-    dir: `/opt/${name}`,
     services: { app: { image: 'example.invalid/app@sha256:abc' } },
-    files: [],
-    deploySteps: [],
     endpoints: {
-      [`${name}.http`]: {
-        service: 'app',
-        port,
-        transport: 'tcp' as const,
-        visibility: 'public' as const,
-        scheme: 'http'
-      }
-    }
+      [`${name}.http`]: { service: 'app', port, transport: 'tcp', visibility: 'public', scheme: 'http' }
+    },
+    ...(full && {
+      files: [
+        { path: 'app.toml', content: 'mode = 1' },
+        { path: 'certs/key.pem', content: 'KEY', mode: '0600', onChange: 'restart' }
+      ],
+      health: [{ url: `http://127.0.0.1:${port}/health`, expect: '^ok$' }],
+      steps: [{ name: 'migrate', script: 'docker compose exec app migrate', triggers: ['v1'] }]
+    })
   };
 }
 
-function attachment(
-  workloadName: string,
-  overrides: Partial<Parameters<Node['attach']>[0]> = {}
-): Parameters<Node['attach']>[0] {
-  return {
-    workloadName,
-    hostname: `${workloadName}.example.test`,
-    ingress: [],
-    endpoints: {},
-    paths: [`/opt/${workloadName}/docker-compose.yml`],
-    containerNames: [],
-    ...overrides
-  };
+function target(machine: Machine, label: string, priority?: number): WorkloadTarget {
+  return { machine, hostname: `${label}.example.test`, priority };
 }
 
-function endpoint(id: string, port: number): ServiceEndpoint {
-  const service = id.split('.')[0];
+function fakeMachine(id: string, sudo = false): Machine {
   return {
     id,
-    owner: service,
-    service,
-    port,
-    targetPort: port,
-    transport: 'tcp',
-    visibility: 'public',
-    binding: 'host'
-  };
+    displayName: id,
+    provider: 'test',
+    region: 'test-1',
+    hostname: `${id}.machines.example.test`,
+    address: pulumi.output('192.0.2.10'),
+    connection: pulumi.output({ host: '192.0.2.10', user: 'deploy' }),
+    sudo,
+    ready: new pulumi.ComponentResource('test:index:Ready', `${id}-${Math.random()}`),
+    firewall: { kind: 'openstack', securityGroupId: pulumi.output(`${id}-sg`), region: 'test-1' },
+    claims: new MachineClaimLedger(id)
+  } as Machine;
 }
 
-class TestMachineProvider extends MachineProvider {
-  public readonly providerName = 'test';
-  public machineCreations = 0;
-  public ingressRegistrations = 0;
-
-  public constructor(name: string) {
-    super('test:index:MachineProvider', name);
-  }
-
-  public createMachine(name: string, _args: MachineArgs, opts?: pulumi.ComponentResourceOptions): Machine {
-    this.machineCreations += 1;
-    const resource = new pulumi.ComponentResource('test:index:Machine', name, {}, opts);
-    return {
-      address: pulumi.output('192.0.2.10'),
-      sshUsers: { cloudInit: 'root', deployment: 'root' },
-      resource,
-      addIngress: (ingressName: string, _ingress: MachineIngressArgs, ingressOpts?: pulumi.ResourceOptions) => {
-        this.ingressRegistrations += 1;
-        return [new pulumi.ComponentResource('test:index:Ingress', ingressName, {}, ingressOpts)];
-      }
-    };
-  }
+function dependencies(name: string): unknown[] {
+  const flatten = (value: unknown): unknown[] => (Array.isArray(value) ? value.flatMap(flatten) : [value]);
+  return flatten(registrations.find(registration => registration.name === name)?.opts.dependsOn ?? []);
 }
 
-class TestNodeAddon extends Addon {
-  public attachments = 0;
+function resourceNamed(name: string): pulumi.Resource | undefined {
+  return registrations.find(registration => registration.name === name)?.resource;
+}
 
-  public constructor(name: string) {
-    super('test:index:NodeAddon', name, undefined, 'node');
-  }
+function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {
+  return new Promise(resolve => output.apply(resolve));
+}
 
-  public attachTo(_context: AddonAttachmentContext): HostAddonContribution {
-    this.attachments += 1;
-    return { name: 'shared-addon', services: {} };
-  }
+async function settle(): Promise<void> {
+  await Promise.all(registrations.map(registration => promiseOf(registration.resource.urn)));
 }
