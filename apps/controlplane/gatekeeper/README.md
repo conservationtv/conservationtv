@@ -171,6 +171,9 @@ Revocation options are:
 | `MOQ_CLUSTER_TOKEN`               | secret            | Pulumi-generated opaque credential shared by MoQ peers           |
 | `MAX_CREDENTIAL_LIFETIME_SECONDS` | text              | environment ceiling on credential lifetimes                      |
 
+Deploy builds read `GATEKEEPER_DOMAIN` (the custom domain) and `GATEKEEPER_HYPERDRIVE_ID` from the controlplane
+Pulumi stack's `gatekeeper` output; without `GATEKEEPER_DOMAIN` the Worker has no custom domain.
+
 **Disable Hyperdrive query caching** for this configuration. Lease and revocation reads must be fresh.
 
 `pnpm keys:generate [kid]` prints a new `MOQ_SIGNING_KEYS` value. To rotate:
