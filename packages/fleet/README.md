@@ -56,7 +56,8 @@ const newYork = new DigitalOceanMachine('new-york', { fleet, region: 'nyc3', ssh
 
 const acme = new AcmeAccount('acme', {
   serverUrl: 'https://acme-v02.api.letsencrypt.org/directory',
-  dnsChallenge: { provider: 'cloudflare', apiToken: new pulumi.Config('cloudflare').requireSecret('apiToken') }
+  // apiToken defaults to CLOUDFLARE_API_TOKEN, which the Cloudflare provider also reads.
+  dnsChallenge: { provider: 'cloudflare' }
 });
 
 const moqCertificate = new AcmeCertificate('moq-tls', {

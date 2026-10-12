@@ -13,8 +13,11 @@ export interface AcmeAccountArgs {
 
 export interface AcmeDnsChallengeArgs {
   provider: 'cloudflare';
-  /** A Cloudflare token allowed to edit DNS in the zones being validated. */
-  apiToken: pulumi.Input<string>;
+  /**
+   * A Cloudflare token allowed to edit DNS in the zones being validated. Defaults to CLOUDFLARE_API_TOKEN, the
+   * variable the Cloudflare provider reads.
+   */
+  apiToken?: pulumi.Input<string>;
 }
 
 /** An ACME registration plus the DNS-01 challenge every certificate issued under it uses. */
@@ -40,7 +43,7 @@ export class AcmeAccount extends pulumi.ComponentResource {
     this.accountKeyPem = registration.accountKeyPem;
     this.dnsChallenge = {
       provider: args.dnsChallenge.provider,
-      config: { CLOUDFLARE_DNS_API_TOKEN: pulumi.secret(args.dnsChallenge.apiToken) }
+      config: { CLOUDFLARE_DNS_API_TOKEN: pulumi.secret(args.dnsChallenge.apiToken ?? readCloudflareApiToken()) }
     };
     this.registerOutputs({ registrationId: registration.id });
   }
@@ -86,6 +89,12 @@ export class AcmeCertificate extends pulumi.ComponentResource implements PublicT
     this.notAfter = certificate.certificateNotAfter;
     this.registerOutputs({ notAfter: this.notAfter });
   }
+}
+
+function readCloudflareApiToken(): string {
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  if (!token) throw new Error('AcmeAccount needs dnsChallenge.apiToken or CLOUDFLARE_API_TOKEN.');
+  return token;
 }
 
 function readCertificateNames(names: string[]): string[] {
