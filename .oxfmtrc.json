@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "useTabs": false,
+  "arrowParens": "avoid",
+  "printWidth": 120,
+  "bracketSpacing": true,
+  "semi": true,
+  "singleQuote": true,
+  "jsxSingleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "none",
+  "bracketSameLine": false,
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/bin/**",
+    "**/.cloudflare/**",
+    "**/.wrangler/**",
+    "**/node_modules/**",
+    "target/**",
+    "tools/**",
+    "apps/controlplane/gatekeeper/openapi.json",
+    "apps/controlplane/gatekeeper/snapshots/**",
+    "apps/controlplane/sdk/src/generated/**",
+    "apps/controlplane/sdk/src/versions/**",
+    "apps/controlplane/cli/src/generated/**",
+    "apps/controlplane/gatekeeper/drizzle/**"
+  ],
+  "sortPackageJson": false
+}

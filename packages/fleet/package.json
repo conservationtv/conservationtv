@@ -1,0 +1,73 @@
+{
+  "name": "@moq-ha/vps-fleet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pulumi components for constructing VPS fleets and composing workloads on them.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/core/index.js",
+  "types": "dist/core/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "core": [
+        "dist/core/index.d.ts"
+      ],
+      "moq": [
+        "dist/moq/index.d.ts"
+      ],
+      "iroh": [
+        "dist/iroh/index.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./moq": {
+      "types": "./dist/moq/index.d.ts",
+      "default": "./dist/moq/index.js"
+    },
+    "./iroh": {
+      "types": "./dist/iroh/index.d.ts",
+      "default": "./dist/iroh/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pulumi/cloudinit": "catalog:",
+    "@pulumi/command": "catalog:",
+    "@pulumi/pulumi": "catalog:",
+    "@pulumi/random": "catalog:",
+    "@pulumi/tls": "catalog:",
+    "dedent": "1.7.2",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@pulumi/cloudflare": "catalog:",
+    "@pulumi/digitalocean": "catalog:",
+    "@pulumi/openstack": "catalog:",
+    "@pulumiverse/acme": "catalog:",
+    "@types/node": "24.0.6",
+    "typescript": "5.8.3",
+    "vitest": "3.2.6",
+    "smol-toml": "1.9.1"
+  },
+  "peerDependencies": {
+    "@pulumi/cloudflare": "catalog:",
+    "@pulumi/digitalocean": "catalog:",
+    "@pulumi/openstack": "catalog:",
+    "@pulumiverse/acme": "catalog:"
+  }
+}

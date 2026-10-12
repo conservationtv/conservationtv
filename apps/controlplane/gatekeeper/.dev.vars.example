@@ -1,0 +1,12 @@
+# Copy to .dev.vars for `pnpm dev`. Generate a MoQ signing key set with `pnpm keys:generate`.
+MOQ_SIGNING_KEYS='{"active_kid":"…","keys":[…]}'
+IROH_RELAY_TOKEN=local-relay-token
+# Supplied by the controlplane stack's gatekeeperSecrets output. For local use generate 32 random bytes each:
+# node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+MOQ_RELAY_TOKEN=REPLACE_WITH_GENERATED_TOKEN
+MOQ_CLUSTER_TOKEN=REPLACE_WITH_GENERATED_TOKEN
+
+# Optional JSON overrides, replacing the complete checked-in lists. Paste registrations matching
+# src/config/registrations.ts into the array; [] explicitly registers no consumers.
+# CONSUMER_REGISTRATIONS='[]'
+# DENIED_IROH_ENDPOINTS='[]'

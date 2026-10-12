@@ -1,0 +1,55 @@
+{
+  "name": "@conservationtv/gatekeeper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./openapi.json": "./openapi.json",
+    "./testing": "./test/support/testing.ts"
+  },
+  "scripts": {
+    "dev": "cf dev",
+    "build": "cf build",
+    "deploy": "cf deploy",
+    "types": "cf workers types",
+    "typecheck": "cf workers types && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "generate": "tsx scripts/openapi.ts",
+    "snapshot": "tsx scripts/snapshot.ts",
+    "check:release": "tsx scripts/check-release.ts",
+    "check:snapshot": "tsx scripts/check-snapshot.ts",
+    "snapshot:required": "tsx scripts/check-snapshot.ts --required",
+    "ci:contracts": "tsx scripts/ci.ts",
+    "keys:generate": "tsx scripts/generate-moq-key.ts",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "test": "pnpm build && vitest run"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "1.1.0",
+    "@standard-schema/utils": "0.3.0",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.8",
+    "hono-openapi": "1.3.3",
+    "jose": "6.2.12",
+    "pg": "8.23.1",
+    "zod": "4.6.2"
+  },
+  "devDependencies": {
+    "@cloudflare/build-output-utils": "0.8.6",
+    "@cloudflare/vite-plugin": "beta",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.23.1",
+    "@types/pluralize": "0.0.33",
+    "cf": "^1.0.0-beta.5",
+    "drizzle-kit": "0.31.11",
+    "miniflare": "5.20261006.0-alpha",
+    "pluralize": "8.0.0",
+    "tsx": "4.23.15",
+    "typescript": "^7.0.2",
+    "typescript-api": "npm:typescript@6.0.3",
+    "vite": "^8.3.0",
+    "vitest": "5.0.3"
+  }
+}

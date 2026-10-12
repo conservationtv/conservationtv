@@ -1,0 +1,28 @@
+{
+  "name": "@conservationtv/ws",
+  "version": "1.0.0",
+  "private": "true",
+  "license": "MIT",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.10.1",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.10.1",
+  "type": "module",
+  "scripts": {
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "^1.78.0",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

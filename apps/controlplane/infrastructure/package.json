@@ -1,0 +1,22 @@
+{
+  "name": "@conservationtv/controlplane-infrastructure",
+  "private": true,
+  "type": "module",
+  "main": "bin/index.js",
+  "scripts": {
+    "build": "pnpm --filter @moq-ha/vps-fleet build && tsc",
+    "typecheck": "pnpm --filter @moq-ha/vps-fleet build && tsc --noEmit"
+  },
+  "dependencies": {
+    "@moq-ha/vps-fleet": "workspace:*",
+    "@pulumi/cloudflare": "catalog:",
+    "@pulumi/digitalocean": "catalog:",
+    "@pulumi/pulumi": "catalog:",
+    "@pulumi/random": "catalog:",
+    "@pulumiverse/acme": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "5.8.3"
+  }
+}
