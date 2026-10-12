@@ -94,14 +94,15 @@ export class MoqRelayCluster extends pulumi.ComponentResource {
 function readRelayHostnames(relays: readonly MoqRelay[]): Map<Machine, string> {
   const hostnames = new Map<Machine, string>();
   for (const { machine, hostname } of relays) {
-    hostnames.set(machine, readHostname(hostname, `MoQ relay ${machine.id} hostname`));
+    hostnames.set(machine, readHostname(hostname, `MoQ relay "${machine.id}" hostname`));
   }
   for (const { machine, peers = [] } of relays) {
+    // Each peer must be another relay in this cluster, listed once.
     for (const peer of peers) {
-      if (peer === machine) throw new Error(`MoQ relay ${machine.id} lists itself as a peer.`);
-      if (!hostnames.has(peer)) throw new Error(`MoQ relay ${machine.id} peer ${peer.id} is not in this cluster.`);
+      if (peer === machine) throw new Error(`MoQ relay "${machine.id}" lists itself as a peer.`);
+      if (!hostnames.has(peer)) throw new Error(`MoQ relay "${machine.id}" peer "${peer.id}" is not in this cluster.`);
     }
-    if (new Set(peers).size !== peers.length) throw new Error(`MoQ relay ${machine.id} lists a peer more than once.`);
+    if (new Set(peers).size !== peers.length) throw new Error(`MoQ relay "${machine.id}" lists a peer more than once.`);
   }
   return hostnames;
 }

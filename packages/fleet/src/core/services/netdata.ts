@@ -30,7 +30,6 @@ export class NetdataAgent extends pulumi.ComponentResource {
 function netdataApp(image: string): ComposeApp {
   return {
     name: 'netdata',
-    dir: '/opt/vps-fleet/addons/netdata',
     services: {
       netdata: {
         image,

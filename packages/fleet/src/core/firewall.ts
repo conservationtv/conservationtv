@@ -29,6 +29,7 @@ function portRule(protocol: 'tcp' | 'udp', port: number | PortRange, sourceCidrs
 }
 
 export function portRange(port: number | PortRange): PortRange {
+  // eslint-disable-next-line anti-slop/no-runtime-typeof -- a rule's port is a single number or a range.
   return typeof port === 'number' ? { from: port, to: port } : port;
 }
 

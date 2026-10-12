@@ -1,7 +1,6 @@
 import * as cloudflare from '@pulumi/cloudflare';
 import * as pulumi from '@pulumi/pulumi';
 import type { DnsZone } from './contracts';
-import { preflightCloudflare } from './preflight';
 
 export interface AddressRecordsArgs {
   zone: DnsZone;
@@ -14,8 +13,6 @@ export interface AddressRecordsArgs {
 export class AddressRecords extends pulumi.ComponentResource {
   public constructor(name: string, args: AddressRecordsArgs, opts?: pulumi.ComponentResourceOptions) {
     super('fleet:core:AddressRecords', name, {}, opts);
-    // A provider passed here or anywhere up the parent chain carries its own credentials.
-    if (!this.getProvider('cloudflare:index/dnsRecord:DnsRecord')) preflightCloudflare();
     const record = (type: 'A' | 'AAAA', content: pulumi.Input<string>) =>
       new cloudflare.DnsRecord(
         `${name}-${type.toLowerCase()}`,

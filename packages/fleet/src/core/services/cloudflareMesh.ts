@@ -3,7 +3,6 @@ import * as pulumi from '@pulumi/pulumi';
 import { ComposeWorkload } from '../compose/workload';
 import type { ComposeApp, Machine, WorkloadTarget } from '../contracts';
 import { sanitizeName } from '../naming';
-import { preflightCloudflare, type PreflightOptions } from '../preflight';
 import { isDnsLabel } from '../validate';
 
 const DEFAULT_IMAGE =
@@ -21,7 +20,6 @@ export interface CloudflareMeshConnectorArgs {
   hostnameRoutes?: (machine: Machine) => string[];
   /** Stop the mesh if it captures the host's default route. Defaults to true. */
   routeSafetyCheck?: boolean;
-  preflight?: PreflightOptions;
 }
 
 export interface CloudflareMeshNode {
@@ -37,9 +35,9 @@ export class CloudflareMeshConnector extends pulumi.ComponentResource {
   /** Keyed by machine id. */
   public readonly connectors: pulumi.Output<Record<string, CloudflareMeshNode>>;
 
+  /** Validates the machine list and routes, gets each machine a token, then deploys the mesh app everywhere. */
   public constructor(name: string, args: CloudflareMeshConnectorArgs, opts?: pulumi.ComponentResourceOptions) {
     super('fleet:core:CloudflareMeshConnector', name, {}, opts);
-    if (args.preflight) preflightCloudflare(args.preflight);
     if (args.machines.length === 0) throw new Error(`CloudflareMeshConnector "${name}" needs at least one machine.`);
     const ids = args.machines.map(machine => machine.id);
     const duplicate = ids.find((id, index) => ids.indexOf(id) !== index);
@@ -122,7 +120,6 @@ function meshApp(
   const safetyDropIn = `[Service]\nExecStartPost=${SAFETY_SCRIPT_PATH}\n`;
   return {
     name: APP,
-    dir: `/opt/vps-fleet/addons/${APP}`,
     services: {
       [APP]: {
         image,

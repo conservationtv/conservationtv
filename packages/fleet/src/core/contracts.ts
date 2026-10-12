@@ -48,9 +48,20 @@ export interface FleetContext {
  * Where additional firewall rules attach on an existing machine. A deployment creates a
  * `MachineIngress` component under itself with this target; it never asks the machine to.
  */
-export type FirewallTarget =
-  | { kind: 'digitalocean'; dropletId: pulumi.Output<number>; cloudName: string }
-  | { kind: 'openstack'; securityGroupId: pulumi.Output<string>; region: string };
+export type FirewallTarget = DigitalOceanFirewallTarget | OpenStackFirewallTarget;
+
+export interface DigitalOceanFirewallTarget {
+  kind: 'digitalocean';
+  dropletId: pulumi.Output<number>;
+  /** Prefix for the names of firewalls attached to the droplet. */
+  cloudName: string;
+}
+
+export interface OpenStackFirewallTarget {
+  kind: 'openstack';
+  securityGroupId: pulumi.Output<string>;
+  region: string;
+}
 
 /** Plan-time host resources a deployment occupies on a machine. */
 export interface HostClaims {
@@ -121,14 +132,7 @@ export interface ServiceEndpoint extends ServiceEndpointDefinition {
 
 // ── Compose applications ────────────────────────────────────────────────────────────
 
-export type ComposeValue =
-  | string
-  | number
-  | boolean
-  | null
-  | pulumi.Input<string>
-  | ComposeMapping
-  | ComposeValue[];
+export type ComposeValue = string | number | boolean | null | pulumi.Input<string> | ComposeMapping | ComposeValue[];
 
 export interface ComposeMapping {
   readonly [key: string]: ComposeValue;

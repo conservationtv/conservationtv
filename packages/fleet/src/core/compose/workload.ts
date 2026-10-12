@@ -9,6 +9,7 @@ export class ComposeWorkload extends pulumi.ComponentResource {
   public readonly deployments: readonly ComposeDeployment[];
   public readonly summary: pulumi.Output<DeploymentSummary[]>;
 
+  /** Creates `<name>-<machine id>` deployments in rollout order; serial ones each depend on their predecessor. */
   public constructor(name: string, args: ComposeWorkloadArgs, opts?: pulumi.ComponentResourceOptions) {
     super('fleet:core:ComposeWorkload', name, {}, opts);
     const deployments: ComposeDeployment[] = [];
@@ -21,6 +22,7 @@ export class ComposeWorkload extends pulumi.ComponentResource {
           `${name}-${target.machine.id}`,
           {
             target,
+            // eslint-disable-next-line anti-slop/no-runtime-typeof -- `app` is a ComposeApp or a per-target factory.
             app: typeof args.app === 'function' ? args.app(target) : args.app,
             ingress: args.ingress,
             dns: args.dns
@@ -35,6 +37,7 @@ export class ComposeWorkload extends pulumi.ComponentResource {
   }
 }
 
+/** Rejects empty, repeated-machine and repeated-hostname targets, then sorts by priority and machine id. */
 function orderTargets(name: string, targets: readonly WorkloadTarget[]): WorkloadTarget[] {
   if (!targets.length) throw new Error(`Workload "${name}" must declare at least one target.`);
   const machines = new Set<string>();

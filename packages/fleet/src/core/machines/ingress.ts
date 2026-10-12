@@ -12,7 +12,7 @@ export interface MachineIngressArgs {
 /** Extra inbound rules on an existing machine, owned by whoever creates this component. */
 export class MachineIngress extends pulumi.ComponentResource {
   public constructor(name: string, args: MachineIngressArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('fleet:machines:MachineIngress', name, {}, opts);
+    super('fleet:core:MachineIngress', name, {}, opts);
     const { firewall, rules } = args;
     if (rules.length) {
       switch (firewall.kind) {

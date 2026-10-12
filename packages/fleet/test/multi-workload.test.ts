@@ -5,7 +5,12 @@ import { ComposeWorkload } from '../src/core/compose/workload';
 import type { ComposeApp, ComposeWorkloadArgs, Machine, WorkloadTarget } from '../src/core/contracts';
 import { MachineClaimLedger } from '../src/core/machines/claims';
 
-const inputs = new Map<string, Record<string, unknown>>();
+interface CommandInputs {
+  create: string;
+  triggers: string[];
+}
+
+const inputs = new Map<string, CommandInputs>();
 
 pulumi.runtime.setMocks({
   newResource: args => {
@@ -42,7 +47,7 @@ describe('compose workloads on shared machines', () => {
     const two = workload('two', { targets: [target(machine, 'two')], app: app('two', 8082) });
     await settle();
 
-    const ingress = registrations.filter(registration => registration.type === 'fleet:machines:MachineIngress');
+    const ingress = registrations.filter(registration => registration.type === 'fleet:core:MachineIngress');
     expect(ingress.map(registration => registration.name)).toEqual(['one-shared-ingress', 'two-shared-ingress']);
     expect(one.deployments[0].endpoints['one.http']).toMatchObject({ owner: 'one', port: 8081 });
     expect(await promiseOf(two.summary)).toEqual([
@@ -130,7 +135,7 @@ describe('rollout ordering', () => {
       'gated-b-restart',
       'gated-b-step-migrate'
     ]);
-    for (const command of commands) expect(dependencies(command.name)).toContain(upstream);
+    for (const { name } of commands) expect(dependencies(name)).toContain(upstream);
   });
 
   it('validates targets', () => {
@@ -157,28 +162,29 @@ describe('managed lifecycle', () => {
     );
     await settle();
 
-    const files = String(inputs.get('life-files')?.create);
+    const files = command('life-files').create;
     expect(files).toMatch(/^sudo \/bin\/sh -s <<'__FLEET_SUDO__'/);
     for (const path of ['/opt/web/docker-compose.yml', '/etc/systemd/system/web.service', '/opt/web/certs/key.pem']) {
       expect(files).toContain(`base64 -d > '${path}'`);
     }
     expect(files).toContain("chmod 0600 '/opt/web/docker-compose.yml'");
 
-    const redeploy = inputs.get('life-redeploy');
-    expect(redeploy?.create).toContain("cd '/opt/web'");
-    expect(redeploy?.create).toContain('docker compose up -d --force-recreate --remove-orphans');
-    expect(redeploy?.create).toContain("curl -fsS --max-time 2 'http://127.0.0.1:8080/health' | grep -Eq '^ok$'");
-    expect(redeploy?.create).toContain('docker compose logs --tail=100');
-    expect(redeploy?.triggers).toHaveLength(3);
-    expect(redeploy?.triggers).toContain('mode = 1');
+    const redeploy = command('life-redeploy');
+    expect(redeploy.create).toContain("cd '/opt/web'");
+    expect(redeploy.create).toContain('docker compose up -d --force-recreate --remove-orphans');
+    expect(redeploy.create).toContain("curl -fsS --max-time 2 'http://127.0.0.1:8080/health' | grep -Eq '^ok$'");
+    expect(redeploy.create).toContain('docker compose logs --tail=100');
+    expect(redeploy.triggers).toHaveLength(3);
+    expect(redeploy.triggers).toContain('mode = 1');
 
-    const restart = inputs.get('life-restart');
-    expect(restart?.create).toContain('docker compose restart');
-    expect(restart?.triggers).toEqual(['KEY']);
+    const restart = command('life-restart');
+    expect(restart.create).toContain('docker compose restart');
+    expect(restart.triggers).toEqual(['KEY']);
     expect(dependencies('life-restart')).toContain(resourceNamed('life-redeploy'));
     expect(dependencies('life-step-migrate')).toContain(resourceNamed('life-restart'));
 
-    const compose = Buffer.from(/docker-compose.yml'.*?\n(.*?)\n__FLEET_FILE__/s.exec(files)?.[1] ?? '', 'base64');
+    const [, encodedCompose = ''] = /docker-compose.yml'.*?\n(.*?)\n__FLEET_FILE__/s.exec(files) ?? [];
+    const compose = Buffer.from(encodedCompose, 'base64');
     expect(compose.toString()).toMatch(/^name: web\nservices:\n {2}app:/);
   });
 
@@ -239,12 +245,18 @@ function fakeMachine(id: string, sudo = false): Machine {
     ready: new pulumi.ComponentResource('test:index:Ready', `${id}-${Math.random()}`),
     firewall: { kind: 'openstack', securityGroupId: pulumi.output(`${id}-sg`), region: 'test-1' },
     claims: new MachineClaimLedger(id)
-  } as Machine;
+  };
 }
 
-function dependencies(name: string): unknown[] {
-  const flatten = (value: unknown): unknown[] => (Array.isArray(value) ? value.flatMap(flatten) : [value]);
-  return flatten(registrations.find(registration => registration.name === name)?.opts.dependsOn ?? []);
+function dependencies(name: string): pulumi.Resource[] {
+  const dependsOn = registrations.find(registration => registration.name === name)?.opts.dependsOn;
+  return [dependsOn].flat(Infinity).filter(pulumi.Resource.isInstance);
+}
+
+function command(name: string): CommandInputs {
+  const recorded = inputs.get(name);
+  if (!recorded) throw new Error(`No command named ${name} was registered.`);
+  return recorded;
 }
 
 function resourceNamed(name: string): pulumi.Resource | undefined {

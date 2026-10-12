@@ -4,7 +4,6 @@ import * as pulumi from '@pulumi/pulumi';
 import type { FirewallTarget, HostClaimLedger, Machine } from '../contracts';
 import { ALLOW_ALL_EGRESS, tcp } from '../firewall';
 import { resourceName } from '../naming';
-import { preflightOpenStack, type PreflightOptions } from '../preflight';
 import { MachineClaimLedger } from './claims';
 import { createOpenStackRules } from './rules';
 import { machineUserData, readMachineIdentity, sshConnection, waitForCloudInit, type MachineArgsBase } from './shared';
@@ -16,8 +15,6 @@ export interface OpenStackMachineArgs extends MachineArgsBase {
   imageName?: string;
   /** Defaults to `Ext-Net`. */
   networkName?: string;
-  /** Credential checks, run only when no explicit provider is passed in opts. */
-  preflight?: PreflightOptions;
 }
 
 // The Ubuntu image's default user; cloud-init installs the fleet key for root, the keypair for this user.
@@ -39,8 +36,7 @@ export class OpenStackMachine extends pulumi.ComponentResource implements Machin
   public readonly claims: HostClaimLedger;
 
   public constructor(name: string, args: OpenStackMachineArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('fleet:machines:OpenStackMachine', name, {}, opts);
-    if (!opts?.provider && !opts?.providers) preflightOpenStack(args.preflight);
+    super('fleet:core:OpenStackMachine', name, {}, opts);
     const { fleet, region } = args;
     const identity = readMachineIdentity(name, args, 63);
     this.id = identity.id;

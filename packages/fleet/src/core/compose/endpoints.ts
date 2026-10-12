@@ -11,24 +11,20 @@ const PATH_NAME = /^[a-z][a-z0-9-]*$/;
  * routes on one listener, but only if a single service owns it.
  */
 export function resolveEndpoints(app: ComposeApp): Record<string, ServiceEndpoint> {
-  const endpoints: Record<string, ServiceEndpoint> = {};
-  const listeners = new Map<string, ServiceEndpoint>();
-  for (const [id, definition] of Object.entries(app.endpoints ?? {})) {
-    const endpoint = resolveEndpoint(id, definition, app);
-    if (endpoint.binding === 'host') {
-      const key = listenerKey(endpoint);
-      const existing = listeners.get(key);
-      if (existing && existing.service !== endpoint.service) {
-        throw new Error(
-          `Host listener collision on ${key} in app "${app.name}": endpoint "${existing.id}" belongs to service ` +
-            `"${existing.service}" but endpoint "${id}" belongs to service "${endpoint.service}".`
-        );
-      }
-      listeners.set(key, endpoint);
+  const resolved = Object.entries(app.endpoints ?? {}).map(([id, definition]) => resolveEndpoint(id, definition, app));
+  const owners = new Map<string, ServiceEndpoint>();
+  for (const endpoint of resolved.filter(candidate => candidate.binding === 'host')) {
+    const key = listenerKey(endpoint);
+    const existing = owners.get(key);
+    if (existing && existing.service !== endpoint.service) {
+      throw new Error(
+        `Host listener collision on ${key} in app "${app.name}": endpoint "${existing.id}" belongs to service ` +
+          `"${existing.service}" but endpoint "${endpoint.id}" belongs to service "${endpoint.service}".`
+      );
     }
-    endpoints[id] = endpoint;
+    owners.set(key, endpoint);
   }
-  return endpoints;
+  return Object.fromEntries(resolved.map(endpoint => [endpoint.id, endpoint]));
 }
 
 /** `${transport}:${port}` for every host-bound listener, as claimed on the machine. */
@@ -69,6 +65,30 @@ export function endpointUrl(endpoint: ServiceEndpoint, hostname: string, path = 
 
 function resolveEndpoint(id: string, definition: ServiceEndpointDefinition, app: ComposeApp): ServiceEndpoint {
   const what = `Service endpoint "${id}" in app "${app.name}"`;
+  assertEndpointDefinition(what, id, definition, app);
+  const binding = definition.binding ?? 'host';
+  // Public host listeners always carry explicit sources because they become firewall rules.
+  const sourceCidrs =
+    definition.visibility === 'public' && binding === 'host'
+      ? readCidrs(definition.sourceCidrs ?? ANYWHERE, `${what} sourceCidrs`)
+      : definition.sourceCidrs && readCidrs(definition.sourceCidrs, `${what} sourceCidrs`);
+  return {
+    ...definition,
+    id,
+    owner: app.name,
+    binding,
+    targetPort: definition.targetPort ?? definition.port,
+    sourceCidrs
+  };
+}
+
+// Each check rejects one malformed field; together they make every resolved endpoint safe to render and expose.
+function assertEndpointDefinition(
+  what: string,
+  id: string,
+  definition: ServiceEndpointDefinition,
+  app: ComposeApp
+): void {
   if (!ENDPOINT_ID.test(id)) throw new Error(`${what} must be lowercase labels separated by . or -.`);
   if (!Object.hasOwn(app.services, definition.service)) {
     throw new Error(`${what} references unknown service "${definition.service}".`);
@@ -78,26 +98,15 @@ function resolveEndpoint(id: string, definition: ServiceEndpointDefinition, app:
   if (definition.scheme !== undefined && !SCHEME.test(definition.scheme)) {
     throw new Error(`${what} has invalid scheme "${definition.scheme}".`);
   }
-  for (const [name, path] of Object.entries(definition.paths ?? {})) {
-    if (!PATH_NAME.test(name) || !path.startsWith('/')) {
-      throw new Error(`${what} has invalid named path "${name}": "${path}".`);
-    }
-  }
+  for (const [name, path] of Object.entries(definition.paths ?? {})) assertNamedPath(what, name, path);
   if (definition.sourceCidrs && definition.visibility !== 'public') {
     throw new Error(`${what} may only declare sourceCidrs when its visibility is public.`);
   }
-  const binding = definition.binding ?? 'host';
-  const publicListener = definition.visibility === 'public' && binding === 'host';
-  return {
-    ...definition,
-    id,
-    owner: app.name,
-    binding,
-    targetPort: definition.targetPort ?? definition.port,
-    sourceCidrs: publicListener
-      ? readCidrs(definition.sourceCidrs ?? ANYWHERE, `${what} sourceCidrs`)
-      : definition.sourceCidrs && readCidrs(definition.sourceCidrs, `${what} sourceCidrs`)
-  };
+}
+
+function assertNamedPath(what: string, name: string, path: string): void {
+  if (!PATH_NAME.test(name) || !path.startsWith('/'))
+    throw new Error(`${what} has invalid named path "${name}": "${path}".`);
 }
 
 function listenerKey(endpoint: ServiceEndpoint): string {

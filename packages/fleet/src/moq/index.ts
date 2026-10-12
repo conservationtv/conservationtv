@@ -7,7 +7,6 @@ export {
   moqAuthUrl,
   moqRelayApp,
   renderMoqRelayToml,
-  stableClusterId,
   type MoqRelayAppArgs,
   type MoqRelayAuth
 } from './relayApp';
