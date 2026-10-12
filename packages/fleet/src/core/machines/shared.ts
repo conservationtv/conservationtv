@@ -40,23 +40,14 @@ export function readMachineIdentity(name: string, args: MachineArgsBase, maxLeng
   };
 }
 
-export function machineUserData(
-  name: string,
-  identity: MachineIdentity,
-  args: MachineArgsBase,
-  parent: pulumi.Resource
-): pulumi.Output<string> {
-  return renderCloudInit(
-    `${name}-cloud-init`,
-    {
-      ...args.cloudInit,
-      hostname: identity.id,
-      fqdn: identity.hostname,
-      ssh: args.fleet.ssh,
-      sshAuthorizedKeys: [args.fleet.publicKeyOpenSsh]
-    },
-    { parent }
-  );
+export function machineUserData(identity: MachineIdentity, args: MachineArgsBase): pulumi.Output<string> {
+  return renderCloudInit({
+    ...args.cloudInit,
+    hostname: identity.id,
+    fqdn: identity.hostname,
+    ssh: args.fleet.ssh,
+    sshAuthorizedKeys: [args.fleet.publicKeyOpenSsh]
+  });
 }
 
 export function sshConnection(

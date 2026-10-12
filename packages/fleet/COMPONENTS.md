@@ -39,7 +39,8 @@ Common args:
 
 DigitalOcean adds `size` (`s-1vcpu-2gb`), `image` (`ubuntu-24-04-x64`) and `sshKeys`. Create one `digitalocean.SshKey`
 from `fleet.publicKeyOpenSsh` and pass its id to every machine: DigitalOcean rejects duplicate keys per account and
-emails a root password to droplets created without one. OpenStack adds `flavor` (`d2-4`), `imageName`
+emails a root password to droplets created without one. `project` assigns the droplet to a DigitalOcean project, e.g.
+`digitalocean.getProjectOutput({ name }).id`; otherwise it lands in the account's default project. OpenStack adds `flavor` (`d2-4`), `imageName`
 (`Ubuntu 24.04`) and `networkName` (`Ext-Net`), owns a per-machine keypair and security group, and deploys as `ubuntu`
 through sudo.
 

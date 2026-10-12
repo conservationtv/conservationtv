@@ -46,7 +46,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@pulumi/cloudinit": "catalog:",
     "@pulumi/command": "catalog:",
     "@pulumi/pulumi": "catalog:",
     "@pulumi/random": "catalog:",

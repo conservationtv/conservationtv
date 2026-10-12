@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import { remote, type types as commandTypes } from '@pulumi/command';
 import * as pulumi from '@pulumi/pulumi';
@@ -138,7 +139,7 @@ export function deployComposePlan(
     const remoteScript = pulumi.output(script).apply(body => asRemoteScript(body, target.sudo));
     return new remote.Command(
       `${name}-${suffix}`,
-      { connection: target.connection, create: remoteScript, update: remoteScript, triggers },
+      { connection: target.connection, create: remoteScript, update: remoteScript, triggers: digest(triggers) },
       after(...deps)
     );
   };
@@ -174,6 +175,15 @@ export function deployComposePlan(
     lifecycle.push(command(`step-${step.name}`, script, step.triggers, [...lifecycle]));
   }
   return lifecycle;
+}
+
+/**
+ * Collapse trigger values into one digest so state records a hash rather than file contents, and so
+ * secrets that are still unknown during preview travel as a single top-level value: the engine cannot
+ * serialize unknown secrets nested inside a triggers list.
+ */
+function digest(triggers: pulumi.Input<unknown>[]): pulumi.Output<string[]> {
+  return pulumi.all(triggers).apply(values => [createHash('sha256').update(JSON.stringify(values)).digest('hex')]);
 }
 
 // No ExecStartPre pull: deploys pull explicitly, and a boot should not wait on (or fail with) a registry.
