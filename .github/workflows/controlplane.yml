@@ -1,0 +1,82 @@
+name: controlplane
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/controlplane/**
+      - packages/fleet/**
+      - pnpm-lock.yaml
+      - .github/workflows/controlplane.yml
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits rather than cancelling an apply in progress.
+concurrency:
+  group: controlplane-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      STACK: prod
+      PULUMI_BACKEND_URL: ${{ vars.PULUMI_BACKEND_URL }}
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      PGHOST: ${{ secrets.PGHOST }}
+      PGDATABASE: ${{ secrets.PGDATABASE }}
+      PGUSER: ${{ secrets.PGUSER }}
+      PGPASSWORD: ${{ secrets.PGPASSWORD }}
+      PGSSLMODE: ${{ vars.PGSSLMODE }}
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: apps/controlplane/infrastructure
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: pulumi/actions@v6
+        with:
+          pulumi-version: 3.250.0
+
+      - name: Install
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the stack program
+        run: pnpm run build
+
+      # Without gatekeeperVersion the stack keeps the deployed version, so this applies only infrastructure changes and
+      # the version uploaded below binds resources that already exist.
+      - name: Apply infrastructure
+        run: pulumi up --stack "$STACK" --yes --non-interactive --diff
+
+      # Migrations must stay compatible with the version still serving until the deployment switches.
+      - name: Migrate the database
+        run: |
+          database_url=$(pulumi stack output gatekeeperMigrationUrl --show-secrets --stack "$STACK")
+          echo "::add-mask::$database_url"
+          DATABASE_URL="$database_url" pnpm --filter @conservationtv/gatekeeper run db:migrate
+
+      - name: Upload a gatekeeper version
+        run: |
+          secrets="$RUNNER_TEMP/gatekeeper-secrets.json"
+          trap 'rm -f "$secrets"' EXIT
+          pulumi stack output gatekeeperSecrets --json --show-secrets --stack "$STACK" > "$secrets"
+          STACK_OUTPUT_JSON=$(pulumi stack output --json --stack "$STACK") \
+            pnpm --filter @conservationtv/gatekeeper run upload \
+            --tag "$GITHUB_SHA" --message "gatekeeper $GITHUB_SHA" --secrets-file "$secrets"
+
+      - name: Deploy the version
+        run: pulumi up --stack "$STACK" --yes --non-interactive --diff --config "gatekeeperVersion=$GITHUB_SHA"

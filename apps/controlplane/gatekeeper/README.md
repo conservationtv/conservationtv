@@ -173,7 +173,7 @@ Revocation options are:
 
 The controlplane Pulumi stack owns the Worker, its Hyperdrive config and every secret, including the signing keys.
 `pnpm upload` uploads a version without deploying it; the Hyperdrive ID comes from that stack's outputs, passed as
-`STACK_OUTPUT_JSON`. Release with [`../release.sh`](../release.sh), as described in the
+`STACK_OUTPUT_JSON`. CI releases it on pushes to `main`, as described in the
 [controlplane README](../infrastructure/README.md#release-gatekeeper), which also covers key rotation.
 
 `pnpm keys:generate [kid]` prints a `MOQ_SIGNING_KEYS` value for local development.

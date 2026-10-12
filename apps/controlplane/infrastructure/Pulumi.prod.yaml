@@ -3,13 +3,5 @@ config:
   controlplane:domain: conservation.tv
   controlplane:zoneId: d070375f1867a6beb82f703c9d6f8a58
   controlplane:acmeEmail: james@siliconlemonade.com
-  digitalocean:token:
-    secure: v1:1Xi3HDq0kdDd+hM9:2ykXs6OGIslKjvXcJ/LThunLAuUtRkOLvjPXiSikm25FtE/8d8qOm0xxhFyWzwjMwkGnZHedkY84vVZMJZFElyfK7Ufxs+fB6k6bqvt4LYb7rmdTjS9J
-  cloudflare:apiToken:
-    secure: v1:yX1XkzTlz3o3yIq2:YG4mgW9AFK3ICdCMhENFKG+X5mNpNhtWgyqw0XX+nztPsbBKy37hBd1Lwv2tZ/akLW833AOiPR5AOxy6uw+UxGbH4OGu
   controlplane:gatekeeperDomain: gatekeeper.conservation.tv
   controlplane:planetscaleOrganization: conservationtv
-  controlplane:moqSigningKids:
-    - controlplane-moq-2026-10-12
-  controlplane:moqSigningActiveKid: controlplane-moq-2026-10-12
-  controlplane:gatekeeperVersion: d65fe2ea4f40de5d42f861966b201b425d2b240f

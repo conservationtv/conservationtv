@@ -71,7 +71,7 @@ const irohMachine = new DigitalOceanMachine(`iroh-${site}`, {
 const acme = new AcmeAccount('acme', {
   serverUrl: 'https://acme-v02.api.letsencrypt.org/directory',
   email: config.require('acmeEmail'),
-  dnsChallenge: { provider: 'cloudflare', apiToken: new pulumi.Config('cloudflare').requireSecret('apiToken') }
+  dnsChallenge: { provider: 'cloudflare' }
 });
 const moqCertificate = new AcmeCertificate('moq-relay-tls', { account: acme, names: [moqHostname] });
 const irohCertificate = new AcmeCertificate('iroh-relay-tls', { account: acme, names: [irohHostname] });
@@ -146,28 +146,41 @@ const gatekeeperHyperdrive = new cloudflare.HyperdriveConfig('gatekeeper', {
   caching: { disabled: true }
 });
 
-// The MoQ consumer token signing keys, one ES256 key per kid. To rotate: add a kid and release, switch
-// moqSigningActiveKid and release, then remove the old kid once its longest-lived token has expired.
-const moqSigningKids = config.requireObject<string[]>('moqSigningKids');
-const moqSigningActiveKid = config.require('moqSigningActiveKid');
-if (!moqSigningKids.includes(moqSigningActiveKid))
-  throw new Error('moqSigningActiveKid must name one of moqSigningKids');
+// The MoQ consumer token signing keys: an ES256 key per generation. Gatekeeper signs with the current generation's key
+// and still verifies the previous generation's, so a rotation never invalidates live tokens. To rotate, increment
+// moqSigningKeyGeneration and release; the previous key is dropped at the next rotation, so leave at least
+// MAX_CREDENTIAL_LIFETIME_SECONDS between rotations.
+const moqSigningKeyGeneration = Number(config.get('moqSigningKeyGeneration') ?? '1');
+if (!Number.isInteger(moqSigningKeyGeneration) || moqSigningKeyGeneration < 1) {
+  throw new Error('moqSigningKeyGeneration must be a positive integer');
+}
+const moqSigningKid = (generation: number) => `controlplane-moq-${generation}`;
+const moqSigningKey = (generation: number) =>
+  new tls.PrivateKey(`moq-signing-key-${generation}`, { algorithm: 'ECDSA', ecdsaCurve: 'P256' }).privateKeyPem.apply(
+    pem => {
+      const { kty, crv, x, y, d } = createPrivateKey(pem).export({ format: 'jwk' });
+      return { kty, crv, alg: 'ES256', use: 'sig', kid: moqSigningKid(generation), x, y, d };
+    }
+  );
+const moqSigningGenerations = [moqSigningKeyGeneration, moqSigningKeyGeneration - 1].filter(
+  generation => generation >= 1
+);
 const moqSigningKeys = pulumi
-  .all(
-    moqSigningKids.map(kid =>
-      new tls.PrivateKey(`moq-signing-key-${kid}`, { algorithm: 'ECDSA', ecdsaCurve: 'P256' }).privateKeyPem.apply(
-        pem => {
-          const { kty, crv, x, y, d } = createPrivateKey(pem).export({ format: 'jwk' });
-          return { kty, crv, alg: 'ES256', use: 'sig', kid, x, y, d };
-        }
-      )
-    )
-  )
-  .apply(keys => JSON.stringify({ active_kid: moqSigningActiveKid, keys }));
+  .all(moqSigningGenerations.map(moqSigningKey))
+  .apply(keys => JSON.stringify({ active_kid: moqSigningKid(moqSigningKeyGeneration), keys }));
 
-// The tag a version was uploaded with (`cf workers versions create --tag`), like an image tag. Unset until the first
-// upload, which needs the Worker and the bindings above to exist.
-const gatekeeperVersion = config.get('gatekeeperVersion');
+interface DeployedGatekeeper {
+  versionTag?: string;
+}
+
+// The tag a version was uploaded with (`cf workers versions create --tag`), like an image tag. CI sets it for each
+// release; otherwise this keeps the version deployed now, read from the stack's last outputs, so a plain `pulumi up`
+// never rolls gatekeeper back or removes its deployment. Unset before the first upload, which needs the Worker and the
+// bindings above to exist.
+const previousOutputs = new pulumi.StackReference(`${pulumi.getOrganization()}/${pulumi.getProject()}/${stack}`);
+// SAFETY: `gatekeeper` is this stack's own output, exported below with this shape (or absent before the first update).
+const deployed = (await previousOutputs.getOutputDetails('gatekeeper')).value as DeployedGatekeeper | undefined;
+const gatekeeperVersion = config.get('gatekeeperVersion') ?? deployed?.versionTag;
 const gatekeeperVersionId = gatekeeperVersion
   ? cloudflare.getWorkerVersionsOutput({ accountId, workerId: gatekeeperWorker.name }).results.apply(versions => {
       // A tag can be uploaded more than once; the latest upload wins.
@@ -202,6 +215,7 @@ if (gatekeeperVersionId) {
 
 /** Gatekeeper's build settings, read from STACK_OUTPUT_JSON. */
 export const gatekeeper = {
+  versionTag: gatekeeperVersion,
   domain: gatekeeperDomain,
   hyperdriveId: gatekeeperHyperdrive.id,
   versionId: gatekeeperVersionId
