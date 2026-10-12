@@ -14,6 +14,7 @@ export default defineConfig({
     compatibilityDate: '2026-09-25',
     compatibilityFlags: ['nodejs_compat'],
     entrypoint,
+    domains: ['gatekeeper.conservation.tv'],
     triggers: [triggers.scheduled({ schedule: '*/15 * * * *' })],
     env: {
       /** JSON arrays, replaceable per deployment or through .dev.vars. */

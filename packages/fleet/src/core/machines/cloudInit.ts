@@ -89,7 +89,8 @@ export function renderCloudInitYaml(profile: CloudInitProfile): string {
 
   return yaml.stringify({
     package_update: true,
-    packages: profile.extraPackages ?? [],
+    // cloud-init's schema rejects an empty `packages` list, so omit the key when there is nothing to install.
+    ...(profile.extraPackages?.length && { packages: profile.extraPackages }),
     hostname: profile.hostname,
     preserve_hostname: false,
     fqdn: profile.fqdn,

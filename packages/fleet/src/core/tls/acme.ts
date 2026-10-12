@@ -55,6 +55,8 @@ export interface AcmeCertificateArgs {
 }
 
 /** A DNS-01 validated certificate, renewed by `pulumi up` once it nears expiry. */
+const PUBLIC_RESOLVERS = ['1.1.1.1:53', '8.8.8.8:53'];
+
 export class AcmeCertificate extends pulumi.ComponentResource implements PublicTlsMaterial {
   /** Leaf certificate followed by its issuer chain. */
   public readonly fullchainPem: pulumi.Output<string>;
@@ -72,7 +74,10 @@ export class AcmeCertificate extends pulumi.ComponentResource implements PublicT
         subjectAlternativeNames,
         keyType: 'EC256',
         minDaysRemaining: args.minDaysRemaining ?? 30,
-        dnsChallenges: [args.account.dnsChallenge]
+        dnsChallenges: [args.account.dnsChallenge],
+        // Check challenge propagation against public resolvers, not whatever the deploying machine is configured
+        // with: VPN and split-horizon resolvers (e.g. Tailscale's 100.100.100.100) can answer NXDOMAIN indefinitely.
+        recursiveNameservers: PUBLIC_RESOLVERS
       },
       { parent: this, provider: args.account.provider }
     );
