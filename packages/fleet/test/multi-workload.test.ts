@@ -160,6 +160,11 @@ describe('managed lifecycle', () => {
       { target: target(fakeMachine('m', true), 'life'), app: app('web', 8080, true) },
       { transformations: [record] }
     );
+    new ComposeDeployment(
+      'renewed',
+      { target: target(fakeMachine('n', true), 'renewed'), app: app('web', 8080, true, 'RENEWED KEY') },
+      { transformations: [record] }
+    );
     await settle();
 
     const files = command('life-files').create;
@@ -174,12 +179,12 @@ describe('managed lifecycle', () => {
     expect(redeploy.create).toContain('docker compose up -d --force-recreate --remove-orphans');
     expect(redeploy.create).toContain("curl -fsS --max-time 2 'http://127.0.0.1:8080/health' | grep -Eq '^ok$'");
     expect(redeploy.create).toContain('docker compose logs --tail=100');
-    expect(redeploy.triggers).toHaveLength(3);
-    expect(redeploy.triggers).toContain('mode = 1');
 
     const restart = command('life-restart');
     expect(restart.create).toContain('docker compose restart');
-    expect(restart.triggers).toEqual(['KEY']);
+    // A changed restart-only file (a renewed key) restarts in place without triggering a redeploy.
+    expect(command('renewed-redeploy').triggers).toEqual(redeploy.triggers);
+    expect(command('renewed-restart').triggers).not.toEqual(restart.triggers);
     expect(dependencies('life-restart')).toContain(resourceNamed('life-redeploy'));
     expect(dependencies('life-step-migrate')).toContain(resourceNamed('life-restart'));
 
@@ -210,7 +215,7 @@ function workload(name: string, args: ComposeWorkloadArgs, opts: pulumi.Componen
   return new ComposeWorkload(name, args, { ...opts, transformations: [record] });
 }
 
-function app(name: string, port: number, full = false): ComposeApp {
+function app(name: string, port: number, full = false, key = 'KEY'): ComposeApp {
   return {
     name,
     services: { app: { image: 'example.invalid/app@sha256:abc' } },
@@ -220,7 +225,7 @@ function app(name: string, port: number, full = false): ComposeApp {
     ...(full && {
       files: [
         { path: 'app.toml', content: 'mode = 1' },
-        { path: 'certs/key.pem', content: 'KEY', mode: '0600', onChange: 'restart' }
+        { path: 'certs/key.pem', content: key, mode: '0600', onChange: 'restart' }
       ],
       health: [{ url: `http://127.0.0.1:${port}/health`, expect: '^ok$' }],
       steps: [{ name: 'migrate', script: 'docker compose exec app migrate', triggers: ['v1'] }]

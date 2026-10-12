@@ -1,4 +1,3 @@
-import * as cloudinit from '@pulumi/cloudinit';
 import * as pulumi from '@pulumi/pulumi';
 import dedent from 'dedent';
 import * as yaml from 'yaml';
@@ -46,43 +45,30 @@ interface CloudInitArgs extends MachineCloudInit {
   sshAuthorizedKeys: pulumi.Input<string>[];
 }
 
-/** Renders the machine's user data through a `cloudinit.Config` child. */
-export function renderCloudInit(
-  name: string,
-  args: CloudInitArgs,
-  opts?: pulumi.CustomResourceOptions
-): pulumi.Output<string> {
+/** The machine's `#cloud-config` user data. */
+export function renderCloudInit(args: CloudInitArgs): pulumi.Output<string> {
   const files = args.files ?? [];
   for (const file of files) {
     if (!file.path.startsWith('/')) throw new Error(`Cloud-init file path "${file.path}" must be absolute.`);
   }
-  const content = pulumi
+  return pulumi
     .all({
       keys: pulumi.all(args.sshAuthorizedKeys),
       fileContents: pulumi.all(files.map(file => file.content)),
       commands: pulumi.all(args.commands ?? [])
     })
-    .apply(({ keys, fileContents, commands }) =>
-      renderCloudInitYaml({
-        hostname: args.hostname,
-        fqdn: args.fqdn,
-        ssh: args.ssh,
-        sshAuthorizedKeys: keys,
-        extraPackages: args.packages,
-        extraWriteFiles: files.map((file, index) => ({ ...file, content: fileContents[index] })),
-        extraRunCmds: commands
-      })
+    .apply(
+      ({ keys, fileContents, commands }) =>
+        `#cloud-config\n${renderCloudInitYaml({
+          hostname: args.hostname,
+          fqdn: args.fqdn,
+          ssh: args.ssh,
+          sshAuthorizedKeys: keys,
+          extraPackages: args.packages,
+          extraWriteFiles: files.map((file, index) => ({ ...file, content: fileContents[index] })),
+          extraRunCmds: commands
+        })}`
     );
-
-  return new cloudinit.Config(
-    name,
-    {
-      gzip: false,
-      base64Encode: false,
-      parts: [{ contentType: 'text/cloud-config', content: pulumi.interpolate`#cloud-config\n${content}` }]
-    },
-    opts
-  ).rendered;
 }
 
 export function renderCloudInitYaml(profile: CloudInitProfile): string {

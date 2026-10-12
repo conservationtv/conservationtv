@@ -81,7 +81,7 @@ export class OpenStackMachine extends pulumi.ComponentResource implements Machin
         keyPair: keyPair.name,
         networks: [{ name: args.networkName ?? 'Ext-Net' }],
         securityGroups: [securityGroup.name],
-        userData: machineUserData(name, identity, args, this),
+        userData: machineUserData(identity, args),
         tags
       },
       // Boot only once egress exists, or cloud-init cannot reach package mirrors.

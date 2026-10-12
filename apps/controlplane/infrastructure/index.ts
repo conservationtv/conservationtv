@@ -24,17 +24,20 @@ const sshKey = new digitalocean.SshKey('bootstrap-ssh-key', {
   name: `${name}-bootstrap`,
   publicKey: fleet.publicKeyOpenSsh
 });
+const project = digitalocean.getProjectOutput({ name: 'conservationtv' });
 const moqMachine = new DigitalOceanMachine('moq-london', {
   fleet,
   region: 'lon1',
   hostname: moqHostname,
-  sshKeys: [sshKey.id]
+  sshKeys: [sshKey.id],
+  project: project.id
 });
 const irohMachine = new DigitalOceanMachine('iroh-london', {
   fleet,
   region: 'lon1',
   hostname: irohHostname,
-  sshKeys: [sshKey.id]
+  sshKeys: [sshKey.id],
+  project: project.id
 });
 
 const acme = new AcmeAccount('acme', {

@@ -20,6 +20,8 @@ export interface DigitalOceanMachineArgs extends MachineArgsBase {
    * for the fleet key and pass its id to every machine.
    */
   sshKeys?: pulumi.Input<string>[];
+  /** DigitalOcean project ID to assign the droplet to. Unassigned droplets land in the account's default project. */
+  project?: pulumi.Input<string>;
 }
 
 const USER = 'root';
@@ -61,7 +63,7 @@ export class DigitalOceanMachine extends pulumi.ComponentResource implements Mac
         tags: [fleet.namePrefix, resourceName(fleet.namePrefix, fleet.environment), identity.cloudName],
         monitoring: true,
         ipv6: args.enableIpv6 ?? false,
-        userData: machineUserData(name, identity, args, this)
+        userData: machineUserData(identity, args)
       },
       { parent: this }
     );
@@ -77,6 +79,14 @@ export class DigitalOceanMachine extends pulumi.ComponentResource implements Mac
       },
       { parent: this }
     );
+
+    if (args.project !== undefined) {
+      new digitalocean.ProjectResources(
+        `${name}-project`,
+        { project: args.project, resources: [droplet.dropletUrn] },
+        { parent: this }
+      );
+    }
 
     this.address = droplet.ipv4Address;
     this.addressV6 = args.enableIpv6 ? droplet.ipv6Address : undefined;

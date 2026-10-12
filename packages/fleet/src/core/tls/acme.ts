@@ -70,7 +70,7 @@ export class AcmeCertificate extends pulumi.ComponentResource implements PublicT
         accountKeyPem: args.account.accountKeyPem,
         commonName,
         subjectAlternativeNames,
-        keyType: 'P256',
+        keyType: 'EC256',
         minDaysRemaining: args.minDaysRemaining ?? 30,
         dnsChallenges: [args.account.dnsChallenge]
       },
