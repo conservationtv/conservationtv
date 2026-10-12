@@ -21,17 +21,17 @@ pulumi stack select dev
 pulumi config set domain example.com
 pulumi config set zoneId CLOUDFLARE_ZONE_ID
 pulumi config set acmeEmail ops@example.com
-pulumi config set sshCidr YOUR_PUBLIC_IP/32
-pulumi config set gatekeeperUrl https://gatekeeper.example.com
+pulumi config set gatekeeperDomain gatekeeper.example.com
+pulumi config set gatekeeperHyperdriveId HYPERDRIVE_CONFIG_ID   # once gatekeeper's Hyperdrive exists
 pulumi config set --secret digitalocean:token
 pulumi config set --secret cloudflare:apiToken
 pulumi preview
 pulumi up
 ```
 
-The last two configuration commands prompt for the provider tokens. The Cloudflare token needs DNS access for the configured zone. Supply the gatekeeper's origin only, without an API path.
+The last two configuration commands prompt for the provider tokens. The Cloudflare token needs DNS access for the configured zone. `gatekeeperDomain` is the hostname gatekeeper is served on; relays call back to `https://<gatekeeperDomain>`.
 
-Allow SSH from the machine running Pulumi: deployment connects to the droplets on port 2222. For stack `dev`, relay addresses are `https://moq-dev.example.com/` and `https://iroh-dev.example.com/`. Both records are DNS-only so clients connect directly to the relays.
+Deployment connects to the droplets over SSH on port 2222. SSH is key-only and open to any source, so `pulumi up` works from CI as well as a workstation. Relays are named `<service>.<site>.nodes.<domain>`: `https://moq.ldn1.nodes.example.com/` and `https://iroh.ldn1.nodes.example.com/`. Both records are DNS-only so clients connect directly to the relays. Each droplet raises the UDP socket buffer ceiling to 8 MiB for QUIC.
 
 ## Configure the existing gatekeeper
 
@@ -39,9 +39,11 @@ Read these stack outputs and apply them through gatekeeper's own deployment:
 
 | Output                       | Gatekeeper inputs                                             |
 | ---------------------------- | ------------------------------------------------------------- |
+| `gatekeeper`                 | `GATEKEEPER_DOMAIN` and `GATEKEEPER_HYPERDRIVE_ID` at build   |
 | `gatekeeperSecrets` (secret) | `MOQ_RELAY_TOKEN`, `MOQ_CLUSTER_TOKEN` and `IROH_RELAY_TOKEN` |
 
 ```sh
+pulumi stack output gatekeeper --json
 pulumi stack output gatekeeperSecrets --json --show-secrets
 ```
 
