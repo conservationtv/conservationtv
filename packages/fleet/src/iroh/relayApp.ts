@@ -1,15 +1,6 @@
 import * as pulumi from '@pulumi/pulumi';
-import dedent from 'dedent';
-import type { PublicTlsMaterial } from '../core/certs/acme';
-import { readHttpsUrl } from '../core/config';
-import { healthCheckLoop, type ComposeApp } from '../core/host/composeHost';
-import { composeUnit } from '../core/host/systemd';
-
-const dir = '/opt/iroh';
-const publicCertPath = `${dir}/certs/fullchain.pem`;
-const publicKeyPath = `${dir}/certs/privkey.pem`;
-const containerPublicCertPath = '/etc/iroh/certs/fullchain.pem';
-const containerPublicKeyPath = '/etc/iroh/certs/privkey.pem';
+import type { ComposeApp, PublicTlsMaterial } from '../core/contracts';
+import { assertPort, readHttpsUrl } from '../core/validate';
 
 export const IROH_HTTPS_ENDPOINT = 'iroh.https';
 export const IROH_QUIC_DISCOVERY_ENDPOINT = 'iroh.quic-discovery';
@@ -18,6 +9,10 @@ export const IROH_HTTP_ENDPOINT = 'iroh.http';
 export const IROH_RELAY_IMAGE =
   'n0computer/iroh-relay:v1.3.0@sha256:7a51e3826531dba5eee73d8b48a8f27284684d98c4d0da271d99127cc43b9d57';
 
+const dir = '/opt/iroh';
+const containerCertPath = '/etc/iroh/certs/fullchain.pem';
+const containerKeyPath = '/etc/iroh/certs/privkey.pem';
+
 export interface IrohRelayPorts {
   https: number;
   quicDiscovery: number;
@@ -25,46 +20,44 @@ export interface IrohRelayPorts {
   http: number;
 }
 
+export interface IrohRelayAdmission {
+  /** Gatekeeper's HTTPS `/relays/iroh/admission` endpoint. */
+  url: string;
+  /** Bearer token matching gatekeeper's `IROH_RELAY_TOKEN`; never distributed to clients. */
+  token: pulumi.Input<string>;
+}
+
 export interface IrohRelayAppArgs {
-  hostname: string;
-  image?: string;
-  /** Gatekeeper's HTTPS /relays/iroh/admission endpoint. */
-  admissionUrl: string;
-  /** Must match gatekeeper's IROH_RELAY_TOKEN binding; never distributed to clients. */
-  admissionToken: pulumi.Input<string>;
-  publicTls: PublicTlsMaterial;
+  admission: IrohRelayAdmission;
+  /** Renewals restart the relay without redeploying it. */
+  tls: PublicTlsMaterial;
+  /** Move HTTPS off 443 when another host-network app on the machine owns it. */
   ports?: Partial<IrohRelayPorts>;
+  image?: string;
 }
 
 export function irohRelayApp(args: IrohRelayAppArgs): ComposeApp {
   const ports = readIrohRelayPorts(args.ports);
-  const config = renderIrohRelayToml(readHttpsUrl(args.admissionUrl, 'Iroh admission URL'), ports);
-  const image = args.image ?? IROH_RELAY_IMAGE;
-  const admissionToken = pulumi.secret(args.admissionToken).apply(token => {
-    if (!token.trim() || /[\r\n]/.test(token))
+  const admissionUrl = readAdmissionUrl(readHttpsUrl(args.admission.url, 'Iroh admission URL'));
+  const token = pulumi.secret(args.admission.token).apply(value => {
+    if (!value.trim() || /[\r\n]/.test(value))
       throw new Error('Iroh admission token must be a non-empty bearer token.');
-    return token;
-  });
-  const service = {
-    image,
-    restart: 'unless-stopped',
-    network_mode: 'host',
-    pull_policy: 'always',
-    environment: {
-      IROH_RELAY_HTTP_BEARER_TOKEN: admissionToken,
-      RUST_LOG: 'iroh_relay=info'
-    },
-    volumes: [`${dir}/iroh-relay.toml:/etc/iroh/iroh-relay.toml:ro`, `${dir}/certs:/etc/iroh/certs:ro`],
-    command: ['--config-path', '/etc/iroh/iroh-relay.toml']
-  };
-  const health = healthCheckLoop({
-    url: `http://127.0.0.1:${ports.metrics}/metrics`,
-    logsOnFailure: 'docker compose -f {{composeFile}} logs --tail=100 relay'
+    return value;
   });
   return {
     name: 'iroh',
     dir,
-    services: { relay: service },
+    services: {
+      relay: {
+        image: args.image ?? IROH_RELAY_IMAGE,
+        restart: 'unless-stopped',
+        network_mode: 'host',
+        pull_policy: 'always',
+        environment: { IROH_RELAY_HTTP_BEARER_TOKEN: token, RUST_LOG: 'iroh_relay=info' },
+        volumes: [`${dir}/iroh-relay.toml:/etc/iroh/iroh-relay.toml:ro`, `${dir}/certs:/etc/iroh/certs:ro`],
+        command: ['--config-path', '/etc/iroh/iroh-relay.toml']
+      }
+    },
     endpoints: {
       [IROH_HTTPS_ENDPOINT]: {
         service: 'relay',
@@ -100,44 +93,23 @@ export function irohRelayApp(args: IrohRelayAppArgs): ComposeApp {
       }
     },
     files: [
-      { path: `${dir}/iroh-relay.toml`, content: config, permissions: '0644' },
-      { path: publicCertPath, content: args.publicTls.fullchainPem, permissions: '0644' },
-      { path: publicKeyPath, content: args.publicTls.privateKeyPem, permissions: '0600' }
+      { path: `${dir}/iroh-relay.toml`, content: renderConfig(admissionUrl, ports) },
+      { path: `${dir}/certs/fullchain.pem`, content: args.tls.fullchainPem, onChange: 'restart' },
+      { path: `${dir}/certs/privkey.pem`, content: args.tls.privateKeyPem, mode: '0600', onChange: 'restart' }
     ],
-    systemdUnits: [{ path: '/etc/systemd/system/iroh.service', content: composeUnit('Iroh relay', dir, ['relay']) }],
-    deploySteps: [
-      {
-        name: 'deploy-relay',
-        script: dedent`
-          systemctl daemon-reload
-          systemctl enable iroh.service
-          docker compose -f {{composeFile}} pull relay
-          docker compose -f {{composeFile}} up -d --force-recreate --remove-orphans relay
-          ${health}
-        `,
-        triggers: [image, config, admissionToken]
-      },
-      {
-        name: 'refresh-relay-certs',
-        script: dedent`
-          docker compose -f {{composeFile}} restart relay
-          ${health}
-        `,
-        triggers: [args.publicTls.fullchainPem, args.publicTls.privateKeyPem],
-        dependsOnSteps: ['deploy-relay']
-      }
-    ],
-    healthUrl: `https://${args.hostname}${ports.https === 443 ? '' : `:${ports.https}`}`
+    health: [{ url: `http://127.0.0.1:${ports.metrics}/metrics` }]
   };
 }
 
-/** Render the relay config without credentials. HTTP is supported here for local development; fleet requires HTTPS. */
-export function renderIrohRelayToml(admissionUrl: string, portOverrides: Partial<IrohRelayPorts> = {}): string {
-  const url = new URL(admissionUrl);
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) {
-    throw new Error('Iroh admission URL must use HTTP(S) without credentials or a fragment.');
-  }
-  const ports = readIrohRelayPorts(portOverrides);
+/**
+ * The relay configuration, without credentials: the bearer token travels in the environment.
+ * Accepts plain HTTP admission for local development; `irohRelayApp` requires HTTPS.
+ */
+export function renderIrohRelayToml(admissionUrl: string, ports?: Partial<IrohRelayPorts>): string {
+  return renderConfig(readAdmissionUrl(admissionUrl), readIrohRelayPorts(ports));
+}
+
+function renderConfig(admissionUrl: string, ports: IrohRelayPorts): string {
   return `enable_relay = true
 http_bind_addr = "127.0.0.1:${ports.http}"
 enable_quic_addr_discovery = true
@@ -145,39 +117,34 @@ enable_metrics = true
 metrics_bind_addr = "[::]:${ports.metrics}"
 
 [access.http]
-url = ${JSON.stringify(url.toString())}
+url = ${JSON.stringify(admissionUrl)}
 
 [tls]
 cert_mode = "Manual"
-manual_cert_path = ${JSON.stringify(containerPublicCertPath)}
-manual_key_path = ${JSON.stringify(containerPublicKeyPath)}
+manual_cert_path = ${JSON.stringify(containerCertPath)}
+manual_key_path = ${JSON.stringify(containerKeyPath)}
 https_bind_addr = "[::]:${ports.https}"
 quic_bind_addr = "[::]:${ports.quicDiscovery}"
 `;
 }
 
-export function readIrohRelayPorts(overrides: Partial<IrohRelayPorts> = {}): IrohRelayPorts {
-  const ports: IrohRelayPorts = {
-    https: readIrohRelayPort('https', overrides.https, 443),
-    quicDiscovery: readIrohRelayPort('quicDiscovery', overrides.quicDiscovery, 7842),
-    metrics: readIrohRelayPort('metrics', overrides.metrics, 9090),
-    http: readIrohRelayPort('http', overrides.http, 8080)
-  };
-  validateDistinctIrohTcpPorts(ports);
-  return ports;
-}
-
-// Use the default unless overridden, then require an integer in the valid port range.
-function readIrohRelayPort(name: string, override: number | undefined, defaultPort: number): number {
-  const port = override ?? defaultPort;
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`Iroh ${name} port must be an integer from 1 to 65535.`);
+function readAdmissionUrl(value: string): string {
+  const url = new URL(value);
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) {
+    throw new Error('Iroh admission URL must use HTTP(S) without credentials or a fragment.');
   }
-  return port;
+  return url.toString();
 }
 
-function validateDistinctIrohTcpPorts(ports: IrohRelayPorts): void {
+function readIrohRelayPorts(overrides: Partial<IrohRelayPorts> = {}): IrohRelayPorts {
+  const ports: IrohRelayPorts = {
+    https: assertPort(overrides.https ?? 443, 'Iroh https port'),
+    quicDiscovery: assertPort(overrides.quicDiscovery ?? 7842, 'Iroh quicDiscovery port'),
+    metrics: assertPort(overrides.metrics ?? 9090, 'Iroh metrics port'),
+    http: assertPort(overrides.http ?? 8080, 'Iroh http port')
+  };
   if (new Set([ports.https, ports.metrics, ports.http]).size !== 3) {
     throw new Error('Iroh HTTPS, metrics, and HTTP TCP ports must be distinct.');
   }
+  return ports;
 }
