@@ -17,7 +17,7 @@ cd apps/controlplane/infrastructure
 Use the repository's [Pulumi credentials workflow](../../../docs/infra/pulumi.md) for the commands below. From this directory, the wrapper is `op run --env-file=../../../.env.pulumi -- pulumi …`.
 
 ```sh
-pulumi stack select dev
+pulumi stack select prod
 pulumi config set domain example.com
 pulumi config set zoneId CLOUDFLARE_ZONE_ID
 pulumi config set acmeEmail ops@example.com
