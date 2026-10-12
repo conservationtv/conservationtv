@@ -1,68 +1,56 @@
-import { readCidrs } from './config';
+import type { FirewallRule, PortRange } from './contracts';
+import { ANYWHERE, assertPort, readCidrs } from './validate';
 
-export type FirewallProtocol = 'tcp' | 'udp' | 'icmp';
-
-export interface FirewallPortRange {
-  from: number;
-  to: number;
+export function tcp(port: number | PortRange, sourceCidrs: readonly string[] = ANYWHERE): FirewallRule {
+  return portRule('tcp', port, sourceCidrs);
 }
 
-export type FirewallPort = number | FirewallPortRange;
-
-export interface PortRangeResult {
-  from?: number;
-  to?: number;
-  text?: string;
+export function udp(port: number | PortRange, sourceCidrs: readonly string[] = ANYWHERE): FirewallRule {
+  return portRule('udp', port, sourceCidrs);
 }
 
-export interface FirewallIntent {
-  protocol: FirewallProtocol;
-  port?: FirewallPort;
-  sourceCidrs: string[];
+export function icmp(sourceCidrs: readonly string[] = ANYWHERE): FirewallRule {
+  return { protocol: 'icmp', sourceCidrs: readCidrs(sourceCidrs, 'icmp sourceCidrs') };
 }
 
-export function tcp(port: FirewallPort, sourceCidrs = ['0.0.0.0/0', '::/0']): FirewallIntent {
-  return firewall('tcp', port, sourceCidrs);
+/** Unrestricted outbound TCP, UDP and ICMP. */
+export const ALLOW_ALL_EGRESS: readonly FirewallRule[] = [
+  { protocol: 'tcp', port: { from: 1, to: 65535 }, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'udp', port: { from: 1, to: 65535 }, sourceCidrs: [...ANYWHERE] },
+  { protocol: 'icmp', sourceCidrs: [...ANYWHERE] }
+];
+
+function portRule(protocol: 'tcp' | 'udp', port: number | PortRange, sourceCidrs: readonly string[]): FirewallRule {
+  const { from, to } = portRange(port);
+  assertPort(from, `${protocol} port`);
+  assertPort(to, `${protocol} port`);
+  if (from > to) throw new Error(`Invalid ${protocol} port range ${from}-${to}.`);
+  return { protocol, port, sourceCidrs: readCidrs(sourceCidrs, `${protocol} ${from} sourceCidrs`) };
 }
 
-export function udp(port: FirewallPort, sourceCidrs = ['0.0.0.0/0', '::/0']): FirewallIntent {
-  return firewall('udp', port, sourceCidrs);
+export function portRange(port: number | PortRange): PortRange {
+  return typeof port === 'number' ? { from: port, to: port } : port;
 }
 
-export function icmp(sourceCidrs = ['0.0.0.0/0', '::/0']): FirewallIntent {
-  return { protocol: 'icmp', sourceCidrs: readCidrs(sourceCidrs, 'firewall sourceCidrs') };
+/** `443`, `1-65535`, or undefined when the rule covers every port. */
+export function portText(rule: FirewallRule): string | undefined {
+  if (rule.port === undefined) return undefined;
+  const { from, to } = portRange(rule.port);
+  return from === to ? String(from) : `${from}-${to}`;
 }
 
-// Normalize single ports to ranges, then validate ordered integer bounds and source CIDRs.
-function firewall(protocol: 'tcp' | 'udp', port: FirewallPort, sourceCidrs: string[]): FirewallIntent {
-  const range = port instanceof Object && 'from' in port ? port : { from: port, to: port };
-  const { from, to } = range;
-  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > 65535 || from > to) {
-    throw new Error(`Invalid ${protocol} port range ${from}-${to}.`);
-  }
-  return { protocol, port, sourceCidrs: readCidrs(sourceCidrs, 'firewall sourceCidrs') };
-}
-
-// Preserve portless rules and render either a single port or an inclusive range.
-export function portRange(intent: FirewallIntent): PortRangeResult {
-  if (intent.port === undefined) return {};
-  const range =
-    intent.port instanceof Object && 'from' in intent.port ? intent.port : { from: intent.port, to: intent.port };
-  const { from, to } = range;
-  return { from, to, text: from === to ? String(from) : `${from}-${to}` };
-}
-
-export function mergeFirewallIntents(intents: readonly FirewallIntent[]): FirewallIntent[] {
-  const merged = new Map<string, FirewallIntent>();
-  for (const intent of intents) {
-    const range = portRange(intent);
-    const key = `${intent.protocol}:${range.text ?? 'all'}`;
+/** Combine rules for the same protocol and ports, unioning their sources. */
+export function mergeFirewallRules(rules: readonly FirewallRule[]): FirewallRule[] {
+  const merged = new Map<string, FirewallRule>();
+  for (const rule of rules) {
+    const key = `${rule.protocol}:${portText(rule) ?? 'all'}`;
     const existing = merged.get(key);
-    if (existing) {
-      existing.sourceCidrs = [...new Set([...existing.sourceCidrs, ...intent.sourceCidrs])];
-    } else {
-      merged.set(key, { ...intent, sourceCidrs: [...intent.sourceCidrs] });
-    }
+    merged.set(
+      key,
+      existing
+        ? { ...existing, sourceCidrs: [...new Set([...existing.sourceCidrs, ...rule.sourceCidrs])] }
+        : { ...rule, sourceCidrs: [...rule.sourceCidrs] }
+    );
   }
   return [...merged.values()];
 }

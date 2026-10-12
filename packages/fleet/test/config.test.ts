@@ -1,27 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import {
-  imageMutableReferenceWarning,
-  readCidrs,
-  readHttpsUrl,
-  readSshAccessConfig,
-  readSubdomain
-} from '../src/core/config';
+import { assertDnsLabel, mutableImageWarning, readCidrs, readHttpsUrl, readSshAccess } from '../src/core/validate';
 
-describe('config validators', () => {
-  it('validates domains and HTTPS URLs', () => {
-    expect(readSubdomain('na-east')).toBe('na-east');
-    expect(readHttpsUrl('https://example.test/')).toBe('https://example.test');
-    expect(() => readSubdomain('Bad.Name')).toThrow();
-    expect(() => readHttpsUrl('http://example.test')).toThrow();
+describe('validators', () => {
+  it('validates DNS labels and HTTPS URLs', () => {
+    expect(assertDnsLabel('na-east', 'label')).toBe('na-east');
+    expect(readHttpsUrl('https://example.test/', 'url')).toBe('https://example.test');
+    expect(() => assertDnsLabel('Bad.Name', 'label')).toThrow();
+    expect(() => readHttpsUrl('http://example.test', 'url')).toThrow();
   });
   it('validates and deduplicates CIDRs and SSH ports', () => {
-    expect(readCidrs(['10.0.0.0/8', '10.0.0.0/8'])).toEqual(['10.0.0.0/8']);
-    expect(readSshAccessConfig({ port: 2222, allowedCidrs: ['::/0'] }).allowedCidrs).toEqual(['::/0']);
-    expect(() => readSshAccessConfig({ port: 22 })).toThrow();
+    expect(readCidrs(['10.0.0.0/8', '10.0.0.0/8'], 'cidrs')).toEqual(['10.0.0.0/8']);
+    expect(readSshAccess({ port: 2222, allowedCidrs: ['::/0'] }).allowedCidrs).toEqual(['::/0']);
+    expect(() => readSshAccess({ port: 22, allowedCidrs: [] })).toThrow();
   });
   it('warns for untagged images', () => {
-    expect(imageMutableReferenceWarning('docker.io/example/app')).toContain('mutable');
-    expect(imageMutableReferenceWarning('example/app:1.2')).toBeUndefined();
-    expect(imageMutableReferenceWarning('example/app@sha256:abc')).toBeUndefined();
+    expect(mutableImageWarning('docker.io/example/app', 'image')).toContain('mutable');
+    expect(mutableImageWarning('example/app:1.2', 'image')).toBeUndefined();
+    expect(mutableImageWarning('example/app@sha256:abc', 'image')).toBeUndefined();
   });
 });
