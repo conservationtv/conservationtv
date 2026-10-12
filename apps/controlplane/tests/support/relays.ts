@@ -2,7 +2,7 @@ import { GenericContainer, Network, type StartedTestContainer, Wait } from 'test
 import { IROH_RELAY_IMAGE, renderIrohRelayToml } from '@moq-ha/vps-fleet/iroh';
 import { parse, stringify } from 'smol-toml';
 import { MOQ_CLUSTER_TOKEN, MOQ_RELAY_TOKEN } from '@conservationtv/gatekeeper/testing';
-import { moqAuthUrl, renderMoqRelayToml } from '@moq-ha/vps-fleet/moq';
+import { MOQ_RELAY_IMAGE, moqAuthUrl, renderMoqRelayToml } from '@moq-ha/vps-fleet/moq';
 import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -10,7 +10,6 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { DOCKER_HOST, DOCKER_HOST_ENTRY, type GatekeeperServer } from './gatekeeper.ts';
 
-export const MOQ_RELAY_IMAGE = 'moqdev/moq-relay:0.17.2';
 const SOCAT_IMAGE = 'alpine/socat:1.8.1.3';
 
 const MOQ_WEB_PORT = 4443;
