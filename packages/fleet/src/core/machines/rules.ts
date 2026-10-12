@@ -1,7 +1,7 @@
 import type * as digitalocean from '@pulumi/digitalocean';
 import * as openstack from '@pulumi/openstack';
 import type * as pulumi from '@pulumi/pulumi';
-import type { FirewallRule } from '../contracts';
+import type { FirewallRule, OpenStackFirewallTarget } from '../contracts';
 import { portRange, portText } from '../firewall';
 
 // DigitalOcean requires a port range for TCP and UDP; a portless rule means every port.
@@ -18,9 +18,9 @@ export function toDigitalOceanOutbound(rule: FirewallRule): digitalocean.types.i
   return { protocol: rule.protocol, portRange: digitalOceanPorts(rule), destinationAddresses: [...rule.sourceCidrs] };
 }
 
-export type RuleDirection = 'ingress' | 'egress';
+type RuleDirection = 'ingress' | 'egress';
 
-export interface OpenStackRuleSpec {
+interface OpenStackRuleSpec {
   /** Stable by content (protocol, ports, CIDR), so reordering rules or CIDRs never replaces one. */
   key: string;
   direction: RuleDirection;
@@ -31,10 +31,14 @@ export interface OpenStackRuleSpec {
   remoteIpPrefix: string;
 }
 
-/** One OpenStack rule per CIDR (security group rules take a single prefix), deduplicated. */
+/**
+ * One OpenStack rule per CIDR (security group rules take a single prefix), keyed by content so that
+ * reordering rules or CIDRs never replaces one, and duplicates collapse.
+ */
 export function expandOpenStackRules(direction: RuleDirection, rules: readonly FirewallRule[]): OpenStackRuleSpec[] {
   const specs = new Map<string, OpenStackRuleSpec>();
   for (const rule of rules) {
+    // Port-less rules (ICMP, or every port) carry no range.
     const range = rule.port === undefined ? undefined : portRange(rule.port);
     for (const cidr of rule.sourceCidrs) {
       // IPv4 never contains "--", while compressed IPv6 always does, so the slug stays unambiguous.
@@ -56,7 +60,7 @@ export function expandOpenStackRules(direction: RuleDirection, rules: readonly F
 
 export function createOpenStackRules(
   name: string,
-  target: { securityGroupId: pulumi.Input<string>; region: string },
+  target: Omit<OpenStackFirewallTarget, 'kind'>,
   direction: RuleDirection,
   rules: readonly FirewallRule[],
   parent: pulumi.Resource

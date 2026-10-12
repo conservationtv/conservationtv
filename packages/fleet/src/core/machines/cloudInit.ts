@@ -4,8 +4,9 @@ import dedent from 'dedent';
 import * as yaml from 'yaml';
 import type { SshAccess } from '../contracts';
 
-// The bootstrap sshd drop-in; its name is part of the remote layout of already-provisioned machines.
-const SSHD_CONFIG_PATH = '/etc/ssh/sshd_config.d/99-vps-fleet.conf';
+// sshd keeps the first value it reads for each keyword and reads drop-ins in lexical order, so this must sort
+// before the image's own drop-ins (e.g. 50-cloud-init.conf) for key-only auth to take effect.
+const SSHD_CONFIG_PATH = '/etc/ssh/sshd_config.d/10-fleet.conf';
 
 export interface CloudInitFile {
   path: string;
@@ -16,6 +17,10 @@ export interface CloudInitFile {
   permissions?: string;
 }
 
+interface RenderedCloudInitFile extends Omit<CloudInitFile, 'content'> {
+  content: string;
+}
+
 /** Additions to the base profile (Docker, sshd on the fleet port with key-only auth, root's authorized_keys). */
 export interface MachineCloudInit {
   packages?: string[];
@@ -24,17 +29,17 @@ export interface MachineCloudInit {
   commands?: pulumi.Input<string>[];
 }
 
-export interface CloudInitProfile {
+interface CloudInitProfile {
   hostname: string;
   fqdn: string;
   ssh: SshAccess;
   sshAuthorizedKeys: string[];
   extraPackages?: string[];
-  extraWriteFiles?: (Omit<CloudInitFile, 'content'> & { content: string })[];
+  extraWriteFiles?: RenderedCloudInitFile[];
   extraRunCmds?: string[];
 }
 
-export interface CloudInitArgs extends MachineCloudInit {
+interface CloudInitArgs extends MachineCloudInit {
   hostname: string;
   fqdn: string;
   ssh: SshAccess;
@@ -49,7 +54,7 @@ export function renderCloudInit(
 ): pulumi.Output<string> {
   const files = args.files ?? [];
   for (const file of files) {
-    if (!file.path.startsWith('/')) throw new Error(`cloud-init file path must be absolute: ${file.path}`);
+    if (!file.path.startsWith('/')) throw new Error(`Cloud-init file path "${file.path}" must be absolute.`);
   }
   const content = pulumi
     .all({

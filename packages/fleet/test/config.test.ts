@@ -10,6 +10,9 @@ describe('validators', () => {
   });
   it('validates and deduplicates CIDRs and SSH ports', () => {
     expect(readCidrs(['10.0.0.0/8', '10.0.0.0/8'], 'cidrs')).toEqual(['10.0.0.0/8']);
+    expect(readCidrs(['2001:db8::/64'], 'cidrs')).toEqual(['2001:db8::/64']);
+    expect(() => readCidrs(['2001:db8::/129'], 'cidrs')).toThrow(/CIDR/);
+    expect(() => readCidrs(['10.0.0.0/33'], 'cidrs')).toThrow(/CIDR/);
     expect(readSshAccess({ port: 2222, allowedCidrs: ['::/0'] }).allowedCidrs).toEqual(['::/0']);
     expect(() => readSshAccess({ port: 22, allowedCidrs: [] })).toThrow();
   });

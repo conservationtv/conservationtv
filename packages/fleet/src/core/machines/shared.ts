@@ -22,7 +22,7 @@ export interface MachineArgsBase {
   cloudInit?: MachineCloudInit;
 }
 
-export interface MachineIdentity {
+interface MachineIdentity {
   id: string;
   displayName: string;
   hostname: string;

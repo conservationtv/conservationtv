@@ -2,7 +2,7 @@ import { posix } from 'node:path';
 import { remote, type types as commandTypes } from '@pulumi/command';
 import * as pulumi from '@pulumi/pulumi';
 import * as yaml from 'yaml';
-import type { ComposeApp, ComposeMapping, FileChangePolicy, HealthCheck } from '../contracts';
+import type { ComposeApp, ComposeMapping, ComposeValue, FileChangePolicy, HealthCheck, RemoteFile } from '../contracts';
 import { sanitizeName } from '../naming';
 import { shellQuote } from '../shell';
 import { mutableImageWarning } from '../validate';
@@ -11,7 +11,7 @@ const COMPOSE_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
 const FILE_MODE = /^0?[0-7]{3}$/;
 const HEALTH_ATTEMPTS = 30;
 
-export interface ManagedFile {
+interface ManagedFile {
   /** Absolute. */
   path: string;
   content: pulumi.Input<string>;
@@ -20,7 +20,7 @@ export interface ManagedFile {
 }
 
 /** Everything the managed lifecycle will do for an app, decided at plan time. */
-export interface ComposePlan {
+interface ComposePlan {
   name: string;
   dir: string;
   /** The compose file, the systemd unit, then the app's own files. */
@@ -31,12 +31,37 @@ export interface ComposePlan {
   steps: NonNullable<ComposeApp['steps']>;
 }
 
-export interface RemoteTarget {
+interface RemoteTarget {
   connection: pulumi.Input<commandTypes.input.remote.ConnectionArgs>;
   sudo: boolean;
 }
 
+/** Validates `app` and decides, at plan time, every file, claim and check the lifecycle will use. */
 export function planComposeApp(app: ComposeApp): ComposePlan {
+  const dir = appDir(app);
+  if (!Object.keys(app.services).length) throw new Error(`Compose app "${app.name}" declares no services.`);
+  assertComposeNames(app.name, 'service', app.services);
+  assertComposeNames(app.name, 'volume', app.volumes ?? {});
+  assertStepNames(app);
+  for (const check of app.health ?? []) assertHealthUrl(app.name, check.url);
+
+  const services = Object.entries(app.services);
+  return {
+    name: app.name,
+    dir,
+    files: managedFiles(app, dir),
+    containerNames: services.flatMap(([, service]) => plainString(service.container_name) ?? []),
+    warnings: services.flatMap(([service, definition]) => {
+      const image = plainString(definition.image);
+      return (image && mutableImageWarning(image, `Compose app "${app.name}" service "${service}"`)) || [];
+    }),
+    health: app.health ?? [],
+    steps: app.steps ?? []
+  };
+}
+
+/** The app's absolute directory (default `/opt/<name>`), after checking the name is already sanitized. */
+function appDir(app: ComposeApp): string {
   if (!app.name || sanitizeName(app.name) !== app.name) {
     throw new Error(`Compose app name "${app.name}" must already be a sanitized name.`);
   }
@@ -44,12 +69,13 @@ export function planComposeApp(app: ComposeApp): ComposePlan {
   if (!posix.isAbsolute(dir) || posix.normalize(dir) === '/') {
     throw new Error(`Compose app "${app.name}" directory must be an absolute path below /, got "${dir}".`);
   }
-  if (!Object.keys(app.services).length) throw new Error(`Compose app "${app.name}" declares no services.`);
-  assertComposeNames(app.name, 'service', app.services);
-  assertComposeNames(app.name, 'volume', app.volumes ?? {});
+  return dir;
+}
 
+// The compose file and unit come first so they are always redeploy triggers; app paths resolve against `dir`.
+function managedFiles(app: ComposeApp, dir: string): ManagedFile[] {
   const compose = pulumi
-    .output({ name: app.name, services: app.services, ...(app.volumes && { volumes: app.volumes }) })
+    .output({ name: app.name, services: app.services, volumes: app.volumes })
     .apply(value => yaml.stringify(value));
   const files: ManagedFile[] = [
     { path: posix.join(dir, 'docker-compose.yml'), content: compose, mode: '0600', onChange: 'redeploy' },
@@ -59,48 +85,31 @@ export function planComposeApp(app: ComposeApp): ComposePlan {
       mode: '0644',
       onChange: 'redeploy'
     },
-    ...(app.files ?? []).map(file => {
-      const mode = file.mode ?? '0644';
-      if (!FILE_MODE.test(mode))
-        throw new Error(`Compose app "${app.name}" file "${file.path}" has invalid mode ${mode}.`);
-      return {
-        path: posix.resolve(dir, file.path),
-        content: file.content,
-        mode,
-        onChange: file.onChange ?? 'redeploy'
-      };
-    })
+    ...(app.files ?? []).map(file => appFile(app.name, dir, file))
   ];
   const paths = new Set<string>();
   for (const { path } of files) {
     if (paths.has(path)) throw new Error(`Compose app "${app.name}" writes "${path}" more than once.`);
     paths.add(path);
   }
+  return files;
+}
 
-  const steps = app.steps ?? [];
-  const stepNames = new Set<string>();
-  for (const { name } of steps) {
-    if (!name || sanitizeName(name) !== name || stepNames.has(name)) {
+function appFile(app: string, dir: string, file: RemoteFile): ManagedFile {
+  const mode = file.mode ?? '0644';
+  if (!FILE_MODE.test(mode)) throw new Error(`Compose app "${app}" file "${file.path}" has invalid mode ${mode}.`);
+  return { path: posix.resolve(dir, file.path), content: file.content, mode, onChange: file.onChange ?? 'redeploy' };
+}
+
+/** Step names become resource names, so each must be sanitized and unique within the app. */
+function assertStepNames(app: ComposeApp): void {
+  const names = new Set<string>();
+  for (const { name } of app.steps ?? []) {
+    if (!name || sanitizeName(name) !== name || names.has(name)) {
       throw new Error(`Compose app "${app.name}" step "${name}" must be a unique, sanitized name.`);
     }
-    stepNames.add(name);
+    names.add(name);
   }
-
-  for (const check of app.health ?? []) assertHealthUrl(app.name, check.url);
-
-  const services = Object.entries(app.services);
-  return {
-    name: app.name,
-    dir,
-    files,
-    containerNames: services.flatMap(([, service]) => plainString(service.container_name) ?? []),
-    warnings: services.flatMap(([service, definition]) => {
-      const image = plainString(definition.image);
-      return (image && mutableImageWarning(image, `Compose app "${app.name}" service "${service}"`)) || [];
-    }),
-    health: app.health ?? [],
-    steps
-  };
 }
 
 /**
@@ -237,9 +246,12 @@ function asRemoteScript(script: string, sudo: boolean): string {
   return sudo ? `sudo /bin/sh -s <<'__FLEET_SUDO__'\n${script.trim()}\n__FLEET_SUDO__\n` : script;
 }
 
+/** Service and volume names must be compose keys and their definitions mappings. */
 function assertComposeNames(app: string, kind: string, record: Record<string, ComposeMapping>): void {
   for (const [name, value] of Object.entries(record)) {
+    // Values are typed as mappings, but a stack may build them from untyped config; fail here, not on the host.
     if (!COMPOSE_NAME.test(name)) throw new Error(`Compose app "${app}" ${kind} name "${name}" is invalid.`);
+    // eslint-disable-next-line anti-slop/no-runtime-typeof -- guards untyped callers; the contract says mapping.
     if (value === null || typeof value !== 'object' || Array.isArray(value)) {
       throw new Error(`Compose app "${app}" ${kind} "${name}" must be a mapping.`);
     }
@@ -247,17 +259,14 @@ function assertComposeNames(app: string, kind: string, record: Record<string, Co
 }
 
 function assertHealthUrl(app: string, url: string): void {
-  let protocol: string;
-  try {
-    protocol = new URL(url).protocol;
-  } catch {
-    protocol = '';
-  }
+  const protocol = URL.parse(url)?.protocol;
   if (protocol !== 'http:' && protocol !== 'https:') {
     throw new Error(`Compose app "${app}" health check URL must be an absolute HTTP(S) URL, got "${url}".`);
   }
 }
 
-function plainString(value: unknown): string | undefined {
+/** The value when it is a plain string; Pulumi inputs are unknown at plan time and yield undefined. */
+function plainString(value: ComposeValue | undefined): string | undefined {
+  // eslint-disable-next-line anti-slop/no-runtime-typeof -- compose values may be Outputs, which plan-time checks skip.
   return typeof value === 'string' ? value : undefined;
 }

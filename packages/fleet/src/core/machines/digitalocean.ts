@@ -4,7 +4,6 @@ import * as pulumi from '@pulumi/pulumi';
 import type { FirewallTarget, HostClaimLedger, Machine } from '../contracts';
 import { ALLOW_ALL_EGRESS, tcp } from '../firewall';
 import { resourceName } from '../naming';
-import { preflightDigitalOcean, type PreflightOptions } from '../preflight';
 import { MachineClaimLedger } from './claims';
 import { toDigitalOceanInbound, toDigitalOceanOutbound } from './rules';
 import { machineUserData, readMachineIdentity, sshConnection, waitForCloudInit, type MachineArgsBase } from './shared';
@@ -21,8 +20,6 @@ export interface DigitalOceanMachineArgs extends MachineArgsBase {
    * for the fleet key and pass its id to every machine.
    */
   sshKeys?: pulumi.Input<string>[];
-  /** Credential checks, run only when no explicit provider is passed in opts. */
-  preflight?: PreflightOptions;
 }
 
 const USER = 'root';
@@ -42,9 +39,9 @@ export class DigitalOceanMachine extends pulumi.ComponentResource implements Mac
   public readonly firewall: FirewallTarget;
   public readonly claims: HostClaimLedger;
 
+  /** Applies the size, image and IPv6 defaults, then boots the droplet behind its base firewall. */
   public constructor(name: string, args: DigitalOceanMachineArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('fleet:machines:DigitalOceanMachine', name, {}, opts);
-    if (!opts?.provider && !opts?.providers) preflightDigitalOcean(args.preflight);
+    super('fleet:core:DigitalOceanMachine', name, {}, opts);
     const { fleet } = args;
     const identity = readMachineIdentity(name, args, 64);
     this.id = identity.id;

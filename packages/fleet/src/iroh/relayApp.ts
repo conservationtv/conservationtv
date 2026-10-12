@@ -41,7 +41,7 @@ export function irohRelayApp(args: IrohRelayAppArgs): ComposeApp {
   const admissionUrl = readAdmissionUrl(readHttpsUrl(args.admission.url, 'Iroh admission URL'));
   const token = pulumi.secret(args.admission.token).apply(value => {
     if (!value.trim() || /[\r\n]/.test(value))
-      throw new Error('Iroh admission token must be a non-empty bearer token.');
+      throw new Error('Iroh admission token must be a non-empty single-line token.');
     return value;
   });
   return {
@@ -128,6 +128,7 @@ quic_bind_addr = "[::]:${ports.quicDiscovery}"
 `;
 }
 
+// Plain HTTP is allowed here for local development; `irohRelayApp` checks for HTTPS first.
 function readAdmissionUrl(value: string): string {
   const url = new URL(value);
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) {
@@ -136,6 +137,7 @@ function readAdmissionUrl(value: string): string {
   return url.toString();
 }
 
+// The TCP listeners must not collide; QUIC discovery is UDP and may share a number with any of them.
 function readIrohRelayPorts(overrides: Partial<IrohRelayPorts> = {}): IrohRelayPorts {
   const ports: IrohRelayPorts = {
     https: assertPort(overrides.https ?? 443, 'Iroh https port'),

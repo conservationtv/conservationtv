@@ -8,7 +8,13 @@ export interface AcmeAccountArgs {
   /** ACME directory URL, e.g. Let's Encrypt production or staging. */
   serverUrl: string;
   email?: string;
-  dnsChallenge: { provider: 'cloudflare'; apiToken: pulumi.Input<string> };
+  dnsChallenge: AcmeDnsChallengeArgs;
+}
+
+export interface AcmeDnsChallengeArgs {
+  provider: 'cloudflare';
+  /** A Cloudflare token allowed to edit DNS in the zones being validated. */
+  apiToken: pulumi.Input<string>;
 }
 
 /** An ACME registration plus the DNS-01 challenge every certificate issued under it uses. */

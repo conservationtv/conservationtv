@@ -11,7 +11,7 @@ export function isDnsLabel(value: string): boolean {
   return DNS_LABEL.test(value);
 }
 
-export function isHostname(value: string): boolean {
+function isHostname(value: string): boolean {
   return value.length <= 253 && value.split('.').every(isDnsLabel);
 }
 
@@ -44,23 +44,24 @@ function rejectPlaceholder(value: string, what: string): void {
 /** An absolute HTTPS URL without credentials, returned without a trailing slash. */
 export function readHttpsUrl(value: string, what: string): string {
   rejectPlaceholder(value, what);
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new Error(`${what} must be an absolute HTTPS URL.`);
-  }
-  if (url.protocol !== 'https:' || url.username || url.password) {
+  const url = URL.parse(value);
+  if (!url || url.protocol !== 'https:' || url.username || url.password) {
     throw new Error(`${what} must be an absolute HTTPS URL without credentials.`);
   }
   return url.toString().replace(/\/$/, '');
 }
 
-export function readCidr(value: string, what: string): string {
+const ADDRESS_BITS = new Map([
+  [4, 32],
+  [6, 128]
+]);
+
+/** An address with a decimal prefix no longer than the address family allows. */
+function readCidr(value: string, what: string): string {
   rejectPlaceholder(value, what);
   const cidr = value.trim();
   const [address, prefix = ''] = cidr.split('/');
-  const addressBits = isIP(address) * 8;
+  const addressBits = ADDRESS_BITS.get(isIP(address));
   if (!addressBits || !/^\d+$/.test(prefix) || Number(prefix) > addressBits) {
     throw new Error(`${what} must be an IPv4 or IPv6 CIDR, got "${value}".`);
   }

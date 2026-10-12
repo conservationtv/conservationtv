@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { HostClaims } from '../src/core/contracts';
 import { icmp, tcp, udp } from '../src/core/firewall';
 import { MachineClaimLedger } from '../src/core/machines/claims';
 import { expandOpenStackRules, toDigitalOceanInbound, toDigitalOceanOutbound } from '../src/core/machines/rules';
@@ -43,7 +44,7 @@ describe('provider firewall translation', () => {
 });
 
 describe('host claim ledger', () => {
-  const claims = (overrides: Partial<{ listeners: string[]; paths: string[]; containerNames: string[] }>) => ({
+  const claims = (overrides: Partial<HostClaims>) => ({
     listeners: [],
     paths: [],
     containerNames: [],

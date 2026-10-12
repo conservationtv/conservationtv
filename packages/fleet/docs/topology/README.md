@@ -1,133 +1,100 @@
-# Fleet topology, level by level
+# Fleet topology
 
-This series explains `@moq-ha/vps-fleet` from the bottom up. Each document covers one
-level of composition. It shows what that level is built from (the level below) and
-what builds on it (the level above), so you can start at the whole fleet and work down,
-or start at a primitive and work up.
-
-[`COMPONENTS.md`](../../COMPONENTS.md) remains the argument-by-argument API reference.
-These documents focus on **structure**: what contains what, what depends on what, and
-what ends up on each machine.
-
-For an interactive view, open [`explorer.html`](./explorer.html) in a browser. It shows
-the same example fleet as nested boxes. Click any group to zoom into it, use the
-breadcrumb to zoom out, or switch on **Show all levels** to see the whole topology at once.
-
-## The zoom levels
-
-| Level  | Document                                             | Unit of composition                         | Composed into |
-| ------ | ---------------------------------------------------- | ------------------------------------------- | ------------- |
-| **L0** | [Primitives and contracts](./01-primitives.md)       | Values, validators, renderers (no resources) | L1–L5         |
-| **L1** | [Leaf components](./02-leaf-components.md)           | Components that own only raw cloud resources | L2–L6         |
-| **L2** | [ComposeHost](./03-compose-host.md)                  | One Compose project on one machine          | L3, L4        |
-| **L3** | [Node](./04-node.md)                                 | One machine shared by many tenants          | L4            |
-| **L4** | [NodeDeployment](./05-node-deployment.md)            | One workload on one node                    | L5            |
-| **L5** | [Workloads](./06-workloads.md)                       | One application across many nodes           | L6            |
-| **L6** | [The whole fleet](./07-fleet.md)                     | Every provider, node, workload, and output  | —             |
+How `@moq-ha/vps-fleet` composes, layer by layer. [`COMPONENTS.md`](../../COMPONENTS.md) has the arguments; this page
+covers structure: what each layer consumes, what it creates, and what ends up on a machine.
 
 ```mermaid
 flowchart BT
-  L0["L0 · Primitives and contracts<br/>naming · validation · FirewallIntent · ServiceEndpoint<br/>ComposeApp · cloud-init · remote manifest · systemd"]
-  L1["L1 · Leaf components<br/>BootstrapSshKey · MachineProvider/MachineComponent<br/>AcmeIssuer · CloudflareDnsRegistrar · Addons"]
-  L2["L2 · ComposeHost<br/>wait for cloud-init → write files → run deploy steps"]
-  L3["L3 · Node<br/>lazy machine · firewall accumulation · host claims · deploy chaining"]
-  L4["L4 · NodeDeployment<br/>addons + app + endpoints → ingress → attach → hosts → DNS"]
-  L5["L5 · Workloads<br/>ComposeWorkload · MoqRelayWorkload · IrohRelayWorkload"]
-  L6["L6 · Fleet<br/>providers × nodes × workloads + shared services + outputs"]
+  V["Values<br/>FirewallRule · ComposeApp · ServiceEndpoint · DnsZone · PublicTlsMaterial"]
+  M["Machines<br/>Fleet · DigitalOceanMachine · OpenStackMachine · MachineIngress"]
+  D["Deployment<br/>ComposeDeployment · AddressRecords"]
+  W["Workload<br/>ComposeWorkload"]
+  R["Relay clusters and node services<br/>MoqRelayCluster · IrohRelayCluster · NetdataAgent · CloudflareMeshConnector"]
+  T["TLS<br/>AcmeAccount · AcmeCertificate"]
 
-  L0 --> L1
-  L0 --> L2
-  L1 --> L2
-  L1 --> L3
-  L2 --> L3
-  L2 --> L4
-  L3 --> L4
-  L4 --> L5
-  L1 --> L5
-  L5 --> L6
-  L1 --> L6
-
-  classDef lvl fill:#eef2ff,stroke:#4f46e5,color:#111;
-  class L0,L1,L2,L3,L4,L5,L6 lvl;
+  V --> M
+  V --> D
+  M -- "Machine (data)" --> D
+  D --> W
+  W --> R
+  T -- "PublicTlsMaterial" --> R
 ```
 
-## The whole fleet in one picture
+Layers only pass data upward. A deployment receives a `Machine` (connection, readiness, firewall target, claim ledger),
+never the machine's provider or fleet. Nothing changes a component after it is constructed; the one shared mutable
+structure is each machine's claim ledger, which can only reject a program.
 
-This is the L6 view, simplified. Each box links to the level that explains it.
+## 1. Machines
 
-```mermaid
-flowchart TB
-  subgraph Fleet["Fleet (L6)"]
-    direction TB
-    FC["Fleet context<br/>naming · SSH policy · hostname strategy<br/>BootstrapSshKey"]
+`Fleet` holds naming, SSH policy and the bootstrap key. A machine component creates the VPS, its base firewall (fleet
+SSH port in, everything out) and a `cloud-init-ready` command that completes once cloud-init has installed Docker and
+moved sshd to the fleet port. Its outputs form the `Machine` contract.
 
-    subgraph Shared["Shared services (L1)"]
-      direction LR
-      ACME["AcmeIssuer"]
-      DNS["CloudflareDnsRegistrar"]
-      ADD["NetdataAddon<br/>CloudflareMeshAddon"]
-    end
-
-    subgraph Providers["Machine providers (L1)"]
-      direction LR
-      DO["DigitalOceanProvider"]
-      OS["OpenStackProvider (per region)"]
-    end
-
-    subgraph Workloads["Workloads (L5)"]
-      direction LR
-      MOQ["MoqRelayWorkload"]
-      IROH["IrohRelayWorkload"]
-      CW["ComposeWorkload"]
-    end
-
-    subgraph Grid["Workload × Node grid"]
-      direction LR
-      ND1["NodeDeployment (L4)<br/>moq @ node A"]
-      ND2["NodeDeployment (L4)<br/>iroh @ node A"]
-      ND3["NodeDeployment (L4)<br/>moq @ node B"]
-    end
-
-    subgraph Nodes["Nodes (L3)"]
-      direction LR
-      NA["Node A<br/>MachineComponent + firewall<br/>node addon ComposeHosts (L2)"]
-      NB["Node B<br/>MachineComponent + firewall<br/>node addon ComposeHosts (L2)"]
-    end
-  end
-
-  MOQ --> ND1 & ND3
-  IROH --> ND2
-  ND1 & ND2 -->|"attach"| NA
-  ND3 -->|"attach"| NB
-  NA -.->|"createMachine"| DO
-  NB -.->|"createMachine"| OS
-  ACME -.->|"public cert"| MOQ & IROH
-  DNS -.->|"A/AAAA"| ND1 & ND2 & ND3
-  ADD -.->|"contributions"| ND1 & ND2 & ND3
-  FC -.->|"ssh key · names"| Providers & Nodes
+```
+DigitalOceanMachine <id>                OpenStackMachine <id>
+├─ cloudinit.Config   <id>-cloud-init   ├─ cloudinit.Config        <id>-cloud-init
+├─ Droplet            <id>              ├─ Keypair, SecGroup, SecGroupRules
+├─ Firewall           <id>-firewall     ├─ Instance                <id>
+└─ remote.Command     <id>-cloud-init-ready  └─ remote.Command     <id>-cloud-init-ready
 ```
 
-## Two hierarchies to keep apart
+`MachineIngress` adds inbound rules to an existing machine's `FirewallTarget`. It belongs to whoever creates it, so
+removing a deployment removes its rules.
 
-The library has two different trees, and they do not line up.
+## 2. Deployment: one app on one machine
 
-1. **Ownership (Pulumi parentage)** decides where a resource sits in `pulumi stack`
-   output and what is deleted with what. Machines are children of **Nodes**,
-   node-scoped addon hosts are children of **Nodes**, and per-workload hosts and DNS
-   records are children of **NodeDeployments**.
-2. **Composition (who uses whom)** decides how the topology is assembled. A
-   **Workload** creates NodeDeployments, which *attach* to Nodes, which ask a
-   **MachineProvider** for a machine.
+`ComposeDeployment` turns a `ComposeApp` into a plan at construction time: the compose file, the systemd unit and the
+app's files, with their modes and change policies. It then:
 
-The docs follow the composition tree. Each level also includes an "ownership" note, and
-[L6](./07-fleet.md#ownership-tree-pulumi-parentage) has the full ownership tree.
+1. claims the app's host listeners, paths and container names on `machine.claims` (a second owner fails the program);
+2. creates a `MachineIngress` for public host endpoints plus any extra `ingress`;
+3. creates the remote commands, all after `machine.ready` and the ingress;
+4. creates `AddressRecords` for its hostname when given a `DnsZone`.
 
-## Diagram conventions
+```
+ComposeDeployment <name>
+├─ MachineIngress  <name>-ingress
+├─ remote.Command  <name>-files       every file, one script
+├─ remote.Command  <name>-redeploy    daemon-reload, enable, pull, up --force-recreate, health gate
+├─ remote.Command  <name>-restart     restart in place, health gate (only with `restart` files)
+├─ remote.Command  <name>-step-<step> escape hatches, in order
+└─ AddressRecords  <name>-dns         A (and AAAA)
+```
 
-- Solid arrows are construction or containment: A creates or contains B.
-- Dotted arrows are data or dependency flow: A supplies something to B.
-- Names in `code` are TypeScript symbols. Quoted names such as `"<machineName>-machine"`
-  are Pulumi resource names.
-- The examples use a fictional fleet (`edge`/`prod`, nodes `na-east`, `eu-west`, and
-  `eu-gra`, domain `example.com`). [L6](./07-fleet.md) and `explorer.html` use the same
-  example.
+On the machine:
+
+```
+/opt/<app>/docker-compose.yml   0600, compose project <app>
+/opt/<app>/...                  app files
+/etc/systemd/system/<app>.service   brings the project up on boot
+```
+
+`redeploy` files trigger the redeploy, `restart` files only the restart, so a certificate renewal restarts the relay
+without pulling or recreating it.
+
+## 3. Workload: one app on many machines
+
+`ComposeWorkload` creates `<name>-<machine id>` deployments ordered by priority, then machine id. `app` may be a
+function of the target, which is how relays get per-machine configuration. With `rollout: 'serial'` each deployment
+depends on the previous deployment component, so it waits for every command in it, health gates included.
+
+## 4. Relay clusters and node services
+
+Each is a component that builds `ComposeApp`s and creates one `ComposeWorkload` as its child, forwarding its own
+`dependsOn`:
+
+```
+MoqRelayCluster <name>          IrohRelayCluster <name>         NetdataAgent / CloudflareMeshConnector <name>
+└─ ComposeWorkload <name>       └─ ComposeWorkload <name>       ├─ (Mesh) ZeroTrustTunnelWarpConnector per machine
+   └─ ComposeDeployment ...        └─ ComposeDeployment ...     └─ ComposeWorkload <name> (target hostname = machine hostname)
+```
+
+Relay clusters take `tls` from an `AcmeCertificate` and derive their directories from the deployments' resolved
+endpoints. Node services target every listed machine under its own hostname and live in `/opt/netdata` and
+`/opt/cloudflare-mesh`.
+
+## Shared machines
+
+Several workloads may target one machine. MoQ and Iroh can share a machine once Iroh moves HTTPS off TCP 443; the
+ledger compares `transport:port` listeners, absolute paths and explicit container names, so the plan fails if two
+owners would collide.
