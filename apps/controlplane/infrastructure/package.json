@@ -11,8 +11,10 @@
     "@moq-ha/vps-fleet": "workspace:*",
     "@pulumi/cloudflare": "catalog:",
     "@pulumi/digitalocean": "catalog:",
+    "@pulumi/planetscale": "workspace:*",
     "@pulumi/pulumi": "catalog:",
     "@pulumi/random": "catalog:",
+    "@pulumi/tls": "catalog:",
     "@pulumiverse/acme": "catalog:"
   },
   "devDependencies": {
