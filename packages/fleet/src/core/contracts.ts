@@ -49,7 +49,7 @@ export interface FleetContext {
  * `MachineIngress` component under itself with this target; it never asks the machine to.
  */
 export type FirewallTarget =
-  | { kind: 'digitalocean'; tag: string; cloudName: string }
+  | { kind: 'digitalocean'; dropletId: pulumi.Output<number>; cloudName: string }
   | { kind: 'openstack'; securityGroupId: pulumi.Output<string>; region: string };
 
 /** Plan-time host resources a deployment occupies on a machine. */
