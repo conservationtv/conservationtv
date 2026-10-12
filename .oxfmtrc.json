@@ -24,6 +24,7 @@
     "apps/controlplane/sdk/src/generated/**",
     "apps/controlplane/sdk/src/versions/**",
     "apps/controlplane/cli/src/generated/**",
+    "apps/controlplane/infrastructure/sdks/**",
     "apps/controlplane/gatekeeper/drizzle/**"
   ],
   "sortPackageJson": false

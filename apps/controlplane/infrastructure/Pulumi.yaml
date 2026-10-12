@@ -5,3 +5,10 @@ runtime:
   options:
     packagemanager: pnpm
     typescript: false
+packages:
+  planetscale:
+    source: terraform-provider
+    version: 1.0.2
+    parameters:
+      - planetscale/planetscale
+      - 1.12.0

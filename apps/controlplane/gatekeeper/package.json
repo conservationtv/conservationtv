@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "cf dev",
     "build": "cf build",
-    "deploy": "cf deploy",
+    "upload": "cf workers versions create",
     "types": "cf workers types",
     "typecheck": "cf workers types && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "generate": "tsx scripts/openapi.ts",

@@ -1,6 +1,8 @@
 packages:
   - apps/**
   - packages/**
+  # The generated PlanetScale SDK copies its package.json into its build output.
+  - '!apps/controlplane/infrastructure/sdks/*/bin'
 
 catalog:
   '@pulumi/cloudflare': 6.22.0

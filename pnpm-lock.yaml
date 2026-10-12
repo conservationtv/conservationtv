@@ -312,12 +312,18 @@ importers:
       '@pulumi/digitalocean':
         specifier: 'catalog:'
         version: 4.83.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/planetscale':
+        specifier: workspace:*
+        version: link:sdks/planetscale
       '@pulumi/pulumi':
         specifier: 3.268.0
         version: 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
       '@pulumi/random':
         specifier: 'catalog:'
         version: 4.21.2(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/tls':
+        specifier: 'catalog:'
+        version: 5.6.1(supports-color@10.2.2)(typescript@5.8.3)
       '@pulumiverse/acme':
         specifier: 'catalog:'
         version: 0.18.1(supports-color@10.2.2)(typescript@5.8.3)
@@ -328,6 +334,18 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+
+  apps/controlplane/infrastructure/sdks/planetscale:
+    dependencies:
+      '@pulumi/pulumi':
+        specifier: 3.268.0
+        version: 3.268.0(supports-color@10.2.2)(typescript@4.9.5)
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      typescript:
+        specifier: ^4.7.0
+        version: 4.9.5
 
   apps/controlplane/sdk:
     dependencies:
@@ -2364,6 +2382,9 @@ packages:
   '@types/node@18.19.130':
     resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
 
+  '@types/node@20.19.43':
+    resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
+
   '@types/node@24.0.6':
     resolution: {integrity: sha512-ZOyn+gOs749xU7ovp+Ibj0g1o3dFRqsfPnT22C2t5JzcRvgsEDpGawPbCISGKLudJk9Y0wiu9sYd6kUh0pc9TA==}
 
@@ -4025,6 +4046,11 @@ packages:
   tweetnacl@0.14.5:
     resolution: {integrity: sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==}
 
+  typescript@4.9.5:
+    resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
     engines: {node: '>=14.17'}
@@ -4042,6 +4068,9 @@ packages:
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
@@ -5494,6 +5523,38 @@ snapshots:
       - ts-node
       - typescript
 
+  '@pulumi/pulumi@3.268.0(supports-color@10.2.2)(typescript@4.9.5)':
+    dependencies:
+      '@grpc/grpc-js': 1.14.6
+      '@logdna/tail-file': 2.2.0
+      '@npmcli/arborist': 9.9.2(supports-color@10.2.2)
+      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-grpc': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-zipkin': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/instrumentation': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation-grpc': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions': 1.43.0
+      '@types/google-protobuf': 3.15.12
+      '@types/semver': 7.8.0
+      execa: 5.1.1
+      google-protobuf: 3.21.4
+      ini: 2.0.0
+      js-yaml: 4.3.2
+      minimist: 1.2.8
+      normalize-package-data: 6.0.2
+      require-from-string: 2.0.2
+      semver: 7.8.5
+      source-map-support: 0.5.21
+      upath: 1.2.0
+    optionalDependencies:
+      typescript: 4.9.5
+    transitivePeerDependencies:
+      - supports-color
+
   '@pulumi/pulumi@3.268.0(supports-color@10.2.2)(typescript@5.8.3)':
     dependencies:
       '@grpc/grpc-js': 1.14.6
@@ -5775,6 +5836,10 @@ snapshots:
   '@types/node@18.19.130':
     dependencies:
       undici-types: 5.26.5
+
+  '@types/node@20.19.43':
+    dependencies:
+      undici-types: 6.21.0
 
   '@types/node@24.0.6':
     dependencies:
@@ -7530,6 +7595,8 @@ snapshots:
 
   tweetnacl@0.14.5: {}
 
+  typescript@4.9.5: {}
+
   typescript@5.8.3: {}
 
   typescript@6.0.3: {}
@@ -7558,6 +7625,8 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
 
   undici-types@5.26.5: {}
+
+  undici-types@6.21.0: {}
 
   undici-types@7.16.0: {}
 

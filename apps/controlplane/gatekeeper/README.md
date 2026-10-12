@@ -164,23 +164,19 @@ Revocation options are:
 | --------------------------------- | ----------------- | ---------------------------------------------------------------- |
 | `CONSUMER_REGISTRATIONS`          | text (JSON array) | Complete consumer registrations; defaults to the checked-in list |
 | `DENIED_IROH_ENDPOINTS`           | text (JSON array) | Denied endpoint IDs; defaults to the checked-in list             |
-| `HYPERDRIVE`                      | Hyperdrive        | PlanetScale Postgres. Set `GATEKEEPER_HYPERDRIVE_ID` at build    |
+| `HYPERDRIVE`                      | Hyperdrive        | PlanetScale Postgres, uncached; ID from the controlplane stack   |
 | `MOQ_SIGNING_KEYS`                | secret            | `{ active_kid, keys: [private ES256 JWK…] }`                     |
 | `IROH_RELAY_TOKEN`                | secret            | shared with the Iroh relay's `access.http.bearer_token`          |
 | `MOQ_RELAY_TOKEN`                 | secret            | Pulumi-generated key MoQ relays present on admission callbacks   |
 | `MOQ_CLUSTER_TOKEN`               | secret            | Pulumi-generated opaque credential shared by MoQ peers           |
 | `MAX_CREDENTIAL_LIFETIME_SECONDS` | text              | environment ceiling on credential lifetimes                      |
 
-Deploy builds read `GATEKEEPER_DOMAIN` (the custom domain) and `GATEKEEPER_HYPERDRIVE_ID` from the controlplane
-Pulumi stack's `gatekeeper` output; without `GATEKEEPER_DOMAIN` the Worker has no custom domain.
+The controlplane Pulumi stack owns the Worker, its Hyperdrive config and every secret, including the signing keys.
+`pnpm upload` uploads a version without deploying it; the Hyperdrive ID comes from that stack's outputs, passed as
+`STACK_OUTPUT_JSON`. Release with [`../release.sh`](../release.sh), as described in the
+[controlplane README](../infrastructure/README.md#release-gatekeeper), which also covers key rotation.
 
-**Disable Hyperdrive query caching** for this configuration. Lease and revocation reads must be fresh.
-
-`pnpm keys:generate [kid]` prints a new `MOQ_SIGNING_KEYS` value. To rotate:
-
-1. Add the new key to `keys` and deploy.
-2. Once every isolate runs the new set, switch `active_kid`.
-3. Remove the old key once its longest-lived token has expired.
+`pnpm keys:generate [kid]` prints a `MOQ_SIGNING_KEYS` value for local development.
 
 A cron trigger (every 15 minutes) purges expired replay identifiers and leases that expired over a day ago. Grant
 audit records are kept.

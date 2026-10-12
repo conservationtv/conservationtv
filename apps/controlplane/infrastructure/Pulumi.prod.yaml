@@ -6,5 +6,9 @@ config:
   digitalocean:token:
     secure: v1:1Xi3HDq0kdDd+hM9:2ykXs6OGIslKjvXcJ/LThunLAuUtRkOLvjPXiSikm25FtE/8d8qOm0xxhFyWzwjMwkGnZHedkY84vVZMJZFElyfK7Ufxs+fB6k6bqvt4LYb7rmdTjS9J
   cloudflare:apiToken:
-    secure: v1:gQrOFgvQe/xK37PV:MMBbcx3MWFi2Cz9K17Zjezfaqsp8BOTpWthNkYA4nOPxmDC03v2WqrHyhBYoMSbxXOZQ5xwkhjIU5GRC9OEAXuKMq0NB
+    secure: v1:yX1XkzTlz3o3yIq2:YG4mgW9AFK3ICdCMhENFKG+X5mNpNhtWgyqw0XX+nztPsbBKy37hBd1Lwv2tZ/akLW833AOiPR5AOxy6uw+UxGbH4OGu
   controlplane:gatekeeperDomain: gatekeeper.conservation.tv
+  controlplane:planetscaleOrganization: conservationtv
+  controlplane:moqSigningKids:
+    - controlplane-moq-2026-10-12
+  controlplane:moqSigningActiveKid: controlplane-moq-2026-10-12
