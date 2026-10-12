@@ -1,0 +1,7 @@
+name: controlplane
+description: One MoQ relay and one Iroh relay in DigitalOcean London.
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm
+    typescript: false

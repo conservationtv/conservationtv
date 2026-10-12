@@ -1,0 +1,28 @@
+{
+  "name": "@conservationtv/controlplane-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests for the control plane: gatekeeper with the published MoQ and Iroh relay images.",
+  "scripts": {
+    "test": "pnpm --filter @moq-ha/vps-fleet build && pnpm --filter @conservationtv/gatekeeper build && pnpm --filter @conservationtv/controlplane-sdk build && vitest run",
+    "typecheck": "pnpm --filter @moq-ha/vps-fleet build && tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@conservationtv/controlplane-sdk": "workspace:*",
+    "@conservationtv/gatekeeper": "workspace:*",
+    "@hono/node-server": "2.1.4",
+    "@number0/iroh": "1.1.0",
+    "@testcontainers/postgresql": "12.2.0",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.23.1",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1",
+    "testcontainers": "12.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "5.0.3",
+    "smol-toml": "1.9.1",
+    "@moq-ha/vps-fleet": "workspace:*"
+  }
+}

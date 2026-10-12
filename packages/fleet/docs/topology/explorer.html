@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>vps-fleet topology explorer</title>
+<style>
+  :root {
+    --bg: #f7f7f9; --panel: #ffffff; --text: #1b1d23; --muted: #5d6270; --line: #d5d8e0;
+    --focus: #4f46e5;
+    --k-fleet: #e0e7ff;     --k-fleet-b: #4f46e5;
+    --k-group: #f1f2f5;     --k-group-b: #9aa1b1;
+    --k-component: #dbeafe; --k-component-b: #2563eb;
+    --k-resource: #dcfce7;  --k-resource-b: #16a34a;
+    --k-runtime: #fef3c7;   --k-runtime-b: #d97706;
+    --k-value: #fce7f3;     --k-value-b: #db2777;
+    --k-external: #ede9fe;  --k-external-b: #7c3aed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111318; --panel: #181b22; --text: #e6e8ee; --muted: #9aa1b1; --line: #2c313c;
+      --focus: #818cf8;
+      --k-fleet: #1e1b4b;     --k-fleet-b: #818cf8;
+      --k-group: #1c1f27;     --k-group-b: #4b5263;
+      --k-component: #172554; --k-component-b: #60a5fa;
+      --k-resource: #052e16;  --k-resource-b: #4ade80;
+      --k-runtime: #3b2606;   --k-runtime-b: #fbbf24;
+      --k-value: #3f0d26;     --k-value-b: #f472b6;
+      --k-external: #2e1065;  --k-external-b: #a78bfa;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { position: sticky; top: 0; z-index: 2; background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .crumbs button { border: 0; background: none; color: var(--focus); cursor: pointer; padding: 2px 4px; font: inherit; border-radius: 4px; }
+  .crumbs button:hover { background: var(--k-group); }
+  .crumbs span.sep { color: var(--muted); }
+  .crumbs button.current { color: var(--text); font-weight: 600; cursor: default; }
+  .controls { display: flex; gap: 14px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+  .controls label { display: flex; gap: 6px; align-items: center; color: var(--muted); cursor: pointer; }
+  .controls input[type=search] { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); width: 220px; }
+  .controls select { font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 0; min-height: calc(100vh - 54px); }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    aside { position: static !important; max-height: none !important; border-left: 0 !important; border-top: 1px solid var(--line); }
+  }
+  #canvas { padding: 16px; overflow: auto; }
+  aside { border-left: 1px solid var(--line); background: var(--panel); padding: 16px; overflow: auto; max-height: calc(100vh - 54px); position: sticky; top: 54px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 2px solid; vertical-align: -2px; margin-right: 4px; }
+
+  .box { border: 1.5px solid; border-radius: 8px; padding: 6px 8px 8px; min-width: 150px; flex: 1 1 200px; cursor: pointer; position: relative; transition: box-shadow .1s; }
+  .box:hover { box-shadow: 0 0 0 2px var(--focus) inset; }
+  .box.selected { box-shadow: 0 0 0 3px var(--focus); }
+  .box.match { outline: 3px dashed var(--focus); outline-offset: 1px; }
+  .box.group { border-style: dashed; }
+  .box.leaf { flex: 0 1 auto; }
+  .box .hd { display: flex; gap: 6px; align-items: baseline; justify-content: space-between; }
+  .box .nm { font-weight: 600; word-break: break-word; }
+  .box .ty { font-size: 11.5px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+  .box .badge { font-size: 10.5px; font-weight: 700; padding: 0 5px; border-radius: 9px; border: 1px solid currentColor; color: var(--muted); white-space: nowrap; }
+  .box .more { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .kids { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; align-items: flex-start; }
+  .root > .kids { gap: 12px; }
+  .root { cursor: default; padding: 10px 12px 12px; }
+  .root:hover { box-shadow: none; }
+  .root > .hd .nm { font-size: 16px; }
+
+  .k-fleet     { background: var(--k-fleet);     border-color: var(--k-fleet-b); }
+  .k-group     { background: var(--k-group);     border-color: var(--k-group-b); }
+  .k-component { background: var(--k-component); border-color: var(--k-component-b); }
+  .k-resource  { background: var(--k-resource);  border-color: var(--k-resource-b); }
+  .k-runtime   { background: var(--k-runtime);   border-color: var(--k-runtime-b); }
+  .k-value     { background: var(--k-value);     border-color: var(--k-value-b); }
+  .k-external  { background: var(--k-external);  border-color: var(--k-external-b); }
+
+  aside h2 { margin: 0 0 2px; font-size: 17px; word-break: break-word; }
+  aside .ty { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); font-size: 12px; word-break: break-all; }
+  aside p { margin: 10px 0; }
+  aside table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0; }
+  aside td { border-top: 1px solid var(--line); padding: 4px 4px; vertical-align: top; }
+  aside td:first-child { color: var(--muted); white-space: nowrap; padding-right: 10px; }
+  aside h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 12px; padding: 2px 9px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .chip:hover { border-color: var(--focus); }
+  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .actions button, .actions a { font: inherit; font-size: 12.5px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; background: var(--bg); color: var(--focus); cursor: pointer; text-decoration: none; }
+  .hint { color: var(--muted); font-size: 12px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>vps-fleet topology</h1>
+  <nav class="crumbs" id="crumbs" aria-label="Zoom path"></nav>
+  <div class="controls">
+    <label title="How many levels below the focused item to draw">Depth
+      <select id="depth">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="99">all</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="showAll" /> Show all levels</label>
+    <input type="search" id="search" placeholder="Search (e.g. droplet, 443, eu-gra)" aria-label="Search" />
+  </div>
+</header>
+<main>
+  <section id="canvas">
+    <div class="legend" id="legend"></div>
+    <div id="view"></div>
+  </section>
+  <aside id="details"></aside>
+</main>
+
+<script>
+/*
+ * Data model: an illustrative fleet that matches docs/topology/07-fleet.md.
+ * Every item: { id, name, kind, type?, level?, doc?, desc?, facts?, refs?, children? }
+ * kind: fleet | group | component | resource | runtime | value | external
+ */
+const KINDS = {
+  fleet: 'Fleet root',
+  component: 'Library component (ComponentResource)',
+  resource: 'Raw provider resource',
+  runtime: 'On the machine (runtime)',
+  value: 'Value / output (no resource)',
+  external: 'External system',
+  group: 'Grouping (not a resource)'
+};
+
+const DOCS = {
+  L0: '01-primitives.md', L1: '02-leaf-components.md', L2: '03-compose-host.md',
+  L3: '04-node.md', L4: '05-node-deployment.md', L5: '06-workloads.md', L6: '07-fleet.md'
+};
+
+const TYPE_INFO = {
+  'fleet:core:Fleet': ['L6', 'Root context: normalized naming, SSH policy, hostname strategy. Owns the bootstrap SSH key. Every provider, node, and workload must share this instance.'],
+  'fleet:core:BootstrapSshKey': ['L1', 'RSA-4096 key. Public half goes to provider key resources and cloud-init. Private half (secret) is used by every ComposeHost SSH connection.'],
+  'fleet:core:DigitalOceanProvider': ['L1', 'MachineProvider for DigitalOcean. One component can serve many regions. Creates the bootstrap SshKey and shared Tags, then a MachineComponent per attached Node.'],
+  'fleet:core:OpenStackProvider': ['L1', 'MachineProvider pinned to one OpenStack region. Creates a Keypair, then per node a SecGroup, rules, and an Instance.'],
+  'fleet:core:Machine': ['L1', 'MachineComponent: provider-neutral wrapper around the cloud VM. Exposes address, addressV6, sshUsers, resource, and addIngress().'],
+  'fleet:core:CloudflareDnsRegistrar': ['L1', 'DnsRegistrar implementation. Owns no resources itself. A/AAAA records are parented to the NodeDeployment that requests them.'],
+  'fleet:core:AcmeIssuer': ['L1', 'ACME account and provider. issueCertificate() adds P-256 certificates via Cloudflare DNS-01, renewed when fewer than 30 days remain.'],
+  'fleet:core:NetdataAddon': ['L1', 'Node-scoped addon. Netdata in host network/PID mode, private tcp/19999. No cloud resources.'],
+  'fleet:core:CloudflareMeshAddon': ['L1', 'Node-scoped addon. Per-node WARP connector (unless sharedNodeToken) plus the Mesh container, systemd unit, and default-route safety check.'],
+  'fleet:core:ComposeHost': ['L2', 'One Compose project on one machine: wait for cloud-init, write all files in one manifest command, then one remote.Command per deploy step.'],
+  'fleet:core:Node': ['L3', 'One machine and the arbiter of everything on it. Lazily provisions on first attach, accumulates per-workload ingress, rejects port/path/container collisions, dedupes node-scoped addons, chains deployments.'],
+  'fleet:core:NodeDeployment': ['L4', 'One workload on one node: attaches addons, evaluates the app, derives ingress from endpoints, attaches to the Node, creates ComposeHosts and DNS, builds a summary.'],
+  'fleet:core:ComposeWorkload': ['L5', 'One Compose app across many nodes, ordered by priority then id. Parallel or serial rollout.'],
+  'fleet:moq:RelayWorkload': ['L5', 'MoqRelayWorkload: ComposeWorkload plus a shared ACME certificate, per-relay peers, gatekeeper authOrigin, shared authToken and clusterToken, moqRelayApp, and a relay directory.'],
+  'fleet:iroh:RelayWorkload': ['L5', 'IrohRelayWorkload: ComposeWorkload plus a shared ACME certificate, irohRelayApp with gatekeeper admission, and a relay directory.']
+};
+
+let SEQ = 0;
+const BY_ID = new Map();
+const PARENT = new Map();
+
+function item(kind, name, opts = {}) {
+  const it = { id: opts.id || `i${++SEQ}`, kind, name, ...opts };
+  const info = it.type && TYPE_INFO[it.type];
+  if (info) {
+    it.level = it.level || info[0];
+    it.desc = it.desc || info[1];
+  }
+  if (it.level && !it.doc) it.doc = DOCS[it.level];
+  return it;
+}
+const group = (name, children, opts = {}) => item('group', name, { ...opts, children });
+const comp = (type, name, children = [], opts = {}) => item('component', name, { ...opts, type, children });
+const res = (type, name, opts = {}) => item('resource', name, { ...opts, type });
+const rt = (name, opts = {}) => item('runtime', name, opts);
+const val = (name, opts = {}) => item('value', name, opts);
+const ext = (name, opts = {}) => item('external', name, opts);
+
+/* ---------- Example configuration (matches 07-fleet.md) ---------- */
+const PREFIX = 'edge', ENV = 'prod', SSH_PORT = 2222, SSH_CIDR = '203.0.113.10/32';
+const NODES = [
+  { id: 'na-east', prov: 'do', region: 'nyc3', priority: 0, ipv6: true },
+  { id: 'eu-west', prov: 'do', region: 'lon1', priority: 1 },
+  { id: 'eu-gra', prov: 'ovh', region: 'GRA11', priority: 1 }
+];
+const ORDERED = [...NODES].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
+const host = (id, domain) => `${id}.nodes.${domain}`;
+const ANY = ['0.0.0.0/0', '::/0'];
+
+const APPS = {
+  moq: {
+    dir: '/opt/moq', domain: 'moq.example.com', unit: 'moq.service',
+    endpoints: [
+      ['moq.https', 'tcp', 443, 'public'],
+      ['moq.webtransport', 'udp', 443, 'public'],
+      ['moq.prometheus', 'tcp', 9101, 'private']
+    ],
+    files: ['relay.toml', 'certs/public/node/fullchain.pem', 'certs/public/node/privkey.pem (0600)',
+            'secrets/cluster-token (0600)', 'docker-compose.yml (0600, MOQ_AUTH_URL with auth key)'],
+    steps: [
+      ['deploy-relay', 'triggers: image, relay.toml, clusterToken, authToken'],
+      ['refresh-relay-certs', 'triggers: public cert/key · after deploy-relay']
+    ],
+    image: 'moqdev/moq-relay:0.17.2'
+  },
+  iroh: {
+    dir: '/opt/iroh', domain: 'iroh.example.com', unit: 'iroh.service',
+    endpoints: [
+      ['iroh.https', 'tcp', 8443, 'public'],
+      ['iroh.quic-discovery', 'udp', 7842, 'public'],
+      ['iroh.metrics', 'tcp', 9090, 'private'],
+      ['iroh.http', 'tcp', 8080, 'loopback']
+    ],
+    files: ['iroh-relay.toml', 'certs/fullchain.pem', 'certs/privkey.pem (0600)'],
+    steps: [
+      ['deploy-relay', 'triggers: image, iroh-relay.toml, admissionToken'],
+      ['refresh-relay-certs', 'triggers: public cert/key · after deploy-relay']
+    ],
+    image: 'n0computer/iroh-relay:v1.3.0@sha256:…'
+  },
+  netdata: {
+    dir: '/opt/vps-fleet/addons/netdata',
+    endpoints: [['netdata.http', 'tcp', 19999, 'private']],
+    files: [], steps: [['deploy-netdata', 'triggers: image']], image: 'netdata/netdata:stable'
+  },
+  'cloudflare-mesh': {
+    dir: '/opt/vps-fleet/addons/cloudflare-mesh',
+    endpoints: [],
+    files: ['/usr/local/sbin/fleet-cloudflare-mesh-safety', '/etc/systemd/system/cloudflare-mesh.service'],
+    steps: [['deploy-cloudflare-mesh', 'triggers: image, token, safety script, unit']],
+    image: 'docker.io/cloudflare/mesh:2026.7.0@sha256:…'
+  }
+};
+
+/* ---------- Builders ---------- */
+function composeProject(appName, nodeId) {
+  const a = APPS[appName];
+  return rt(`project ${appName}`, {
+    id: `rt:${nodeId}:${appName}`,
+    level: 'L2',
+    desc: `Compose project at ${a.dir}. Image ${a.image}.`,
+    facts: [['dir', a.dir], ['compose file', `${a.dir}/docker-compose.yml (0600)`], ['image', a.image]],
+    children: [
+      ...a.endpoints.map(([id, tr, port, vis]) => rt(`${tr}/${port} ${id}`, {
+        id: `ep:${nodeId}:${id}`,
+        level: 'L0', doc: DOCS.L0,
+        desc: `Endpoint ${id}: ${vis}${vis === 'public' ? ', opened in the cloud firewall' : ', closed at the cloud firewall'}. Claims host listener ${tr}:${port} on the node.`,
+        facts: [['transport', tr], ['port', String(port)], ['visibility', vis], ['binding', 'host']]
+      })),
+      ...a.files.map(f => rt(`file ${f}`, { level: 'L2', desc: `Written by the …-files manifest command.` }))
+    ]
+  });
+}
+
+function composeHost(name, appName, nodeId, extra = {}) {
+  const a = APPS[appName];
+  return comp('fleet:core:ComposeHost', name, [
+    res('remote.Command', `${name}-wait-cloud-init`, { desc: 'cloud-init status --wait --long, as the cloud-init SSH user. Depends on machine.resource.' }),
+    res('remote.Command', `${name}-files`, { desc: 'One script writes every file (base64 heredocs) and the generated compose file. Re-runs when any file content changes.' }),
+    ...a.steps.map(([s, t]) => res('remote.Command', `${name}-${s}`, { desc: `Deploy step ${s}. ${t}. Waits for the files command and deployAfter.` })),
+    composeProject(appName, nodeId)
+  ], { id: `ch:${name}`, ...extra });
+}
+
+function machine(n) {
+  const name = `${n.id}-machine`;
+  const cloud = `${PREFIX}-${ENV}-${n.id}`;
+  if (n.prov === 'do') {
+    return comp('fleet:core:Machine', name, [
+      res('digitalocean.Droplet', name, {
+        desc: `Droplet ${cloud} in ${n.region}, image ubuntu-24-04-x64, size s-1vcpu-2gb, monitoring on${n.ipv6 ? ', IPv6 on' : ''}. userData = rendered cloud-init.`,
+        facts: [['cloud name', cloud], ['region', n.region], ['tags', `${PREFIX}, ${PREFIX}-${ENV}, ${PREFIX}-${n.id}`], ['ssh user', 'root']]
+      }),
+      res('digitalocean.Firewall', `${name}-firewall`, {
+        desc: `Base firewall attached to tag ${PREFIX}-${n.id}. Inbound tcp/${SSH_PORT} from ${SSH_CIDR}. Outbound: all tcp, udp, and icmp.`
+      })
+    ], { id: `m:${n.id}`, refs: ['p:do'] });
+  }
+  return comp('fleet:core:Machine', name, [
+    res('openstack.networking.SecGroup', `${name}-security-group`, { desc: `Security group ${cloud}, deleteDefaultRules=true.` }),
+    group('base rules', [
+      res('openstack.networking.SecGroupRule', `ingress tcp/${SSH_PORT} ${SSH_CIDR}`, { desc: 'One rule per intent × CIDR (IPv4 ethertype).' }),
+      ...['tcp 1-65535', 'udp 1-65535', 'icmp'].flatMap(p => ANY.map(c => res('openstack.networking.SecGroupRule', `egress ${p} ${c}`, { desc: `Default egress; ${c.includes(':') ? 'IPv6' : 'IPv4'} ethertype.` })))
+    ]),
+    res('openstack.compute.Instance', name, {
+      desc: `Instance ${cloud} in ${n.region}, image 'Ubuntu 24.04', flavor d2-4, network Ext-Net. SSH user ubuntu (commands wrapped in sudo).`,
+      facts: [['cloud name', cloud], ['region', n.region], ['ssh user', 'ubuntu + sudo']]
+    })
+  ], { id: `m:${n.id}`, refs: ['p:ovh'] });
+}
+
+function ingress(n, wl) {
+  const ports = APPS[wl].endpoints.filter(e => e[3] === 'public').map(e => `${e[1]}/${e[2]}`);
+  const name = `${n.id}-${wl}-ingress`;
+  if (n.prov === 'do') {
+    return res('digitalocean.Firewall', name, {
+      id: `ing:${n.id}:${wl}`, level: 'L3', doc: DOCS.L3,
+      desc: `Added by Node.attach() for workload ${wl} via machine.addIngress(). Inbound ${ports.join(', ')} from any. Targets tag ${PREFIX}-${n.id}.`,
+      refs: [`wl:${wl}`]
+    });
+  }
+  return group(name, ports.flatMap(p => ANY.map(c => res('openstack.networking.SecGroupRule', `ingress ${p} ${c}`, { desc: `Workload ${wl} ingress, added to the node's existing security group.` }))), {
+    id: `ing:${n.id}:${wl}`, level: 'L3', doc: DOCS.L3, desc: `OpenStack ingress for ${wl}: one SecGroupRule per intent × CIDR.`, refs: [`wl:${wl}`]
+  });
+}
+
+function nodeItem(n) {
+  const fqdn = host(n.id, 'example.com');
+  const listeners = ['moq', 'iroh', 'netdata'].flatMap(a => APPS[a].endpoints.map(e => `${e[1]}:${e[2]} (${e[0]})`));
+  return comp('fleet:core:Node', n.id, [
+    res('cloudinit.Config', `${n.id}-cloud-init`, {
+      level: 'L0', doc: DOCS.L0,
+      desc: `hostname=${n.id}, fqdn=${fqdn}. sshd on tcp/${SSH_PORT}, key-only. authorized_keys = fleet bootstrap key. Installs Docker.`
+    }),
+    machine(n),
+    group('per-workload ingress', [ingress(n, 'moq'), ingress(n, 'iroh')], { level: 'L3', doc: DOCS.L3, desc: 'Each workload adds its own endpoint-derived ingress to the shared machine.' }),
+    group('node addon hosts', [
+      composeHost(`${n.id}-netdata-addon-host`, 'netdata', n.id, { refs: ['ad:netdata'], desc: 'Node-scoped Netdata project. Deployed once, by the first workload that attaches (moq). Parent: Node.' }),
+      composeHost(`${n.id}-cloudflare-mesh-addon-host`, 'cloudflare-mesh', n.id, { refs: ['ad:mesh', `wc:${n.id}`], desc: 'Node-scoped Cloudflare Mesh project. Deployed once per node. Parent: Node.' })
+    ], { level: 'L3', doc: DOCS.L3 }),
+    val('host-claim registry', {
+      level: 'L3', doc: DOCS.L3,
+      desc: 'Claims checked across workloads before any are committed. A second claim on the same key throws.',
+      facts: [['listeners', listeners.join(', ')], ['paths', 'compose files, app files, systemd units of every project'], ['containers', 'netdata, cloudflare-mesh']]
+    }),
+    group('on the machine', [
+      rt(`sshd tcp/${SSH_PORT}`, { desc: `Key-only SSH from ${SSH_CIDR}. Configured by cloud-init.` }),
+      composeProject('moq', n.id + '-m'),
+      composeProject('iroh', n.id + '-m'),
+      composeProject('netdata', n.id + '-m'),
+      composeProject('cloudflare-mesh', n.id + '-m')
+    ], { level: 'L3', doc: DOCS.L3, desc: `Physical view of ${fqdn}: every Compose project and listener on this VPS.` })
+  ], {
+    id: `n:${n.id}`,
+    facts: [['provider', n.prov === 'do' ? 'DigitalOceanProvider do' : 'OpenStackProvider ovh-gra'], ['region', n.region], ['priority', String(n.priority)],
+            ['canonical hostname', fqdn], ['IPv6', n.ipv6 ? 'yes' : 'no'], ['attached workloads', 'moq, iroh (in construction order)']],
+    refs: [n.prov === 'do' ? 'p:do' : 'p:ovh', `nd:moq:${n.id}`, `nd:iroh:${n.id}`]
+  });
+}
+
+function nodeDeployment(wl, n, index) {
+  const name = `${wl}-${n.id}`;
+  const h = host(n.id, APPS[wl].domain);
+  const prev = index > 0 ? ORDERED[index - 1].id : null;
+  const dns = [res('cloudflare.DnsRecord', `${name}-dns-a`, { desc: `A ${h} → machine IPv4, unproxied, TTL 60. Not gated on health.` })];
+  if (n.ipv6) dns.push(res('cloudflare.DnsRecord', `${name}-dns-aaaa`, { desc: `AAAA ${h} → machine IPv6.` }));
+  const after = [];
+  if (wl === 'moq') after.push(`node addon hosts (netdata → mesh) on ${n.id}`);
+  if (wl === 'iroh') after.push(`moq-${n.id}-host (Node.previousDeployment)`);
+  if (wl === 'moq' && prev) after.push(`moq-${prev}-host steps (serial rollout)`);
+  return comp('fleet:core:NodeDeployment', name, [
+    composeHost(`${name}-host`, wl, n.id, { desc: `Workload host for ${wl} on ${n.id}. Steps wait for: ${after.join('; ') || 'ingress only'}.` }),
+    ...dns,
+    val('summary', {
+      level: 'L4', doc: DOCS.L4,
+      desc: 'Output: id, provider, providerRegion, priority, hostname, address, addressV6, healthUrl, endpoints (including reused node addons), mesh.',
+      facts: [['hostname', h], ['ssh alias', `${PREFIX}-${wl}-${n.id}`]]
+    })
+  ], {
+    id: `nd:${wl}:${n.id}`,
+    facts: [['workload hostname', h], ['node', n.id], ['ssh alias', `${PREFIX}-${wl}-${n.id}`], ['steps wait for', after.join('; ') || 'ingress only']],
+    refs: [`n:${n.id}`, `wl:${wl}`, 'svc:dns']
+  });
+}
+
+/* ---------- Assemble the fleet ---------- */
+const ROOT = item('fleet', `Fleet "${PREFIX}" / ${ENV}`, {
+  id: 'root', type: 'fleet:core:Fleet', level: 'L6', doc: DOCS.L6,
+  facts: [['namePrefix', PREFIX], ['environment', ENV], ['ssh', `tcp/${SSH_PORT} from ${SSH_CIDR}`], ['hostname strategy', '<node.id>.nodes.<domain>']],
+  children: [
+    group('Fleet context', [
+      comp('fleet:core:Fleet', 'fleet', [], { id: 'fleet', desc: TYPE_INFO['fleet:core:Fleet'][1] }),
+      comp('fleet:core:BootstrapSshKey', 'fleet-bootstrap-ssh', [
+        res('tls.PrivateKey', 'fleet-bootstrap-ssh-key', { desc: 'RSA 4096. privateKeyPem is a Pulumi secret.' })
+      ], { id: 'key', refs: ['p:do', 'p:ovh'] })
+    ], { level: 'L6', doc: DOCS.L6 }),
+
+    group('Machine providers', [
+      comp('fleet:core:DigitalOceanProvider', 'do', [
+        res('digitalocean.SshKey', 'do-bootstrap', { desc: `Key ${PREFIX}-${ENV}-do-bootstrap holding the fleet public key.` }),
+        group('tags (shared, deduped)', [PREFIX, `${PREFIX}-${ENV}`, `${PREFIX}-na-east`, `${PREFIX}-eu-west`].map(t => res('digitalocean.Tag', t)))
+      ], { id: 'p:do', facts: [['regions', 'nyc3, lon1 (from nodes)'], ['image', 'ubuntu-24-04-x64'], ['default size', 's-1vcpu-2gb']], refs: ['n:na-east', 'n:eu-west'] }),
+      comp('fleet:core:OpenStackProvider', 'ovh-gra', [
+        res('openstack.compute.Keypair', 'ovh-gra-bootstrap', { desc: `Key pair ${PREFIX}-${ENV}-ovh-gra-gra11-bootstrap.` })
+      ], { id: 'p:ovh', facts: [['region', 'GRA11 (fixed)'], ['image', 'Ubuntu 24.04'], ['flavor', 'd2-4'], ['network', 'Ext-Net']], refs: ['n:eu-gra'] })
+    ], { level: 'L1', doc: DOCS.L1 }),
+
+    group('Shared services', [
+      comp('fleet:core:AcmeIssuer', 'acme', [
+        res('acme.Provider', 'acme-provider'),
+        res('tls.PrivateKey', 'acme-account-key', { desc: 'P-256 ACME account key.' }),
+        res('acme.Registration', 'acme-registration'),
+        res('acme.Certificate', 'moq-public', { id: 'cert:moq', desc: 'CN moq.example.com; SAN nodes.moq.example.com, *.nodes.moq.example.com. DNS-01 via Cloudflare.', refs: ['wl:moq'] }),
+        res('acme.Certificate', 'iroh-public', { id: 'cert:iroh', desc: 'CN iroh.example.com; SAN nodes.iroh.example.com, *.nodes.iroh.example.com.', refs: ['wl:iroh'] })
+      ], { id: 'svc:acme' }),
+      comp('fleet:core:CloudflareDnsRegistrar', 'dns', [], {
+        id: 'svc:dns', facts: [['ttl', '60'], ['proxied', 'false']],
+        refs: ORDERED.flatMap(n => [`nd:moq:${n.id}`, `nd:iroh:${n.id}`])
+      }),
+      group('MoQ shared keys', [
+        res('random.RandomBytes', 'moq-relay-token', { desc: '32 bytes → MoqRelayWorkload authToken (secret). Sent as Basic credentials on admission callbacks; gatekeeper MOQ_RELAY_TOKEN.' }),
+        res('random.RandomBytes', 'moq-cluster-token', { desc: '32 bytes → MoqRelayWorkload clusterToken (secret). Rotated by its keepers; gatekeeper MOQ_CLUSTER_TOKEN.' })
+      ], {
+        id: 'svc:auth',
+        facts: [['authOrigin', 'https://gatekeeper.example.com'], ['peers', 'full mesh across na-east, eu-west, eu-gra (on the workload)']],
+        refs: ['wl:moq', 'ext:gk']
+      }),
+      comp('fleet:core:NetdataAddon', 'netdata', [], { id: 'ad:netdata', refs: NODES.map(n => `n:${n.id}`) }),
+      comp('fleet:core:CloudflareMeshAddon', 'mesh', NODES.map(n =>
+        res('cloudflare.ZeroTrustTunnelWarpConnector', `${n.id}-connector`, { id: `wc:${n.id}`, desc: `HA WARP connector ${PREFIX}-${ENV}-${host(n.id, 'example.com').replace(/\./g, '-')}. Token → MESH_NODE_TOKEN.`, refs: [`n:${n.id}`] })
+      ), { id: 'ad:mesh' })
+    ], { level: 'L1', doc: DOCS.L1 }),
+
+    group('Nodes', NODES.map(nodeItem), { level: 'L3', doc: DOCS.L3, desc: 'One machine each. Machines are created when the first workload (moq) attaches.' }),
+
+    group('Workloads', [
+      comp('fleet:moq:RelayWorkload', 'moq', ORDERED.map((n, i) => nodeDeployment('moq', n, i)), {
+        id: 'wl:moq',
+        facts: [['domain', 'moq.example.com'], ['rollout', `serial: ${ORDERED.map(n => n.id).join(' → ')}`], ['addons', 'netdata, mesh'], ['dependsOn', 'gatekeeper deployment']],
+        refs: ['cert:moq', 'svc:auth', 'svc:dns', 'ad:netdata', 'ad:mesh', 'out:moqdir']
+      }),
+      comp('fleet:iroh:RelayWorkload', 'iroh', ORDERED.map((n, i) => nodeDeployment('iroh', n, i)), {
+        id: 'wl:iroh',
+        facts: [['domain', 'iroh.example.com'], ['rollout', 'parallel'], ['ports', 'https 8443 (moved off 443 because moq owns it)'], ['addons', 'netdata, mesh (reused, not redeployed)']],
+        refs: ['cert:iroh', 'svc:dns', 'ext:gk', 'out:irohdir']
+      })
+    ], { level: 'L5', doc: DOCS.L5 }),
+
+    group('Outputs', [
+      val('fleetSummary()', { id: 'out:summary', level: 'L6', doc: DOCS.L6, desc: '{ moq: WorkloadNodeSummary[], iroh: WorkloadNodeSummary[] }. Rejects duplicate workload names.' }),
+      val('sshConfigOutput()', { level: 'L6', doc: DOCS.L6, desc: `Six Host blocks (${PREFIX}-<workload>-<node>), Port ${SSH_PORT}, IdentityFile ./fleet-ssh.key.` }),
+      val('sshPrivateKey (secret)', { level: 'L6', doc: DOCS.L6, refs: ['key'] }),
+      val('moq.directory', { id: 'out:moqdir', level: 'L5', doc: DOCS.L5, desc: 'connectUrl, webtransportUrl, publicHealthUrl, endpoints, mesh per node. Also clusterNodeUrls and clusterPeersByNodeUrl.' }),
+      val('iroh.directory · relayUrls', { id: 'out:irohdir', level: 'L5', doc: DOCS.L5, desc: `relayUrl per node, e.g. https://${host('na-east', 'iroh.example.com')}:8443` })
+    ], { level: 'L6', doc: DOCS.L6 }),
+
+    group('External systems', [
+      ext('DigitalOcean API', { refs: ['p:do'] }),
+      ext('OpenStack API (OVH GRA11)', { refs: ['p:ovh'] }),
+      ext('Cloudflare', { desc: 'DNS zone (A/AAAA, DNS-01 TXT), Zero Trust WARP connectors.', refs: ['svc:dns', 'ad:mesh'] }),
+      ext('ACME CA', { desc: 'Let\'s Encrypt or similar. DNS-01 challenge answered via Cloudflare.', refs: ['svc:acme'] }),
+      ext('gatekeeper Worker', { id: 'ext:gk', desc: 'Deployed outside this library. MoQ: /relays/moq/admission with MOQ_RELAY_TOKEN (Basic) and MOQ_CLUSTER_TOKEN. Iroh: /relays/iroh/admission with IROH_RELAY_TOKEN.', refs: ['svc:auth', 'wl:moq', 'wl:iroh'] })
+    ], { level: 'L6', doc: DOCS.L6 })
+  ]
+});
+
+(function index(it, parent) {
+  BY_ID.set(it.id, it);
+  if (parent) PARENT.set(it.id, parent.id);
+  (it.children || []).forEach(c => index(c, it));
+})(ROOT, null);
+
+/* ---------- UI ---------- */
+const $ = id => document.getElementById(id);
+const state = { focus: 'root', selected: 'root', depth: 2, query: '' };
+
+function pathTo(id) {
+  const out = [];
+  for (let cur = id; cur; cur = PARENT.get(cur)) out.unshift(cur);
+  return out;
+}
+function countDesc(it) {
+  return (it.children || []).reduce((n, c) => n + 1 + countDesc(c), 0);
+}
+function matches(it) {
+  if (!state.query) return false;
+  const hay = [it.name, it.type, it.desc, ...(it.facts || []).flat()].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(state.query);
+}
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function renderBox(it, depthLeft, isRoot) {
+  const kids = it.children || [];
+  const box = el('div', `box k-${it.kind}${it.kind === 'group' ? ' group' : ''}${kids.length ? '' : ' leaf'}${isRoot ? ' root' : ''}`);
+  if (it.id === state.selected) box.classList.add('selected');
+  if (matches(it)) box.classList.add('match');
+  const hd = el('div', 'hd');
+  hd.append(el('span', 'nm', it.name));
+  if (it.level) hd.append(el('span', 'badge', it.level));
+  box.append(hd);
+  if (it.type && it.kind !== 'group') box.append(el('div', 'ty', it.type));
+  if (kids.length) {
+    if (depthLeft > 0) {
+      const wrap = el('div', 'kids');
+      kids.forEach(k => wrap.append(renderBox(k, depthLeft - 1, false)));
+      box.append(wrap);
+    } else {
+      box.append(el('div', 'more', `▸ ${kids.length} inside · ${countDesc(it)} total — click to zoom`));
+    }
+  }
+  if (!isRoot) {
+    box.addEventListener('click', ev => {
+      ev.stopPropagation();
+      state.selected = it.id;
+      if (kids.length && depthLeft <= 0) state.focus = it.id;
+      render();
+    });
+    box.addEventListener('dblclick', ev => {
+      ev.stopPropagation();
+      if (kids.length) { state.focus = it.id; state.selected = it.id; render(); }
+    });
+  }
+  return box;
+}
+
+function renderCrumbs() {
+  const c = $('crumbs');
+  c.replaceChildren();
+  pathTo(state.focus).forEach((id, i, arr) => {
+    if (i) c.append(el('span', 'sep', '›'));
+    const b = el('button', i === arr.length - 1 ? 'current' : '', BY_ID.get(id).name);
+    if (i < arr.length - 1) b.addEventListener('click', () => { state.focus = id; state.selected = id; render(); });
+    c.append(b);
+  });
+}
+
+function navigateTo(id) {
+  const it = BY_ID.get(id);
+  if (!it) return;
+  state.selected = id;
+  state.focus = it.children && it.children.length ? id : (PARENT.get(id) || 'root');
+  render();
+}
+
+function renderDetails() {
+  const it = BY_ID.get(state.selected);
+  const d = $('details');
+  d.replaceChildren();
+  d.append(el('h2', '', it.name));
+  if (it.type) d.append(el('div', 'ty', it.type));
+  d.append(el('div', 'hint', `${KINDS[it.kind]}${it.level ? ` · level ${it.level}` : ''}`));
+  if (it.desc) d.append(el('p', '', it.desc));
+  if (it.facts && it.facts.length) {
+    const t = el('table');
+    it.facts.forEach(([k, v]) => { const tr = el('tr'); tr.append(el('td', '', k), el('td', '', v)); t.append(tr); });
+    d.append(t);
+  }
+  const actions = el('div', 'actions');
+  if (it.children && it.children.length && state.focus !== it.id) {
+    const z = el('button', '', 'Zoom in'); z.addEventListener('click', () => { state.focus = it.id; render(); }); actions.append(z);
+  }
+  if (state.focus !== 'root') {
+    const u = el('button', '', 'Zoom out'); u.addEventListener('click', zoomOut); actions.append(u);
+  }
+  if (it.doc) { const a = el('a', '', `Read ${it.level || ''} doc →`); a.href = it.doc; actions.append(a); }
+  d.append(actions);
+
+  const chipSection = (title, ids) => {
+    const list = ids.filter(id => BY_ID.has(id));
+    if (!list.length) return;
+    d.append(el('h3', '', title));
+    const chips = el('div', 'chips');
+    list.forEach(id => { const b = el('button', 'chip', BY_ID.get(id).name); b.title = BY_ID.get(id).type || ''; b.addEventListener('click', () => navigateTo(id)); chips.append(b); });
+    d.append(chips);
+  };
+  chipSection('Related', it.refs || []);
+  const backrefs = [...BY_ID.values()].filter(o => (o.refs || []).includes(it.id)).map(o => o.id);
+  chipSection('Referenced by', backrefs);
+  chipSection('Contains', (it.children || []).map(c => c.id));
+  const parent = PARENT.get(it.id);
+  if (parent) chipSection('Inside', [parent]);
+
+  if (state.query) {
+    const hits = [...BY_ID.values()].filter(matches).slice(0, 60);
+    d.append(el('h3', '', `Search results (${hits.length}${hits.length === 60 ? '+' : ''})`));
+    const chips = el('div', 'chips');
+    hits.forEach(h => {
+      const b = el('button', 'chip', h.name);
+      b.title = pathTo(h.id).map(id => BY_ID.get(id).name).join(' › ');
+      b.addEventListener('click', () => navigateTo(h.id));
+      chips.append(b);
+    });
+    d.append(chips);
+  }
+  d.append(el('p', 'hint', 'Click a box to select it, and to zoom in when its contents are collapsed. Double-click any group to zoom in. Esc zooms out.'));
+}
+
+function zoomOut() {
+  const p = PARENT.get(state.focus);
+  if (p) { state.selected = state.focus; state.focus = p; render(); }
+}
+
+function render() {
+  renderCrumbs();
+  const view = $('view');
+  view.replaceChildren(renderBox(BY_ID.get(state.focus), state.depth, true));
+  renderDetails();
+}
+
+const legend = $('legend');
+Object.entries(KINDS).forEach(([k, label]) => {
+  const s = el('span');
+  const sw = el('i', `k-${k}`);
+  s.append(sw, document.createTextNode(label));
+  legend.append(s);
+});
+$('depth').addEventListener('change', e => { state.depth = Number(e.target.value); $('showAll').checked = state.depth >= 99; render(); });
+$('showAll').addEventListener('change', e => { state.depth = e.target.checked ? 99 : 2; $('depth').value = String(state.depth); render(); });
+$('search').addEventListener('input', e => { state.query = e.target.value.trim().toLowerCase(); render(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.activeElement !== $('search')) zoomOut(); });
+
+render();
+</script>
+</body>
+</html>
