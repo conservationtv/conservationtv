@@ -361,7 +361,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Invite someone',
       description:
-        'Administrators only. Invite an email address, which is sent a link with a one-time code that whoever holds it can accept, or an account by its ID, which accepts by signing in. Invitations last 14 days.',
+        'Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.',
       responses: {
         201: { description: 'The invitation' },
         400: invalidRequest,
@@ -377,18 +377,21 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     validator(
       'json',
-      z.union([
-        z.strictObject({ email: z.email().max(320).describe('The address to send the invitation to.') }),
-        z.strictObject({ user_id: z.string().min(1).max(64).describe('The account to invite.') })
-      ])
+      z
+        .strictObject({
+          email: z.email().max(320).optional().describe('The address to send the invitation to.'),
+          user_id: z.string().min(1).max(64).optional().describe('The account to invite.')
+        })
+        .transform(({ email, user_id }, context) => {
+          // One flat object keeps the CLI's flags simple; exactly one recipient becomes the invitation's.
+          if (email !== undefined && user_id === undefined) return { email };
+          if (user_id !== undefined && email === undefined) return { userId: user_id };
+          context.addIssue({ code: 'custom', message: 'Provide exactly one of email or user_id' });
+          return z.NEVER;
+        })
     ),
     async c => {
-      const body = c.req.valid('json');
-      const invitation = await createInvitation(
-        usePrincipal(),
-        c.req.valid('param').id,
-        'email' in body ? { email: body.email } : { userId: body.user_id }
-      );
+      const invitation = await createInvitation(usePrincipal(), c.req.valid('param').id, c.req.valid('json'));
       c.header('Cache-Control', 'no-store');
       return c.json(
         {

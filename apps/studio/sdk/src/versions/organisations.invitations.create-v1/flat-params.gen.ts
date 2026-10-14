@@ -6,7 +6,8 @@ import { PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvita
 
 export const InvitationCreateV1ParamsSchema = z.object({
     id: PostOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    body: PostOrganisationsByIdInvitationsBodySchema.nonoptional()
+    email: PostOrganisationsByIdInvitationsBodySchema.shape.email.optional().describe('The address to send the invitation to.'),
+    user_id: PostOrganisationsByIdInvitationsBodySchema.shape.user_id.optional().describe('The account to invite.')
 });
 
 export type InvitationCreateV1Params = z.infer<typeof InvitationCreateV1ParamsSchema>;

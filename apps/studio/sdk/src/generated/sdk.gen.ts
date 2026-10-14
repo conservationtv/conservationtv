@@ -165,23 +165,18 @@ export class Invitations extends HeyApiClient {
     /**
      * Invite someone
      *
-     * Administrators only. Invite an email address, which is sent a link with a one-time code that whoever holds it can accept, or an account by its ID, which accepts by signing in. Invitations last 14 days.
+     * Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        body: {
-            /**
-             * The address to send the invitation to.
-             */
-            email: string;
-        } | {
-            /**
-             * The account to invite.
-             */
-            user_id: string;
-        };
+        email?: string;
+        user_id?: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdInvitationsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { key: 'body', map: 'body' }] }]);
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'body', key: 'email' },
+                    { in: 'body', key: 'user_id' }
+                ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdInvitationsErrors, ThrowOnError>({
             url: '/organisations/{id}/invitations',
             ...options,

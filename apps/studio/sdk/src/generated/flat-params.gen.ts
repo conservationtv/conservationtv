@@ -77,7 +77,8 @@ export type InvitationListParams = z.infer<typeof InvitationListParamsSchema>;
 
 export const InvitationCreateParamsSchema = z.object({
     id: PostOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    body: PostOrganisationsByIdInvitationsBodySchema.nonoptional()
+    email: PostOrganisationsByIdInvitationsBodySchema.shape.email.optional().describe('The address to send the invitation to.'),
+    user_id: PostOrganisationsByIdInvitationsBodySchema.shape.user_id.optional().describe('The account to invite.')
 });
 
 export type InvitationCreateParams = z.infer<typeof InvitationCreateParamsSchema>;
