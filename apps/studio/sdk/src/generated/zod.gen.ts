@@ -205,18 +205,14 @@ export const GetOrganisationsByIdInvitationsResponseSchema = z.object({
     description: 'The invitations, oldest first'
 });
 
-export const PostOrganisationsByIdInvitationsBodySchema = z.union([
-    z.object({
-        email: z.email().max(320).regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).register(z.globalRegistry, {
-            description: 'The address to send the invitation to.'
-        })
-    }),
-    z.object({
-        user_id: z.string().min(1).max(64).register(z.globalRegistry, {
-            description: 'The account to invite.'
-        })
-    })
-]);
+export const PostOrganisationsByIdInvitationsBodySchema = z.object({
+    email: z.email().max(320).regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).register(z.globalRegistry, {
+        description: 'The address to send the invitation to.'
+    }).optional(),
+    user_id: z.string().min(1).max(64).register(z.globalRegistry, {
+        description: 'The account to invite.'
+    }).optional()
+});
 
 export const PostOrganisationsByIdInvitationsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {

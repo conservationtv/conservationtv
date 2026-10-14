@@ -157,8 +157,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('create', { description: 'Invite someone\n\nAdministrators only. Invite an email address, which is sent a link with a one-time code that whoever holds it can accept, or an account by its ID, which accepts by signing in. Invitations last 14 days.' }).command('v1', {
-        description: 'Invite someone\n\nAdministrators only. Invite an email address, which is sent a link with a one-time code that whoever holds it can accept, or an account by its ID, which accepts by signing in. Invitations last 14 days.',
+    })).command(Cli.create('create', { description: 'Invite someone\n\nAdministrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.' }).command('v1', {
+        description: 'Invite someone\n\nAdministrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.',
         options: cliOptions(InvitationCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

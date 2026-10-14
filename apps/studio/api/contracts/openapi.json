@@ -1286,7 +1286,7 @@
         "operationId": "organisations.invitations.create",
         "x-operation-version": 1,
         "summary": "Invite someone",
-        "description": "Administrators only. Invite an email address, which is sent a link with a one-time code that whoever holds it can accept, or an account by its ID, which accepts by signing in. Invitations last 14 days.",
+        "description": "Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.",
         "responses": {
           "201": {
             "description": "The invitation",
@@ -1436,39 +1436,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "email": {
-                        "type": "string",
-                        "maxLength": 320,
-                        "format": "email",
-                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-                        "description": "The address to send the invitation to."
-                      }
-                    },
-                    "required": [
-                      "email"
-                    ],
-                    "additionalProperties": false
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "description": "The address to send the invitation to.",
+                    "type": "string",
+                    "maxLength": 320,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                   },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "user_id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 64,
-                        "description": "The account to invite."
-                      }
-                    },
-                    "required": [
-                      "user_id"
-                    ],
-                    "additionalProperties": false
+                  "user_id": {
+                    "description": "The account to invite.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
                   }
-                ]
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -3922,7 +3906,7 @@
             "operationId": "organisations.invitations.create",
             "x-operation-version": 1,
             "summary": "Invite someone",
-            "description": "Administrators only. Invite an email address, which is sent a link with a one-time code that whoever holds it can accept, or an account by its ID, which accepts by signing in. Invitations last 14 days.",
+            "description": "Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.",
             "responses": {
               "201": {
                 "description": "The invitation",
@@ -4033,39 +4017,23 @@
               "content": {
                 "application/json": {
                   "schema": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "email": {
-                            "type": "string",
-                            "maxLength": 320,
-                            "format": "email",
-                            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-                            "description": "The address to send the invitation to."
-                          }
-                        },
-                        "required": [
-                          "email"
-                        ],
-                        "additionalProperties": false
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "description": "The address to send the invitation to.",
+                        "type": "string",
+                        "maxLength": 320,
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                       },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "user_id": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 64,
-                            "description": "The account to invite."
-                          }
-                        },
-                        "required": [
-                          "user_id"
-                        ],
-                        "additionalProperties": false
+                      "user_id": {
+                        "description": "The account to invite.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
                       }
-                    ]
+                    },
+                    "additionalProperties": false
                   }
                 }
               }

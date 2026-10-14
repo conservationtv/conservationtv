@@ -603,12 +603,11 @@ export type PostOrganisationsByIdInvitationsData = {
         /**
          * The address to send the invitation to.
          */
-        email: string;
-    } | {
+        email?: string;
         /**
          * The account to invite.
          */
-        user_id: string;
+        user_id?: string;
     };
     path: {
         /**
