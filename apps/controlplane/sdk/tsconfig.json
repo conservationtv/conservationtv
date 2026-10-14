@@ -1,16 +1,15 @@
 {
+  // Consumed from source by Vite, vitest and tsx; this project only type-checks the generated and hand-written code.
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "strict": true,
+    "noEmit": true,
     "skipLibCheck": true,
-    "composite": true,
-    "declaration": true,
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true
   },
   "include": ["src/**/*.ts"]
 }

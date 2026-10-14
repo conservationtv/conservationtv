@@ -5,6 +5,7 @@ import { noNullishAssignmentRule } from "./rules/no-nullish-assignment.ts";
 import { noObjectFreezeRule } from "./rules/no-object-freeze.ts";
 import { noPrivateClassFieldsRule } from "./rules/no-private-class-fields.ts";
 import { requireComplexityCommentRule } from "./rules/require-complexity-comment.ts";
+import { requireFcComponentRule } from "./rules/require-fc-component.ts";
 import { requirePascalCaseSchemaNameRule } from "./rules/require-pascal-case-schema-name.ts";
 import { requireZodOutputTypeRule } from "./rules/require-zod-output-type.ts";
 
@@ -17,6 +18,7 @@ const housePlugin = eslintCompatPlugin({
     "no-object-freeze": noObjectFreezeRule,
     "no-private-class-fields": noPrivateClassFieldsRule,
     "require-complexity-comment": requireComplexityCommentRule,
+    "require-fc-component": requireFcComponentRule,
     "require-pascal-case-schema-name": requirePascalCaseSchemaNameRule,
     "require-zod-output-type": requireZodOutputTypeRule,
   },

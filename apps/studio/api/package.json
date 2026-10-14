@@ -1,0 +1,50 @@
+{
+  "name": "@conservationtv/studio-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./openapi.json": "./contracts/openapi.json"
+  },
+  "scripts": {
+    "dev": "cf dev",
+    "build": "cf build",
+    "upload": "cf workers versions create",
+    "types": "cf workers types",
+    "typecheck": "cf workers types && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "generate": "api-contracts generate",
+    "snapshot": "api-contracts snapshot",
+    "check:release": "api-contracts check-release",
+    "check:snapshot": "api-contracts check-snapshot",
+    "snapshot:required": "api-contracts check-snapshot --required",
+    "ci:contracts": "api-contracts ci",
+    "auth:generate": "better-auth generate --config scripts/auth-schema.config.ts --output src/db/auth-schema.ts -y",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:generate": "drizzle-kit generate && umbrella generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.7",
+    "@better-auth/passkey": "catalog:",
+    "@conservationtv/umbrella": "workspace:*",
+    "@conservationtv/versioned-api": "workspace:*",
+    "better-auth": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "4.13.8",
+    "hono-openapi": "1.3.3",
+    "pg": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@better-auth/cli": "1.4.21",
+    "@cloudflare/vite-plugin": "beta",
+    "@types/node": "24.10.1",
+    "@types/pg": "catalog:",
+    "cf": "^1.0.0-beta.5",
+    "drizzle-kit": "catalog:",
+    "tsx": "4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}

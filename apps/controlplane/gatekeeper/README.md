@@ -9,7 +9,8 @@ verifies that signed assertion, enforces the consumer's delegation ceiling, and 
 
 It is a Cloudflare Worker (Hono) backed by Postgres through Hyperdrive. Its API is versioned per operation and
 publishes an OpenAPI bundle from which the SDK (`../sdk`) and CLI (`../cli`) are generated, following
-[perfect-versioned-api](../../../../personal/perfect-versioned-api).
+[perfect-versioned-api](../../../../personal/perfect-versioned-api). The versioning router, contract generation,
+release gates and SDK/CLI generators are shared through [`@conservationtv/versioned-api`](../../../packages/versioned-api).
 
 ## Endpoints
 
@@ -215,16 +216,16 @@ production Worker entrypoint constructs those dependencies.
 ## Contracts, SDK and CLI
 
 ```sh
-pnpm --filter @conservationtv/gatekeeper generate             # openapi.json from routes + handler types
-pnpm --filter @conservationtv/controlplane-sdk generate build
-pnpm --filter @conservationtv/controlplane-cli generate build
-GATEKEEPER_URL=http://localhost:5173 node ../cli/dist/index.js grants exchange v1 --grant_assertion <jwt>
+pnpm --filter @conservationtv/gatekeeper generate             # contracts/openapi.json from routes + handler types
+pnpm --filter @conservationtv/controlplane-sdk generate
+pnpm --filter @conservationtv/controlplane-cli generate
+GATEKEEPER_URL=http://localhost:5173 pnpm --filter @conservationtv/controlplane-cli cli grants exchange v1 --grant_assertion <jwt>
 ```
 
 Release snapshots work as in the reference: `pnpm snapshot gatekeeper-v1.0.0` freezes the current bundle under
-`snapshots/`, and `check:snapshot`, `check:release` and `ci:contracts` gate releases. No snapshot has been cut yet, so
-every contract is still provisional.
+`contracts/snapshots/`, and `check:snapshot`, `check:release` and `ci:contracts` gate releases. These scripts are the shared
+`api-contracts` command reading `contracts.config.ts`. No snapshot has been cut yet, so every contract is still
+provisional.
 
 Toolchain note: worker type-checking uses TypeScript 7. Response inference and Hey API need the TypeScript compiler
-API, which TypeScript 7 does not ship, so they use TypeScript 6 (`typescript-api` alias here, `typescript@6` in the
-SDK and CLI).
+API, which TypeScript 7 does not ship, so the shared package and the SDK and CLI use TypeScript 6.

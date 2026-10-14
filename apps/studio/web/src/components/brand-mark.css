@@ -1,0 +1,26 @@
+/*
+ * The logo's own gradient (#ffce51 → #ff715b → #c43f98, left to right), drawn 30% wider than the mark so it can sway:
+ * it drifts about 15% each side of centre and eases back, so the colours breathe while yellow stays left and pink
+ * stays right. Held at centre for anyone who prefers reduced motion.
+ */
+.brand-mark-fill {
+  background-image: linear-gradient(90deg, #ffce51, #ff715b 50%, #c43f98);
+  background-size: 130% 100%;
+  background-position: 50% 50%;
+  animation: brand-mark-sway 6s ease-in-out infinite alternate;
+}
+
+@keyframes brand-mark-sway {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark-fill {
+    animation: none;
+  }
+}

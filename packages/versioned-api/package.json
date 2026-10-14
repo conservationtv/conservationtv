@@ -1,0 +1,42 @@
+{
+  "name": "@conservationtv/versioned-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Per-operation API versioning for Hono Workers: the server router, the OpenAPI contract bundle and release gates, and the generators behind the version-aware SDKs and CLIs.",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./codegen": "./src/codegen/index.ts",
+    "./codegen/cli": "./src/codegen/incur-builder.plugin.ts",
+    "./client": "./src/client/index.ts",
+    "./cli": "./src/cli/index.ts"
+  },
+  "bin": {
+    "api-contracts": "./bin/api-contracts.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "1.1.0",
+    "@standard-schema/utils": "0.3.0",
+    "pluralize": "8.0.0",
+    "tsx": "4.23.15",
+    "typescript-api": "npm:typescript@6.0.3",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "hono": "^4.13.8",
+    "hono-openapi": "^1.3.3"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "24.10.1",
+    "@types/pluralize": "0.0.33",
+    "hono": "4.13.8",
+    "hono-openapi": "1.3.3",
+    "typescript": "6.0.3"
+  }
+}

@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `pnpm dev`. Better Auth signs cookies and tokens with this; generate 32 random bytes:
+# node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+BETTER_AUTH_SECRET=REPLACE_WITH_GENERATED_SECRET
+
+# Optional overrides of the checked-in development defaults.
+# APP_URL=http://localhost:5175
+# WEB_ORIGINS=http://localhost:5173
+# OTP_DELIVERY=log

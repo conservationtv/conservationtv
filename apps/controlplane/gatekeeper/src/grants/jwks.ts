@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { JwksUri } from '../config/schemas.ts';
 import { jwksCache } from '../db/schema.ts';
 import { GrantError } from '../errors.ts';
-import { parseStrictJson } from '../json.ts';
+import { parseStrictJson } from '@conservationtv/versioned-api/server';
 import { services } from '../services.ts';
 
 const MAX_DOCUMENT_BYTES = 64 * 1024;

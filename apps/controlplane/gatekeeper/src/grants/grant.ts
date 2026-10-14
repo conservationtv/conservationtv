@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { GrantError } from '../errors.ts';
-import type { Json } from '../json.ts';
+import type { Json } from '@conservationtv/versioned-api/server';
 import { EndpointIdSchema, GrantSubjectSchema, MoqPathSchema, MoqRelativePathSchema } from './identifiers.ts';
 
 const MAX_PATHS_PER_ACTION = 32;

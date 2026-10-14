@@ -1,12 +1,16 @@
 export * from './generated/index.js';
 export * from './versions/index.js';
-export type { ClientConfig } from './client.js';
-export { HttpError, ValidationError, NotAuthorizedError, ForbiddenError, NotFoundError } from './errors.js';
 export {
+  ForbiddenError,
   HandshakeError,
   HandshakeRequiredError,
+  HttpError,
+  NotAuthorizedError,
+  NotFoundError,
   OperationVersionChangedError,
   OperationVersionUnavailableError,
+  ValidationError,
+  type ClientConfig,
   type VersionedCall,
   type VersionedOperation
-} from './versioning.js';
+} from '@conservationtv/versioned-api/client';

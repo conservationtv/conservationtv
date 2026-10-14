@@ -1,0 +1,22 @@
+# Local stand-in for the Postgres database that production reaches through Hyperdrive. The init script creates the
+# application login role that request sessions use; the owning role is the one Postgres creates for the database.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: studio
+      POSTGRES_PASSWORD: studio
+      POSTGRES_DB: studio
+    ports:
+      - '5434:5432'
+    volumes:
+      - studio-postgres:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U studio -d studio']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  studio-postgres:

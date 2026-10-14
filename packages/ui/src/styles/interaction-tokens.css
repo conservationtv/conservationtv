@@ -1,0 +1,39 @@
+/* A translucent accent tint keeps the palette's warmth and composites onto the
+ * actual surface underneath, including white and gradients. Only the fill is translucent.
+ */
+@theme inline {
+  --color-interaction-active: var(--interaction-active);
+  --color-interaction-hover: var(--interaction-hover);
+  --color-menu-highlight: var(--menu-highlight);
+}
+
+:root {
+  --interaction-active-strength: 70%;
+  --interaction-hover-strength: 35%;
+  --menu-highlight-strength: 25%;
+}
+
+.dark {
+  --interaction-active-strength: 70%;
+  --interaction-hover-strength: 35%;
+  --menu-highlight-strength: 25%;
+}
+
+:root,
+.dark {
+  --interaction-active: color-mix(
+    in srgb,
+    var(--accent) var(--interaction-active-strength),
+    transparent
+  );
+  --interaction-hover: color-mix(
+    in srgb,
+    var(--accent) var(--interaction-hover-strength),
+    transparent
+  );
+  --menu-highlight: color-mix(
+    in srgb,
+    var(--accent) var(--menu-highlight-strength),
+    transparent
+  );
+}

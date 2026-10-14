@@ -1,9 +1,8 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { defineConfig, type UserConfig } from '@hey-api/openapi-ts';
-import { flatParams } from './plugins/flat-params.plugin.js';
-import { CURRENT, readOperations } from './plugins/operation-versions.js';
-import { sdkClient } from './plugins/sdk-client.plugin.js';
+import { CURRENT, flatParams, readOperations, sdkClient } from '@conservationtv/versioned-api/codegen';
+import { minimumVersions } from './minimum-versions.js';
 
 // Generates this package's src/generated (the Client SDK, its types and Zod schemas) from the
 // API's OpenAPI spec, and src/versions/<operationId>-vN (the BaseClient and version-suffixed Params for each frozen contract that
@@ -11,7 +10,7 @@ import { sdkClient } from './plugins/sdk-client.plugin.js';
 // Run `pnpm generate` from the workspace root after changing a route, so the spec, SDK and CLI stay in step.
 const spec = createRequire(import.meta.url).resolve('@conservationtv/gatekeeper/openapi.json');
 
-const operations = readOperations(spec);
+const operations = readOperations(spec, { minimumVersions });
 const snapshots = Map.groupBy(
   operations.versioned.filter(operation => operation.source !== CURRENT),
   operation => operation.source

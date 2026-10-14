@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { ConsumerRegistration, ConsumerRegistrations } from '../config/schemas.ts';
 import { AssertionAlgorithmSchema } from '../config/schemas.ts';
 import { GrantError } from '../errors.ts';
-import { type Json, parseStrictJson } from '../json.ts';
+import { type Json, parseStrictJson } from '@conservationtv/versioned-api/server';
 import { services } from '../services.ts';
 import type { PublishedJwk } from './jwks.ts';
 

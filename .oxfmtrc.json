@@ -25,7 +25,12 @@
     "apps/controlplane/sdk/src/versions/**",
     "apps/controlplane/cli/src/generated/**",
     "apps/controlplane/infrastructure/sdks/**",
-    "apps/controlplane/gatekeeper/drizzle/**"
+    "apps/controlplane/gatekeeper/drizzle/**",
+    "packages/ui/src/components/**",
+    "packages/ui/src/hooks/**",
+    "packages/ui/src/lib/**",
+    "apps/studio/web/src/components/blocks/**",
+    "apps/studio/web/src/components/theme-provider.tsx"
   ],
   "sortPackageJson": false
 }
