@@ -5,24 +5,24 @@
   "type": "module",
   "description": "A generated version-aware CLI for the conservation.stream control plane (gatekeeper).",
   "bin": {
-    "gatekeeper": "./dist/index.js"
+    "gatekeeper": "./bin/gatekeeper.mjs"
   },
   "scripts": {
-    "build": "tsc -b && node --input-type=module -e \"import { chmodSync } from 'node:fs'; chmodSync('dist/index.js', 0o755)\"",
-    "typecheck": "tsc -b && tsc -p tsconfig.node.json",
-    "cli": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "cli": "node bin/gatekeeper.mjs",
     "generate": "openapi-ts --file openapi-ts.config.ts"
   },
   "dependencies": {
     "@conservationtv/controlplane-sdk": "workspace:*",
+    "@conservationtv/versioned-api": "workspace:*",
     "incur": "0.6.1",
-    "zod": "4.6.2"
+    "tsx": "4.23.15",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@conservationtv/gatekeeper": "workspace:*",
     "@hey-api/openapi-ts": "0.99.0",
     "@types/node": "24.10.1",
-    "tsx": "4.23.15",
     "typescript": "6.0.3"
   }
 }

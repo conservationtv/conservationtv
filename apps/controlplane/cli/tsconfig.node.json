@@ -10,5 +10,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["plugins/**/*.ts", "openapi-ts.config.ts"]
+  "include": ["openapi-ts.config.ts"]
 }

@@ -1,11 +1,81 @@
 import { defineConfig } from 'oxlint';
 
+/** The repository's own style and the anti-slop checks, for code written here. */
+const houseRules = {
+  'init-declarations': ['error', 'always'],
+  complexity: ['error', 10],
+  'house/no-inline-object-type': 'error',
+  'house/no-nullish-assignment': 'error',
+  'house/no-object-freeze': 'error',
+  'house/no-private-class-fields': 'error',
+  'house/require-complexity-comment': 'error',
+  'house/require-fc-component': 'error',
+  'house/require-pascal-case-schema-name': 'error',
+  'house/require-zod-output-type': 'error',
+  'anti-slop/no-chained-type-assertions': 'error',
+  'anti-slop/no-conditional-empty-object-spread': 'error',
+  'anti-slop/no-known-value-widening': 'error',
+  'anti-slop/no-module-mocking': 'error',
+  'anti-slop/no-object-parameters': 'error',
+  'anti-slop/no-reflect-apply': 'error',
+  'anti-slop/no-reflect-get': 'error',
+  'anti-slop/no-runtime-typeof': 'error',
+  'anti-slop/no-shape-in-symbol-names': 'error',
+  'anti-slop/no-unknown-parameters': 'error',
+  'anti-slop/no-unknown-returns': 'error',
+  'anti-slop/no-unknown-type-aliases': 'error',
+  'anti-slop/no-unsafe-dictionary-type': 'error',
+  'anti-slop/no-widen-then-assert': 'error',
+  'anti-slop/require-safety-comment-for-type-assertion': 'error'
+} as const;
+
+/** The same rules, switched off: oxlint's defaults and the React rules still apply. */
+const withoutHouseRules = Object.fromEntries(Object.keys(houseRules).map(rule => [rule, 'off' as const]));
+
+/**
+ * Code copied in from shadcn (`shadcn add`, its blocks and its dark-mode provider). It follows shadcn's style and is
+ * replaced wholesale when re-added, so it is not held to the house rules.
+ */
+const vendoredFiles = [
+  'packages/ui/src/components/**',
+  'packages/ui/src/hooks/**',
+  'packages/ui/src/lib/**',
+  'apps/studio/web/src/components/blocks/**',
+  'apps/studio/web/src/components/theme-provider.tsx'
+];
+
+/** The React apps and the components they share. */
+const reactFiles = ['apps/studio/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'];
+
+/**
+ * React Router route modules export these alongside the component; the framework handles them for Fast Refresh, so
+ * they must not trip `only-export-components`.
+ */
+const routeModuleExports = [
+  'meta',
+  'links',
+  'headers',
+  'handle',
+  'loader',
+  'clientLoader',
+  'action',
+  'clientAction',
+  'middleware',
+  'clientMiddleware',
+  'shouldRevalidate',
+  'Layout',
+  'HydrateFallback',
+  'ErrorBoundary'
+];
+
 export default defineConfig({
   ignorePatterns: [
     '**/dist',
     '**/bin',
     '**/.cloudflare',
     '**/.wrangler',
+    '**/build',
+    '**/.react-router',
     'tools',
     'node_modules',
     'target',
@@ -20,30 +90,33 @@ export default defineConfig({
     { name: 'anti-slop', specifier: './tools/oxlint/anti-slop/index.ts' },
     { name: 'house', specifier: './tools/oxlint/house/index.ts' }
   ],
-  rules: {
-    'init-declarations': ['error', 'always'],
-    complexity: ['error', 10],
-    'house/no-inline-object-type': 'error',
-    'house/no-nullish-assignment': 'error',
-    'house/no-object-freeze': 'error',
-    'house/no-private-class-fields': 'error',
-    'house/require-complexity-comment': 'error',
-    'house/require-pascal-case-schema-name': 'error',
-    'house/require-zod-output-type': 'error',
-    'anti-slop/no-chained-type-assertions': 'error',
-    'anti-slop/no-conditional-empty-object-spread': 'error',
-    'anti-slop/no-known-value-widening': 'error',
-    'anti-slop/no-module-mocking': 'error',
-    'anti-slop/no-object-parameters': 'error',
-    'anti-slop/no-reflect-apply': 'error',
-    'anti-slop/no-reflect-get': 'error',
-    'anti-slop/no-runtime-typeof': 'error',
-    'anti-slop/no-shape-in-symbol-names': 'error',
-    'anti-slop/no-unknown-parameters': 'error',
-    'anti-slop/no-unknown-returns': 'error',
-    'anti-slop/no-unknown-type-aliases': 'error',
-    'anti-slop/no-unsafe-dictionary-type': 'error',
-    'anti-slop/no-widen-then-assert': 'error',
-    'anti-slop/require-safety-comment-for-type-assertion': 'error'
-  }
+  rules: houseRules,
+  overrides: [
+    { files: vendoredFiles, rules: withoutHouseRules },
+    {
+      // The rules of eslint-plugin-react-hooks' `recommended-latest` (hooks and React Compiler) and
+      // eslint-plugin-react-refresh, which oxlint implements natively. `config` and `gating` only validate a Babel
+      // React Compiler setup, which these apps don't use.
+      files: reactFiles,
+      plugins: ['react'],
+      rules: {
+        'react/rules-of-hooks': 'error',
+        'react/exhaustive-deps': 'warn',
+        'react/static-components': 'error',
+        'react/use-memo': 'error',
+        'react/void-use-memo': 'error',
+        'react/preserve-manual-memoization': 'error',
+        'react/incompatible-library': 'warn',
+        'react/immutability': 'error',
+        'react/globals': 'error',
+        'react/refs': 'error',
+        'react/set-state-in-effect': 'error',
+        'react/error-boundaries': 'error',
+        'react/purity': 'error',
+        'react/set-state-in-render': 'error',
+        'react/unsupported-syntax': 'warn',
+        'react/only-export-components': ['warn', { allowConstantExport: true, allowExportNames: routeModuleExports }]
+      }
+    }
+  ]
 });

@@ -1,0 +1,28 @@
+{
+  "name": "@conservationtv/studio-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A generated version-aware CLI for the conservation.tv studio API.",
+  "bin": {
+    "studio": "./bin/studio.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "cli": "node bin/studio.mjs",
+    "generate": "openapi-ts --file openapi-ts.config.ts"
+  },
+  "dependencies": {
+    "@conservationtv/studio-sdk": "workspace:*",
+    "@conservationtv/versioned-api": "workspace:*",
+    "incur": "0.6.1",
+    "tsx": "4.23.15",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@conservationtv/studio-api": "workspace:*",
+    "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "24.10.1",
+    "typescript": "6.0.3"
+  }
+}

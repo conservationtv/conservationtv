@@ -1,6 +1,6 @@
 import { importJWK } from 'jose';
 import { z } from 'zod';
-import { parseStrictJson } from '../json.ts';
+import { parseStrictJson } from '@conservationtv/versioned-api/server';
 
 export const MOQ_SIGNING_ALGORITHM = 'ES256';
 

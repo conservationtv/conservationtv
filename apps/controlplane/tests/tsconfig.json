@@ -2,7 +2,7 @@
   // Matches gatekeeper's Node-side settings: its `./testing` entry point is TypeScript source checked here too.
   "compilerOptions": {
     "target": "es2024",
-    "lib": ["es2024"],
+    "lib": ["es2024", "DOM", "DOM.Iterable"],
     "module": "preserve",
     "moduleResolution": "bundler",
     "types": ["node"],

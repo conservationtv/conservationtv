@@ -5,6 +5,14 @@ packages:
   - '!apps/controlplane/infrastructure/sdks/*/bin'
 
 catalog:
+  '@better-auth/passkey': 1.7.7
+  '@types/pg': 8.23.1
+  better-auth: 1.7.7
+  drizzle-kit: 0.31.11
+  drizzle-orm: 0.45.4
+  input-otp: 1.5.0
+  pg: 8.23.1
+  zod: 4.6.2
   '@pulumi/cloudflare': 6.22.0
   '@pulumi/command': 1.2.1
   '@pulumi/digitalocean': 4.83.0
@@ -17,9 +25,16 @@ catalog:
 # Keep providers and workspace packages on the same Pulumi runtime.
 overrides:
   '@pulumi/pulumi': 'catalog:'
+  # Better Auth accepts two kysely majors; one resolution keeps a single drizzle-orm instance across the workspace.
+  kysely: 0.29.6
+  # valibot's optional TypeScript peer would split hono-openapi by each package's TypeScript (6 where Hey API needs
+  # the compiler API, 7 elsewhere). Route metadata is keyed by a per-instance symbol, so every package must share one.
+  'valibot>typescript': '-'
 
 allowBuilds:
+  '@prisma/client': false
   '@pulumi/command': true
+  better-sqlite3: false
   cpu-features: false
   esbuild: true
   protobufjs: true

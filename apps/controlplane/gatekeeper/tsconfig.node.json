@@ -2,5 +2,5 @@
   // Generation scripts, tests and tool configs run under Node: Node's globals, not the Workers runtime's. Worker source
   // they import is checked again here, so it must stay runtime-neutral (only src/index.ts touches Workers APIs).
   "extends": "./tsconfig.json",
-  "include": ["scripts", "test", "drizzle.config.ts", "vitest.config.ts"]
+  "include": ["scripts", "test", "contracts.config.ts", "drizzle.config.ts", "vitest.config.ts"]
 }

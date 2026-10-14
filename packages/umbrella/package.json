@@ -1,0 +1,47 @@
+{
+  "name": "@conservationtv/umbrella",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Table-local, typed authorization for Drizzle and PostgreSQL",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "umbrella": "./bin/umbrella.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p examples/tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit",
+    "demo": "tsx examples/demo.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "drizzle-kit": ">=0.31.0",
+    "drizzle-orm": "^0.45.4",
+    "tsx": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-kit": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@testcontainers/postgresql": "12.2.0",
+    "@types/node": "24.10.1",
+    "@types/pg": "catalog:",
+    "drizzle-orm": "catalog:",
+    "pg": "catalog:",
+    "testcontainers": "12.2.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "license": "MIT"
+}

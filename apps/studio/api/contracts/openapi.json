@@ -1,0 +1,633 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Studio API",
+    "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+    "version": "0.1.0"
+  },
+  "components": {
+    "responses": {
+      "InvalidRequest": {
+        "description": "The request is invalid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "error_description"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "email_verified",
+          "image",
+          "created_at"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health.get",
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "The server is ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account": {
+      "get": {
+        "operationId": "account.get",
+        "x-operation-version": 1,
+        "summary": "Read your account",
+        "description": "The signed-in account, as its row-level security lets it see itself.",
+        "tags": [
+          "Account"
+        ],
+        "responses": {
+          "200": {
+            "description": "The signed-in account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      },
+      "patch": {
+        "operationId": "account.update",
+        "x-operation-version": 1,
+        "summary": "Update your account",
+        "description": "Changes the profile fields of the signed-in account. Email and verification change through `/auth`.",
+        "tags": [
+          "Account"
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "description": "The display name.",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "image": {
+                    "description": "An avatar URL, or null to remove it.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2048,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    }
+  },
+  "x-operation-contracts": [
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Account": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "email_verified": {
+                "type": "boolean"
+              },
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "email",
+              "email_verified",
+              "image",
+              "created_at"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/account": {
+          "get": {
+            "operationId": "account.get",
+            "x-operation-version": 1,
+            "summary": "Read your account",
+            "description": "The signed-in account, as its row-level security lets it see itself.",
+            "tags": [
+              "Account"
+            ],
+            "responses": {
+              "200": {
+                "description": "The signed-in account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Account"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Account": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "email_verified": {
+                "type": "boolean"
+              },
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "email",
+              "email_verified",
+              "image",
+              "created_at"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/account": {
+          "patch": {
+            "operationId": "account.update",
+            "x-operation-version": 1,
+            "summary": "Update your account",
+            "description": "Changes the profile fields of the signed-in account. Email and verification change through `/auth`.",
+            "tags": [
+              "Account"
+            ],
+            "responses": {
+              "200": {
+                "description": "The updated account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Account"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "The display name.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "image": {
+                        "description": "An avatar URL, or null to remove it.",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "format": "uri"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

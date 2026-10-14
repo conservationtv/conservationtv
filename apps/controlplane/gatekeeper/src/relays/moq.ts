@@ -3,7 +3,7 @@ import { base64url, decodeProtectedHeader, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { grants } from '../db/schema.ts';
 import { MoqPathSchema } from '../grants/identifiers.ts';
-import { parseStrictJson } from '../json.ts';
+import { parseStrictJson } from '@conservationtv/versioned-api/server';
 import { MOQ_SIGNING_ALGORITHM } from '../moq/keys.ts';
 import { isSubtreePattern, ScopeError, scopeToDialedPath } from '../moq/scope.ts';
 import { services } from '../services.ts';
