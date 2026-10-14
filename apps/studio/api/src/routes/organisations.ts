@@ -231,8 +231,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const session = await useServices().session(usePrincipal());
-      if (!(await visible(session, id))) throw new ApiFailure('not_found');
-      const rows = await listMembers(id);
+      const rows = await listMembers(usePrincipal(), id);
+      // Every member sees at least themselves, so no rows means the organisation is hidden, or its members are.
+      if (rows.length === 0 && !(await visible(session, id))) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(
         {

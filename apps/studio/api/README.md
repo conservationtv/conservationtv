@@ -158,6 +158,11 @@ they run as trusted code in one admin transaction (`src/organisations/membership
 access definitions through `inspect`. Changes to an organisation's administrators lock its row, and its last
 administrator cannot leave or be removed. The privileges are in the `organisation_privileges` migration.
 
+Request sessions may read umbrella's grants table (the `grants_readable` migration, a select-only policy): the member
+directory and your organisation list show roles, and run under row-level security like every other read. A bug in
+those routes can therefore leak role assignments, never other data; writes to grants stay with trusted code, which
+lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own locked transaction.
+
 ## Contracts, SDK and CLI
 
 ```sh
