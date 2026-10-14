@@ -14,6 +14,10 @@ export type Member = {
         user_id: string;
         display_name: string | null;
         joined_at: string;
+        roles: Array<{
+            id: string;
+            label: string;
+        }>;
     }>;
 };
 

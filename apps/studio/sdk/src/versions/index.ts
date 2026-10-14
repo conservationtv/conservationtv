@@ -10,6 +10,8 @@ export * from './organisations.delete-v1/index.js';
 export * from './organisations.members.list-v1/index.js';
 export * from './organisations.members.updateSelf-v1/index.js';
 export * from './organisations.members.remove-v1/index.js';
+export * from './organisations.members.grantAdmin-v1/index.js';
+export * from './organisations.members.revokeAdmin-v1/index.js';
 export * from './organisations.invitations.list-v1/index.js';
 export * from './organisations.invitations.create-v1/index.js';
 export * from './organisations.invitations.cancel-v1/index.js';

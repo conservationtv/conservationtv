@@ -11,7 +11,11 @@ export const OrganisationSchema = z.object({
     organisations: z.array(z.object({
         id: z.string(),
         name: z.string(),
-        created_at: z.string()
+        created_at: z.string(),
+        roles: z.array(z.object({
+            id: z.string(),
+            label: z.string()
+        }))
     }))
 });
 

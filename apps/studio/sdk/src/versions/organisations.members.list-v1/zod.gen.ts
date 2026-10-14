@@ -11,7 +11,11 @@ export const MemberSchema = z.object({
     members: z.array(z.object({
         user_id: z.string(),
         display_name: z.string().nullable(),
-        joined_at: z.string()
+        joined_at: z.string(),
+        roles: z.array(z.object({
+            id: z.string(),
+            label: z.string()
+        }))
     }))
 });
 

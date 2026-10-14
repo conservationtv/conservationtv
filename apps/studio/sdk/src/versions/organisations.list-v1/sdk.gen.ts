@@ -50,7 +50,7 @@ export class Organisations extends HeyApiClient {
     /**
      * List your organisations
      *
-     * The organisations the signed-in account is a member of. Invitations are under `/invitations`.
+     * The organisations the signed-in account is a member of, with the roles it holds in each. Invitations are under `/invitations`.
      */
     public list<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsResponses, GetOrganisationsErrors, ThrowOnError> {
         return (options?.client ?? this.client).get<GetOrganisationsResponses, GetOrganisationsErrors, ThrowOnError>({ url: '/organisations', ...options });

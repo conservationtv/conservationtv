@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsErrors, PostOrganisationsResponses } from './types.gen.js';
+import type { DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -92,7 +92,7 @@ export class Members extends HeyApiClient {
     /**
      * List an organisation's members
      *
-     * The member directory: each member, with their profile in this organisation.
+     * The member directory: each member, with their profile and the roles they hold in this organisation.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -139,6 +139,40 @@ export class Members extends HeyApiClient {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'userId' }] }]);
         return (options?.client ?? this.client).delete<DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdMembersByUserIdErrors, ThrowOnError>({
             url: '/organisations/{id}/members/{userId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Remove a member's administrator role
+     *
+     * Administrators only, themselves included. The member stays a member. The last administrator cannot lose it.
+     */
+    public revokeAdmin<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        userId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'userId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, ThrowOnError>({
+            url: '/organisations/{id}/members/{userId}/admin',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Make a member an administrator
+     *
+     * Administrators only. Granting it to someone who already holds it changes nothing.
+     */
+    public grantAdmin<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        userId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'userId' }] }]);
+        return (options?.client ?? this.client).put<PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, ThrowOnError>({
+            url: '/organisations/{id}/members/{userId}/admin',
             ...options,
             ...params
         });
@@ -211,7 +245,7 @@ export class Organisations extends HeyApiClient {
     /**
      * List your organisations
      *
-     * The organisations the signed-in account is a member of. Invitations are under `/invitations`.
+     * The organisations the signed-in account is a member of, with the roles it holds in each. Invitations are under `/invitations`.
      */
     public list<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsResponses, GetOrganisationsErrors, ThrowOnError> {
         return (options?.client ?? this.client).get<GetOrganisationsResponses, GetOrganisationsErrors, ThrowOnError>({ url: '/organisations', ...options });

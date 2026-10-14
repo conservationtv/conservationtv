@@ -50,7 +50,7 @@ export class Members extends HeyApiClient {
     /**
      * List an organisation's members
      *
-     * The member directory: each member, with their profile in this organisation.
+     * The member directory: each member, with their profile and the roles they hold in this organisation.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;

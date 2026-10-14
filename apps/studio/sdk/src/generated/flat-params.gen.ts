@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 
-import { DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema } from './zod.gen.js';
+import { DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
@@ -68,6 +68,20 @@ export const MemberRemoveParamsSchema = z.object({
 });
 
 export type MemberRemoveParams = z.infer<typeof MemberRemoveParamsSchema>;
+
+export const MemberRevokeAdminParamsSchema = z.object({
+    id: DeleteOrganisationsByIdMembersByUserIdAdminPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    userId: DeleteOrganisationsByIdMembersByUserIdAdminPathSchema.shape.userId.nonoptional().describe('The member\'s account ID, or `me`.')
+});
+
+export type MemberRevokeAdminParams = z.infer<typeof MemberRevokeAdminParamsSchema>;
+
+export const MemberGrantAdminParamsSchema = z.object({
+    id: PutOrganisationsByIdMembersByUserIdAdminPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    userId: PutOrganisationsByIdMembersByUserIdAdminPathSchema.shape.userId.nonoptional().describe('The member\'s account ID, or `me`.')
+});
+
+export type MemberGrantAdminParams = z.infer<typeof MemberGrantAdminParamsSchema>;
 
 export const InvitationListParamsSchema = z.object({
     id: GetOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.')

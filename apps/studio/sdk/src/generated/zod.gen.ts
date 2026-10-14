@@ -30,7 +30,11 @@ export const MemberSchema = z.object({
     members: z.array(z.object({
         user_id: z.string(),
         display_name: z.string().nullable(),
-        joined_at: z.string()
+        joined_at: z.string(),
+        roles: z.array(z.object({
+            id: z.string(),
+            label: z.string()
+        }))
     }))
 });
 
@@ -73,7 +77,11 @@ export const GetOrganisationsResponseSchema = z.object({
     organisations: z.array(z.object({
         id: z.string(),
         name: z.string(),
-        created_at: z.string()
+        created_at: z.string(),
+        roles: z.array(z.object({
+            id: z.string(),
+            label: z.string()
+        }))
     }))
 }).register(z.globalRegistry, {
     description: 'The organisations, oldest first'
@@ -181,6 +189,38 @@ export const DeleteOrganisationsByIdMembersByUserIdPathSchema = z.object({
  */
 export const DeleteOrganisationsByIdMembersByUserIdResponseSchema = z.void().register(z.globalRegistry, {
     description: 'Removed'
+});
+
+export const DeleteOrganisationsByIdMembersByUserIdAdminPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    userId: z.string().min(1).max(64).register(z.globalRegistry, {
+        description: 'The member\'s account ID, or `me`.'
+    })
+});
+
+/**
+ * The member is not an administrator
+ */
+export const DeleteOrganisationsByIdMembersByUserIdAdminResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'The member is not an administrator'
+});
+
+export const PutOrganisationsByIdMembersByUserIdAdminPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    userId: z.string().min(1).max(64).register(z.globalRegistry, {
+        description: 'The member\'s account ID, or `me`.'
+    })
+});
+
+/**
+ * The member is an administrator
+ */
+export const PutOrganisationsByIdMembersByUserIdAdminResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'The member is an administrator'
 });
 
 export const GetOrganisationsByIdInvitationsPathSchema = z.object({
