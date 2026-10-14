@@ -1,6 +1,6 @@
 import { SignJWT } from 'jose';
 import type { MoqPath, MoqRelativePath } from '../grants/identifiers.ts';
-import { services } from '../services.ts';
+import { useServices } from '../services.ts';
 import { MOQ_SIGNING_ALGORITHM } from './keys.ts';
 
 export interface MoqTokenClaims {
@@ -21,7 +21,7 @@ const pattern = (path: MoqRelativePath) => (path === '' ? '**' : `${path}/**`);
  * purpose: older moq-token releases read it as the subscribe list.
  */
 export async function signMoqToken(claims: MoqTokenClaims): Promise<string> {
-  const keyring = await services().moqKeys();
+  const keyring = await useServices().moqKeys();
   return new SignJWT({
     root: claims.root,
     publish: claims.publish.map(pattern),

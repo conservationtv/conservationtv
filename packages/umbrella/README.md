@@ -8,9 +8,9 @@ The package supports typed table roles and shared roles, hierarchical scopes, mu
 
 ## Installation
 
-This is a workspace package, consumed from source: depend on `"@conservationtv/umbrella": "workspace:*"` alongside `drizzle-orm`. It was copied from the `@strangecyan/umbrella` experiment (`~/Developer/experiments/umbrella`) with its publishing, benchmark and lint tooling removed.
+This is a workspace package, consumed from source: depend on `"@conservationtv/umbrella": "workspace:*"` alongside `drizzle-orm` 1.0. It was copied from the `@strangecyan/umbrella` experiment (`~/Developer/experiments/umbrella`) with its publishing, benchmark and lint tooling removed.
 
-Requires Node 22.18 or newer. The optional `umbrella generate` command uses your project's `drizzle-kit` installation.
+Requires Node 22.18 or newer. The optional `umbrella generate` command uses your project's `drizzle-kit` 1.0 installation.
 
 ## At a glance
 
@@ -132,6 +132,8 @@ const rows = await session.transaction(async tx => {
 - An insert the principal cannot perform fails with PostgreSQL's row-level security error (SQLSTATE `42501`) and rolls back the transaction.
 - Scope keys, scope links, parent links, and columns listed in `immutable: [t.column]` cannot be changed by a request session, which fails with the same error code. Trusted code using the admin connection can still change them.
 
+A session keeps its connection's Drizzle type, so a connection created with `drizzle({ client, relations })` gets typed relational queries: `tx.query.projects.findMany({ with: { organisation: true } })`. Each related table applies its own policies, so a related row the principal cannot read is `null`, or missing from its list.
+
 Checks read current grants in the same statement as the query. There is no permission cache; normal transaction isolation applies, so a long repeatable-read transaction keeps seeing the grants it started with.
 
 ## Scopes and bindings
@@ -185,9 +187,11 @@ await secured.access.root().grant({ principal: user('alice'), role: admin });
 await secured.access.at(apollo).list({ includeInherited: true });
 await secured.access.revoke(grant.id);
 await secured.access.at(apollo).revoke({ principal: user('bob'), role: projects.$access.roles.reader });
+await secured.access.at(apollo).revoke({ principal: user('bob') });
+await secured.access.at(apollo).all.revoke();
 ```
 
-The scope row must exist when granting. `grant` is idempotent for the same principal, role, scope, and validity window: repeated or concurrent calls return the existing assignment. Different windows are separate grants; to change a window, grant the new one and revoke the old. `revoke(id)` removes one grant, while `at(scope).revoke({ principal, role })` removes all of that role's windows at the scope.
+The scope row must exist when granting. `grant` is idempotent for the same principal, role, scope, and validity window: repeated or concurrent calls return the existing assignment. Different windows are separate grants; to change a window, grant the new one and revoke the old. `revoke(id)` removes one grant, `at(scope).revoke({ principal, role })` removes all of that role's windows at the scope, `at(scope).revoke({ principal })` all of the principal's grants there, and `at(scope).all.revoke()` every grant there, for deleting the scope's row.
 
 Principal IDs are nonempty strings or safe integers, stored as text: `device(1)` and `device('1')` are the same principal, while `user(1)` and `device(1)` are different. Constructors preserve the ID type, so `device(1).id` can be passed to an integer-keyed scope.
 

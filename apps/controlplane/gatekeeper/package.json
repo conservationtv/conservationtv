@@ -26,6 +26,8 @@
     "test": "pnpm build && vitest run"
   },
   "dependencies": {
+    "@arkenv/standard": "catalog:",
+    "@conservationtv/store": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",
     "@standard-schema/spec": "1.1.0",
     "@standard-schema/utils": "0.3.0",

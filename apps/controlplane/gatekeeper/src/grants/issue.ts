@@ -5,7 +5,7 @@ import { assertionReplays, grants, irohLeases } from '../db/schema.ts';
 import { GrantError } from '../errors.ts';
 import { newId } from '../ids.ts';
 import { signMoqToken } from '../moq/tokens.ts';
-import { services } from '../services.ts';
+import { useServices } from '../services.ts';
 import type { VerifiedAssertion } from './assertion.ts';
 import { effectiveLifetimeSeconds } from './delegation.ts';
 import type { GrantV1, IrohRequest, MoqRequest } from './grant.ts';
@@ -52,7 +52,7 @@ const timestamp = (date: Date) => date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 /** Consume the assertion's `jti`. A second exchange of the same assertion finds the row and is refused. */
 async function consumeAssertion(tx: Transaction, issuance: Issuance) {
   const { claims } = issuance.assertion;
-  const skew = services().policy.clockSkewSeconds;
+  const skew = useServices().policy.clockSkewSeconds;
   const consumed = await tx
     .insert(assertionReplays)
     .values({
@@ -116,12 +116,12 @@ export async function issueCredentials(
   assertion: VerifiedAssertion,
   grant: GrantV1
 ): Promise<GrantExchangeResult> {
-  const now = Math.floor(services().clock() / 1000) * 1000;
+  const now = Math.floor(useServices().clock() / 1000) * 1000;
   const issuedAt = new Date(now);
-  const expiresAt = new Date(now + effectiveLifetimeSeconds(registration, grant, services().policy) * 1000);
+  const expiresAt = new Date(now + effectiveLifetimeSeconds(registration, grant, useServices().policy) * 1000);
   const issuance = { registration, assertion, grant, grantId: newId('grt', now), issuedAt, expiresAt };
   const { moq, iroh } = grant.requested_capabilities;
-  const db = await services().database();
+  const db = await useServices().database();
   return db.transaction(async tx => {
     // Consume first so a replay fails before any other write; each requested capability adds its own credential.
     await consumeAssertion(tx, issuance);

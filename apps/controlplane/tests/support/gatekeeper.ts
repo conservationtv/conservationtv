@@ -49,7 +49,7 @@ function listen(fetch: (request: Request) => Promise<Response>): Promise<ServerT
  * This host listener records callouts; all request handling runs through the Worker's real entrypoint.
  */
 export async function startGatekeeper(): Promise<GatekeeperServer> {
-  const postgres = await new PostgreSqlContainer('postgres:17-alpine').start();
+  const postgres = await new PostgreSqlContainer('postgres:18-alpine').start();
   const database = connectTestDatabase(postgres.getConnectionUri());
   await migrate(database.database, { migrationsFolder: MIGRATIONS_FOLDER });
   const callouts: RelayCallout[] = [];

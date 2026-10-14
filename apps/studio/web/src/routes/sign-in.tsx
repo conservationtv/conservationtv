@@ -4,7 +4,7 @@ import { Navigate, redirect, useSearchParams } from 'react-router';
 
 import type { Route } from './+types/sign-in';
 import { SignIn } from '@/components/auth/sign-in';
-import { SignInFrame } from '@/components/sign-in-frame';
+import { SignInFrame } from '@/components/auth/sign-in-frame';
 import { queryClient } from '@/lib/query-client';
 import { signInDestination } from '@/lib/route-guards';
 import { sessionQueries } from '@/queries/session';

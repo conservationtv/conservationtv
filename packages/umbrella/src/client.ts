@@ -1,5 +1,5 @@
-import { and, eq, is, or, sql } from 'drizzle-orm';
-import { PgTransaction, type PgDatabase, type PgTransactionConfig } from 'drizzle-orm/pg-core';
+import { and, eq, getColumnTable, is, or, sql } from 'drizzle-orm';
+import { PgAsyncTransaction, type PgAsyncDatabase, type PgTransactionConfig } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { roleAssignments, type Assignment } from './assignments.js';
 import { scopeIdSQL } from './authorization.js';
@@ -21,7 +21,9 @@ import {
 import { DriverResultSchema, authorizationTime, decode, type DriverResult } from './values.js';
 
 // Drizzle's driver HKT owns the result contract for each supported database driver.
-export type Database = PgDatabase<any, any, any>;
+export type Database = PgAsyncDatabase<any, any>;
+/** What a connection's transactions receive: the same driver and relations, so relational queries stay typed. */
+export type TransactionOf<D extends Database> = Parameters<Parameters<D['transaction']>[0]>[0];
 
 /**
  * Whether the connection can skip row-level security: a superuser or BYPASSRLS role, or a member of a protected
@@ -57,8 +59,8 @@ function state(session: Session): SessionState {
   return value;
 }
 /** One principal's access to the application database, enforced by the policies `rlsMigration` installs. */
-export class Session {
-  constructor(db: Database, subject: Principal, connection: ConnectionState) {
+export class Session<D extends Database = Database> {
+  constructor(db: D, subject: Principal, connection: ConnectionState) {
     sessions.set(this, { db, subject: principal(subject.kind, subject.id), connection });
   }
   /**
@@ -67,9 +69,9 @@ export class Session {
    * transaction it is cleared before the caller resumes. The first call also refuses a connection that could
    * bypass row-level security, in the same statement that sets the principal.
    */
-  transaction<R>(run: (db: Database) => Promise<R>, config?: PgTransactionConfig): Promise<R> {
+  transaction<R>(run: (tx: TransactionOf<D>) => Promise<R>, config?: PgTransactionConfig): Promise<R> {
     const { db, subject, connection } = state(this);
-    const nested = is(db, PgTransaction);
+    const nested = is(db, PgAsyncTransaction);
     const check = connection.verified ? sql`` : sql`, ${bypassSQL} as bypasses`;
     return db.transaction(async tx => {
       const setup = await tx.execute(sql`select set_config(${principalKindSetting}, ${subject.kind}, true),
@@ -81,7 +83,8 @@ export class Session {
           );
         connection.verified = true;
       }
-      const result = await run(tx);
+      // SAFETY: D's own transaction method created tx, so it has D's driver and relations.
+      const result = await run(tx as TransactionOf<D>);
       // Only a savepoint outlives this call, so only then is the principal cleared explicitly.
       if (nested)
         await tx.execute(
@@ -102,6 +105,11 @@ type ScopedGrant<S extends ScopeRef, R extends RoleRef> = GrantOptions<R> & Scop
 type ScopedRole<S extends ScopeRef, R extends RoleRef> = {
   role: R & (S['name'] extends NoInfer<R>['assignableScopes'][number] ? unknown : never);
 };
+export interface RevokeOptions<R extends RoleRef> {
+  principal: Principal;
+  /** Only this role's grants; without it, all of the principal's grants at the scope. */
+  role?: R;
+}
 interface ListOptions {
   includeInherited?: boolean;
 }
@@ -136,7 +144,7 @@ export class AccessAt<S extends ScopeRef> {
           id: sql<string>`${node.key}::text`,
           parentId: parent ? sql<string>`${parent.column}::text` : sql<null>`null`
         })
-        .from(node.key.table)
+        .from(getColumnTable(node.key))
         .where(eq(node.key, current.id))
         .limit(1);
       if (!row) throw new TypeError(`Scope does not exist: ${current.name}:${current.id}`);
@@ -185,24 +193,45 @@ export class AccessAt<S extends ScopeRef> {
       .returning();
     return result[0]!;
   }
-  /** Removes matching grants even if the scope row was already deleted. */
-  async revoke<R extends RoleRef>(options: Pick<GrantOptions<R>, 'principal' | 'role'>): Promise<number> {
-    const role = this.schema.role(options.role);
+  /** Grants stored at exactly this scope, matched by its stored ID even if the scope row was already deleted. */
+  private atThisScope() {
+    return and(
+      eq(roleAssignments.scopeName, this.scope.name),
+      eq(roleAssignments.scopeId, scopeIdSQL(this.schema, this.scope))
+    );
+  }
+  /**
+   * Removes the principal's grants at this scope: of one role, whatever their windows, or without `role`, all of
+   * them. Grants at other scopes, including this scope's descendants, are unaffected.
+   */
+  async revoke<R extends RoleRef>(options: RevokeOptions<R>): Promise<number> {
     const subject = principal(options.principal.kind, options.principal.id);
+    const role = options.role === undefined ? undefined : this.schema.role(options.role);
     const result = await this.db
       .delete(roleAssignments)
       .where(
         and(
-          eq(roleAssignments.scopeName, this.scope.name),
-          eq(roleAssignments.scopeId, scopeIdSQL(this.schema, this.scope)),
-          eq(roleAssignments.resource, role.resource),
-          eq(roleAssignments.role, role.name),
+          this.atThisScope(),
           eq(roleAssignments.principalKind, subject.kind),
-          eq(roleAssignments.principalId, String(subject.id))
+          eq(roleAssignments.principalId, String(subject.id)),
+          role && eq(roleAssignments.resource, role.resource),
+          role && eq(roleAssignments.role, role.name)
         )
       )
       .returning({ id: roleAssignments.id });
     return result.length;
+  }
+  /** Every grant at this scope, whoever holds it: revoke them all when deleting the scope's row. */
+  get all() {
+    return {
+      revoke: async (): Promise<number> => {
+        const result = await this.db
+          .delete(roleAssignments)
+          .where(this.atThisScope())
+          .returning({ id: roleAssignments.id });
+        return result.length;
+      }
+    };
   }
   async list(options: ListOptions = {}): Promise<Assignment[]> {
     const path = await this.path(options.includeInherited ?? false);
@@ -261,7 +290,7 @@ export interface Authorization {
    * A request session over an application connection: a role that cannot bypass row-level security. Each
    * connection is checked for that once, in the first transaction's own setup statement.
    */
-  as(app: Database, subject: Principal): Session;
+  as<D extends Database>(app: D, subject: Principal): Session<D>;
   /** The management API over the owning connection. Never hand it to request handlers. */
   access(admin: Database): Access;
 }
@@ -292,10 +321,10 @@ export function defineAuthorization(options: AuthorizationOptions): Authorizatio
 }
 
 /** Both connections bound up front: `defineAuthorization` with `as` and `access` already connected. */
-export function withAuthorization(databases: AuthorizationDatabases, options: AuthorizationOptions) {
+export function withAuthorization<D extends AuthorizationDatabases>(databases: D, options: AuthorizationOptions) {
   const authorization = defineAuthorization(options);
   return {
-    as: (subject: Principal): Session => authorization.as(databases.app, subject),
+    as: (subject: Principal): Session<D['app']> => authorization.as(databases.app, subject),
     access: authorization.access(databases.admin)
   };
 }

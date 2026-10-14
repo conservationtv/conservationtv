@@ -1,4 +1,4 @@
-import { getTableColumns, is } from 'drizzle-orm';
+import { getColumnTable, getColumns, is } from 'drizzle-orm';
 import { getTableConfig, PgColumn, type AnyPgColumn, type PgTable } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { AccessNameSchema, ScopeIdSchema, decode, type ScopeId } from './values.js';
@@ -272,7 +272,7 @@ export function scopeNames(scope: ResourceScope): string[] {
   return [node.name, ...scopeNames(node.parent)];
 }
 export function columnKey(table: PgTable, column: AnyPgColumn): string {
-  const key = Object.keys(getTableColumns(table)).find(k => getTableColumns(table)[k] === column);
+  const key = Object.keys(getColumns(table)).find(k => getColumns(table)[k] === column);
   if (!key) throw new TypeError('Access column must belong to its table');
   return key;
 }
@@ -432,7 +432,7 @@ export function withAccess<T extends PgTable, const D extends Definition>(
     table,
     name: config.name,
     scopes,
-    columns: getTableColumns(table),
+    columns: getColumns(table),
     actions: actions.actions,
     roles: roles.roles,
     roleRefs: roles.refs,
@@ -505,7 +505,7 @@ function contributions(meta: Metadata): readonly PermissionContribution[] {
 }
 
 function uniqueKey(column: AnyPgColumn): boolean {
-  const config = getTableConfig(column.table);
+  const config = getTableConfig(getColumnTable<PgTable>(column));
   // A single-column key identifies exactly one scope row; partial indexes do not.
   return (
     column.primary ||
@@ -595,7 +595,8 @@ export class AccessSchema {
     if (scope === root) return;
     const node = scopeNode(scope);
     if (path.has(node)) throw new TypeError('Cyclic scope hierarchy');
-    if (!this.tables.has(node.key.table)) throw new TypeError(`Register the table defining scope ${node.name}`);
+    if (!this.tables.has(getColumnTable(node.key)))
+      throw new TypeError(`Register the table defining scope ${node.name}`);
     const existing = this.scopes.get(node.name);
     if (existing === node) return;
     if (existing) throw new TypeError(`Duplicate scope: ${node.name}`);
@@ -609,11 +610,11 @@ export class AccessSchema {
     // Scope identity and ancestry require non-null keys on the declaring table.
     if (!node.key.notNull) throw new TypeError('Scope keys must be non-null');
     if (!uniqueKey(node.key)) throw new TypeError('A scope key must have a single-column primary or unique key');
-    if (!Object.values(getAccess(node.key.table).scopes).includes(node))
+    if (!Object.values(getAccess(getColumnTable(node.key)).scopes).includes(node))
       throw new TypeError("A scope must be defined on its key's table");
     const parent = parentBinding(node);
     if (!parent) return;
-    columnKey(node.key.table, parent.column);
+    columnKey(getColumnTable(node.key), parent.column);
     if (!parent.column.notNull) throw new TypeError('Scope parent links must be non-null');
   }
   private registerDefinition(meta: Metadata): void {

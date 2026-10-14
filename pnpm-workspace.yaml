@@ -5,11 +5,12 @@ packages:
   - '!apps/controlplane/infrastructure/sdks/*/bin'
 
 catalog:
+  '@arkenv/standard': 1.0.0-rc.4
   '@better-auth/passkey': 1.7.7
   '@types/pg': 8.23.1
   better-auth: 1.7.7
-  drizzle-kit: 0.31.11
-  drizzle-orm: 0.45.4
+  drizzle-kit: 1.0.0-rc.4
+  drizzle-orm: 1.0.0-rc.4
   input-otp: 1.5.0
   pg: 8.23.1
   zod: 4.6.2

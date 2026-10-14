@@ -19,8 +19,8 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
-    "drizzle-kit": ">=0.31.0",
-    "drizzle-orm": "^0.45.4",
+    "drizzle-kit": "^1.0.0-rc.4",
+    "drizzle-orm": "^1.0.0-rc.4",
     "tsx": "^4.0.0"
   },
   "peerDependenciesMeta": {

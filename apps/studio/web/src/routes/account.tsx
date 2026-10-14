@@ -17,9 +17,9 @@ import {
 import { Separator } from '@conservationtv/ui/components/separator';
 import { Spinner } from '@conservationtv/ui/components/spinner';
 
-import { FormError } from '@/components/form-error';
+import { FormError } from '@/components/common/form-error';
 import type { Route } from './+types/account';
-import { Panel } from '@/components/panel';
+import { Panel } from '@/components/common/panel';
 import { queryClient } from '@/lib/query-client';
 import { requireSession } from '@/lib/route-guards';
 import { AccountNameSchema, PasskeyNameSchema, type AccountNameInput, type PasskeyNameInput } from '@/forms/schemas';

@@ -1,8 +1,9 @@
 # Local stand-in for the Postgres database that production reaches through Hyperdrive. The init script creates the
 # application login role that request sessions use; the owning role is the one Postgres creates for the database.
+# Postgres 18 or newer: tables default their IDs with the built-in uuidv7().
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: studio
       POSTGRES_PASSWORD: studio
@@ -10,7 +11,8 @@ services:
     ports:
       - '5434:5432'
     volumes:
-      - studio-postgres:/var/lib/postgresql/data
+      # Postgres 18 images keep data in a versioned directory under this path, so major upgrades get a fresh one.
+      - studio-postgres-18:/var/lib/postgresql
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U studio -d studio']
@@ -19,4 +21,4 @@ services:
       retries: 15
 
 volumes:
-  studio-postgres:
+  studio-postgres-18:

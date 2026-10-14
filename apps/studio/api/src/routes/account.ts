@@ -4,44 +4,21 @@ import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { users } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, type PrincipalEnv } from '../middleware/principal.ts';
-import { services } from '../services.ts';
+import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { useServices } from '../services.ts';
 import {
   invalidRequest,
   notFound,
   operationVersion,
-  strictJsonBody,
   unauthenticated,
   unavailable,
   validator,
   versionMismatch
 } from './openapi.ts';
 
-const tags = ['Account'];
-
-/** The columns an account may read of itself. */
-const accountColumns = {
-  id: users.id,
-  name: users.name,
-  email: users.email,
-  emailVerified: users.emailVerified,
-  image: users.image,
-  createdAt: users.createdAt
-};
-type AccountRow = Pick<typeof users.$inferSelect, keyof typeof accountColumns>;
-
-const toAccount = (row: AccountRow) => ({
-  id: row.id,
-  name: row.name,
-  email: row.email,
-  email_verified: row.emailVerified,
-  image: row.image,
-  created_at: row.createdAt.toISOString()
-});
-
 // The signed-in account's own row, read and edited through its request session: row-level security, not the query,
 // decides which row that is. Versions belong to individual operations; keep their declarations together.
-export default new Hono<PrincipalEnv>()
+export default new Hono()
   .get(
     '/',
     describeRoute({
@@ -49,7 +26,6 @@ export default new Hono<PrincipalEnv>()
       ...operationVersion(1),
       summary: 'Read your account',
       description: 'The signed-in account, as its row-level security lets it see itself.',
-      tags,
       responses: {
         200: { description: 'The signed-in account' },
         401: unauthenticated,
@@ -60,14 +36,34 @@ export default new Hono<PrincipalEnv>()
     }),
     requirePrincipal,
     async c => {
-      const principal = c.get('principal');
-      const session = await services().session(principal);
+      const principal = usePrincipal();
+      const session = await useServices().session(principal);
       const [row] = await session.transaction(tx =>
-        tx.select(accountColumns).from(users).where(eq(users.id, principal.id))
+        tx
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            emailVerified: users.emailVerified,
+            image: users.image,
+            createdAt: users.createdAt
+          })
+          .from(users)
+          .where(eq(users.id, principal.id))
       );
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json(toAccount(row), 200);
+      return c.json(
+        {
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          email_verified: row.emailVerified,
+          image: row.image,
+          created_at: row.createdAt.toISOString()
+        },
+        200
+      );
     }
   )
   .patch(
@@ -78,7 +74,6 @@ export default new Hono<PrincipalEnv>()
       summary: 'Update your account',
       description:
         'Changes the profile fields of the signed-in account. Email and verification change through `/auth`.',
-      tags,
       responses: {
         200: { description: 'The updated account' },
         400: invalidRequest,
@@ -89,7 +84,6 @@ export default new Hono<PrincipalEnv>()
       }
     }),
     requirePrincipal,
-    strictJsonBody,
     validator(
       'json',
       z
@@ -100,15 +94,32 @@ export default new Hono<PrincipalEnv>()
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
     ),
     async c => {
-      const principal = c.get('principal');
+      const principal = usePrincipal();
       const changes = c.req.valid('json');
-      const session = await services().session(principal);
+      const session = await useServices().session(principal);
       const [row] = await session.transaction(tx =>
-        tx.update(users).set(changes).where(eq(users.id, principal.id)).returning(accountColumns)
+        tx.update(users).set(changes).where(eq(users.id, principal.id)).returning({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          emailVerified: users.emailVerified,
+          image: users.image,
+          createdAt: users.createdAt
+        })
       );
       // An update that reaches no row means the account is not visible to this session.
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json(toAccount(row), 200);
+      return c.json(
+        {
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          email_verified: row.emailVerified,
+          image: row.image,
+          created_at: row.createdAt.toISOString()
+        },
+        200
+      );
     }
   );

@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { ScrollArea, ScrollBar } from '@conservationtv/ui/components/scroll-area';
 import { SidebarProvider } from '@conservationtv/ui/components/sidebar';
 
-import { RootSidebar } from '@/components/root-sidebar';
+import { RootSidebar } from '@/components/app/root-sidebar';
 
 const HomeRoute: FC = () => {
   return (

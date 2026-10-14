@@ -1,6 +1,6 @@
-import { getTableColumns, type SQL } from 'drizzle-orm';
+import { getColumns, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
-import type { Principal } from '../../src/index.js';
+import type { Database, Principal } from '../../src/index.js';
 import type { AnyProtectedTable } from '../../src/definitions.js';
 import type { Harness } from './harness.js';
 
@@ -64,7 +64,7 @@ export function update(
 }
 export function remove(h: Harness, who: Principal, table: AnyProtectedTable, where: SQL): Promise<IdentifiedRows> {
   return refusing(async () =>
-    rows(await h.secured.as(who).transaction(async tx => tx.delete(table).where(where).returning()))
+    rows(await h.secured.as(who).transaction(async (tx: Database) => tx.delete(table).where(where).returning()))
   );
 }
 
@@ -74,7 +74,7 @@ export function ids(result: IdentifiedRows): (string | number)[] {
 }
 /** Row IDs as the owner sees them, bypassing all enforcement: the ground truth after a write. */
 export async function stored(h: Harness, table: AnyProtectedTable): Promise<(string | number)[]> {
-  const id = getTableColumns(table)['id'];
+  const id = getColumns(table)['id'];
   if (!id) throw new TypeError('Fixture tables have an id column');
   return ids(rows(await h.raw.select({ id }).from(table)));
 }

@@ -5,8 +5,8 @@ import { CodeStep } from '@/components/auth/code-step';
 import { EmailStep } from '@/components/auth/email-step';
 import { RememberDevice } from '@/components/auth/remember-device';
 import { Start } from '@/components/auth/start';
-import { PanelHeader } from '@/components/panel';
-import { Step, Steps } from '@/components/steps';
+import { PanelHeader } from '@/components/common/panel';
+import { Step, Steps } from '@/components/common/steps';
 import { SignInStoreContext, signInStoreConfig, useSignInStore } from '@/stores/sign-in';
 
 export interface SignInProps {

@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 
-import { PatchAccountBodySchema } from './zod.gen.js';
+import { DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
@@ -18,3 +18,98 @@ export const AccountUpdateParamsSchema = z.object({
 });
 
 export type AccountUpdateParams = z.infer<typeof AccountUpdateParamsSchema>;
+
+export const OrganisationListParamsSchema = z.object({});
+
+export type OrganisationListParams = z.infer<typeof OrganisationListParamsSchema>;
+
+export const OrganisationCreateParamsSchema = z.object({
+    name: PostOrganisationsBodySchema.shape.name.nonoptional().describe('The organisation name.'),
+    display_name: PostOrganisationsBodySchema.shape.display_name.nonoptional().describe('Your name as the organisation\'s members will see it.')
+});
+
+export type OrganisationCreateParams = z.infer<typeof OrganisationCreateParamsSchema>;
+
+export const OrganisationDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type OrganisationDeleteParams = z.infer<typeof OrganisationDeleteParamsSchema>;
+
+export const OrganisationGetParamsSchema = z.object({
+    id: GetOrganisationsByIdPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type OrganisationGetParams = z.infer<typeof OrganisationGetParamsSchema>;
+
+export const OrganisationUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PatchOrganisationsByIdBodySchema.shape.name.nonoptional().describe('The organisation name.')
+});
+
+export type OrganisationUpdateParams = z.infer<typeof OrganisationUpdateParamsSchema>;
+
+export const MemberListParamsSchema = z.object({
+    id: GetOrganisationsByIdMembersPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type MemberListParams = z.infer<typeof MemberListParamsSchema>;
+
+export const MemberUpdateSelfParamsSchema = z.object({
+    id: PatchOrganisationsByIdMembersMePathSchema.shape.id.nonoptional().describe('The organisation.'),
+    display_name: PatchOrganisationsByIdMembersMeBodySchema.shape.display_name.nonoptional().describe('Your name in this organisation.')
+});
+
+export type MemberUpdateSelfParams = z.infer<typeof MemberUpdateSelfParamsSchema>;
+
+export const MemberRemoveParamsSchema = z.object({
+    id: DeleteOrganisationsByIdMembersByUserIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    userId: DeleteOrganisationsByIdMembersByUserIdPathSchema.shape.userId.nonoptional().describe('The member\'s account ID, or `me`.')
+});
+
+export type MemberRemoveParams = z.infer<typeof MemberRemoveParamsSchema>;
+
+export const InvitationListParamsSchema = z.object({
+    id: GetOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type InvitationListParams = z.infer<typeof InvitationListParamsSchema>;
+
+export const InvitationCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    body: PostOrganisationsByIdInvitationsBodySchema.nonoptional()
+});
+
+export type InvitationCreateParams = z.infer<typeof InvitationCreateParamsSchema>;
+
+export const InvitationCancelParamsSchema = z.object({
+    id: DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    invitationId: DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema.shape.invitationId.nonoptional().describe('The invitation.')
+});
+
+export type InvitationCancelParams = z.infer<typeof InvitationCancelParamsSchema>;
+
+export const InvitationListMineParamsSchema = z.object({});
+
+export type InvitationListMineParams = z.infer<typeof InvitationListMineParamsSchema>;
+
+export const InvitationGetParamsSchema = z.object({
+    id: GetInvitationsByIdPathSchema.shape.id.nonoptional().describe('The invitation.')
+});
+
+export type InvitationGetParams = z.infer<typeof InvitationGetParamsSchema>;
+
+export const InvitationAcceptParamsSchema = z.object({
+    id: PostInvitationsByIdAcceptPathSchema.shape.id.nonoptional().describe('The invitation.'),
+    code: PostInvitationsByIdAcceptBodySchema.shape.code.optional().describe('The one-time code from an emailed invitation\'s link.'),
+    display_name: PostInvitationsByIdAcceptBodySchema.shape.display_name.nonoptional().describe('Your name as the organisation\'s members will see it.')
+});
+
+export type InvitationAcceptParams = z.infer<typeof InvitationAcceptParamsSchema>;
+
+export const InvitationDeclineParamsSchema = z.object({
+    id: PostInvitationsByIdDeclinePathSchema.shape.id.nonoptional().describe('The invitation.'),
+    code: PostInvitationsByIdDeclineBodySchema.shape.code.optional().describe('The one-time code from an emailed invitation\'s link.')
+});
+
+export type InvitationDeclineParams = z.infer<typeof InvitationDeclineParamsSchema>;

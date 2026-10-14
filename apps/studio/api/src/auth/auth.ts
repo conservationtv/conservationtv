@@ -1,4 +1,4 @@
-import { drizzleAdapter } from '@better-auth/drizzle-adapter';
+import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import { passkey } from '@better-auth/passkey';
 import { user as principalOf } from '@conservationtv/umbrella';
 import { betterAuth } from 'better-auth';
@@ -7,7 +7,8 @@ import type { Access } from '@conservationtv/umbrella';
 import type { Database } from '../db/client.ts';
 import { self } from '../db/roles.ts';
 import { account, deviceCodes, passkeys, session, users, verification } from '../db/schema.ts';
-import type { Background, Config } from '../services.ts';
+import type { Config } from '../config.ts';
+import type { Background } from '../services.ts';
 import type { OtpDelivery } from './otp.ts';
 
 /** The device-flow clients this API issues sessions to. */
@@ -31,15 +32,15 @@ export interface AuthDependencies {
  * `/device`, and the token it receives is sent as a bearer token on every request.
  */
 export function createAuth({ database, access, config, deliverOtp, background }: AuthDependencies) {
-  const appUrl = new URL(config.appUrl);
+  const appUrl = new URL(config.APP_URL);
   const ensureSelfGrant = async (userId: string): Promise<void> => {
     await access.at(users.$access.scope.at(userId)).grant({ principal: principalOf(userId), role: self });
   };
   return betterAuth({
-    baseURL: config.appUrl,
+    baseURL: config.APP_URL,
     basePath: '/auth',
-    secret: config.authSecret,
-    trustedOrigins: config.webOrigins,
+    secret: config.BETTER_AUTH_SECRET,
+    trustedOrigins: config.WEB_ORIGINS,
     database: drizzleAdapter(database, {
       provider: 'pg',
       schema: { user: users, session, account, verification, passkey: passkeys, deviceCode: deviceCodes }
@@ -59,13 +60,13 @@ export function createAuth({ database, access, config, deliverOtp, background }:
       passkey({
         rpID: appUrl.hostname,
         rpName: 'conservation.tv studio',
-        origin: [config.appUrl, ...config.webOrigins],
+        origin: [config.APP_URL, ...config.WEB_ORIGINS],
         // Discoverable credentials carry their account, so the web app can sign in with a passkey without asking for
         // (or storing) an email first.
         authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' }
       }),
       deviceAuthorization({
-        verificationUri: `${config.webOrigins[0]}/device`,
+        verificationUri: `${config.WEB_ORIGINS[0]}/device`,
         validateClient: clientId => DEVICE_CLIENTS.has(clientId)
       }),
       bearer()

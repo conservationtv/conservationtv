@@ -1,4 +1,4 @@
-import { services } from '../services.ts';
+import { useServices } from '../services.ts';
 import { locateRegistration, parseAssertion, verifyAssertion } from './assertion.ts';
 import { authorizeGrant } from './delegation.ts';
 import { parseGrant } from './grant.ts';
@@ -9,7 +9,7 @@ import { type GrantExchangeResult, issueCredentials } from './issue.ts';
  * only read after the signature and registered claims have been verified.
  */
 export async function exchangeGrant(grantAssertion: string): Promise<GrantExchangeResult> {
-  const { policy } = services();
+  const { policy } = useServices();
   const envelope = parseAssertion(grantAssertion);
   const registration = locateRegistration(policy.consumers, envelope.identity);
   const assertion = await verifyAssertion(registration, envelope);

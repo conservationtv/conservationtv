@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { GetAccountErrors, GetAccountResponses, GetHealthResponses, PatchAccountErrors, PatchAccountResponses } from './types.gen.js';
+import type { DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsErrors, PostOrganisationsResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -88,6 +88,303 @@ export class Account extends HeyApiClient {
     }
 }
 
+export class Members extends HeyApiClient {
+    /**
+     * List an organisation's members
+     *
+     * The member directory: each member, with their profile in this organisation.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdMembersResponses, GetOrganisationsByIdMembersErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdMembersResponses, GetOrganisationsByIdMembersErrors, ThrowOnError>({
+            url: '/organisations/{id}/members',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update your profile in an organisation
+     *
+     * Changes how the organisation's members see the signed-in account.
+     */
+    public updateSelf<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        display_name: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdMembersMeErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'display_name' }] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdMembersMeErrors, ThrowOnError>({
+            url: '/organisations/{id}/members/me',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a member
+     *
+     * Ends a membership, with its profile and access: administrators remove anyone, and anyone may remove themselves (`me`). The last administrator cannot be removed.
+     */
+    public remove<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        userId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdMembersByUserIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'userId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdMembersByUserIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/members/{userId}',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Invitations extends HeyApiClient {
+    /**
+     * List an organisation's invitations
+     *
+     * Administrators only; anyone else sees none. Includes expired invitations until they are cancelled.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdInvitationsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdInvitationsErrors, ThrowOnError>({
+            url: '/organisations/{id}/invitations',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Invite someone
+     *
+     * Administrators only. Invite an email address, which is sent a link with a one-time code that whoever holds it can accept, or an account by its ID, which accepts by signing in. Invitations last 14 days.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        body: {
+            /**
+             * The address to send the invitation to.
+             */
+            email: string;
+        } | {
+            /**
+             * The account to invite.
+             */
+            user_id: string;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdInvitationsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { key: 'body', map: 'body' }] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdInvitationsErrors, ThrowOnError>({
+            url: '/organisations/{id}/invitations',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Cancel an invitation
+     *
+     * Administrators only.
+     */
+    public cancel<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        invitationId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'invitationId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/invitations/{invitationId}',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Organisations extends HeyApiClient {
+    /**
+     * List your organisations
+     *
+     * The organisations the signed-in account is a member of. Invitations are under `/invitations`.
+     */
+    public list<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsResponses, GetOrganisationsErrors, ThrowOnError> {
+        return (options?.client ?? this.client).get<GetOrganisationsResponses, GetOrganisationsErrors, ThrowOnError>({ url: '/organisations', ...options });
+    }
+    
+    /**
+     * Create an organisation
+     *
+     * Creates an organisation with the signed-in account as its first member and administrator.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        name: string;
+        display_name: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsResponses, PostOrganisationsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'name' }, { in: 'body', key: 'display_name' }] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsResponses, PostOrganisationsErrors, ThrowOnError>({
+            url: '/organisations',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete an organisation
+     *
+     * Global administrators only. Deletes its memberships, profiles and everyone's access to it.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdErrors, ThrowOnError>({
+            url: '/organisations/{id}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read an organisation
+     *
+     * An organisation the signed-in account is a member of.
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdResponses, GetOrganisationsByIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdResponses, GetOrganisationsByIdErrors, ThrowOnError>({
+            url: '/organisations/{id}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Rename an organisation
+     *
+     * Administrators only.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdResponses, PatchOrganisationsByIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'name' }] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdResponses, PatchOrganisationsByIdErrors, ThrowOnError>({
+            url: '/organisations/{id}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    private _members?: Members;
+    get members(): Members {
+        return this._members ??= new Members({ client: this.client });
+    }
+    
+    private _invitations?: Invitations;
+    get invitations(): Invitations {
+        return this._invitations ??= new Invitations({ client: this.client });
+    }
+}
+
+export class Invitations2 extends HeyApiClient {
+    /**
+     * List your invitations
+     *
+     * Open invitations to the signed-in account. Invitations sent to an email address aren't listed: they're opened from their link.
+     */
+    public listMine<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetInvitationsResponses, GetInvitationsErrors, ThrowOnError> {
+        return (options?.client ?? this.client).get<GetInvitationsResponses, GetInvitationsErrors, ThrowOnError>({ url: '/invitations', ...options });
+    }
+    
+    /**
+     * Read an invitation
+     *
+     * An open invitation, for the page its link opens. Needs no sign-in: it shows the organisation, not who the invitation is for.
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetInvitationsByIdResponses, GetInvitationsByIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetInvitationsByIdResponses, GetInvitationsByIdErrors, ThrowOnError>({
+            url: '/invitations/{id}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Accept an invitation
+     *
+     * Joins the organisation as the signed-in account. An invitation to an account needs that account; an emailed one needs its code, whichever account presents it.
+     */
+    public accept<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        code?: string;
+        display_name: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostInvitationsByIdAcceptResponses, PostInvitationsByIdAcceptErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'body', key: 'code' },
+                    { in: 'body', key: 'display_name' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostInvitationsByIdAcceptResponses, PostInvitationsByIdAcceptErrors, ThrowOnError>({
+            url: '/invitations/{id}/accept',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Decline an invitation
+     *
+     * Deletes the invitation. Needs the same proof as accepting it.
+     */
+    public decline<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        code?: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostInvitationsByIdDeclineResponses, PostInvitationsByIdDeclineErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'code' }] }]);
+        return (options?.client ?? this.client).post<PostInvitationsByIdDeclineResponses, PostInvitationsByIdDeclineErrors, ThrowOnError>({
+            url: '/invitations/{id}/decline',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
 export class BaseClient extends HeyApiClient {
     public static readonly __registry: HeyApiRegistry<BaseClient> = new HeyApiRegistry<BaseClient>();
     
@@ -107,5 +404,15 @@ export class BaseClient extends HeyApiClient {
     private _account?: Account;
     get account(): Account {
         return this._account ??= new Account({ client: this.client });
+    }
+    
+    private _organisations?: Organisations;
+    get organisations(): Organisations {
+        return this._organisations ??= new Organisations({ client: this.client });
+    }
+    
+    private _invitations?: Invitations2;
+    get invitations(): Invitations2 {
+        return this._invitations ??= new Invitations2({ client: this.client });
     }
 }

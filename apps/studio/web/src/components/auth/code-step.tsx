@@ -5,8 +5,8 @@ import { Button } from '@conservationtv/ui/components/button';
 import { FieldGroup } from '@conservationtv/ui/components/field';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 
-import { FormError } from '@/components/form-error';
-import { PanelContent } from '@/components/panel';
+import { FormError } from '@/components/common/form-error';
+import { PanelContent } from '@/components/common/panel';
 import { CodeSchema, type CodeInput } from '@/forms/schemas';
 import { OtpField } from '@/forms/otp-field';
 import { useSessionChanged, useSignInWithCode } from '@/queries/session';

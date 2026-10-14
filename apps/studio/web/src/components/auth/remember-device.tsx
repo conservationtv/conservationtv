@@ -3,8 +3,8 @@ import { useSelector } from '@xstate/store-react';
 import { Button } from '@conservationtv/ui/components/button';
 import { FieldGroup } from '@conservationtv/ui/components/field';
 
-import { FormError } from '@/components/form-error';
-import { PanelContent, PanelHeader } from '@/components/panel';
+import { FormError } from '@/components/common/form-error';
+import { PanelContent, PanelHeader } from '@/components/common/panel';
 import { useAddPasskey } from '@/queries/passkeys';
 import { useSessionChanged } from '@/queries/session';
 import { useSignInStore } from '@/stores/sign-in';

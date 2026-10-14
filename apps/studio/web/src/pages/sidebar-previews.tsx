@@ -3,8 +3,8 @@ import { AppSidebar as IconSidebar } from '@/components/blocks/sidebar-07/app-si
 import { AppSidebar as InboxSidebar } from '@/components/blocks/sidebar-09/app-sidebar';
 import { AppSidebar as HeaderSidebar } from '@/components/blocks/sidebar-16/app-sidebar';
 import { SiteHeader } from '@/components/blocks/sidebar-16/site-header';
-import { PreviewControls } from '@/components/preview-controls';
-import { ThemeSample } from '@/components/theme-sample';
+import { PreviewControls } from '@/components/previews/preview-controls';
+import { ThemeSample } from '@/components/previews/theme-sample';
 import { Separator } from '@conservationtv/ui/components/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@conservationtv/ui/components/sidebar';
 

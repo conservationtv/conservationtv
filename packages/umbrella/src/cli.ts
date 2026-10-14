@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { glob, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
+import { setTimeout } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { is } from 'drizzle-orm';
@@ -88,8 +89,18 @@ async function loadTables(files: readonly string[]): Promise<Record<string, PgTa
 async function sqlFiles(out: string): Promise<string[]> {
   const files: string[] = [];
   for await (const file of glob('**/*.sql', { cwd: out })) files.push(file);
-  // Drizzle Kit prefixes migrations with an index or timestamp, so path order is migration order.
+  // Drizzle Kit writes each migration to <UTC second>_<name>/migration.sql, so path order is migration order.
   return files.sort();
+}
+
+/**
+ * Migrations from the same second apply in name order, so one generated straight after `drizzle-kit generate` could
+ * run before the tables it protects. Waits until the clock has moved past the latest migration's second.
+ */
+async function afterLatestMigration(out: string): Promise<void> {
+  const latest = (await sqlFiles(out).catch(() => [])).at(-1)?.slice(0, 14);
+  const second = () => new Date().toISOString().replace(/\D/g, '').slice(0, 14);
+  while (second() === latest) await setTimeout(100);
 }
 
 async function latestGenerated(out: string): Promise<string | undefined> {
@@ -117,8 +128,9 @@ async function drizzleKitBin(): Promise<string> {
   }
 }
 
-/** Lets Drizzle Kit create the file and its journal entry, then fills in the one new SQL file it wrote. */
+/** Lets Drizzle Kit create the migration and its snapshot, then fills in the one new SQL file it wrote. */
 async function writeCustomMigration(config: string, out: string, name: string, content: string): Promise<string> {
+  await afterLatestMigration(out);
   const before = new Set(await sqlFiles(out).catch(() => []));
   const args = ['generate', '--custom', `--name=${name}`, `--config=${config}`];
   const result = spawnSync(process.execPath, [await drizzleKitBin(), ...args], { stdio: 'inherit' });

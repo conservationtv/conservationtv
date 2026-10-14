@@ -8,8 +8,8 @@ import { TooltipProvider } from '@conservationtv/ui/components/tooltip';
 
 import '@conservationtv/ui/globals.css';
 import type { Route } from './+types/root';
-import { Panel } from '@/components/panel';
-import { ThemeProvider } from '@/components/theme-provider';
+import { Panel } from '@/components/common/panel';
+import { ThemeProvider } from '@/components/app/theme-provider';
 import { THEME_STORAGE_KEY, themeScript } from '@/hooks/use-theme';
 import { queryClient } from '@/lib/query-client';
 import { apiQueries } from '@/queries/api';

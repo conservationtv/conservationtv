@@ -4,8 +4,8 @@ import { Button } from '@conservationtv/ui/components/button';
 import { FieldGroup } from '@conservationtv/ui/components/field';
 
 import { AccountButton } from '@/components/auth/account-button';
-import { FormError } from '@/components/form-error';
-import { PanelContent } from '@/components/panel';
+import { FormError } from '@/components/common/form-error';
+import { PanelContent } from '@/components/common/panel';
 import type { KnownAccount, KnownAccounts } from '@/lib/known-device';
 import { useSendSignInCode, useSignInWithPasskey } from '@/queries/session';
 import { useSignInStore } from '@/stores/sign-in';
