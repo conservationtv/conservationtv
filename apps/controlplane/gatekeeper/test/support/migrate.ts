@@ -7,7 +7,7 @@ import { LOCAL_DATABASE_URL } from '../../src/db/local.ts';
 export default async function setup(): Promise<void> {
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL ?? LOCAL_DATABASE_URL });
   try {
-    await migrate(drizzle(pool), { migrationsFolder: new URL('../../drizzle', import.meta.url).pathname });
+    await migrate(drizzle({ client: pool }), { migrationsFolder: new URL('../../drizzle', import.meta.url).pathname });
   } finally {
     await pool.end();
   }

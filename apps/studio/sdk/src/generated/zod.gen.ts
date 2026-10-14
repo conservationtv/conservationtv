@@ -20,6 +20,30 @@ export const AccountSchema = z.object({
     created_at: z.string()
 });
 
+export const OrganisationSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    created_at: z.string()
+});
+
+export const MemberSchema = z.object({
+    members: z.array(z.object({
+        user_id: z.string(),
+        display_name: z.string().nullable(),
+        joined_at: z.string()
+    }))
+});
+
+export const InvitationSchema = z.object({
+    id: z.string(),
+    organisation: z.object({
+        id: z.string(),
+        name: z.string()
+    }),
+    needs_code: z.boolean(),
+    expires_at: z.string()
+});
+
 /**
  * The server is ready
  */
@@ -41,3 +65,263 @@ export const PatchAccountBodySchema = z.object({
  * The updated account
  */
 export const PatchAccountResponseSchema = AccountSchema;
+
+/**
+ * The organisations, oldest first
+ */
+export const GetOrganisationsResponseSchema = z.object({
+    organisations: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        created_at: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The organisations, oldest first'
+});
+
+export const PostOrganisationsBodySchema = z.object({
+    name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The organisation name.'
+    }),
+    display_name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'Your name as the organisation\'s members will see it.'
+    })
+});
+
+/**
+ * The new organisation
+ */
+export const PostOrganisationsResponseSchema = OrganisationSchema;
+
+export const DeleteOrganisationsByIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * Deleted
+ */
+export const DeleteOrganisationsByIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Deleted'
+});
+
+export const GetOrganisationsByIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The organisation
+ */
+export const GetOrganisationsByIdResponseSchema = OrganisationSchema;
+
+export const PatchOrganisationsByIdBodySchema = z.object({
+    name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The organisation name.'
+    })
+});
+
+export const PatchOrganisationsByIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The updated organisation
+ */
+export const PatchOrganisationsByIdResponseSchema = OrganisationSchema;
+
+export const GetOrganisationsByIdMembersPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The members, longest-standing first
+ */
+export const GetOrganisationsByIdMembersResponseSchema = MemberSchema;
+
+export const PatchOrganisationsByIdMembersMeBodySchema = z.object({
+    display_name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'Your name in this organisation.'
+    })
+});
+
+export const PatchOrganisationsByIdMembersMePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * Your updated profile
+ */
+export const PatchOrganisationsByIdMembersMeResponseSchema = z.object({
+    user_id: z.string(),
+    display_name: z.string()
+}).register(z.globalRegistry, {
+    description: 'Your updated profile'
+});
+
+export const DeleteOrganisationsByIdMembersByUserIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    userId: z.string().min(1).max(64).register(z.globalRegistry, {
+        description: 'The member\'s account ID, or `me`.'
+    })
+});
+
+/**
+ * Removed
+ */
+export const DeleteOrganisationsByIdMembersByUserIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
+});
+
+export const GetOrganisationsByIdInvitationsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The invitations, oldest first
+ */
+export const GetOrganisationsByIdInvitationsResponseSchema = z.object({
+    invitations: z.array(z.object({
+        id: z.string(),
+        email: z.string().nullable(),
+        user_id: z.string().nullable(),
+        invited_by: z.string().nullable(),
+        created_at: z.string(),
+        expires_at: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The invitations, oldest first'
+});
+
+export const PostOrganisationsByIdInvitationsBodySchema = z.union([
+    z.object({
+        email: z.email().max(320).regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).register(z.globalRegistry, {
+            description: 'The address to send the invitation to.'
+        })
+    }),
+    z.object({
+        user_id: z.string().min(1).max(64).register(z.globalRegistry, {
+            description: 'The account to invite.'
+        })
+    })
+]);
+
+export const PostOrganisationsByIdInvitationsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The invitation
+ */
+export const PostOrganisationsByIdInvitationsResponseSchema = z.object({
+    id: z.string(),
+    email: z.string().nullable(),
+    user_id: z.string().nullable(),
+    invited_by: z.string().nullable(),
+    created_at: z.string(),
+    expires_at: z.string()
+}).register(z.globalRegistry, {
+    description: 'The invitation'
+});
+
+export const DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    invitationId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The invitation.'
+    })
+});
+
+/**
+ * Cancelled
+ */
+export const DeleteOrganisationsByIdInvitationsByInvitationIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Cancelled'
+});
+
+/**
+ * The invitations, oldest first
+ */
+export const GetInvitationsResponseSchema = z.object({
+    invitations: z.array(z.object({
+        id: z.string(),
+        organisation: z.object({
+            id: z.string(),
+            name: z.string()
+        }),
+        expires_at: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The invitations, oldest first'
+});
+
+export const GetInvitationsByIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The invitation.'
+    })
+});
+
+/**
+ * The invitation
+ */
+export const GetInvitationsByIdResponseSchema = InvitationSchema;
+
+export const PostInvitationsByIdAcceptBodySchema = z.object({
+    code: z.string().min(1).max(128).register(z.globalRegistry, {
+        description: 'The one-time code from an emailed invitation\'s link.'
+    }).optional(),
+    display_name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'Your name as the organisation\'s members will see it.'
+    })
+});
+
+export const PostInvitationsByIdAcceptPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The invitation.'
+    })
+});
+
+/**
+ * The new membership
+ */
+export const PostInvitationsByIdAcceptResponseSchema = z.object({
+    organisation_id: z.string(),
+    user_id: z.string(),
+    joined_at: z.string()
+}).register(z.globalRegistry, {
+    description: 'The new membership'
+});
+
+export const PostInvitationsByIdDeclineBodySchema = z.object({
+    code: z.string().min(1).max(128).register(z.globalRegistry, {
+        description: 'The one-time code from an emailed invitation\'s link.'
+    }).optional()
+});
+
+export const PostInvitationsByIdDeclinePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The invitation.'
+    })
+});
+
+/**
+ * Declined
+ */
+export const PostInvitationsByIdDeclineResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Declined'
+});

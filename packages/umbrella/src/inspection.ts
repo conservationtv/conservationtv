@@ -1,14 +1,4 @@
-import {
-  and,
-  eq,
-  getTableColumns,
-  getTableName,
-  not,
-  sql,
-  Subquery,
-  type InferSelectModel,
-  type SQL
-} from 'drizzle-orm';
+import { and, eq, getColumns, getTableName, not, sql, Subquery, type InferSelectModel, type SQL } from 'drizzle-orm';
 import { boolean, pgTable, text, type PgTable } from 'drizzle-orm/pg-core';
 import { assignmentColumns, roleAssignments } from './assignments.js';
 import { activeSQL, contextSQL, grantSQL, principalSQL, scopeIdSQL } from './authorization.js';
@@ -142,7 +132,7 @@ const summaryColumns = pgTable('__authz_access', {
 });
 export type PermissionEffect = InferSelectModel<typeof effectColumns>;
 function relation<T extends PgTable>(table: T, query: SQL) {
-  const fields = getTableColumns(table);
+  const fields = getColumns(table);
   return new Subquery<T['_']['name'], typeof fields>(query, fields, getTableName(table));
 }
 const roleId = (resource: string, name: string): string => `${resource}/${name}`;
@@ -291,14 +281,14 @@ export function createAccessQueries(db: Database, schema: AccessSchema, clock: (
         label text, description text, permissions text[], "assignableScopes" text[], "includedIn" text[])`
     );
   const effectsQuery = <T extends AnyProtectedTable>(options: InspectQueryOptions<T>, now: SQL) =>
-    db.select(getTableColumns(effectColumns)).from(relation(effectColumns, effectsSQL(schema, options, now)));
+    db.select(getColumns(effectColumns)).from(relation(effectColumns, effectsSQL(schema, options, now)));
 
   function grantsQuery(options: GrantQueryOptions = {}) {
     const now = reportTime(clock, options.now);
-    const catalog = db.select(getTableColumns(catalogColumns)).from(catalogRelation()).as('roles');
+    const catalog = db.select(getColumns(catalogColumns)).from(catalogRelation()).as('roles');
     const query = db
       .select({
-        ...getTableColumns(roleAssignments),
+        ...getColumns(roleAssignments),
         roleId: sql<string>`${roleAssignments.resource} || '/' || ${roleAssignments.role}`.as('role_id'),
         roleKind:
           sql<RoleKind>`case when ${roleAssignments.resource} = ${sharedResource} then 'shared' else 'table' end`.as(
@@ -313,14 +303,14 @@ export function createAccessQueries(db: Database, schema: AccessSchema, clock: (
       .from(roleAssignments)
       .leftJoin(catalog, and(eq(roleAssignments.resource, catalog.resource), eq(roleAssignments.role, catalog.name)))
       .where(grantFilters(schema, options, now));
-    return db.select(getTableColumns(grantColumns)).from(relation(grantColumns, query.getSQL())).$dynamic();
+    return db.select(getColumns(grantColumns)).from(relation(grantColumns, query.getSQL())).$dynamic();
   }
   function inspectQuery<T extends AnyProtectedTable>(options: InspectQueryOptions<T>) {
     const query = sql`select principal_kind, principal_id,
       coalesce(array_agg(distinct resource || '/' || role order by resource || '/' || role) filter (where active), '{}'::text[]) as roles,
       coalesce(array_agg(distinct permission order by permission) filter (where active), '{}'::text[]) as permissions
       from (${effectsSQL(schema, options, reportTime(clock, options.now))}) as effects group by principal_kind, principal_id`;
-    return db.select(getTableColumns(summaryColumns)).from(relation(summaryColumns, query)).$dynamic();
+    return db.select(getColumns(summaryColumns)).from(relation(summaryColumns, query)).$dynamic();
   }
   async function inspect<T extends AnyProtectedTable>(options: InspectOptions<T>) {
     const subject = principal(options.principal.kind, options.principal.id);

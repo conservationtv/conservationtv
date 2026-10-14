@@ -4,8 +4,8 @@ import { useSelector } from '@xstate/store-react';
 import { Button } from '@conservationtv/ui/components/button';
 import { FieldGroup, FieldSeparator } from '@conservationtv/ui/components/field';
 
-import { FormError } from '@/components/form-error';
-import { PanelContent } from '@/components/panel';
+import { FormError } from '@/components/common/form-error';
+import { PanelContent } from '@/components/common/panel';
 import { EmailSchema, type EmailInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
 import { useSendSignInCode } from '@/queries/session';

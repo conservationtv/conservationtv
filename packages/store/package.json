@@ -1,0 +1,17 @@
+{
+  "name": "@conservationtv/store",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Named AsyncLocalStorage stores: one `with` to run code with a value, one `use` to read it.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "6.0.3"
+  }
+}

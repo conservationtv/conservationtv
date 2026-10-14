@@ -9,7 +9,6 @@ import { exportJWK, generateKeyPair, type JWK } from 'jose';
 import pg from 'pg';
 import type { Database } from '../../src/db/client.ts';
 import { LOCAL_DATABASE_URL } from '../../src/db/local.ts';
-import * as schema from '../../src/db/schema.ts';
 import { JWKS_URI, registration } from './consumer.ts';
 
 export const RELAY_TOKEN = 'relay-test-token';
@@ -26,7 +25,7 @@ export interface TestDatabase {
 /** A pooled connection to `connectionString`, with the state tests reset between cases. */
 export function connectTestDatabase(connectionString = process.env.DATABASE_URL ?? LOCAL_DATABASE_URL): TestDatabase {
   const pool = new pg.Pool({ connectionString });
-  const database: Database = drizzle(pool, { schema });
+  const database: Database = drizzle({ client: pool });
   return {
     database,
     reset: async () => {

@@ -5,12 +5,12 @@ import { useSearchParams } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
 import { Field, FieldGroup } from '@conservationtv/ui/components/field';
 
-import { FormError } from '@/components/form-error';
+import { FormError } from '@/components/common/form-error';
 import type { Route } from './+types/device';
-import { PanelBody } from '@/components/panel';
-import { SignInFrame } from '@/components/sign-in-frame';
+import { PanelBody } from '@/components/common/panel';
+import { SignInFrame } from '@/components/auth/sign-in-frame';
 import { SignIn } from '@/components/auth/sign-in';
-import { Step, Steps } from '@/components/steps';
+import { Step, Steps } from '@/components/common/steps';
 import { queryClient } from '@/lib/query-client';
 import { DeviceCodeSchema, type DeviceCodeInput } from '@/forms/schemas';
 import { OtpField } from '@/forms/otp-field';

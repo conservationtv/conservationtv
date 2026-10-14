@@ -1,4 +1,4 @@
-import { and, eq, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import { and, eq, getColumnTable, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { roleAssignments } from './assignments.js';
 import {
@@ -100,7 +100,7 @@ function reachableKeys(context: PlanContext, scope: AnyScope, depth: number): SQ
   const parentKeys = parent && reachableKeys(context, parent.scope, depth + 1);
   if (parent && parentKeys) {
     const alias = sql.identifier(`__authz_scope_${depth}`);
-    parts.push(sql`select ${alias}.${sql.identifier(scope.key.name)} from ${scope.key.table} as ${alias}
+    parts.push(sql`select ${alias}.${sql.identifier(scope.key.name)} from ${getColumnTable(scope.key)} as ${alias}
       where ${alias}.${sql.identifier(parent.column.name)} in (${parentKeys})`);
   }
   return parts.length ? sql.join(parts, sql` union all `) : undefined;
@@ -153,7 +153,7 @@ function ancestorSQL(scope: AnyScope, id: SQL, depth: number): SQL {
   if (!parent) return own;
   const alias = sql.identifier(`__authz_scope_${depth}`);
   const parentId = sql`${alias}.${sql.identifier(parent.column.name)}`;
-  return sql`(${own} or exists (select 1 from ${scope.key.table} as ${alias}
+  return sql`(${own} or exists (select 1 from ${getColumnTable(scope.key)} as ${alias}
     where ${alias}.${sql.identifier(scope.key.name)} = ${id} and ${ancestorSQL(parent.scope, parentId, depth + 1)}))`;
 }
 /** Assignments that apply at a reporting context; a missing scope row has no inherited grants. */
@@ -164,6 +164,6 @@ export function contextSQL(schema: AccessSchema, meta: Metadata, ref: ScopeRef):
   if (scope.id === null) return rootMatch;
   const node = schema.scopes.get(scope.name)!;
   const id = typedParam(node.key, scope.id);
-  return sql`(exists (select 1 from ${node.key.table} where ${node.key} = ${id})
+  return sql`(exists (select 1 from ${getColumnTable(node.key)} where ${node.key} = ${id})
     and (${rootMatch} or ${ancestorSQL(node, id, 0)}))`;
 }

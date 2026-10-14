@@ -203,7 +203,7 @@ Your access definitions compile to PostgreSQL row-level security: RLS enabled on
 }
 ```
 
-`umbrella generate` reads `schema` and `out` from your `drizzle.config.ts`, loads the schema, and compares the compiled policies with the latest ones it generated. If they differ, it runs `drizzle-kit generate --custom --name=access_policies` and fills in that file. If not, it writes nothing, so running it on every generate is safe. `drizzle-kit migrate`, or Drizzle's `migrate()` function, then applies it in order with your other migrations.
+`umbrella generate` reads `schema` and `out` from your `drizzle.config.ts`, loads the schema, and compares the compiled policies with the latest ones it generated. If they differ, it runs `drizzle-kit generate --custom --name=access_policies` and fills in the `migration.sql` it creates. If not, it writes nothing, so running it on every generate is safe. `drizzle-kit migrate`, or Drizzle's `migrate()` function, then applies it in order with your other migrations.
 
 Each access-policy migration is a complete snapshot rather than a diff. It first drops every policy, trigger, and helper function an earlier one created, then recreates them from the current definitions, so applying any sequence of them leaves exactly the latest rules. Drizzle applies pending migrations in a single transaction, so a database several versions behind never commits with half-updated policies. A table you stop protecting keeps RLS enabled with no policies, which denies the application role all access to it, until you disable RLS in a migration of your own.
 
@@ -307,6 +307,19 @@ Expect these outcomes:
 - Reads, counts, and joins quietly exclude rows the principal cannot read.
 - Updates and deletes affect only permitted rows. An empty result can mean "no match" or "no access".
 - An insert the principal cannot perform fails with PostgreSQL's row-level security error (SQLSTATE `42501`) and rolls back its transaction. Changing an immutable column fails the same way.
+
+For relational queries, create the connection with relations from `defineRelations`: a session keeps its connection's Drizzle type, so `tx.query` is typed. Each table in the query applies its own policies: a related row the principal cannot read comes back as `null`, or is missing from its list, so leave such `one` relations optional.
+
+```ts
+const relations = defineRelations(schema, r => ({
+  projects: { organisation: r.one.organisations({ from: r.projects.organisationId, to: r.organisations.id }) }
+}));
+const appDb = drizzle({ connection: process.env.APP_DATABASE_URL!, relations });
+
+const withOrganisations = await authorization
+  .as(appDb, user('bob'))
+  .transaction(tx => tx.query.projects.findMany({ with: { organisation: true } }));
+```
 
 ## Solve common access problems
 
@@ -1014,14 +1027,20 @@ Grants exist independently of your data, so offboarding needs to remove both:
 ```ts
 const acme = organisations.$access.scope.at('acme');
 
-await secured.access.at(acme).revoke({ principal: user('bob'), role: organisationMember });
-await secured.access.at(acme).revoke({ principal: user('bob'), role: organisationAdmin });
+await secured.access.at(acme).revoke({ principal: user('bob') });
 await adminDb.delete(memberships).where(eq(memberships.id, 'bob-acme'));
 ```
 
-Revoking by principal and role removes every matching grant at that scope, whatever its window; `secured.access.revoke(id)` removes one grant. Grants at other scopes, and grants of other roles, are unaffected. Then delete or detach any rows that still reach Bob through his `self` grant, such as his Acme profile.
+Revoking by principal without a role removes every grant Bob holds at that scope, whichever role and window, so offboarding keeps working when you add roles later. Pass `role` to remove only that role's grants; `secured.access.revoke(id)` removes one grant. Grants at other scopes, including the scope's descendants, are unaffected. Then delete or detach any rows that still reach Bob through his `self` grant, such as his Acme profile.
 
-When you delete a scope row, such as a project or organisation, delete grants at that scope in the same trusted operation, and do not reuse its ID while old grants remain. Find them with `grantsQuery({ scope })`, below.
+When you delete a scope row, such as a project or organisation, revoke every grant at that scope in the same trusted operation, and do not reuse its ID while old grants remain:
+
+```ts
+await secured.access.at(acme).all.revoke();
+await adminDb.delete(organisations).where(eq(organisations.id, 'acme'));
+```
+
+`all.revoke()` removes grants at exactly that scope, for every principal. Grants at its descendants, such as Acme's projects, are separate: revoke them as you delete those rows, or find them with `grantsQuery({ scope })`, below.
 
 ## Administer and report on access
 
@@ -1830,10 +1849,12 @@ Without `includeInherited`, only Bob's grant at Apollo itself is returned. These
 const grant = await secured.access.root().grant({ principal: user('alice'), role: admin });
 
 await secured.access.revoke(grant.id); // true
-await secured.access.at(apollo).revoke({ principal: user('bob'), role: projects.$access.roles.reader });
+await secured.access.at(apollo).revoke({ principal: user('bob'), role: projects.$access.roles.reader }); // 1
+await secured.access.at(apollo).revoke({ principal: user('bob') }); // all of Bob's roles at Apollo
+await secured.access.at(apollo).all.revoke(); // everyone's grants at Apollo
 ```
 
-Revoking by ID removes one grant. Revoking by principal and role at a scope removes all of its windows there. Other grants, shared or direct, are unaffected.
+Revoking by ID removes one grant. Revoking by principal and role at a scope removes all of that role's windows there; without a role, all of the principal's grants there. `all.revoke()` removes every principal's grants at the scope. Each returns how many grants it removed, works after the scope row is deleted, and leaves grants at other scopes, including descendants, in place.
 
 ### Report freshness
 

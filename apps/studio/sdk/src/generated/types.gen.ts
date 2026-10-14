@@ -22,6 +22,30 @@ export type Account = {
     created_at: string;
 };
 
+export type Organisation = {
+    id: string;
+    name: string;
+    created_at: string;
+};
+
+export type Member = {
+    members: Array<{
+        user_id: string;
+        display_name: string | null;
+        joined_at: string;
+    }>;
+};
+
+export type Invitation = {
+    id: string;
+    organisation: {
+        id: string;
+        name: string;
+    };
+    needs_code: boolean;
+    expires_at: string;
+};
+
 export type GetHealthData = {
     body?: never;
     path?: never;
@@ -124,3 +148,787 @@ export type PatchAccountResponses = {
 };
 
 export type PatchAccountResponse = PatchAccountResponses[keyof PatchAccountResponses];
+
+export type GetOrganisationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/organisations';
+};
+
+export type GetOrganisationsErrors = {
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsError = GetOrganisationsErrors[keyof GetOrganisationsErrors];
+
+export type GetOrganisationsResponses = {
+    /**
+     * The organisations, oldest first
+     */
+    200: {
+        organisations: Array<{
+            id: string;
+            name: string;
+            created_at: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsResponse = GetOrganisationsResponses[keyof GetOrganisationsResponses];
+
+export type PostOrganisationsData = {
+    body: {
+        /**
+         * The organisation name.
+         */
+        name: string;
+        /**
+         * Your name as the organisation's members will see it.
+         */
+        display_name: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/organisations';
+};
+
+export type PostOrganisationsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsError = PostOrganisationsErrors[keyof PostOrganisationsErrors];
+
+export type PostOrganisationsResponses = {
+    /**
+     * The new organisation
+     */
+    201: Organisation;
+};
+
+export type PostOrganisationsResponse = PostOrganisationsResponses[keyof PostOrganisationsResponses];
+
+export type DeleteOrganisationsByIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}';
+};
+
+export type DeleteOrganisationsByIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdError = DeleteOrganisationsByIdErrors[keyof DeleteOrganisationsByIdErrors];
+
+export type DeleteOrganisationsByIdResponses = {
+    /**
+     * Deleted
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdResponse = DeleteOrganisationsByIdResponses[keyof DeleteOrganisationsByIdResponses];
+
+export type GetOrganisationsByIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}';
+};
+
+export type GetOrganisationsByIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdError = GetOrganisationsByIdErrors[keyof GetOrganisationsByIdErrors];
+
+export type GetOrganisationsByIdResponses = {
+    /**
+     * The organisation
+     */
+    200: Organisation;
+};
+
+export type GetOrganisationsByIdResponse = GetOrganisationsByIdResponses[keyof GetOrganisationsByIdResponses];
+
+export type PatchOrganisationsByIdData = {
+    body: {
+        /**
+         * The organisation name.
+         */
+        name: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}';
+};
+
+export type PatchOrganisationsByIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdError = PatchOrganisationsByIdErrors[keyof PatchOrganisationsByIdErrors];
+
+export type PatchOrganisationsByIdResponses = {
+    /**
+     * The updated organisation
+     */
+    200: Organisation;
+};
+
+export type PatchOrganisationsByIdResponse = PatchOrganisationsByIdResponses[keyof PatchOrganisationsByIdResponses];
+
+export type GetOrganisationsByIdMembersData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/members';
+};
+
+export type GetOrganisationsByIdMembersErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdMembersError = GetOrganisationsByIdMembersErrors[keyof GetOrganisationsByIdMembersErrors];
+
+export type GetOrganisationsByIdMembersResponses = {
+    /**
+     * The members, longest-standing first
+     */
+    200: Member;
+};
+
+export type GetOrganisationsByIdMembersResponse = GetOrganisationsByIdMembersResponses[keyof GetOrganisationsByIdMembersResponses];
+
+export type PatchOrganisationsByIdMembersMeData = {
+    body: {
+        /**
+         * Your name in this organisation.
+         */
+        display_name: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/members/me';
+};
+
+export type PatchOrganisationsByIdMembersMeErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdMembersMeError = PatchOrganisationsByIdMembersMeErrors[keyof PatchOrganisationsByIdMembersMeErrors];
+
+export type PatchOrganisationsByIdMembersMeResponses = {
+    /**
+     * Your updated profile
+     */
+    200: {
+        user_id: string;
+        display_name: string;
+    };
+};
+
+export type PatchOrganisationsByIdMembersMeResponse = PatchOrganisationsByIdMembersMeResponses[keyof PatchOrganisationsByIdMembersMeResponses];
+
+export type DeleteOrganisationsByIdMembersByUserIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The member's account ID, or `me`.
+         */
+        userId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/members/{userId}';
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The organisation would be left without an administrator
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdError = DeleteOrganisationsByIdMembersByUserIdErrors[keyof DeleteOrganisationsByIdMembersByUserIdErrors];
+
+export type DeleteOrganisationsByIdMembersByUserIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdResponse = DeleteOrganisationsByIdMembersByUserIdResponses[keyof DeleteOrganisationsByIdMembersByUserIdResponses];
+
+export type GetOrganisationsByIdInvitationsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/invitations';
+};
+
+export type GetOrganisationsByIdInvitationsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdInvitationsError = GetOrganisationsByIdInvitationsErrors[keyof GetOrganisationsByIdInvitationsErrors];
+
+export type GetOrganisationsByIdInvitationsResponses = {
+    /**
+     * The invitations, oldest first
+     */
+    200: {
+        invitations: Array<{
+            id: string;
+            email: string | null;
+            user_id: string | null;
+            invited_by: string | null;
+            created_at: string;
+            expires_at: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdInvitationsResponse = GetOrganisationsByIdInvitationsResponses[keyof GetOrganisationsByIdInvitationsResponses];
+
+export type PostOrganisationsByIdInvitationsData = {
+    body: {
+        /**
+         * The address to send the invitation to.
+         */
+        email: string;
+    } | {
+        /**
+         * The account to invite.
+         */
+        user_id: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/invitations';
+};
+
+export type PostOrganisationsByIdInvitationsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The organisation does not exist or is not visible to this account, or the invited account does not exist
+     */
+    404: Error;
+    /**
+     * The recipient is already a member, or already has an open invitation to the organisation
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdInvitationsError = PostOrganisationsByIdInvitationsErrors[keyof PostOrganisationsByIdInvitationsErrors];
+
+export type PostOrganisationsByIdInvitationsResponses = {
+    /**
+     * The invitation
+     */
+    201: {
+        id: string;
+        email: string | null;
+        user_id: string | null;
+        invited_by: string | null;
+        created_at: string;
+        expires_at: string;
+    };
+};
+
+export type PostOrganisationsByIdInvitationsResponse = PostOrganisationsByIdInvitationsResponses[keyof PostOrganisationsByIdInvitationsResponses];
+
+export type DeleteOrganisationsByIdInvitationsByInvitationIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The invitation.
+         */
+        invitationId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/invitations/{invitationId}';
+};
+
+export type DeleteOrganisationsByIdInvitationsByInvitationIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdInvitationsByInvitationIdError = DeleteOrganisationsByIdInvitationsByInvitationIdErrors[keyof DeleteOrganisationsByIdInvitationsByInvitationIdErrors];
+
+export type DeleteOrganisationsByIdInvitationsByInvitationIdResponses = {
+    /**
+     * Cancelled
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdInvitationsByInvitationIdResponse = DeleteOrganisationsByIdInvitationsByInvitationIdResponses[keyof DeleteOrganisationsByIdInvitationsByInvitationIdResponses];
+
+export type GetInvitationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/invitations';
+};
+
+export type GetInvitationsErrors = {
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetInvitationsError = GetInvitationsErrors[keyof GetInvitationsErrors];
+
+export type GetInvitationsResponses = {
+    /**
+     * The invitations, oldest first
+     */
+    200: {
+        invitations: Array<{
+            id: string;
+            organisation: {
+                id: string;
+                name: string;
+            };
+            expires_at: string;
+        }>;
+    };
+};
+
+export type GetInvitationsResponse = GetInvitationsResponses[keyof GetInvitationsResponses];
+
+export type GetInvitationsByIdData = {
+    body?: never;
+    path: {
+        /**
+         * The invitation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/invitations/{id}';
+};
+
+export type GetInvitationsByIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetInvitationsByIdError = GetInvitationsByIdErrors[keyof GetInvitationsByIdErrors];
+
+export type GetInvitationsByIdResponses = {
+    /**
+     * The invitation
+     */
+    200: Invitation;
+};
+
+export type GetInvitationsByIdResponse = GetInvitationsByIdResponses[keyof GetInvitationsByIdResponses];
+
+export type PostInvitationsByIdAcceptData = {
+    body: {
+        /**
+         * The one-time code from an emailed invitation's link.
+         */
+        code?: string;
+        /**
+         * Your name as the organisation's members will see it.
+         */
+        display_name: string;
+    };
+    path: {
+        /**
+         * The invitation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/invitations/{id}/accept';
+};
+
+export type PostInvitationsByIdAcceptErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The invitation is for an email address, and its code is missing or wrong
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The account is already a member of the organisation
+     */
+    409: Error;
+    /**
+     * The invitation has expired
+     */
+    410: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostInvitationsByIdAcceptError = PostInvitationsByIdAcceptErrors[keyof PostInvitationsByIdAcceptErrors];
+
+export type PostInvitationsByIdAcceptResponses = {
+    /**
+     * The new membership
+     */
+    200: {
+        organisation_id: string;
+        user_id: string;
+        joined_at: string;
+    };
+};
+
+export type PostInvitationsByIdAcceptResponse = PostInvitationsByIdAcceptResponses[keyof PostInvitationsByIdAcceptResponses];
+
+export type PostInvitationsByIdDeclineData = {
+    body: {
+        /**
+         * The one-time code from an emailed invitation's link.
+         */
+        code?: string;
+    };
+    path: {
+        /**
+         * The invitation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/invitations/{id}/decline';
+};
+
+export type PostInvitationsByIdDeclineErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The invitation is for an email address, and its code is missing or wrong
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The invitation has expired
+     */
+    410: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostInvitationsByIdDeclineError = PostInvitationsByIdDeclineErrors[keyof PostInvitationsByIdDeclineErrors];
+
+export type PostInvitationsByIdDeclineResponses = {
+    /**
+     * Declined
+     */
+    204: void;
+};
+
+export type PostInvitationsByIdDeclineResponse = PostInvitationsByIdDeclineResponses[keyof PostInvitationsByIdDeclineResponses];

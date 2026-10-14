@@ -1,5 +1,5 @@
 import { SearchForm } from "@/components/blocks/sidebar-16/search-form"
-import { PreviewControls } from "@/components/preview-controls"
+import { PreviewControls } from "@/components/previews/preview-controls"
 import {
   Breadcrumb,
   BreadcrumbItem,

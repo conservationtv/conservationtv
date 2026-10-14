@@ -3,7 +3,7 @@
 import { betterAuth } from 'better-auth';
 import { bearer, deviceAuthorization, emailOTP } from 'better-auth/plugins';
 import { passkey } from '@better-auth/passkey';
-import { drizzleAdapter } from '@better-auth/drizzle-adapter';
+import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { LOCAL_ADMIN_DATABASE_URL } from '../src/db/local.ts';
 

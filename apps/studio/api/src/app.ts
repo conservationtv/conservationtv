@@ -6,7 +6,9 @@ import document from '../contracts/openapi.json' with { type: 'json' };
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import account from './routes/account.ts';
 import health from './routes/health.ts';
-import { services } from './services.ts';
+import invitations from './routes/invitations.ts';
+import organisations from './routes/organisations.ts';
+import { useServices } from './services.ts';
 
 export const operationRouter = new OperationRouter();
 
@@ -14,7 +16,7 @@ const app = new Hono({ router: operationRouter })
   // The studio web app calls with its session cookie, so its origins are allowed explicitly, never `*`.
   .use(
     cors({
-      origin: origin => (services().config.webOrigins.includes(origin) ? origin : null),
+      origin: origin => (useServices().config.WEB_ORIGINS.includes(origin) ? origin : null),
       credentials: true,
       allowHeaders: ['Authorization', 'Content-Type', 'Operation-Version'],
       exposeHeaders: ['Operation-Version']
@@ -23,9 +25,11 @@ const app = new Hono({ router: operationRouter })
   .route('/', health)
   // Better Auth's own routes (sign-in codes, passkeys, sessions) are its contract, not this API's.
   .on(['GET', 'POST'], '/auth/*', describeRoute({ hide: true }), async c =>
-    (await services().auth()).handler(c.req.raw)
+    (await useServices().auth()).handler(c.req.raw)
   )
   .route('/account', account)
+  .route('/organisations', organisations)
+  .route('/invitations', invitations)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)
   .onError(handleError);

@@ -45,9 +45,9 @@ function loginAs(pg: PGlite, role: string) {
   };
 }
 function connect(pg: PGlite, clock: () => Date) {
-  const raw = drizzle(pg);
+  const raw = drizzle({ client: pg });
   // SAFETY: Drizzle's PGlite driver calls only query and transaction, which loginAs forwards with the same shapes.
-  const app = drizzle(loginAs(pg, appRole) as never);
+  const app = drizzle({ client: loginAs(pg, appRole) as never });
   const secured = withAuthorization({ app, admin: raw }, { schema: tables, roles: sharedRoles, clock });
   return { raw, app, secured };
 }

@@ -6,7 +6,7 @@ import { MoqPathSchema } from '../grants/identifiers.ts';
 import { parseStrictJson } from '@conservationtv/versioned-api/server';
 import { MOQ_SIGNING_ALGORITHM } from '../moq/keys.ts';
 import { isSubtreePattern, ScopeError, scopeToDialedPath } from '../moq/scope.ts';
-import { services } from '../services.ts';
+import { useServices } from '../services.ts';
 import { matchesSecret } from './secrets.ts';
 
 /** How often moq-relay re-asks about a live session, so a revoked grant closes its sessions within this bound. */
@@ -91,7 +91,7 @@ function basicPassword(authorization: string | undefined): string | undefined {
 
 /** moq-relay sends its auth URL's userinfo as HTTP Basic credentials; the password is the shared relay key. */
 const isRelayToken = (authorization: string | undefined) =>
-  matchesSecret(basicPassword(authorization), services().moqRelayToken);
+  matchesSecret(basicPassword(authorization), useServices().moqRelayToken);
 
 /** The body as a moq-auth request, or undefined if it isn't strict JSON of that shape. */
 function moqAuthRequest(body: string): MoqAuthRequest | undefined {
@@ -138,12 +138,12 @@ function decodeSetupToken(value: string): string {
 async function verifiedClaims(token: string): Promise<MoqTokenClaims> {
   try {
     const { kid } = decodeProtectedHeader(token);
-    const key = kid === undefined ? undefined : (await services().moqKeys()).verificationKeys.get(kid);
+    const key = kid === undefined ? undefined : (await useServices().moqKeys()).verificationKeys.get(kid);
     if (!key) throw new Refusal('the token was not signed by a control-plane key');
     const { payload } = await jwtVerify(token, key, {
       algorithms: [MOQ_SIGNING_ALGORITHM],
       typ: 'JWT',
-      currentDate: new Date(services().clock())
+      currentDate: new Date(useServices().clock())
     });
     return MoqTokenClaimsSchema.parse(payload);
   } catch (error) {
@@ -153,15 +153,15 @@ async function verifiedClaims(token: string): Promise<MoqTokenClaims> {
 
 /** The grant behind the token must still stand: recorded, unrevoked, unexpired, and its consumer still enabled. */
 async function grantingPrincipal(claims: MoqTokenClaims): Promise<string> {
-  const db = await services().database();
+  const db = await useServices().database();
   const [grant] = await db
     .select({ principalId: grants.principalId, revokedAt: grants.revokedAt, expiresAt: grants.expiresAt })
     .from(grants)
     .where(eq(grants.id, claims.jti))
     .limit(1);
   if (!grant || grant.revokedAt !== null) throw new Refusal('the grant is unknown or revoked');
-  if (grant.expiresAt.getTime() <= services().clock()) throw new Refusal('the grant has expired');
-  const consumer = services().policy.consumers.find(candidate => candidate.principal_id === grant.principalId);
+  if (grant.expiresAt.getTime() <= useServices().clock()) throw new Refusal('the grant has expired');
+  const consumer = useServices().policy.consumers.find(candidate => candidate.principal_id === grant.principalId);
   if (!consumer?.enabled) throw new Refusal('the consumer is no longer enabled');
   return grant.principalId;
 }
@@ -173,7 +173,7 @@ function clusterGrant(request: MoqAuthRequest): MoqGrant {
   return {
     publish: ['**'],
     subscribe: ['**'],
-    expires: Math.floor(services().clock() / 1000) + MOQ_CLUSTER_GRANT_SECONDS,
+    expires: Math.floor(useServices().clock() / 1000) + MOQ_CLUSTER_GRANT_SECONDS,
     revalidate: MOQ_REVALIDATE_SECONDS,
     tier: 'cluster',
     peer: true
@@ -183,7 +183,7 @@ function clusterGrant(request: MoqAuthRequest): MoqGrant {
 // The shared secret authorizes cluster peers; consumer JWTs retain their recorded, scoped grants.
 async function decide(request: MoqAuthRequest): Promise<MoqGrant> {
   const token = sessionToken(request);
-  if (await matchesSecret(token, services().moqClusterToken)) return clusterGrant(request);
+  if (await matchesSecret(token, useServices().moqClusterToken)) return clusterGrant(request);
   const claims = await verifiedClaims(token);
   const principalId = await grantingPrincipal(claims);
   try {

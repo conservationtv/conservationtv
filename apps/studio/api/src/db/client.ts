@@ -1,9 +1,9 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import { ApiFailure } from '../errors.ts';
-import * as schema from './schema.ts';
+import { relations } from './relations.ts';
 
-export type Database = NodePgDatabase<typeof schema>;
+export type Database = NodePgDatabase<typeof relations>;
 
 export interface DatabaseConnection {
   database(): Promise<Database>;
@@ -28,7 +28,7 @@ export function connectLazily(connectionString: string): DatabaseConnection {
   return {
     async database() {
       if (pending == null) pending = connect();
-      return drizzle(await pending, { schema });
+      return drizzle({ client: await pending, relations });
     },
     async close() {
       if (!pending) return;

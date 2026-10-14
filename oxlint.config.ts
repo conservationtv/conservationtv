@@ -41,7 +41,7 @@ const vendoredFiles = [
   'packages/ui/src/hooks/**',
   'packages/ui/src/lib/**',
   'apps/studio/web/src/components/blocks/**',
-  'apps/studio/web/src/components/theme-provider.tsx'
+  'apps/studio/web/src/components/app/theme-provider.tsx'
 ];
 
 /** The React apps and the components they share. */

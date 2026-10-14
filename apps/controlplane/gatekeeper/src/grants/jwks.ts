@@ -4,7 +4,7 @@ import type { JwksUri } from '../config/schemas.ts';
 import { jwksCache } from '../db/schema.ts';
 import { GrantError } from '../errors.ts';
 import { parseStrictJson } from '@conservationtv/versioned-api/server';
-import { services } from '../services.ts';
+import { useServices } from '../services.ts';
 
 const MAX_DOCUMENT_BYTES = 64 * 1024;
 const MAX_KEYS = 16;
@@ -104,7 +104,7 @@ async function readLimited(response: Response): Promise<string> {
 
 /** Only the registered URI is fetched. Redirects are refused rather than followed to a host nobody registered. */
 async function download(uri: JwksUri): Promise<KeySet> {
-  const { fetch, clock } = services();
+  const { fetch, clock } = useServices();
   const response = await fetch(uri, {
     redirect: 'manual',
     headers: { accept: 'application/jwk-set+json, application/json' },
@@ -131,7 +131,7 @@ export class JwksCache {
   private readonly attempted = new Map<string, number>();
 
   async key(uri: JwksUri, kid: string): Promise<PublishedJwk> {
-    const now = services().clock();
+    const now = useServices().clock();
     let entry = this.entries.get(uri) ?? (await this.restore(uri));
     // Fail closed once the stale-use period has elapsed; otherwise prefer cached keys over a live request.
     if (!entry || now >= entry.staleUntil) entry = await this.required(uri);
@@ -166,7 +166,7 @@ export class JwksCache {
   private refresh(uri: JwksUri): Promise<KeySet> {
     let request = this.pending.get(uri);
     if (!request) {
-      this.attempted.set(uri, services().clock());
+      this.attempted.set(uri, useServices().clock());
       request = download(uri)
         .then(async entry => {
           this.entries.set(uri, entry);
@@ -180,7 +180,7 @@ export class JwksCache {
   }
 
   private async restore(uri: JwksUri): Promise<KeySet | undefined> {
-    const db = await services().database();
+    const db = await useServices().database();
     const [row] = await db.select().from(jwksCache).where(eq(jwksCache.jwksUri, uri)).limit(1);
     const keys = StoredKeysSchema.safeParse(row?.keys);
     if (!row || !keys.success) return undefined;
@@ -197,7 +197,7 @@ export class JwksCache {
   /** Persistence is an optimisation; a failure here must not fail an exchange that already has valid keys. */
   private async persist(uri: JwksUri, entry: KeySet): Promise<void> {
     try {
-      const db = await services().database();
+      const db = await useServices().database();
       const values = {
         keys: entry.keys,
         fetchedAt: new Date(entry.fetchedAt),

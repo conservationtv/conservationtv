@@ -25,9 +25,11 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@arkenv/standard": "catalog:",
     "@better-auth/drizzle-adapter": "1.7.7",
     "@better-auth/passkey": "catalog:",
     "@conservationtv/umbrella": "workspace:*",
+    "@conservationtv/store": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
@@ -37,8 +39,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@better-auth/cli": "1.4.21",
     "@cloudflare/vite-plugin": "beta",
+    "auth": "1.7.7",
     "@types/node": "24.10.1",
     "@types/pg": "catalog:",
     "cf": "^1.0.0-beta.5",

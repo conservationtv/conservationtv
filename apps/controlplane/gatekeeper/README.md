@@ -153,7 +153,8 @@ Consumer registrations and endpoint denials are JSON arrays in the `CONSUMER_REG
 `src/config/registrations.ts`; override the bindings per deployment or in `.dev.vars` for local development.
 An override replaces the entire list, so `[]` explicitly clears it. Empty strings, malformed JSON, invalid entries
 and duplicate consumer identities fail every request rather than falling back to defaults.
-Policy is validated and cached on the first request in each isolate; apply changes through a deployment/restart.
+All bindings are validated by `src/config/env.ts` (ArkEnv over `process.env`) and cached on the first request in each
+isolate; apply changes through a deployment/restart.
 Revocation options are:
 
 - set `enabled: false` in `CONSUMER_REGISTRATIONS`;
@@ -210,7 +211,7 @@ through `@conservationtv/gatekeeper/testing`, with isolated Postgres containers 
 
 Schema changes: edit `src/db/schema.ts`, then `pnpm db:generate` and commit the migration in `drizzle/`.
 
-Request handling reads its dependencies through `services()` (AsyncLocalStorage, `src/services.ts`). Only the
+Request handling reads its dependencies through `useServices()`, a `createStore` from `@conservationtv/store` (AsyncLocalStorage, `src/services.ts`). Only the
 production Worker entrypoint constructs those dependencies.
 
 ## Contracts, SDK and CLI

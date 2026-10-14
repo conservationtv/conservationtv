@@ -1,14 +1,14 @@
 import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
 import { grants, irohLeases } from '../db/schema.ts';
 import { EndpointIdSchema } from '../grants/identifiers.ts';
-import { services } from '../services.ts';
+import { useServices } from '../services.ts';
 import { matchesSecret } from './secrets.ts';
 
 export type RelayAdmission = 'allow' | 'deny' | 'unauthenticated';
 
 /** iroh-relay sends its `access.http.bearer_token` as a standard bearer credential. */
 const isRelayToken = (authorization: string | undefined) =>
-  matchesSecret(/^Bearer (.+)$/.exec(authorization ?? '')?.[1], services().irohRelayToken);
+  matchesSecret(/^Bearer (.+)$/.exec(authorization ?? '')?.[1], useServices().irohRelayToken);
 
 /**
  * The Iroh relay's access callout. Admits an endpoint only while it holds an active, unexpired lease whose grant has
@@ -20,11 +20,11 @@ export async function admitIrohEndpoint(
 ): Promise<RelayAdmission> {
   if (!(await isRelayToken(authorization))) return 'unauthenticated';
   const endpoint = EndpointIdSchema.safeParse(endpointHeader);
-  const { policy, clock } = services();
+  const { policy, clock } = useServices();
   if (!endpoint.success || policy.deniedIrohEndpoints.includes(endpoint.data)) return 'deny';
   const principals = policy.consumers.filter(consumer => consumer.enabled).map(consumer => consumer.principal_id);
   if (principals.length === 0) return 'deny';
-  const db = await services().database();
+  const db = await useServices().database();
   const [lease] = await db
     .select({ id: irohLeases.id })
     .from(irohLeases)

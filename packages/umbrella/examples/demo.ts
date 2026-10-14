@@ -63,8 +63,8 @@ try {
     grant usage on all sequences in schema public to app;
   `);
   // The owner manages grants; the application connection logs in as "app", which cannot bypass the policies.
-  const rawDb = drizzle(postgres);
-  const appDb = drizzle(loginAs(postgres, 'app'));
+  const rawDb = drizzle({ client: postgres });
+  const appDb = drizzle({ client: loginAs(postgres, 'app') });
   const db = withAuthorization({ app: appDb, admin: rawDb }, { schema, roles: { admin, reader, auditor } });
   const { devices, metrics, locations, projects, users, organisations, organisationUsers } = schema;
   const as = <R>(who: Principal, run: (tx: Database) => Promise<R>) => db.as(who).transaction(run);

@@ -96,13 +96,47 @@ describe('revoking', () => {
     ]);
   });
 
+  it("without a role removes all of the principal's grants at the scope and nowhere else", async () => {
+    const h = harness();
+    const apollo = h.secured.access.at(project('apollo'));
+    await apollo.grant({ principal: alice, role: tasks.$access.roles.viewer });
+    await apollo.grant({ principal: alice, role: tasks.$access.roles.editor });
+    await apollo.grant({ principal: user('bob'), role: tasks.$access.roles.viewer });
+    await h.secured.access.at(project('zeus')).grant({ principal: alice, role: tasks.$access.roles.viewer });
+    expect(await apollo.revoke({ principal: alice })).toBe(2);
+    const remaining = await assignments(h);
+    expect(remaining.map(row => [row.principalId, row.scopeId]).sort()).toEqual([
+      ['alice', 'zeus'],
+      ['bob', 'apollo']
+    ]);
+    expect(ids(await read(h, alice, tasks))).toEqual(['zeus-1']);
+  });
+
+  it("all at a scope removes every principal's grants there and nowhere else", async () => {
+    const h = harness();
+    await h.raw.insert(projects).values({ id: 'acme', organisationId: 'acme', name: 'Acme project' });
+    const acmeProject = h.secured.access.at(project('acme'));
+    await acmeProject.grant({ principal: alice, role: tasks.$access.roles.viewer });
+    await acmeProject.grant({ principal: user('bob'), role: tasks.$access.roles.editor });
+    await h.secured.access.at(organisation('acme')).grant({ principal: alice, role: tasks.$access.roles.viewer });
+    await h.secured.access.at(project('apollo')).grant({ principal: user('bob'), role: tasks.$access.roles.viewer });
+    expect(await acmeProject.all.revoke()).toBe(2);
+    const remaining = await assignments(h);
+    expect(remaining.map(row => [row.principalId, row.scopeName, row.scopeId]).sort()).toEqual([
+      ['alice', 'organisation', 'acme'],
+      ['bob', 'project', 'apollo']
+    ]);
+  });
+
   it('still works after the scope row is deleted', async () => {
     const h = harness();
     await h.secured.access.at(vault(VAULT)).grant({ principal: alice, role: vaults.$access.roles.keeper });
+    await h.secured.access.at(vault(VAULT)).grant({ principal: user('bob'), role: vaults.$access.roles.keeper });
     await h.raw.delete(vaults).where(eq(vaults.id, VAULT));
     expect(
       await h.secured.access.at(vault(VAULT)).revoke({ principal: alice, role: vaults.$access.roles.keeper })
     ).toBe(1);
+    expect(await h.secured.access.at(vault(VAULT)).all.revoke()).toBe(1);
   });
 });
 

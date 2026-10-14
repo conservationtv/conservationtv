@@ -14,8 +14,6 @@ import {
   versionMismatch
 } from './openapi.ts';
 
-const tags = ['Grants'];
-
 // Versions belong to individual operations. Keep their declarations together.
 export default new Hono().post(
   '/exchange',
@@ -27,7 +25,6 @@ export default new Hono().post(
       'Exchanges a consumer-signed `relay-grant+jwt` assertion for relay credentials: a MoQ capability token and/or an ' +
       'Iroh endpoint lease. Every security-relevant field lives inside the signed assertion; each assertion can be ' +
       'exchanged once. Responses are secrets and are never cacheable.',
-    tags,
     responses: {
       200: { description: 'The issued relay credentials' },
       400: invalidRequest,

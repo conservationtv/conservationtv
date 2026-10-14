@@ -22,6 +22,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vitest": "5.0.3",
+    "zod": "catalog:",
     "smol-toml": "1.9.1",
     "@moq-ha/vps-fleet": "workspace:*"
   }
