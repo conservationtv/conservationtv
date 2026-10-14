@@ -1,5 +1,5 @@
 import { user, type Access } from '@conservationtv/umbrella';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { authorization } from '../access.ts';
 import type { Database } from '../db/client.ts';
 import { organisationAdmin, organisationMember } from '../db/roles.ts';
@@ -89,6 +89,30 @@ export function createOrganisation(principal: UserPrincipal, input: NewOrganisat
   });
 }
 
+/** Organisation administrators only: the caller must hold an active `organisationAdmin` grant there. */
+async function requireAdmin(access: Access, principal: UserPrincipal, organisationId: string) {
+  const held = await access.grantsQuery({
+    principal,
+    role: organisationAdmin,
+    scope: organisationScope(organisationId),
+    active: true
+  });
+  if (held.length === 0) throw new ApiFailure('forbidden');
+}
+
+/** Refuse to take the last active administrator away: the member may hold it only if someone else does too. */
+async function keepAnotherAdmin(access: Access, organisationId: string, memberId: string) {
+  const member = user(memberId);
+  const admins = await access.grantsQuery({
+    role: organisationAdmin,
+    scope: organisationScope(organisationId),
+    active: true
+  });
+  const isAdmin = admins.some(grant => grant.principalKind === member.kind && grant.principalId === member.id);
+  if (isAdmin && !admins.some(grant => grant.principalKind !== member.kind || grant.principalId !== member.id))
+    throw new ApiFailure('last_admin');
+}
+
 /**
  * End a membership: an administrator removing someone, or the principal leaving. Its grants go with it, and its
  * profile by cascade. The last administrator cannot be removed.
@@ -108,18 +132,10 @@ export function endMembership(principal: UserPrincipal, organisationId: string, 
     const leaving = membership.userId === principal.id;
     if (!leaving && !(await mayRemoveMembers(access, principal, organisationId))) throw new ApiFailure('forbidden');
 
-    const member = user(membership.userId);
-    const admins = await access.grantsQuery({
-      role: organisationAdmin,
-      scope: organisationScope(organisationId),
-      active: true
-    });
-    const isAdmin = admins.some(grant => grant.principalKind === member.kind && grant.principalId === member.id);
-    if (isAdmin && !admins.some(grant => grant.principalKind !== member.kind || grant.principalId !== member.id))
-      throw new ApiFailure('last_admin');
+    await keepAnotherAdmin(access, organisationId, membership.userId);
 
     // Every role they hold here, not just the ones membership grants.
-    await access.at(organisationScope(organisationId)).revoke({ principal: member });
+    await access.at(organisationScope(organisationId)).revoke({ principal: user(membership.userId) });
     await tx.delete(organisationMemberships).where(eq(organisationMemberships.id, membership.id));
   });
 }
@@ -137,4 +153,121 @@ export function deleteOrganisation(principal: UserPrincipal, organisationId: str
     await access.at(organisationScope(organisationId)).all.revoke();
     await tx.delete(organisations).where(eq(organisations.id, organisationId));
   });
+}
+
+/**
+ * Make a member an administrator of the organisation: organisation administrators only. Granting the role again is
+ * harmless. Locks the organisation, as every change to its administrators does.
+ */
+export function grantAdmin(principal: UserPrincipal, organisationId: string, memberId: string) {
+  return trusted(async (tx, access) => {
+    await lockVisibleOrganisation(tx, access, principal, organisationId);
+    await requireAdmin(access, principal, organisationId);
+    const [membership] = await tx
+      .select({ userId: organisationMemberships.userId })
+      .from(organisationMemberships)
+      .where(
+        and(eq(organisationMemberships.organisationId, organisationId), eq(organisationMemberships.userId, memberId))
+      );
+    if (!membership) throw new ApiFailure('not_found');
+    await access
+      .at(organisationScope(organisationId))
+      .grant({ principal: user(membership.userId), role: organisationAdmin });
+  });
+}
+
+/**
+ * Take a member's administrator role away, leaving their membership: organisation administrators only, themselves
+ * included. The last administrator keeps it. Revoking it from someone who doesn't hold it changes nothing.
+ */
+export function revokeAdmin(principal: UserPrincipal, organisationId: string, memberId: string) {
+  return trusted(async (tx, access) => {
+    await lockVisibleOrganisation(tx, access, principal, organisationId);
+    await requireAdmin(access, principal, organisationId);
+    const [membership] = await tx
+      .select({ userId: organisationMemberships.userId })
+      .from(organisationMemberships)
+      .where(
+        and(eq(organisationMemberships.organisationId, organisationId), eq(organisationMemberships.userId, memberId))
+      );
+    if (!membership) throw new ApiFailure('not_found');
+    await keepAnotherAdmin(access, organisationId, membership.userId);
+    await access
+      .at(organisationScope(organisationId))
+      .revoke({ principal: user(membership.userId), role: organisationAdmin });
+  });
+}
+
+/** A role a member holds at the organisation, as umbrella's catalog names it. */
+export interface MemberRole {
+  id: string;
+  label: string;
+}
+
+/**
+ * The organisation's members with their profiles and the roles they hold there, one row each, aggregated in Postgres
+ * (umbrella's GUIDE: "One row per user, aggregated in SQL"). Grants are only readable on the admin connection, so the
+ * caller must have checked that the principal can see the organisation; its members may all read each other.
+ */
+export async function listMembers(organisationId: string) {
+  const db = await useServices().admin();
+  const roles = authorization
+    .access(db)
+    .grantsQuery({ scope: organisationScope(organisationId), active: true })
+    .as('member_roles');
+  return db
+    .select({
+      userId: organisationMemberships.userId,
+      displayName: organisationProfiles.displayName,
+      joinedAt: organisationMemberships.createdAt,
+      roles: sql<MemberRole[]>`coalesce(
+        json_agg(json_build_object('id', ${roles.roleId}, 'label', ${roles.label}) order by ${roles.roleId})
+          filter (where ${roles.id} is not null),
+        '[]'
+      )`
+    })
+    .from(organisationMemberships)
+    .leftJoin(
+      organisationProfiles,
+      and(
+        eq(organisationProfiles.organisationId, organisationMemberships.organisationId),
+        eq(organisationProfiles.userId, organisationMemberships.userId)
+      )
+    )
+    .leftJoin(roles, and(eq(roles.principalKind, 'user'), eq(roles.principalId, organisationMemberships.userId)))
+    .where(eq(organisationMemberships.organisationId, organisationId))
+    .groupBy(organisationMemberships.id, organisationProfiles.displayName)
+    .orderBy(organisationMemberships.id);
+}
+
+/**
+ * The principal's organisations, each with the roles they hold there, aggregated in Postgres as `listMembers` is. Only
+ * their own memberships are read, which is what their request session would see, but grants need the admin
+ * connection.
+ */
+export async function listOwnOrganisations(principal: UserPrincipal) {
+  const db = await useServices().admin();
+  const roles = authorization.access(db).grantsQuery({ principal, active: true }).as('own_roles');
+  return db
+    .select({
+      id: organisations.id,
+      name: organisations.name,
+      createdAt: organisations.createdAt,
+      roles: sql<MemberRole[]>`coalesce(
+        json_agg(json_build_object('id', ${roles.roleId}, 'label', ${roles.label}) order by ${roles.roleId})
+          filter (where ${roles.id} is not null),
+        '[]'
+      )`
+    })
+    .from(organisations)
+    .innerJoin(
+      organisationMemberships,
+      and(
+        eq(organisationMemberships.organisationId, organisations.id),
+        eq(organisationMemberships.userId, principal.id)
+      )
+    )
+    .leftJoin(roles, and(eq(roles.scopeName, 'organisation'), eq(roles.scopeId, sql`${organisations.id}::text`)))
+    .groupBy(organisations.id)
+    .orderBy(organisations.id);
 }

@@ -14,6 +14,10 @@ export type Organisation = {
         id: string;
         name: string;
         created_at: string;
+        roles: Array<{
+            id: string;
+            label: string;
+        }>;
     }>;
 };
 

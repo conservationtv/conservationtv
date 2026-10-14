@@ -2,19 +2,21 @@
 
 import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient17 } from '../versions/invitations.accept-v1/sdk.gen.js';
-import { BaseClient as BaseClient18 } from '../versions/invitations.decline-v1/sdk.gen.js';
-import { BaseClient as BaseClient16 } from '../versions/invitations.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient15 } from '../versions/invitations.listMine-v1/sdk.gen.js';
+import { BaseClient as BaseClient19 } from '../versions/invitations.accept-v1/sdk.gen.js';
+import { BaseClient as BaseClient20 } from '../versions/invitations.decline-v1/sdk.gen.js';
+import { BaseClient as BaseClient18 } from '../versions/invitations.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient17 } from '../versions/invitations.listMine-v1/sdk.gen.js';
 import { BaseClient as BaseClient5 } from '../versions/organisations.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient8 } from '../versions/organisations.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient6 } from '../versions/organisations.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient14 } from '../versions/organisations.invitations.cancel-v1/sdk.gen.js';
-import { BaseClient as BaseClient13 } from '../versions/organisations.invitations.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient12 } from '../versions/organisations.invitations.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient16 } from '../versions/organisations.invitations.cancel-v1/sdk.gen.js';
+import { BaseClient as BaseClient15 } from '../versions/organisations.invitations.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient14 } from '../versions/organisations.invitations.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient4 } from '../versions/organisations.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient12 } from '../versions/organisations.members.grantAdmin-v1/sdk.gen.js';
 import { BaseClient as BaseClient9 } from '../versions/organisations.members.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient11 } from '../versions/organisations.members.remove-v1/sdk.gen.js';
+import { BaseClient as BaseClient13 } from '../versions/organisations.members.revokeAdmin-v1/sdk.gen.js';
 import { BaseClient as BaseClient10 } from '../versions/organisations.members.updateSelf-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
@@ -43,18 +45,20 @@ export class Client extends ClientCore {
         members: {
             list: this.versioned('organisations.members.list', { v1: BaseClient9 }),
             updateSelf: this.versioned('organisations.members.updateSelf', { v1: BaseClient10 }),
-            remove: this.versioned('organisations.members.remove', { v1: BaseClient11 })
+            remove: this.versioned('organisations.members.remove', { v1: BaseClient11 }),
+            grantAdmin: this.versioned('organisations.members.grantAdmin', { v1: BaseClient12 }),
+            revokeAdmin: this.versioned('organisations.members.revokeAdmin', { v1: BaseClient13 })
         },
         invitations: {
-            list: this.versioned('organisations.invitations.list', { v1: BaseClient12 }),
-            create: this.versioned('organisations.invitations.create', { v1: BaseClient13 }),
-            cancel: this.versioned('organisations.invitations.cancel', { v1: BaseClient14 })
+            list: this.versioned('organisations.invitations.list', { v1: BaseClient14 }),
+            create: this.versioned('organisations.invitations.create', { v1: BaseClient15 }),
+            cancel: this.versioned('organisations.invitations.cancel', { v1: BaseClient16 })
         }
     };
     readonly invitations = {
-        listMine: this.versioned('invitations.listMine', { v1: BaseClient15 }),
-        get: this.versioned('invitations.get', { v1: BaseClient16 }),
-        accept: this.versioned('invitations.accept', { v1: BaseClient17 }),
-        decline: this.versioned('invitations.decline', { v1: BaseClient18 })
+        listMine: this.versioned('invitations.listMine', { v1: BaseClient17 }),
+        get: this.versioned('invitations.get', { v1: BaseClient18 }),
+        accept: this.versioned('invitations.accept', { v1: BaseClient19 }),
+        decline: this.versioned('invitations.decline', { v1: BaseClient20 })
     };
 }

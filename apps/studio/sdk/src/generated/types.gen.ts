@@ -33,6 +33,10 @@ export type Member = {
         user_id: string;
         display_name: string | null;
         joined_at: string;
+        roles: Array<{
+            id: string;
+            label: string;
+        }>;
     }>;
 };
 
@@ -182,6 +186,10 @@ export type GetOrganisationsResponses = {
             id: string;
             name: string;
             created_at: string;
+            roles: Array<{
+                id: string;
+                label: string;
+            }>;
         }>;
     };
 };
@@ -542,6 +550,118 @@ export type DeleteOrganisationsByIdMembersByUserIdResponses = {
 };
 
 export type DeleteOrganisationsByIdMembersByUserIdResponse = DeleteOrganisationsByIdMembersByUserIdResponses[keyof DeleteOrganisationsByIdMembersByUserIdResponses];
+
+export type DeleteOrganisationsByIdMembersByUserIdAdminData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The member's account ID, or `me`.
+         */
+        userId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/members/{userId}/admin';
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdAdminErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The organisation would be left without an administrator
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdAdminError = DeleteOrganisationsByIdMembersByUserIdAdminErrors[keyof DeleteOrganisationsByIdMembersByUserIdAdminErrors];
+
+export type DeleteOrganisationsByIdMembersByUserIdAdminResponses = {
+    /**
+     * The member is not an administrator
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdAdminResponse = DeleteOrganisationsByIdMembersByUserIdAdminResponses[keyof DeleteOrganisationsByIdMembersByUserIdAdminResponses];
+
+export type PutOrganisationsByIdMembersByUserIdAdminData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The member's account ID, or `me`.
+         */
+        userId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/members/{userId}/admin';
+};
+
+export type PutOrganisationsByIdMembersByUserIdAdminErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdMembersByUserIdAdminError = PutOrganisationsByIdMembersByUserIdAdminErrors[keyof PutOrganisationsByIdMembersByUserIdAdminErrors];
+
+export type PutOrganisationsByIdMembersByUserIdAdminResponses = {
+    /**
+     * The member is an administrator
+     */
+    204: void;
+};
+
+export type PutOrganisationsByIdMembersByUserIdAdminResponse = PutOrganisationsByIdMembersByUserIdAdminResponses[keyof PutOrganisationsByIdMembersByUserIdAdminResponses];
 
 export type GetOrganisationsByIdInvitationsData = {
     body?: never;

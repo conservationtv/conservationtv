@@ -3,11 +3,19 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import type { Session } from '@conservationtv/umbrella';
-import { organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
+import { organisationProfiles, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { cancelInvitation, createInvitation, listOrganisationInvitations } from '../organisations/invitations.ts';
-import { createOrganisation, deleteOrganisation, endMembership } from '../organisations/membership.ts';
+import {
+  createOrganisation,
+  deleteOrganisation,
+  endMembership,
+  grantAdmin,
+  listMembers,
+  listOwnOrganisations,
+  revokeAdmin
+} from '../organisations/membership.ts';
 import { useServices } from '../services.ts';
 import {
   accountNotFound,
@@ -48,7 +56,8 @@ export default new Hono()
       operationId: 'organisations.list',
       ...operationVersion(1),
       summary: 'List your organisations',
-      description: 'The organisations the signed-in account is a member of. Invitations are under `/invitations`.',
+      description:
+        'The organisations the signed-in account is a member of, with the roles it holds in each. Invitations are under `/invitations`.',
       responses: {
         200: { description: 'The organisations, oldest first' },
         401: unauthenticated,
@@ -58,25 +67,16 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const principal = usePrincipal();
-      const session = await useServices().session(principal);
-      const rows = await session.transaction(tx =>
-        tx
-          .select({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt })
-          .from(organisations)
-          .innerJoin(
-            organisationMemberships,
-            and(
-              eq(organisationMemberships.organisationId, organisations.id),
-              eq(organisationMemberships.userId, principal.id)
-            )
-          )
-          .orderBy(organisations.id)
-      );
+      const rows = await listOwnOrganisations(usePrincipal());
       c.header('Cache-Control', 'no-store');
       return c.json(
         {
-          organisations: rows.map(row => ({ id: row.id, name: row.name, created_at: row.createdAt.toISOString() }))
+          organisations: rows.map(row => ({
+            id: row.id,
+            name: row.name,
+            created_at: row.createdAt.toISOString(),
+            roles: row.roles
+          }))
         },
         200
       );
@@ -215,7 +215,8 @@ export default new Hono()
       operationId: 'organisations.members.list',
       ...operationVersion(1),
       summary: "List an organisation's members",
-      description: 'The member directory: each member, with their profile in this organisation.',
+      description:
+        'The member directory: each member, with their profile and the roles they hold in this organisation.',
       responses: {
         200: { description: 'The members, longest-standing first' },
         400: invalidRequest,
@@ -231,21 +232,15 @@ export default new Hono()
       const { id } = c.req.valid('param');
       const session = await useServices().session(usePrincipal());
       if (!(await visible(session, id))) throw new ApiFailure('not_found');
-      const rows = await session.transaction(tx =>
-        tx.query.organisationMemberships.findMany({
-          where: { organisationId: id },
-          orderBy: { id: 'asc' },
-          columns: { userId: true, createdAt: true },
-          with: { profile: { columns: { displayName: true } } }
-        })
-      );
+      const rows = await listMembers(id);
       c.header('Cache-Control', 'no-store');
       return c.json(
         {
           members: rows.map(row => ({
             user_id: row.userId,
-            display_name: row.profile?.displayName ?? null,
-            joined_at: row.createdAt.toISOString()
+            display_name: row.displayName,
+            joined_at: row.joinedAt.toISOString(),
+            roles: row.roles
           }))
         },
         200
@@ -315,6 +310,60 @@ export default new Hono()
       const principal = usePrincipal();
       const { id, userId } = c.req.valid('param');
       await endMembership(principal, id, userId === 'me' ? principal.id : userId);
+      return c.body(null, 204);
+    }
+  )
+  .put(
+    '/:id/members/:userId/admin',
+    describeRoute({
+      operationId: 'organisations.members.grantAdmin',
+      ...operationVersion(1),
+      summary: 'Make a member an administrator',
+      description: 'Administrators only. Granting it to someone who already holds it changes nothing.',
+      responses: {
+        204: { description: 'The member is an administrator' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', MemberParamsSchema),
+    async c => {
+      const principal = usePrincipal();
+      const { id, userId } = c.req.valid('param');
+      await grantAdmin(principal, id, userId === 'me' ? principal.id : userId);
+      return c.body(null, 204);
+    }
+  )
+  .delete(
+    '/:id/members/:userId/admin',
+    describeRoute({
+      operationId: 'organisations.members.revokeAdmin',
+      ...operationVersion(1),
+      summary: "Remove a member's administrator role",
+      description:
+        'Administrators only, themselves included. The member stays a member. The last administrator cannot lose it.',
+      responses: {
+        204: { description: 'The member is not an administrator' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        409: lastAdmin,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', MemberParamsSchema),
+    async c => {
+      const principal = usePrincipal();
+      const { id, userId } = c.req.valid('param');
+      await revokeAdmin(principal, id, userId === 'me' ? principal.id : userId);
       return c.body(null, 204);
     }
   )
