@@ -1856,6 +1856,35 @@ await secured.access.at(apollo).all.revoke(); // everyone's grants at Apollo
 
 Revoking by ID removes one grant. Revoking by principal and role at a scope removes all of that role's windows there; without a role, all of the principal's grants there. `all.revoke()` removes every principal's grants at the scope. Each returns how many grants it removed, works after the scope row is deleted, and leaves grants at other scopes, including descendants, in place.
 
+### Read grants from request sessions
+
+The reports above run on the owning connection, which bypasses row-level security everywhere: a query that forgets
+its filter there can return any row of any table. If your application lists roles in request handlers, such as a member
+directory that shows who administers an organisation, you can instead let the `app` role read the grants table, and
+run those reads in the request session like any other query:
+
+```sql
+create policy "grants_readable" on "authz_role_assignments" for select to app using (true);
+grant select on "authz_role_assignments" to app;
+```
+
+```ts
+const directory = await session.transaction(tx => {
+  const roles = secured.access.grantsQuery({ scope: acme, active: true }).as('roles'); // or authorization.access(tx)
+  return tx.select({ … }).from(memberships).leftJoin(roles, …);
+});
+```
+
+Name the policy anything but `authz_…`: each access-policy migration drops its own policies and re-enables row-level
+security on the grants table, and keeps yours. Grant `select` only. Without `insert`, `update` or `delete`, a
+session cannot grant itself anything, and the management API's `grant` and `revoke` fail with a permission error
+if they are ever handed a session.
+
+This is a trade. Every request session can now read every grant: who holds which role, at which scope, including
+global administrators and any pending or expired windows. Policies on your other tables are unaffected, and reading a
+grant never confers access. Choose it when a leak of role assignments is an acceptable worst case and leaks through
+the owning connection are not; otherwise keep these reads on the owning connection, small and reviewed.
+
 ### Report freshness
 
 The catalog reflects the loaded definitions. Reports read current grants when executed, using an evaluation time captured when the query builder is created. Pass the same `now` to several builders for a consistent report time. Report builders are ordinary Drizzle selects that support aliases, filters, grouping, pagination, counts, and CTEs; their option filters stay inside the source relation when you add an outer `.where()`.
@@ -1872,5 +1901,5 @@ The library decides whether a principal may perform an operation on a row. Your 
 - **Ownership fields.** Policies check where a row belongs, not that `authorId` equals the principal. Set such fields from the session's principal.
 - **Offboarding and deletion.** Revoke grants and delete or detach rows when membership ends, and delete grants when you delete a scope row. Do not reuse scope or principal IDs while old grants remain.
 - **Definition changes.** Resource, scope, and shared role names are stored in grants; renaming one means migrating them. Run `umbrella generate` whenever definitions change, and use `--before` when changing a scope key or link column's type.
-- **Database privileges.** RLS chooses rows; table and column privileges on the `app` role choose what can be touched at all. Keep the `app` role away from authentication tables and from the grants table.
+- **Database privileges.** RLS chooses rows; table and column privileges on the `app` role choose what can be touched at all. Keep the `app` role away from authentication tables, and never let it write the grants table; reading it is a trade-off, see [Read grants from request sessions](#read-grants-from-request-sessions).
 - **Transaction isolation.** Checks read grants in the query's own transaction. A long repeatable-read transaction keeps seeing the grants that existed when it started.

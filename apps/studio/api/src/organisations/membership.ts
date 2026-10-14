@@ -205,69 +205,70 @@ export interface MemberRole {
 }
 
 /**
- * The organisation's members with their profiles and the roles they hold there, one row each, aggregated in Postgres
- * (umbrella's GUIDE: "One row per user, aggregated in SQL"). Grants are only readable on the admin connection, so the
- * caller must have checked that the principal can see the organisation; its members may all read each other.
+ * The organisation's members visible to the principal, with their profiles and the roles they hold there, one row
+ * each, aggregated in Postgres (umbrella's GUIDE: "One row per user, aggregated in SQL"). It runs in the principal's
+ * request session: row-level security decides which members appear, and the grants table, readable by request
+ * sessions (see the `grants_readable` migration), only adds their roles.
  */
-export async function listMembers(organisationId: string) {
-  const db = await useServices().admin();
-  const roles = authorization
-    .access(db)
-    .grantsQuery({ scope: organisationScope(organisationId), active: true })
-    .as('member_roles');
-  return db
-    .select({
-      userId: organisationMemberships.userId,
-      displayName: organisationProfiles.displayName,
-      joinedAt: organisationMemberships.createdAt,
-      roles: sql<MemberRole[]>`coalesce(
-        json_agg(json_build_object('id', ${roles.roleId}, 'label', ${roles.label}) order by ${roles.roleId})
-          filter (where ${roles.id} is not null),
-        '[]'
-      )`
-    })
-    .from(organisationMemberships)
-    .leftJoin(
-      organisationProfiles,
-      and(
-        eq(organisationProfiles.organisationId, organisationMemberships.organisationId),
-        eq(organisationProfiles.userId, organisationMemberships.userId)
+export async function listMembers(principal: UserPrincipal, organisationId: string) {
+  const session = await useServices().session(principal);
+  return session.transaction(tx => {
+    const roles = authorization
+      .access(tx)
+      .grantsQuery({ scope: organisationScope(organisationId), active: true })
+      .as('member_roles');
+    return tx
+      .select({
+        userId: organisationMemberships.userId,
+        displayName: organisationProfiles.displayName,
+        joinedAt: organisationMemberships.createdAt,
+        roles: sql<MemberRole[]>`coalesce(
+          json_agg(json_build_object('id', ${roles.roleId}, 'label', ${roles.label}) order by ${roles.roleId})
+            filter (where ${roles.id} is not null),
+          '[]'
+        )`
+      })
+      .from(organisationMemberships)
+      .leftJoin(
+        organisationProfiles,
+        and(
+          eq(organisationProfiles.organisationId, organisationMemberships.organisationId),
+          eq(organisationProfiles.userId, organisationMemberships.userId)
+        )
       )
-    )
-    .leftJoin(roles, and(eq(roles.principalKind, 'user'), eq(roles.principalId, organisationMemberships.userId)))
-    .where(eq(organisationMemberships.organisationId, organisationId))
-    .groupBy(organisationMemberships.id, organisationProfiles.displayName)
-    .orderBy(organisationMemberships.id);
+      .leftJoin(roles, and(eq(roles.principalKind, 'user'), eq(roles.principalId, organisationMemberships.userId)))
+      .where(eq(organisationMemberships.organisationId, organisationId))
+      .groupBy(organisationMemberships.id, organisationProfiles.displayName)
+      .orderBy(organisationMemberships.id);
+  });
 }
 
-/**
- * The principal's organisations, each with the roles they hold there, aggregated in Postgres as `listMembers` is. Only
- * their own memberships are read, which is what their request session would see, but grants need the admin
- * connection.
- */
+/** The principal's organisations, each with the roles they hold there, aggregated as `listMembers` is, in their session. */
 export async function listOwnOrganisations(principal: UserPrincipal) {
-  const db = await useServices().admin();
-  const roles = authorization.access(db).grantsQuery({ principal, active: true }).as('own_roles');
-  return db
-    .select({
-      id: organisations.id,
-      name: organisations.name,
-      createdAt: organisations.createdAt,
-      roles: sql<MemberRole[]>`coalesce(
-        json_agg(json_build_object('id', ${roles.roleId}, 'label', ${roles.label}) order by ${roles.roleId})
-          filter (where ${roles.id} is not null),
-        '[]'
-      )`
-    })
-    .from(organisations)
-    .innerJoin(
-      organisationMemberships,
-      and(
-        eq(organisationMemberships.organisationId, organisations.id),
-        eq(organisationMemberships.userId, principal.id)
+  const session = await useServices().session(principal);
+  return session.transaction(tx => {
+    const roles = authorization.access(tx).grantsQuery({ principal, active: true }).as('own_roles');
+    return tx
+      .select({
+        id: organisations.id,
+        name: organisations.name,
+        createdAt: organisations.createdAt,
+        roles: sql<MemberRole[]>`coalesce(
+          json_agg(json_build_object('id', ${roles.roleId}, 'label', ${roles.label}) order by ${roles.roleId})
+            filter (where ${roles.id} is not null),
+          '[]'
+        )`
+      })
+      .from(organisations)
+      .innerJoin(
+        organisationMemberships,
+        and(
+          eq(organisationMemberships.organisationId, organisations.id),
+          eq(organisationMemberships.userId, principal.id)
+        )
       )
-    )
-    .leftJoin(roles, and(eq(roles.scopeName, 'organisation'), eq(roles.scopeId, sql`${organisations.id}::text`)))
-    .groupBy(organisations.id)
-    .orderBy(organisations.id);
+      .leftJoin(roles, and(eq(roles.scopeName, 'organisation'), eq(roles.scopeId, sql`${organisations.id}::text`)))
+      .groupBy(organisations.id)
+      .orderBy(organisations.id);
+  });
 }
