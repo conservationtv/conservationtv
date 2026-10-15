@@ -78,7 +78,7 @@ provider is wired into `src/auth/otp.ts`.
 
 ## Authorization
 
-`src/db/schema.ts` wraps Better Auth's `user` table with `withAccess`: each account is its own `user` scope, with
+`src/db/schemas/users.ts` wraps Better Auth's `user` table with `withAccess`: each account is its own `user` scope, with
 `read` and `edit` actions and an `owner` role that opts into the shared `self` role (`src/db/roles.ts`). When Better
 Auth creates an account, a `databaseHooks.user.create.after` hook grants `self` at that account's scope. Email,
 verification and creation time are immutable through request sessions.
@@ -126,9 +126,9 @@ curl -c jar -X POST localhost:5175/auth/sign-in/email-otp -H 'content-type: appl
 curl -b jar localhost:5175/account
 ```
 
-Schema changes: edit `src/db/schema.ts`, then `pnpm db:generate` (drizzle-kit, then `umbrella generate` for the
+Schema changes: edit the tables in `src/db/schemas/` (`src/db/schema.ts` exports everything drizzle-kit migrates), then `pnpm db:generate` (drizzle-kit, then `umbrella generate` for the
 access policies) and commit the migrations in `drizzle/`. Regenerate Better Auth's tables with `pnpm auth:generate`
-after changing its plugins; the access definitions live in `schema.ts`, so regeneration never overwrites them.
+after changing its plugins; the access definitions live beside it in `src/db/schemas/`, so regeneration never overwrites them.
 Relational queries (`db.query`, also inside request sessions) use the relations in `src/db/relations.ts`.
 
 Request handling reads its dependencies through `useServices()`, a `createStore` from `@conservationtv/store`
@@ -139,7 +139,7 @@ isolate; an invalid deployment fails every request.
 
 ## Organisations
 
-An account can belong to any number of organisations. Four tables, all in `src/db/schema.ts`, with IDs from
+An account can belong to any number of organisations. Four tables, in `src/db/schemas/organisations.ts` and `invitations.ts`, with IDs from
 Postgres's `uuidv7()` (so Postgres 18 or newer):
 
 - `organisation`: its own `organisation` scope.
@@ -176,7 +176,7 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 
 ## Stream topology
 
-What each organisation runs, in `src/db/topology-schema.ts`: networks, devices,
+What each organisation runs, in `src/db/schemas/`: networks, devices,
 the agents that serve a network from a host device (one active at a time), streams with a source device, their
 exposures (network, protocol, provider registration, desired renditions) and recorders (always backed by an exposure
 of the same stream), provider registrations (the platform's, read by every account through the `signedIn` role and

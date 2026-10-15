@@ -18,7 +18,7 @@
     "check:snapshot": "api-contracts check-snapshot",
     "snapshot:required": "api-contracts check-snapshot --required",
     "ci:contracts": "api-contracts ci",
-    "auth:generate": "better-auth generate --config scripts/auth-schema.config.ts --output src/db/auth-schema.ts -y",
+    "auth:generate": "better-auth generate --config scripts/auth-schema.config.ts --output src/db/schemas/auth.ts -y",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate && umbrella generate",
