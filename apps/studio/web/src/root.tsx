@@ -75,7 +75,7 @@ const App: FC = () => {
           </MotionConfig>
         </TooltipProvider>
       </ThemeProvider>
-      <ReactQueryDevtools buttonPosition="bottom-left" />
+      {/*<ReactQueryDevtools buttonPosition="bottom-right" />*/}
     </QueryClientProvider>
   );
 };
