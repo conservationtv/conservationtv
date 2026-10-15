@@ -11,7 +11,6 @@ export type Error = {
 
 export type Stream = {
     id: string;
-    subjectId: string;
     name: string;
     sourceDeviceId: string | null;
     createdAt: string;

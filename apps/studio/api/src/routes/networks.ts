@@ -2,11 +2,11 @@ import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { agents, networks, subjects } from '../db/schema.ts';
+import { agents, networks } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
-import { newSubject, unchanged } from '../topology/transaction.ts';
+import { unchanged } from '../topology/transaction.ts';
 import {
   conflict,
   forbidden,
@@ -27,7 +27,7 @@ const NetworkParamsSchema = OrganisationParamsSchema.extend({ networkId: z.uuid(
 export type NetworkParams = z.output<typeof NetworkParamsSchema>;
 
 // An organisation's managed networks, in the principal's request session: members read them, administrators manage
-// them. Each network has a subject of its own, labelled with its name. Agents are under /organisations/{id}/agents.
+// them. Agents are under /organisations/{id}/agents.
 export default new Hono()
   .get(
     '/:id/networks',
@@ -56,7 +56,6 @@ export default new Hono()
         tx
           .select({
             id: networks.id,
-            subjectId: networks.subjectId,
             name: networks.name,
             activeAgentId: agents.id,
             createdAt: networks.createdAt
@@ -76,7 +75,7 @@ export default new Hono()
       operationId: 'organisations.networks.create',
       ...operationVersion(1),
       summary: 'Create a network',
-      description: 'Administrators only. The network gets a subject of its own.',
+      description: 'Administrators only.',
       responses: {
         201: { description: 'The new network' },
         400: invalidRequest,
@@ -96,15 +95,11 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await services.session(principal);
       const [row] = await session.transaction(async tx =>
-        tx
-          .insert(networks)
-          .values({ organisationId: id, subjectId: await newSubject(tx, id, 'network', name), name })
-          .returning({
-            id: networks.id,
-            subjectId: networks.subjectId,
-            name: networks.name,
-            createdAt: networks.createdAt
-          })
+        tx.insert(networks).values({ organisationId: id, name }).returning({
+          id: networks.id,
+          name: networks.name,
+          createdAt: networks.createdAt
+        })
       );
       c.header('Cache-Control', 'no-store');
       return c.json({ ...row!, activeAgentId: null }, 201);
@@ -136,7 +131,6 @@ export default new Hono()
         tx
           .select({
             id: networks.id,
-            subjectId: networks.subjectId,
             name: networks.name,
             activeAgentId: agents.id,
             createdAt: networks.createdAt
@@ -156,7 +150,7 @@ export default new Hono()
       operationId: 'organisations.networks.update',
       ...operationVersion(1),
       summary: 'Rename a network',
-      description: "Administrators only. Relabels the network's subject too.",
+      description: 'Administrators only.',
       responses: {
         200: { description: 'The updated network' },
         400: invalidRequest,
@@ -183,12 +177,10 @@ export default new Hono()
           .where(and(eq(networks.organisationId, id), eq(networks.id, networkId)))
           .returning({
             id: networks.id,
-            subjectId: networks.subjectId,
             name: networks.name,
             createdAt: networks.createdAt
           });
         if (!network) throw await unchanged(tx, networks.id, networkId);
-        await tx.update(subjects).set({ label: name }).where(eq(subjects.id, network.subjectId));
         const [active] = await tx
           .select({ id: agents.id })
           .from(agents)
@@ -205,8 +197,7 @@ export default new Hono()
       operationId: 'organisations.networks.delete',
       ...operationVersion(1),
       summary: 'Delete a network',
-      description:
-        'Administrators only. Refused while agents, devices or exposures use it. Its subject remains until the subject is deleted.',
+      description: 'Administrators only. Refused while agents, devices or exposures use it.',
       responses: {
         204: { description: 'Deleted' },
         400: invalidRequest,
@@ -273,7 +264,6 @@ export default new Hono()
         const [network] = await tx
           .select({
             id: networks.id,
-            subjectId: networks.subjectId,
             name: networks.name,
             createdAt: networks.createdAt
           })

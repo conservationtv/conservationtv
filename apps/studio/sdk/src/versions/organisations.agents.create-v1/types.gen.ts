@@ -12,7 +12,6 @@ export type Error = {
 export type Agent = {
     servedRevisionId: null;
     id: string;
-    subjectId: string;
     networkId: string;
     deviceId: string;
     priority: number;

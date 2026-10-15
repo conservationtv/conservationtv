@@ -10,7 +10,6 @@ export const ErrorSchema = z.object({
 export const NetworkSchema = z.object({
     activeAgentId: z.null(),
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     createdAt: z.string()
 });

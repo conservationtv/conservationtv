@@ -17,7 +17,6 @@ export const Schema0Schema = z.union([
 
 export const DeviceSchema = z.object({
     id: z.string(),
-    subjectId: z.string(),
     type: z.string(),
     name: z.string(),
     networkId: z.string().nullable(),

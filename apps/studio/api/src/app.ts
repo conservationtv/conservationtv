@@ -12,7 +12,6 @@ import invitations from './routes/invitations.ts';
 import networks from './routes/networks.ts';
 import organisations from './routes/organisations.ts';
 import streams from './routes/streams.ts';
-import subjects from './routes/subjects.ts';
 import { useServices } from './services.ts';
 
 export const operationRouter = new OperationRouter();
@@ -44,7 +43,6 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations', devices)
   .route('/organisations', agents)
   .route('/organisations', streams)
-  .route('/organisations', subjects)
   .route('/invitations', invitations)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)

@@ -10,7 +10,6 @@ export const ErrorSchema = z.object({
 export const StreamSchema = z.object({
     streams: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         name: z.string(),
         sourceDeviceId: z.string().nullable(),
         createdAt: z.string()

@@ -11,7 +11,6 @@ export type Error = {
 
 export type Network = {
     id: string;
-    subjectId: string;
     name: string;
     activeAgentId: string | null;
     createdAt: string;

@@ -50,7 +50,7 @@ export class Agents extends HeyApiClient {
     /**
      * Remove an agent
      *
-     * Administrators only. Deletes its configuration revisions. Its subject remains until deleted.
+     * Administrators only. Deletes its configuration revisions.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;

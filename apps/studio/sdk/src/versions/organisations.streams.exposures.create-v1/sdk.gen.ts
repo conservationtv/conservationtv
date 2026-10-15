@@ -50,7 +50,7 @@ export class Exposures extends HeyApiClient {
     /**
      * Expose a stream
      *
-     * Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer. The exposure gets a subject of its own.
+     * Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;

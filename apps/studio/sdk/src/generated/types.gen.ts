@@ -56,7 +56,6 @@ export type Invitation = {
 
 export type Network = {
     id: string;
-    subjectId: string;
     name: string;
     activeAgentId: string | null;
     createdAt: string;
@@ -64,7 +63,6 @@ export type Network = {
 
 export type Device = {
     id: string;
-    subjectId: string;
     type: string;
     name: string;
     networkId: string | null;
@@ -83,7 +81,6 @@ export type Device = {
 
 export type Agent = {
     id: string;
-    subjectId: string;
     networkId: string;
     deviceId: string;
     priority: number;
@@ -118,7 +115,6 @@ export type Revision = {
 export type Stream = {
     exposures: Array<{
         id: string;
-        subjectId: string;
         networkId: string | null;
         protocol: string;
         params: {
@@ -142,7 +138,6 @@ export type Stream = {
         createdAt: string;
     }>;
     id: string;
-    subjectId: string;
     name: string;
     sourceDeviceId: string | null;
     createdAt: string;
@@ -150,7 +145,6 @@ export type Stream = {
 
 export type Exposure = {
     id: string;
-    subjectId: string;
     networkId: string | null;
     protocol: string;
     params: {
@@ -172,13 +166,6 @@ export type Recorder = {
     params: {
         [key: string]: unknown;
     };
-    createdAt: string;
-};
-
-export type Subject = {
-    id: string;
-    kind: string;
-    label: string | null;
     createdAt: string;
 };
 
@@ -1010,7 +997,6 @@ export type GetOrganisationsByIdNetworksResponses = {
     200: {
         networks: Array<{
             id: string;
-            subjectId: string;
             name: string;
             activeAgentId: string | null;
             createdAt: string;
@@ -1069,7 +1055,6 @@ export type PostOrganisationsByIdNetworksResponses = {
     201: {
         activeAgentId: null;
         id: string;
-        subjectId: string;
         name: string;
         createdAt: string;
     };
@@ -1242,7 +1227,6 @@ export type PatchOrganisationsByIdNetworksByNetworkIdResponses = {
     200: {
         activeAgentId: string;
         id: string;
-        subjectId: string;
         name: string;
         createdAt: string;
     };
@@ -1315,7 +1299,6 @@ export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses = {
     200: {
         activeAgentId: string | null;
         id: string;
-        subjectId: string;
         name: string;
         createdAt: string;
     };
@@ -1363,7 +1346,6 @@ export type GetOrganisationsByIdDevicesResponses = {
     200: {
         devices: Array<{
             id: string;
-            subjectId: string;
             type: string;
             name: string;
             networkId: string | null;
@@ -1715,7 +1697,6 @@ export type GetOrganisationsByIdAgentsResponses = {
     200: {
         agents: Array<{
             id: string;
-            subjectId: string;
             networkId: string;
             deviceId: string;
             priority: number;
@@ -1789,7 +1770,6 @@ export type PostOrganisationsByIdAgentsResponses = {
     201: {
         servedRevisionId: null;
         id: string;
-        subjectId: string;
         networkId: string;
         deviceId: string;
         priority: number;
@@ -1969,7 +1949,6 @@ export type PatchOrganisationsByIdAgentsByAgentIdResponses = {
     200: {
         servedRevisionId: string;
         id: string;
-        subjectId: string;
         networkId: string;
         deviceId: string;
         priority: number;
@@ -2244,7 +2223,6 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses = {
     200: {
         servedRevisionId: string;
         id: string;
-        subjectId: string;
         networkId: string;
         deviceId: string;
         priority: number;
@@ -2295,7 +2273,6 @@ export type GetOrganisationsByIdStreamsResponses = {
     200: {
         streams: Array<{
             id: string;
-            subjectId: string;
             name: string;
             sourceDeviceId: string | null;
             createdAt: string;
@@ -2361,7 +2338,6 @@ export type PostOrganisationsByIdStreamsResponses = {
      */
     201: {
         id: string;
-        subjectId: string;
         name: string;
         sourceDeviceId: string | null;
         createdAt: string;
@@ -2538,7 +2514,6 @@ export type PatchOrganisationsByIdStreamsByStreamIdResponses = {
      */
     200: {
         id: string;
-        subjectId: string;
         name: string;
         sourceDeviceId: string | null;
         createdAt: string;
@@ -2994,282 +2969,6 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse
 };
 
 export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse = PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses];
-
-export type GetOrganisationsByIdSubjectsData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: {
-        /**
-         * Only subjects of this kind.
-         */
-        kind?: string;
-    };
-    url: '/organisations/{id}/subjects';
-};
-
-export type GetOrganisationsByIdSubjectsErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type GetOrganisationsByIdSubjectsError = GetOrganisationsByIdSubjectsErrors[keyof GetOrganisationsByIdSubjectsErrors];
-
-export type GetOrganisationsByIdSubjectsResponses = {
-    /**
-     * The subjects, oldest first
-     */
-    200: {
-        subjects: Array<{
-            id: string;
-            kind: string;
-            label: string | null;
-            createdAt: string;
-        }>;
-    };
-};
-
-export type GetOrganisationsByIdSubjectsResponse = GetOrganisationsByIdSubjectsResponses[keyof GetOrganisationsByIdSubjectsResponses];
-
-export type PostOrganisationsByIdSubjectsData = {
-    body: {
-        /**
-         * What the subject is, such as `website`.
-         */
-        kind: string;
-        /**
-         * A display label, never an identity.
-         */
-        label?: string | null;
-    };
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/subjects';
-};
-
-export type PostOrganisationsByIdSubjectsErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PostOrganisationsByIdSubjectsError = PostOrganisationsByIdSubjectsErrors[keyof PostOrganisationsByIdSubjectsErrors];
-
-export type PostOrganisationsByIdSubjectsResponses = {
-    /**
-     * The new subject
-     */
-    201: Subject;
-};
-
-export type PostOrganisationsByIdSubjectsResponse = PostOrganisationsByIdSubjectsResponses[keyof PostOrganisationsByIdSubjectsResponses];
-
-export type DeleteOrganisationsByIdSubjectsBySubjectIdData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * The subject.
-         */
-        subjectId: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/subjects/{subjectId}';
-};
-
-export type DeleteOrganisationsByIdSubjectsBySubjectIdErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The resource is still used by another resource
-     */
-    409: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type DeleteOrganisationsByIdSubjectsBySubjectIdError = DeleteOrganisationsByIdSubjectsBySubjectIdErrors[keyof DeleteOrganisationsByIdSubjectsBySubjectIdErrors];
-
-export type DeleteOrganisationsByIdSubjectsBySubjectIdResponses = {
-    /**
-     * Deleted
-     */
-    204: void;
-};
-
-export type DeleteOrganisationsByIdSubjectsBySubjectIdResponse = DeleteOrganisationsByIdSubjectsBySubjectIdResponses[keyof DeleteOrganisationsByIdSubjectsBySubjectIdResponses];
-
-export type GetOrganisationsByIdSubjectsBySubjectIdData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * The subject.
-         */
-        subjectId: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/subjects/{subjectId}';
-};
-
-export type GetOrganisationsByIdSubjectsBySubjectIdErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type GetOrganisationsByIdSubjectsBySubjectIdError = GetOrganisationsByIdSubjectsBySubjectIdErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdErrors];
-
-export type GetOrganisationsByIdSubjectsBySubjectIdResponses = {
-    /**
-     * The subject
-     */
-    200: Subject;
-};
-
-export type GetOrganisationsByIdSubjectsBySubjectIdResponse = GetOrganisationsByIdSubjectsBySubjectIdResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdResponses];
-
-export type PatchOrganisationsByIdSubjectsBySubjectIdData = {
-    body: {
-        /**
-         * A display label, never an identity.
-         */
-        label: string | null;
-    };
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * The subject.
-         */
-        subjectId: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/subjects/{subjectId}';
-};
-
-export type PatchOrganisationsByIdSubjectsBySubjectIdErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PatchOrganisationsByIdSubjectsBySubjectIdError = PatchOrganisationsByIdSubjectsBySubjectIdErrors[keyof PatchOrganisationsByIdSubjectsBySubjectIdErrors];
-
-export type PatchOrganisationsByIdSubjectsBySubjectIdResponses = {
-    /**
-     * The updated subject
-     */
-    200: Subject;
-};
-
-export type PatchOrganisationsByIdSubjectsBySubjectIdResponse = PatchOrganisationsByIdSubjectsBySubjectIdResponses[keyof PatchOrganisationsByIdSubjectsBySubjectIdResponses];
 
 export type GetInvitationsData = {
     body?: never;

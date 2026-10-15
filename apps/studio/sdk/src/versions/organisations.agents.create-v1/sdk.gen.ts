@@ -50,7 +50,7 @@ export class Agents extends HeyApiClient {
     /**
      * Register an agent
      *
-     * Administrators only. The agent serves a network of the organisation from one of its devices, starts as a standby, and gets a subject of its own.
+     * Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;

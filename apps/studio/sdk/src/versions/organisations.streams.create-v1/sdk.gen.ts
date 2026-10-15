@@ -50,7 +50,7 @@ export class Streams extends HeyApiClient {
     /**
      * Create a stream
      *
-     * Administrators only. The stream gets a subject of its own.
+     * Administrators only.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;

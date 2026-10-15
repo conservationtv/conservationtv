@@ -50,7 +50,7 @@ export class Devices extends HeyApiClient {
     /**
      * Add a device
      *
-     * Administrators only. The device gets a subject of its own.
+     * Administrators only.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;

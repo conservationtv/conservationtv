@@ -10,7 +10,6 @@ export const ErrorSchema = z.object({
 export const DeviceSchema = z.object({
     devices: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         type: z.string(),
         name: z.string(),
         networkId: z.string().nullable(),

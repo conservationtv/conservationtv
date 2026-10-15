@@ -12,7 +12,6 @@ export type Error = {
 export type Device = {
     devices: Array<{
         id: string;
-        subjectId: string;
         type: string;
         name: string;
         networkId: string | null;

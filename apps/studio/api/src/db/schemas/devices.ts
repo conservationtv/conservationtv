@@ -4,7 +4,6 @@ import { foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from
 import type { NativeExposure, Settings } from '../../topology/settings.ts';
 import { networks } from './networks.ts';
 import { organisations } from './organisations.ts';
-import { subjects } from './subjects.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
@@ -21,7 +20,6 @@ export const devices = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
-      subjectId: uuid('subject_id').notNull().unique('device_subject'),
       type: text('type').notNull(),
       name: text('name').notNull(),
       networkId: uuid('network_id'),
@@ -31,11 +29,6 @@ export const devices = withAccess(
     },
     t => [
       unique('device_organisation_id').on(t.organisationId, t.id),
-      foreignKey({
-        name: 'device_subject_fk',
-        columns: [t.organisationId, t.subjectId],
-        foreignColumns: [subjects.organisationId, subjects.id]
-      }),
       foreignKey({
         name: 'device_network_fk',
         columns: [t.organisationId, t.networkId],
@@ -47,7 +40,7 @@ export const devices = withAccess(
   t => ({
     name: 'devices',
     scope: organisations.$access.scope.via(t.organisationId),
-    immutable: [t.subjectId, t.createdAt],
+    immutable: [t.createdAt],
     actions: topologyActions,
     roles: topologyRoles
   })

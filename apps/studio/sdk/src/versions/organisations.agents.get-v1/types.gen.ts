@@ -11,7 +11,6 @@ export type Error = {
 
 export type Agent = {
     id: string;
-    subjectId: string;
     networkId: string;
     deviceId: string;
     priority: number;

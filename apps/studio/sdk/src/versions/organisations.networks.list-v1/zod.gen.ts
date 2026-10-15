@@ -10,7 +10,6 @@ export const ErrorSchema = z.object({
 export const NetworkSchema = z.object({
     networks: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         name: z.string(),
         activeAgentId: z.string().nullable(),
         createdAt: z.string()

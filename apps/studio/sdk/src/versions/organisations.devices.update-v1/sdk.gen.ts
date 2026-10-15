@@ -50,7 +50,7 @@ export class Devices extends HeyApiClient {
     /**
      * Update a device
      *
-     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Renaming relabels the device's subject too.
+     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;

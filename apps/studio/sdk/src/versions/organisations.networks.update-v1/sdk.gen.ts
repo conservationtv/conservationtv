@@ -50,7 +50,7 @@ export class Networks extends HeyApiClient {
     /**
      * Rename a network
      *
-     * Administrators only. Relabels the network's subject too.
+     * Administrators only.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
