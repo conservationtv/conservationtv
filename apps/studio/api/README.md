@@ -24,19 +24,30 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `PATCH /organisations/{id}` | administrators | `organisations.update` v1: its `name` |
 | `DELETE /organisations/{id}` | global administrators | `organisations.delete` v1: with its memberships, profiles, invitations and grants |
 | `GET /organisations/{id}/members` | members | `organisations.members.list` v1: the directory, with each member's profile |
-| `PATCH /organisations/{id}/members/me` | members | `organisations.members.updateSelf` v1: your `display_name` there |
+| `PATCH /organisations/{id}/members/me` | members | `organisations.members.updateSelf` v1: your `displayName` there |
 | `DELETE /organisations/{id}/members/{userId}` | administrators, or `me` | `organisations.members.remove` v1: remove a member, or leave |
 | `GET /organisations/{id}/invitations` | administrators | `organisations.invitations.list` v1 |
-| `POST /organisations/{id}/invitations` | administrators | `organisations.invitations.create` v1: an `email` (sent a link) or a `user_id` |
+| `POST /organisations/{id}/invitations` | administrators | `organisations.invitations.create` v1: an `email` (sent a link) or a `userId` |
 | `DELETE /organisations/{id}/invitations/{invitationId}` | administrators | `organisations.invitations.cancel` v1 |
 | `GET /invitations` | accounts | `invitations.listMine` v1: open invitations to the signed-in account |
 | `GET /invitations/{id}` | anyone with the link | `invitations.get` v1: the organisation it is for |
-| `POST /invitations/{id}/accept` | invitees | `invitations.accept` v1: join, with a `display_name` and an emailed invitation's `code` |
+| `POST /invitations/{id}/accept` | invitees | `invitations.accept` v1: join, with a `displayName` and an emailed invitation's `code` |
 | `POST /invitations/{id}/decline` | invitees | `invitations.decline` v1 |
+| `GET`, `POST /organisations/{id}/networks`; `GET`, `PATCH`, `DELETE …/networks/{networkId}` | members read, administrators write | `organisations.networks.*` v1 |
+| `PUT /organisations/{id}/networks/{networkId}/active-agent` | administrators | `organisations.networks.setActiveAgent` v1 |
+| `GET`, `POST /organisations/{id}/devices`; `GET`, `PATCH`, `DELETE …/devices/{deviceId}` | members read, administrators write | `organisations.devices.*` v1 |
+| `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}` | members read, administrators write | `organisations.agents.*` v1 |
+| `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision` | members read, administrators write | `organisations.agents.revisions.*`, `serveRevision` v1 |
+| `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
+| `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
+| `GET /provider-types`, `GET /providers` | accounts | `providerTypes.list`, `platformProviders.list` v1 |
+| `POST /providers`; `PATCH`, `DELETE /providers/{providerId}` | global administrators | `platformProviders.*` v1 |
+| `/organisations/{id}/providers`, `/organisations/{id}/provider-resources` | members read, administrators write | `organisations.providers.*`, `.providerResources.*` v1 |
+| `/organisations/{id}/subjects` (list, create, get, update, delete) | members read, administrators write | `organisations.subjects.*` v1 |
 | `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
 | `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
 
-Failures use `{ "error", "error_description" }`: 400 for malformed requests, 401 without a session, 403 when the row
+Request and response fields are camelCase. Failures use the shared `{ "error", "error_description" }`: 400 for malformed requests, 401 without a session, 403 when the row
 is visible but the account may not change it (or `invalid_invitation_code`), 404 when the row is not visible to the
 account (or `account_not_found` for an invitation), 409 for `already_member`, `already_invited` and `last_admin`, 410
 for `invitation_expired`, 412 for an unserved operation version, and 503 when the database is unavailable.
@@ -162,6 +173,28 @@ Request sessions may read umbrella's grants table (the `grants_readable` migrati
 directory and your organisation list show roles, and run under row-level security like every other read. A bug in
 those routes can therefore leak role assignments, never other data; writes to grants stay with trusted code, which
 lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own locked transaction.
+
+## Stream topology
+
+What each organisation runs, in `src/db/topology-schema.ts`: networks, devices,
+the agents that serve a network from a host device (one active at a time), streams with a source device, their
+exposures (network, protocol, provider registration, desired renditions) and recorders (always backed by an exposure
+of the same stream), provider registrations (the platform's, read by every account through the `signedIn` role and
+managed by `globalAdmin`, or the organisation's own), provider resources, and the subjects that observations will be attributed to. Every
+network, device, agent, stream and exposure has its own subject, labelled with its name; external targets such as
+websites are subjects without an entity. Deleting an entity keeps its subject.
+
+Every row binds to its organisation's scope through `organisation_id`: `organisationMember` reads it all and
+`organisationAdmin` manages it, in the request session. References between rows are composite foreign keys that
+include `organisation_id`, so the database refuses a reference into another organisation (422 `invalid_reference`)
+and a delete of something still used (409 `in_use`). A partial unique index allows one active agent per network, and
+one served configuration revision per agent; a check constraint refuses serving a revision whose diagnostics include
+an error, so a rejected candidate never replaces the served one. Privileges are in the `topology_privileges` migration,
+which also seeds the provider types.
+
+Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
+configuration builders that produce revisions, how an agent fetches its served revision, and sharing across
+organisations.
 
 ## Contracts, SDK and CLI
 

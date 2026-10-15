@@ -10,14 +10,14 @@ export const ErrorSchema = z.object({
 export const OrganisationSchema = z.object({
     id: z.string(),
     name: z.string(),
-    created_at: z.string()
+    createdAt: z.string()
 });
 
 export const PostOrganisationsBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The organisation name.'
     }),
-    display_name: z.string().min(1).max(120).register(z.globalRegistry, {
+    displayName: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'Your name as the organisation\'s members will see it.'
     })
 });

@@ -7,7 +7,7 @@ import { PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchem
 export const InvitationAcceptV1ParamsSchema = z.object({
     id: PostInvitationsByIdAcceptPathSchema.shape.id.nonoptional().describe('The invitation.'),
     code: PostInvitationsByIdAcceptBodySchema.shape.code.optional().describe('The one-time code from an emailed invitation\'s link.'),
-    display_name: PostInvitationsByIdAcceptBodySchema.shape.display_name.nonoptional().describe('Your name as the organisation\'s members will see it.')
+    displayName: PostInvitationsByIdAcceptBodySchema.shape.displayName.nonoptional().describe('Your name as the organisation\'s members will see it.')
 });
 
 export type InvitationAcceptV1Params = z.infer<typeof InvitationAcceptV1ParamsSchema>;

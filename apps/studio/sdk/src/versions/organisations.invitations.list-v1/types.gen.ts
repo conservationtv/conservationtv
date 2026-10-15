@@ -13,10 +13,10 @@ export type Invitation = {
     invitations: Array<{
         id: string;
         email: string | null;
-        user_id: string | null;
-        invited_by: string | null;
-        created_at: string;
-        expires_at: string;
+        userId: string | null;
+        invitedBy: string | null;
+        createdAt: string;
+        expiresAt: string;
     }>;
 };
 

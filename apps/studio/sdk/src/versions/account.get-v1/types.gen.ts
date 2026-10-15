@@ -13,9 +13,9 @@ export type Account = {
     id: string;
     name: string;
     email: string;
-    email_verified: boolean;
+    emailVerified: boolean;
     image: string | null;
-    created_at: string;
+    createdAt: string;
 };
 
 export type GetAccountData = {

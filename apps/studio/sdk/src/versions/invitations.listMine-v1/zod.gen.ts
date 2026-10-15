@@ -14,7 +14,7 @@ export const InvitationSchema = z.object({
             id: z.string(),
             name: z.string()
         }),
-        expires_at: z.string()
+        expiresAt: z.string()
     }))
 });
 

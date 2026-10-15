@@ -1,5 +1,5 @@
 import { defineAuthorization } from '@conservationtv/umbrella';
-import { globalAdmin, organisationAdmin, organisationMember, self } from './db/roles.ts';
+import { globalAdmin, organisationAdmin, organisationMember, self, signedIn } from './db/roles.ts';
 import * as schema from './db/schema.ts';
 
 /**
@@ -9,5 +9,5 @@ import * as schema from './db/schema.ts';
  */
 export const authorization = defineAuthorization({
   schema,
-  roles: { self, globalAdmin, organisationMember, organisationAdmin }
+  roles: { self, signedIn, globalAdmin, organisationMember, organisationAdmin }
 });

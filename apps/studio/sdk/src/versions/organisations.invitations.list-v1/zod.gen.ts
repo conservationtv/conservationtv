@@ -11,10 +11,10 @@ export const InvitationSchema = z.object({
     invitations: z.array(z.object({
         id: z.string(),
         email: z.string().nullable(),
-        user_id: z.string().nullable(),
-        invited_by: z.string().nullable(),
-        created_at: z.string(),
-        expires_at: z.string()
+        userId: z.string().nullable(),
+        invitedBy: z.string().nullable(),
+        createdAt: z.string(),
+        expiresAt: z.string()
     }))
 });
 
