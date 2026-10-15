@@ -52,7 +52,9 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
         <Meta />
         <Links />
       </head>
-      <body>
+      {/* At least the screen's height: the body's background paints the whole window but is sized to the page, so on a
+          page shorter than the screen the gradient would start over below it. */}
+      <body className="min-h-svh bg-linear-to-b from-custom-canvas-top to-custom-canvas-bottom">
         {children}
         <ScrollRestoration />
         <Scripts />
