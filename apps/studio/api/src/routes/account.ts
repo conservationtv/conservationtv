@@ -37,7 +37,8 @@ export default new Hono()
     requirePrincipal,
     async c => {
       const principal = usePrincipal();
-      const session = await useServices().session(principal);
+      const services = useServices();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -86,7 +87,8 @@ export default new Hono()
     async c => {
       const principal = usePrincipal();
       const changes = c.req.valid('json');
-      const session = await useServices().session(principal);
+      const services = useServices();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx.update(users).set(changes).where(eq(users.id, principal.id)).returning({
           id: users.id,

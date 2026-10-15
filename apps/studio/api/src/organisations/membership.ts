@@ -28,7 +28,8 @@ export interface NewMember {
 export const organisationScope = (organisationId: string) => organisations.$access.scope.at(organisationId);
 
 export async function trusted<Result>(run: (tx: Transaction, access: Access) => Promise<Result>) {
-  const admin = await useServices().admin();
+  const services = useServices();
+  const admin = await services.admin();
   return admin.transaction(tx => run(tx, authorization.access(tx)));
 }
 
@@ -218,7 +219,8 @@ export interface MemberRole {
  * sessions (see the `grantsReadable` migration), only adds their roles.
  */
 export async function listMembers(principal: UserPrincipal, organisationId: string) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   return session.transaction(tx => {
     const roles = authorization
       .access(tx)
@@ -252,7 +254,8 @@ export async function listMembers(principal: UserPrincipal, organisationId: stri
 
 /** The principal's organisations, each with the roles they hold there, aggregated as `listMembers` is, in their session. */
 export async function listOwnOrganisations(principal: UserPrincipal) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   return session.transaction(tx => {
     const roles = authorization.access(tx).grantsQuery({ principal, active: true }).as('own_roles');
     return tx

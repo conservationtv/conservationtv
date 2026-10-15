@@ -59,7 +59,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { kind } = c.req.valid('query');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({ id: subjects.id, kind: subjects.kind, label: subjects.label, createdAt: subjects.createdAt })
@@ -106,7 +108,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .insert(subjects)
@@ -136,7 +140,9 @@ export default new Hono()
     validator('param', SubjectParamsSchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({ id: subjects.id, kind: subjects.kind, label: subjects.label, createdAt: subjects.createdAt })
@@ -172,7 +178,9 @@ export default new Hono()
     async c => {
       const { id, subjectId } = c.req.valid('param');
       const { label } = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [subject] = await tx
           .update(subjects)
@@ -208,7 +216,9 @@ export default new Hono()
     validator('param', SubjectParamsSchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(subjects)

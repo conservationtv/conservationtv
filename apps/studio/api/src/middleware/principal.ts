@@ -13,7 +13,8 @@ export const [withPrincipal, usePrincipal] = PrincipalStore;
 
 /** Resolve the session (cookie, or the CLI's bearer token) to the umbrella principal; 401 without one. */
 export const requirePrincipal = createMiddleware(async (c, next) => {
-  const auth = await useServices().auth();
+  const services = useServices();
+  const auth = await services.auth();
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) throw new ApiFailure('unauthenticated');
   await withPrincipal(user(session.user.id), next);

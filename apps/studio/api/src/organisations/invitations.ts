@@ -77,16 +77,16 @@ async function insertInvitation(tx: Transaction, values: NewInvitation) {
  * recipient is replaced.
  */
 export async function createInvitation(principal: UserPrincipal, organisationId: string, recipient: Recipient) {
-  const { config, clock } = useServices();
+  const services = useServices();
   const code = 'email' in recipient ? newCode() : null;
   const values = {
     organisationId,
     ...('email' in recipient ? { email: recipient.email } : { userId: recipient.userId }),
     codeHash: code === null ? null : await hashCode(code),
     invitedBy: principal.id,
-    expiresAt: new Date(clock() + INVITATION_LIFETIME_MS)
+    expiresAt: new Date(services.clock() + INVITATION_LIFETIME_MS)
   };
-  const session = await useServices().session(principal);
+  const session = await services.session(principal);
   const { invitation, organisationName } = await session.transaction(async tx => {
     // Hidden organisations are not found. Row-level security refuses the insert to anyone but an administrator, and
     // the unique indexes refuse a second open invitation to the same recipient.
@@ -117,9 +117,13 @@ export async function createInvitation(principal: UserPrincipal, organisationId:
     return { invitation: row, organisationName: organisation.name };
   });
   if (code !== null && invitation.email !== null) {
-    const link = new URL(`/invitations/${invitation.id}`, config.WEB_ORIGINS[0]);
+    const link = new URL(`/invitations/${invitation.id}`, services.config.WEB_ORIGINS[0]);
     link.searchParams.set('code', code);
-    await invitationDelivery(config.OTP_DELIVERY)({ email: invitation.email, organisationName, link: link.href });
+    await invitationDelivery(services.config.OTP_DELIVERY)({
+      email: invitation.email,
+      organisationName,
+      link: link.href
+    });
   }
   return invitation;
 }
@@ -207,7 +211,8 @@ export function declineInvitation(principal: UserPrincipal, invitationId: string
 
 /** Cancel one of an organisation's invitations: administrators only, by row-level security. */
 export async function cancelInvitation(principal: UserPrincipal, organisationId: string, invitationId: string) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   const deleted = await session.transaction(tx =>
     tx
       .delete(organisationInvitations)
@@ -221,7 +226,8 @@ export async function cancelInvitation(principal: UserPrincipal, organisationId:
 
 /** An organisation's open and expired invitations, for its administrators; others see none. */
 export async function listOrganisationInvitations(principal: UserPrincipal, organisationId: string) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   return session.transaction(async tx => {
     const [organisation] = await tx
       .select({ id: organisations.id })

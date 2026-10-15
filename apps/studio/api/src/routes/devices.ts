@@ -58,7 +58,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -111,7 +113,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(async tx =>
         tx
           .insert(devices)
@@ -158,7 +162,9 @@ export default new Hono()
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -215,7 +221,9 @@ export default new Hono()
     async c => {
       const { id, deviceId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [device] = await tx
           .update(devices)
@@ -269,7 +277,9 @@ export default new Hono()
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(devices)

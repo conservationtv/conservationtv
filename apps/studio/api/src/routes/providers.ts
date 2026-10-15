@@ -63,7 +63,9 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx.select({ id: providerTypes.id, name: providerTypes.name }).from(providerTypes).orderBy(providerTypes.id)
       );
@@ -87,7 +89,9 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -136,7 +140,9 @@ export default new Hono()
     ),
     async c => {
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .insert(platformProviders)
@@ -194,7 +200,9 @@ export default new Hono()
     async c => {
       const { providerId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [provider] = await tx
           .update(platformProviders)
@@ -243,7 +251,9 @@ export default new Hono()
     validator('param', PlatformProviderParamsSchema),
     async c => {
       const { providerId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(platformProviders)
@@ -274,7 +284,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [platform, own] = await session.transaction(async tx => [
         await tx
           .select({
@@ -337,7 +349,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .insert(organisationProviders)
@@ -394,7 +408,9 @@ export default new Hono()
     async c => {
       const { id, providerId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [provider] = await tx
           .update(organisationProviders)
@@ -438,7 +454,9 @@ export default new Hono()
     validator('param', OrganisationProviderParamsSchema),
     async c => {
       const { id, providerId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(organisationProviders)
@@ -468,7 +486,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -521,7 +541,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(async tx =>
         tx
           .insert(providerResources)
@@ -568,7 +590,9 @@ export default new Hono()
     async c => {
       const { id, resourceId } = c.req.valid('param');
       const { params } = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [resource] = await tx
           .update(providerResources)
@@ -610,7 +634,9 @@ export default new Hono()
     validator('param', ResourceParamsSchema),
     async c => {
       const { id, resourceId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(providerResources)
