@@ -51,7 +51,8 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const invitations = await listOwnInvitations(usePrincipal());
+      const principal = usePrincipal();
+      const invitations = await listOwnInvitations(principal);
       c.header('Cache-Control', 'no-store');
       return c.json({ invitations }, 200);
     }
@@ -110,7 +111,8 @@ export default new Hono()
     ),
     async c => {
       const body = c.req.valid('json');
-      const membership = await acceptInvitation(usePrincipal(), c.req.valid('param').id, {
+      const principal = usePrincipal();
+      const membership = await acceptInvitation(principal, c.req.valid('param').id, {
         code: body.code,
         displayName: body.displayName
       });
@@ -140,7 +142,8 @@ export default new Hono()
     validator('param', InvitationParamsSchema),
     validator('json', z.strictObject({ code: InvitationCodeSchema.optional() })),
     async c => {
-      await declineInvitation(usePrincipal(), c.req.valid('param').id, { code: c.req.valid('json').code });
+      const principal = usePrincipal();
+      await declineInvitation(principal, c.req.valid('param').id, { code: c.req.valid('json').code });
       return c.body(null, 204);
     }
   );

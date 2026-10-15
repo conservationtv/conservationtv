@@ -73,7 +73,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -114,7 +116,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(async tx =>
         tx
           .insert(streams)
@@ -156,7 +160,9 @@ export default new Hono()
     validator('param', StreamParamsSchema),
     async c => {
       const { id, streamId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [stream] = await tx
           .select({
@@ -233,7 +239,9 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [stream] = await tx
           .update(streams)
@@ -277,7 +285,9 @@ export default new Hono()
     validator('param', StreamParamsSchema),
     async c => {
       const { id, streamId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(streams)
@@ -321,7 +331,9 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [stream] = await tx
           .select({ id: streams.id })
@@ -390,7 +402,9 @@ export default new Hono()
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const provider = body.providerId === undefined ? undefined : await providerColumns(tx, id, body.providerId);
         const [exposure] = await tx
@@ -438,7 +452,9 @@ export default new Hono()
     validator('param', ExposurePathParamsSchema),
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(exposures)
@@ -481,7 +497,9 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [stream] = await tx
           .select({ id: streams.id })
@@ -537,7 +555,9 @@ export default new Hono()
     async c => {
       const { id, streamId, recorderId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [recorder] = await tx
           .update(recorders)
@@ -578,7 +598,9 @@ export default new Hono()
     validator('param', RecorderParamsSchema),
     async c => {
       const { id, streamId, recorderId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(recorders)

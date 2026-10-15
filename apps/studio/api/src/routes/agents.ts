@@ -58,7 +58,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { networkId } = c.req.valid('query');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -116,7 +118,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(async tx =>
         tx
           .insert(agents)
@@ -160,7 +164,9 @@ export default new Hono()
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -218,7 +224,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
           .update(agents)
@@ -265,7 +273,9 @@ export default new Hono()
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(agents)
@@ -298,7 +308,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const { limit } = c.req.valid('query');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -347,7 +359,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
           .select({ id: agents.id })
@@ -391,7 +405,9 @@ export default new Hono()
     validator('param', RevisionParamsSchema),
     async c => {
       const { id, agentId, revisionId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -442,7 +458,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const { revisionId } = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
           .select({

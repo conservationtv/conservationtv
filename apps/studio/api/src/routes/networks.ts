@@ -49,7 +49,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -90,7 +92,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { name } = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(async tx =>
         tx
           .insert(networks)
@@ -125,7 +129,9 @@ export default new Hono()
     validator('param', NetworkParamsSchema),
     async c => {
       const { id, networkId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -167,7 +173,9 @@ export default new Hono()
     async c => {
       const { id, networkId } = c.req.valid('param');
       const { name } = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [network] = await tx
           .update(networks)
@@ -214,7 +222,9 @@ export default new Hono()
     validator('param', NetworkParamsSchema),
     async c => {
       const { id, networkId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(networks)
@@ -256,7 +266,9 @@ export default new Hono()
     async c => {
       const { id, networkId } = c.req.valid('param');
       const { agentId } = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [network] = await tx
           .select({
