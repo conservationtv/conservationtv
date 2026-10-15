@@ -45,3 +45,7 @@ export const BuildDiagnosticSchema = z.strictObject({
   details: SettingsSchema.optional()
 });
 export type BuildDiagnostic = z.output<typeof BuildDiagnosticSchema>;
+
+/** Metric dimensions, such as a rendition or measurement point: part of a series' identity. */
+export const MetricDimensionsSchema = z.record(z.string().min(1).max(60), z.string().max(200));
+export type MetricDimensions = z.output<typeof MetricDimensionsSchema>;
