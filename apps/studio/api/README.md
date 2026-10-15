@@ -43,8 +43,8 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision` | members read, administrators write | `organisations.agents.revisions.*`, `serveRevision` v1 |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
-| `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/metrics/{seriesId}/samples`, `…/logs` | members | `organisations.subjects.*` v1 |
-| `POST /reports/events`, `/reports/metrics`, `/reports/logs` | agents, by signature | `reports.*.submit` v1 |
+| `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs` | members | `organisations.subjects.*` v1 |
+| `POST /reports` | agents, by signature | `reports.submit` v1: a signed batch of events, metrics and logs |
 | `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
 | `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
 
@@ -229,19 +229,21 @@ organisation revokes every grant at it. Nothing authenticates a device yet; once
 
 The only triggers are umbrella's `authz_immutable`, which refuse request sessions' changes to immutable columns.
 
-Agents report under `/reports` without a session. Each submission is `{ keyId, report, signature }`: `report` is the
-JSON text, signed byte for byte with an Ed25519 key registered for the reporting agent
-(`…/agents/{agentId}/signing-keys`, raw 32-byte keys in unpadded base64url). Ingestion is trusted code
-(`src/reports/ingest.ts`): it checks the key is unrevoked and belongs to `reporterId`, stores the report in that
-agent's organisation, stores nothing for a repeated report ID, and refuses reports observed more than five minutes
-ahead. Request sessions only read reports.
+Agents report to `POST /reports` without a session, in batches. Each submission is `{ keyId, batch, signature }`:
+`batch` is the JSON text `{ reporterId, reports: [...] }`, signed once, byte for byte, with an Ed25519 key registered for
+the reporting agent (`…/agents/{agentId}/signing-keys`, raw 32-byte keys in unpadded base64url). A batch holds up to
+1000 reports of any kind (`event`, `metric` or `log`) and subject, each with its own `observedAt`, and the whole
+submission may be at most 1 MiB. Ingestion is trusted code (`src/reports/ingest.ts`): it checks the key is unrevoked
+and belongs to `reporterId`, refuses malformed reports and those observed more than five minutes ahead, and stores the
+batch in that agent's organisation with one insert per kind. A batch is stored or refused whole, and only for trust or
+shape. Nothing is deduplicated, so a retried batch may be stored twice. Request sessions only read reports.
 
 A report's `subjectId` names what it is about by convention (`src/reports/subjects.ts`), not by reference:
 `<kind>:<id>` for a network, device, agent, stream or exposure, such as `device:0199e8b2-…`, or `external:<name>` for
 anything outside the topology, such as `external:https://example.org`. Nothing checks the entity exists, so reports
 about a deleted entity remain. Read them under `/organisations/{id}/subjects/{subjectId}/…`, with the subject
-URL-encoded. Metric samples keep one series per subject, name, dimensions and
-reporter, never summed across reporters.
+URL-encoded. Metric samples keep the type, unit and dimensions they were reported with; they are not grouped into
+series, and samples from different reporters are never summed.
 
 Not built yet: the state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so
 `…/state` returns `state: null`, stale, until it exists), failover from expired agent state, the configuration

@@ -48,15 +48,24 @@ class HeyApiRegistry<T> {
 
 export class Metrics extends HeyApiClient {
     /**
-     * List a subject's metric series
+     * List the metric samples reported about a subject
      *
-     * One series per reporter, metric name and dimensions: two reporters measuring the same quantity are two series, never summed.
+     * Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         subjectId: string;
+        limit?: number;
+        before?: string;
+        name?: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'subjectId' }] }]);
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'subjectId' },
+                    { in: 'query', key: 'limit' },
+                    { in: 'query', key: 'before' },
+                    { in: 'query', key: 'name' }
+                ] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, ThrowOnError>({
             url: '/organisations/{id}/subjects/{subjectId}/metrics',
             ...options,

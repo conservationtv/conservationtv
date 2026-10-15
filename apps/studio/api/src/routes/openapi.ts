@@ -25,4 +25,4 @@ export const invalidReference = errorResponse(
 );
 export const revisionHasErrors = errorResponse('The revision has errors, so it cannot be served');
 export const invalidSignature = errorResponse('The signing key is unknown or revoked, or the signature is wrong');
-export const metricSeriesConflict = errorResponse('The metric series is already reported with another type or unit');
+export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');

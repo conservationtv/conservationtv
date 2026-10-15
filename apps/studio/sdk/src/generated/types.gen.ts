@@ -250,15 +250,19 @@ export type Observation = {
 };
 
 export type Metric = {
-    series: Array<{
+    samples: Array<{
         id: string;
         reporterId: string;
+        keyId: string;
+        observedAt: string;
+        receivedAt: string;
         name: string;
         type: string;
         unit: string | null;
         dimensions: {
             [key: string]: string;
         };
+        value: number;
     }>;
 };
 
@@ -277,9 +281,8 @@ export type Log = {
     }>;
 };
 
-export type Event = {
-    id: string;
-    duplicate: boolean;
+export type Report = {
+    accepted: number;
 };
 
 export type GetHealthData = {
@@ -3511,7 +3514,20 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
          */
         subjectId: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+        /**
+         * Only samples of this metric.
+         */
+        name?: string;
+    };
     url: '/organisations/{id}/subjects/{subjectId}/metrics';
 };
 
@@ -3538,82 +3554,12 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsError = GetOrganisatio
 
 export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses = {
     /**
-     * The series, by name
+     * The samples
      */
     200: Metric;
 };
 
 export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses];
-
-export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
-         */
-        subjectId: string;
-        /**
-         * The metric series.
-         */
-        seriesId: string;
-    };
-    query?: {
-        /**
-         * At most this many, newest first.
-         */
-        limit?: number;
-        /**
-         * Only those observed before this time, to page back.
-         */
-        before?: string;
-    };
-    url: '/organisations/{id}/subjects/{subjectId}/metrics/{seriesId}/samples';
-};
-
-export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesError = GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesErrors];
-
-export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponses = {
-    /**
-     * The samples
-     */
-    200: {
-        samples: Array<{
-            reportId: string;
-            observedAt: string;
-            receivedAt: string;
-            value: number;
-        }>;
-    };
-};
-
-export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponses];
 
 export type GetOrganisationsByIdSubjectsBySubjectIdLogsData = {
     body?: never;
@@ -3884,27 +3830,27 @@ export type PostInvitationsByIdDeclineResponses = {
 
 export type PostInvitationsByIdDeclineResponse = PostInvitationsByIdDeclineResponses[keyof PostInvitationsByIdDeclineResponses];
 
-export type PostReportsEventsData = {
+export type PostReportsData = {
     body: {
         /**
          * The registered signing key.
          */
         keyId: string;
         /**
-         * The report, as JSON text: the exact bytes that were signed.
+         * The batch, as JSON text: the exact bytes that were signed.
          */
-        report: string;
+        batch: string;
         /**
-         * The key's Ed25519 signature of the report text, unpadded base64url.
+         * The key's Ed25519 signature of the batch text, unpadded base64url.
          */
         signature: string;
     };
     path?: never;
     query?: never;
-    url: '/reports/events';
+    url: '/reports';
 };
 
-export type PostReportsEventsErrors = {
+export type PostReportsErrors = {
     /**
      * The request is malformed
      */
@@ -3918,128 +3864,22 @@ export type PostReportsEventsErrors = {
      */
     412: Error;
     /**
-     * The database is unavailable
+     * The submission is larger than 1 MiB
      */
-    503: Error;
-};
-
-export type PostReportsEventsError = PostReportsEventsErrors[keyof PostReportsEventsErrors];
-
-export type PostReportsEventsResponses = {
-    /**
-     * Accepted
-     */
-    202: Event;
-};
-
-export type PostReportsEventsResponse = PostReportsEventsResponses[keyof PostReportsEventsResponses];
-
-export type PostReportsMetricsData = {
-    body: {
-        /**
-         * The registered signing key.
-         */
-        keyId: string;
-        /**
-         * The report, as JSON text: the exact bytes that were signed.
-         */
-        report: string;
-        /**
-         * The key's Ed25519 signature of the report text, unpadded base64url.
-         */
-        signature: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/reports/metrics';
-};
-
-export type PostReportsMetricsErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * The signing key is unknown or revoked, or the signature is wrong
-     */
-    401: Error;
-    /**
-     * The metric series is already reported with another type or unit
-     */
-    409: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
+    413: Error;
     /**
      * The database is unavailable
      */
     503: Error;
 };
 
-export type PostReportsMetricsError = PostReportsMetricsErrors[keyof PostReportsMetricsErrors];
+export type PostReportsError = PostReportsErrors[keyof PostReportsErrors];
 
-export type PostReportsMetricsResponses = {
+export type PostReportsResponses = {
     /**
      * Accepted
      */
-    202: {
-        id: string;
-        duplicate: boolean;
-    };
+    202: Report;
 };
 
-export type PostReportsMetricsResponse = PostReportsMetricsResponses[keyof PostReportsMetricsResponses];
-
-export type PostReportsLogsData = {
-    body: {
-        /**
-         * The registered signing key.
-         */
-        keyId: string;
-        /**
-         * The report, as JSON text: the exact bytes that were signed.
-         */
-        report: string;
-        /**
-         * The key's Ed25519 signature of the report text, unpadded base64url.
-         */
-        signature: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/reports/logs';
-};
-
-export type PostReportsLogsErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * The signing key is unknown or revoked, or the signature is wrong
-     */
-    401: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PostReportsLogsError = PostReportsLogsErrors[keyof PostReportsLogsErrors];
-
-export type PostReportsLogsResponses = {
-    /**
-     * Accepted
-     */
-    202: {
-        id: string;
-        duplicate: boolean;
-    };
-};
-
-export type PostReportsLogsResponse = PostReportsLogsResponses[keyof PostReportsLogsResponses];
+export type PostReportsResponse = PostReportsResponses[keyof PostReportsResponses];

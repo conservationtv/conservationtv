@@ -23,12 +23,9 @@ const categories = {
     description: 'A referenced resource does not exist, is not visible to you, or belongs to another organisation.'
   },
   revision_has_errors: { status: 409, description: 'The revision has errors, so it cannot be served.' },
-  invalid_report: { status: 400, description: 'The report is malformed.' },
-  invalid_signature: { status: 401, description: 'The report signature could not be verified.' },
-  metric_series_conflict: {
-    status: 409,
-    description: 'The metric series is already reported with another type or unit.'
-  },
+  invalid_report: { status: 400, description: 'The report batch is malformed.' },
+  invalid_signature: { status: 401, description: 'The report batch signature could not be verified.' },
+  batch_too_large: { status: 413, description: 'The report batch is too large.' },
   database_unavailable: { status: 503, description: 'The database is unavailable.' }
 } satisfies Record<string, ErrorCategory>;
 

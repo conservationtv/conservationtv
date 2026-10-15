@@ -2,21 +2,12 @@ import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import {
-  logRecords,
-  metricSamples,
-  metricSeries,
-  observations,
-  reporterOpinions,
-  subjectStates
-} from '../db/schema.ts';
-import { ApiFailure } from '../errors.ts';
+import { logRecords, metricSamples, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { SubjectIdSchema } from '../reports/subjects.ts';
 import { useServices } from '../services.ts';
 import {
   invalidRequest,
-  notFound,
   operationVersion,
   unauthenticated,
   unavailable,
@@ -28,8 +19,6 @@ const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisat
 export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const SubjectParamsSchema = OrganisationParamsSchema.extend({ subjectId: SubjectIdSchema });
 export type SubjectParams = z.output<typeof SubjectParamsSchema>;
-const SeriesParamsSchema = SubjectParamsSchema.extend({ seriesId: z.uuid().describe('The metric series.') });
-export type SeriesParams = z.output<typeof SeriesParamsSchema>;
 
 const HistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(100).describe('At most this many, newest first.'),
@@ -160,11 +149,11 @@ export default new Hono()
     describeRoute({
       operationId: 'organisations.subjects.metrics.list',
       ...operationVersion(1),
-      summary: "List a subject's metric series",
+      summary: 'List the metric samples reported about a subject',
       description:
-        'One series per reporter, metric name and dimensions: two reporters measuring the same quantity are two series, never summed.',
+        'Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.',
       responses: {
-        200: { description: 'The series, by name' },
+        200: { description: 'The samples' },
         400: invalidRequest,
         401: unauthenticated,
         412: versionMismatch,
@@ -173,83 +162,44 @@ export default new Hono()
     }),
     requirePrincipal,
     validator('param', SubjectParamsSchema),
+    validator(
+      'query',
+      HistoryQuerySchema.extend({
+        name: z.string().min(1).max(200).optional().describe('Only samples of this metric.')
+      })
+    ),
     async c => {
       const { id, subjectId } = c.req.valid('param');
+      const { limit, before, name } = c.req.valid('query');
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
-            id: metricSeries.id,
-            reporterId: metricSeries.reporterId,
-            name: metricSeries.name,
-            type: metricSeries.type,
-            unit: metricSeries.unit,
-            dimensions: metricSeries.dimensions
-          })
-          .from(metricSeries)
-          .where(and(eq(metricSeries.organisationId, id), eq(metricSeries.subjectId, subjectId)))
-          .orderBy(metricSeries.name, metricSeries.id)
-      );
-      c.header('Cache-Control', 'no-store');
-      return c.json({ series: rows }, 200);
-    }
-  )
-  .get(
-    '/:id/subjects/:subjectId/metrics/:seriesId/samples',
-    describeRoute({
-      operationId: 'organisations.subjects.metrics.samples',
-      ...operationVersion(1),
-      summary: "List a metric series' samples",
-      description: 'Newest observation first.',
-      responses: {
-        200: { description: 'The samples' },
-        400: invalidRequest,
-        401: unauthenticated,
-        404: notFound,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    requirePrincipal,
-    validator('param', SeriesParamsSchema),
-    validator('query', HistoryQuerySchema),
-    async c => {
-      const { id, subjectId, seriesId } = c.req.valid('param');
-      const { limit, before } = c.req.valid('query');
-      const services = useServices();
-      const principal = usePrincipal();
-      const session = await services.session(principal);
-      const rows = await session.transaction(async tx => {
-        const [series] = await tx
-          .select({ id: metricSeries.id })
-          .from(metricSeries)
-          .where(
-            and(
-              eq(metricSeries.organisationId, id),
-              eq(metricSeries.subjectId, subjectId),
-              eq(metricSeries.id, seriesId)
-            )
-          );
-        if (!series) throw new ApiFailure('not_found');
-        return tx
-          .select({
-            reportId: metricSamples.reportId,
+            id: metricSamples.id,
+            reporterId: metricSamples.reporterId,
+            keyId: metricSamples.keyId,
             observedAt: metricSamples.observedAt,
             receivedAt: metricSamples.receivedAt,
+            name: metricSamples.name,
+            type: metricSamples.type,
+            unit: metricSamples.unit,
+            dimensions: metricSamples.dimensions,
             value: metricSamples.value
           })
           .from(metricSamples)
           .where(
             and(
-              eq(metricSamples.seriesId, seriesId),
+              eq(metricSamples.organisationId, id),
+              eq(metricSamples.subjectId, subjectId),
+              name === undefined ? undefined : eq(metricSamples.name, name),
               before === undefined ? undefined : lt(metricSamples.observedAt, new Date(before))
             )
           )
           .orderBy(desc(metricSamples.observedAt))
-          .limit(limit);
-      });
+          .limit(limit)
+      );
       c.header('Cache-Control', 'no-store');
       return c.json({ samples: rows }, 200);
     }

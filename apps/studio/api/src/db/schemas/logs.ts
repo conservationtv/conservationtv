@@ -1,5 +1,6 @@
 import { withAccess } from '@conservationtv/umbrella';
-import { foreignKey, index, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { foreignKey, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import type { Settings } from '../../topology/settings.ts';
 import { agentSigningKeys, agents } from './agents.ts';
 import { organisations } from './organisations.ts';
@@ -13,8 +14,10 @@ export const logRecords = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
+      id: uuid('id')
+        .primaryKey()
+        .default(sql`uuidv7()`),
       reporterId: uuid('reporter_id').notNull(),
-      id: uuid('id').notNull(),
       subjectId: text('subject_id').notNull(),
       keyId: uuid('key_id')
         .notNull()
@@ -26,7 +29,6 @@ export const logRecords = withAccess(
       context: jsonb('context').$type<Settings>().default({}).notNull()
     },
     t => [
-      primaryKey({ columns: [t.reporterId, t.id] }),
       foreignKey({
         name: 'log_record_reporter_fk',
         columns: [t.organisationId, t.reporterId],
