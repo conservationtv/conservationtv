@@ -1,6 +1,8 @@
 import type { FC } from 'react';
 import {
   BookOpenIcon,
+  BuildingsIcon,
+  CaretUpDownIcon,
   ChartPieIcon,
   CropIcon,
   GearIcon,
@@ -8,10 +10,19 @@ import {
   RobotIcon,
   TerminalIcon
 } from '@phosphor-icons/react';
-import { Sidebar, SidebarContent } from '@conservationtv/ui/components/sidebar';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem
+} from '@conservationtv/ui/components/sidebar';
 
 import { NavMain } from '@/components/blocks/sidebar-07/nav-main';
 import { NavProjects } from '@/components/blocks/sidebar-07/nav-projects';
+import { Avatar, AvatarFallback } from '@conservationtv/ui/components/avatar';
 
 // Placeholder navigation, carried over from the sidebar-07 preview until the real sections exist.
 const navMain = [
@@ -74,6 +85,23 @@ export const RootSidebar: FC = () => {
         <NavMain items={navMain} />
         <NavProjects projects={projects} />
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <GearIcon />
+              <span>Organization settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <BuildingsIcon />
+              <span className="font-medium">Alveus Sanctuary</span>
+              <CaretUpDownIcon className="ml-auto" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 };
