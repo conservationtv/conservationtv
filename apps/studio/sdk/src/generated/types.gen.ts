@@ -117,6 +117,16 @@ export type Agent = {
     } | null;
 };
 
+export type SigningKey = {
+    signingKeys: Array<{
+        id: string;
+        algorithm: string;
+        publicKey: string;
+        createdAt: string;
+        revokedAt: string | null;
+    }>;
+};
+
 export type Revision = {
     id: string;
     config: {
@@ -195,6 +205,81 @@ export type Recorder = {
         [key: string]: unknown;
     };
     createdAt: string;
+};
+
+export type Subject = {
+    subjectId: string;
+    state: {
+        health: string;
+        state: {
+            [key: string]: unknown;
+        };
+        freshness: 'fresh' | 'stale';
+        observedAt: string;
+        expiresAt: string;
+        computedAt: string;
+        contributingReporterIds: Array<string>;
+        evidenceReportIds: Array<string>;
+    };
+    reachable: boolean;
+    opinions: Array<{
+        reporterId: string;
+        health: string;
+        state: {
+            [key: string]: unknown;
+        };
+        freshness: 'fresh' | 'stale';
+        observedAt: string;
+        expiresAt: string;
+        evidenceReportIds: Array<string>;
+    }>;
+};
+
+export type Observation = {
+    observations: Array<{
+        id: string;
+        reporterId: string;
+        keyId: string;
+        observedAt: string;
+        receivedAt: string;
+        type: string;
+        data: {
+            [key: string]: unknown;
+        };
+    }>;
+};
+
+export type Metric = {
+    series: Array<{
+        id: string;
+        reporterId: string;
+        name: string;
+        type: string;
+        unit: string | null;
+        dimensions: {
+            [key: string]: string;
+        };
+    }>;
+};
+
+export type Log = {
+    logs: Array<{
+        id: string;
+        reporterId: string;
+        keyId: string;
+        observedAt: string;
+        receivedAt: string;
+        level: string;
+        message: string;
+        context: {
+            [key: string]: unknown;
+        };
+    }>;
+};
+
+export type Event = {
+    id: string;
+    duplicate: boolean;
 };
 
 export type GetHealthData = {
@@ -2131,6 +2216,185 @@ export type PatchOrganisationsByIdAgentsByAgentIdResponses = {
 
 export type PatchOrganisationsByIdAgentsByAgentIdResponse = PatchOrganisationsByIdAgentsByAgentIdResponses[keyof PatchOrganisationsByIdAgentsByAgentIdResponses];
 
+export type GetOrganisationsByIdAgentsByAgentIdSigningKeysData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}/signing-keys';
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdSigningKeysErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdSigningKeysError = GetOrganisationsByIdAgentsByAgentIdSigningKeysErrors[keyof GetOrganisationsByIdAgentsByAgentIdSigningKeysErrors];
+
+export type GetOrganisationsByIdAgentsByAgentIdSigningKeysResponses = {
+    /**
+     * The keys, oldest first
+     */
+    200: SigningKey;
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdSigningKeysResponse = GetOrganisationsByIdAgentsByAgentIdSigningKeysResponses[keyof GetOrganisationsByIdAgentsByAgentIdSigningKeysResponses];
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysData = {
+    body: {
+        /**
+         * The signing algorithm.
+         */
+        algorithm?: 'Ed25519';
+        /**
+         * The raw 32-byte Ed25519 public key, unpadded base64url.
+         */
+        publicKey: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}/signing-keys';
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysError = PostOrganisationsByIdAgentsByAgentIdSigningKeysErrors[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysErrors];
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysResponses = {
+    /**
+     * The registered key
+     */
+    201: {
+        id: string;
+        algorithm: string;
+        publicKey: string;
+        createdAt: string;
+        revokedAt: string | null;
+    };
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysResponse = PostOrganisationsByIdAgentsByAgentIdSigningKeysResponses[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysResponses];
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+        /**
+         * The signing key.
+         */
+        keyId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}/signing-keys/{keyId}/revoke';
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeError = PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeErrors[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeErrors];
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponses = {
+    /**
+     * The revoked key
+     */
+    200: {
+        id: string;
+        algorithm: string;
+        publicKey: string;
+        createdAt: string;
+        revokedAt: string | null;
+    };
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponse = PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponses[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponses];
+
 export type GetOrganisationsByIdAgentsByAgentIdRevisionsData = {
     body?: never;
     path: {
@@ -3134,6 +3398,278 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse
 
 export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse = PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses];
 
+export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/subjects/{subjectId}/state';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateError = GetOrganisationsByIdSubjectsBySubjectIdStateErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdStateErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateResponses = {
+    /**
+     * The state, with opinions oldest reporter first
+     */
+    200: Subject;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateResponse = GetOrganisationsByIdSubjectsBySubjectIdStateResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdStateResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+    };
+    url: '/organisations/{id}/subjects/{subjectId}/observations';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsError = GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses = {
+    /**
+     * The observations
+     */
+    200: Observation;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsResponse = GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/subjects/{subjectId}/metrics';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsError = GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses = {
+    /**
+     * The series, by name
+     */
+    200: Metric;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+        /**
+         * The metric series.
+         */
+        seriesId: string;
+    };
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+    };
+    url: '/organisations/{id}/subjects/{subjectId}/metrics/{seriesId}/samples';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesError = GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponses = {
+    /**
+     * The samples
+     */
+    200: {
+        samples: Array<{
+            reportId: string;
+            observedAt: string;
+            receivedAt: string;
+            value: number;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+    };
+    url: '/organisations/{id}/subjects/{subjectId}/logs';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsError = GetOrganisationsByIdSubjectsBySubjectIdLogsErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdLogsErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponses = {
+    /**
+     * The log records
+     */
+    200: Log;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponse = GetOrganisationsByIdSubjectsBySubjectIdLogsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdLogsResponses];
+
 export type GetInvitationsData = {
     body?: never;
     path?: never;
@@ -3347,3 +3883,163 @@ export type PostInvitationsByIdDeclineResponses = {
 };
 
 export type PostInvitationsByIdDeclineResponse = PostInvitationsByIdDeclineResponses[keyof PostInvitationsByIdDeclineResponses];
+
+export type PostReportsEventsData = {
+    body: {
+        /**
+         * The registered signing key.
+         */
+        keyId: string;
+        /**
+         * The report, as JSON text: the exact bytes that were signed.
+         */
+        report: string;
+        /**
+         * The key's Ed25519 signature of the report text, unpadded base64url.
+         */
+        signature: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/reports/events';
+};
+
+export type PostReportsEventsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signing key is unknown or revoked, or the signature is wrong
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostReportsEventsError = PostReportsEventsErrors[keyof PostReportsEventsErrors];
+
+export type PostReportsEventsResponses = {
+    /**
+     * Accepted
+     */
+    202: Event;
+};
+
+export type PostReportsEventsResponse = PostReportsEventsResponses[keyof PostReportsEventsResponses];
+
+export type PostReportsMetricsData = {
+    body: {
+        /**
+         * The registered signing key.
+         */
+        keyId: string;
+        /**
+         * The report, as JSON text: the exact bytes that were signed.
+         */
+        report: string;
+        /**
+         * The key's Ed25519 signature of the report text, unpadded base64url.
+         */
+        signature: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/reports/metrics';
+};
+
+export type PostReportsMetricsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signing key is unknown or revoked, or the signature is wrong
+     */
+    401: Error;
+    /**
+     * The metric series is already reported with another type or unit
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostReportsMetricsError = PostReportsMetricsErrors[keyof PostReportsMetricsErrors];
+
+export type PostReportsMetricsResponses = {
+    /**
+     * Accepted
+     */
+    202: {
+        id: string;
+        duplicate: boolean;
+    };
+};
+
+export type PostReportsMetricsResponse = PostReportsMetricsResponses[keyof PostReportsMetricsResponses];
+
+export type PostReportsLogsData = {
+    body: {
+        /**
+         * The registered signing key.
+         */
+        keyId: string;
+        /**
+         * The report, as JSON text: the exact bytes that were signed.
+         */
+        report: string;
+        /**
+         * The key's Ed25519 signature of the report text, unpadded base64url.
+         */
+        signature: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/reports/logs';
+};
+
+export type PostReportsLogsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signing key is unknown or revoked, or the signature is wrong
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostReportsLogsError = PostReportsLogsErrors[keyof PostReportsLogsErrors];
+
+export type PostReportsLogsResponses = {
+    /**
+     * Accepted
+     */
+    202: {
+        id: string;
+        duplicate: boolean;
+    };
+};
+
+export type PostReportsLogsResponse = PostReportsLogsResponses[keyof PostReportsLogsResponses];

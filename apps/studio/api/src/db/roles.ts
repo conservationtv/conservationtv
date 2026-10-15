@@ -22,7 +22,7 @@ export const globalAdmin = role('globalAdmin', {
 /** Granted at an organisation to every member: the organisation and its member directory. */
 export const organisationMember = role('organisationMember', {
   label: 'Member',
-  description: 'See the organisation, its members and its stream topology.',
+  description: 'See the organisation, its members, its stream topology and what its agents observe.',
   assignableScopes: ['organisation']
 });
 

@@ -133,6 +133,16 @@ export const AgentSchema = z.object({
     }).nullable()
 });
 
+export const SigningKeySchema = z.object({
+    signingKeys: z.array(z.object({
+        id: z.string(),
+        algorithm: z.string(),
+        publicKey: z.string(),
+        createdAt: z.string(),
+        revokedAt: z.string().nullable()
+    }))
+});
+
 export const RevisionSchema = z.object({
     id: z.string(),
     config: z.record(z.string(), z.unknown()),
@@ -201,6 +211,71 @@ export const RecorderSchema = z.object({
     kind: z.string(),
     params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
+});
+
+export const SubjectSchema = z.object({
+    subjectId: z.string(),
+    state: z.object({
+        health: z.string(),
+        state: z.record(z.string(), z.unknown()),
+        freshness: z.enum(['fresh', 'stale']),
+        observedAt: z.string(),
+        expiresAt: z.string(),
+        computedAt: z.string(),
+        contributingReporterIds: z.array(z.string()),
+        evidenceReportIds: z.array(z.string())
+    }),
+    reachable: z.boolean(),
+    opinions: z.array(z.object({
+        reporterId: z.string(),
+        health: z.string(),
+        state: z.record(z.string(), z.unknown()),
+        freshness: z.enum(['fresh', 'stale']),
+        observedAt: z.string(),
+        expiresAt: z.string(),
+        evidenceReportIds: z.array(z.string())
+    }))
+});
+
+export const ObservationSchema = z.object({
+    observations: z.array(z.object({
+        id: z.string(),
+        reporterId: z.string(),
+        keyId: z.string(),
+        observedAt: z.string(),
+        receivedAt: z.string(),
+        type: z.string(),
+        data: z.record(z.string(), z.unknown())
+    }))
+});
+
+export const MetricSchema = z.object({
+    series: z.array(z.object({
+        id: z.string(),
+        reporterId: z.string(),
+        name: z.string(),
+        type: z.string(),
+        unit: z.string().nullable(),
+        dimensions: z.record(z.string(), z.string())
+    }))
+});
+
+export const LogSchema = z.object({
+    logs: z.array(z.object({
+        id: z.string(),
+        reporterId: z.string(),
+        keyId: z.string(),
+        observedAt: z.string(),
+        receivedAt: z.string(),
+        level: z.string(),
+        message: z.string(),
+        context: z.record(z.string(), z.unknown())
+    }))
+});
+
+export const EventSchema = z.object({
+    id: z.string(),
+    duplicate: z.boolean()
 });
 
 /**
@@ -850,6 +925,76 @@ export const PatchOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
  */
 export const PatchOrganisationsByIdAgentsByAgentIdResponseSchema = AgentSchema;
 
+export const GetOrganisationsByIdAgentsByAgentIdSigningKeysPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The agent.'
+    })
+});
+
+/**
+ * The keys, oldest first
+ */
+export const GetOrganisationsByIdAgentsByAgentIdSigningKeysResponseSchema = SigningKeySchema;
+
+export const PostOrganisationsByIdAgentsByAgentIdSigningKeysBodySchema = z.object({
+    algorithm: z.literal('Ed25519').register(z.globalRegistry, {
+        description: 'The signing algorithm.'
+    }).optional().default('Ed25519'),
+    publicKey: z.string().length(43).register(z.globalRegistry, {
+        description: 'The raw 32-byte Ed25519 public key, unpadded base64url.'
+    })
+});
+
+export const PostOrganisationsByIdAgentsByAgentIdSigningKeysPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The agent.'
+    })
+});
+
+/**
+ * The registered key
+ */
+export const PostOrganisationsByIdAgentsByAgentIdSigningKeysResponseSchema = z.object({
+    id: z.string(),
+    algorithm: z.string(),
+    publicKey: z.string(),
+    createdAt: z.string(),
+    revokedAt: z.string().nullable()
+}).register(z.globalRegistry, {
+    description: 'The registered key'
+});
+
+export const PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The agent.'
+    }),
+    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The signing key.'
+    })
+});
+
+/**
+ * The revoked key
+ */
+export const PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponseSchema = z.object({
+    id: z.string(),
+    algorithm: z.string(),
+    publicKey: z.string(),
+    createdAt: z.string(),
+    revokedAt: z.string().nullable()
+}).register(z.globalRegistry, {
+    description: 'The revoked key'
+});
+
 export const GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
@@ -1219,6 +1364,115 @@ export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSch
  */
 export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponseSchema = RecorderSchema;
 
+export const GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    })
+});
+
+/**
+ * The state, with opinions oldest reporter first
+ */
+export const GetOrganisationsByIdSubjectsBySubjectIdStateResponseSchema = SubjectSchema;
+
+export const GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    })
+});
+
+export const GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema = z.object({
+    limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
+        description: 'At most this many, newest first.'
+    }).optional().default(100),
+    before: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Only those observed before this time, to page back.'
+    }).optional()
+});
+
+/**
+ * The observations
+ */
+export const GetOrganisationsByIdSubjectsBySubjectIdObservationsResponseSchema = ObservationSchema;
+
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    })
+});
+
+/**
+ * The series, by name
+ */
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsResponseSchema = MetricSchema;
+
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    }),
+    seriesId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The metric series.'
+    })
+});
+
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesQuerySchema = z.object({
+    limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
+        description: 'At most this many, newest first.'
+    }).optional().default(100),
+    before: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Only those observed before this time, to page back.'
+    }).optional()
+});
+
+/**
+ * The samples
+ */
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponseSchema = z.object({
+    samples: z.array(z.object({
+        reportId: z.string(),
+        observedAt: z.string(),
+        receivedAt: z.string(),
+        value: z.number()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The samples'
+});
+
+export const GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    })
+});
+
+export const GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema = z.object({
+    limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
+        description: 'At most this many, newest first.'
+    }).optional().default(100),
+    before: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Only those observed before this time, to page back.'
+    }).optional()
+});
+
+/**
+ * The log records
+ */
+export const GetOrganisationsByIdSubjectsBySubjectIdLogsResponseSchema = LogSchema;
+
 /**
  * The invitations, oldest first
  */
@@ -1289,4 +1543,65 @@ export const PostInvitationsByIdDeclinePathSchema = z.object({
  */
 export const PostInvitationsByIdDeclineResponseSchema = z.void().register(z.globalRegistry, {
     description: 'Declined'
+});
+
+export const PostReportsEventsBodySchema = z.object({
+    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The registered signing key.'
+    }),
+    report: z.string().min(2).max(65536).register(z.globalRegistry, {
+        description: 'The report, as JSON text: the exact bytes that were signed.'
+    }),
+    signature: z.string().min(1).max(128).register(z.globalRegistry, {
+        description: 'The key\'s Ed25519 signature of the report text, unpadded base64url.'
+    })
+});
+
+/**
+ * Accepted
+ */
+export const PostReportsEventsResponseSchema = EventSchema;
+
+export const PostReportsMetricsBodySchema = z.object({
+    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The registered signing key.'
+    }),
+    report: z.string().min(2).max(65536).register(z.globalRegistry, {
+        description: 'The report, as JSON text: the exact bytes that were signed.'
+    }),
+    signature: z.string().min(1).max(128).register(z.globalRegistry, {
+        description: 'The key\'s Ed25519 signature of the report text, unpadded base64url.'
+    })
+});
+
+/**
+ * Accepted
+ */
+export const PostReportsMetricsResponseSchema = z.object({
+    id: z.string(),
+    duplicate: z.boolean()
+}).register(z.globalRegistry, {
+    description: 'Accepted'
+});
+
+export const PostReportsLogsBodySchema = z.object({
+    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The registered signing key.'
+    }),
+    report: z.string().min(2).max(65536).register(z.globalRegistry, {
+        description: 'The report, as JSON text: the exact bytes that were signed.'
+    }),
+    signature: z.string().min(1).max(128).register(z.globalRegistry, {
+        description: 'The key\'s Ed25519 signature of the report text, unpadded base64url.'
+    })
+});
+
+/**
+ * Accepted
+ */
+export const PostReportsLogsResponseSchema = z.object({
+    id: z.string(),
+    duplicate: z.boolean()
+}).register(z.globalRegistry, {
+    description: 'Accepted'
 });

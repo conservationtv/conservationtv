@@ -15,6 +15,7 @@ import {
   uuid
 } from 'drizzle-orm/pg-core';
 import type { BuildDiagnostic, Settings } from '../../topology/settings.ts';
+import { organisationAdmin, organisationMember } from '../roles.ts';
 import { devices } from './devices.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
@@ -107,6 +108,58 @@ export const configurationRevisions = withAccess(
     roles: {
       member: topologyRoles.member,
       admin: { ...topologyRoles.admin, permissions: ['read', 'create', 'serve'] }
+    }
+  })
+);
+
+/**
+ * A public key an agent signs its reports with. Keys are revoked rather than deleted, so accepted reports keep the
+ * key they were verified with.
+ */
+export const agentSigningKeys = withAccess(
+  pgTable(
+    'agent_signing_key',
+    {
+      id: uuid('id')
+        .primaryKey()
+        .default(sql`uuidv7()`),
+      organisationId: uuid('organisation_id')
+        .notNull()
+        .references(() => organisations.id, { onDelete: 'cascade' }),
+      agentId: uuid('agent_id').notNull(),
+      algorithm: text('algorithm').notNull(),
+      publicKey: text('public_key').notNull(),
+      createdAt: timestamp('created_at').defaultNow().notNull(),
+      revokedAt: timestamp('revoked_at')
+    },
+    t => [
+      check('agent_signing_key_algorithm', sql`${t.algorithm} in ('Ed25519')`),
+      foreignKey({
+        name: 'agent_signing_key_agent_fk',
+        columns: [t.organisationId, t.agentId],
+        foreignColumns: [agents.organisationId, agents.id]
+      }).onDelete('cascade'),
+      index('agent_signing_key_agent_idx').on(t.agentId)
+    ]
+  ),
+  t => ({
+    name: 'agentSigningKeys',
+    scope: organisations.$access.scope.via(t.organisationId),
+    immutable: [t.agentId, t.algorithm, t.publicKey, t.createdAt],
+    actions: { read: ['select'], create: ['insert'], revoke: ['update'] },
+    roles: {
+      member: {
+        label: 'Member',
+        permissions: ['read'],
+        assignableScopes: ['organisation'],
+        includedIn: [organisationMember]
+      },
+      admin: {
+        label: 'Administrator',
+        permissions: ['read', 'create', 'revoke'],
+        assignableScopes: ['organisation'],
+        includedIn: [organisationAdmin]
+      }
     }
   })
 );
