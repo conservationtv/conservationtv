@@ -50,7 +50,7 @@ export class Networks extends HeyApiClient {
     /**
      * Delete a network
      *
-     * Administrators only. Refused while agents, devices or exposures use it. Its subject remains until the subject is deleted.
+     * Administrators only. Refused while agents, devices or exposures use it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;

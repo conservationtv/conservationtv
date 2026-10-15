@@ -12,7 +12,6 @@ export type Error = {
 export type Stream = {
     exposures: Array<{
         id: string;
-        subjectId: string;
         networkId: string | null;
         protocol: string;
         params: {
@@ -36,7 +35,6 @@ export type Stream = {
         createdAt: string;
     }>;
     id: string;
-    subjectId: string;
     name: string;
     sourceDeviceId: string | null;
     createdAt: string;

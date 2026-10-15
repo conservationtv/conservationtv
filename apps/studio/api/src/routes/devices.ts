@@ -2,12 +2,12 @@ import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { devices, subjects } from '../db/schema.ts';
+import { devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { NativeExposureSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
-import { newSubject, unchanged } from '../topology/transaction.ts';
+import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   inUse,
@@ -37,7 +37,7 @@ const NativeExposuresSchema = z
 export type NativeExposures = z.output<typeof NativeExposuresSchema>;
 
 // An organisation's devices (cameras, servers), in the principal's request session: members read them, administrators
-// manage them. Each device has a subject of its own, labelled with its name.
+// manage them.
 export default new Hono()
   .get(
     '/:id/devices',
@@ -65,7 +65,6 @@ export default new Hono()
         tx
           .select({
             id: devices.id,
-            subjectId: devices.subjectId,
             type: devices.type,
             name: devices.name,
             networkId: devices.networkId,
@@ -87,7 +86,7 @@ export default new Hono()
       operationId: 'organisations.devices.create',
       ...operationVersion(1),
       summary: 'Add a device',
-      description: 'Administrators only. The device gets a subject of its own.',
+      description: 'Administrators only.',
       responses: {
         201: { description: 'The new device' },
         400: invalidRequest,
@@ -121,7 +120,6 @@ export default new Hono()
           .insert(devices)
           .values({
             organisationId: id,
-            subjectId: await newSubject(tx, id, 'device', body.name),
             type: body.type,
             name: body.name,
             networkId: body.networkId,
@@ -130,7 +128,6 @@ export default new Hono()
           })
           .returning({
             id: devices.id,
-            subjectId: devices.subjectId,
             type: devices.type,
             name: devices.name,
             networkId: devices.networkId,
@@ -169,7 +166,6 @@ export default new Hono()
         tx
           .select({
             id: devices.id,
-            subjectId: devices.subjectId,
             type: devices.type,
             name: devices.name,
             networkId: devices.networkId,
@@ -192,7 +188,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a device',
       description:
-        "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Renaming relabels the device's subject too.",
+        'Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.',
       responses: {
         200: { description: 'The updated device' },
         400: invalidRequest,
@@ -237,7 +233,6 @@ export default new Hono()
           .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
           .returning({
             id: devices.id,
-            subjectId: devices.subjectId,
             type: devices.type,
             name: devices.name,
             networkId: devices.networkId,
@@ -246,8 +241,6 @@ export default new Hono()
             createdAt: devices.createdAt
           });
         if (!device) throw await unchanged(tx, devices.id, deviceId);
-        if (body.name !== undefined)
-          await tx.update(subjects).set({ label: body.name }).where(eq(subjects.id, device.subjectId));
         return device;
       });
       c.header('Cache-Control', 'no-store');
@@ -260,8 +253,7 @@ export default new Hono()
       operationId: 'organisations.devices.delete',
       ...operationVersion(1),
       summary: 'Remove a device',
-      description:
-        'Administrators only. Refused while an agent runs on it or a stream uses it as its source. Its subject remains until the subject is deleted.',
+      description: 'Administrators only. Refused while an agent runs on it or a stream uses it as its source.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,

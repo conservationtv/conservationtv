@@ -58,7 +58,6 @@ export const InvitationSchema = z.object({
 
 export const NetworkSchema = z.object({
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     activeAgentId: z.string().nullable(),
     createdAt: z.string()
@@ -66,7 +65,6 @@ export const NetworkSchema = z.object({
 
 export const DeviceSchema = z.object({
     id: z.string(),
-    subjectId: z.string(),
     type: z.string(),
     name: z.string(),
     networkId: z.string().nullable(),
@@ -81,7 +79,6 @@ export const DeviceSchema = z.object({
 
 export const AgentSchema = z.object({
     id: z.string(),
-    subjectId: z.string(),
     networkId: z.string(),
     deviceId: z.string(),
     priority: z.number(),
@@ -112,7 +109,6 @@ export const RevisionSchema = z.object({
 export const StreamSchema = z.object({
     exposures: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         networkId: z.string().nullable(),
         protocol: z.string(),
         params: z.object({
@@ -133,7 +129,6 @@ export const StreamSchema = z.object({
         createdAt: z.string()
     })),
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     sourceDeviceId: z.string().nullable(),
     createdAt: z.string()
@@ -141,7 +136,6 @@ export const StreamSchema = z.object({
 
 export const ExposureSchema = z.object({
     id: z.string(),
-    subjectId: z.string(),
     networkId: z.string().nullable(),
     protocol: z.string(),
     params: z.object({
@@ -160,13 +154,6 @@ export const RecorderSchema = z.object({
     exposureId: z.string(),
     kind: z.string(),
     params: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
-});
-
-export const SubjectSchema = z.object({
-    id: z.string(),
-    kind: z.string(),
-    label: z.string().nullable(),
     createdAt: z.string()
 });
 
@@ -424,7 +411,6 @@ export const GetOrganisationsByIdNetworksPathSchema = z.object({
 export const GetOrganisationsByIdNetworksResponseSchema = z.object({
     networks: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         name: z.string(),
         activeAgentId: z.string().nullable(),
         createdAt: z.string()
@@ -451,7 +437,6 @@ export const PostOrganisationsByIdNetworksPathSchema = z.object({
 export const PostOrganisationsByIdNetworksResponseSchema = z.object({
     activeAgentId: z.null(),
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     createdAt: z.string()
 }).register(z.globalRegistry, {
@@ -509,7 +494,6 @@ export const PatchOrganisationsByIdNetworksByNetworkIdPathSchema = z.object({
 export const PatchOrganisationsByIdNetworksByNetworkIdResponseSchema = z.object({
     activeAgentId: z.string(),
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     createdAt: z.string()
 }).register(z.globalRegistry, {
@@ -535,7 +519,6 @@ export const PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema = z.ob
 export const PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponseSchema = z.object({
     activeAgentId: z.string().nullable(),
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     createdAt: z.string()
 }).register(z.globalRegistry, {
@@ -554,7 +537,6 @@ export const GetOrganisationsByIdDevicesPathSchema = z.object({
 export const GetOrganisationsByIdDevicesResponseSchema = z.object({
     devices: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         type: z.string(),
         name: z.string(),
         networkId: z.string().nullable(),
@@ -687,7 +669,6 @@ export const GetOrganisationsByIdAgentsQuerySchema = z.object({
 export const GetOrganisationsByIdAgentsResponseSchema = z.object({
     agents: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         networkId: z.string(),
         deviceId: z.string(),
         priority: z.number(),
@@ -723,7 +704,6 @@ export const PostOrganisationsByIdAgentsPathSchema = z.object({
 export const PostOrganisationsByIdAgentsResponseSchema = z.object({
     servedRevisionId: z.null(),
     id: z.string(),
-    subjectId: z.string(),
     networkId: z.string(),
     deviceId: z.string(),
     priority: z.number(),
@@ -787,7 +767,6 @@ export const PatchOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
 export const PatchOrganisationsByIdAgentsByAgentIdResponseSchema = z.object({
     servedRevisionId: z.string(),
     id: z.string(),
-    subjectId: z.string(),
     networkId: z.string(),
     deviceId: z.string(),
     priority: z.number(),
@@ -906,7 +885,6 @@ export const PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema = z.obj
 export const PutOrganisationsByIdAgentsByAgentIdServedRevisionResponseSchema = z.object({
     servedRevisionId: z.string(),
     id: z.string(),
-    subjectId: z.string(),
     networkId: z.string(),
     deviceId: z.string(),
     priority: z.number(),
@@ -928,7 +906,6 @@ export const GetOrganisationsByIdStreamsPathSchema = z.object({
 export const GetOrganisationsByIdStreamsResponseSchema = z.object({
     streams: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         name: z.string(),
         sourceDeviceId: z.string().nullable(),
         createdAt: z.string()
@@ -955,7 +932,6 @@ export const PostOrganisationsByIdStreamsPathSchema = z.object({
  */
 export const PostOrganisationsByIdStreamsResponseSchema = z.object({
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     sourceDeviceId: z.string().nullable(),
     createdAt: z.string()
@@ -1014,7 +990,6 @@ export const PatchOrganisationsByIdStreamsByStreamIdPathSchema = z.object({
  */
 export const PatchOrganisationsByIdStreamsByStreamIdResponseSchema = z.object({
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     sourceDeviceId: z.string().nullable(),
     createdAt: z.string()
@@ -1179,98 +1154,6 @@ export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSch
  * The updated recorder
  */
 export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponseSchema = RecorderSchema;
-
-export const GetOrganisationsByIdSubjectsPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    })
-});
-
-export const GetOrganisationsByIdSubjectsQuerySchema = z.object({
-    kind: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'Only subjects of this kind.'
-    }).optional()
-});
-
-/**
- * The subjects, oldest first
- */
-export const GetOrganisationsByIdSubjectsResponseSchema = z.object({
-    subjects: z.array(z.object({
-        id: z.string(),
-        kind: z.string(),
-        label: z.string().nullable(),
-        createdAt: z.string()
-    }))
-}).register(z.globalRegistry, {
-    description: 'The subjects, oldest first'
-});
-
-export const PostOrganisationsByIdSubjectsBodySchema = z.object({
-    kind: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'What the subject is, such as `website`.'
-    }),
-    label: z.string().min(1).max(120).nullish().default(null)
-});
-
-export const PostOrganisationsByIdSubjectsPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    })
-});
-
-/**
- * The new subject
- */
-export const PostOrganisationsByIdSubjectsResponseSchema = SubjectSchema;
-
-export const DeleteOrganisationsByIdSubjectsBySubjectIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    subjectId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The subject.'
-    })
-});
-
-/**
- * Deleted
- */
-export const DeleteOrganisationsByIdSubjectsBySubjectIdResponseSchema = z.void().register(z.globalRegistry, {
-    description: 'Deleted'
-});
-
-export const GetOrganisationsByIdSubjectsBySubjectIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    subjectId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The subject.'
-    })
-});
-
-/**
- * The subject
- */
-export const GetOrganisationsByIdSubjectsBySubjectIdResponseSchema = SubjectSchema;
-
-export const PatchOrganisationsByIdSubjectsBySubjectIdBodySchema = z.object({
-    label: z.string().min(1).max(120).nullable()
-});
-
-export const PatchOrganisationsByIdSubjectsBySubjectIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    subjectId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The subject.'
-    })
-});
-
-/**
- * The updated subject
- */
-export const PatchOrganisationsByIdSubjectsBySubjectIdResponseSchema = SubjectSchema;
 
 /**
  * The invitations, oldest first

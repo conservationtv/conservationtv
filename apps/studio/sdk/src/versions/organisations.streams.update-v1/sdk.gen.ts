@@ -50,7 +50,7 @@ export class Streams extends HeyApiClient {
     /**
      * Update a stream
      *
-     * Administrators only: rename it (relabelling its subject too), or change its source device. The stream's identity stays the same when its camera changes.
+     * Administrators only: rename it, or change its source device. The stream's identity stays the same when its camera changes.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;

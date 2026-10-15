@@ -12,7 +12,6 @@ export type Error = {
 export type Agent = {
     agents: Array<{
         id: string;
-        subjectId: string;
         networkId: string;
         deviceId: string;
         priority: number;

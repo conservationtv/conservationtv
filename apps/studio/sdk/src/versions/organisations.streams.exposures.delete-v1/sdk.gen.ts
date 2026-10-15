@@ -50,7 +50,7 @@ export class Exposures extends HeyApiClient {
     /**
      * Remove an exposure
      *
-     * Administrators only. Refused while a recorder uses it. Its subject remains until the subject is deleted.
+     * Administrators only. Refused while a recorder uses it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;

@@ -12,7 +12,6 @@ export type Error = {
 export type Stream = {
     streams: Array<{
         id: string;
-        subjectId: string;
         name: string;
         sourceDeviceId: string | null;
         createdAt: string;

@@ -50,7 +50,7 @@ export class Streams extends HeyApiClient {
     /**
      * Delete a stream
      *
-     * Administrators only, with its exposures and recorders. Their subjects remain until the subjects are deleted.
+     * Administrators only, with its exposures and recorders.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;

@@ -7,7 +7,7 @@ import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
-import { newSubject, unchanged } from '../topology/transaction.ts';
+import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   invalidReference,
@@ -35,7 +35,7 @@ export type Priority = z.output<typeof PrioritySchema>;
 
 // An organisation's agents and their configuration revisions, in the principal's request
 // session: members read them, administrators manage them. An agent serves one network from a host device of the same
-// organisation (the database's composite foreign keys refuse any other), and has a subject of its own.
+// organisation (the database's composite foreign keys refuse any other).
 export default new Hono()
   .get(
     '/:id/agents',
@@ -65,7 +65,6 @@ export default new Hono()
         tx
           .select({
             id: agents.id,
-            subjectId: agents.subjectId,
             networkId: agents.networkId,
             deviceId: agents.deviceId,
             priority: agents.priority,
@@ -94,7 +93,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Register an agent',
       description:
-        'Administrators only. The agent serves a network of the organisation from one of its devices, starts as a standby, and gets a subject of its own.',
+        'Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.',
       responses: {
         201: { description: 'The new agent' },
         400: invalidRequest,
@@ -126,14 +125,12 @@ export default new Hono()
           .insert(agents)
           .values({
             organisationId: id,
-            subjectId: await newSubject(tx, id, 'agent', null),
             networkId: body.networkId,
             deviceId: body.deviceId,
             priority: body.priority
           })
           .returning({
             id: agents.id,
-            subjectId: agents.subjectId,
             networkId: agents.networkId,
             deviceId: agents.deviceId,
             priority: agents.priority,
@@ -171,7 +168,6 @@ export default new Hono()
         tx
           .select({
             id: agents.id,
-            subjectId: agents.subjectId,
             networkId: agents.networkId,
             deviceId: agents.deviceId,
             priority: agents.priority,
@@ -234,7 +230,6 @@ export default new Hono()
           .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
           .returning({
             id: agents.id,
-            subjectId: agents.subjectId,
             networkId: agents.networkId,
             deviceId: agents.deviceId,
             priority: agents.priority,
@@ -258,7 +253,7 @@ export default new Hono()
       operationId: 'organisations.agents.delete',
       ...operationVersion(1),
       summary: 'Remove an agent',
-      description: 'Administrators only. Deletes its configuration revisions. Its subject remains until deleted.',
+      description: 'Administrators only. Deletes its configuration revisions.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,
@@ -465,7 +460,6 @@ export default new Hono()
         const [agent] = await tx
           .select({
             id: agents.id,
-            subjectId: agents.subjectId,
             networkId: agents.networkId,
             deviceId: agents.deviceId,
             priority: agents.priority,

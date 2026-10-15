@@ -2,10 +2,10 @@
 
 import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient55 } from '../versions/invitations.accept-v1/sdk.gen.js';
-import { BaseClient as BaseClient56 } from '../versions/invitations.decline-v1/sdk.gen.js';
-import { BaseClient as BaseClient54 } from '../versions/invitations.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient53 } from '../versions/invitations.listMine-v1/sdk.gen.js';
+import { BaseClient as BaseClient50 } from '../versions/invitations.accept-v1/sdk.gen.js';
+import { BaseClient as BaseClient51 } from '../versions/invitations.decline-v1/sdk.gen.js';
+import { BaseClient as BaseClient49 } from '../versions/invitations.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient48 } from '../versions/invitations.listMine-v1/sdk.gen.js';
 import { BaseClient as BaseClient29 } from '../versions/organisations.agents.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient32 } from '../versions/organisations.agents.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient30 } from '../versions/organisations.agents.get-v1/sdk.gen.js';
@@ -49,11 +49,6 @@ import { BaseClient as BaseClient45 } from '../versions/organisations.streams.re
 import { BaseClient as BaseClient47 } from '../versions/organisations.streams.recorders.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient46 } from '../versions/organisations.streams.recorders.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient40 } from '../versions/organisations.streams.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient49 } from '../versions/organisations.subjects.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient52 } from '../versions/organisations.subjects.delete-v1/sdk.gen.js';
-import { BaseClient as BaseClient50 } from '../versions/organisations.subjects.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient48 } from '../versions/organisations.subjects.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient51 } from '../versions/organisations.subjects.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
@@ -134,19 +129,12 @@ export class Client extends ClientCore {
                 update: this.versioned('organisations.streams.recorders.update', { v1: BaseClient46 }),
                 delete: this.versioned('organisations.streams.recorders.delete', { v1: BaseClient47 })
             }
-        },
-        subjects: {
-            list: this.versioned('organisations.subjects.list', { v1: BaseClient48 }),
-            create: this.versioned('organisations.subjects.create', { v1: BaseClient49 }),
-            get: this.versioned('organisations.subjects.get', { v1: BaseClient50 }),
-            update: this.versioned('organisations.subjects.update', { v1: BaseClient51 }),
-            delete: this.versioned('organisations.subjects.delete', { v1: BaseClient52 })
         }
     };
     readonly invitations = {
-        listMine: this.versioned('invitations.listMine', { v1: BaseClient53 }),
-        get: this.versioned('invitations.get', { v1: BaseClient54 }),
-        accept: this.versioned('invitations.accept', { v1: BaseClient55 }),
-        decline: this.versioned('invitations.decline', { v1: BaseClient56 })
+        listMine: this.versioned('invitations.listMine', { v1: BaseClient48 }),
+        get: this.versioned('invitations.get', { v1: BaseClient49 }),
+        accept: this.versioned('invitations.accept', { v1: BaseClient50 }),
+        decline: this.versioned('invitations.decline', { v1: BaseClient51 })
     };
 }

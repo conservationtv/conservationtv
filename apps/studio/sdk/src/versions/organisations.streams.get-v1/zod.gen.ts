@@ -10,7 +10,6 @@ export const ErrorSchema = z.object({
 export const StreamSchema = z.object({
     exposures: z.array(z.object({
         id: z.string(),
-        subjectId: z.string(),
         networkId: z.string().nullable(),
         protocol: z.string(),
         params: z.object({
@@ -31,7 +30,6 @@ export const StreamSchema = z.object({
         createdAt: z.string()
     })),
     id: z.string(),
-    subjectId: z.string(),
     name: z.string(),
     sourceDeviceId: z.string().nullable(),
     createdAt: z.string()

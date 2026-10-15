@@ -5,7 +5,6 @@ import type { ExposureParams, Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
 import { networks } from './networks.ts';
 import { organisations } from './organisations.ts';
-import { subjects } from './subjects.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
@@ -22,18 +21,12 @@ export const streams = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
-      subjectId: uuid('subject_id').notNull().unique('stream_subject'),
       name: text('name').notNull(),
       sourceDeviceId: uuid('source_device_id'),
       createdAt: timestamp('created_at').defaultNow().notNull()
     },
     t => [
       unique('stream_organisation_id').on(t.organisationId, t.id),
-      foreignKey({
-        name: 'stream_subject_fk',
-        columns: [t.organisationId, t.subjectId],
-        foreignColumns: [subjects.organisationId, subjects.id]
-      }),
       foreignKey({
         name: 'stream_source_device_fk',
         columns: [t.organisationId, t.sourceDeviceId],
@@ -45,7 +38,7 @@ export const streams = withAccess(
   t => ({
     name: 'streams',
     scope: organisations.$access.scope.via(t.organisationId),
-    immutable: [t.subjectId, t.createdAt],
+    immutable: [t.createdAt],
     actions: topologyActions,
     roles: topologyRoles
   })
@@ -67,7 +60,6 @@ export const exposures = withAccess(
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
       streamId: uuid('stream_id').notNull(),
-      subjectId: uuid('subject_id').notNull().unique('exposure_subject'),
       networkId: uuid('network_id'),
       protocol: text('protocol').notNull(),
       params: jsonb('params').$type<ExposureParams>().default({}).notNull(),
@@ -81,11 +73,6 @@ export const exposures = withAccess(
         foreignColumns: [streams.organisationId, streams.id]
       }).onDelete('cascade'),
       foreignKey({
-        name: 'exposure_subject_fk',
-        columns: [t.organisationId, t.subjectId],
-        foreignColumns: [subjects.organisationId, subjects.id]
-      }),
-      foreignKey({
         name: 'exposure_network_fk',
         columns: [t.organisationId, t.networkId],
         foreignColumns: [networks.organisationId, networks.id]
@@ -96,7 +83,7 @@ export const exposures = withAccess(
   t => ({
     name: 'exposures',
     scope: organisations.$access.scope.via(t.organisationId),
-    immutable: [t.streamId, t.subjectId, t.createdAt],
+    immutable: [t.streamId, t.createdAt],
     actions: topologyActions,
     roles: topologyRoles
   })

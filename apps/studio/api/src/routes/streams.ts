@@ -2,12 +2,12 @@ import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { exposures, recorders, streams, subjects } from '../db/schema.ts';
+import { exposures, recorders, streams } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { ExposureParamsSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
-import { newSubject, unchanged } from '../topology/transaction.ts';
+import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   inUse,
@@ -45,7 +45,7 @@ export type RecorderKind = z.output<typeof RecorderKindSchema>;
 // An organisation's streams, with their exposures and recorders, in the principal's request session: members read
 // them, administrators manage them. A stream's source device, an exposure's network, and a recorder's
 // exposure must belong to the same organisation (and a recorder's exposure to the same stream); the database's
-// composite foreign keys refuse anything else. Streams and exposures each have a subject of their own.
+// composite foreign keys refuse anything else.
 export default new Hono()
   .get(
     '/:id/streams',
@@ -73,7 +73,6 @@ export default new Hono()
         tx
           .select({
             id: streams.id,
-            subjectId: streams.subjectId,
             name: streams.name,
             sourceDeviceId: streams.sourceDeviceId,
             createdAt: streams.createdAt
@@ -92,7 +91,7 @@ export default new Hono()
       operationId: 'organisations.streams.create',
       ...operationVersion(1),
       summary: 'Create a stream',
-      description: 'Administrators only. The stream gets a subject of its own.',
+      description: 'Administrators only.',
       responses: {
         201: { description: 'The new stream' },
         400: invalidRequest,
@@ -117,13 +116,11 @@ export default new Hono()
           .insert(streams)
           .values({
             organisationId: id,
-            subjectId: await newSubject(tx, id, 'stream', body.name),
             name: body.name,
             sourceDeviceId: body.sourceDeviceId
           })
           .returning({
             id: streams.id,
-            subjectId: streams.subjectId,
             name: streams.name,
             sourceDeviceId: streams.sourceDeviceId,
             createdAt: streams.createdAt
@@ -160,7 +157,6 @@ export default new Hono()
         const [stream] = await tx
           .select({
             id: streams.id,
-            subjectId: streams.subjectId,
             name: streams.name,
             sourceDeviceId: streams.sourceDeviceId,
             createdAt: streams.createdAt
@@ -173,7 +169,6 @@ export default new Hono()
           exposures: await tx
             .select({
               id: exposures.id,
-              subjectId: exposures.subjectId,
               networkId: exposures.networkId,
               protocol: exposures.protocol,
               params: exposures.params,
@@ -206,7 +201,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a stream',
       description:
-        "Administrators only: rename it (relabelling its subject too), or change its source device. The stream's identity stays the same when its camera changes.",
+        "Administrators only: rename it, or change its source device. The stream's identity stays the same when its camera changes.",
       responses: {
         200: { description: 'The updated stream, without its exposures and recorders' },
         400: invalidRequest,
@@ -239,14 +234,11 @@ export default new Hono()
           .where(and(eq(streams.organisationId, id), eq(streams.id, streamId)))
           .returning({
             id: streams.id,
-            subjectId: streams.subjectId,
             name: streams.name,
             sourceDeviceId: streams.sourceDeviceId,
             createdAt: streams.createdAt
           });
         if (!stream) throw await unchanged(tx, streams.id, streamId);
-        if (body.name !== undefined)
-          await tx.update(subjects).set({ label: body.name }).where(eq(subjects.id, stream.subjectId));
         return stream;
       });
       c.header('Cache-Control', 'no-store');
@@ -259,8 +251,7 @@ export default new Hono()
       operationId: 'organisations.streams.delete',
       ...operationVersion(1),
       summary: 'Delete a stream',
-      description:
-        'Administrators only, with its exposures and recorders. Their subjects remain until the subjects are deleted.',
+      description: 'Administrators only, with its exposures and recorders.',
       responses: {
         204: { description: 'Deleted' },
         400: invalidRequest,
@@ -295,7 +286,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Expose a stream',
       description:
-        'Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer. The exposure gets a subject of its own.',
+        'Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.',
       responses: {
         201: { description: 'The new exposure' },
         400: invalidRequest,
@@ -334,14 +325,12 @@ export default new Hono()
           .values({
             organisationId: id,
             streamId,
-            subjectId: await newSubject(tx, id, 'exposure', body.protocol),
             networkId: body.networkId,
             protocol: body.protocol,
             params: body.params
           })
           .returning({
             id: exposures.id,
-            subjectId: exposures.subjectId,
             networkId: exposures.networkId,
             protocol: exposures.protocol,
             params: exposures.params,
@@ -396,7 +385,6 @@ export default new Hono()
           .where(and(eq(exposures.organisationId, id), eq(exposures.streamId, streamId), eq(exposures.id, exposureId)))
           .returning({
             id: exposures.id,
-            subjectId: exposures.subjectId,
             networkId: exposures.networkId,
             protocol: exposures.protocol,
             params: exposures.params,
@@ -415,8 +403,7 @@ export default new Hono()
       operationId: 'organisations.streams.exposures.delete',
       ...operationVersion(1),
       summary: 'Remove an exposure',
-      description:
-        'Administrators only. Refused while a recorder uses it. Its subject remains until the subject is deleted.',
+      description: 'Administrators only. Refused while a recorder uses it.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,

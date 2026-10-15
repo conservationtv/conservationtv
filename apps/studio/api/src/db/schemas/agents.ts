@@ -17,7 +17,6 @@ import type { BuildDiagnostic, Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
 import { networks } from './networks.ts';
 import { organisations } from './organisations.ts';
-import { subjects } from './subjects.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
@@ -34,7 +33,6 @@ export const agents = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
-      subjectId: uuid('subject_id').notNull().unique('agent_subject'),
       networkId: uuid('network_id').notNull(),
       deviceId: uuid('device_id').notNull(),
       priority: integer('priority').default(0).notNull(),
@@ -43,11 +41,6 @@ export const agents = withAccess(
     },
     t => [
       unique('agent_organisation_id').on(t.organisationId, t.id),
-      foreignKey({
-        name: 'agent_subject_fk',
-        columns: [t.organisationId, t.subjectId],
-        foreignColumns: [subjects.organisationId, subjects.id]
-      }),
       foreignKey({
         name: 'agent_network_fk',
         columns: [t.organisationId, t.networkId],
@@ -68,7 +61,7 @@ export const agents = withAccess(
   t => ({
     name: 'agents',
     scope: organisations.$access.scope.via(t.organisationId),
-    immutable: [t.subjectId, t.networkId, t.createdAt],
+    immutable: [t.networkId, t.createdAt],
     actions: topologyActions,
     roles: topologyRoles
   })

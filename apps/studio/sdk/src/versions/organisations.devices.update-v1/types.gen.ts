@@ -15,7 +15,6 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 
 export type Device = {
     id: string;
-    subjectId: string;
     type: string;
     name: string;
     networkId: string | null;

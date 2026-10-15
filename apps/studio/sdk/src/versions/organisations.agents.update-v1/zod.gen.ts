@@ -10,7 +10,6 @@ export const ErrorSchema = z.object({
 export const AgentSchema = z.object({
     servedRevisionId: z.string(),
     id: z.string(),
-    subjectId: z.string(),
     networkId: z.string(),
     deviceId: z.string(),
     priority: z.number(),

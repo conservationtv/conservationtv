@@ -11,7 +11,6 @@ export type Error = {
 
 export type Device = {
     id: string;
-    subjectId: string;
     type: string;
     name: string;
     networkId: string | null;

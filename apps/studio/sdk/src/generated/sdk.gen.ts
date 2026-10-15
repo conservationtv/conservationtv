@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdDevicesByDeviceIdErrors, DeleteOrganisationsByIdDevicesByDeviceIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, DeleteOrganisationsByIdSubjectsBySubjectIdErrors, DeleteOrganisationsByIdSubjectsBySubjectIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdErrors, GetOrganisationsByIdSubjectsBySubjectIdResponses, GetOrganisationsByIdSubjectsErrors, GetOrganisationsByIdSubjectsResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PatchOrganisationsByIdSubjectsBySubjectIdErrors, PatchOrganisationsByIdSubjectsBySubjectIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdDevicesErrors, PostOrganisationsByIdDevicesResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdSubjectsErrors, PostOrganisationsByIdSubjectsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdDevicesByDeviceIdErrors, DeleteOrganisationsByIdDevicesByDeviceIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdDevicesErrors, PostOrganisationsByIdDevicesResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -261,7 +261,7 @@ export class Networks extends HeyApiClient {
     /**
      * Create a network
      *
-     * Administrators only. The network gets a subject of its own.
+     * Administrators only.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -283,7 +283,7 @@ export class Networks extends HeyApiClient {
     /**
      * Delete a network
      *
-     * Administrators only. Refused while agents, devices or exposures use it. Its subject remains until the subject is deleted.
+     * Administrators only. Refused while agents, devices or exposures use it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -315,7 +315,7 @@ export class Networks extends HeyApiClient {
     /**
      * Rename a network
      *
-     * Administrators only. Relabels the network's subject too.
+     * Administrators only.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -387,7 +387,7 @@ export class Devices extends HeyApiClient {
     /**
      * Add a device
      *
-     * Administrators only. The device gets a subject of its own.
+     * Administrators only.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -434,7 +434,7 @@ export class Devices extends HeyApiClient {
     /**
      * Remove a device
      *
-     * Administrators only. Refused while an agent runs on it or a stream uses it as its source. Its subject remains until the subject is deleted.
+     * Administrators only. Refused while an agent runs on it or a stream uses it as its source.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -466,7 +466,7 @@ export class Devices extends HeyApiClient {
     /**
      * Update a device
      *
-     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Renaming relabels the device's subject too.
+     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -626,7 +626,7 @@ export class Agents extends HeyApiClient {
     /**
      * Register an agent
      *
-     * Administrators only. The agent serves a network of the organisation from one of its devices, starts as a standby, and gets a subject of its own.
+     * Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -655,7 +655,7 @@ export class Agents extends HeyApiClient {
     /**
      * Remove an agent
      *
-     * Administrators only. Deletes its configuration revisions. Its subject remains until deleted.
+     * Administrators only. Deletes its configuration revisions.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -750,7 +750,7 @@ export class Exposures extends HeyApiClient {
     /**
      * Expose a stream
      *
-     * Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer. The exposure gets a subject of its own.
+     * Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -800,7 +800,7 @@ export class Exposures extends HeyApiClient {
     /**
      * Remove an exposure
      *
-     * Administrators only. Refused while a recorder uses it. Its subject remains until the subject is deleted.
+     * Administrators only. Refused while a recorder uses it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -984,7 +984,7 @@ export class Streams extends HeyApiClient {
     /**
      * Create a stream
      *
-     * Administrators only. The stream gets a subject of its own.
+     * Administrators only.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -1011,7 +1011,7 @@ export class Streams extends HeyApiClient {
     /**
      * Delete a stream
      *
-     * Administrators only, with its exposures and recorders. Their subjects remain until the subjects are deleted.
+     * Administrators only, with its exposures and recorders.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -1045,7 +1045,7 @@ export class Streams extends HeyApiClient {
     /**
      * Update a stream
      *
-     * Administrators only: rename it (relabelling its subject too), or change its source device. The stream's identity stays the same when its camera changes.
+     * Administrators only: rename it, or change its source device. The stream's identity stays the same when its camera changes.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -1079,111 +1079,6 @@ export class Streams extends HeyApiClient {
     private _recorders?: Recorders;
     get recorders(): Recorders {
         return this._recorders ??= new Recorders({ client: this.client });
-    }
-}
-
-export class Subjects extends HeyApiClient {
-    /**
-     * List an organisation's subjects
-     *
-     * The topology entities’ subjects and any external targets, optionally of one kind. Empty for organisations you are not a member of.
-     */
-    public list<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        kind?: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsResponses, GetOrganisationsByIdSubjectsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }] }]);
-        return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsResponses, GetOrganisationsByIdSubjectsErrors, ThrowOnError>({
-            url: '/organisations/{id}/subjects',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Add an external subject
-     *
-     * Administrators only. Something agents observe that isn't part of the topology, such as a website. Topology entities get their subjects when they are created, so their kinds are refused here.
-     */
-    public create<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        kind: string;
-        label?: string | null;
-    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdSubjectsResponses, PostOrganisationsByIdSubjectsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'body', key: 'kind' },
-                    { in: 'body', key: 'label' }
-                ] }]);
-        return (options?.client ?? this.client).post<PostOrganisationsByIdSubjectsResponses, PostOrganisationsByIdSubjectsErrors, ThrowOnError>({
-            url: '/organisations/{id}/subjects',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
-    
-    /**
-     * Delete a subject
-     *
-     * Administrators only. Refused while a topology entity still uses it.
-     */
-    public delete<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        subjectId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdSubjectsBySubjectIdResponses, DeleteOrganisationsByIdSubjectsBySubjectIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'subjectId' }] }]);
-        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdSubjectsBySubjectIdResponses, DeleteOrganisationsByIdSubjectsBySubjectIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/subjects/{subjectId}',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Read a subject
-     */
-    public get<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        subjectId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsBySubjectIdResponses, GetOrganisationsByIdSubjectsBySubjectIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'subjectId' }] }]);
-        return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsBySubjectIdResponses, GetOrganisationsByIdSubjectsBySubjectIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/subjects/{subjectId}',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Relabel a subject
-     *
-     * Administrators only. Labels are for display; the subject ID is its identity. Renaming a topology entity relabels its subject too.
-     */
-    public update<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        subjectId: string;
-        label: string | null;
-    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdSubjectsBySubjectIdResponses, PatchOrganisationsByIdSubjectsBySubjectIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'path', key: 'subjectId' },
-                    { in: 'body', key: 'label' }
-                ] }]);
-        return (options?.client ?? this.client).patch<PatchOrganisationsByIdSubjectsBySubjectIdResponses, PatchOrganisationsByIdSubjectsBySubjectIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/subjects/{subjectId}',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
     }
 }
 
@@ -1301,11 +1196,6 @@ export class Organisations extends HeyApiClient {
     private _streams?: Streams;
     get streams(): Streams {
         return this._streams ??= new Streams({ client: this.client });
-    }
-    
-    private _subjects?: Subjects;
-    get subjects(): Subjects {
-        return this._subjects ??= new Subjects({ client: this.client });
     }
 }
 

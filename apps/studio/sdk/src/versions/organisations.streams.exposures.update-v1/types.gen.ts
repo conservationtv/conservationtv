@@ -15,7 +15,6 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 
 export type Exposure = {
     id: string;
-    subjectId: string;
     networkId: string | null;
     protocol: string;
     params: {
