@@ -11,7 +11,6 @@ import health from './routes/health.ts';
 import invitations from './routes/invitations.ts';
 import networks from './routes/networks.ts';
 import organisations from './routes/organisations.ts';
-import providers from './routes/providers.ts';
 import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
 import { useServices } from './services.ts';
@@ -46,7 +45,6 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations', agents)
   .route('/organisations', streams)
   .route('/organisations', subjects)
-  .route('/', providers)
   .route('/invitations', invitations)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)

@@ -9,7 +9,6 @@ export const ExposureCreateV1ParamsSchema = z.object({
     streamId: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     networkId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
     protocol: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.protocol.nonoptional().describe('The delivery protocol, such as `moq` or `rtsp`.'),
-    providerId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.providerId.optional().describe('A provider registration, the platform\'s or the organisation\'s own, or null for a local exposure.'),
     params: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.params.optional()
 });
 

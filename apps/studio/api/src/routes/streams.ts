@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
@@ -6,7 +6,6 @@ import { exposures, recorders, streams, subjects } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
-import { providerColumns } from '../topology/providers.ts';
 import { ExposureParamsSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { newSubject, unchanged } from '../topology/transaction.ts';
 import {
@@ -40,19 +39,13 @@ const SourceDeviceSchema = z
 export type SourceDevice = z.output<typeof SourceDeviceSchema>;
 const ProtocolSchema = z.string().trim().min(1).max(60).describe('The delivery protocol, such as `moq` or `rtsp`.');
 export type Protocol = z.output<typeof ProtocolSchema>;
-const ProviderReferenceSchema = z
-  .uuid()
-  .nullable()
-  .describe("A provider registration, the platform's or the organisation's own, or null for a local exposure.");
-export type ProviderReference = z.output<typeof ProviderReferenceSchema>;
 const RecorderKindSchema = z.string().trim().min(1).max(60).describe('The recording implementation.');
 export type RecorderKind = z.output<typeof RecorderKindSchema>;
 
 // An organisation's streams, with their exposures and recorders, in the principal's request session: members read
-// them, administrators manage them. A stream's source device, an exposure's network and provider, and a recorder's
+// them, administrators manage them. A stream's source device, an exposure's network, and a recorder's
 // exposure must belong to the same organisation (and a recorder's exposure to the same stream); the database's
-// composite foreign keys refuse anything else. Streams and exposures each have a subject of their own. An exposure's
-// `providerId` is whichever of its two registration columns is set.
+// composite foreign keys refuse anything else. Streams and exposures each have a subject of their own.
 export default new Hono()
   .get(
     '/:id/streams',
@@ -183,9 +176,6 @@ export default new Hono()
               subjectId: exposures.subjectId,
               networkId: exposures.networkId,
               protocol: exposures.protocol,
-              providerId: sql<
-                string | null
-              >`coalesce(${exposures.platformProviderId}, ${exposures.organisationProviderId})`,
               params: exposures.params,
               createdAt: exposures.createdAt
             })
@@ -305,7 +295,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Expose a stream',
       description:
-        'Administrators only. Declares how the stream is delivered: where, by which protocol, through which provider registration, and the renditions it should offer. The exposure gets a subject of its own.',
+        'Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer. The exposure gets a subject of its own.',
       responses: {
         201: { description: 'The new exposure' },
         400: invalidRequest,
@@ -324,7 +314,6 @@ export default new Hono()
       z.strictObject({
         networkId: NetworkReferenceSchema.default(null),
         protocol: ProtocolSchema,
-        providerId: ProviderReferenceSchema.default(null),
         params: ExposureParamsSchema.default({})
       })
     ),
@@ -348,7 +337,6 @@ export default new Hono()
             subjectId: await newSubject(tx, id, 'exposure', body.protocol),
             networkId: body.networkId,
             protocol: body.protocol,
-            ...(await providerColumns(tx, id, body.providerId)),
             params: body.params
           })
           .returning({
@@ -356,9 +344,6 @@ export default new Hono()
             subjectId: exposures.subjectId,
             networkId: exposures.networkId,
             protocol: exposures.protocol,
-            providerId: sql<
-              string | null
-            >`coalesce(${exposures.platformProviderId}, ${exposures.organisationProviderId})`,
             params: exposures.params,
             createdAt: exposures.createdAt
           });
@@ -394,7 +379,6 @@ export default new Hono()
         .strictObject({
           networkId: NetworkReferenceSchema.optional(),
           protocol: ProtocolSchema.optional(),
-          providerId: ProviderReferenceSchema.optional(),
           params: ExposureParamsSchema.optional()
         })
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
@@ -406,19 +390,15 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await services.session(principal);
       const row = await session.transaction(async tx => {
-        const provider = body.providerId === undefined ? undefined : await providerColumns(tx, id, body.providerId);
         const [exposure] = await tx
           .update(exposures)
-          .set({ networkId: body.networkId, protocol: body.protocol, ...provider, params: body.params })
+          .set({ networkId: body.networkId, protocol: body.protocol, params: body.params })
           .where(and(eq(exposures.organisationId, id), eq(exposures.streamId, streamId), eq(exposures.id, exposureId)))
           .returning({
             id: exposures.id,
             subjectId: exposures.subjectId,
             networkId: exposures.networkId,
             protocol: exposures.protocol,
-            providerId: sql<
-              string | null
-            >`coalesce(${exposures.platformProviderId}, ${exposures.organisationProviderId})`,
             params: exposures.params,
             createdAt: exposures.createdAt
           });
@@ -472,7 +452,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Record a stream',
       description:
-        "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and provider: a stream recorded by a provider needs an exposure on that provider.",
+        "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and protocol.",
       responses: {
         201: { description: 'The new recorder' },
         400: invalidRequest,

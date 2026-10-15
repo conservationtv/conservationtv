@@ -18,7 +18,6 @@ export type Exposure = {
     subjectId: string;
     networkId: string | null;
     protocol: string;
-    providerId: string | null;
     params: {
         renditions?: Array<{
             id: string;
@@ -41,10 +40,6 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
          * The delivery protocol, such as `moq` or `rtsp`.
          */
         protocol?: string;
-        /**
-         * A provider registration, the platform's or the organisation's own, or null for a local exposure.
-         */
-        providerId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;

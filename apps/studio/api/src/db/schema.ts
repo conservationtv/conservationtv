@@ -7,7 +7,6 @@ export { account, deviceCode as deviceCodes, passkey as passkeys, roleAssignment
 export * from './schemas/users.ts';
 export * from './schemas/organisations.ts';
 export * from './schemas/invitations.ts';
-export * from './schemas/providers.ts';
 export * from './schemas/subjects.ts';
 export * from './schemas/networks.ts';
 export * from './schemas/devices.ts';

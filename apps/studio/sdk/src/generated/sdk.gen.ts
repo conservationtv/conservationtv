@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdDevicesByDeviceIdErrors, DeleteOrganisationsByIdDevicesByDeviceIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdProviderResourcesByResourceIdErrors, DeleteOrganisationsByIdProviderResourcesByResourceIdResponses, DeleteOrganisationsByIdProvidersByProviderIdErrors, DeleteOrganisationsByIdProvidersByProviderIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, DeleteOrganisationsByIdSubjectsBySubjectIdErrors, DeleteOrganisationsByIdSubjectsBySubjectIdResponses, DeleteProvidersByProviderIdErrors, DeleteProvidersByProviderIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdProviderResourcesErrors, GetOrganisationsByIdProviderResourcesResponses, GetOrganisationsByIdProvidersErrors, GetOrganisationsByIdProvidersResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdErrors, GetOrganisationsByIdSubjectsBySubjectIdResponses, GetOrganisationsByIdSubjectsErrors, GetOrganisationsByIdSubjectsResponses, GetOrganisationsErrors, GetOrganisationsResponses, GetProvidersErrors, GetProvidersResponses, GetProviderTypesErrors, GetProviderTypesResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdProviderResourcesByResourceIdErrors, PatchOrganisationsByIdProviderResourcesByResourceIdResponses, PatchOrganisationsByIdProvidersByProviderIdErrors, PatchOrganisationsByIdProvidersByProviderIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PatchOrganisationsByIdSubjectsBySubjectIdErrors, PatchOrganisationsByIdSubjectsBySubjectIdResponses, PatchProvidersByProviderIdErrors, PatchProvidersByProviderIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdDevicesErrors, PostOrganisationsByIdDevicesResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdProviderResourcesErrors, PostOrganisationsByIdProviderResourcesResponses, PostOrganisationsByIdProvidersErrors, PostOrganisationsByIdProvidersResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdSubjectsErrors, PostOrganisationsByIdSubjectsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostProvidersErrors, PostProvidersResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdDevicesByDeviceIdErrors, DeleteOrganisationsByIdDevicesByDeviceIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, DeleteOrganisationsByIdSubjectsBySubjectIdErrors, DeleteOrganisationsByIdSubjectsBySubjectIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdErrors, GetOrganisationsByIdSubjectsBySubjectIdResponses, GetOrganisationsByIdSubjectsErrors, GetOrganisationsByIdSubjectsResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PatchOrganisationsByIdSubjectsBySubjectIdErrors, PatchOrganisationsByIdSubjectsBySubjectIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdDevicesErrors, PostOrganisationsByIdDevicesResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdSubjectsErrors, PostOrganisationsByIdSubjectsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -750,14 +750,13 @@ export class Exposures extends HeyApiClient {
     /**
      * Expose a stream
      *
-     * Administrators only. Declares how the stream is delivered: where, by which protocol, through which provider registration, and the renditions it should offer. The exposure gets a subject of its own.
+     * Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer. The exposure gets a subject of its own.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         networkId?: string | null;
         protocol: string;
-        providerId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -784,7 +783,6 @@ export class Exposures extends HeyApiClient {
                     { in: 'path', key: 'streamId' },
                     { in: 'body', key: 'networkId' },
                     { in: 'body', key: 'protocol' },
-                    { in: 'body', key: 'providerId' },
                     { in: 'body', key: 'params' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, ThrowOnError>({
@@ -832,7 +830,6 @@ export class Exposures extends HeyApiClient {
         exposureId: string;
         networkId?: string | null;
         protocol?: string;
-        providerId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -860,7 +857,6 @@ export class Exposures extends HeyApiClient {
                     { in: 'path', key: 'exposureId' },
                     { in: 'body', key: 'networkId' },
                     { in: 'body', key: 'protocol' },
-                    { in: 'body', key: 'providerId' },
                     { in: 'body', key: 'params' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError>({
@@ -880,7 +876,7 @@ export class Recorders extends HeyApiClient {
     /**
      * Record a stream
      *
-     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and provider: a stream recorded by a provider needs an exposure on that provider.
+     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and protocol.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -1191,204 +1187,6 @@ export class Subjects extends HeyApiClient {
     }
 }
 
-export class Providers extends HeyApiClient {
-    /**
-     * List the providers an organisation can use
-     *
-     * The platform's registrations (`scope: platform`) and the organisation's own (`scope: organisation`), which only its members see. Exposures and provider resources name either by ID.
-     */
-    public list<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdProvidersResponses, GetOrganisationsByIdProvidersErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
-        return (options?.client ?? this.client).get<GetOrganisationsByIdProvidersResponses, GetOrganisationsByIdProvidersErrors, ThrowOnError>({
-            url: '/organisations/{id}/providers',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Register a provider for an organisation
-     *
-     * Administrators only. Configures an account or endpoint of a supported provider type.
-     */
-    public create<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        typeId: string;
-        name: string;
-        params?: {
-            [key: string]: Schema0;
-        };
-        credentialRefs?: Array<string>;
-    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdProvidersResponses, PostOrganisationsByIdProvidersErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'body', key: 'typeId' },
-                    { in: 'body', key: 'name' },
-                    { in: 'body', key: 'params' },
-                    { in: 'body', key: 'credentialRefs' }
-                ] }]);
-        return (options?.client ?? this.client).post<PostOrganisationsByIdProvidersResponses, PostOrganisationsByIdProvidersErrors, ThrowOnError>({
-            url: '/organisations/{id}/providers',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
-    
-    /**
-     * Remove an organisation's provider registration
-     *
-     * Administrators only. Refused while any exposure or provider resource uses it.
-     */
-    public delete<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        providerId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdProvidersByProviderIdResponses, DeleteOrganisationsByIdProvidersByProviderIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'providerId' }] }]);
-        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdProvidersByProviderIdResponses, DeleteOrganisationsByIdProvidersByProviderIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/providers/{providerId}',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Update an organisation's provider registration
-     *
-     * Administrators only. Changes only the fields given; `params` is replaced whole.
-     */
-    public update<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        providerId: string;
-        name?: string;
-        params?: {
-            [key: string]: Schema0;
-        };
-        credentialRefs?: Array<string>;
-    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdProvidersByProviderIdResponses, PatchOrganisationsByIdProvidersByProviderIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'path', key: 'providerId' },
-                    { in: 'body', key: 'name' },
-                    { in: 'body', key: 'params' },
-                    { in: 'body', key: 'credentialRefs' }
-                ] }]);
-        return (options?.client ?? this.client).patch<PatchOrganisationsByIdProvidersByProviderIdResponses, PatchOrganisationsByIdProvidersByProviderIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/providers/{providerId}',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
-}
-
-export class ProviderResources extends HeyApiClient {
-    /**
-     * List an organisation's provider resources
-     *
-     * Empty for organisations you are not a member of.
-     */
-    public list<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdProviderResourcesResponses, GetOrganisationsByIdProviderResourcesErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
-        return (options?.client ?? this.client).get<GetOrganisationsByIdProviderResourcesResponses, GetOrganisationsByIdProviderResourcesErrors, ThrowOnError>({
-            url: '/organisations/{id}/provider-resources',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Record a provider resource
-     *
-     * Administrators only. A resource provisioned for the organisation through a provider registration, such as a live input, identified by its ID at the provider.
-     */
-    public create<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        providerId: string;
-        kind: string;
-        externalId: string;
-        params?: {
-            [key: string]: Schema0;
-        };
-    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdProviderResourcesResponses, PostOrganisationsByIdProviderResourcesErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'body', key: 'providerId' },
-                    { in: 'body', key: 'kind' },
-                    { in: 'body', key: 'externalId' },
-                    { in: 'body', key: 'params' }
-                ] }]);
-        return (options?.client ?? this.client).post<PostOrganisationsByIdProviderResourcesResponses, PostOrganisationsByIdProviderResourcesErrors, ThrowOnError>({
-            url: '/organisations/{id}/provider-resources',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
-    
-    /**
-     * Forget a provider resource
-     *
-     * Administrators only. Removes the record; deprovisioning at the provider is separate.
-     */
-    public delete<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        resourceId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdProviderResourcesByResourceIdResponses, DeleteOrganisationsByIdProviderResourcesByResourceIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'resourceId' }] }]);
-        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdProviderResourcesByResourceIdResponses, DeleteOrganisationsByIdProviderResourcesByResourceIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/provider-resources/{resourceId}',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Update a provider resource's settings
-     *
-     * Administrators only. Its registration, kind and external ID never change.
-     */
-    public update<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        resourceId: string;
-        params: {
-            [key: string]: Schema0;
-        };
-    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdProviderResourcesByResourceIdResponses, PatchOrganisationsByIdProviderResourcesByResourceIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'path', key: 'resourceId' },
-                    { in: 'body', key: 'params' }
-                ] }]);
-        return (options?.client ?? this.client).patch<PatchOrganisationsByIdProviderResourcesByResourceIdResponses, PatchOrganisationsByIdProviderResourcesByResourceIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/provider-resources/{resourceId}',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
-}
-
 export class Organisations extends HeyApiClient {
     /**
      * List your organisations
@@ -1509,122 +1307,6 @@ export class Organisations extends HeyApiClient {
     get subjects(): Subjects {
         return this._subjects ??= new Subjects({ client: this.client });
     }
-    
-    private _providers?: Providers;
-    get providers(): Providers {
-        return this._providers ??= new Providers({ client: this.client });
-    }
-    
-    private _providerResources?: ProviderResources;
-    get providerResources(): ProviderResources {
-        return this._providerResources ??= new ProviderResources({ client: this.client });
-    }
-}
-
-export class ProviderTypes extends HeyApiClient {
-    /**
-     * List the supported provider types
-     */
-    public list<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetProviderTypesResponses, GetProviderTypesErrors, ThrowOnError> {
-        return (options?.client ?? this.client).get<GetProviderTypesResponses, GetProviderTypesErrors, ThrowOnError>({ url: '/provider-types', ...options });
-    }
-}
-
-export class PlatformProviders extends HeyApiClient {
-    /**
-     * List the platform provider registrations
-     *
-     * The provider accounts and services the platform offers every organisation.
-     */
-    public list<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetProvidersResponses, GetProvidersErrors, ThrowOnError> {
-        return (options?.client ?? this.client).get<GetProvidersResponses, GetProvidersErrors, ThrowOnError>({ url: '/providers', ...options });
-    }
-    
-    /**
-     * Register a platform provider
-     *
-     * Global administrators only. Offers a provider account or service to every organisation.
-     */
-    public create<ThrowOnError extends boolean = false>(parameters: {
-        typeId: string;
-        name: string;
-        params?: {
-            [key: string]: Schema0;
-        };
-        credentialRefs?: Array<string>;
-        rateLimits?: {
-            [key: string]: Schema0;
-        };
-    }, options?: Options<never, ThrowOnError>): RequestResult<PostProvidersResponses, PostProvidersErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'body', key: 'typeId' },
-                    { in: 'body', key: 'name' },
-                    { in: 'body', key: 'params' },
-                    { in: 'body', key: 'credentialRefs' },
-                    { in: 'body', key: 'rateLimits' }
-                ] }]);
-        return (options?.client ?? this.client).post<PostProvidersResponses, PostProvidersErrors, ThrowOnError>({
-            url: '/providers',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
-    
-    /**
-     * Remove a platform provider
-     *
-     * Global administrators only. Refused while any exposure or provider resource uses it.
-     */
-    public delete<ThrowOnError extends boolean = false>(parameters: {
-        providerId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteProvidersByProviderIdResponses, DeleteProvidersByProviderIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'providerId' }] }]);
-        return (options?.client ?? this.client).delete<DeleteProvidersByProviderIdResponses, DeleteProvidersByProviderIdErrors, ThrowOnError>({
-            url: '/providers/{providerId}',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Update a platform provider
-     *
-     * Global administrators only. Changes only the fields given; objects are replaced whole.
-     */
-    public update<ThrowOnError extends boolean = false>(parameters: {
-        providerId: string;
-        name?: string;
-        params?: {
-            [key: string]: Schema0;
-        };
-        credentialRefs?: Array<string>;
-        rateLimits?: {
-            [key: string]: Schema0;
-        };
-    }, options?: Options<never, ThrowOnError>): RequestResult<PatchProvidersByProviderIdResponses, PatchProvidersByProviderIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'providerId' },
-                    { in: 'body', key: 'name' },
-                    { in: 'body', key: 'params' },
-                    { in: 'body', key: 'credentialRefs' },
-                    { in: 'body', key: 'rateLimits' }
-                ] }]);
-        return (options?.client ?? this.client).patch<PatchProvidersByProviderIdResponses, PatchProvidersByProviderIdErrors, ThrowOnError>({
-            url: '/providers/{providerId}',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
 }
 
 export class Invitations2 extends HeyApiClient {
@@ -1727,16 +1409,6 @@ export class BaseClient extends HeyApiClient {
     private _organisations?: Organisations;
     get organisations(): Organisations {
         return this._organisations ??= new Organisations({ client: this.client });
-    }
-    
-    private _providerTypes?: ProviderTypes;
-    get providerTypes(): ProviderTypes {
-        return this._providerTypes ??= new ProviderTypes({ client: this.client });
-    }
-    
-    private _platformProviders?: PlatformProviders;
-    get platformProviders(): PlatformProviders {
-        return this._platformProviders ??= new PlatformProviders({ client: this.client });
     }
     
     private _invitations?: Invitations2;

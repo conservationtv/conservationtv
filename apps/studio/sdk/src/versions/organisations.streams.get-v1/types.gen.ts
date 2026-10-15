@@ -15,7 +15,6 @@ export type Stream = {
         subjectId: string;
         networkId: string | null;
         protocol: string;
-        providerId: string | null;
         params: {
             renditions?: Array<{
                 id: string;

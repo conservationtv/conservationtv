@@ -20,7 +20,6 @@ export const ExposureSchema = z.object({
     subjectId: z.string(),
     networkId: z.string().nullable(),
     protocol: z.string(),
-    providerId: z.string().nullable(),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string(),
@@ -37,7 +36,6 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySch
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The delivery protocol, such as `moq` or `rtsp`.'
     }).optional(),
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string().min(1).max(60),
