@@ -63,7 +63,9 @@ export default new Hono()
     validator('param', SubjectParamsSchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const { state, opinions } = await session.transaction(async tx => {
         const [combined] = await tx
           .select({
@@ -124,7 +126,9 @@ export default new Hono()
     async c => {
       const { id, subjectId } = c.req.valid('param');
       const { limit, before } = c.req.valid('query');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -171,7 +175,9 @@ export default new Hono()
     validator('param', SubjectParamsSchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -212,7 +218,9 @@ export default new Hono()
     async c => {
       const { id, subjectId, seriesId } = c.req.valid('param');
       const { limit, before } = c.req.valid('query');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(async tx => {
         const [series] = await tx
           .select({ id: metricSeries.id })
@@ -267,7 +275,9 @@ export default new Hono()
     async c => {
       const { id, subjectId } = c.req.valid('param');
       const { limit, before } = c.req.valid('query');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({

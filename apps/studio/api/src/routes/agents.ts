@@ -262,7 +262,9 @@ export default new Hono()
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -314,7 +316,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
           .select({ id: agents.id })
@@ -359,8 +363,9 @@ export default new Hono()
     validator('param', SigningKeyParamsSchema),
     async c => {
       const { id, agentId, keyId } = c.req.valid('param');
-      const { clock } = useServices();
-      const session = await useServices().session(usePrincipal());
+      const services = useServices();
+      const principal = usePrincipal();
+      const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [key] = await tx
           .select({
@@ -382,7 +387,7 @@ export default new Hono()
         if (key.revokedAt !== null) return key;
         const [revoked] = await tx
           .update(agentSigningKeys)
-          .set({ revokedAt: new Date(clock()) })
+          .set({ revokedAt: new Date(services.clock()) })
           .where(and(eq(agentSigningKeys.id, keyId), isNull(agentSigningKeys.revokedAt)))
           .returning({
             id: agentSigningKeys.id,
