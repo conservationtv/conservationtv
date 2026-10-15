@@ -50,7 +50,7 @@ type NewInvitation = typeof organisationInvitations.$inferInsert;
 /** Insert through the request session, reporting which rule refused the row, if one did. */
 async function insertInvitation(tx: Transaction, values: NewInvitation) {
   try {
-    // Never `code_hash`: the application role cannot read it back.
+    // Never `codeHash`: the application role cannot read it back.
     const [row] = await tx.insert(organisationInvitations).values(values).returning({
       id: organisationInvitations.id,
       email: organisationInvitations.email,
@@ -130,9 +130,8 @@ export function readInvitation(invitationId: string) {
     const [row] = await tx
       .select({
         id: organisationInvitations.id,
-        organisationId: organisations.id,
-        organisationName: organisations.name,
-        userId: organisationInvitations.userId,
+        organisation: { id: organisations.id, name: organisations.name },
+        needsCode: sql<boolean>`${organisationInvitations.userId} is null`,
         expiresAt: organisationInvitations.expiresAt
       })
       .from(organisationInvitations)
@@ -149,8 +148,7 @@ export function listOwnInvitations(principal: UserPrincipal) {
     tx
       .select({
         id: organisationInvitations.id,
-        organisationId: organisations.id,
-        organisationName: organisations.name,
+        organisation: { id: organisations.id, name: organisations.name },
         expiresAt: organisationInvitations.expiresAt
       })
       .from(organisationInvitations)
@@ -162,7 +160,7 @@ export function listOwnInvitations(principal: UserPrincipal) {
 
 /**
  * Lock an open invitation the principal may redeem: theirs by account, or any emailed one whose code they present.
- * Anything else is `not_found`, so a wrong guess learns nothing; a wrong code is reported as such.
+ * Anything else is `notFound`, so a wrong guess learns nothing; a wrong code is reported as such.
  */
 async function redeemable(tx: Transaction, principal: UserPrincipal, invitationId: string, proof: InvitationProof) {
   const [invitation] = await tx

@@ -5,9 +5,15 @@ import { describeRoute } from 'hono-openapi';
 import document from '../contracts/openapi.json' with { type: 'json' };
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import account from './routes/account.ts';
+import agents from './routes/agents.ts';
+import devices from './routes/devices.ts';
 import health from './routes/health.ts';
 import invitations from './routes/invitations.ts';
+import networks from './routes/networks.ts';
 import organisations from './routes/organisations.ts';
+import providers from './routes/providers.ts';
+import streams from './routes/streams.ts';
+import subjects from './routes/subjects.ts';
 import { useServices } from './services.ts';
 
 export const operationRouter = new OperationRouter();
@@ -29,6 +35,13 @@ const app = new Hono({ router: operationRouter })
   )
   .route('/account', account)
   .route('/organisations', organisations)
+  // The stream topology each organisation owns, and what its agents report about it.
+  .route('/organisations', networks)
+  .route('/organisations', devices)
+  .route('/organisations', agents)
+  .route('/organisations', streams)
+  .route('/organisations', subjects)
+  .route('/', providers)
   .route('/invitations', invitations)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)

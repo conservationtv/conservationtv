@@ -16,7 +16,7 @@ export type Invitation = {
             id: string;
             name: string;
         };
-        expires_at: string;
+        expiresAt: string;
     }>;
 };
 

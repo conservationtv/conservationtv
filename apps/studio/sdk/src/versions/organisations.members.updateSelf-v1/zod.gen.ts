@@ -8,12 +8,12 @@ export const ErrorSchema = z.object({
 });
 
 export const MemberSchema = z.object({
-    user_id: z.string(),
-    display_name: z.string()
+    userId: z.string(),
+    displayName: z.string()
 });
 
 export const PatchOrganisationsByIdMembersMeBodySchema = z.object({
-    display_name: z.string().min(1).max(120).register(z.globalRegistry, {
+    displayName: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'Your name in this organisation.'
     })
 });

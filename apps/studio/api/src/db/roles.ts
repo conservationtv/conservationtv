@@ -15,20 +15,30 @@ export const self = role('self', {
  */
 export const globalAdmin = role('globalAdmin', {
   label: 'Global administrator',
-  description: 'Operate the service: delete any organisation.',
+  description: 'Operate the service: delete any organisation, and manage the platform provider registrations.',
+  assignableScopes: ['global']
+});
+
+/**
+ * Granted to every account at the global scope when it signs in: shared reference data, such as the supported provider
+ * types and the platform's provider registrations. Reaches only the tables that opt in.
+ */
+export const signedIn = role('signedIn', {
+  label: 'Signed in',
+  description: 'Read the reference data shared by every account.',
   assignableScopes: ['global']
 });
 
 /** Granted at an organisation to every member: the organisation and its member directory. */
 export const organisationMember = role('organisationMember', {
   label: 'Member',
-  description: 'See the organisation and its members.',
+  description: 'See the organisation, its members and its stream topology.',
   assignableScopes: ['organisation']
 });
 
 /** Granted alongside `organisationMember` to the people who run an organisation. */
 export const organisationAdmin = role('organisationAdmin', {
   label: 'Administrator',
-  description: 'Manage the organisation, its members, their profiles and its invitations.',
+  description: 'Manage the organisation, its members, their profiles and its invitations, and its stream topology.',
   assignableScopes: ['organisation']
 });

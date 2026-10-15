@@ -53,17 +53,7 @@ export default new Hono()
       );
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          id: row.id,
-          name: row.name,
-          email: row.email,
-          email_verified: row.emailVerified,
-          image: row.image,
-          created_at: row.createdAt.toISOString()
-        },
-        200
-      );
+      return c.json(row, 200);
     }
   )
   .patch(
@@ -110,16 +100,6 @@ export default new Hono()
       // An update that reaches no row means the account is not visible to this session.
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          id: row.id,
-          name: row.name,
-          email: row.email,
-          email_verified: row.emailVerified,
-          image: row.image,
-          created_at: row.createdAt.toISOString()
-        },
-        200
-      );
+      return c.json(row, 200);
     }
   );

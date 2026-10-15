@@ -10,17 +10,17 @@ export const ErrorSchema = z.object({
 export const InvitationSchema = z.object({
     id: z.string(),
     email: z.string().nullable(),
-    user_id: z.string().nullable(),
-    invited_by: z.string().nullable(),
-    created_at: z.string(),
-    expires_at: z.string()
+    userId: z.string().nullable(),
+    invitedBy: z.string().nullable(),
+    createdAt: z.string(),
+    expiresAt: z.string()
 });
 
 export const PostOrganisationsByIdInvitationsBodySchema = z.object({
     email: z.email().max(320).regex(/^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/).register(z.globalRegistry, {
         description: 'The address to send the invitation to.'
     }).optional(),
-    user_id: z.string().min(1).max(64).register(z.globalRegistry, {
+    userId: z.string().min(1).max(64).register(z.globalRegistry, {
         description: 'The account to invite.'
     }).optional()
 });

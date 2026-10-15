@@ -13,7 +13,7 @@ export type Organisation = {
     organisations: Array<{
         id: string;
         name: string;
-        created_at: string;
+        createdAt: string;
         roles: Array<{
             id: string;
             label: string;

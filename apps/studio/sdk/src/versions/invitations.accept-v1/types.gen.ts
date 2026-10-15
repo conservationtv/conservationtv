@@ -10,9 +10,9 @@ export type Error = {
 };
 
 export type Invitation = {
-    organisation_id: string;
-    user_id: string;
-    joined_at: string;
+    organisationId: string;
+    userId: string;
+    joinedAt: string;
 };
 
 export type PostInvitationsByIdAcceptData = {
@@ -24,7 +24,7 @@ export type PostInvitationsByIdAcceptData = {
         /**
          * Your name as the organisation's members will see it.
          */
-        display_name: string;
+        displayName: string;
     };
     path: {
         /**

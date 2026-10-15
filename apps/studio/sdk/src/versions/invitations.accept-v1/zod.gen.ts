@@ -8,16 +8,16 @@ export const ErrorSchema = z.object({
 });
 
 export const InvitationSchema = z.object({
-    organisation_id: z.string(),
-    user_id: z.string(),
-    joined_at: z.string()
+    organisationId: z.string(),
+    userId: z.string(),
+    joinedAt: z.string()
 });
 
 export const PostInvitationsByIdAcceptBodySchema = z.object({
     code: z.string().min(1).max(128).register(z.globalRegistry, {
         description: 'The one-time code from an emailed invitation\'s link.'
     }).optional(),
-    display_name: z.string().min(1).max(120).register(z.globalRegistry, {
+    displayName: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'Your name as the organisation\'s members will see it.'
     })
 });

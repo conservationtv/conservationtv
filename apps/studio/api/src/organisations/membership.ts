@@ -38,7 +38,11 @@ export async function addMember(tx: Transaction, access: Access, principal: User
     .insert(organisationMemberships)
     .values({ organisationId: input.organisationId, userId: principal.id })
     .onConflictDoNothing()
-    .returning();
+    .returning({
+      organisationId: organisationMemberships.organisationId,
+      userId: organisationMemberships.userId,
+      joinedAt: organisationMemberships.createdAt
+    });
   if (!membership) throw new ApiFailure('already_member');
   await tx
     .insert(organisationProfiles)
@@ -49,7 +53,7 @@ export async function addMember(tx: Transaction, access: Access, principal: User
 
 /**
  * Lock the organisation for the rest of the transaction, so concurrent changes to its administrators are serialised,
- * and fail as `not_found` unless the principal can see it.
+ * and fail as `notFound` unless the principal can see it.
  */
 async function lockVisibleOrganisation(
   tx: Transaction,
@@ -82,7 +86,10 @@ async function mayRemoveMembers(access: Access, principal: UserPrincipal, organi
 /** Create an organisation with the principal as its first member and administrator. */
 export function createOrganisation(principal: UserPrincipal, input: NewOrganisation) {
   return trusted(async (tx, access) => {
-    const [organisation] = await tx.insert(organisations).values({ name: input.name }).returning();
+    const [organisation] = await tx
+      .insert(organisations)
+      .values({ name: input.name })
+      .returning({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt });
     await addMember(tx, access, principal, { organisationId: organisation!.id, displayName: input.displayName });
     await access.at(organisationScope(organisation!.id)).grant({ principal, role: organisationAdmin });
     return organisation!;
@@ -208,7 +215,7 @@ export interface MemberRole {
  * The organisation's members visible to the principal, with their profiles and the roles they hold there, one row
  * each, aggregated in Postgres (umbrella's GUIDE: "One row per user, aggregated in SQL"). It runs in the principal's
  * request session: row-level security decides which members appear, and the grants table, readable by request
- * sessions (see the `grants_readable` migration), only adds their roles.
+ * sessions (see the `grantsReadable` migration), only adds their roles.
  */
 export async function listMembers(principal: UserPrincipal, organisationId: string) {
   const session = await useServices().session(principal);

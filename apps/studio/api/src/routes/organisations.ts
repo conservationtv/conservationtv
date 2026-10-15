@@ -69,17 +69,7 @@ export default new Hono()
     async c => {
       const rows = await listOwnOrganisations(usePrincipal());
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          organisations: rows.map(row => ({
-            id: row.id,
-            name: row.name,
-            created_at: row.createdAt.toISOString(),
-            roles: row.roles
-          }))
-        },
-        200
-      );
+      return c.json({ organisations: rows }, 200);
     }
   )
   .post(
@@ -102,20 +92,17 @@ export default new Hono()
       'json',
       z.strictObject({
         name: z.string().trim().min(1).max(120).describe('The organisation name.'),
-        display_name: z.string().trim().min(1).max(120).describe("Your name as the organisation's members will see it.")
+        displayName: z.string().trim().min(1).max(120).describe("Your name as the organisation's members will see it.")
       })
     ),
     async c => {
       const body = c.req.valid('json');
       const organisation = await createOrganisation(usePrincipal(), {
         name: body.name,
-        displayName: body.display_name
+        displayName: body.displayName
       });
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        { id: organisation.id, name: organisation.name, created_at: organisation.createdAt.toISOString() },
-        201
-      );
+      return c.json(organisation, 201);
     }
   )
   .get(
@@ -147,7 +134,7 @@ export default new Hono()
       );
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json({ id: row.id, name: row.name, created_at: row.createdAt.toISOString() }, 200);
+      return c.json(row, 200);
     }
   )
   .patch(
@@ -182,7 +169,7 @@ export default new Hono()
       );
       if (!row) throw new ApiFailure((await visible(session, id)) ? 'forbidden' : 'not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json({ id: row.id, name: row.name, created_at: row.createdAt.toISOString() }, 200);
+      return c.json(row, 200);
     }
   )
   .delete(
@@ -235,17 +222,7 @@ export default new Hono()
       // Every member sees at least themselves, so no rows means the organisation is hidden, or its members are.
       if (rows.length === 0 && !(await visible(session, id))) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          members: rows.map(row => ({
-            user_id: row.userId,
-            display_name: row.displayName,
-            joined_at: row.joinedAt.toISOString(),
-            roles: row.roles
-          }))
-        },
-        200
-      );
+      return c.json({ members: rows }, 200);
     }
   )
   .patch(
@@ -268,7 +245,7 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     validator(
       'json',
-      z.strictObject({ display_name: z.string().trim().min(1).max(120).describe('Your name in this organisation.') })
+      z.strictObject({ displayName: z.string().trim().min(1).max(120).describe('Your name in this organisation.') })
     ),
     async c => {
       const principal = usePrincipal();
@@ -277,13 +254,13 @@ export default new Hono()
       const [row] = await session.transaction(tx =>
         tx
           .update(organisationProfiles)
-          .set({ displayName: c.req.valid('json').display_name })
+          .set({ displayName: c.req.valid('json').displayName })
           .where(and(eq(organisationProfiles.organisationId, id), eq(organisationProfiles.userId, principal.id)))
           .returning({ userId: organisationProfiles.userId, displayName: organisationProfiles.displayName })
       );
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json({ user_id: row.userId, display_name: row.displayName }, 200);
+      return c.json(row, 200);
     }
   )
   .delete(
@@ -389,19 +366,7 @@ export default new Hono()
     async c => {
       const invitations = await listOrganisationInvitations(usePrincipal(), c.req.valid('param').id);
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          invitations: invitations.map(invitation => ({
-            id: invitation.id,
-            email: invitation.email,
-            user_id: invitation.userId,
-            invited_by: invitation.invitedBy,
-            created_at: invitation.createdAt.toISOString(),
-            expires_at: invitation.expiresAt.toISOString()
-          }))
-        },
-        200
-      );
+      return c.json({ invitations }, 200);
     }
   )
   .post(
@@ -411,7 +376,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Invite someone',
       description:
-        'Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.',
+        'Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days.',
       responses: {
         201: { description: 'The invitation' },
         400: invalidRequest,
@@ -430,30 +395,20 @@ export default new Hono()
       z
         .strictObject({
           email: z.email().max(320).optional().describe('The address to send the invitation to.'),
-          user_id: z.string().min(1).max(64).optional().describe('The account to invite.')
+          userId: z.string().min(1).max(64).optional().describe('The account to invite.')
         })
-        .transform(({ email, user_id }, context) => {
+        .transform(({ email, userId }, context) => {
           // One flat object keeps the CLI's flags simple; exactly one recipient becomes the invitation's.
-          if (email !== undefined && user_id === undefined) return { email };
-          if (user_id !== undefined && email === undefined) return { userId: user_id };
-          context.addIssue({ code: 'custom', message: 'Provide exactly one of email or user_id' });
+          if (email !== undefined && userId === undefined) return { email };
+          if (userId !== undefined && email === undefined) return { userId };
+          context.addIssue({ code: 'custom', message: 'Provide exactly one of email or userId' });
           return z.NEVER;
         })
     ),
     async c => {
       const invitation = await createInvitation(usePrincipal(), c.req.valid('param').id, c.req.valid('json'));
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          id: invitation.id,
-          email: invitation.email,
-          user_id: invitation.userId,
-          invited_by: invitation.invitedBy,
-          created_at: invitation.createdAt.toISOString(),
-          expires_at: invitation.expiresAt.toISOString()
-        },
-        201
-      );
+      return c.json(invitation, 201);
     }
   )
   .delete(

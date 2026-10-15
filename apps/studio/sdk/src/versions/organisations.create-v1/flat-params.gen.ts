@@ -6,7 +6,7 @@ import { PostOrganisationsBodySchema } from './zod.gen.js';
 
 export const OrganisationCreateV1ParamsSchema = z.object({
     name: PostOrganisationsBodySchema.shape.name.nonoptional().describe('The organisation name.'),
-    display_name: PostOrganisationsBodySchema.shape.display_name.nonoptional().describe('Your name as the organisation\'s members will see it.')
+    displayName: PostOrganisationsBodySchema.shape.displayName.nonoptional().describe('Your name as the organisation\'s members will see it.')
 });
 
 export type OrganisationCreateV1Params = z.infer<typeof OrganisationCreateV1ParamsSchema>;
