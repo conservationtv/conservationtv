@@ -8,13 +8,17 @@ export const ErrorSchema = z.object({
 });
 
 export const MetricSchema = z.object({
-    series: z.array(z.object({
+    samples: z.array(z.object({
         id: z.string(),
         reporterId: z.string(),
+        keyId: z.string(),
+        observedAt: z.string(),
+        receivedAt: z.string(),
         name: z.string(),
         type: z.string(),
         unit: z.string().nullable(),
-        dimensions: z.record(z.string(), z.string())
+        dimensions: z.record(z.string(), z.string()),
+        value: z.number()
     }))
 });
 
@@ -27,7 +31,19 @@ export const GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema = z.object
     })
 });
 
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema = z.object({
+    limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
+        description: 'At most this many, newest first.'
+    }).optional().default(100),
+    before: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Only those observed before this time, to page back.'
+    }).optional(),
+    name: z.string().min(1).max(200).register(z.globalRegistry, {
+        description: 'Only samples of this metric.'
+    }).optional()
+});
+
 /**
- * The series, by name
+ * The samples
  */
 export const GetOrganisationsByIdSubjectsBySubjectIdMetricsResponseSchema = MetricSchema;

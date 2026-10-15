@@ -19,7 +19,10 @@ import { observationAccess } from './report-access.ts';
 
 const healthCheck = (column: AnyPgColumn) => sql`${column} in ('healthy', 'unhealthy', 'unknown')`;
 
-/** An accepted event report: the single logical event stream, in receipt order, that the state consumer reads. */
+/**
+ * An accepted event report: the single logical event stream that the state consumer reads, in receipt order by its
+ * `uuidv7()` ID.
+ */
 export const observations = withAccess(
   pgTable(
     'observation',
@@ -27,8 +30,10 @@ export const observations = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
+      id: uuid('id')
+        .primaryKey()
+        .default(sql`uuidv7()`),
       reporterId: uuid('reporter_id').notNull(),
-      id: uuid('id').notNull(),
       subjectId: text('subject_id').notNull(),
       keyId: uuid('key_id')
         .notNull()
@@ -39,14 +44,12 @@ export const observations = withAccess(
       data: jsonb('data').$type<Settings>().default({}).notNull()
     },
     t => [
-      primaryKey({ columns: [t.reporterId, t.id] }),
       foreignKey({
         name: 'observation_reporter_fk',
         columns: [t.organisationId, t.reporterId],
         foreignColumns: [agents.organisationId, agents.id]
       }).onDelete('cascade'),
-      index('observation_subject_observed_idx').on(t.organisationId, t.subjectId, t.observedAt),
-      index('observation_received_idx').on(t.receivedAt)
+      index('observation_subject_observed_idx').on(t.organisationId, t.subjectId, t.observedAt)
     ]
   ),
   t => ({ name: 'observations', scope: organisations.$access.scope.via(t.organisationId), ...observationAccess })

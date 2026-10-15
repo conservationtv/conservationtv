@@ -1,86 +1,49 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { describeRoute } from 'hono-openapi';
-import { ingestEvent, ingestLog, ingestMetric, SubmissionSchema } from '../reports/ingest.ts';
+import { ApiFailure } from '../errors.ts';
+import { ingestBatch, MAX_BATCH_REPORTS, SubmissionSchema } from '../reports/ingest.ts';
 import {
+  batchTooLarge,
   invalidRequest,
   invalidSignature,
-  metricSeriesConflict,
   operationVersion,
   unavailable,
   validator,
   versionMismatch
 } from './openapi.ts';
 
-const signing =
-  'The `report` is JSON text signed, byte for byte, by one of the reporting agent’s registered Ed25519 keys; `reporterId` must be that agent. Submitting the same report ID again stores nothing and reports `duplicate: true`.';
+/** The largest submission accepted, envelope included. */
+const MAX_SUBMISSION_BYTES = 1024 * 1024;
 
-// The three ingestion endpoints, one per signal type. Agents call them with no session: each submission is
-// authenticated by its signature (src/reports/ingest.ts).
-export default new Hono()
-  .post(
-    '/events',
-    describeRoute({
-      operationId: 'reports.events.submit',
-      ...operationVersion(1),
-      summary: 'Submit an event report',
-      description: `An observation about a subject, such as a heartbeat or whether video is being received, added to the event stream from which subject state is derived. ${signing}`,
-      responses: {
-        202: { description: 'Accepted' },
-        400: invalidRequest,
-        401: invalidSignature,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    validator('json', SubmissionSchema),
-    async c => {
-      const accepted = await ingestEvent(c.req.valid('json'));
-      c.header('Cache-Control', 'no-store');
-      return c.json({ id: accepted.id, duplicate: accepted.duplicate }, 202);
+// Report ingestion. Agents call it with no session: each batch is authenticated by its signature
+// (src/reports/ingest.ts).
+export default new Hono().post(
+  '/',
+  describeRoute({
+    operationId: 'reports.submit',
+    ...operationVersion(1),
+    summary: 'Submit a batch of reports',
+    description: `Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most ${MAX_BATCH_REPORTS}. The \`batch\` is JSON text signed, byte for byte, by one of the reporting agent’s registered Ed25519 keys, and its \`reporterId\` must be that agent. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.`,
+    responses: {
+      202: { description: 'Accepted' },
+      400: invalidRequest,
+      401: invalidSignature,
+      412: versionMismatch,
+      413: batchTooLarge,
+      503: unavailable
     }
-  )
-  .post(
-    '/metrics',
-    describeRoute({
-      operationId: 'reports.metrics.submit',
-      ...operationVersion(1),
-      summary: 'Submit a metric report',
-      description: `A measurement of a gauge or counter about a subject, stored as a sample in the reporter's own series for that metric and its dimensions. ${signing}`,
-      responses: {
-        202: { description: 'Accepted' },
-        400: invalidRequest,
-        401: invalidSignature,
-        409: metricSeriesConflict,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    validator('json', SubmissionSchema),
-    async c => {
-      const accepted = await ingestMetric(c.req.valid('json'));
-      c.header('Cache-Control', 'no-store');
-      return c.json({ id: accepted.id, duplicate: accepted.duplicate }, 202);
+  }),
+  bodyLimit({
+    maxSize: MAX_SUBMISSION_BYTES,
+    onError: () => {
+      throw new ApiFailure('batch_too_large');
     }
-  )
-  .post(
-    '/logs',
-    describeRoute({
-      operationId: 'reports.logs.submit',
-      ...operationVersion(1),
-      summary: 'Submit a log report',
-      description: `A log message about a subject, with its level and structured context. ${signing}`,
-      responses: {
-        202: { description: 'Accepted' },
-        400: invalidRequest,
-        401: invalidSignature,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    validator('json', SubmissionSchema),
-    async c => {
-      const accepted = await ingestLog(c.req.valid('json'));
-      c.header('Cache-Control', 'no-store');
-      return c.json({ id: accepted.id, duplicate: accepted.duplicate }, 202);
-    }
-  );
+  }),
+  validator('json', SubmissionSchema),
+  async c => {
+    const accepted = await ingestBatch(c.req.valid('json'));
+    c.header('Cache-Control', 'no-store');
+    return c.json(accepted, 202);
+  }
+);

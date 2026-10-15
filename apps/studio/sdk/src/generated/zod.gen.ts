@@ -250,13 +250,17 @@ export const ObservationSchema = z.object({
 });
 
 export const MetricSchema = z.object({
-    series: z.array(z.object({
+    samples: z.array(z.object({
         id: z.string(),
         reporterId: z.string(),
+        keyId: z.string(),
+        observedAt: z.string(),
+        receivedAt: z.string(),
         name: z.string(),
         type: z.string(),
         unit: z.string().nullable(),
-        dimensions: z.record(z.string(), z.string())
+        dimensions: z.record(z.string(), z.string()),
+        value: z.number()
     }))
 });
 
@@ -273,9 +277,8 @@ export const LogSchema = z.object({
     }))
 });
 
-export const EventSchema = z.object({
-    id: z.string(),
-    duplicate: z.boolean()
+export const ReportSchema = z.object({
+    accepted: z.number()
 });
 
 /**
@@ -1410,45 +1413,22 @@ export const GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema = z.object
     })
 });
 
-/**
- * The series, by name
- */
-export const GetOrganisationsByIdSubjectsBySubjectIdMetricsResponseSchema = MetricSchema;
-
-export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
-    }),
-    seriesId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The metric series.'
-    })
-});
-
-export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesQuerySchema = z.object({
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema = z.object({
     limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
         description: 'At most this many, newest first.'
     }).optional().default(100),
     before: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
         description: 'Only those observed before this time, to page back.'
+    }).optional(),
+    name: z.string().min(1).max(200).register(z.globalRegistry, {
+        description: 'Only samples of this metric.'
     }).optional()
 });
 
 /**
  * The samples
  */
-export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdSamplesResponseSchema = z.object({
-    samples: z.array(z.object({
-        reportId: z.string(),
-        observedAt: z.string(),
-        receivedAt: z.string(),
-        value: z.number()
-    }))
-}).register(z.globalRegistry, {
-    description: 'The samples'
-});
+export const GetOrganisationsByIdSubjectsBySubjectIdMetricsResponseSchema = MetricSchema;
 
 export const GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -1545,63 +1525,19 @@ export const PostInvitationsByIdDeclineResponseSchema = z.void().register(z.glob
     description: 'Declined'
 });
 
-export const PostReportsEventsBodySchema = z.object({
+export const PostReportsBodySchema = z.object({
     keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The registered signing key.'
     }),
-    report: z.string().min(2).max(65536).register(z.globalRegistry, {
-        description: 'The report, as JSON text: the exact bytes that were signed.'
+    batch: z.string().min(2).register(z.globalRegistry, {
+        description: 'The batch, as JSON text: the exact bytes that were signed.'
     }),
     signature: z.string().min(1).max(128).register(z.globalRegistry, {
-        description: 'The key\'s Ed25519 signature of the report text, unpadded base64url.'
+        description: 'The key\'s Ed25519 signature of the batch text, unpadded base64url.'
     })
 });
 
 /**
  * Accepted
  */
-export const PostReportsEventsResponseSchema = EventSchema;
-
-export const PostReportsMetricsBodySchema = z.object({
-    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The registered signing key.'
-    }),
-    report: z.string().min(2).max(65536).register(z.globalRegistry, {
-        description: 'The report, as JSON text: the exact bytes that were signed.'
-    }),
-    signature: z.string().min(1).max(128).register(z.globalRegistry, {
-        description: 'The key\'s Ed25519 signature of the report text, unpadded base64url.'
-    })
-});
-
-/**
- * Accepted
- */
-export const PostReportsMetricsResponseSchema = z.object({
-    id: z.string(),
-    duplicate: z.boolean()
-}).register(z.globalRegistry, {
-    description: 'Accepted'
-});
-
-export const PostReportsLogsBodySchema = z.object({
-    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The registered signing key.'
-    }),
-    report: z.string().min(2).max(65536).register(z.globalRegistry, {
-        description: 'The report, as JSON text: the exact bytes that were signed.'
-    }),
-    signature: z.string().min(1).max(128).register(z.globalRegistry, {
-        description: 'The key\'s Ed25519 signature of the report text, unpadded base64url.'
-    })
-});
-
-/**
- * Accepted
- */
-export const PostReportsLogsResponseSchema = z.object({
-    id: z.string(),
-    duplicate: z.boolean()
-}).register(z.globalRegistry, {
-    description: 'Accepted'
-});
+export const PostReportsResponseSchema = ReportSchema;

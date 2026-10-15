@@ -10,15 +10,19 @@ export type Error = {
 };
 
 export type Metric = {
-    series: Array<{
+    samples: Array<{
         id: string;
         reporterId: string;
+        keyId: string;
+        observedAt: string;
+        receivedAt: string;
         name: string;
         type: string;
         unit: string | null;
         dimensions: {
             [key: string]: string;
         };
+        value: number;
     }>;
 };
 
@@ -34,7 +38,20 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
          */
         subjectId: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+        /**
+         * Only samples of this metric.
+         */
+        name?: string;
+    };
     url: '/organisations/{id}/subjects/{subjectId}/metrics';
 };
 
@@ -61,7 +78,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsError = GetOrganisatio
 
 export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses = {
     /**
-     * The series, by name
+     * The samples
      */
     200: Metric;
 };
