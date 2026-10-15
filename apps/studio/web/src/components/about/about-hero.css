@@ -1,0 +1,96 @@
+/*
+ * The hero's sky: a warm, pinkish dawn gradient fading out over the ground into the page behind, and clouds drifting
+ * north-north-east across it. The page sets how long a loop of the drift takes (`--cloud-drift-duration`) and starts
+ * it from where the wall clock says it should be (`--cloud-drift-phase`), so the clouds carry on from where they were
+ * rather than jumping back each time the page loads. Held still for anyone who prefers reduced motion.
+ */
+.about-hero-sky {
+  background: linear-gradient(
+    180deg,
+    #fbf5ef 0%,
+    #f8e6dc 16.39%,
+    #f5d8cb 29.66%,
+    #f6c8ad 39.42%,
+    #f6c49f 51.52%,
+    transparent 81.18%
+  );
+}
+
+/*
+ * In dark mode, the same sky at night, in the dark theme's own warm neutral (the canvas's hue, with barely any colour):
+ * darkest overhead, lightening towards the hills, with a little more warmth left at the horizon. The stops sit where
+ * the dawn's do, so the glow lands on the horizon. Below it the glow eases out to nothing by the bottom of the hero,
+ * rather than stopping short, so there's no edge where it meets the page.
+ */
+.dark .about-hero-sky {
+  background: linear-gradient(
+    180deg,
+    #151412 0%,
+    #21201e 16.39%,
+    #2c2b28 29.66%,
+    #3a3936 39.42%,
+    #514d46 51.52%,
+    rgb(81 77 70 / 0.62) 62%,
+    rgb(81 77 70 / 0.34) 72%,
+    rgb(81 77 70 / 0.15) 82%,
+    rgb(81 77 70 / 0.04) 92%,
+    transparent 100%
+  );
+}
+
+/*
+ * The clouds are painted on a layer of their own behind the hero's words, so they can be filtered without the words.
+ * The image comes in from the page as `--about-hero-clouds-image`.
+ */
+.about-hero-clouds {
+  position: relative;
+  isolation: isolate;
+}
+
+.about-hero-clouds::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--about-hero-clouds-image);
+  animation: about-hero-drift var(--cloud-drift-duration) linear infinite;
+  animation-delay: calc(-1 * var(--cloud-drift-phase, 0s));
+  background-repeat: repeat;
+  background-size: 80em;
+}
+
+/* At night the clouds are only a faint white wisp: their colour drained and most of them see-through. */
+.dark .about-hero-clouds::before {
+  filter: grayscale(1) brightness(1.15);
+  opacity: 0.12;
+}
+
+/*
+ * The landscape, sized to its image. At night it swaps to a version made from the day one: more contrast, blue shadows,
+ * greens turned a little towards teal and colour pulled well down, with the sunlit tops keeping a faint warm glow, and
+ * the fireflies' light (see fireflies.tsx) warming the animals and the ground at their feet.
+ */
+.about-hero-landscape {
+  aspect-ratio: 3905 / 1241;
+  background: var(--about-hero-landscape-day) center / 100% 100% no-repeat;
+}
+
+.dark .about-hero-landscape {
+  background-image: var(--about-hero-landscape-night);
+}
+
+@keyframes about-hero-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 80em -37.975em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-hero-clouds::before {
+    animation: none;
+  }
+}
