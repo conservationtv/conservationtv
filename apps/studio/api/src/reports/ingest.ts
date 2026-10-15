@@ -103,7 +103,9 @@ function reportJson(submission: Submission) {
 function checkReport(report: EventReport | MetricReport | LogReport, agentId: string) {
   // The signature authenticates the key's agent, so the report must claim that agent as its reporter.
   if (report.reporterId !== agentId) throw new ApiFailure('invalid_signature');
-  if (Date.parse(report.observedAt) > useServices().clock() + MAX_CLOCK_SKEW_MS) throw new ApiFailure('invalid_report');
+  const services = useServices();
+  const now = services.clock();
+  if (Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS) throw new ApiFailure('invalid_report');
 }
 
 /** Verify a submission's key and signature, then parse its report with its kind's schema. */
