@@ -58,7 +58,6 @@ export class Exposures extends HeyApiClient {
         exposureId: string;
         networkId?: string | null;
         protocol?: string;
-        providerId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -86,7 +85,6 @@ export class Exposures extends HeyApiClient {
                     { in: 'path', key: 'exposureId' },
                     { in: 'body', key: 'networkId' },
                     { in: 'body', key: 'protocol' },
-                    { in: 'body', key: 'providerId' },
                     { in: 'body', key: 'params' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError>({

@@ -10,7 +10,6 @@ export const ExposureUpdateV1ParamsSchema = z.object({
     exposureId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
     networkId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
     protocol: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.protocol.optional().describe('The delivery protocol, such as `moq` or `rtsp`.'),
-    providerId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.providerId.optional().describe('A provider registration, the platform\'s or the organisation\'s own, or null for a local exposure.'),
     params: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.params.optional()
 });
 

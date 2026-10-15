@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 
-import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdDevicesByDeviceIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdProviderResourcesByResourceIdPathSchema, DeleteOrganisationsByIdProvidersByProviderIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, DeleteOrganisationsByIdSubjectsBySubjectIdPathSchema, DeleteProvidersByProviderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsQuerySchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdProviderResourcesPathSchema, GetOrganisationsByIdProvidersPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdPathSchema, GetOrganisationsByIdSubjectsPathSchema, GetOrganisationsByIdSubjectsQuerySchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdProviderResourcesByResourceIdBodySchema, PatchOrganisationsByIdProviderResourcesByResourceIdPathSchema, PatchOrganisationsByIdProvidersByProviderIdBodySchema, PatchOrganisationsByIdProvidersByProviderIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PatchOrganisationsByIdSubjectsBySubjectIdBodySchema, PatchOrganisationsByIdSubjectsBySubjectIdPathSchema, PatchProvidersByProviderIdBodySchema, PatchProvidersByProviderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdDevicesBodySchema, PostOrganisationsByIdDevicesPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdProviderResourcesBodySchema, PostOrganisationsByIdProviderResourcesPathSchema, PostOrganisationsByIdProvidersBodySchema, PostOrganisationsByIdProvidersPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PostOrganisationsByIdSubjectsBodySchema, PostOrganisationsByIdSubjectsPathSchema, PostProvidersBodySchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
+import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdDevicesByDeviceIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, DeleteOrganisationsByIdSubjectsBySubjectIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsQuerySchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdPathSchema, GetOrganisationsByIdSubjectsPathSchema, GetOrganisationsByIdSubjectsQuerySchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PatchOrganisationsByIdSubjectsBySubjectIdBodySchema, PatchOrganisationsByIdSubjectsBySubjectIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdDevicesBodySchema, PostOrganisationsByIdDevicesPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PostOrganisationsByIdSubjectsBodySchema, PostOrganisationsByIdSubjectsPathSchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
@@ -304,7 +304,6 @@ export const ExposureCreateParamsSchema = z.object({
     streamId: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     networkId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
     protocol: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.protocol.nonoptional().describe('The delivery protocol, such as `moq` or `rtsp`.'),
-    providerId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.providerId.optional().describe('A provider registration, the platform\'s or the organisation\'s own, or null for a local exposure.'),
     params: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.params.optional()
 });
 
@@ -324,7 +323,6 @@ export const ExposureUpdateParamsSchema = z.object({
     exposureId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
     networkId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
     protocol: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.protocol.optional().describe('The delivery protocol, such as `moq` or `rtsp`.'),
-    providerId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.providerId.optional().describe('A provider registration, the platform\'s or the organisation\'s own, or null for a local exposure.'),
     params: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.params.optional()
 });
 
@@ -395,104 +393,6 @@ export const SubjectUpdateParamsSchema = z.object({
 });
 
 export type SubjectUpdateParams = z.infer<typeof SubjectUpdateParamsSchema>;
-
-export const ProviderTypeListParamsSchema = z.object({});
-
-export type ProviderTypeListParams = z.infer<typeof ProviderTypeListParamsSchema>;
-
-export const PlatformProviderListParamsSchema = z.object({});
-
-export type PlatformProviderListParams = z.infer<typeof PlatformProviderListParamsSchema>;
-
-export const PlatformProviderCreateParamsSchema = z.object({
-    typeId: PostProvidersBodySchema.shape.typeId.nonoptional().describe('The provider type.'),
-    name: PostProvidersBodySchema.shape.name.nonoptional().describe('The registration name.'),
-    params: PostProvidersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.'),
-    credentialRefs: PostProvidersBodySchema.shape.credentialRefs.optional().describe('References to the credentials the registration uses, never the secrets themselves.'),
-    rateLimits: PostProvidersBodySchema.shape.rateLimits.optional().describe('The limits applied to each organisation using it.')
-});
-
-export type PlatformProviderCreateParams = z.infer<typeof PlatformProviderCreateParamsSchema>;
-
-export const PlatformProviderDeleteParamsSchema = z.object({
-    providerId: DeleteProvidersByProviderIdPathSchema.shape.providerId.nonoptional().describe('A platform provider registration.')
-});
-
-export type PlatformProviderDeleteParams = z.infer<typeof PlatformProviderDeleteParamsSchema>;
-
-export const PlatformProviderUpdateParamsSchema = z.object({
-    providerId: PatchProvidersByProviderIdPathSchema.shape.providerId.nonoptional().describe('A platform provider registration.'),
-    name: PatchProvidersByProviderIdBodySchema.shape.name.optional().describe('The registration name.'),
-    params: PatchProvidersByProviderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.'),
-    credentialRefs: PatchProvidersByProviderIdBodySchema.shape.credentialRefs.optional().describe('References to the credentials the registration uses, never the secrets themselves.'),
-    rateLimits: PatchProvidersByProviderIdBodySchema.shape.rateLimits.optional().describe('Settings validated by the implementation that reads them.')
-});
-
-export type PlatformProviderUpdateParams = z.infer<typeof PlatformProviderUpdateParamsSchema>;
-
-export const ProviderListParamsSchema = z.object({
-    id: GetOrganisationsByIdProvidersPathSchema.shape.id.nonoptional().describe('The organisation.')
-});
-
-export type ProviderListParams = z.infer<typeof ProviderListParamsSchema>;
-
-export const ProviderCreateParamsSchema = z.object({
-    id: PostOrganisationsByIdProvidersPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    typeId: PostOrganisationsByIdProvidersBodySchema.shape.typeId.nonoptional().describe('The provider type.'),
-    name: PostOrganisationsByIdProvidersBodySchema.shape.name.nonoptional().describe('The registration name.'),
-    params: PostOrganisationsByIdProvidersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.'),
-    credentialRefs: PostOrganisationsByIdProvidersBodySchema.shape.credentialRefs.optional().describe('References to the credentials the registration uses, never the secrets themselves.')
-});
-
-export type ProviderCreateParams = z.infer<typeof ProviderCreateParamsSchema>;
-
-export const ProviderDeleteParamsSchema = z.object({
-    id: DeleteOrganisationsByIdProvidersByProviderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    providerId: DeleteOrganisationsByIdProvidersByProviderIdPathSchema.shape.providerId.nonoptional().describe('One of the organisation\'s provider registrations.')
-});
-
-export type ProviderDeleteParams = z.infer<typeof ProviderDeleteParamsSchema>;
-
-export const ProviderUpdateParamsSchema = z.object({
-    id: PatchOrganisationsByIdProvidersByProviderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    providerId: PatchOrganisationsByIdProvidersByProviderIdPathSchema.shape.providerId.nonoptional().describe('One of the organisation\'s provider registrations.'),
-    name: PatchOrganisationsByIdProvidersByProviderIdBodySchema.shape.name.optional().describe('The registration name.'),
-    params: PatchOrganisationsByIdProvidersByProviderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.'),
-    credentialRefs: PatchOrganisationsByIdProvidersByProviderIdBodySchema.shape.credentialRefs.optional().describe('References to the credentials the registration uses, never the secrets themselves.')
-});
-
-export type ProviderUpdateParams = z.infer<typeof ProviderUpdateParamsSchema>;
-
-export const ProviderResourceListParamsSchema = z.object({
-    id: GetOrganisationsByIdProviderResourcesPathSchema.shape.id.nonoptional().describe('The organisation.')
-});
-
-export type ProviderResourceListParams = z.infer<typeof ProviderResourceListParamsSchema>;
-
-export const ProviderResourceCreateParamsSchema = z.object({
-    id: PostOrganisationsByIdProviderResourcesPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    providerId: PostOrganisationsByIdProviderResourcesBodySchema.shape.providerId.nonoptional().describe('The registration it was provisioned through: the platform\'s or the organisation\'s.'),
-    kind: PostOrganisationsByIdProviderResourcesBodySchema.shape.kind.nonoptional().describe('What it is, such as `liveInput`.'),
-    externalId: PostOrganisationsByIdProviderResourcesBodySchema.shape.externalId.nonoptional().describe('The resource\'s ID at the provider.'),
-    params: PostOrganisationsByIdProviderResourcesBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
-});
-
-export type ProviderResourceCreateParams = z.infer<typeof ProviderResourceCreateParamsSchema>;
-
-export const ProviderResourceDeleteParamsSchema = z.object({
-    id: DeleteOrganisationsByIdProviderResourcesByResourceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    resourceId: DeleteOrganisationsByIdProviderResourcesByResourceIdPathSchema.shape.resourceId.nonoptional().describe('The provider resource.')
-});
-
-export type ProviderResourceDeleteParams = z.infer<typeof ProviderResourceDeleteParamsSchema>;
-
-export const ProviderResourceUpdateParamsSchema = z.object({
-    id: PatchOrganisationsByIdProviderResourcesByResourceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    resourceId: PatchOrganisationsByIdProviderResourcesByResourceIdPathSchema.shape.resourceId.nonoptional().describe('The provider resource.'),
-    params: PatchOrganisationsByIdProviderResourcesByResourceIdBodySchema.shape.params.nonoptional().describe('Settings validated by the implementation that reads them.')
-});
-
-export type ProviderResourceUpdateParams = z.infer<typeof ProviderResourceUpdateParamsSchema>;
 
 export const InvitationListMineParamsSchema = z.object({});
 

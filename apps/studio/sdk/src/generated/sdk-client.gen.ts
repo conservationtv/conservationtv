@@ -2,10 +2,10 @@
 
 import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient68 } from '../versions/invitations.accept-v1/sdk.gen.js';
-import { BaseClient as BaseClient69 } from '../versions/invitations.decline-v1/sdk.gen.js';
-import { BaseClient as BaseClient67 } from '../versions/invitations.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient66 } from '../versions/invitations.listMine-v1/sdk.gen.js';
+import { BaseClient as BaseClient55 } from '../versions/invitations.accept-v1/sdk.gen.js';
+import { BaseClient as BaseClient56 } from '../versions/invitations.decline-v1/sdk.gen.js';
+import { BaseClient as BaseClient54 } from '../versions/invitations.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient53 } from '../versions/invitations.listMine-v1/sdk.gen.js';
 import { BaseClient as BaseClient29 } from '../versions/organisations.agents.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient32 } from '../versions/organisations.agents.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient30 } from '../versions/organisations.agents.get-v1/sdk.gen.js';
@@ -38,14 +38,6 @@ import { BaseClient as BaseClient19 } from '../versions/organisations.networks.g
 import { BaseClient as BaseClient17 } from '../versions/organisations.networks.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient22 } from '../versions/organisations.networks.setActiveAgent-v1/sdk.gen.js';
 import { BaseClient as BaseClient20 } from '../versions/organisations.networks.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient58 } from '../versions/organisations.providerResources.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient60 } from '../versions/organisations.providerResources.delete-v1/sdk.gen.js';
-import { BaseClient as BaseClient57 } from '../versions/organisations.providerResources.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient59 } from '../versions/organisations.providerResources.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient54 } from '../versions/organisations.providers.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient56 } from '../versions/organisations.providers.delete-v1/sdk.gen.js';
-import { BaseClient as BaseClient53 } from '../versions/organisations.providers.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient55 } from '../versions/organisations.providers.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient38 } from '../versions/organisations.streams.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient41 } from '../versions/organisations.streams.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient42 } from '../versions/organisations.streams.exposures.create-v1/sdk.gen.js';
@@ -63,11 +55,6 @@ import { BaseClient as BaseClient50 } from '../versions/organisations.subjects.g
 import { BaseClient as BaseClient48 } from '../versions/organisations.subjects.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient51 } from '../versions/organisations.subjects.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient63 } from '../versions/platformProviders.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient65 } from '../versions/platformProviders.delete-v1/sdk.gen.js';
-import { BaseClient as BaseClient62 } from '../versions/platformProviders.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient64 } from '../versions/platformProviders.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient61 } from '../versions/providerTypes.list-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -154,33 +141,12 @@ export class Client extends ClientCore {
             get: this.versioned('organisations.subjects.get', { v1: BaseClient50 }),
             update: this.versioned('organisations.subjects.update', { v1: BaseClient51 }),
             delete: this.versioned('organisations.subjects.delete', { v1: BaseClient52 })
-        },
-        providers: {
-            list: this.versioned('organisations.providers.list', { v1: BaseClient53 }),
-            create: this.versioned('organisations.providers.create', { v1: BaseClient54 }),
-            update: this.versioned('organisations.providers.update', { v1: BaseClient55 }),
-            delete: this.versioned('organisations.providers.delete', { v1: BaseClient56 })
-        },
-        providerResources: {
-            list: this.versioned('organisations.providerResources.list', { v1: BaseClient57 }),
-            create: this.versioned('organisations.providerResources.create', { v1: BaseClient58 }),
-            update: this.versioned('organisations.providerResources.update', { v1: BaseClient59 }),
-            delete: this.versioned('organisations.providerResources.delete', { v1: BaseClient60 })
         }
     };
-    readonly providerTypes = {
-        list: this.versioned('providerTypes.list', { v1: BaseClient61 })
-    };
-    readonly platformProviders = {
-        list: this.versioned('platformProviders.list', { v1: BaseClient62 }),
-        create: this.versioned('platformProviders.create', { v1: BaseClient63 }),
-        update: this.versioned('platformProviders.update', { v1: BaseClient64 }),
-        delete: this.versioned('platformProviders.delete', { v1: BaseClient65 })
-    };
     readonly invitations = {
-        listMine: this.versioned('invitations.listMine', { v1: BaseClient66 }),
-        get: this.versioned('invitations.get', { v1: BaseClient67 }),
-        accept: this.versioned('invitations.accept', { v1: BaseClient68 }),
-        decline: this.versioned('invitations.decline', { v1: BaseClient69 })
+        listMine: this.versioned('invitations.listMine', { v1: BaseClient53 }),
+        get: this.versioned('invitations.get', { v1: BaseClient54 }),
+        accept: this.versioned('invitations.accept', { v1: BaseClient55 }),
+        decline: this.versioned('invitations.decline', { v1: BaseClient56 })
     };
 }

@@ -13,7 +13,6 @@ export const StreamSchema = z.object({
         subjectId: z.string(),
         networkId: z.string().nullable(),
         protocol: z.string(),
-        providerId: z.string().nullable(),
         params: z.object({
             renditions: z.array(z.object({
                 id: z.string(),

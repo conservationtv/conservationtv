@@ -15,17 +15,7 @@ export const self = role('self', {
  */
 export const globalAdmin = role('globalAdmin', {
   label: 'Global administrator',
-  description: 'Operate the service: delete any organisation, and manage the platform provider registrations.',
-  assignableScopes: ['global']
-});
-
-/**
- * Granted to every account at the global scope when it signs in: shared reference data, such as the supported provider
- * types and the platform's provider registrations. Reaches only the tables that opt in.
- */
-export const signedIn = role('signedIn', {
-  label: 'Signed in',
-  description: 'Read the reference data shared by every account.',
+  description: 'Operate the service: delete any organisation.',
   assignableScopes: ['global']
 });
 

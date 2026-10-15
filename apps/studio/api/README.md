@@ -40,9 +40,6 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision` | members read, administrators write | `organisations.agents.revisions.*`, `serveRevision` v1 |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
-| `GET /provider-types`, `GET /providers` | accounts | `providerTypes.list`, `platformProviders.list` v1 |
-| `POST /providers`; `PATCH`, `DELETE /providers/{providerId}` | global administrators | `platformProviders.*` v1 |
-| `/organisations/{id}/providers`, `/organisations/{id}/provider-resources` | members read, administrators write | `organisations.providers.*`, `.providerResources.*` v1 |
 | `/organisations/{id}/subjects` (list, create, get, update, delete) | members read, administrators write | `organisations.subjects.*` v1 |
 | `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
 | `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
@@ -178,9 +175,8 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 
 What each organisation runs, in `src/db/schemas/`: networks, devices,
 the agents that serve a network from a host device (one active at a time), streams with a source device, their
-exposures (network, protocol, provider registration, desired renditions) and recorders (always backed by an exposure
-of the same stream), provider registrations (the platform's, read by every account through the `signedIn` role and
-managed by `globalAdmin`, or the organisation's own), provider resources, and the subjects that observations will be attributed to. Every
+exposures (network, protocol, desired renditions) and recorders (always backed by an exposure of the same stream),
+and the subjects that observations will be attributed to. Every
 network, device, agent, stream and exposure has its own subject, labelled with its name; external targets such as
 websites are subjects without an entity. Deleting an entity keeps its subject.
 
@@ -189,8 +185,7 @@ Every row binds to its organisation's scope through `organisation_id`: `organisa
 include `organisation_id`, so the database refuses a reference into another organisation (422 `invalid_reference`)
 and a delete of something still used (409 `in_use`). A partial unique index allows one active agent per network, and
 one served configuration revision per agent; a check constraint refuses serving a revision whose diagnostics include
-an error, so a rejected candidate never replaces the served one. Privileges are in the `topology_privileges` migration,
-which also seeds the provider types.
+an error, so a rejected candidate never replaces the served one. Privileges are in the `topology_privileges` migration.
 
 Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
 configuration builders that produce revisions, how an agent fetches its served revision, and sharing across

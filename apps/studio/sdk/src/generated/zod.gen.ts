@@ -115,7 +115,6 @@ export const StreamSchema = z.object({
         subjectId: z.string(),
         networkId: z.string().nullable(),
         protocol: z.string(),
-        providerId: z.string().nullable(),
         params: z.object({
             renditions: z.array(z.object({
                 id: z.string(),
@@ -145,7 +144,6 @@ export const ExposureSchema = z.object({
     subjectId: z.string(),
     networkId: z.string().nullable(),
     protocol: z.string(),
-    providerId: z.string().nullable(),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string(),
@@ -170,48 +168,6 @@ export const SubjectSchema = z.object({
     kind: z.string(),
     label: z.string().nullable(),
     createdAt: z.string()
-});
-
-export const ProviderTypeSchema = z.object({
-    providerTypes: z.array(z.object({
-        id: z.string(),
-        name: z.string()
-    }))
-});
-
-export const PlatformProviderSchema = z.object({
-    providers: z.array(z.object({
-        id: z.string(),
-        typeId: z.string(),
-        name: z.string(),
-        params: z.record(z.string(), z.unknown()),
-        credentialRefs: z.array(z.string()),
-        rateLimits: z.record(z.string(), z.unknown()),
-        createdAt: z.string()
-    }))
-});
-
-export const ProviderSchema = z.object({
-    providers: z.array(z.object({
-        id: z.string(),
-        scope: z.enum(['organisation', 'platform']),
-        typeId: z.string(),
-        name: z.string(),
-        params: z.record(z.string(), z.unknown()),
-        credentialRefs: z.array(z.string()),
-        createdAt: z.string()
-    }))
-});
-
-export const ProviderResourceSchema = z.object({
-    providerResources: z.array(z.object({
-        id: z.string(),
-        providerId: z.string(),
-        kind: z.string(),
-        externalId: z.string(),
-        params: z.record(z.string(), z.unknown()),
-        createdAt: z.string()
-    }))
 });
 
 /**
@@ -1071,7 +1027,6 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.objec
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The delivery protocol, such as `moq` or `rtsp`.'
     }),
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string().min(1).max(60),
@@ -1122,7 +1077,6 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySch
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The delivery protocol, such as `moq` or `rtsp`.'
     }).optional(),
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string().min(1).max(60),
@@ -1317,288 +1271,6 @@ export const PatchOrganisationsByIdSubjectsBySubjectIdPathSchema = z.object({
  * The updated subject
  */
 export const PatchOrganisationsByIdSubjectsBySubjectIdResponseSchema = SubjectSchema;
-
-/**
- * The provider types
- */
-export const GetProviderTypesResponseSchema = ProviderTypeSchema;
-
-/**
- * The registrations, oldest first
- */
-export const GetProvidersResponseSchema = PlatformProviderSchema;
-
-export const PostProvidersBodySchema = z.object({
-    typeId: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The provider type.'
-    }),
-    name: z.string().min(1).max(120).register(z.globalRegistry, {
-        description: 'The registration name.'
-    }),
-    params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({}),
-    credentialRefs: z.array(z.string().min(1).max(200)).max(16).register(z.globalRegistry, {
-        description: 'References to the credentials the registration uses, never the secrets themselves.'
-    }).optional().default([]),
-    rateLimits: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'The limits applied to each organisation using it.'
-    }).optional().default({})
-});
-
-/**
- * The new registration
- */
-export const PostProvidersResponseSchema = z.object({
-    id: z.string(),
-    typeId: z.string(),
-    name: z.string(),
-    params: z.record(z.string(), z.unknown()),
-    credentialRefs: z.array(z.string()),
-    rateLimits: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The new registration'
-});
-
-export const DeleteProvidersByProviderIdPathSchema = z.object({
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'A platform provider registration.'
-    })
-});
-
-/**
- * Removed
- */
-export const DeleteProvidersByProviderIdResponseSchema = z.void().register(z.globalRegistry, {
-    description: 'Removed'
-});
-
-export const PatchProvidersByProviderIdBodySchema = z.object({
-    name: z.string().min(1).max(120).register(z.globalRegistry, {
-        description: 'The registration name.'
-    }).optional(),
-    params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional(),
-    credentialRefs: z.array(z.string().min(1).max(200)).max(16).register(z.globalRegistry, {
-        description: 'References to the credentials the registration uses, never the secrets themselves.'
-    }).optional(),
-    rateLimits: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional()
-});
-
-export const PatchProvidersByProviderIdPathSchema = z.object({
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'A platform provider registration.'
-    })
-});
-
-/**
- * The updated registration
- */
-export const PatchProvidersByProviderIdResponseSchema = z.object({
-    id: z.string(),
-    typeId: z.string(),
-    name: z.string(),
-    params: z.record(z.string(), z.unknown()),
-    credentialRefs: z.array(z.string()),
-    rateLimits: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The updated registration'
-});
-
-export const GetOrganisationsByIdProvidersPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    })
-});
-
-/**
- * The platform's registrations, then the organisation's, each oldest first
- */
-export const GetOrganisationsByIdProvidersResponseSchema = ProviderSchema;
-
-export const PostOrganisationsByIdProvidersBodySchema = z.object({
-    typeId: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The provider type.'
-    }),
-    name: z.string().min(1).max(120).register(z.globalRegistry, {
-        description: 'The registration name.'
-    }),
-    params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({}),
-    credentialRefs: z.array(z.string().min(1).max(200)).max(16).register(z.globalRegistry, {
-        description: 'References to the credentials the registration uses, never the secrets themselves.'
-    }).optional().default([])
-});
-
-export const PostOrganisationsByIdProvidersPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    })
-});
-
-/**
- * The new registration
- */
-export const PostOrganisationsByIdProvidersResponseSchema = z.object({
-    id: z.string(),
-    scope: z.literal('organisation'),
-    typeId: z.string(),
-    name: z.string(),
-    params: z.record(z.string(), z.unknown()),
-    credentialRefs: z.array(z.string()),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The new registration'
-});
-
-export const DeleteOrganisationsByIdProvidersByProviderIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'One of the organisation\'s provider registrations.'
-    })
-});
-
-/**
- * Removed
- */
-export const DeleteOrganisationsByIdProvidersByProviderIdResponseSchema = z.void().register(z.globalRegistry, {
-    description: 'Removed'
-});
-
-export const PatchOrganisationsByIdProvidersByProviderIdBodySchema = z.object({
-    name: z.string().min(1).max(120).register(z.globalRegistry, {
-        description: 'The registration name.'
-    }).optional(),
-    params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional(),
-    credentialRefs: z.array(z.string().min(1).max(200)).max(16).register(z.globalRegistry, {
-        description: 'References to the credentials the registration uses, never the secrets themselves.'
-    }).optional()
-});
-
-export const PatchOrganisationsByIdProvidersByProviderIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'One of the organisation\'s provider registrations.'
-    })
-});
-
-/**
- * The updated registration
- */
-export const PatchOrganisationsByIdProvidersByProviderIdResponseSchema = z.object({
-    id: z.string(),
-    scope: z.literal('organisation'),
-    typeId: z.string(),
-    name: z.string(),
-    params: z.record(z.string(), z.unknown()),
-    credentialRefs: z.array(z.string()),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The updated registration'
-});
-
-export const GetOrganisationsByIdProviderResourcesPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    })
-});
-
-/**
- * The resources, oldest first
- */
-export const GetOrganisationsByIdProviderResourcesResponseSchema = ProviderResourceSchema;
-
-export const PostOrganisationsByIdProviderResourcesBodySchema = z.object({
-    providerId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The registration it was provisioned through: the platform\'s or the organisation\'s.'
-    }),
-    kind: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'What it is, such as `liveInput`.'
-    }),
-    externalId: z.string().min(1).max(200).register(z.globalRegistry, {
-        description: 'The resource\'s ID at the provider.'
-    }),
-    params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({})
-});
-
-export const PostOrganisationsByIdProviderResourcesPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    })
-});
-
-/**
- * The recorded resource
- */
-export const PostOrganisationsByIdProviderResourcesResponseSchema = z.object({
-    id: z.string(),
-    providerId: z.string(),
-    kind: z.string(),
-    externalId: z.string(),
-    params: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The recorded resource'
-});
-
-export const DeleteOrganisationsByIdProviderResourcesByResourceIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    resourceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The provider resource.'
-    })
-});
-
-/**
- * Removed
- */
-export const DeleteOrganisationsByIdProviderResourcesByResourceIdResponseSchema = z.void().register(z.globalRegistry, {
-    description: 'Removed'
-});
-
-export const PatchOrganisationsByIdProviderResourcesByResourceIdBodySchema = z.object({
-    params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    })
-});
-
-export const PatchOrganisationsByIdProviderResourcesByResourceIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    resourceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The provider resource.'
-    })
-});
-
-/**
- * The updated resource
- */
-export const PatchOrganisationsByIdProviderResourcesByResourceIdResponseSchema = z.object({
-    id: z.string(),
-    providerId: z.string(),
-    kind: z.string(),
-    externalId: z.string(),
-    params: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The updated resource'
-});
 
 /**
  * The invitations, oldest first

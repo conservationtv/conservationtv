@@ -3,7 +3,7 @@ import { z } from 'zod';
 // The JSON stored in the topology's jsonb columns, validated wherever a request supplies it. Field names are the API's,
 // so stored values are returned as they are.
 
-/** Settings read by whichever implementation uses them (a protocol, provider type or recorder kind). */
+/** Settings read by whichever implementation uses them (a protocol or recorder kind). */
 export const SettingsSchema = z
   .record(z.string().max(120), z.json())
   .describe('Settings validated by the implementation that reads them.');
@@ -33,7 +33,7 @@ export const RenditionSchema = z.strictObject({
 });
 export type Rendition = z.output<typeof RenditionSchema>;
 
-/** An exposure's settings: its desired renditions, and whatever else its protocol and provider read. */
+/** An exposure's settings: its desired renditions, and whatever else its protocol reads. */
 export const ExposureParamsSchema = z
   .object({ renditions: z.array(RenditionSchema).max(16).optional() })
   .catchall(z.json())

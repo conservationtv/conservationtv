@@ -1,11 +1,10 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import type { ExposureParams, Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
 import { networks } from './networks.ts';
 import { organisations } from './organisations.ts';
-import { organisationProviders, platformProviders } from './providers.ts';
 import { subjects } from './subjects.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
@@ -53,9 +52,9 @@ export const streams = withAccess(
 );
 
 /**
- * How a stream is delivered: on a managed network or (`network_id` null) the internet, by a protocol, optionally
- * through a provider registration (the platform's or the organisation's own; at most one), with the renditions it
- * should offer in `params`. Paths and processes that realise it are derived by the configuration builders.
+ * How a stream is delivered: on a managed network or (`network_id` null) the internet, by a protocol, with the
+ * renditions it should offer in `params`. Paths and processes that realise it are derived by the configuration
+ * builders.
  */
 export const exposures = withAccess(
   pgTable(
@@ -71,13 +70,10 @@ export const exposures = withAccess(
       subjectId: uuid('subject_id').notNull().unique('exposure_subject'),
       networkId: uuid('network_id'),
       protocol: text('protocol').notNull(),
-      platformProviderId: uuid('platform_provider_id').references(() => platformProviders.id),
-      organisationProviderId: uuid('organisation_provider_id'),
       params: jsonb('params').$type<ExposureParams>().default({}).notNull(),
       createdAt: timestamp('created_at').defaultNow().notNull()
     },
     t => [
-      check('exposure_one_provider', sql`num_nonnulls(${t.platformProviderId}, ${t.organisationProviderId}) <= 1`),
       unique('exposure_stream_id').on(t.streamId, t.id),
       foreignKey({
         name: 'exposure_stream_fk',
@@ -94,14 +90,7 @@ export const exposures = withAccess(
         columns: [t.organisationId, t.networkId],
         foreignColumns: [networks.organisationId, networks.id]
       }),
-      foreignKey({
-        name: 'exposure_organisation_provider_fk',
-        columns: [t.organisationId, t.organisationProviderId],
-        foreignColumns: [organisationProviders.organisationId, organisationProviders.id]
-      }),
-      index('exposure_network_idx').on(t.networkId),
-      index('exposure_platform_provider_idx').on(t.platformProviderId),
-      index('exposure_organisation_provider_idx').on(t.organisationProviderId)
+      index('exposure_network_idx').on(t.networkId)
     ]
   ),
   t => ({
@@ -115,7 +104,7 @@ export const exposures = withAccess(
 
 /**
  * A recording responsibility, always backed by an exposure of its own stream: that exposure supplies the network and
- * provider. An exposure a recorder uses cannot be deleted from under it.
+ * protocol. An exposure a recorder uses cannot be deleted from under it.
  */
 export const recorders = withAccess(
   pgTable(
