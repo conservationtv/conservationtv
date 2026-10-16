@@ -199,9 +199,10 @@ Everything else belongs to the device's kind, a table whose row shares the devic
 it offers by itself (`nativeExposures`) and its `settings`; an `agent` adds the network it serves (the device's own),
 its standby priority and whether it is active. Each kind's table carries its kind as a generated column in a composite
 foreign key to the device, so a device is only ever the kind it was created as. `POST …/cameras` and `POST …/agents`
-create the device, with its identity, and its kind's row together, and their `DELETE` removes both; their routes
-return the device's fields too. `/devices` lists every device and renames or moves one, but never creates or deletes:
-an agent's device cannot change network (409 `in_use`), and a device a stream uses as its source cannot be removed.
+create the device, with its identity, and its kind's row together, and their `DELETE` removes both. Their routes
+nest the device's fields under `device`, and an agent its served revision under `servedRevision` (a network its
+active agent under `activeAgent`), each read with one relational query (`src/db/relations.ts`). `/devices` lists
+every device and renames or moves one, but never creates or deletes: an agent's device cannot change network (409 `in_use`), and a device a stream uses as its source cannot be removed.
 
 A `browser` is one auth session's device in one organisation, for iroh connections from the web app through a relay.
 `PUT …/browser` gets or creates it for the session that calls it, in an organisation the account belongs to, and

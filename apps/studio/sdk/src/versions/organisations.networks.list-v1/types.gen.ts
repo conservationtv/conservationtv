@@ -11,10 +11,12 @@ export type Error = {
 
 export type Network = {
     networks: Array<{
-        id: string;
         name: string;
-        activeAgentId: string | null;
+        id: string;
         createdAt: string;
+        activeAgent: {
+            id: string;
+        } | null;
     }>;
 };
 

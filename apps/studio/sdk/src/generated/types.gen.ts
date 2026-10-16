@@ -55,10 +55,12 @@ export type Invitation = {
 };
 
 export type Network = {
-    id: string;
     name: string;
-    activeAgentId: string | null;
+    id: string;
     createdAt: string;
+    activeAgent: {
+        id: string;
+    } | null;
 };
 
 export type Device = {
@@ -72,6 +74,7 @@ export type Device = {
 };
 
 export type Camera = {
+    id: string;
     nativeExposures: Array<{
         networkId: string | null;
         protocol: string;
@@ -82,37 +85,43 @@ export type Camera = {
     settings: {
         [key: string]: unknown;
     };
-    id: string;
-    kind: 'agent' | 'camera' | 'browser';
-    name: string;
-    networkId: string | null;
-    publicKey: string;
-    publicId: string;
-    createdAt: string;
+    device: {
+        name: string;
+        createdAt: string;
+        publicKey: string;
+        kind: 'agent' | 'camera' | 'browser';
+        networkId: string | null;
+        publicId: string;
+    } | null;
 };
 
 export type Browser = {
     privateKey: string;
-    id: string;
-    kind: 'agent' | 'camera' | 'browser';
     name: string;
-    networkId: string | null;
-    publicKey: string;
-    publicId: string;
+    id: string;
     createdAt: string;
+    publicKey: string;
+    kind: 'agent' | 'camera' | 'browser';
+    networkId: string | null;
+    publicId: string;
 };
 
 export type Agent = {
-    servedRevisionId: string | null;
-    priority: number;
-    active: boolean;
     id: string;
-    kind: 'agent' | 'camera' | 'browser';
-    name: string;
-    networkId: string | null;
-    publicKey: string;
-    publicId: string;
-    createdAt: string;
+    active: boolean;
+    networkId: string;
+    priority: number;
+    device: {
+        name: string;
+        createdAt: string;
+        publicKey: string;
+        kind: 'agent' | 'camera' | 'browser';
+        networkId: string | null;
+        publicId: string;
+    } | null;
+    servedRevision: {
+        id: string;
+    } | null;
 };
 
 export type Revision = {
@@ -1022,10 +1031,12 @@ export type GetOrganisationsByIdNetworksResponses = {
      */
     200: {
         networks: Array<{
-            id: string;
             name: string;
-            activeAgentId: string | null;
+            id: string;
             createdAt: string;
+            activeAgent: {
+                id: string;
+            } | null;
         }>;
     };
 };
@@ -1078,12 +1089,7 @@ export type PostOrganisationsByIdNetworksResponses = {
     /**
      * The new network
      */
-    201: {
-        activeAgentId: null;
-        id: string;
-        name: string;
-        createdAt: string;
-    };
+    201: Network;
 };
 
 export type PostOrganisationsByIdNetworksResponse = PostOrganisationsByIdNetworksResponses[keyof PostOrganisationsByIdNetworksResponses];
@@ -1250,12 +1256,7 @@ export type PatchOrganisationsByIdNetworksByNetworkIdResponses = {
     /**
      * The updated network
      */
-    200: {
-        activeAgentId: string;
-        id: string;
-        name: string;
-        createdAt: string;
-    };
+    200: Network;
 };
 
 export type PatchOrganisationsByIdNetworksByNetworkIdResponse = PatchOrganisationsByIdNetworksByNetworkIdResponses[keyof PatchOrganisationsByIdNetworksByNetworkIdResponses];
@@ -1322,12 +1323,7 @@ export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses = {
     /**
      * The network
      */
-    200: {
-        activeAgentId: string | null;
-        id: string;
-        name: string;
-        createdAt: string;
-    };
+    200: Network;
 };
 
 export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponse = PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses[keyof PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses];
@@ -1549,6 +1545,7 @@ export type GetOrganisationsByIdCamerasResponses = {
      */
     200: {
         cameras: Array<{
+            id: string;
             nativeExposures: Array<{
                 networkId: string | null;
                 protocol: string;
@@ -1559,13 +1556,14 @@ export type GetOrganisationsByIdCamerasResponses = {
             settings: {
                 [key: string]: unknown;
             };
-            id: string;
-            kind: 'agent' | 'camera' | 'browser';
-            name: string;
-            networkId: string | null;
-            publicKey: string;
-            publicId: string;
-            createdAt: string;
+            device: {
+                name: string;
+                createdAt: string;
+                publicKey: string;
+                kind: 'agent' | 'camera' | 'browser';
+                networkId: string | null;
+                publicId: string;
+            } | null;
         }>;
     };
 };
@@ -1928,16 +1926,21 @@ export type GetOrganisationsByIdAgentsResponses = {
      */
     200: {
         agents: Array<{
-            servedRevisionId: string | null;
-            priority: number;
-            active: boolean;
             id: string;
-            kind: 'agent' | 'camera' | 'browser';
-            name: string;
-            networkId: string | null;
-            publicKey: string;
-            publicId: string;
-            createdAt: string;
+            active: boolean;
+            networkId: string;
+            priority: number;
+            device: {
+                name: string;
+                createdAt: string;
+                publicKey: string;
+                kind: 'agent' | 'camera' | 'browser';
+                networkId: string | null;
+                publicId: string;
+            } | null;
+            servedRevision: {
+                id: string;
+            } | null;
         }>;
     };
 };
@@ -2002,18 +2005,7 @@ export type PostOrganisationsByIdAgentsResponses = {
     /**
      * The new agent
      */
-    201: {
-        servedRevisionId: null;
-        priority: number;
-        active: boolean;
-        id: string;
-        kind: 'agent' | 'camera' | 'browser';
-        name: string;
-        networkId: string | null;
-        publicKey: string;
-        publicId: string;
-        createdAt: string;
-    };
+    201: Agent;
 };
 
 export type PostOrganisationsByIdAgentsResponse = PostOrganisationsByIdAgentsResponses[keyof PostOrganisationsByIdAgentsResponses];
@@ -2446,18 +2438,7 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses = {
     /**
      * The agent
      */
-    200: {
-        servedRevisionId: string;
-        priority: number;
-        active: boolean;
-        id: string;
-        kind: 'agent' | 'camera' | 'browser';
-        name: string;
-        networkId: string | null;
-        publicKey: string;
-        publicId: string;
-        createdAt: string;
-    };
+    200: Agent;
 };
 
 export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponse = PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses[keyof PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses];

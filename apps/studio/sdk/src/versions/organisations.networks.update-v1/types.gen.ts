@@ -10,10 +10,12 @@ export type Error = {
 };
 
 export type Network = {
-    activeAgentId: string;
-    id: string;
     name: string;
+    id: string;
     createdAt: string;
+    activeAgent: {
+        id: string;
+    } | null;
 };
 
 export type PatchOrganisationsByIdNetworksByNetworkIdData = {

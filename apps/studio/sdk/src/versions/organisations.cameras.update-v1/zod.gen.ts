@@ -16,23 +16,25 @@ export const Schema0Schema = z.union([
 ]).nullable();
 
 export const CameraSchema = z.object({
+    id: z.string(),
     nativeExposures: z.array(z.object({
         networkId: z.string().nullable(),
         protocol: z.string(),
         params: z.record(z.string(), z.unknown()).optional()
     })),
     settings: z.record(z.string(), z.unknown()),
-    id: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    name: z.string(),
-    networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
+    device: z.object({
+        name: z.string(),
+        createdAt: z.string(),
+        publicKey: z.string(),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
+        networkId: z.string().nullable(),
+        publicId: z.string()
+    }).nullable()
 });
 
 export const PatchOrganisationsByIdCamerasByCameraIdBodySchema = z.object({

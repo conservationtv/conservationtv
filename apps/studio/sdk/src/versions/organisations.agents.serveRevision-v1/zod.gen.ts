@@ -8,20 +8,25 @@ export const ErrorSchema = z.object({
 });
 
 export const AgentSchema = z.object({
-    servedRevisionId: z.string(),
-    priority: z.number(),
-    active: z.boolean(),
     id: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    name: z.string(),
-    networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
+    active: z.boolean(),
+    networkId: z.string(),
+    priority: z.number(),
+    device: z.object({
+        name: z.string(),
+        createdAt: z.string(),
+        publicKey: z.string(),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
+        networkId: z.string().nullable(),
+        publicId: z.string()
+    }).nullable(),
+    servedRevision: z.object({
+        id: z.string()
+    }).nullable()
 });
 
 export const PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema = z.object({

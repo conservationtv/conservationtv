@@ -228,31 +228,39 @@
       "Network": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
           "name": {
             "type": "string"
           },
-          "activeAgentId": {
+          "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "activeAgent": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
               },
               {
                 "type": "null"
               }
             ]
-          },
-          "createdAt": {
-            "type": "string"
           }
         },
         "required": [
-          "id",
           "name",
-          "activeAgentId",
-          "createdAt"
+          "id",
+          "createdAt",
+          "activeAgent"
         ]
       },
       "Device": {
@@ -305,6 +313,9 @@
       "Camera": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string"
+          },
           "nativeExposures": {
             "type": "array",
             "items": {
@@ -338,50 +349,62 @@
             "type": "object",
             "additionalProperties": {}
           },
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "agent",
-              "camera",
-              "browser"
-            ]
-          },
-          "name": {
-            "type": "string"
-          },
-          "networkId": {
+          "device": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "agent",
+                      "camera",
+                      "browser"
+                    ]
+                  },
+                  "networkId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "publicId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "createdAt",
+                  "publicKey",
+                  "kind",
+                  "networkId",
+                  "publicId"
+                ]
               },
               {
                 "type": "null"
               }
             ]
-          },
-          "publicKey": {
-            "type": "string"
-          },
-          "publicId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
           }
         },
         "required": [
+          "id",
           "nativeExposures",
           "settings",
-          "id",
-          "kind",
-          "name",
-          "networkId",
-          "publicKey",
-          "publicId",
-          "createdAt"
+          "device"
         ]
       },
       "Browser": {
@@ -390,7 +413,16 @@
           "privateKey": {
             "type": "string"
           },
+          "name": {
+            "type": "string"
+          },
           "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "publicKey": {
             "type": "string"
           },
           "kind": {
@@ -400,9 +432,6 @@
               "camera",
               "browser"
             ]
-          },
-          "name": {
-            "type": "string"
           },
           "networkId": {
             "anyOf": [
@@ -414,91 +443,112 @@
               }
             ]
           },
-          "publicKey": {
-            "type": "string"
-          },
           "publicId": {
-            "type": "string"
-          },
-          "createdAt": {
             "type": "string"
           }
         },
         "required": [
           "privateKey",
-          "id",
-          "kind",
           "name",
-          "networkId",
+          "id",
+          "createdAt",
           "publicKey",
-          "publicId",
-          "createdAt"
+          "kind",
+          "networkId",
+          "publicId"
         ]
       },
       "Agent": {
         "type": "object",
         "properties": {
-          "servedRevisionId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "priority": {
-            "type": "number"
+          "id": {
+            "type": "string"
           },
           "active": {
             "type": "boolean"
           },
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "agent",
-              "camera",
-              "browser"
-            ]
-          },
-          "name": {
-            "type": "string"
-          },
           "networkId": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "number"
+          },
+          "device": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "agent",
+                      "camera",
+                      "browser"
+                    ]
+                  },
+                  "networkId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "publicId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "createdAt",
+                  "publicKey",
+                  "kind",
+                  "networkId",
+                  "publicId"
+                ]
               },
               {
                 "type": "null"
               }
             ]
           },
-          "publicKey": {
-            "type": "string"
-          },
-          "publicId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
+          "servedRevision": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "servedRevisionId",
-          "priority",
-          "active",
           "id",
-          "kind",
-          "name",
+          "active",
           "networkId",
-          "publicKey",
-          "publicId",
-          "createdAt"
+          "priority",
+          "device",
+          "servedRevision"
         ]
       },
       "Revision": {
@@ -2419,31 +2469,39 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "id": {
-                            "type": "string"
-                          },
                           "name": {
                             "type": "string"
                           },
-                          "activeAgentId": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "activeAgent": {
                             "anyOf": [
                               {
-                                "type": "string"
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ]
                               },
                               {
                                 "type": "null"
                               }
                             ]
-                          },
-                          "createdAt": {
-                            "type": "string"
                           }
                         },
                         "required": [
-                          "id",
                           "name",
-                          "activeAgentId",
-                          "createdAt"
+                          "id",
+                          "createdAt",
+                          "activeAgent"
                         ]
                       }
                     }
@@ -2524,27 +2582,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "activeAgentId": {
-                      "type": "null"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "activeAgentId",
-                    "id",
-                    "name",
-                    "createdAt"
-                  ]
+                  "$ref": "#/components/schemas/Network"
                 }
               }
             }
@@ -2746,27 +2784,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "activeAgentId": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "activeAgentId",
-                    "id",
-                    "name",
-                    "createdAt"
-                  ]
+                  "$ref": "#/components/schemas/Network"
                 }
               }
             }
@@ -3003,34 +3021,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "activeAgentId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "activeAgentId",
-                    "id",
-                    "name",
-                    "createdAt"
-                  ]
+                  "$ref": "#/components/schemas/Network"
                 }
               }
             }
@@ -3590,6 +3581,9 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "id": {
+                            "type": "string"
+                          },
                           "nativeExposures": {
                             "type": "array",
                             "items": {
@@ -3623,50 +3617,62 @@
                             "type": "object",
                             "additionalProperties": {}
                           },
-                          "id": {
-                            "type": "string"
-                          },
-                          "kind": {
-                            "type": "string",
-                            "enum": [
-                              "agent",
-                              "camera",
-                              "browser"
-                            ]
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "networkId": {
+                          "device": {
                             "anyOf": [
                               {
-                                "type": "string"
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "createdAt": {
+                                    "type": "string"
+                                  },
+                                  "publicKey": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "agent",
+                                      "camera",
+                                      "browser"
+                                    ]
+                                  },
+                                  "networkId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "publicId": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "createdAt",
+                                  "publicKey",
+                                  "kind",
+                                  "networkId",
+                                  "publicId"
+                                ]
                               },
                               {
                                 "type": "null"
                               }
                             ]
-                          },
-                          "publicKey": {
-                            "type": "string"
-                          },
-                          "publicId": {
-                            "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string"
                           }
                         },
                         "required": [
+                          "id",
                           "nativeExposures",
                           "settings",
-                          "id",
-                          "kind",
-                          "name",
-                          "networkId",
-                          "publicKey",
-                          "publicId",
-                          "createdAt"
+                          "device"
                         ]
                       }
                     }
@@ -4406,67 +4412,94 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "servedRevisionId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "priority": {
-                            "type": "number"
+                          "id": {
+                            "type": "string"
                           },
                           "active": {
                             "type": "boolean"
                           },
-                          "id": {
-                            "type": "string"
-                          },
-                          "kind": {
-                            "type": "string",
-                            "enum": [
-                              "agent",
-                              "camera",
-                              "browser"
-                            ]
-                          },
-                          "name": {
-                            "type": "string"
-                          },
                           "networkId": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "number"
+                          },
+                          "device": {
                             "anyOf": [
                               {
-                                "type": "string"
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "createdAt": {
+                                    "type": "string"
+                                  },
+                                  "publicKey": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "agent",
+                                      "camera",
+                                      "browser"
+                                    ]
+                                  },
+                                  "networkId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "publicId": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "createdAt",
+                                  "publicKey",
+                                  "kind",
+                                  "networkId",
+                                  "publicId"
+                                ]
                               },
                               {
                                 "type": "null"
                               }
                             ]
                           },
-                          "publicKey": {
-                            "type": "string"
-                          },
-                          "publicId": {
-                            "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string"
+                          "servedRevision": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
-                          "servedRevisionId",
-                          "priority",
-                          "active",
                           "id",
-                          "kind",
-                          "name",
+                          "active",
                           "networkId",
-                          "publicKey",
-                          "publicId",
-                          "createdAt"
+                          "priority",
+                          "device",
+                          "servedRevision"
                         ]
                       }
                     }
@@ -4557,63 +4590,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "servedRevisionId": {
-                      "type": "null"
-                    },
-                    "priority": {
-                      "type": "number"
-                    },
-                    "active": {
-                      "type": "boolean"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "agent",
-                        "camera",
-                        "browser"
-                      ]
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "publicKey": {
-                      "type": "string"
-                    },
-                    "publicId": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "servedRevisionId",
-                    "priority",
-                    "active",
-                    "id",
-                    "kind",
-                    "name",
-                    "networkId",
-                    "publicKey",
-                    "publicId",
-                    "createdAt"
-                  ]
+                  "$ref": "#/components/schemas/Agent"
                 }
               }
             }
@@ -5567,63 +5544,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "servedRevisionId": {
-                      "type": "string"
-                    },
-                    "priority": {
-                      "type": "number"
-                    },
-                    "active": {
-                      "type": "boolean"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "agent",
-                        "camera",
-                        "browser"
-                      ]
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "publicKey": {
-                      "type": "string"
-                    },
-                    "publicId": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "servedRevisionId",
-                    "priority",
-                    "active",
-                    "id",
-                    "kind",
-                    "name",
-                    "networkId",
-                    "publicKey",
-                    "publicId",
-                    "createdAt"
-                  ]
+                  "$ref": "#/components/schemas/Agent"
                 }
               }
             }
@@ -10364,31 +10285,39 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "type": "string"
-                    },
                     "name": {
                       "type": "string"
                     },
-                    "activeAgentId": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "activeAgent": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
                         },
                         {
                           "type": "null"
                         }
                       ]
-                    },
-                    "createdAt": {
-                      "type": "string"
                     }
                   },
                   "required": [
-                    "id",
                     "name",
-                    "activeAgentId",
-                    "createdAt"
+                    "id",
+                    "createdAt",
+                    "activeAgent"
                   ]
                 }
               }
@@ -10524,24 +10453,39 @@
           "Network": {
             "type": "object",
             "properties": {
-              "activeAgentId": {
-                "type": "null"
+              "name": {
+                "type": "string"
               },
               "id": {
                 "type": "string"
               },
-              "name": {
-                "type": "string"
-              },
               "createdAt": {
                 "type": "string"
+              },
+              "activeAgent": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
-              "activeAgentId",
-              "id",
               "name",
-              "createdAt"
+              "id",
+              "createdAt",
+              "activeAgent"
             ]
           }
         }
@@ -10703,31 +10647,39 @@
           "Network": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string"
-              },
               "name": {
                 "type": "string"
               },
-              "activeAgentId": {
+              "id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "activeAgent": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
-              },
-              "createdAt": {
-                "type": "string"
               }
             },
             "required": [
-              "id",
               "name",
-              "activeAgentId",
-              "createdAt"
+              "id",
+              "createdAt",
+              "activeAgent"
             ]
           }
         }
@@ -10877,24 +10829,39 @@
           "Network": {
             "type": "object",
             "properties": {
-              "activeAgentId": {
+              "name": {
                 "type": "string"
               },
               "id": {
                 "type": "string"
               },
-              "name": {
-                "type": "string"
-              },
               "createdAt": {
                 "type": "string"
+              },
+              "activeAgent": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
-              "activeAgentId",
-              "id",
               "name",
-              "createdAt"
+              "id",
+              "createdAt",
+              "activeAgent"
             ]
           }
         }
@@ -11235,31 +11202,39 @@
           "Network": {
             "type": "object",
             "properties": {
-              "activeAgentId": {
+              "name": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "activeAgent": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
-              },
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
               }
             },
             "required": [
-              "activeAgentId",
-              "id",
               "name",
-              "createdAt"
+              "id",
+              "createdAt",
+              "activeAgent"
             ]
           }
         }
@@ -12114,6 +12089,9 @@
                 "items": {
                   "type": "object",
                   "properties": {
+                    "id": {
+                      "type": "string"
+                    },
                     "nativeExposures": {
                       "type": "array",
                       "items": {
@@ -12147,50 +12125,62 @@
                       "type": "object",
                       "additionalProperties": {}
                     },
-                    "id": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "agent",
-                        "camera",
-                        "browser"
-                      ]
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "networkId": {
+                    "device": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string"
+                            },
+                            "publicKey": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "agent",
+                                "camera",
+                                "browser"
+                              ]
+                            },
+                            "networkId": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "publicId": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "createdAt",
+                            "publicKey",
+                            "kind",
+                            "networkId",
+                            "publicId"
+                          ]
                         },
                         {
                           "type": "null"
                         }
                       ]
-                    },
-                    "publicKey": {
-                      "type": "string"
-                    },
-                    "publicId": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
                     }
                   },
                   "required": [
+                    "id",
                     "nativeExposures",
                     "settings",
-                    "id",
-                    "kind",
-                    "name",
-                    "networkId",
-                    "publicKey",
-                    "publicId",
-                    "createdAt"
+                    "device"
                   ]
                 }
               }
@@ -12357,6 +12347,9 @@
           "Camera": {
             "type": "object",
             "properties": {
+              "id": {
+                "type": "string"
+              },
               "nativeExposures": {
                 "type": "array",
                 "items": {
@@ -12390,50 +12383,62 @@
                 "type": "object",
                 "additionalProperties": {}
               },
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "agent",
-                  "camera",
-                  "browser"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
-              "networkId": {
+              "device": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "publicId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
-              },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
               }
             },
             "required": [
+              "id",
               "nativeExposures",
               "settings",
-              "id",
-              "kind",
-              "name",
-              "networkId",
-              "publicKey",
-              "publicId",
-              "createdAt"
+              "device"
             ]
           }
         }
@@ -12676,6 +12681,9 @@
           "Camera": {
             "type": "object",
             "properties": {
+              "id": {
+                "type": "string"
+              },
               "nativeExposures": {
                 "type": "array",
                 "items": {
@@ -12709,50 +12717,62 @@
                 "type": "object",
                 "additionalProperties": {}
               },
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "agent",
-                  "camera",
-                  "browser"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
-              "networkId": {
+              "device": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "publicId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
-              },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
               }
             },
             "required": [
+              "id",
               "nativeExposures",
               "settings",
-              "id",
-              "kind",
-              "name",
-              "networkId",
-              "publicKey",
-              "publicId",
-              "createdAt"
+              "device"
             ]
           }
         }
@@ -12933,6 +12953,9 @@
           "Camera": {
             "type": "object",
             "properties": {
+              "id": {
+                "type": "string"
+              },
               "nativeExposures": {
                 "type": "array",
                 "items": {
@@ -12966,50 +12989,62 @@
                 "type": "object",
                 "additionalProperties": {}
               },
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "agent",
-                  "camera",
-                  "browser"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
-              "networkId": {
+              "device": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "publicId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
-              },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
               }
             },
             "required": [
+              "id",
               "nativeExposures",
               "settings",
-              "id",
-              "kind",
-              "name",
-              "networkId",
-              "publicKey",
-              "publicId",
-              "createdAt"
+              "device"
             ]
           }
         }
@@ -13399,7 +13434,16 @@
               "privateKey": {
                 "type": "string"
               },
+              "name": {
+                "type": "string"
+              },
               "id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "publicKey": {
                 "type": "string"
               },
               "kind": {
@@ -13409,9 +13453,6 @@
                   "camera",
                   "browser"
                 ]
-              },
-              "name": {
-                "type": "string"
               },
               "networkId": {
                 "anyOf": [
@@ -13423,25 +13464,19 @@
                   }
                 ]
               },
-              "publicKey": {
-                "type": "string"
-              },
               "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
                 "type": "string"
               }
             },
             "required": [
               "privateKey",
-              "id",
-              "kind",
               "name",
-              "networkId",
+              "id",
+              "createdAt",
               "publicKey",
-              "publicId",
-              "createdAt"
+              "kind",
+              "networkId",
+              "publicId"
             ]
           }
         }
@@ -13586,67 +13621,94 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "servedRevisionId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "priority": {
-                      "type": "number"
+                    "id": {
+                      "type": "string"
                     },
                     "active": {
                       "type": "boolean"
                     },
-                    "id": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "agent",
-                        "camera",
-                        "browser"
-                      ]
-                    },
-                    "name": {
-                      "type": "string"
-                    },
                     "networkId": {
+                      "type": "string"
+                    },
+                    "priority": {
+                      "type": "number"
+                    },
+                    "device": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string"
+                            },
+                            "publicKey": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "agent",
+                                "camera",
+                                "browser"
+                              ]
+                            },
+                            "networkId": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "publicId": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "createdAt",
+                            "publicKey",
+                            "kind",
+                            "networkId",
+                            "publicId"
+                          ]
                         },
                         {
                           "type": "null"
                         }
                       ]
                     },
-                    "publicKey": {
-                      "type": "string"
-                    },
-                    "publicId": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
+                    "servedRevision": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
-                    "servedRevisionId",
-                    "priority",
-                    "active",
                     "id",
-                    "kind",
-                    "name",
+                    "active",
                     "networkId",
-                    "publicKey",
-                    "publicId",
-                    "createdAt"
+                    "priority",
+                    "device",
+                    "servedRevision"
                   ]
                 }
               }
@@ -13792,60 +13854,94 @@
           "Agent": {
             "type": "object",
             "properties": {
-              "servedRevisionId": {
-                "type": "null"
-              },
-              "priority": {
-                "type": "number"
+              "id": {
+                "type": "string"
               },
               "active": {
                 "type": "boolean"
               },
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "agent",
-                  "camera",
-                  "browser"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
               "networkId": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "number"
+              },
+              "device": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "publicId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
               },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
+              "servedRevision": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
-              "servedRevisionId",
-              "priority",
-              "active",
               "id",
-              "kind",
-              "name",
+              "active",
               "networkId",
-              "publicKey",
-              "publicId",
-              "createdAt"
+              "priority",
+              "device",
+              "servedRevision"
             ]
           }
         }
@@ -14031,67 +14127,94 @@
           "Agent": {
             "type": "object",
             "properties": {
-              "servedRevisionId": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "priority": {
-                "type": "number"
+              "id": {
+                "type": "string"
               },
               "active": {
                 "type": "boolean"
               },
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "agent",
-                  "camera",
-                  "browser"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
               "networkId": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "number"
+              },
+              "device": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "publicId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
               },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
+              "servedRevision": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
-              "servedRevisionId",
-              "priority",
-              "active",
               "id",
-              "kind",
-              "name",
+              "active",
               "networkId",
-              "publicKey",
-              "publicId",
-              "createdAt"
+              "priority",
+              "device",
+              "servedRevision"
             ]
           }
         }
@@ -14241,67 +14364,94 @@
           "Agent": {
             "type": "object",
             "properties": {
-              "servedRevisionId": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "priority": {
-                "type": "number"
+              "id": {
+                "type": "string"
               },
               "active": {
                 "type": "boolean"
               },
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "agent",
-                  "camera",
-                  "browser"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
               "networkId": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "number"
+              },
+              "device": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "publicId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
               },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
+              "servedRevision": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
-              "servedRevisionId",
-              "priority",
-              "active",
               "id",
-              "kind",
-              "name",
+              "active",
               "networkId",
-              "publicKey",
-              "publicId",
-              "createdAt"
+              "priority",
+              "device",
+              "servedRevision"
             ]
           }
         }
@@ -15475,60 +15625,94 @@
           "Agent": {
             "type": "object",
             "properties": {
-              "servedRevisionId": {
+              "id": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "networkId": {
                 "type": "string"
               },
               "priority": {
                 "type": "number"
               },
-              "active": {
-                "type": "boolean"
-              },
-              "id": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "agent",
-                  "camera",
-                  "browser"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
-              "networkId": {
+              "device": {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "publicId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
                   }
                 ]
               },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
+              "servedRevision": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
-              "servedRevisionId",
-              "priority",
-              "active",
               "id",
-              "kind",
-              "name",
+              "active",
               "networkId",
-              "publicKey",
-              "publicId",
-              "createdAt"
+              "priority",
+              "device",
+              "servedRevision"
             ]
           }
         }

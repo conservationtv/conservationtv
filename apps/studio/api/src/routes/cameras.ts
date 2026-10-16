@@ -9,8 +9,9 @@ import { useServices } from '../services.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { deviceIdentity } from '../topology/identity.ts';
 import { NativeExposureSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
+import type { Transaction } from '../organisations/membership.ts';
 import { unchanged } from '../topology/transaction.ts';
-import { DeviceNameSchema, deviceColumns } from './devices.ts';
+import { DeviceNameSchema, deviceQuery } from './devices.ts';
 import {
   forbidden,
   inUse,
@@ -35,8 +36,16 @@ const NativeExposuresSchema = z
   .describe('The endpoints the camera offers by itself, such as its RTSP feed.');
 export type NativeExposures = z.output<typeof NativeExposuresSchema>;
 
-/** A camera with its device's fields: the columns every camera route returns. */
-const cameraColumns = { ...deviceColumns, nativeExposures: cameras.nativeExposures, settings: cameras.settings };
+/** A camera as every camera route returns it: its own fields and its device's. */
+const cameraQuery = {
+  columns: { id: true, nativeExposures: true, settings: true },
+  with: { device: deviceQuery }
+} as const;
+
+/** The camera, as its routes return it. */
+function readCamera(tx: Transaction, organisationId: string, cameraId: string) {
+  return tx.query.cameras.findFirst({ ...cameraQuery, where: { organisationId, id: cameraId } });
+}
 
 // An organisation's cameras, in the principal's request session: members read them, administrators manage them. A
 // camera is a device (src/db/schemas/cameras.ts): it is created and removed with its device, and its device's name and
@@ -65,12 +74,7 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await services.session(principal);
       const rows = await session.transaction(tx =>
-        tx
-          .select(cameraColumns)
-          .from(cameras)
-          .innerJoin(devices, eq(devices.id, cameras.id))
-          .where(eq(cameras.organisationId, id))
-          .orderBy(cameras.id)
+        tx.query.cameras.findMany({ ...cameraQuery, where: { organisationId: id }, orderBy: { id: 'asc' } })
       );
       c.header('Cache-Control', 'no-store');
       return c.json({ cameras: rows }, 200);
@@ -114,18 +118,16 @@ export default new Hono()
         const [device] = await tx
           .insert(devices)
           .values({ ...identity, organisationId: id, kind: 'camera', name: body.name, networkId: body.networkId })
-          .returning(deviceColumns);
-        const [camera] = await tx
-          .insert(cameras)
-          .values({
-            id: device!.id,
-            organisationId: id,
-            nativeExposures: body.nativeExposures,
-            settings: body.settings
-          })
-          .returning({ nativeExposures: cameras.nativeExposures, settings: cameras.settings });
+          .returning({ id: devices.id });
+        await tx.insert(cameras).values({
+          id: device!.id,
+          organisationId: id,
+          nativeExposures: body.nativeExposures,
+          settings: body.settings
+        });
         await grantDevice(access, id, device!.id);
-        return { ...device!, ...camera! };
+        const camera = await readCamera(tx, id, device!.id);
+        return camera!;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
@@ -153,13 +155,7 @@ export default new Hono()
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
-          .select(cameraColumns)
-          .from(cameras)
-          .innerJoin(devices, eq(devices.id, cameras.id))
-          .where(and(eq(cameras.organisationId, id), eq(cameras.id, cameraId)))
-      );
+      const row = await session.transaction(tx => readCamera(tx, id, cameraId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -204,11 +200,7 @@ export default new Hono()
           .where(and(eq(cameras.organisationId, id), eq(cameras.id, cameraId)))
           .returning({ id: cameras.id });
         if (updated.length === 0) throw await unchanged(tx, cameras.id, cameraId);
-        const [camera] = await tx
-          .select(cameraColumns)
-          .from(cameras)
-          .innerJoin(devices, eq(devices.id, cameras.id))
-          .where(eq(cameras.id, cameraId));
+        const camera = await readCamera(tx, id, cameraId);
         return camera!;
       });
       c.header('Cache-Control', 'no-store');

@@ -6,6 +6,7 @@ import { agents, networks } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
+import type { Transaction } from '../organisations/membership.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
   conflict,
@@ -25,6 +26,17 @@ const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisat
 export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const NetworkParamsSchema = OrganisationParamsSchema.extend({ networkId: z.uuid().describe('The network.') });
 export type NetworkParams = z.output<typeof NetworkParamsSchema>;
+
+/** A network as every network route returns it, with the agent active on it, if any. */
+const networkQuery = {
+  columns: { id: true, name: true, createdAt: true },
+  with: { activeAgent: { columns: { id: true } } }
+} as const;
+
+/** The network, as its routes return it. */
+function readNetwork(tx: Transaction, organisationId: string, networkId: string) {
+  return tx.query.networks.findFirst({ ...networkQuery, where: { organisationId, id: networkId } });
+}
 
 // An organisation's managed networks, in the principal's request session: members read them, administrators manage
 // them. Agents are under /organisations/{id}/agents.
@@ -53,17 +65,7 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await services.session(principal);
       const rows = await session.transaction(tx =>
-        tx
-          .select({
-            id: networks.id,
-            name: networks.name,
-            activeAgentId: agents.id,
-            createdAt: networks.createdAt
-          })
-          .from(networks)
-          .leftJoin(agents, and(eq(agents.networkId, networks.id), eq(agents.active, true)))
-          .where(eq(networks.organisationId, id))
-          .orderBy(networks.id)
+        tx.query.networks.findMany({ ...networkQuery, where: { organisationId: id }, orderBy: { id: 'asc' } })
       );
       c.header('Cache-Control', 'no-store');
       return c.json({ networks: rows }, 200);
@@ -94,15 +96,13 @@ export default new Hono()
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
-      const [row] = await session.transaction(async tx =>
-        tx.insert(networks).values({ organisationId: id, name }).returning({
-          id: networks.id,
-          name: networks.name,
-          createdAt: networks.createdAt
-        })
-      );
+      const row = await session.transaction(async tx => {
+        const [network] = await tx.insert(networks).values({ organisationId: id, name }).returning({ id: networks.id });
+        const created = await readNetwork(tx, id, network!.id);
+        return created!;
+      });
       c.header('Cache-Control', 'no-store');
-      return c.json({ ...row!, activeAgentId: null }, 201);
+      return c.json(row, 201);
     }
   )
   .get(
@@ -127,18 +127,7 @@ export default new Hono()
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
-          .select({
-            id: networks.id,
-            name: networks.name,
-            activeAgentId: agents.id,
-            createdAt: networks.createdAt
-          })
-          .from(networks)
-          .leftJoin(agents, and(eq(agents.networkId, networks.id), eq(agents.active, true)))
-          .where(and(eq(networks.organisationId, id), eq(networks.id, networkId)))
-      );
+      const row = await session.transaction(tx => readNetwork(tx, id, networkId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -171,21 +160,14 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await services.session(principal);
       const row = await session.transaction(async tx => {
-        const [network] = await tx
+        const updated = await tx
           .update(networks)
           .set({ name })
           .where(and(eq(networks.organisationId, id), eq(networks.id, networkId)))
-          .returning({
-            id: networks.id,
-            name: networks.name,
-            createdAt: networks.createdAt
-          });
-        if (!network) throw await unchanged(tx, networks.id, networkId);
-        const [active] = await tx
-          .select({ id: agents.id })
-          .from(agents)
-          .where(and(eq(agents.networkId, networkId), eq(agents.active, true)));
-        return { ...network, activeAgentId: active?.id ?? null };
+          .returning({ id: networks.id });
+        if (updated.length === 0) throw await unchanged(tx, networks.id, networkId);
+        const network = await readNetwork(tx, id, networkId);
+        return network!;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -262,11 +244,7 @@ export default new Hono()
       const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [network] = await tx
-          .select({
-            id: networks.id,
-            name: networks.name,
-            createdAt: networks.createdAt
-          })
+          .select({ id: networks.id })
           .from(networks)
           .where(and(eq(networks.organisationId, id), eq(networks.id, networkId)));
         if (!network) throw new ApiFailure('not_found');
@@ -296,7 +274,8 @@ export default new Hono()
             throw new ApiFailure(registered ? 'forbidden' : 'invalid_reference');
           }
         }
-        return { ...network, activeAgentId: agentId };
+        const changed = await readNetwork(tx, id, networkId);
+        return changed!;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);

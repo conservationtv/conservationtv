@@ -9,17 +9,17 @@ export const ErrorSchema = z.object({
 
 export const BrowserSchema = z.object({
     privateKey: z.string(),
+    name: z.string(),
     id: z.string(),
+    createdAt: z.string(),
+    publicKey: z.string(),
     kind: z.enum([
         'agent',
         'camera',
         'browser'
     ]),
-    name: z.string(),
     networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
+    publicId: z.string()
 });
 
 export const PutOrganisationsByIdBrowserPathSchema = z.object({
