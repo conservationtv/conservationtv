@@ -11,19 +11,9 @@ export type Error = {
 
 export type Device = {
     id: string;
-    type: string;
+    kind: 'agent' | 'camera';
     name: string;
     networkId: string | null;
-    nativeExposures: Array<{
-        networkId: string | null;
-        protocol: string;
-        params?: {
-            [key: string]: unknown;
-        };
-    }>;
-    settings: {
-        [key: string]: unknown;
-    };
     publicKey: string;
     publicId: string;
     createdAt: string;

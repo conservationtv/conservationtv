@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, Schema0 } from './types.gen.js';
+import type { PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -48,41 +48,21 @@ class HeyApiRegistry<T> {
 
 export class Devices extends HeyApiClient {
     /**
-     * Update a device
+     * Rename or move a device
      *
-     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.
+     * Administrators only. Changes only the fields given. An agent’s network cannot change.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         deviceId: string;
-        type?: string;
         name?: string;
         networkId?: string | null;
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        settings?: {
-            [key: string]: Schema0;
-        };
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'deviceId' },
-                    { in: 'body', key: 'type' },
                     { in: 'body', key: 'name' },
-                    { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'nativeExposures' },
-                    { in: 'body', key: 'settings' }
+                    { in: 'body', key: 'networkId' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError>({
             url: '/organisations/{id}/devices/{deviceId}',

@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdDevicesByDeviceIdErrors, DeleteOrganisationsByIdDevicesByDeviceIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdDevicesErrors, PostOrganisationsByIdDevicesResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -371,78 +371,15 @@ export class Devices extends HeyApiClient {
     /**
      * List an organisation's devices
      *
-     * Empty for organisations you are not a member of.
+     * Every kind (agent, camera), optionally only one. Empty for organisations you are not a member of.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
+        kind?: 'agent' | 'camera';
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdDevicesErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdDevicesErrors, ThrowOnError>({
             url: '/organisations/{id}/devices',
-            ...options,
-            ...params
-        });
-    }
-    
-    /**
-     * Add a device
-     *
-     * Administrators only. The device gets a new Ed25519 identity: its public key and public ID.
-     */
-    public create<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        type: string;
-        name: string;
-        networkId?: string | null;
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        settings?: {
-            [key: string]: Schema0;
-        };
-    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdDevicesResponses, PostOrganisationsByIdDevicesErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'body', key: 'type' },
-                    { in: 'body', key: 'name' },
-                    { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'nativeExposures' },
-                    { in: 'body', key: 'settings' }
-                ] }]);
-        return (options?.client ?? this.client).post<PostOrganisationsByIdDevicesResponses, PostOrganisationsByIdDevicesErrors, ThrowOnError>({
-            url: '/organisations/{id}/devices',
-            ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
-        });
-    }
-    
-    /**
-     * Remove a device
-     *
-     * Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.
-     */
-    public delete<ThrowOnError extends boolean = false>(parameters: {
-        id: string;
-        deviceId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdDevicesByDeviceIdResponses, DeleteOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'deviceId' }] }]);
-        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdDevicesByDeviceIdResponses, DeleteOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/devices/{deviceId}',
             ...options,
             ...params
         });
@@ -464,15 +401,60 @@ export class Devices extends HeyApiClient {
     }
     
     /**
-     * Update a device
+     * Rename or move a device
      *
-     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.
+     * Administrators only. Changes only the fields given. An agent’s network cannot change.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         deviceId: string;
-        type?: string;
         name?: string;
+        networkId?: string | null;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'deviceId' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'networkId' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/devices/{deviceId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Cameras extends HeyApiClient {
+    /**
+     * List an organisation's cameras
+     *
+     * Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdCamerasErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdCamerasErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Add a camera
+     *
+     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
         networkId?: string | null;
         nativeExposures?: Array<{
             /**
@@ -490,18 +472,91 @@ export class Devices extends HeyApiClient {
         settings?: {
             [key: string]: Schema0;
         };
-    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError> {
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
-                    { in: 'path', key: 'deviceId' },
-                    { in: 'body', key: 'type' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
                     { in: 'body', key: 'nativeExposures' },
                     { in: 'body', key: 'settings' }
                 ] }]);
-        return (options?.client ?? this.client).patch<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/devices/{deviceId}',
+        return (options?.client ?? this.client).post<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a camera
+     *
+     * Administrators only. Removes its device too. Refused while a stream uses it as its source.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        cameraId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras/{cameraId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read a camera
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        cameraId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras/{cameraId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update a camera
+     *
+     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        cameraId: string;
+        nativeExposures?: Array<{
+            /**
+             * A network of the organisation, or null for the internet.
+             */
+            networkId: string | null;
+            protocol: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            params?: {
+                [key: string]: Schema0;
+            };
+        }>;
+        settings?: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'cameraId' },
+                    { in: 'body', key: 'nativeExposures' },
+                    { in: 'body', key: 'settings' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras/{cameraId}',
             ...options,
             ...params,
             headers: {
@@ -630,34 +685,14 @@ export class Agents extends HeyApiClient {
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        type: string;
         name: string;
         networkId: string;
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        settings?: {
-            [key: string]: Schema0;
-        };
         priority?: number;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
-                    { in: 'body', key: 'type' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'nativeExposures' },
-                    { in: 'body', key: 'settings' },
                     { in: 'body', key: 'priority' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError>({
@@ -707,7 +742,7 @@ export class Agents extends HeyApiClient {
     /**
      * Update an agent
      *
-     * Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.
+     * Administrators only: change its priority. Its name is changed under `/devices`, with the same ID; which agent is active is set on the network.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -1204,6 +1239,11 @@ export class Organisations extends HeyApiClient {
     private _devices?: Devices;
     get devices(): Devices {
         return this._devices ??= new Devices({ client: this.client });
+    }
+    
+    private _cameras?: Cameras;
+    get cameras(): Cameras {
+        return this._cameras ??= new Cameras({ client: this.client });
     }
     
     private _agents?: Agents;

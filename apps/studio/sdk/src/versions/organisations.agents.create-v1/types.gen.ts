@@ -9,39 +9,21 @@ export type Error = {
     error_description: string;
 };
 
-export type Schema0 = string | number | boolean | null | Array<Schema0> | {
-    [key: string]: Schema0;
-};
-
 export type Agent = {
     servedRevisionId: null;
-    networkId: string;
     priority: number;
     active: boolean;
-    createdAt: string;
     id: string;
-    type: string;
+    kind: 'agent' | 'camera';
     name: string;
-    nativeExposures: Array<{
-        networkId: string | null;
-        protocol: string;
-        params?: {
-            [key: string]: unknown;
-        };
-    }>;
-    settings: {
-        [key: string]: unknown;
-    };
+    networkId: string | null;
     publicKey: string;
     publicId: string;
+    createdAt: string;
 };
 
 export type PostOrganisationsByIdAgentsData = {
     body: {
-        /**
-         * What the device is, such as `camera` or `server`.
-         */
-        type: string;
         /**
          * The device name.
          */
@@ -50,28 +32,6 @@ export type PostOrganisationsByIdAgentsData = {
          * The network the agent is on and serves.
          */
         networkId: string;
-        /**
-         * The endpoints the device offers by itself, such as a camera’s RTSP feed.
-         */
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        /**
-         * Settings validated by the implementation that reads them.
-         */
-        settings?: {
-            [key: string]: Schema0;
-        };
         /**
          * Standby preference; higher is preferred.
          */

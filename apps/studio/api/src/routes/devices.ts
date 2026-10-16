@@ -6,8 +6,8 @@ import { devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
-import { deviceIdentity } from '../topology/identity.ts';
-import { NativeExposureSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
+import { DEVICE_KINDS } from '../topology/device-kinds.ts';
+import { NetworkReferenceSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
@@ -27,23 +27,22 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const DeviceParamsSchema = OrganisationParamsSchema.extend({ deviceId: z.uuid().describe('The device.') });
 export type DeviceParams = z.output<typeof DeviceParamsSchema>;
 
-export const DeviceTypeSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(60)
-  .describe('What the device is, such as `camera` or `server`.');
-export type DeviceType = z.output<typeof DeviceTypeSchema>;
 export const DeviceNameSchema = z.string().trim().min(1).max(120).describe('The device name.');
 export type DeviceName = z.output<typeof DeviceNameSchema>;
-export const NativeExposuresSchema = z
-  .array(NativeExposureSchema)
-  .max(32)
-  .describe('The endpoints the device offers by itself, such as a camera’s RTSP feed.');
-export type NativeExposures = z.output<typeof NativeExposuresSchema>;
 
-// An organisation's devices (cameras, servers), in the principal's request session: members read them, administrators
-// manage them.
+/** A device: the columns every device route returns, and that its kind's routes return too. */
+export const deviceColumns = {
+  id: devices.id,
+  kind: devices.kind,
+  name: devices.name,
+  networkId: devices.networkId,
+  publicKey: devices.publicKey,
+  publicId: devices.publicId,
+  createdAt: devices.createdAt
+};
+
+// An organisation's devices, in the principal's request session: members read them, administrators rename and move
+// them. A device is created and removed as its kind, under /agents or /cameras, which share its ID.
 export default new Hono()
   .get(
     '/:id/devices',
@@ -51,7 +50,7 @@ export default new Hono()
       operationId: 'organisations.devices.list',
       ...operationVersion(1),
       summary: "List an organisation's devices",
-      description: 'Empty for organisations you are not a member of.',
+      description: `Every kind (${DEVICE_KINDS.join(', ')}), optionally only one. Empty for organisations you are not a member of.`,
       responses: {
         200: { description: 'The devices, oldest first' },
         400: invalidRequest,
@@ -62,94 +61,22 @@ export default new Hono()
     }),
     requirePrincipal,
     validator('param', OrganisationParamsSchema),
+    validator('query', z.object({ kind: z.enum(DEVICE_KINDS).optional().describe('Only devices of this kind.') })),
     async c => {
       const { id } = c.req.valid('param');
+      const { kind } = c.req.valid('query');
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
-          .select({
-            id: devices.id,
-            type: devices.type,
-            name: devices.name,
-            networkId: devices.networkId,
-            nativeExposures: devices.nativeExposures,
-            settings: devices.settings,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId,
-            createdAt: devices.createdAt
-          })
+          .select(deviceColumns)
           .from(devices)
-          .where(eq(devices.organisationId, id))
+          .where(and(eq(devices.organisationId, id), kind === undefined ? undefined : eq(devices.kind, kind)))
           .orderBy(devices.id)
       );
       c.header('Cache-Control', 'no-store');
       return c.json({ devices: rows }, 200);
-    }
-  )
-  .post(
-    '/:id/devices',
-    describeRoute({
-      operationId: 'organisations.devices.create',
-      ...operationVersion(1),
-      summary: 'Add a device',
-      description: 'Administrators only. The device gets a new Ed25519 identity: its public key and public ID.',
-      responses: {
-        201: { description: 'The new device' },
-        400: invalidRequest,
-        401: unauthenticated,
-        403: forbidden,
-        412: versionMismatch,
-        422: invalidReference,
-        503: unavailable
-      }
-    }),
-    requirePrincipal,
-    validator('param', OrganisationParamsSchema),
-    validator(
-      'json',
-      z.strictObject({
-        type: DeviceTypeSchema,
-        name: DeviceNameSchema,
-        networkId: NetworkReferenceSchema.default(null),
-        nativeExposures: NativeExposuresSchema.default([]),
-        settings: SettingsSchema.default({})
-      })
-    ),
-    async c => {
-      const { id } = c.req.valid('param');
-      const body = c.req.valid('json');
-      const services = useServices();
-      const principal = usePrincipal();
-      const session = await services.session(principal);
-      const identity = await deviceIdentity();
-      const [row] = await session.transaction(async tx =>
-        tx
-          .insert(devices)
-          .values({
-            ...identity,
-            organisationId: id,
-            type: body.type,
-            name: body.name,
-            networkId: body.networkId,
-            nativeExposures: body.nativeExposures,
-            settings: body.settings
-          })
-          .returning({
-            id: devices.id,
-            type: devices.type,
-            name: devices.name,
-            networkId: devices.networkId,
-            nativeExposures: devices.nativeExposures,
-            settings: devices.settings,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId,
-            createdAt: devices.createdAt
-          })
-      );
-      c.header('Cache-Control', 'no-store');
-      return c.json(row!, 201);
     }
   )
   .get(
@@ -176,17 +103,7 @@ export default new Hono()
       const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
-          .select({
-            id: devices.id,
-            type: devices.type,
-            name: devices.name,
-            networkId: devices.networkId,
-            nativeExposures: devices.nativeExposures,
-            settings: devices.settings,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId,
-            createdAt: devices.createdAt
-          })
+          .select(deviceColumns)
           .from(devices)
           .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
       );
@@ -200,9 +117,8 @@ export default new Hono()
     describeRoute({
       operationId: 'organisations.devices.update',
       ...operationVersion(1),
-      summary: 'Update a device',
-      description:
-        'Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.',
+      summary: 'Rename or move a device',
+      description: 'Administrators only. Changes only the fields given. An agent’s network cannot change.',
       responses: {
         200: { description: 'The updated device' },
         400: invalidRequest,
@@ -220,13 +136,7 @@ export default new Hono()
     validator(
       'json',
       z
-        .strictObject({
-          type: DeviceTypeSchema.optional(),
-          name: DeviceNameSchema.optional(),
-          networkId: NetworkReferenceSchema.optional(),
-          nativeExposures: NativeExposuresSchema.optional(),
-          settings: SettingsSchema.optional()
-        })
+        .strictObject({ name: DeviceNameSchema.optional(), networkId: NetworkReferenceSchema.optional() })
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
     ),
     async c => {
@@ -238,65 +148,13 @@ export default new Hono()
       const row = await session.transaction(async tx => {
         const [device] = await tx
           .update(devices)
-          .set({
-            type: body.type,
-            name: body.name,
-            networkId: body.networkId,
-            nativeExposures: body.nativeExposures,
-            settings: body.settings
-          })
+          .set({ name: body.name, networkId: body.networkId })
           .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
-          .returning({
-            id: devices.id,
-            type: devices.type,
-            name: devices.name,
-            networkId: devices.networkId,
-            nativeExposures: devices.nativeExposures,
-            settings: devices.settings,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId,
-            createdAt: devices.createdAt
-          });
+          .returning(deviceColumns);
         if (!device) throw await unchanged(tx, devices.id, deviceId);
         return device;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
-    }
-  )
-  .delete(
-    '/:id/devices/:deviceId',
-    describeRoute({
-      operationId: 'organisations.devices.delete',
-      ...operationVersion(1),
-      summary: 'Remove a device',
-      description:
-        'Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.',
-      responses: {
-        204: { description: 'Removed' },
-        400: invalidRequest,
-        401: unauthenticated,
-        403: forbidden,
-        404: notFound,
-        409: inUse,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    requirePrincipal,
-    validator('param', DeviceParamsSchema),
-    async c => {
-      const { id, deviceId } = c.req.valid('param');
-      const services = useServices();
-      const principal = usePrincipal();
-      const session = await services.session(principal);
-      await session.transaction(async tx => {
-        const deleted = await tx
-          .delete(devices)
-          .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
-          .returning({ id: devices.id });
-        if (deleted.length === 0) throw await unchanged(tx, devices.id, deviceId);
-      });
-      return c.body(null, 204);
     }
   );

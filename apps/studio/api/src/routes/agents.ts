@@ -7,7 +7,7 @@ import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
-import { DeviceNameSchema, DeviceTypeSchema, NativeExposuresSchema } from './devices.ts';
+import { DeviceNameSchema, deviceColumns } from './devices.ts';
 import { deviceIdentity } from '../topology/identity.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
@@ -35,23 +35,11 @@ const PrioritySchema = z.int().min(-1000).max(1000).describe('Standby preference
 export type Priority = z.output<typeof PrioritySchema>;
 
 /** An agent with its device's fields: the columns every agent route returns, but its served revision. */
-const agentColumns = {
-  id: agents.id,
-  type: devices.type,
-  name: devices.name,
-  networkId: agents.networkId,
-  nativeExposures: devices.nativeExposures,
-  settings: devices.settings,
-  publicKey: devices.publicKey,
-  publicId: devices.publicId,
-  priority: agents.priority,
-  active: agents.active,
-  createdAt: agents.createdAt
-};
+const agentColumns = { ...deviceColumns, priority: agents.priority, active: agents.active };
 
 // An organisation's agents and their configuration revisions, in the principal's request session: members read them,
 // administrators manage them. An agent is a device that serves the network it is on (src/db/schemas/agents.ts): it is
-// created and removed with its device, and its device's fields are edited under /devices, with the same ID.
+// created and removed with its device, and its device's name is edited under /devices, with the same ID.
 export default new Hono()
   .get(
     '/:id/agents',
@@ -118,11 +106,8 @@ export default new Hono()
     validator(
       'json',
       z.strictObject({
-        type: DeviceTypeSchema,
         name: DeviceNameSchema,
         networkId: z.uuid().describe('The network the agent is on and serves.'),
-        nativeExposures: NativeExposuresSchema.default([]),
-        settings: SettingsSchema.default({}),
         priority: PrioritySchema.default(0)
       })
     ),
@@ -136,33 +121,12 @@ export default new Hono()
       const row = await session.transaction(async tx => {
         const [device] = await tx
           .insert(devices)
-          .values({
-            ...identity,
-            organisationId: id,
-            type: body.type,
-            name: body.name,
-            networkId: body.networkId,
-            nativeExposures: body.nativeExposures,
-            settings: body.settings
-          })
-          .returning({
-            id: devices.id,
-            type: devices.type,
-            name: devices.name,
-            nativeExposures: devices.nativeExposures,
-            settings: devices.settings,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId
-          });
+          .values({ ...identity, organisationId: id, kind: 'agent', name: body.name, networkId: body.networkId })
+          .returning(deviceColumns);
         const [agent] = await tx
           .insert(agents)
           .values({ id: device!.id, organisationId: id, networkId: body.networkId, priority: body.priority })
-          .returning({
-            networkId: agents.networkId,
-            priority: agents.priority,
-            active: agents.active,
-            createdAt: agents.createdAt
-          });
+          .returning({ priority: agents.priority, active: agents.active });
         return { ...device!, ...agent!, servedRevisionId: null };
       });
       c.header('Cache-Control', 'no-store');
@@ -214,7 +178,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update an agent',
       description:
-        'Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.',
+        'Administrators only: change its priority. Its name is changed under `/devices`, with the same ID; which agent is active is set on the network.',
       responses: {
         200: { description: 'The updated agent' },
         400: invalidRequest,

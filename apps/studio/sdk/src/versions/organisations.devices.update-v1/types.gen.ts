@@ -9,25 +9,11 @@ export type Error = {
     error_description: string;
 };
 
-export type Schema0 = string | number | boolean | null | Array<Schema0> | {
-    [key: string]: Schema0;
-};
-
 export type Device = {
     id: string;
-    type: string;
+    kind: 'agent' | 'camera';
     name: string;
     networkId: string | null;
-    nativeExposures: Array<{
-        networkId: string | null;
-        protocol: string;
-        params?: {
-            [key: string]: unknown;
-        };
-    }>;
-    settings: {
-        [key: string]: unknown;
-    };
     publicKey: string;
     publicId: string;
     createdAt: string;
@@ -36,10 +22,6 @@ export type Device = {
 export type PatchOrganisationsByIdDevicesByDeviceIdData = {
     body: {
         /**
-         * What the device is, such as `camera` or `server`.
-         */
-        type?: string;
-        /**
          * The device name.
          */
         name?: string;
@@ -47,28 +29,6 @@ export type PatchOrganisationsByIdDevicesByDeviceIdData = {
          * A network of the organisation, or null for the internet.
          */
         networkId?: string | null;
-        /**
-         * The endpoints the device offers by itself, such as a camera’s RTSP feed.
-         */
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        /**
-         * Settings validated by the implementation that reads them.
-         */
-        settings?: {
-            [key: string]: Schema0;
-        };
     };
     path: {
         /**

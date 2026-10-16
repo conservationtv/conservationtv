@@ -50,7 +50,7 @@ export class Agents extends HeyApiClient {
     /**
      * Update an agent
      *
-     * Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.
+     * Administrators only: change its priority. Its name is changed under `/devices`, with the same ID; which agent is active is set on the network.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;

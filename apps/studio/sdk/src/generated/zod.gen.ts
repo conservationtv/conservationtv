@@ -65,15 +65,25 @@ export const NetworkSchema = z.object({
 
 export const DeviceSchema = z.object({
     id: z.string(),
-    type: z.string(),
+    kind: z.enum(['agent', 'camera']),
     name: z.string(),
     networkId: z.string().nullable(),
+    publicKey: z.string(),
+    publicId: z.string(),
+    createdAt: z.string()
+});
+
+export const CameraSchema = z.object({
     nativeExposures: z.array(z.object({
         networkId: z.string().nullable(),
         protocol: z.string(),
         params: z.record(z.string(), z.unknown()).optional()
     })),
     settings: z.record(z.string(), z.unknown()),
+    id: z.string(),
+    kind: z.enum(['agent', 'camera']),
+    name: z.string(),
+    networkId: z.string().nullable(),
     publicKey: z.string(),
     publicId: z.string(),
     createdAt: z.string()
@@ -81,20 +91,14 @@ export const DeviceSchema = z.object({
 
 export const AgentSchema = z.object({
     servedRevisionId: z.string().nullable(),
-    id: z.string(),
-    type: z.string(),
-    name: z.string(),
-    networkId: z.string(),
-    nativeExposures: z.array(z.object({
-        networkId: z.string().nullable(),
-        protocol: z.string(),
-        params: z.record(z.string(), z.unknown()).optional()
-    })),
-    settings: z.record(z.string(), z.unknown()),
-    publicKey: z.string(),
-    publicId: z.string(),
     priority: z.number(),
     active: z.boolean(),
+    id: z.string(),
+    kind: z.enum(['agent', 'camera']),
+    name: z.string(),
+    networkId: z.string().nullable(),
+    publicKey: z.string(),
+    publicId: z.string(),
     createdAt: z.string()
 });
 
@@ -542,76 +546,27 @@ export const GetOrganisationsByIdDevicesPathSchema = z.object({
     })
 });
 
+export const GetOrganisationsByIdDevicesQuerySchema = z.object({
+    kind: z.enum(['agent', 'camera']).register(z.globalRegistry, {
+        description: 'Only devices of this kind.'
+    }).optional()
+});
+
 /**
  * The devices, oldest first
  */
 export const GetOrganisationsByIdDevicesResponseSchema = z.object({
     devices: z.array(z.object({
         id: z.string(),
-        type: z.string(),
+        kind: z.enum(['agent', 'camera']),
         name: z.string(),
         networkId: z.string().nullable(),
-        nativeExposures: z.array(z.object({
-            networkId: z.string().nullable(),
-            protocol: z.string(),
-            params: z.record(z.string(), z.unknown()).optional()
-        })),
-        settings: z.record(z.string(), z.unknown()),
         publicKey: z.string(),
         publicId: z.string(),
         createdAt: z.string()
     }))
 }).register(z.globalRegistry, {
     description: 'The devices, oldest first'
-});
-
-export const PostOrganisationsByIdDevicesBodySchema = z.object({
-    type: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'What the device is, such as `camera` or `server`.'
-    }),
-    name: z.string().min(1).max(120).register(z.globalRegistry, {
-        description: 'The device name.'
-    }),
-    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    nativeExposures: z.array(z.object({
-        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-        protocol: z.string().min(1).max(60),
-        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-            description: 'Settings validated by the implementation that reads them.'
-        }).optional()
-    })).max(32).register(z.globalRegistry, {
-        description: 'The endpoints the device offers by itself, such as a camera’s RTSP feed.'
-    }).optional().default([]),
-    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({})
-});
-
-export const PostOrganisationsByIdDevicesPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    })
-});
-
-/**
- * The new device
- */
-export const PostOrganisationsByIdDevicesResponseSchema = DeviceSchema;
-
-export const DeleteOrganisationsByIdDevicesByDeviceIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The device.'
-    })
-});
-
-/**
- * Removed
- */
-export const DeleteOrganisationsByIdDevicesByDeviceIdResponseSchema = z.void().register(z.globalRegistry, {
-    description: 'Removed'
 });
 
 export const GetOrganisationsByIdDevicesByDeviceIdPathSchema = z.object({
@@ -629,25 +584,10 @@ export const GetOrganisationsByIdDevicesByDeviceIdPathSchema = z.object({
 export const GetOrganisationsByIdDevicesByDeviceIdResponseSchema = DeviceSchema;
 
 export const PatchOrganisationsByIdDevicesByDeviceIdBodySchema = z.object({
-    type: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'What the device is, such as `camera` or `server`.'
-    }).optional(),
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The device name.'
     }).optional(),
-    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    nativeExposures: z.array(z.object({
-        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-        protocol: z.string().min(1).max(60),
-        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-            description: 'Settings validated by the implementation that reads them.'
-        }).optional()
-    })).max(32).register(z.globalRegistry, {
-        description: 'The endpoints the device offers by itself, such as a camera’s RTSP feed.'
-    }).optional(),
-    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional()
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish()
 });
 
 export const PatchOrganisationsByIdDevicesByDeviceIdPathSchema = z.object({
@@ -663,6 +603,124 @@ export const PatchOrganisationsByIdDevicesByDeviceIdPathSchema = z.object({
  * The updated device
  */
 export const PatchOrganisationsByIdDevicesByDeviceIdResponseSchema = DeviceSchema;
+
+export const GetOrganisationsByIdCamerasPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The cameras, oldest first
+ */
+export const GetOrganisationsByIdCamerasResponseSchema = z.object({
+    cameras: z.array(z.object({
+        nativeExposures: z.array(z.object({
+            networkId: z.string().nullable(),
+            protocol: z.string(),
+            params: z.record(z.string(), z.unknown()).optional()
+        })),
+        settings: z.record(z.string(), z.unknown()),
+        id: z.string(),
+        kind: z.enum(['agent', 'camera']),
+        name: z.string(),
+        networkId: z.string().nullable(),
+        publicKey: z.string(),
+        publicId: z.string(),
+        createdAt: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The cameras, oldest first'
+});
+
+export const PostOrganisationsByIdCamerasBodySchema = z.object({
+    name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The device name.'
+    }),
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
+    nativeExposures: z.array(z.object({
+        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
+        protocol: z.string().min(1).max(60),
+        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+            description: 'Settings validated by the implementation that reads them.'
+        }).optional()
+    })).max(32).register(z.globalRegistry, {
+        description: 'The endpoints the camera offers by itself, such as its RTSP feed.'
+    }).optional().default([]),
+    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+        description: 'Settings validated by the implementation that reads them.'
+    }).optional().default({})
+});
+
+export const PostOrganisationsByIdCamerasPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The new camera
+ */
+export const PostOrganisationsByIdCamerasResponseSchema = CameraSchema;
+
+export const DeleteOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
+});
+
+/**
+ * Removed
+ */
+export const DeleteOrganisationsByIdCamerasByCameraIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
+});
+
+export const GetOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
+});
+
+/**
+ * The camera
+ */
+export const GetOrganisationsByIdCamerasByCameraIdResponseSchema = CameraSchema;
+
+export const PatchOrganisationsByIdCamerasByCameraIdBodySchema = z.object({
+    nativeExposures: z.array(z.object({
+        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
+        protocol: z.string().min(1).max(60),
+        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+            description: 'Settings validated by the implementation that reads them.'
+        }).optional()
+    })).max(32).register(z.globalRegistry, {
+        description: 'The endpoints the camera offers by itself, such as its RTSP feed.'
+    }).optional(),
+    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+        description: 'Settings validated by the implementation that reads them.'
+    }).optional()
+});
+
+export const PatchOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
+});
+
+/**
+ * The updated camera
+ */
+export const PatchOrganisationsByIdCamerasByCameraIdResponseSchema = CameraSchema;
 
 export const GetOrganisationsByIdAgentsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -682,20 +740,14 @@ export const GetOrganisationsByIdAgentsQuerySchema = z.object({
 export const GetOrganisationsByIdAgentsResponseSchema = z.object({
     agents: z.array(z.object({
         servedRevisionId: z.string().nullable(),
-        id: z.string(),
-        type: z.string(),
-        name: z.string(),
-        networkId: z.string(),
-        nativeExposures: z.array(z.object({
-            networkId: z.string().nullable(),
-            protocol: z.string(),
-            params: z.record(z.string(), z.unknown()).optional()
-        })),
-        settings: z.record(z.string(), z.unknown()),
-        publicKey: z.string(),
-        publicId: z.string(),
         priority: z.number(),
         active: z.boolean(),
+        id: z.string(),
+        kind: z.enum(['agent', 'camera']),
+        name: z.string(),
+        networkId: z.string().nullable(),
+        publicKey: z.string(),
+        publicId: z.string(),
         createdAt: z.string()
     }))
 }).register(z.globalRegistry, {
@@ -703,27 +755,12 @@ export const GetOrganisationsByIdAgentsResponseSchema = z.object({
 });
 
 export const PostOrganisationsByIdAgentsBodySchema = z.object({
-    type: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'What the device is, such as `camera` or `server`.'
-    }),
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The device name.'
     }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The network the agent is on and serves.'
     }),
-    nativeExposures: z.array(z.object({
-        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-        protocol: z.string().min(1).max(60),
-        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-            description: 'Settings validated by the implementation that reads them.'
-        }).optional()
-    })).max(32).register(z.globalRegistry, {
-        description: 'The endpoints the device offers by itself, such as a camera’s RTSP feed.'
-    }).optional().default([]),
-    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({}),
     priority: z.int().gte(-1000).lte(1000).register(z.globalRegistry, {
         description: 'Standby preference; higher is preferred.'
     }).optional().default(0)
@@ -740,21 +777,15 @@ export const PostOrganisationsByIdAgentsPathSchema = z.object({
  */
 export const PostOrganisationsByIdAgentsResponseSchema = z.object({
     servedRevisionId: z.null(),
-    networkId: z.string(),
     priority: z.number(),
     active: z.boolean(),
-    createdAt: z.string(),
     id: z.string(),
-    type: z.string(),
+    kind: z.enum(['agent', 'camera']),
     name: z.string(),
-    nativeExposures: z.array(z.object({
-        networkId: z.string().nullable(),
-        protocol: z.string(),
-        params: z.record(z.string(), z.unknown()).optional()
-    })),
-    settings: z.record(z.string(), z.unknown()),
+    networkId: z.string().nullable(),
     publicKey: z.string(),
-    publicId: z.string()
+    publicId: z.string(),
+    createdAt: z.string()
 }).register(z.globalRegistry, {
     description: 'The new agent'
 });
@@ -917,20 +948,14 @@ export const PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema = z.obj
  */
 export const PutOrganisationsByIdAgentsByAgentIdServedRevisionResponseSchema = z.object({
     servedRevisionId: z.string(),
-    id: z.string(),
-    type: z.string(),
-    name: z.string(),
-    networkId: z.string(),
-    nativeExposures: z.array(z.object({
-        networkId: z.string().nullable(),
-        protocol: z.string(),
-        params: z.record(z.string(), z.unknown()).optional()
-    })),
-    settings: z.record(z.string(), z.unknown()),
-    publicKey: z.string(),
-    publicId: z.string(),
     priority: z.number(),
     active: z.boolean(),
+    id: z.string(),
+    kind: z.enum(['agent', 'camera']),
+    name: z.string(),
+    networkId: z.string().nullable(),
+    publicKey: z.string(),
+    publicId: z.string(),
     createdAt: z.string()
 }).register(z.globalRegistry, {
     description: 'The agent'
