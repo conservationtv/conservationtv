@@ -48,7 +48,7 @@
     "cf": "^1.0.0-beta.5",
     "drizzle-kit": "catalog:",
     "tsx": "4.23.15",
-    "typescript": "^7.0.2",
+    "typescript": "catalog:",
     "vite": "^8.3.0"
   }
 }
