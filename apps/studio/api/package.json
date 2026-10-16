@@ -21,7 +21,7 @@
     "auth:generate": "better-auth generate --config scripts/auth-schema.config.ts --output src/db/schemas/auth.ts -y",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
-    "db:generate": "drizzle-kit generate && umbrella generate",
+    "db:generate": "drizzle-kit generate && umbrella generate --role studio_app",
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {

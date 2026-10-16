@@ -65,6 +65,14 @@ create function "authz:agents:immutable"() returns trigger language plpgsql as $
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "agent" for each row execute function "authz:agents:immutable"();
 --> statement-breakpoint
+revoke all on "agent" from "studio_app";
+--> statement-breakpoint
+grant select on "agent" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "agent" to "studio_app";
+--> statement-breakpoint
+grant update ("priority", "active") on "agent" to "studio_app";
+--> statement-breakpoint
 alter table "browser" enable row level security;
 --> statement-breakpoint
 create function "authz:browsers:select:0"()
@@ -92,6 +100,10 @@ create function "authz:browsers:immutable"() returns trigger language plpgsql as
     end $authz$;
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "browser" for each row execute function "authz:browsers:immutable"();
+--> statement-breakpoint
+revoke all on "browser" from "studio_app";
+--> statement-breakpoint
+grant select on "browser" to "studio_app";
 --> statement-breakpoint
 alter table "camera" enable row level security;
 --> statement-breakpoint
@@ -141,6 +153,14 @@ create function "authz:cameras:immutable"() returns trigger language plpgsql as 
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "camera" for each row execute function "authz:cameras:immutable"();
 --> statement-breakpoint
+revoke all on "camera" from "studio_app";
+--> statement-breakpoint
+grant select on "camera" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "camera" to "studio_app";
+--> statement-breakpoint
+grant update ("native_exposures", "settings") on "camera" to "studio_app";
+--> statement-breakpoint
 alter table "configuration_revision" enable row level security;
 --> statement-breakpoint
 create function "authz:configurationRevisions:select:0"()
@@ -179,6 +199,14 @@ create function "authz:configurationRevisions:immutable"() returns trigger langu
     end $authz$;
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "configuration_revision" for each row execute function "authz:configurationRevisions:immutable"();
+--> statement-breakpoint
+revoke all on "configuration_revision" from "studio_app";
+--> statement-breakpoint
+grant select on "configuration_revision" to "studio_app";
+--> statement-breakpoint
+grant insert on "configuration_revision" to "studio_app";
+--> statement-breakpoint
+grant update ("served") on "configuration_revision" to "studio_app";
 --> statement-breakpoint
 alter table "device" enable row level security;
 --> statement-breakpoint
@@ -228,6 +256,14 @@ create function "authz:devices:immutable"() returns trigger language plpgsql as 
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "device" for each row execute function "authz:devices:immutable"();
 --> statement-breakpoint
+revoke all on "device" from "studio_app";
+--> statement-breakpoint
+grant select ("id", "organisation_id", "kind", "name", "network_id", "public_key", "public_id", "created_at") on "device" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "device" to "studio_app";
+--> statement-breakpoint
+grant update ("name", "network_id") on "device" to "studio_app";
+--> statement-breakpoint
 alter table "exposure" enable row level security;
 --> statement-breakpoint
 create function "authz:exposures:select:0"()
@@ -275,6 +311,14 @@ create function "authz:exposures:immutable"() returns trigger language plpgsql a
     end $authz$;
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "exposure" for each row execute function "authz:exposures:immutable"();
+--> statement-breakpoint
+revoke all on "exposure" from "studio_app";
+--> statement-breakpoint
+grant select on "exposure" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "exposure" to "studio_app";
+--> statement-breakpoint
+grant update ("network_id", "protocol", "params") on "exposure" to "studio_app";
 --> statement-breakpoint
 alter table "network" enable row level security;
 --> statement-breakpoint
@@ -324,6 +368,14 @@ create function "authz:networks:immutable"() returns trigger language plpgsql as
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "network" for each row execute function "authz:networks:immutable"();
 --> statement-breakpoint
+revoke all on "network" from "studio_app";
+--> statement-breakpoint
+grant select on "network" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "network" to "studio_app";
+--> statement-breakpoint
+grant update ("name") on "network" to "studio_app";
+--> statement-breakpoint
 alter table "organisation_invitation" enable row level security;
 --> statement-breakpoint
 create function "authz:organisationInvitations:select:0"()
@@ -363,6 +415,12 @@ create function "authz:organisationInvitations:immutable"() returns trigger lang
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "organisation_invitation" for each row execute function "authz:organisationInvitations:immutable"();
 --> statement-breakpoint
+revoke all on "organisation_invitation" from "studio_app";
+--> statement-breakpoint
+grant select ("id", "organisation_id", "user_id", "email", "invited_by", "created_at", "expires_at") on "organisation_invitation" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "organisation_invitation" to "studio_app";
+--> statement-breakpoint
 alter table "organisation_membership" enable row level security;
 --> statement-breakpoint
 create function "authz:organisationMemberships:select:0"()
@@ -399,6 +457,10 @@ create function "authz:organisationMemberships:immutable"() returns trigger lang
     end $authz$;
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "organisation_membership" for each row execute function "authz:organisationMemberships:immutable"();
+--> statement-breakpoint
+revoke all on "organisation_membership" from "studio_app";
+--> statement-breakpoint
+grant select on "organisation_membership" to "studio_app";
 --> statement-breakpoint
 alter table "organisation_profile" enable row level security;
 --> statement-breakpoint
@@ -444,6 +506,12 @@ create function "authz:organisationProfiles:immutable"() returns trigger languag
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "organisation_profile" for each row execute function "authz:organisationProfiles:immutable"();
 --> statement-breakpoint
+revoke all on "organisation_profile" from "studio_app";
+--> statement-breakpoint
+grant select on "organisation_profile" to "studio_app";
+--> statement-breakpoint
+grant update ("display_name") on "organisation_profile" to "studio_app";
+--> statement-breakpoint
 alter table "organisation" enable row level security;
 --> statement-breakpoint
 create function "authz:organisations:select:global"() returns boolean language sql stable security definer set search_path = pg_catalog, public, pg_temp
@@ -487,6 +555,12 @@ create function "authz:organisations:immutable"() returns trigger language plpgs
     end $authz$;
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "organisation" for each row execute function "authz:organisations:immutable"();
+--> statement-breakpoint
+revoke all on "organisation" from "studio_app";
+--> statement-breakpoint
+grant select on "organisation" to "studio_app";
+--> statement-breakpoint
+grant update ("name") on "organisation" to "studio_app";
 --> statement-breakpoint
 alter table "recorder" enable row level security;
 --> statement-breakpoint
@@ -536,6 +610,14 @@ create function "authz:recorders:immutable"() returns trigger language plpgsql a
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "recorder" for each row execute function "authz:recorders:immutable"();
 --> statement-breakpoint
+revoke all on "recorder" from "studio_app";
+--> statement-breakpoint
+grant select on "recorder" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "recorder" to "studio_app";
+--> statement-breakpoint
+grant update ("exposure_id", "kind", "params") on "recorder" to "studio_app";
+--> statement-breakpoint
 alter table "stream" enable row level security;
 --> statement-breakpoint
 create function "authz:streams:select:0"()
@@ -584,6 +666,14 @@ create function "authz:streams:immutable"() returns trigger language plpgsql as 
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "stream" for each row execute function "authz:streams:immutable"();
 --> statement-breakpoint
+revoke all on "stream" from "studio_app";
+--> statement-breakpoint
+grant select on "stream" to "studio_app";
+--> statement-breakpoint
+grant insert, delete on "stream" to "studio_app";
+--> statement-breakpoint
+grant update ("name", "source_device_id") on "stream" to "studio_app";
+--> statement-breakpoint
 alter table "user" enable row level security;
 --> statement-breakpoint
 create function "authz:users:select:0"()
@@ -613,3 +703,9 @@ create function "authz:users:immutable"() returns trigger language plpgsql as $a
     end $authz$;
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "user" for each row execute function "authz:users:immutable"();
+--> statement-breakpoint
+revoke all on "user" from "studio_app";
+--> statement-breakpoint
+grant select on "user" to "studio_app";
+--> statement-breakpoint
+grant update ("name", "image", "updated_at") on "user" to "studio_app";

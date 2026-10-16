@@ -44,6 +44,8 @@ export const organisationInvitations = withAccess(
   t => ({
     name: 'organisationInvitations',
     scope: organisations.$access.scope.via(t.organisationId),
+    // Only trusted code compares the code hash: request sessions write it and never read it back.
+    hidden: [t.codeHash],
     actions: { read: ['select'], create: ['insert'], cancel: ['delete'] },
     roles: {
       admin: {

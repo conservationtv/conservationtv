@@ -11,13 +11,15 @@ import { PgTable } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { migrationHeader, rlsMigration, rlsTeardownMigration } from './rls.js';
 
-const usage = `Usage: umbrella generate [--config drizzle.config.ts] [--name access_policies] [--before]
+const usage = `Usage: umbrella generate [--config drizzle.config.ts] [--name access_policies] [--role name] [--before]
 
 Writes a Drizzle Kit custom migration containing the access policies for the schema in your Drizzle config,
 when they differ from the latest one generated. Run it after \`drizzle-kit generate\`.
 
   --config  Drizzle Kit config file. Defaults to drizzle.config.{ts,mts,js,mjs} in the current directory.
   --name    Migration name. Defaults to access_policies, or drop_access_policies with --before.
+  --role    The application role protected sessions log in as. Also replaces its privileges on every
+            protected table with those the access definitions imply.
   --before  Write a migration that drops the access policies instead. Generate it before a
             \`drizzle-kit generate\` that changes the type of, or drops, a scope key or link column.`;
 
@@ -146,12 +148,19 @@ async function writeCustomMigration(config: string, out: string, name: string, c
 async function generate(args: readonly string[]): Promise<void> {
   const { values } = parseArgs({
     args: [...args],
-    options: { config: { type: 'string' }, name: { type: 'string' }, before: { type: 'boolean', default: false } }
+    options: {
+      config: { type: 'string' },
+      name: { type: 'string' },
+      role: { type: 'string' },
+      before: { type: 'boolean', default: false }
+    }
   });
   const config = configPath(values.config);
   await enableTypeScript();
   const { schema, out } = await loadConfig(config);
-  const content = values.before ? rlsTeardownMigration() : rlsMigration(await loadTables(await schemaFiles(schema)));
+  const content = values.before
+    ? rlsTeardownMigration()
+    : rlsMigration(await loadTables(await schemaFiles(schema)), { applicationRole: values.role });
   if ((await latestGenerated(out)) === content) {
     console.log('Access policies are already up to date.');
     return;

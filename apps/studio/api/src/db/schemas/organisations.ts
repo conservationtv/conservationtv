@@ -23,6 +23,8 @@ export const organisations = withAccess(
     scope: resourceScope({ name: 'organisation', key: t.id }),
     immutable: [t.createdAt],
     actions: { read: ['select'], edit: ['update'], remove: ['delete'] },
+    // Deleting an organisation revokes every grant at it too, so only trusted code does (deleteOrganisation).
+    trusted: ['remove'],
     roles: {
       member: {
         label: 'Member',
@@ -80,6 +82,8 @@ export const organisationMemberships = withAccess(
     },
     immutable: [t.createdAt],
     actions: { read: ['select'], remove: ['delete'] },
+    // Leaving changes grants too, so only trusted code does (endMembership).
+    trusted: ['remove'],
     roles: {
       own: {
         label: 'Own memberships',

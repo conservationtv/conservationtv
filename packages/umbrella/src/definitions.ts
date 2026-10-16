@@ -116,6 +116,13 @@ interface DefinitionFields {
   readonly actions?: Readonly<Record<string, readonly Operation[]>>;
   readonly roles?: Readonly<Record<string, RoleDefinition>>;
   readonly immutable?: readonly AnyPgColumn[];
+  /** Columns the application role may write but never select: secrets only trusted code reads back. */
+  readonly hidden?: readonly AnyPgColumn[];
+  /**
+   * Actions declared so trusted code can ask who may perform them (`inspect`, `grantsQuery`), but never granted to the
+   * application role: protected sessions cannot perform them at all, whatever the roles say.
+   */
+  readonly trusted?: readonly string[];
 }
 interface SingleScope {
   readonly scope?: ResourceScope;
@@ -156,6 +163,12 @@ interface InvalidRoleFields<R> {
 interface InvalidDefinitionFields<F> {
   readonly invalidFields: F;
 }
+interface InvalidTrustedFields<T> {
+  readonly invalidTrusted: T;
+}
+interface HasTrusted<T> {
+  trusted: readonly T[];
+}
 type ScopesOf<D> =
   D extends HasScopes<infer S> ? S : D extends HasScope<infer S> ? DefaultScopes<S> : DefaultScopes<RootScope>;
 type ScopeOf<D> = ScopesOf<D>[keyof ScopesOf<D>];
@@ -181,7 +194,9 @@ type InvalidRoles<D> =
           : K;
       }[keyof R]
     : never;
+type InvalidTrusted<D> = D extends HasTrusted<infer T> ? Exclude<T, ActionNames<D>> : never;
 type Validate<D> = (InvalidRoles<D> extends never ? unknown : InvalidRoleFields<InvalidRoles<D>>) &
+  (InvalidTrusted<D> extends never ? unknown : InvalidTrustedFields<InvalidTrusted<D>>) &
   (Exclude<keyof D, keyof Definition> extends never
     ? unknown
     : InvalidDefinitionFields<Exclude<keyof D, keyof Definition>>);
@@ -255,6 +270,8 @@ export interface Metadata {
   readonly roles: Readonly<Record<string, StoredRole>>;
   readonly roleRefs: ReadonlyMap<string, RoleRef>;
   readonly immutable: ReadonlySet<string>;
+  readonly hidden: ReadonlySet<string>;
+  readonly trusted: ReadonlySet<string>;
   readonly operationActions: ReadonlyMap<Operation, string>;
 }
 const metadata = new WeakMap<PgTable, Metadata>();
@@ -407,6 +424,16 @@ function immutableColumns(config: Definition, table: PgTable, scopes: ScopeMap):
   }
   return keys;
 }
+function trustedActions(
+  config: Definition,
+  actions: Readonly<Record<string, readonly Operation[]>>
+): ReadonlySet<string> {
+  // A trusted action must be one the table declares; an absent list trusts nothing.
+  if (config.trusted !== undefined && !Array.isArray(config.trusted)) throw new TypeError('trusted must be an array');
+  for (const name of config.trusted ?? [])
+    if (!Object.hasOwn(actions, name)) throw new TypeError(`Unknown trusted action: ${name}`);
+  return new Set(config.trusted);
+}
 interface PublicAccess {
   name: string;
   scopes: ScopeMap;
@@ -422,7 +449,7 @@ export function withAccess<T extends PgTable, const D extends Definition>(
   if (metadata.has(table) || '$access' in table) throw new TypeError('Access is already defined on this table');
   const config = define(table);
   for (const key of Object.keys(config))
-    if (!['name', 'scope', 'scopes', 'actions', 'roles', 'immutable'].includes(key))
+    if (!['name', 'scope', 'scopes', 'actions', 'roles', 'immutable', 'hidden', 'trusted'].includes(key))
       throw new TypeError(`Unknown access field: ${key}`);
   validName(config.name);
   const scopes = definitionScopes(config, table);
@@ -437,6 +464,8 @@ export function withAccess<T extends PgTable, const D extends Definition>(
     roles: roles.roles,
     roleRefs: roles.refs,
     immutable: immutableColumns(config, table, scopes),
+    hidden: new Set((config.hidden ?? []).map(column => columnKey(table, column))),
+    trusted: trustedActions(config, actions.actions),
     operationActions: actions.operationActions
   });
   const access: PublicAccess = {
