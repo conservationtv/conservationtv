@@ -14,7 +14,7 @@ export type Agent = {
     priority: number;
     active: boolean;
     id: string;
-    kind: 'agent' | 'camera';
+    kind: 'agent' | 'camera' | 'browser';
     name: string;
     networkId: string | null;
     publicKey: string;

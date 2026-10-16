@@ -10,8 +10,8 @@ import { topologyActions, topologyRoles } from './topology-access.ts';
 /**
  * What every device has, on a managed network or (`network_id` null) the internet: its name, and an Ed25519 identity
  * from creation (src/topology/identity.ts). The public key and public ID never change, and the private key is
- * encrypted at rest and never readable in a request session. Everything else belongs to its kind (`agent` or
- * `camera`), whose row shares the device's ID; the kind never changes, so a device is only ever one of them.
+ * encrypted at rest and never readable in a request session. Everything else belongs to its kind (`agent`,
+ * `camera` or `browser`), whose row shares the device's ID; the kind never changes, so a device is only ever one of them.
  */
 export const devices = withAccess(
   pgTable(
@@ -38,6 +38,8 @@ export const devices = withAccess(
       unique('device_public_id').on(t.publicId),
       check('device_kind', sql.raw(`kind in (${DEVICE_KINDS.map(kind => `'${kind}'`).join(', ')})`)),
       check('device_public_id_hex', sql`${t.publicId} ~ '^[0-9a-f]{64}$'`),
+      // Browsers reach everything through a relay, from the internet.
+      check('device_browser_internet', sql`${t.kind} <> 'browser' or ${t.networkId} is null`),
       foreignKey({
         name: 'device_network_fk',
         columns: [t.organisationId, t.networkId],

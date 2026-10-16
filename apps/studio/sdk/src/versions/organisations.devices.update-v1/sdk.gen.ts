@@ -50,7 +50,7 @@ export class Devices extends HeyApiClient {
     /**
      * Rename or move a device
      *
-     * Administrators only. Changes only the fields given. An agent’s network cannot change.
+     * Administrators only. Changes only the fields given. An agent’s network cannot change, and a browser stays on the internet.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;

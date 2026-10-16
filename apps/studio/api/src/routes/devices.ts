@@ -42,7 +42,8 @@ export const deviceColumns = {
 };
 
 // An organisation's devices, in the principal's request session: members read them, administrators rename and move
-// them. A device is created and removed as its kind, under /agents or /cameras, which share its ID.
+// them. A device is created and removed as its kind: under /agents or /cameras, which share its ID, or as a session's
+// browser (/browser).
 export default new Hono()
   .get(
     '/:id/devices',
@@ -118,7 +119,7 @@ export default new Hono()
       operationId: 'organisations.devices.update',
       ...operationVersion(1),
       summary: 'Rename or move a device',
-      description: 'Administrators only. Changes only the fields given. An agent’s network cannot change.',
+      description: 'Administrators only. Changes only the fields given. An agent’s network cannot change, and a browser stays on the internet.',
       responses: {
         200: { description: 'The updated device' },
         400: invalidRequest,

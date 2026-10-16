@@ -37,6 +37,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `PUT /organisations/{id}/networks/{networkId}/active-agent` | administrators | `organisations.networks.setActiveAgent` v1 |
 | `GET /organisations/{id}/devices`; `GET`, `PATCH …/devices/{deviceId}` | members read, administrators rename and move | `organisations.devices.*` v1: every kind |
 | `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}` | members read, administrators write | `organisations.cameras.*` v1 |
+| `PUT /organisations/{id}/browser` | members | `organisations.browser.ensure` v1: this session's browser device, with its private key |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}` | members read, administrators write | `organisations.agents.*` v1 |
 | `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision` | members read, administrators write | `organisations.agents.revisions.*`, `serveRevision` v1 |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
@@ -174,8 +175,8 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 
 ## Stream topology
 
-What each organisation runs, in `src/db/schemas/`: networks, devices of two kinds, cameras and agents (which serve the
-network they are on, one active at a time), streams with a source device, their exposures (network, protocol, desired
+What each organisation runs, in `src/db/schemas/`: networks, devices of three kinds, cameras, agents (which serve the
+network they are on, one active at a time) and signed-in browsers, streams with a source device, their exposures (network, protocol, desired
 renditions) and recorders (always backed by an exposure of the same stream).
 
 Every row binds to its organisation's scope through `organisation_id`: `organisationMember` reads it all and
@@ -198,6 +199,16 @@ foreign key to the device, so a device is only ever the kind it was created as. 
 create the device, with its identity, and its kind's row together, and their `DELETE` removes both; their routes
 return the device's fields too. `/devices` lists every device and renames or moves one, but never creates or deletes:
 an agent's device cannot change network (409 `in_use`), and a device a stream uses as its source cannot be removed.
+
+A `browser` is one auth session's device in one organisation, for iroh connections from the web app through a relay.
+`PUT …/browser` gets or creates it for the session that calls it, in an organisation the account belongs to, and
+returns it with its private key (the raw seed, unpadded base64url), so the browser can act as it; concurrent first
+requests make one between them. It is trusted code (`src/topology/browsers.ts`), so any member may make their own, and
+it is named after the session's user agent. A browser is always on the internet (409 `conflict` if moved), and
+belongs to the account as well as the organisation: its row references the auth session and the account's membership,
+both cascading, and a trigger (the `browser_devices` migration) deletes its device with it, so it goes when the
+session ends, the account leaves the organisation, or the account is deleted. Members see every browser under
+`/devices`, as they see every device; nothing reads a browser's private key but its own session.
 
 Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
 configuration builders that produce revisions, how an agent fetches its served revision, and sharing across

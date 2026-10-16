@@ -65,7 +65,11 @@ export const NetworkSchema = z.object({
 
 export const DeviceSchema = z.object({
     id: z.string(),
-    kind: z.enum(['agent', 'camera']),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
     name: z.string(),
     networkId: z.string().nullable(),
     publicKey: z.string(),
@@ -81,7 +85,26 @@ export const CameraSchema = z.object({
     })),
     settings: z.record(z.string(), z.unknown()),
     id: z.string(),
-    kind: z.enum(['agent', 'camera']),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
+    name: z.string(),
+    networkId: z.string().nullable(),
+    publicKey: z.string(),
+    publicId: z.string(),
+    createdAt: z.string()
+});
+
+export const BrowserSchema = z.object({
+    privateKey: z.string(),
+    id: z.string(),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
     name: z.string(),
     networkId: z.string().nullable(),
     publicKey: z.string(),
@@ -94,7 +117,11 @@ export const AgentSchema = z.object({
     priority: z.number(),
     active: z.boolean(),
     id: z.string(),
-    kind: z.enum(['agent', 'camera']),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
     name: z.string(),
     networkId: z.string().nullable(),
     publicKey: z.string(),
@@ -547,7 +574,11 @@ export const GetOrganisationsByIdDevicesPathSchema = z.object({
 });
 
 export const GetOrganisationsByIdDevicesQuerySchema = z.object({
-    kind: z.enum(['agent', 'camera']).register(z.globalRegistry, {
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]).register(z.globalRegistry, {
         description: 'Only devices of this kind.'
     }).optional()
 });
@@ -558,7 +589,11 @@ export const GetOrganisationsByIdDevicesQuerySchema = z.object({
 export const GetOrganisationsByIdDevicesResponseSchema = z.object({
     devices: z.array(z.object({
         id: z.string(),
-        kind: z.enum(['agent', 'camera']),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
         name: z.string(),
         networkId: z.string().nullable(),
         publicKey: z.string(),
@@ -622,7 +657,11 @@ export const GetOrganisationsByIdCamerasResponseSchema = z.object({
         })),
         settings: z.record(z.string(), z.unknown()),
         id: z.string(),
-        kind: z.enum(['agent', 'camera']),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
         name: z.string(),
         networkId: z.string().nullable(),
         publicKey: z.string(),
@@ -722,6 +761,17 @@ export const PatchOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
  */
 export const PatchOrganisationsByIdCamerasByCameraIdResponseSchema = CameraSchema;
 
+export const PutOrganisationsByIdBrowserPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The browser device, with its private key
+ */
+export const PutOrganisationsByIdBrowserResponseSchema = BrowserSchema;
+
 export const GetOrganisationsByIdAgentsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
@@ -743,7 +793,11 @@ export const GetOrganisationsByIdAgentsResponseSchema = z.object({
         priority: z.number(),
         active: z.boolean(),
         id: z.string(),
-        kind: z.enum(['agent', 'camera']),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
         name: z.string(),
         networkId: z.string().nullable(),
         publicKey: z.string(),
@@ -780,7 +834,11 @@ export const PostOrganisationsByIdAgentsResponseSchema = z.object({
     priority: z.number(),
     active: z.boolean(),
     id: z.string(),
-    kind: z.enum(['agent', 'camera']),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
     name: z.string(),
     networkId: z.string().nullable(),
     publicKey: z.string(),
@@ -951,7 +1009,11 @@ export const PutOrganisationsByIdAgentsByAgentIdServedRevisionResponseSchema = z
     priority: z.number(),
     active: z.boolean(),
     id: z.string(),
-    kind: z.enum(['agent', 'camera']),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
     name: z.string(),
     networkId: z.string().nullable(),
     publicKey: z.string(),

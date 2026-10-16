@@ -23,7 +23,11 @@ export const CameraSchema = z.object({
     })),
     settings: z.record(z.string(), z.unknown()),
     id: z.string(),
-    kind: z.enum(['agent', 'camera']),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
     name: z.string(),
     networkId: z.string().nullable(),
     publicKey: z.string(),

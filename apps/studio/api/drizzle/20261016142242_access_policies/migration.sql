@@ -65,6 +65,34 @@ create function "authz:agents:immutable"() returns trigger language plpgsql as $
 --> statement-breakpoint
 create trigger "authz_immutable" before update on "agent" for each row execute function "authz:agents:immutable"();
 --> statement-breakpoint
+alter table "browser" enable row level security;
+--> statement-breakpoint
+create function "authz:browsers:select:0"()
+    returns setof uuid language sql stable security definer set search_path = pg_catalog, public, pg_temp as $authz$ select case when "authz_role_assignments"."scope_name" = 'organisation'
+    then "authz_role_assignments"."scope_id"::uuid end from "authz_role_assignments" where "authz_role_assignments"."principal_kind" = current_setting('authz.principal_kind', true) and "authz_role_assignments"."principal_id" = current_setting('authz.principal_id', true)
+    and (("authz_role_assignments"."starts_at" is null or "authz_role_assignments"."starts_at" <= statement_timestamp()) and
+    ("authz_role_assignments"."expires_at" is null or "authz_role_assignments"."expires_at" > statement_timestamp())) and "authz_role_assignments"."scope_name" = 'organisation'
+    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('browsers', 'member'), ('@shared', 'organisationMember')) $authz$;
+--> statement-breakpoint
+create function "authz:browsers:select:1"()
+    returns setof text language sql stable security definer set search_path = pg_catalog, public, pg_temp as $authz$ select case when "authz_role_assignments"."scope_name" = 'user'
+    then "authz_role_assignments"."scope_id"::text end from "authz_role_assignments" where "authz_role_assignments"."principal_kind" = current_setting('authz.principal_kind', true) and "authz_role_assignments"."principal_id" = current_setting('authz.principal_id', true)
+    and (("authz_role_assignments"."starts_at" is null or "authz_role_assignments"."starts_at" <= statement_timestamp()) and
+    ("authz_role_assignments"."expires_at" is null or "authz_role_assignments"."expires_at" > statement_timestamp())) and "authz_role_assignments"."scope_name" = 'user'
+    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('browsers', 'own'), ('@shared', 'self')) $authz$;
+--> statement-breakpoint
+create policy "authz_select" on "browser" for select using (("organisation_id" = any(array(select "authz:browsers:select:0"())) or "user_id" = any(array(select "authz:browsers:select:1"()))));
+--> statement-breakpoint
+create function "authz:browsers:immutable"() returns trigger language plpgsql as $authz$
+    begin
+      if coalesce(current_setting('authz.principal_kind', true), '') <> '' and (new."organisation_id" is distinct from old."organisation_id" or new."user_id" is distinct from old."user_id") then
+        raise exception 'Immutable access column on %', tg_table_name using errcode = '42501';
+      end if;
+      return new;
+    end $authz$;
+--> statement-breakpoint
+create trigger "authz_immutable" before update on "browser" for each row execute function "authz:browsers:immutable"();
+--> statement-breakpoint
 alter table "camera" enable row level security;
 --> statement-breakpoint
 create function "authz:cameras:select:0"()

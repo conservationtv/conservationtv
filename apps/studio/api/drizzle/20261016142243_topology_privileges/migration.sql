@@ -17,6 +17,9 @@ grant select, insert, delete on "camera" to studio_app;
 --> statement-breakpoint
 grant update ("native_exposures", "settings") on "camera" to studio_app;
 --> statement-breakpoint
+-- Browsers are made by trusted code, on request (src/topology/browsers.ts), and go with their session or membership.
+grant select on "browser" to studio_app;
+--> statement-breakpoint
 grant select, insert, delete on "agent" to studio_app;
 --> statement-breakpoint
 -- An agent stays its device, on its network: only its standby preference and whether it is active change.

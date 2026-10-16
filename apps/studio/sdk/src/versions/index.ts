@@ -29,6 +29,7 @@ export * from './organisations.cameras.create-v1/index.js';
 export * from './organisations.cameras.get-v1/index.js';
 export * from './organisations.cameras.update-v1/index.js';
 export * from './organisations.cameras.delete-v1/index.js';
+export * from './organisations.browser.ensure-v1/index.js';
 export * from './organisations.agents.list-v1/index.js';
 export * from './organisations.agents.create-v1/index.js';
 export * from './organisations.agents.get-v1/index.js';

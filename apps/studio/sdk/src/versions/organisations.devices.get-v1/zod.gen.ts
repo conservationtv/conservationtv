@@ -9,7 +9,11 @@ export const ErrorSchema = z.object({
 
 export const DeviceSchema = z.object({
     id: z.string(),
-    kind: z.enum(['agent', 'camera']),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
     name: z.string(),
     networkId: z.string().nullable(),
     publicKey: z.string(),

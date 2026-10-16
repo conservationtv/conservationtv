@@ -13,7 +13,11 @@ export const AgentSchema = z.object({
         priority: z.number(),
         active: z.boolean(),
         id: z.string(),
-        kind: z.enum(['agent', 'camera']),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
         name: z.string(),
         networkId: z.string().nullable(),
         publicKey: z.string(),
