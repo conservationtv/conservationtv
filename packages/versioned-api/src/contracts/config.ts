@@ -19,8 +19,11 @@ export interface SourceConfig {
 
 /** What an API's `contracts.config.ts` exports. Paths are relative to that file. */
 export interface ContractsConfig {
-  /** The complete Hono app, built with `router` so each operation's versions are known. */
-  app: Hono;
+  /**
+   * The complete Hono app, built with `router` so each operation's versions are known. Only its routes are read, so
+   * an app with any env fits.
+   */
+  app: Pick<Hono, 'routes'>;
   router: OperationRouter;
   spec: Partial<GenerateSpecOptions>;
   schemas: ResponseSchemas;
@@ -54,7 +57,7 @@ export interface GitPaths {
 
 /** A config resolved to absolute paths, plus the repository the API lives in. */
 export interface ContractsProject {
-  app: Hono;
+  app: Pick<Hono, 'routes'>;
   router: OperationRouter;
   spec: Partial<GenerateSpecOptions>;
   schemas: ResponseSchemas;
