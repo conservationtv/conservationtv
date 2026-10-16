@@ -212,7 +212,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Remove an agent',
       description:
-        'Administrators only. Removes its device too, its configuration revisions and every report it made. Refused while a stream uses its device as its source.',
+        'Administrators only. Removes its device too, and its configuration revisions; its reports remain. Refused while a stream uses its device as its source.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,

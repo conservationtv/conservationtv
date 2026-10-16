@@ -1,19 +1,7 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
-import {
-  type AnyPgColumn,
-  check,
-  foreignKey,
-  index,
-  jsonb,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uuid
-} from 'drizzle-orm/pg-core';
+import { type AnyPgColumn, check, index, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import type { Settings } from '../../topology/settings.ts';
-import { devices } from './devices.ts';
 import { organisations } from './organisations.ts';
 import { observationAccess } from './report-access.ts';
 
@@ -40,14 +28,7 @@ export const observations = withAccess(
       type: text('type').notNull(),
       data: jsonb('data').$type<Settings>().default({}).notNull()
     },
-    t => [
-      foreignKey({
-        name: 'observation_reporter_fk',
-        columns: [t.organisationId, t.reporterId],
-        foreignColumns: [devices.organisationId, devices.id]
-      }).onDelete('cascade'),
-      index('observation_subject_observed_idx').on(t.organisationId, t.subjectId, t.observedAt)
-    ]
+    t => [index('observation_subject_observed_idx').on(t.organisationId, t.subjectId, t.observedAt)]
   ),
   t => ({ name: 'observations', scope: organisations.$access.scope.via(t.organisationId), ...observationAccess })
 );
@@ -71,15 +52,7 @@ export const reporterOpinions = withAccess(
       expiresAt: timestamp('expires_at').notNull(),
       evidenceReportIds: uuid('evidence_report_ids').array().default([]).notNull()
     },
-    t => [
-      primaryKey({ columns: [t.subjectId, t.reporterId] }),
-      check('reporter_opinion_health', healthCheck(t.health)),
-      foreignKey({
-        name: 'reporter_opinion_reporter_fk',
-        columns: [t.organisationId, t.reporterId],
-        foreignColumns: [devices.organisationId, devices.id]
-      }).onDelete('cascade')
-    ]
+    t => [primaryKey({ columns: [t.subjectId, t.reporterId] }), check('reporter_opinion_health', healthCheck(t.health))]
   ),
   t => ({ name: 'reporterOpinions', scope: organisations.$access.scope.via(t.organisationId), ...observationAccess })
 );
