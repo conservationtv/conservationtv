@@ -33,7 +33,7 @@ export type HistoryQuery = z.output<typeof HistoryQuerySchema>;
 // goes stale without a new report.
 export default new Hono()
   .get(
-    '/:id/subjects/:subjectId/state',
+    '/:subjectId/state',
     describeRoute({
       operationId: 'organisations.subjects.state',
       ...operationVersion(1),
@@ -95,7 +95,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/subjects/:subjectId/observations',
+    '/:subjectId/observations',
     describeRoute({
       operationId: 'organisations.subjects.observations.list',
       ...operationVersion(1),
@@ -144,7 +144,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/subjects/:subjectId/metrics',
+    '/:subjectId/metrics',
     describeRoute({
       operationId: 'organisations.subjects.metrics.list',
       ...operationVersion(1),
@@ -203,7 +203,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/subjects/:subjectId/logs',
+    '/:subjectId/logs',
     describeRoute({
       operationId: 'organisations.subjects.logs.list',
       ...operationVersion(1),
