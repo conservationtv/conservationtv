@@ -49,7 +49,7 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/browser', browsers)
   .route('/organisations/:id/agents', agents)
   .route('/organisations/:id/streams', streams)
-  .route('/organisations', subjects)
+  .route('/organisations/:id/subjects', subjects)
   .route('/invitations', invitations)
   // Signed by agents rather than signed in: no session.
   .route('/reports', reports)
