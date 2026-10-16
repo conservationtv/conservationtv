@@ -1,9 +1,10 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
+import { requireCaller, useCaller } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { DEVICE_KINDS } from '../topology/device-kinds.ts';
@@ -14,6 +15,7 @@ import {
   inUse,
   invalidReference,
   invalidRequest,
+  noCaller,
   notFound,
   operationVersion,
   unauthenticated,
@@ -48,8 +50,43 @@ export const deviceColumns = {
 
 // An organisation's devices, in the principal's request session: members read them, administrators rename and move
 // them. A device is created and removed as its kind: under /agents or /cameras, which share its ID, or as a session's
-// browser (/browser).
+// browser (/browser). Devices themselves, signing their requests, read only the organisation's public IDs.
 export default new Hono()
+  .get(
+    '/public-ids',
+    describeRoute({
+      operationId: 'organisations.devices.listPublicIds',
+      ...operationVersion(1),
+      summary: "List the public IDs of an organisation's devices",
+      description:
+        "Every device's iroh endpoint ID, for an allowlist. Members call it signed in; devices call it with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`. Empty for organisations you are not a member of, or a signing device does not belong to.",
+      responses: {
+        200: { description: 'The public IDs, oldest device first' },
+        400: invalidRequest,
+        401: noCaller,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requireCaller,
+    validator('param', OrganisationParamsSchema),
+    async c => {
+      const { id } = c.req.valid('param');
+      const services = useServices();
+      const caller = useCaller();
+      const session = await services.session(caller);
+      const [row] = await session.transaction(tx =>
+        tx
+          .select({
+            publicIds: sql<string[]>`coalesce(array_agg(${devices.publicId} order by ${devices.id}), '{}')`
+          })
+          .from(devices)
+          .where(eq(devices.organisationId, id))
+      );
+      c.header('Cache-Control', 'no-store');
+      return c.json(row, 200);
+    }
+  )
   .get(
     '/',
     describeRoute({

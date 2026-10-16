@@ -21,6 +21,7 @@ export * from './organisations.networks.get-v1/index.js';
 export * from './organisations.networks.update-v1/index.js';
 export * from './organisations.networks.delete-v1/index.js';
 export * from './organisations.networks.setActiveAgent-v1/index.js';
+export * from './organisations.devices.listPublicIds-v1/index.js';
 export * from './organisations.devices.list-v1/index.js';
 export * from './organisations.devices.get-v1/index.js';
 export * from './organisations.devices.update-v1/index.js';
