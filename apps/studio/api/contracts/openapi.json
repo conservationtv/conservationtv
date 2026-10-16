@@ -8269,7 +8269,7 @@
         "operationId": "reports.submit",
         "x-operation-version": 1,
         "summary": "Submit a batch of reports",
-        "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Agents only: the request carries an RFC 9421 HTTP Message Signature by the agent's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type`, RFC 9530 `Content-Digest` and `Idempotency-Key`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. A retry with the same `Idempotency-Key` and body, within a day, returns the first result without storing the batch again; each retry needs a fresh signature.",
+        "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.",
         "responses": {
           "202": {
             "description": "Accepted",
@@ -8301,16 +8301,6 @@
               }
             }
           },
-          "403": {
-            "description": "The signing device is not an agent",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "412": {
             "description": "The selected operation version is not served",
             "content": {
@@ -8331,16 +8321,6 @@
               }
             }
           },
-          "422": {
-            "description": "The idempotency key was already used with a different body",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "503": {
             "description": "The database is unavailable",
             "content": {
@@ -8352,18 +8332,6 @@
             }
           }
         },
-        "parameters": [
-          {
-            "in": "header",
-            "name": "idempotency-key",
-            "schema": {
-              "type": "string",
-              "pattern": "^[\\x21-\\x7e]{1,255}$"
-            },
-            "required": true,
-            "description": "Unique to the batch: a retry with the same key and body returns the first result."
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -20740,7 +20708,7 @@
             "operationId": "reports.submit",
             "x-operation-version": 1,
             "summary": "Submit a batch of reports",
-            "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Agents only: the request carries an RFC 9421 HTTP Message Signature by the agent's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type`, RFC 9530 `Content-Digest` and `Idempotency-Key`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. A retry with the same `Idempotency-Key` and body, within a day, returns the first result without storing the batch again; each retry needs a fresh signature.",
+            "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.",
             "responses": {
               "202": {
                 "description": "Accepted",
@@ -20772,16 +20740,6 @@
                   }
                 }
               },
-              "403": {
-                "description": "The signing device is not an agent",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
               "412": {
                 "description": "The selected operation version is not served",
                 "content": {
@@ -20802,16 +20760,6 @@
                   }
                 }
               },
-              "422": {
-                "description": "The idempotency key was already used with a different body",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
               "503": {
                 "description": "The database is unavailable",
                 "content": {
@@ -20823,28 +20771,6 @@
                 }
               }
             },
-            "parameters": [
-              {
-                "in": "header",
-                "name": "idempotency-key",
-                "schema": {
-                  "type": "string",
-                  "pattern": "^[\\x21-\\x7e]{1,255}$"
-                },
-                "required": true,
-                "description": "Unique to the batch: a retry with the same key and body returns the first result."
-              },
-              {
-                "in": "header",
-                "name": "Operation-Version",
-                "required": true,
-                "description": "Selects this immutable operation contract.",
-                "schema": {
-                  "type": "string",
-                  "const": "1"
-                }
-              }
-            ],
             "requestBody": {
               "required": true,
               "content": {
@@ -21056,7 +20982,19 @@
                   }
                 }
               }
-            }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
           }
         }
       }

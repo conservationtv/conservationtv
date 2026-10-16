@@ -50,10 +50,9 @@ export class Reports extends HeyApiClient {
     /**
      * Submit a batch of reports
      *
-     * Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Agents only: the request carries an RFC 9421 HTTP Message Signature by the agent's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type`, RFC 9530 `Content-Digest` and `Idempotency-Key`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. A retry with the same `Idempotency-Key` and body, within a day, returns the first result without storing the batch again; each retry needs a fresh signature.
+     * Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.
      */
     public submit<ThrowOnError extends boolean = false>(parameters: {
-        'idempotency-key': string;
         reports: Array<{
             kind: 'event';
             /**
@@ -105,7 +104,7 @@ export class Reports extends HeyApiClient {
             };
         }>;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostReportsResponses, PostReportsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'headers', key: 'idempotency-key' }, { in: 'body', key: 'reports' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'reports' }] }]);
         return (options?.client ?? this.client).post<PostReportsResponses, PostReportsErrors, ThrowOnError>({
             url: '/reports',
             ...options,

@@ -67,7 +67,7 @@ async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerif
 }
 
 /** The verified signature over the request, by a known device. */
-async function verifiedSignature(request: Request, components: readonly string[]) {
+async function verifiedSignature(request: Request) {
   const services = useServices();
   const now = Math.floor(services.clock() / 1000);
   try {
@@ -78,8 +78,7 @@ async function verifiedSignature(request: Request, components: readonly string[]
           '@method',
           '@target-uri',
           'content-digest',
-          ...(request.headers.has('content-type') ? ['content-type'] : []),
-          ...components
+          ...(request.headers.has('content-type') ? ['content-type'] : [])
         ],
         requiredParameters: ['keyid', 'created', 'expires', 'nonce'],
         maxAge: MAX_AGE_SECONDS,
@@ -114,26 +113,21 @@ async function ensureGrant(device: AuthenticatedDevice) {
   await cache.put(key, '1', GRANT_CHECK_SECONDS);
 }
 
-/**
- * Require a device's signature on the request (see above); `components` are further headers it must cover, such as
- * `idempotency-key`. Downstream, `useDevice()` is the device.
- */
-export const requireDevice = (components: readonly string[] = []) =>
-  createMiddleware(async (c, next) => {
-    const signature = await verifiedSignature(c.req.raw, components);
-    const { device } = signature.verifier;
-    // The signature covers the digest, so it is present; the body is cached for the handler.
-    const body = await c.req.arrayBuffer();
-    if (!(await bodyMatchesDigest(body, c.req.header('content-digest') ?? '')))
-      throw new ApiFailure('invalid_signature');
-    // Only after everything else holds, so a rejected request cannot spend a nonce.
-    const cache = useCache();
-    const fresh = await cache.add(
-      `nonce:${device.id}:${signature.parameters.nonce}`,
-      '1',
-      MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
-    );
-    if (!fresh) throw new ApiFailure('invalid_signature');
-    await ensureGrant(device);
-    await withDevice(device, next);
-  });
+/** Require a device's signature on the request (see above). Downstream, `useDevice()` is the device. */
+export const requireDevice = createMiddleware(async (c, next) => {
+  const signature = await verifiedSignature(c.req.raw);
+  const { device } = signature.verifier;
+  // The signature covers the digest, so it is present; the body is cached for the handler.
+  const body = await c.req.arrayBuffer();
+  if (!(await bodyMatchesDigest(body, c.req.header('content-digest') ?? ''))) throw new ApiFailure('invalid_signature');
+  // Only after everything else holds, so a rejected request cannot spend a nonce.
+  const cache = useCache();
+  const fresh = await cache.add(
+    `nonce:${device.id}:${signature.parameters.nonce}`,
+    '1',
+    MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
+  );
+  if (!fresh) throw new ApiFailure('invalid_signature');
+  await ensureGrant(device);
+  await withDevice(device, next);
+});

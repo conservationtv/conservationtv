@@ -13,7 +13,7 @@ import {
   uuid
 } from 'drizzle-orm/pg-core';
 import type { Settings } from '../../topology/settings.ts';
-import { agents } from './agents.ts';
+import { devices } from './devices.ts';
 import { organisations } from './organisations.ts';
 import { observationAccess } from './report-access.ts';
 
@@ -44,7 +44,7 @@ export const observations = withAccess(
       foreignKey({
         name: 'observation_reporter_fk',
         columns: [t.organisationId, t.reporterId],
-        foreignColumns: [agents.organisationId, agents.id]
+        foreignColumns: [devices.organisationId, devices.id]
       }).onDelete('cascade'),
       index('observation_subject_observed_idx').on(t.organisationId, t.subjectId, t.observedAt)
     ]
@@ -77,7 +77,7 @@ export const reporterOpinions = withAccess(
       foreignKey({
         name: 'reporter_opinion_reporter_fk',
         columns: [t.organisationId, t.reporterId],
-        foreignColumns: [agents.organisationId, agents.id]
+        foreignColumns: [devices.organisationId, devices.id]
       }).onDelete('cascade')
     ]
   ),

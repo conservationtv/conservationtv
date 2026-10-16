@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "54831745-aafa-4714-8755-ff078f135dea",
+  "id": "3b2fcad0-00c2-4d80-878e-9e0f574b755b",
   "prevIds": [
     "cbf4514f-6019-4210-8d8a-f2b771da8521"
   ],
@@ -3764,7 +3764,7 @@
         "reporter_id"
       ],
       "schemaTo": "public",
-      "tableTo": "agent",
+      "tableTo": "device",
       "columnsTo": [
         "organisation_id",
         "id"
@@ -3800,7 +3800,7 @@
         "reporter_id"
       ],
       "schemaTo": "public",
-      "tableTo": "agent",
+      "tableTo": "device",
       "columnsTo": [
         "organisation_id",
         "id"
@@ -3853,7 +3853,7 @@
         "reporter_id"
       ],
       "schemaTo": "public",
-      "tableTo": "agent",
+      "tableTo": "device",
       "columnsTo": [
         "organisation_id",
         "id"
@@ -3889,7 +3889,7 @@
         "reporter_id"
       ],
       "schemaTo": "public",
-      "tableTo": "agent",
+      "tableTo": "device",
       "columnsTo": [
         "organisation_id",
         "id"
