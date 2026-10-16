@@ -187,7 +187,7 @@ create function "authz:devices:select:0"()
     then "authz_role_assignments"."scope_id"::uuid end from "authz_role_assignments" where "authz_role_assignments"."principal_kind" = current_setting('authz.principal_kind', true) and "authz_role_assignments"."principal_id" = current_setting('authz.principal_id', true)
     and (("authz_role_assignments"."starts_at" is null or "authz_role_assignments"."starts_at" <= statement_timestamp()) and
     ("authz_role_assignments"."expires_at" is null or "authz_role_assignments"."expires_at" > statement_timestamp())) and "authz_role_assignments"."scope_name" = 'organisation'
-    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('devices', 'member'), ('@shared', 'organisationMember'), ('devices', 'admin'), ('@shared', 'organisationAdmin')) $authz$;
+    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('devices', 'member'), ('@shared', 'organisationMember'), ('devices', 'admin'), ('@shared', 'organisationAdmin'), ('devices', 'peer'), ('@shared', 'organisationDevice')) $authz$;
 --> statement-breakpoint
 create policy "authz_select" on "device" for select using (("organisation_id" = any(array(select "authz:devices:select:0"()))));
 --> statement-breakpoint
