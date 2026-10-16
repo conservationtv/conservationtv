@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { DEVICE_KINDS, type DeviceKind } from '../../topology/device-kinds.ts';
 import { BytesSchema, encrypted } from '../encrypted.ts';
+import { organisationDevice } from '../roles.ts';
 import { networks } from './networks.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
@@ -53,6 +54,15 @@ export const devices = withAccess(
     scope: organisations.$access.scope.via(t.organisationId),
     immutable: [t.kind, t.publicKey, t.publicId, t.privateKey, t.createdAt],
     actions: topologyActions,
-    roles: topologyRoles
+    roles: {
+      ...topologyRoles,
+      // Every device of the organisation, for iroh allowlists: members read devices too, as `member`.
+      peer: {
+        label: 'Peer',
+        permissions: ['read'],
+        assignableScopes: ['organisation'],
+        includedIn: [organisationDevice]
+      }
+    }
   })
 );
