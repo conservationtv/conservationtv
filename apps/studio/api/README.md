@@ -93,7 +93,7 @@ bindings:
 | --------------------- | ---------- | ----------------------------------------------------------------------- |
 | `HYPERDRIVE_ADMIN`    | Hyperdrive | the owning role: migrations, Better Auth, grants                         |
 | `HYPERDRIVE_APP`      | Hyperdrive | the application role (`studio_app`): request sessions, under RLS        |
-| `CACHE`               | KV         | the key-value cache: device request nonces and grant checks               |
+| `CACHE`               | KV         | the key-value cache: device request nonces                                |
 | `BETTER_AUTH_SECRET`  | secret     | Better Auth's signing secret                                            |
 | `FIELD_KEY`           | secret     | base64 32-byte master key for encrypted columns and blind indexes       |
 | `APP_URL`             | text       | where the API is served; Better Auth's base URL and passkey relying party |
@@ -224,13 +224,8 @@ like any member, can list its organisation's public IDs for an iroh allowlist. T
 that creates the device and revoked in the one that deletes it, so a device never exists without it. Request sessions
 cannot write grants, so creating and deleting agents, cameras and browsers is trusted code: `changeDevices` first
 checks the principal's own permissions on devices, giving the same 404 or 403 row-level security would. Deleting an
-organisation revokes every grant at it. Nothing authenticates a device yet; once something does, it runs queries with
-`authorization.as(app, device(id))`.
-like any member, can list its organisation's public IDs for an iroh allowlist. The code that creates and deletes
-devices grants and revokes it in trusted code, and deleting an organisation revokes every grant at it. A grant is
-idempotent, so device authentication ensures it again (once an hour, remembered in the cache), healing one that was
-missed; a grant left by a deleted device is harmless, since nothing can authenticate as it. Device routes run their
-queries with `authorization.as(app, useDevice().principal)`.
+organisation revokes every grant at it. Device routes run their queries with
+`authorization.as(app, useDevice().principal)`.
 
 ### Device authentication
 

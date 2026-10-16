@@ -10,7 +10,6 @@ import { ApiFailure } from '../errors.ts';
 import { trusted } from '../organisations/membership.ts';
 import { useServices } from '../services.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
-import { grantDevice } from '../topology/device-principals.ts';
 
 // Devices authenticate with their own identity (src/topology/identity.ts): each request carries an RFC 9421 HTTP
 // Message Signature by the device's Ed25519 key, named by its public ID as `keyid`. The signature must cover the
@@ -31,9 +30,6 @@ export const [withDevice, useDevice] = createStore<AuthenticatedDevice>('device'
 /** How old a signature may be, and how far clocks may disagree, in seconds. */
 const MAX_AGE_SECONDS = 60;
 const CLOCK_SKEW_SECONDS = 5;
-
-/** How long a device's principal grant is trusted to be in place before it is ensured again. */
-const GRANT_CHECK_SECONDS = 60 * 60;
 
 /** A verifier for the device a signature names, carrying that device. */
 interface DeviceVerifier extends Verifier {
@@ -104,15 +100,6 @@ async function bodyMatchesDigest(body: ArrayBuffer, digest: string) {
   }
 }
 
-/** Ensure the device's principal grant now and then: it exists from creation, and this heals one that does not. */
-async function ensureGrant(device: AuthenticatedDevice) {
-  const cache = useCache();
-  const key = `device-grant:${device.id}`;
-  if ((await cache.get(key)) !== null) return;
-  await trusted((_tx, access) => grantDevice(access, device.organisationId, device.id));
-  await cache.put(key, '1', GRANT_CHECK_SECONDS);
-}
-
 /** Require a device's signature on the request (see above). Downstream, `useDevice()` is the device. */
 export const requireDevice = createMiddleware(async (c, next) => {
   const signature = await verifiedSignature(c.req.raw);
@@ -128,6 +115,5 @@ export const requireDevice = createMiddleware(async (c, next) => {
     MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
   );
   if (!fresh) throw new ApiFailure('invalid_signature');
-  await ensureGrant(device);
   await withDevice(device, next);
 });
