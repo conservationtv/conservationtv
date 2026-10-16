@@ -12,7 +12,7 @@ export type Error = {
 export type Device = {
     devices: Array<{
         id: string;
-        kind: 'agent' | 'camera';
+        kind: 'agent' | 'camera' | 'browser';
         name: string;
         networkId: string | null;
         publicKey: string;
@@ -33,7 +33,7 @@ export type GetOrganisationsByIdDevicesData = {
         /**
          * Only devices of this kind.
          */
-        kind?: 'agent' | 'camera';
+        kind?: 'agent' | 'camera' | 'browser';
     };
     url: '/organisations/{id}/devices';
 };

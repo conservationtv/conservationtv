@@ -19,8 +19,9 @@ CREATE TABLE "device" (
 	CONSTRAINT "device_organisation_id" UNIQUE("organisation_id","id"),
 	CONSTRAINT "device_organisation_id_kind" UNIQUE("organisation_id","id","kind"),
 	CONSTRAINT "device_organisation_id_kind_network" UNIQUE("organisation_id","id","kind","network_id"),
-	CONSTRAINT "device_kind" CHECK (kind in ('agent', 'camera')),
-	CONSTRAINT "device_public_id_hex" CHECK ("public_id" ~ '^[0-9a-f]{64}$')
+	CONSTRAINT "device_kind" CHECK (kind in ('agent', 'camera', 'browser')),
+	CONSTRAINT "device_public_id_hex" CHECK ("public_id" ~ '^[0-9a-f]{64}$'),
+	CONSTRAINT "device_browser_internet" CHECK ("kind" <> 'browser' or "network_id" is null)
 );
 --> statement-breakpoint
 CREATE TABLE "camera" (
@@ -29,6 +30,15 @@ CREATE TABLE "camera" (
 	"kind" text GENERATED ALWAYS AS ('camera') STORED NOT NULL,
 	"native_exposures" jsonb DEFAULT '[]' NOT NULL,
 	"settings" jsonb DEFAULT '{}' NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "browser" (
+	"id" uuid PRIMARY KEY,
+	"organisation_id" uuid NOT NULL,
+	"kind" text GENERATED ALWAYS AS ('browser') STORED NOT NULL,
+	"user_id" text NOT NULL,
+	"session_id" text NOT NULL,
+	CONSTRAINT "browser_session_organisation" UNIQUE("session_id","organisation_id")
 );
 --> statement-breakpoint
 CREATE TABLE "agent" (
@@ -84,6 +94,7 @@ CREATE TABLE "stream" (
 );
 --> statement-breakpoint
 CREATE INDEX "device_network_idx" ON "device" ("network_id");--> statement-breakpoint
+CREATE INDEX "browser_user_idx" ON "browser" ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "agent_network_active" ON "agent" ("network_id") WHERE "active";--> statement-breakpoint
 CREATE INDEX "agent_network_idx" ON "agent" ("network_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "configuration_revision_agent_served" ON "configuration_revision" ("agent_id") WHERE "served";--> statement-breakpoint
@@ -97,6 +108,10 @@ ALTER TABLE "device" ADD CONSTRAINT "device_organisation_id_organisation_id_fkey
 ALTER TABLE "device" ADD CONSTRAINT "device_network_fk" FOREIGN KEY ("organisation_id","network_id") REFERENCES "network"("organisation_id","id");--> statement-breakpoint
 ALTER TABLE "camera" ADD CONSTRAINT "camera_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "camera" ADD CONSTRAINT "camera_device_fk" FOREIGN KEY ("organisation_id","id","kind") REFERENCES "device"("organisation_id","id","kind");--> statement-breakpoint
+ALTER TABLE "browser" ADD CONSTRAINT "browser_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "browser" ADD CONSTRAINT "browser_session_id_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "session"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "browser" ADD CONSTRAINT "browser_device_fk" FOREIGN KEY ("organisation_id","id","kind") REFERENCES "device"("organisation_id","id","kind");--> statement-breakpoint
+ALTER TABLE "browser" ADD CONSTRAINT "browser_membership_fk" FOREIGN KEY ("organisation_id","user_id") REFERENCES "organisation_membership"("organisation_id","user_id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "agent" ADD CONSTRAINT "agent_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "agent" ADD CONSTRAINT "agent_device_fk" FOREIGN KEY ("organisation_id","id","kind","network_id") REFERENCES "device"("organisation_id","id","kind","network_id");--> statement-breakpoint
 ALTER TABLE "configuration_revision" ADD CONSTRAINT "configuration_revision_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint

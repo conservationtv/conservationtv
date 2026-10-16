@@ -21,7 +21,7 @@ export type Camera = {
         [key: string]: unknown;
     };
     id: string;
-    kind: 'agent' | 'camera';
+    kind: 'agent' | 'camera' | 'browser';
     name: string;
     networkId: string | null;
     publicKey: string;

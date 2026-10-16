@@ -50,11 +50,11 @@ export class Devices extends HeyApiClient {
     /**
      * List an organisation's devices
      *
-     * Every kind (agent, camera), optionally only one. Empty for organisations you are not a member of.
+     * Every kind (agent, camera, browser), optionally only one. Empty for organisations you are not a member of.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        kind?: 'agent' | 'camera';
+        kind?: 'agent' | 'camera' | 'browser';
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdDevicesErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdDevicesErrors, ThrowOnError>({

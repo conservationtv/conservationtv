@@ -63,7 +63,7 @@ export type Network = {
 
 export type Device = {
     id: string;
-    kind: 'agent' | 'camera';
+    kind: 'agent' | 'camera' | 'browser';
     name: string;
     networkId: string | null;
     publicKey: string;
@@ -83,7 +83,18 @@ export type Camera = {
         [key: string]: unknown;
     };
     id: string;
-    kind: 'agent' | 'camera';
+    kind: 'agent' | 'camera' | 'browser';
+    name: string;
+    networkId: string | null;
+    publicKey: string;
+    publicId: string;
+    createdAt: string;
+};
+
+export type Browser = {
+    privateKey: string;
+    id: string;
+    kind: 'agent' | 'camera' | 'browser';
     name: string;
     networkId: string | null;
     publicKey: string;
@@ -96,7 +107,7 @@ export type Agent = {
     priority: number;
     active: boolean;
     id: string;
-    kind: 'agent' | 'camera';
+    kind: 'agent' | 'camera' | 'browser';
     name: string;
     networkId: string | null;
     publicKey: string;
@@ -1333,7 +1344,7 @@ export type GetOrganisationsByIdDevicesData = {
         /**
          * Only devices of this kind.
          */
-        kind?: 'agent' | 'camera';
+        kind?: 'agent' | 'camera' | 'browser';
     };
     url: '/organisations/{id}/devices';
 };
@@ -1366,7 +1377,7 @@ export type GetOrganisationsByIdDevicesResponses = {
     200: {
         devices: Array<{
             id: string;
-            kind: 'agent' | 'camera';
+            kind: 'agent' | 'camera' | 'browser';
             name: string;
             networkId: string | null;
             publicKey: string;
@@ -1549,7 +1560,7 @@ export type GetOrganisationsByIdCamerasResponses = {
                 [key: string]: unknown;
             };
             id: string;
-            kind: 'agent' | 'camera';
+            kind: 'agent' | 'camera' | 'browser';
             name: string;
             networkId: string | null;
             publicKey: string;
@@ -1827,6 +1838,52 @@ export type PatchOrganisationsByIdCamerasByCameraIdResponses = {
 
 export type PatchOrganisationsByIdCamerasByCameraIdResponse = PatchOrganisationsByIdCamerasByCameraIdResponses[keyof PatchOrganisationsByIdCamerasByCameraIdResponses];
 
+export type PutOrganisationsByIdBrowserData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/browser';
+};
+
+export type PutOrganisationsByIdBrowserErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdBrowserError = PutOrganisationsByIdBrowserErrors[keyof PutOrganisationsByIdBrowserErrors];
+
+export type PutOrganisationsByIdBrowserResponses = {
+    /**
+     * The browser device, with its private key
+     */
+    200: Browser;
+};
+
+export type PutOrganisationsByIdBrowserResponse = PutOrganisationsByIdBrowserResponses[keyof PutOrganisationsByIdBrowserResponses];
+
 export type GetOrganisationsByIdAgentsData = {
     body?: never;
     path: {
@@ -1875,7 +1932,7 @@ export type GetOrganisationsByIdAgentsResponses = {
             priority: number;
             active: boolean;
             id: string;
-            kind: 'agent' | 'camera';
+            kind: 'agent' | 'camera' | 'browser';
             name: string;
             networkId: string | null;
             publicKey: string;
@@ -1950,7 +2007,7 @@ export type PostOrganisationsByIdAgentsResponses = {
         priority: number;
         active: boolean;
         id: string;
-        kind: 'agent' | 'camera';
+        kind: 'agent' | 'camera' | 'browser';
         name: string;
         networkId: string | null;
         publicKey: string;
@@ -2394,7 +2451,7 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses = {
         priority: number;
         active: boolean;
         id: string;
-        kind: 'agent' | 'camera';
+        kind: 'agent' | 'camera' | 'browser';
         name: string;
         networkId: string | null;
         publicKey: string;

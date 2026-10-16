@@ -10,7 +10,11 @@ export const ErrorSchema = z.object({
 export const DeviceSchema = z.object({
     devices: z.array(z.object({
         id: z.string(),
-        kind: z.enum(['agent', 'camera']),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
         name: z.string(),
         networkId: z.string().nullable(),
         publicKey: z.string(),
@@ -26,7 +30,11 @@ export const GetOrganisationsByIdDevicesPathSchema = z.object({
 });
 
 export const GetOrganisationsByIdDevicesQuerySchema = z.object({
-    kind: z.enum(['agent', 'camera']).register(z.globalRegistry, {
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]).register(z.globalRegistry, {
         description: 'Only devices of this kind.'
     }).optional()
 });

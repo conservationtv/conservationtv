@@ -6,6 +6,7 @@ import document from '../contracts/openapi.json' with { type: 'json' };
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import account from './routes/account.ts';
 import agents from './routes/agents.ts';
+import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
 import devices from './routes/devices.ts';
 import health from './routes/health.ts';
@@ -43,6 +44,7 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations', networks)
   .route('/organisations', devices)
   .route('/organisations', cameras)
+  .route('/organisations', browsers)
   .route('/organisations', agents)
   .route('/organisations', streams)
   .route('/invitations', invitations)

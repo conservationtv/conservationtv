@@ -265,7 +265,8 @@
             "type": "string",
             "enum": [
               "agent",
-              "camera"
+              "camera",
+              "browser"
             ]
           },
           "name": {
@@ -344,7 +345,8 @@
             "type": "string",
             "enum": [
               "agent",
-              "camera"
+              "camera",
+              "browser"
             ]
           },
           "name": {
@@ -382,6 +384,57 @@
           "createdAt"
         ]
       },
+      "Browser": {
+        "type": "object",
+        "properties": {
+          "privateKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "camera",
+              "browser"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "privateKey",
+          "id",
+          "kind",
+          "name",
+          "networkId",
+          "publicKey",
+          "publicId",
+          "createdAt"
+        ]
+      },
       "Agent": {
         "type": "object",
         "properties": {
@@ -408,7 +461,8 @@
             "type": "string",
             "enum": [
               "agent",
-              "camera"
+              "camera",
+              "browser"
             ]
           },
           "name": {
@@ -3125,7 +3179,7 @@
         "operationId": "organisations.devices.list",
         "x-operation-version": 1,
         "summary": "List an organisation's devices",
-        "description": "Every kind (agent, camera), optionally only one. Empty for organisations you are not a member of.",
+        "description": "Every kind (agent, camera, browser), optionally only one. Empty for organisations you are not a member of.",
         "responses": {
           "200": {
             "description": "The devices, oldest first",
@@ -3146,7 +3200,8 @@
                             "type": "string",
                             "enum": [
                               "agent",
-                              "camera"
+                              "camera",
+                              "browser"
                             ]
                           },
                           "name": {
@@ -3251,7 +3306,8 @@
               "type": "string",
               "enum": [
                 "agent",
-                "camera"
+                "camera",
+                "browser"
               ]
             },
             "description": "Only devices of this kind."
@@ -3361,7 +3417,7 @@
         "operationId": "organisations.devices.update",
         "x-operation-version": 1,
         "summary": "Rename or move a device",
-        "description": "Administrators only. Changes only the fields given. An agent’s network cannot change.",
+        "description": "Administrators only. Changes only the fields given. An agent’s network cannot change, and a browser stays on the internet.",
         "responses": {
           "200": {
             "description": "The updated device",
@@ -3574,7 +3630,8 @@
                             "type": "string",
                             "enum": [
                               "agent",
-                              "camera"
+                              "camera",
+                              "browser"
                             ]
                           },
                           "name": {
@@ -4244,6 +4301,92 @@
         ]
       }
     },
+    "/organisations/{id}/browser": {
+      "put": {
+        "operationId": "organisations.browser.ensure",
+        "x-operation-version": 1,
+        "summary": "Get or create this session's browser device",
+        "description": "Members only. One per auth session and organisation, created on the first request, on the internet, for iroh connections through a relay. Returned with its private key (the raw 32-byte Ed25519 seed, unpadded base64url), so the browser can act as it. It is removed when the session ends or the account leaves the organisation.",
+        "responses": {
+          "200": {
+            "description": "The browser device, with its private key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Browser"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
     "/organisations/{id}/agents": {
       "get": {
         "operationId": "organisations.agents.list",
@@ -4286,7 +4429,8 @@
                             "type": "string",
                             "enum": [
                               "agent",
-                              "camera"
+                              "camera",
+                              "browser"
                             ]
                           },
                           "name": {
@@ -4431,7 +4575,8 @@
                       "type": "string",
                       "enum": [
                         "agent",
-                        "camera"
+                        "camera",
+                        "browser"
                       ]
                     },
                     "name": {
@@ -5440,7 +5585,8 @@
                       "type": "string",
                       "enum": [
                         "agent",
-                        "camera"
+                        "camera",
+                        "browser"
                       ]
                     },
                     "name": {
@@ -11335,7 +11481,8 @@
                       "type": "string",
                       "enum": [
                         "agent",
-                        "camera"
+                        "camera",
+                        "browser"
                       ]
                     },
                     "name": {
@@ -11385,7 +11532,7 @@
             "operationId": "organisations.devices.list",
             "x-operation-version": 1,
             "summary": "List an organisation's devices",
-            "description": "Every kind (agent, camera), optionally only one. Empty for organisations you are not a member of.",
+            "description": "Every kind (agent, camera, browser), optionally only one. Empty for organisations you are not a member of.",
             "responses": {
               "200": {
                 "description": "The devices, oldest first",
@@ -11457,7 +11604,8 @@
                   "type": "string",
                   "enum": [
                     "agent",
-                    "camera"
+                    "camera",
+                    "browser"
                   ]
                 },
                 "description": "Only devices of this kind."
@@ -11523,7 +11671,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -11713,7 +11862,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -11757,7 +11907,7 @@
             "operationId": "organisations.devices.update",
             "x-operation-version": 1,
             "summary": "Rename or move a device",
-            "description": "Administrators only. Changes only the fields given. An agent’s network cannot change.",
+            "description": "Administrators only. Changes only the fields given. An agent’s network cannot change, and a browser stays on the internet.",
             "responses": {
               "200": {
                 "description": "The updated device",
@@ -12004,7 +12154,8 @@
                       "type": "string",
                       "enum": [
                         "agent",
-                        "camera"
+                        "camera",
+                        "browser"
                       ]
                     },
                     "name": {
@@ -12246,7 +12397,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -12564,7 +12716,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -12820,7 +12973,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -13239,6 +13393,191 @@
               "error_description"
             ]
           },
+          "Browser": {
+            "type": "object",
+            "properties": {
+              "privateKey": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera",
+                  "browser"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "networkId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "privateKey",
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
+              "createdAt"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/browser": {
+          "put": {
+            "operationId": "organisations.browser.ensure",
+            "x-operation-version": 1,
+            "summary": "Get or create this session's browser device",
+            "description": "Members only. One per auth session and organisation, created on the first request, on the internet, for iroh connections through a relay. Returned with its private key (the raw 32-byte Ed25519 seed, unpadded base64url), so the browser can act as it. It is removed when the session ends or the account leaves the organisation.",
+            "responses": {
+              "200": {
+                "description": "The browser device, with its private key",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Browser"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
           "Agent": {
             "type": "object",
             "properties": {
@@ -13270,7 +13609,8 @@
                       "type": "string",
                       "enum": [
                         "agent",
-                        "camera"
+                        "camera",
+                        "browser"
                       ]
                     },
                     "name": {
@@ -13468,7 +13808,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -13713,7 +14054,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -13922,7 +14264,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {
@@ -15148,7 +15491,8 @@
                 "type": "string",
                 "enum": [
                   "agent",
-                  "camera"
+                  "camera",
+                  "browser"
                 ]
               },
               "name": {

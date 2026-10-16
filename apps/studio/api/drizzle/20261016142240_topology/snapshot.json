@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "a5832b84-f5af-49cc-ab1f-cf3de336b858",
+  "id": "0270145f-c0e8-41cf-9a52-da80ed1fdd31",
   "prevIds": [
     "7b944b2d-1ba4-49d1-8333-93023f61dc7d"
   ],
@@ -87,6 +87,12 @@
     {
       "isRlsEnabled": false,
       "name": "camera",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "browser",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1434,6 +1440,74 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "browser"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organisation_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "'browser'",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "agent"
     },
     {
@@ -2219,6 +2293,27 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "browser_user_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "network_id",
           "isExpression": false,
           "asc": true,
@@ -2641,6 +2736,80 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
+      "name": "browser_organisation_id_organisation_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "session_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "session",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "browser_session_id_session_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
+      "schemaTo": "public",
+      "tableTo": "device",
+      "columnsTo": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "browser_device_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organisation_membership",
+      "columnsTo": [
+        "organisation_id",
+        "user_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "browser_membership_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organisation_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organisation",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "agent_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -2997,6 +3166,16 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "browser_pkey",
+      "schema": "public",
+      "table": "browser",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "agent_pkey",
       "schema": "public",
       "table": "agent",
@@ -3137,6 +3316,18 @@
     {
       "nameExplicit": true,
       "columns": [
+        "session_id",
+        "organisation_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "browser_session_organisation",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "browser"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "organisation_id",
         "id"
       ],
@@ -3207,7 +3398,7 @@
       "table": "organisation_invitation"
     },
     {
-      "value": "kind in ('agent', 'camera')",
+      "value": "kind in ('agent', 'camera', 'browser')",
       "name": "device_kind",
       "entityType": "checks",
       "schema": "public",
@@ -3216,6 +3407,13 @@
     {
       "value": "\"public_id\" ~ '^[0-9a-f]{64}$'",
       "name": "device_public_id_hex",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "device"
+    },
+    {
+      "value": "\"kind\" <> 'browser' or \"network_id\" is null",
+      "name": "device_browser_internet",
       "entityType": "checks",
       "schema": "public",
       "table": "device"
