@@ -27,9 +27,9 @@ export const organisationMember = role('organisationMember', {
 });
 
 /**
- * Granted at its organisation to every device, by a trigger when the device is created and revoked when it is deleted
- * (the `device_grants` migration), so the grant lasts exactly as long as the device. A device principal reads its
- * organisation's devices, for an iroh allowlist of their public IDs, and nothing else.
+ * Granted at its organisation to every device when it is created, and revoked when it is deleted
+ * (src/topology/device-principals.ts). A device principal reads its organisation's devices, for an iroh allowlist of
+ * their public IDs, and nothing else.
  */
 export const organisationDevice = role('organisationDevice', {
   label: 'Device',

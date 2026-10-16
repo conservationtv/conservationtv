@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { cameras, devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { trusted } from '../organisations/membership.ts';
 import { useServices } from '../services.ts';
+import { grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { deviceIdentity } from '../topology/identity.ts';
 import { NativeExposureSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
@@ -126,6 +128,9 @@ export default new Hono()
           .returning({ nativeExposures: cameras.nativeExposures, settings: cameras.settings });
         return { ...device!, ...camera! };
       });
+      // Its device is a principal of the organisation (src/topology/device-principals.ts), granted in trusted code once
+      // the device exists.
+      await trusted((_tx, access) => grantDevice(access, id, row.id));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
     }
@@ -247,6 +252,7 @@ export default new Hono()
         if (deleted.length === 0) throw await unchanged(tx, cameras.id, cameraId);
         await tx.delete(devices).where(and(eq(devices.organisationId, id), eq(devices.id, cameraId)));
       });
+      await trusted((_tx, access) => revokeDevice(access, id, cameraId));
       return c.body(null, 204);
     }
   );

@@ -8,6 +8,7 @@ import type { Database } from '../db/client.ts';
 import { self } from '../db/roles.ts';
 import { account, deviceCodes, passkeys, session, users, verification } from '../db/schema.ts';
 import type { Config } from '../config.ts';
+import { endSessionBrowsers } from '../topology/browsers.ts';
 import type { Background } from '../services.ts';
 import type { OtpDelivery } from './otp.ts';
 
@@ -53,7 +54,12 @@ export function createAuth({ database, access, config, deliverOtp, background }:
       // Provisioning: the account owns itself, which reaches every table bound to the user scope. The grant is an
       // idempotent upsert, so it is also ensured at every sign-in: an account whose creation hook failed heals itself.
       user: { create: { after: created => ensureSelfGrant(created.id) } },
-      session: { create: { after: session => ensureSelfGrant(session.userId) } }
+      session: {
+        create: { after: session => ensureSelfGrant(session.userId) },
+        // A session's browser devices end with it (src/topology/browsers.ts). Before, because the browser rows refer
+        // to the session; Better Auth runs this for every session it deletes, one at a time or in bulk.
+        delete: { before: ended => endSessionBrowsers(database, ended.id) }
+      }
     },
     plugins: [
       emailOTP({ sendVerificationOTP: deliverOtp, disableSignUp: false }),

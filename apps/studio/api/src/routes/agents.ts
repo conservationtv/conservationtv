@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { agents, configurationRevisions, devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { trusted } from '../organisations/membership.ts';
 import { useServices } from '../services.ts';
+import { grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
 import { DeviceNameSchema, deviceColumns } from './devices.ts';
 import { deviceIdentity } from '../topology/identity.ts';
@@ -129,6 +131,9 @@ export default new Hono()
           .returning({ priority: agents.priority, active: agents.active });
         return { ...device!, ...agent!, servedRevisionId: null };
       });
+      // Its device is a principal of the organisation (src/topology/device-principals.ts), granted in trusted code once
+      // the device exists.
+      await trusted((_tx, access) => grantDevice(access, id, row.id));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
     }
@@ -254,6 +259,7 @@ export default new Hono()
         if (deleted.length === 0) throw await unchanged(tx, agents.id, agentId);
         await tx.delete(devices).where(and(eq(devices.organisationId, id), eq(devices.id, agentId)));
       });
+      await trusted((_tx, access) => revokeDevice(access, id, agentId));
       return c.body(null, 204);
     }
   )

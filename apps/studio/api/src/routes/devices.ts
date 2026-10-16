@@ -119,7 +119,8 @@ export default new Hono()
       operationId: 'organisations.devices.update',
       ...operationVersion(1),
       summary: 'Rename or move a device',
-      description: 'Administrators only. Changes only the fields given. An agent’s network cannot change, and a browser stays on the internet.',
+      description:
+        'Administrators only. Changes only the fields given. An agent’s network cannot change, and a browser stays on the internet.',
       responses: {
         200: { description: 'The updated device' },
         400: invalidRequest,

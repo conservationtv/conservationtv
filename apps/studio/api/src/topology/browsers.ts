@@ -1,8 +1,12 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import type { Access } from '@conservationtv/umbrella';
+import { authorization } from '../access.ts';
+import type { Database } from '../db/client.ts';
 import { browsers, devices, organisationMemberships, session } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import type { UserPrincipal } from '../middleware/principal.ts';
 import { trusted, type Transaction } from '../organisations/membership.ts';
+import { grantDevice, revokeDevice } from './device-principals.ts';
 import { deviceIdentity } from './identity.ts';
 
 // A browser device is one auth session's identity in one organisation, for iroh connections through a relay. The web
@@ -53,7 +57,7 @@ async function browserName(tx: Transaction, sessionId: string) {
 
 /** Get or create the session's browser device in an organisation the principal belongs to, with its private key. */
 export function ensureBrowser(principal: UserPrincipal, sessionId: string, organisationId: string) {
-  return trusted(async tx => {
+  return trusted(async (tx, access) => {
     // One at a time per session and organisation, so concurrent first requests make one browser between them.
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${`browser:${sessionId}:${organisationId}`}, 0))`
@@ -68,6 +72,28 @@ export function ensureBrowser(principal: UserPrincipal, sessionId: string, organ
       .values({ ...identity, organisationId, kind: 'browser', name, networkId: null })
       .returning(browserColumns);
     await tx.insert(browsers).values({ id: device!.id, organisationId, userId: principal.id, sessionId });
+    await grantDevice(access, organisationId, device!.id);
     return device!;
   });
+}
+
+/** Delete the browsers matching `where`, their devices and their devices' grants. */
+export async function deleteBrowsers(tx: Transaction, access: Access, where: SQL | undefined) {
+  const gone = await tx
+    .delete(browsers)
+    .where(where)
+    .returning({ id: browsers.id, organisationId: browsers.organisationId });
+  if (gone.length === 0) return;
+  await tx.delete(devices).where(
+    inArray(
+      devices.id,
+      gone.map(browser => browser.id)
+    )
+  );
+  for (const browser of gone) await revokeDevice(access, browser.organisationId, browser.id);
+}
+
+/** Delete an auth session's browsers, before Better Auth deletes the session: on the owning connection it uses. */
+export function endSessionBrowsers(database: Database, sessionId: string) {
+  return database.transaction(tx => deleteBrowsers(tx, authorization.access(tx), eq(browsers.sessionId, sessionId)));
 }
