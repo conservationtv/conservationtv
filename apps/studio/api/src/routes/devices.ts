@@ -55,7 +55,7 @@ export default new Hono()
   .get(
     '/public-ids',
     describeRoute({
-      operationId: 'organisations.devices.listPublicIds',
+      operationId: 'organisations.devices.allowlist',
       ...operationVersion(1),
       summary: "List the public IDs of an organisation's devices",
       description:

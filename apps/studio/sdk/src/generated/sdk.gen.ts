@@ -373,7 +373,7 @@ export class Devices extends HeyApiClient {
      *
      * Every device's iroh endpoint ID, for an allowlist. Members call it signed in; devices call it with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`. Empty for organisations you are not a member of, or a signing device does not belong to.
      */
-    public listPublicIds<ThrowOnError extends boolean = false>(parameters: {
+    public allowlist<ThrowOnError extends boolean = false>(parameters: {
         id: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdDevicesPublicIdsResponses, GetOrganisationsByIdDevicesPublicIdsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);

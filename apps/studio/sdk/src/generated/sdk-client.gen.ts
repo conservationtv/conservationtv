@@ -23,9 +23,9 @@ import { BaseClient as BaseClient27 } from '../versions/organisations.cameras.li
 import { BaseClient as BaseClient30 } from '../versions/organisations.cameras.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient5 } from '../versions/organisations.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient8 } from '../versions/organisations.delete-v1/sdk.gen.js';
+import { BaseClient as BaseClient23 } from '../versions/organisations.devices.allowlist-v1/sdk.gen.js';
 import { BaseClient as BaseClient25 } from '../versions/organisations.devices.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient24 } from '../versions/organisations.devices.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient23 } from '../versions/organisations.devices.listPublicIds-v1/sdk.gen.js';
 import { BaseClient as BaseClient26 } from '../versions/organisations.devices.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient6 } from '../versions/organisations.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient16 } from '../versions/organisations.invitations.cancel-v1/sdk.gen.js';
@@ -104,7 +104,7 @@ export class Client extends ClientCore {
             setActiveAgent: this.versioned('organisations.networks.setActiveAgent', { v1: BaseClient22 })
         },
         devices: {
-            listPublicIds: this.versioned('organisations.devices.listPublicIds', { v1: BaseClient23 }),
+            allowlist: this.versioned('organisations.devices.allowlist', { v1: BaseClient23 }),
             list: this.versioned('organisations.devices.list', { v1: BaseClient24 }),
             get: this.versioned('organisations.devices.get', { v1: BaseClient25 }),
             update: this.versioned('organisations.devices.update', { v1: BaseClient26 })

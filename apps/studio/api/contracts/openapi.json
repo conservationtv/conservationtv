@@ -3415,7 +3415,7 @@
     },
     "/organisations/{id}/devices/public-ids": {
       "get": {
-        "operationId": "organisations.devices.listPublicIds",
+        "operationId": "organisations.devices.allowlist",
         "x-operation-version": 1,
         "summary": "List the public IDs of an organisation's devices",
         "description": "Every device's iroh endpoint ID, for an allowlist. Members call it signed in; devices call it with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`. Empty for organisations you are not a member of, or a signing device does not belong to.",
@@ -12381,7 +12381,7 @@
       "paths": {
         "/organisations/{id}/devices/public-ids": {
           "get": {
-            "operationId": "organisations.devices.listPublicIds",
+            "operationId": "organisations.devices.allowlist",
             "x-operation-version": 1,
             "summary": "List the public IDs of an organisation's devices",
             "description": "Every device's iroh endpoint ID, for an allowlist. Members call it signed in; devices call it with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`. Empty for organisations you are not a member of, or a signing device does not belong to.",
