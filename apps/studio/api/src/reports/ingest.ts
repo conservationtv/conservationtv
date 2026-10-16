@@ -5,7 +5,7 @@ import { trusted } from '../organisations/membership.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
 import { useServices } from '../services.ts';
 import { MetricDimensionsSchema, SettingsSchema } from '../topology/settings.ts';
-import { SubjectIdSchema } from './subjects.ts';
+import { deviceSubject, SubjectIdSchema } from './subjects.ts';
 
 // Report ingestion: trusted code on the owning connection, because the device's signature, not a session,
 // authenticates the reporter (src/middleware/device.ts). Any device reports, in batches, about whichever subjects it
@@ -79,7 +79,7 @@ export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
 
     const reported = (report: EventReport | MetricReport | LogReport) => ({
       organisationId: device.organisationId,
-      reporterId: device.id,
+      reporterId: deviceSubject(device.id),
       subjectId: report.subjectId,
       observedAt: new Date(report.observedAt)
     });

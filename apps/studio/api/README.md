@@ -255,14 +255,15 @@ its own `observedAt`, and at most 1 MiB. Any device may report, and is the repor
 trusted code (`src/reports/ingest.ts`): it refuses malformed reports and those observed more than five minutes ahead,
 and stores the batch in the device's organisation with one insert per kind. A batch is stored or refused whole, and
 only for trust or shape. The signature's nonce stops a request from being stored twice, but nothing else deduplicates:
-a retry is signed again, and may be stored twice. A report's reporter, like its subject, is recorded as given rather
-than referenced, so reports stay when their device is deleted; they go with their organisation. Request sessions only
+a retry is signed again, and may be stored twice. A report's reporter is named in the subject convention below, always
+`device:<id>` for the signing device, and like its subject is recorded as given rather than referenced, so reports
+stay when their device is deleted; they go with their organisation. Request sessions only
 read reports.
 
-A report's `subjectId` names what it is about by convention (`src/reports/subjects.ts`), not by reference:
-`<kind>:<id>` for a network, device, agent, stream or exposure, such as `device:0199e8b2-…`, or `external:<name>` for
-anything outside the topology, such as `external:https://example.org`. Nothing checks the entity exists, so reports
-about a deleted entity remain. Read them under `/organisations/{id}/subjects/{subjectId}/…`, with the subject
+A report's `subjectId` names what it is about, and its `reporterId` who sent it, by one convention
+(`src/reports/subjects.ts`), not by reference: `<kind>:<id>` for a network, device, agent, stream or exposure, such as
+`device:0199e8b2-…`, or `external:<name>` for anything outside the topology, such as `external:https://example.org`.
+Nothing checks the entity exists, so reports by or about a deleted entity remain. Read them under `/organisations/{id}/subjects/{subjectId}/…`, with the subject
 URL-encoded. Metric samples keep the type, unit and dimensions they were reported with; they are not grouped into
 series, and samples from different reporters are never summed.
 

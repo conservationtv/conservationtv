@@ -16,7 +16,7 @@ export const logRecords = withAccess(
       id: uuid('id')
         .primaryKey()
         .default(sql`uuidv7()`),
-      reporterId: uuid('reporter_id').notNull(),
+      reporterId: text('reporter_id').notNull(),
       subjectId: text('subject_id').notNull(),
       observedAt: timestamp('observed_at').notNull(),
       receivedAt: timestamp('received_at').defaultNow().notNull(),

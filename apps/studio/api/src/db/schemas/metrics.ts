@@ -20,7 +20,7 @@ export const metricSamples = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
-      reporterId: uuid('reporter_id').notNull(),
+      reporterId: text('reporter_id').notNull(),
       subjectId: text('subject_id').notNull(),
       observedAt: timestamp('observed_at').notNull(),
       receivedAt: timestamp('received_at').defaultNow().notNull(),
