@@ -37,7 +37,7 @@
     "pg": "catalog:",
     "testcontainers": "12.2.0",
     "tsx": "4.23.15",
-    "typescript": "6.0.3",
+    "typescript": "catalog:",
     "vitest": "5.0.3"
   },
   "engines": {
