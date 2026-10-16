@@ -135,7 +135,7 @@ Relational queries (`db.query`, also inside request sessions) use the relations 
 
 Request handling reads its dependencies through `useServices()`, a `createStore` from `@conservationtv/store`
 (AsyncLocalStorage, `src/services.ts`). Only the production Worker entrypoint constructs them, through
-`servicesFor`; the database clients, the authorization client and Better Auth open on first use within a request. The
+`servicesFor` (`src/services-for.ts`); the database clients, the authorization client and Better Auth open on first use within a request. The
 text bindings and secrets are validated by `src/config.ts` (ArkEnv over `process.env`) on the first request in each
 isolate; an invalid deployment fails every request.
 
@@ -237,8 +237,9 @@ the database and its backups only hold ciphertext. The codec maps plaintext byte
 (`BytesSchema`, `Utf8Schema`, `json(schema)`, which can nest codecs such as `IsoDatetimeSchema`). Each purpose seals
 under its own subkey (HKDF-SHA256 of the field key, the purpose as its info), so a ciphertext copied into another
 column fails to open; the purpose must never change, which keeps renamed columns readable. The field key comes from
-`FIELD_KEY` and is installed per request with `withFieldKey` (`src/db/field-key.ts`). `blindIndex(purpose, codec, value)` is a keyed hash for
-equality lookups on an encrypted value, kept in a column beside it, under its own subkey.
+`FIELD_KEY`, which the config decodes to its 32 bytes (`useServices().config.FIELD_KEY`), so sealing and opening need
+the request's services. `blindIndex(purpose, codec, value)` is a keyed hash for equality lookups on an encrypted value,
+kept in a column beside it, under its own subkey.
 
 A sealed value is `version ‖ iv ‖ tag ‖ ciphertext`, and the version is always 1: there is one key and no rotation, since
 nothing re-seals existing rows yet. The version byte is there so rotation can be added without rewriting stored values.
