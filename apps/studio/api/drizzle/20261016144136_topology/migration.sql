@@ -109,9 +109,9 @@ ALTER TABLE "device" ADD CONSTRAINT "device_network_fk" FOREIGN KEY ("organisati
 ALTER TABLE "camera" ADD CONSTRAINT "camera_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "camera" ADD CONSTRAINT "camera_device_fk" FOREIGN KEY ("organisation_id","id","kind") REFERENCES "device"("organisation_id","id","kind");--> statement-breakpoint
 ALTER TABLE "browser" ADD CONSTRAINT "browser_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "browser" ADD CONSTRAINT "browser_session_id_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "session"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "browser" ADD CONSTRAINT "browser_session_id_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "session"("id");--> statement-breakpoint
 ALTER TABLE "browser" ADD CONSTRAINT "browser_device_fk" FOREIGN KEY ("organisation_id","id","kind") REFERENCES "device"("organisation_id","id","kind");--> statement-breakpoint
-ALTER TABLE "browser" ADD CONSTRAINT "browser_membership_fk" FOREIGN KEY ("organisation_id","user_id") REFERENCES "organisation_membership"("organisation_id","user_id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "browser" ADD CONSTRAINT "browser_membership_fk" FOREIGN KEY ("organisation_id","user_id") REFERENCES "organisation_membership"("organisation_id","user_id");--> statement-breakpoint
 ALTER TABLE "agent" ADD CONSTRAINT "agent_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "agent" ADD CONSTRAINT "agent_device_fk" FOREIGN KEY ("organisation_id","id","kind","network_id") REFERENCES "device"("organisation_id","id","kind","network_id");--> statement-breakpoint
 ALTER TABLE "configuration_revision" ADD CONSTRAINT "configuration_revision_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint

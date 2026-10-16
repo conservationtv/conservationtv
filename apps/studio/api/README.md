@@ -205,17 +205,21 @@ A `browser` is one auth session's device in one organisation, for iroh connectio
 returns it with its private key (the raw seed, unpadded base64url), so the browser can act as it; concurrent first
 requests make one between them. It is trusted code (`src/topology/browsers.ts`), so any member may make their own, and
 it is named after the session's user agent. A browser is always on the internet (409 `conflict` if moved), and
-belongs to the account as well as the organisation: its row references the auth session and the account's membership,
-both cascading, and a trigger (the `browser_devices` migration) deletes its device with it, so it goes when the
-session ends, the account leaves the organisation, or the account is deleted. Members see every browser under
-`/devices`, as they see every device; nothing reads a browser's private key but its own session.
+belongs to the account as well as the organisation: its row references the auth session and the account's membership.
+Neither reference cascades. Instead the code that ends them deletes the browser and its device first: Better Auth's
+session-delete hook, which runs for sign-out, bulk revocation, expired sessions and account deletion, and
+`endMembership`. A path that forgot would be refused by the foreign key rather than leave a device behind. Members see
+every browser under `/devices`, as they see every device; nothing reads a browser's private key but its own session.
 
-Every device is also a principal, `device(<id>)`, in its organisation: a trigger grants it the shared
-`organisationDevice` role there when it is created, and another revokes its grants when it is deleted (the
-`device_grants` migration), so the grant lives and dies with the row however it is made or removed. That role reads the
-organisation's devices and nothing else, so a device, like any member, can list its organisation's public IDs for an
-iroh allowlist. Nothing authenticates a device as a principal yet; once something does, it runs queries with
-`authorization.as(app, device(id))`.
+Every device is also a principal, `device(<id>)`, in its organisation, holding the shared `organisationDevice` role
+there (`src/topology/device-principals.ts`). That role reads the organisation's devices and nothing else, so a device,
+like any member, can list its organisation's public IDs for an iroh allowlist. The code that creates and deletes
+devices grants and revokes it in trusted code, and deleting an organisation revokes every grant at it. A grant is
+idempotent, so whatever authenticates devices in future should ensure it again, healing one that was missed; a grant
+left by a deleted device is harmless, since nothing can authenticate as it. Nothing authenticates a device yet; once
+something does, it runs queries with `authorization.as(app, device(id))`.
+
+The only triggers are umbrella's `authz_immutable`, which refuse request sessions' changes to immutable columns.
 
 Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
 configuration builders that produce revisions, how an agent fetches its served revision, and sharing across

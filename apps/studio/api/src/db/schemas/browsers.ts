@@ -10,8 +10,9 @@ import { users } from './users.ts';
 /**
  * A device that is one signed-in browser in one organisation, for iroh connections through a relay: there is at most
  * one per auth session and organisation, made on demand (src/topology/browsers.ts). It belongs to the account as well
- * as the organisation, and lasts only as long as both its session and the account's membership: deleting either
- * deletes this row, and a trigger in the `browser_devices` migration deletes its device with it.
+ * as the organisation, and lasts only as long as both its session and the account's membership. Code that ends either
+ * deletes the browser and its device first (Better Auth's session-delete hook, `endMembership`); the foreign keys to
+ * them do not cascade, so a path that forgot to would fail rather than leave a device behind.
  */
 export const browsers = withAccess(
   pgTable(
@@ -27,7 +28,7 @@ export const browsers = withAccess(
       userId: text('user_id').notNull(),
       sessionId: text('session_id')
         .notNull()
-        .references(() => session.id, { onDelete: 'cascade' })
+        .references(() => session.id)
     },
     t => [
       unique('browser_session_organisation').on(t.sessionId, t.organisationId),
@@ -42,7 +43,7 @@ export const browsers = withAccess(
         name: 'browser_membership_fk',
         columns: [t.organisationId, t.userId],
         foreignColumns: [organisationMemberships.organisationId, organisationMemberships.userId]
-      }).onDelete('cascade'),
+      }),
       index('browser_user_idx').on(t.userId)
     ]
   ),

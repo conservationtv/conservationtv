@@ -3,10 +3,11 @@ import { and, eq, sql } from 'drizzle-orm';
 import { authorization } from '../access.ts';
 import type { Database } from '../db/client.ts';
 import { organisationAdmin, organisationMember } from '../db/roles.ts';
-import { organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
+import { browsers, organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import type { UserPrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
+import { deleteBrowsers } from '../topology/browsers.ts';
 
 // Joining and leaving change rows and grants together, so every write here is trusted code on the admin connection,
 // in one transaction. Who may make each change is still the access definitions' decision: `inspect` asks them before
@@ -142,13 +143,22 @@ export function endMembership(principal: UserPrincipal, organisationId: string, 
 
     await keepAnotherAdmin(access, organisationId, membership.userId);
 
-    // Every role they hold here, not just the ones membership grants.
+    // Every role they hold here, not just the ones membership grants, and their browsers here, which refer to the
+    // membership.
     await access.at(organisationScope(organisationId)).revoke({ principal: user(membership.userId) });
+    await deleteBrowsers(
+      tx,
+      access,
+      and(eq(browsers.organisationId, organisationId), eq(browsers.userId, membership.userId))
+    );
     await tx.delete(organisationMemberships).where(eq(organisationMemberships.id, membership.id));
   });
 }
 
-/** Delete an organisation, everyone's grants at it, and by cascade its memberships, profiles and invitations. */
+/**
+ * Delete an organisation, every grant at it (its devices' too), and by cascade its memberships, profiles, invitations
+ * and topology, browsers included.
+ */
 export function deleteOrganisation(principal: UserPrincipal, organisationId: string) {
   return trusted(async (tx, access) => {
     await lockVisibleOrganisation(tx, access, principal, organisationId);

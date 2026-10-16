@@ -1,10 +1,10 @@
 {
-  "id": "507ce220-9fa1-400a-a3e2-5b90efc7139e",
-  "prevIds": [
-    "0ca178da-8415-44c4-a027-aedef7bc9da0"
-  ],
   "version": "8",
   "dialect": "postgres",
+  "id": "34ac1612-d42c-4826-8bcc-93007410db68",
+  "prevIds": [
+    "7b944b2d-1ba4-49d1-8333-93023f61dc7d"
+  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -2752,7 +2752,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "browser_session_id_session_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -2792,7 +2792,7 @@
         "user_id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "browser_membership_fk",
       "entityType": "fks",
       "schema": "public",
