@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes } from 'node:crypto';
 import { customType } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { useKeyring, type Keyring } from './keyring.ts';
@@ -12,8 +12,12 @@ const IV_BYTES = 12;
 const TAG_BYTES = 16;
 const HEADER_BYTES = 1 + IV_BYTES + TAG_BYTES;
 
-/** A subkey per purpose, so a ciphertext or index from one column is useless in another. */
-const derive = (master: Uint8Array, label: string) => createHmac('sha256', master).update(label).digest();
+/**
+ * A subkey per purpose, so a ciphertext or index from one column is useless in another: HKDF-SHA256 with the label as
+ * its info. Master keys are already uniformly random, so the salt is empty.
+ */
+const derive = (master: Uint8Array, label: string) =>
+  Buffer.from(hkdfSync('sha256', master, new Uint8Array(), label, 32));
 
 const masterKey = (keyring: Keyring, version: number) => {
   const key = keyring.keys.get(version);
