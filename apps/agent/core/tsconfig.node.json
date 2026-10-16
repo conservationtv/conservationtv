@@ -1,0 +1,6 @@
+{
+  // Generation scripts run under Node. The app they import is checked again here, so it must stay runtime-neutral:
+  // it is only a Hono app, and whatever hosts it supplies the runtime.
+  "extends": "./tsconfig.json",
+  "include": ["contracts.config.ts"]
+}

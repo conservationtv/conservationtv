@@ -1,0 +1,24 @@
+{
+  "name": "@conservationtv/agent-runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Runs the agent under Node, and stops it gracefully.",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "keygen": "node -e \"console.log(require('node:crypto').randomBytes(32).toString('hex'))\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@arkenv/standard": "catalog:",
+    "@conservationtv/agent-api": "workspace:*",
+    "close-with-grace": "2.5.0",
+    "tsx": "4.23.15",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "^7.0.2"
+  }
+}

@@ -61,8 +61,8 @@ organisations are this API's own tables rather than Better Auth's (see [Organisa
 - **Sign-up and sign-in** by emailed one-time code (`emailOTP`): `POST /auth/email-otp/send-verification-otp` with
   `{ email, type: "sign-in" }`, then `POST /auth/sign-in/email-otp` with `{ email, otp }`. A new email creates the
   account.
-- **Devices** (the CLI) by the OAuth device flow (`deviceAuthorization`): the device asks `/auth/device/code` for a
-  code as client `studio-cli`, shows it, and polls `/auth/device/token`; the person approves it in the web app at
+- **Devices** (the `ctv` CLI, [`apps/cli`](../../cli)) by the OAuth device flow (`deviceAuthorization`): the device asks
+  `/auth/device/code` for a code as client `studio-cli`, shows it, and polls `/auth/device/token`; the person approves it in the web app at
   `<first WEB_ORIGINS entry>/device`, signing in there first if needed. The token is sent as
   `Authorization: Bearer …` (the `bearer` plugin), so `requirePrincipal` needs no cookie.
 - **Passkeys** as an alternative sign-in only: `/auth/passkey/generate-register-options` and `/auth/passkey/verify-registration`
@@ -119,11 +119,11 @@ pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 ```
 
 Sign in from the terminal with the CLI, which opens the device flow (the web app must be running for the approval
-page), or with curl: request a code, read it from the dev server's log (`"event":"email_otp"`), exchange it, and use
+page) and then registers the session's browser device in an organisation you pick, or with curl: request a code, read it from the dev server's log (`"event":"email_otp"`), exchange it, and use
 the returned session cookie:
 
 ```sh
-pnpm --filter @conservationtv/studio-cli cli login && pnpm --filter @conservationtv/studio-cli cli account get v1
+pnpm --filter @conservationtv/cli cli login && pnpm --filter @conservationtv/cli cli account get v1
 
 curl -X POST localhost:5175/auth/email-otp/send-verification-otp -H 'content-type: application/json' \
   -H 'origin: http://localhost:5173' -d '{"email":"you@example.com","type":"sign-in"}'
@@ -293,7 +293,7 @@ Rotating would also change every blind index, so those would need recomputing to
 ```sh
 pnpm --filter @conservationtv/studio-api generate             # contracts/openapi.json from routes + handler types
 pnpm --filter @conservationtv/studio-sdk generate
-pnpm --filter @conservationtv/studio-cli generate
+pnpm --filter @conservationtv/studio-cli generate           # the commands apps/cli mounts at its top level
 ```
 
 `pnpm snapshot studio-api-v1.0.0` freezes the current bundle under `contracts/snapshots/`, and `check:snapshot`,

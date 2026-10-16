@@ -1,0 +1,27 @@
+{
+  "name": "@conservationtv/agent-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A generated version-aware SDK for the conservation.tv agent API.",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts/*": "./src/versions/*/sdk.gen.ts",
+    "./minimum-versions": "./minimum-versions.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "generate": "openapi-ts --file openapi-ts.config.ts && share-client"
+  },
+  "dependencies": {
+    "@conservationtv/versioned-api": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@conservationtv/agent-api": "workspace:*",
+    "@hey-api/openapi-ts": "0.99.0",
+    "typescript": "6.0.3",
+    "@types/node": "24.10.1"
+  }
+}
