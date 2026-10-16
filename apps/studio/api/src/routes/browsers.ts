@@ -18,7 +18,7 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 
 // The signed-in browser's own device in an organisation (src/topology/browsers.ts).
 export default new Hono().put(
-  '/:id/browser',
+  '/',
   describeRoute({
     operationId: 'organisations.browser.ensure',
     ...operationVersion(1),

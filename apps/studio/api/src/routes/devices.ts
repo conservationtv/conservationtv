@@ -51,7 +51,7 @@ export const deviceColumns = {
 // browser (/browser).
 export default new Hono()
   .get(
-    '/:id/devices',
+    '/',
     describeRoute({
       operationId: 'organisations.devices.list',
       ...operationVersion(1),
@@ -86,7 +86,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/devices/:deviceId',
+    '/:deviceId',
     describeRoute({
       operationId: 'organisations.devices.get',
       ...operationVersion(1),
@@ -119,7 +119,7 @@ export default new Hono()
     }
   )
   .patch(
-    '/:id/devices/:deviceId',
+    '/:deviceId',
     describeRoute({
       operationId: 'organisations.devices.update',
       ...operationVersion(1),

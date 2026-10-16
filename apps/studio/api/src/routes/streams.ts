@@ -48,7 +48,7 @@ export type RecorderKind = z.output<typeof RecorderKindSchema>;
 // composite foreign keys refuse anything else.
 export default new Hono()
   .get(
-    '/:id/streams',
+    '/',
     describeRoute({
       operationId: 'organisations.streams.list',
       ...operationVersion(1),
@@ -86,7 +86,7 @@ export default new Hono()
     }
   )
   .post(
-    '/:id/streams',
+    '/',
     describeRoute({
       operationId: 'organisations.streams.create',
       ...operationVersion(1),
@@ -131,7 +131,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/streams/:streamId',
+    '/:streamId',
     describeRoute({
       operationId: 'organisations.streams.get',
       ...operationVersion(1),
@@ -175,7 +175,7 @@ export default new Hono()
     }
   )
   .patch(
-    '/:id/streams/:streamId',
+    '/:streamId',
     describeRoute({
       operationId: 'organisations.streams.update',
       ...operationVersion(1),
@@ -226,7 +226,7 @@ export default new Hono()
     }
   )
   .delete(
-    '/:id/streams/:streamId',
+    '/:streamId',
     describeRoute({
       operationId: 'organisations.streams.delete',
       ...operationVersion(1),
@@ -260,7 +260,7 @@ export default new Hono()
     }
   )
   .post(
-    '/:id/streams/:streamId/exposures',
+    '/:streamId/exposures',
     describeRoute({
       operationId: 'organisations.streams.exposures.create',
       ...operationVersion(1),
@@ -323,7 +323,7 @@ export default new Hono()
     }
   )
   .patch(
-    '/:id/streams/:streamId/exposures/:exposureId',
+    '/:streamId/exposures/:exposureId',
     describeRoute({
       operationId: 'organisations.streams.exposures.update',
       ...operationVersion(1),
@@ -378,7 +378,7 @@ export default new Hono()
     }
   )
   .delete(
-    '/:id/streams/:streamId/exposures/:exposureId',
+    '/:streamId/exposures/:exposureId',
     describeRoute({
       operationId: 'organisations.streams.exposures.delete',
       ...operationVersion(1),
@@ -413,7 +413,7 @@ export default new Hono()
     }
   )
   .post(
-    '/:id/streams/:streamId/recorders',
+    '/:streamId/recorders',
     describeRoute({
       operationId: 'organisations.streams.recorders.create',
       ...operationVersion(1),
@@ -470,7 +470,7 @@ export default new Hono()
     }
   )
   .patch(
-    '/:id/streams/:streamId/recorders/:recorderId',
+    '/:streamId/recorders/:recorderId',
     describeRoute({
       operationId: 'organisations.streams.recorders.update',
       ...operationVersion(1),
@@ -525,7 +525,7 @@ export default new Hono()
     }
   )
   .delete(
-    '/:id/streams/:streamId/recorders/:recorderId',
+    '/:streamId/recorders/:recorderId',
     describeRoute({
       operationId: 'organisations.streams.recorders.delete',
       ...operationVersion(1),

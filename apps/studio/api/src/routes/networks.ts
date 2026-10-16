@@ -42,7 +42,7 @@ function readNetwork(tx: Transaction, organisationId: string, networkId: string)
 // them. Agents are under /organisations/{id}/agents.
 export default new Hono()
   .get(
-    '/:id/networks',
+    '/',
     describeRoute({
       operationId: 'organisations.networks.list',
       ...operationVersion(1),
@@ -72,7 +72,7 @@ export default new Hono()
     }
   )
   .post(
-    '/:id/networks',
+    '/',
     describeRoute({
       operationId: 'organisations.networks.create',
       ...operationVersion(1),
@@ -106,7 +106,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/networks/:networkId',
+    '/:networkId',
     describeRoute({
       operationId: 'organisations.networks.get',
       ...operationVersion(1),
@@ -134,7 +134,7 @@ export default new Hono()
     }
   )
   .patch(
-    '/:id/networks/:networkId',
+    '/:networkId',
     describeRoute({
       operationId: 'organisations.networks.update',
       ...operationVersion(1),
@@ -174,7 +174,7 @@ export default new Hono()
     }
   )
   .delete(
-    '/:id/networks/:networkId',
+    '/:networkId',
     describeRoute({
       operationId: 'organisations.networks.delete',
       ...operationVersion(1),
@@ -209,7 +209,7 @@ export default new Hono()
     }
   )
   .put(
-    '/:id/networks/:networkId/active-agent',
+    '/:networkId/active-agent',
     describeRoute({
       operationId: 'organisations.networks.setActiveAgent',
       ...operationVersion(1),
