@@ -244,10 +244,10 @@ about a deleted entity remain. Read them under `/organisations/{id}/subjects/{su
 URL-encoded. Metric samples keep the type, unit and dimensions they were reported with; they are not grouped into
 series, and samples from different reporters are never summed.
 
-Not built yet: provisioning a device with its private key, rotating or revoking a device identity, the state
-consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns `state: null`,
-stale, until it exists), failover from expired agent state, the configuration builders that produce revisions, how an
-agent fetches its served revision, and sharing across organisations.
+Not built yet: provisioning an agent or camera with its private key, rotating or revoking a device identity, the
+state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns
+`state: null`, stale, until it exists), failover from expired agent state, the configuration builders that produce
+revisions, how an agent fetches its served revision, and sharing across organisations.
 
 ## Encrypted columns
 
