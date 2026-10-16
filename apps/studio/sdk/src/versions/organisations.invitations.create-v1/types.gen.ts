@@ -12,10 +12,10 @@ export type Error = {
 export type Invitation = {
     id: string;
     email: string | null;
-    user_id: string | null;
-    invited_by: string | null;
-    created_at: string;
-    expires_at: string;
+    userId: string | null;
+    invitedBy: string | null;
+    createdAt: string;
+    expiresAt: string;
 };
 
 export type PostOrganisationsByIdInvitationsData = {
@@ -27,7 +27,7 @@ export type PostOrganisationsByIdInvitationsData = {
         /**
          * The account to invite.
          */
-        user_id?: string;
+        userId?: string;
     };
     path: {
         /**

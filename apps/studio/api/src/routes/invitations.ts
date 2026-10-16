@@ -51,18 +51,10 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const invitations = await listOwnInvitations(usePrincipal());
+      const principal = usePrincipal();
+      const invitations = await listOwnInvitations(principal);
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          invitations: invitations.map(invitation => ({
-            id: invitation.id,
-            organisation: { id: invitation.organisationId, name: invitation.organisationName },
-            expires_at: invitation.expiresAt.toISOString()
-          }))
-        },
-        200
-      );
+      return c.json({ invitations }, 200);
     }
   )
   .get(
@@ -85,15 +77,7 @@ export default new Hono()
     async c => {
       const invitation = await readInvitation(c.req.valid('param').id);
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          id: invitation.id,
-          organisation: { id: invitation.organisationId, name: invitation.organisationName },
-          needs_code: invitation.userId === null,
-          expires_at: invitation.expiresAt.toISOString()
-        },
-        200
-      );
+      return c.json(invitation, 200);
     }
   )
   .post(
@@ -122,24 +106,18 @@ export default new Hono()
       'json',
       z.strictObject({
         code: InvitationCodeSchema.optional(),
-        display_name: z.string().trim().min(1).max(120).describe("Your name as the organisation's members will see it.")
+        displayName: z.string().trim().min(1).max(120).describe("Your name as the organisation's members will see it.")
       })
     ),
     async c => {
       const body = c.req.valid('json');
-      const membership = await acceptInvitation(usePrincipal(), c.req.valid('param').id, {
+      const principal = usePrincipal();
+      const membership = await acceptInvitation(principal, c.req.valid('param').id, {
         code: body.code,
-        displayName: body.display_name
+        displayName: body.displayName
       });
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          organisation_id: membership.organisationId,
-          user_id: membership.userId,
-          joined_at: membership.createdAt.toISOString()
-        },
-        200
-      );
+      return c.json(membership, 200);
     }
   )
   .post(
@@ -164,7 +142,8 @@ export default new Hono()
     validator('param', InvitationParamsSchema),
     validator('json', z.strictObject({ code: InvitationCodeSchema.optional() })),
     async c => {
-      await declineInvitation(usePrincipal(), c.req.valid('param').id, { code: c.req.valid('json').code });
+      const principal = usePrincipal();
+      await declineInvitation(principal, c.req.valid('param').id, { code: c.req.valid('json').code });
       return c.body(null, 204);
     }
   );

@@ -3,10 +3,11 @@ import { and, eq, sql } from 'drizzle-orm';
 import { authorization } from '../access.ts';
 import type { Database } from '../db/client.ts';
 import { organisationAdmin, organisationMember } from '../db/roles.ts';
-import { organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
+import { browsers, organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import type { UserPrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
+import { deleteBrowsers } from '../topology/browsers.ts';
 
 // Joining and leaving change rows and grants together, so every write here is trusted code on the admin connection,
 // in one transaction. Who may make each change is still the access definitions' decision: `inspect` asks them before
@@ -28,7 +29,8 @@ export interface NewMember {
 export const organisationScope = (organisationId: string) => organisations.$access.scope.at(organisationId);
 
 export async function trusted<Result>(run: (tx: Transaction, access: Access) => Promise<Result>) {
-  const admin = await useServices().admin();
+  const services = useServices();
+  const admin = await services.admin();
   return admin.transaction(tx => run(tx, authorization.access(tx)));
 }
 
@@ -38,7 +40,11 @@ export async function addMember(tx: Transaction, access: Access, principal: User
     .insert(organisationMemberships)
     .values({ organisationId: input.organisationId, userId: principal.id })
     .onConflictDoNothing()
-    .returning();
+    .returning({
+      organisationId: organisationMemberships.organisationId,
+      userId: organisationMemberships.userId,
+      joinedAt: organisationMemberships.createdAt
+    });
   if (!membership) throw new ApiFailure('already_member');
   await tx
     .insert(organisationProfiles)
@@ -49,7 +55,7 @@ export async function addMember(tx: Transaction, access: Access, principal: User
 
 /**
  * Lock the organisation for the rest of the transaction, so concurrent changes to its administrators are serialised,
- * and fail as `not_found` unless the principal can see it.
+ * and fail as `notFound` unless the principal can see it.
  */
 async function lockVisibleOrganisation(
   tx: Transaction,
@@ -82,7 +88,10 @@ async function mayRemoveMembers(access: Access, principal: UserPrincipal, organi
 /** Create an organisation with the principal as its first member and administrator. */
 export function createOrganisation(principal: UserPrincipal, input: NewOrganisation) {
   return trusted(async (tx, access) => {
-    const [organisation] = await tx.insert(organisations).values({ name: input.name }).returning();
+    const [organisation] = await tx
+      .insert(organisations)
+      .values({ name: input.name })
+      .returning({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt });
     await addMember(tx, access, principal, { organisationId: organisation!.id, displayName: input.displayName });
     await access.at(organisationScope(organisation!.id)).grant({ principal, role: organisationAdmin });
     return organisation!;
@@ -134,13 +143,22 @@ export function endMembership(principal: UserPrincipal, organisationId: string, 
 
     await keepAnotherAdmin(access, organisationId, membership.userId);
 
-    // Every role they hold here, not just the ones membership grants.
+    // Every role they hold here, not just the ones membership grants, and their browsers here, which refer to the
+    // membership.
     await access.at(organisationScope(organisationId)).revoke({ principal: user(membership.userId) });
+    await deleteBrowsers(
+      tx,
+      access,
+      and(eq(browsers.organisationId, organisationId), eq(browsers.userId, membership.userId))
+    );
     await tx.delete(organisationMemberships).where(eq(organisationMemberships.id, membership.id));
   });
 }
 
-/** Delete an organisation, everyone's grants at it, and by cascade its memberships, profiles and invitations. */
+/**
+ * Delete an organisation, every grant at it (its devices' too), and by cascade its memberships, profiles, invitations
+ * and topology, browsers included.
+ */
 export function deleteOrganisation(principal: UserPrincipal, organisationId: string) {
   return trusted(async (tx, access) => {
     await lockVisibleOrganisation(tx, access, principal, organisationId);
@@ -208,10 +226,11 @@ export interface MemberRole {
  * The organisation's members visible to the principal, with their profiles and the roles they hold there, one row
  * each, aggregated in Postgres (umbrella's GUIDE: "One row per user, aggregated in SQL"). It runs in the principal's
  * request session: row-level security decides which members appear, and the grants table, readable by request
- * sessions (see the `grants_readable` migration), only adds their roles.
+ * sessions (see the `grantsReadable` migration), only adds their roles.
  */
 export async function listMembers(principal: UserPrincipal, organisationId: string) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   return session.transaction(tx => {
     const roles = authorization
       .access(tx)
@@ -245,7 +264,8 @@ export async function listMembers(principal: UserPrincipal, organisationId: stri
 
 /** The principal's organisations, each with the roles they hold there, aggregated as `listMembers` is, in their session. */
 export async function listOwnOrganisations(principal: UserPrincipal) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   return session.transaction(tx => {
     const roles = authorization.access(tx).grantsQuery({ principal, active: true }).as('own_roles');
     return tx

@@ -55,12 +55,12 @@ export class Invitations extends HeyApiClient {
     public accept<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         code?: string;
-        display_name: string;
+        displayName: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostInvitationsByIdAcceptResponses, PostInvitationsByIdAcceptErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'code' },
-                    { in: 'body', key: 'display_name' }
+                    { in: 'body', key: 'displayName' }
                 ] }]);
         return (options?.client ?? this.client).post<PostInvitationsByIdAcceptResponses, PostInvitationsByIdAcceptErrors, ThrowOnError>({
             url: '/invitations/{id}/accept',

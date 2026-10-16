@@ -50,7 +50,7 @@ type NewInvitation = typeof organisationInvitations.$inferInsert;
 /** Insert through the request session, reporting which rule refused the row, if one did. */
 async function insertInvitation(tx: Transaction, values: NewInvitation) {
   try {
-    // Never `code_hash`: the application role cannot read it back.
+    // Never `codeHash`: the application role cannot read it back.
     const [row] = await tx.insert(organisationInvitations).values(values).returning({
       id: organisationInvitations.id,
       email: organisationInvitations.email,
@@ -77,16 +77,16 @@ async function insertInvitation(tx: Transaction, values: NewInvitation) {
  * recipient is replaced.
  */
 export async function createInvitation(principal: UserPrincipal, organisationId: string, recipient: Recipient) {
-  const { config, clock } = useServices();
+  const services = useServices();
   const code = 'email' in recipient ? newCode() : null;
   const values = {
     organisationId,
     ...('email' in recipient ? { email: recipient.email } : { userId: recipient.userId }),
     codeHash: code === null ? null : await hashCode(code),
     invitedBy: principal.id,
-    expiresAt: new Date(clock() + INVITATION_LIFETIME_MS)
+    expiresAt: new Date(services.clock() + INVITATION_LIFETIME_MS)
   };
-  const session = await useServices().session(principal);
+  const session = await services.session(principal);
   const { invitation, organisationName } = await session.transaction(async tx => {
     // Hidden organisations are not found. Row-level security refuses the insert to anyone but an administrator, and
     // the unique indexes refuse a second open invitation to the same recipient.
@@ -117,9 +117,13 @@ export async function createInvitation(principal: UserPrincipal, organisationId:
     return { invitation: row, organisationName: organisation.name };
   });
   if (code !== null && invitation.email !== null) {
-    const link = new URL(`/invitations/${invitation.id}`, config.WEB_ORIGINS[0]);
+    const link = new URL(`/invitations/${invitation.id}`, services.config.WEB_ORIGINS[0]);
     link.searchParams.set('code', code);
-    await invitationDelivery(config.OTP_DELIVERY)({ email: invitation.email, organisationName, link: link.href });
+    await invitationDelivery(services.config.OTP_DELIVERY)({
+      email: invitation.email,
+      organisationName,
+      link: link.href
+    });
   }
   return invitation;
 }
@@ -130,9 +134,8 @@ export function readInvitation(invitationId: string) {
     const [row] = await tx
       .select({
         id: organisationInvitations.id,
-        organisationId: organisations.id,
-        organisationName: organisations.name,
-        userId: organisationInvitations.userId,
+        organisation: { id: organisations.id, name: organisations.name },
+        needsCode: sql<boolean>`${organisationInvitations.userId} is null`,
         expiresAt: organisationInvitations.expiresAt
       })
       .from(organisationInvitations)
@@ -149,8 +152,7 @@ export function listOwnInvitations(principal: UserPrincipal) {
     tx
       .select({
         id: organisationInvitations.id,
-        organisationId: organisations.id,
-        organisationName: organisations.name,
+        organisation: { id: organisations.id, name: organisations.name },
         expiresAt: organisationInvitations.expiresAt
       })
       .from(organisationInvitations)
@@ -162,7 +164,7 @@ export function listOwnInvitations(principal: UserPrincipal) {
 
 /**
  * Lock an open invitation the principal may redeem: theirs by account, or any emailed one whose code they present.
- * Anything else is `not_found`, so a wrong guess learns nothing; a wrong code is reported as such.
+ * Anything else is `notFound`, so a wrong guess learns nothing; a wrong code is reported as such.
  */
 async function redeemable(tx: Transaction, principal: UserPrincipal, invitationId: string, proof: InvitationProof) {
   const [invitation] = await tx
@@ -209,7 +211,8 @@ export function declineInvitation(principal: UserPrincipal, invitationId: string
 
 /** Cancel one of an organisation's invitations: administrators only, by row-level security. */
 export async function cancelInvitation(principal: UserPrincipal, organisationId: string, invitationId: string) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   const deleted = await session.transaction(tx =>
     tx
       .delete(organisationInvitations)
@@ -223,7 +226,8 @@ export async function cancelInvitation(principal: UserPrincipal, organisationId:
 
 /** An organisation's open and expired invitations, for its administrators; others see none. */
 export async function listOrganisationInvitations(principal: UserPrincipal, organisationId: string) {
-  const session = await useServices().session(principal);
+  const services = useServices();
+  const session = await services.session(principal);
   return session.transaction(async tx => {
     const [organisation] = await tx
       .select({ id: organisations.id })

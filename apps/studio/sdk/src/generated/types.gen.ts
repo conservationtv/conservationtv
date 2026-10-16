@@ -9,6 +9,10 @@ export type Error = {
     error_description: string;
 };
 
+export type Schema0 = string | number | boolean | null | Array<Schema0> | {
+    [key: string]: Schema0;
+};
+
 export type Health = {
     status: 'ok';
 };
@@ -17,22 +21,22 @@ export type Account = {
     id: string;
     name: string;
     email: string;
-    email_verified: boolean;
+    emailVerified: boolean;
     image: string | null;
-    created_at: string;
+    createdAt: string;
 };
 
 export type Organisation = {
     id: string;
     name: string;
-    created_at: string;
+    createdAt: string;
 };
 
 export type Member = {
     members: Array<{
-        user_id: string;
-        display_name: string | null;
-        joined_at: string;
+        userId: string;
+        displayName: string | null;
+        joinedAt: string;
         roles: Array<{
             id: string;
             label: string;
@@ -46,8 +50,226 @@ export type Invitation = {
         id: string;
         name: string;
     };
-    needs_code: boolean;
-    expires_at: string;
+    needsCode: boolean;
+    expiresAt: string;
+};
+
+export type Network = {
+    name: string;
+    id: string;
+    createdAt: string;
+    activeAgent: {
+        id: string;
+    } | null;
+};
+
+export type Device = {
+    id: string;
+    kind: 'agent' | 'camera' | 'browser';
+    name: string;
+    networkId: string | null;
+    publicKey: string;
+    publicId: string;
+    createdAt: string;
+};
+
+export type Camera = {
+    id: string;
+    settings: {
+        [key: string]: unknown;
+    };
+    device: {
+        name: string;
+        createdAt: string;
+        publicKey: string;
+        kind: 'agent' | 'camera' | 'browser';
+        networkId: string | null;
+        publicId: string;
+    } | null;
+};
+
+export type Browser = {
+    privateKey: string;
+    name: string;
+    id: string;
+    createdAt: string;
+    publicKey: string;
+    kind: 'agent' | 'camera' | 'browser';
+    networkId: string | null;
+    publicId: string;
+};
+
+export type Agent = {
+    id: string;
+    active: boolean;
+    networkId: string;
+    priority: number;
+    device: {
+        name: string;
+        createdAt: string;
+        publicKey: string;
+        kind: 'agent' | 'camera' | 'browser';
+        networkId: string | null;
+        publicId: string;
+    } | null;
+    servedRevision: {
+        id: string;
+    } | null;
+};
+
+export type Revision = {
+    id: string;
+    config: {
+        [key: string]: unknown;
+    };
+    diagnostics: Array<{
+        severity: 'error' | 'warning';
+        code: string;
+        message: string;
+        target?: {
+            kind: string;
+            id: string;
+        };
+        recovery?: 'retryable' | 'change-required';
+        details?: {
+            [key: string]: unknown;
+        };
+    }>;
+    hasErrors: boolean;
+    served: boolean;
+    createdAt: string;
+};
+
+export type Stream = {
+    name: string;
+    id: string;
+    createdAt: string;
+    sourceDeviceId: string | null;
+    exposures: Array<{
+        params: {
+            renditions?: Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                bitrate?: number;
+            }>;
+            [key: string]: unknown;
+        };
+        id: string;
+        createdAt: string;
+        networkId: string | null;
+        protocol: string;
+    }>;
+    recorders: Array<{
+        params: {
+            [key: string]: unknown;
+        };
+        id: string;
+        createdAt: string;
+        kind: string;
+        exposureId: string;
+    }>;
+};
+
+export type Exposure = {
+    id: string;
+    networkId: string | null;
+    protocol: string;
+    params: {
+        renditions?: Array<{
+            id: string;
+            width?: number;
+            height?: number;
+            bitrate?: number;
+        }>;
+        [key: string]: unknown;
+    };
+    createdAt: string;
+};
+
+export type Recorder = {
+    id: string;
+    exposureId: string;
+    kind: string;
+    params: {
+        [key: string]: unknown;
+    };
+    createdAt: string;
+};
+
+export type Subject = {
+    subjectId: string;
+    state: {
+        health: string;
+        state: {
+            [key: string]: unknown;
+        };
+        freshness: 'fresh' | 'stale';
+        observedAt: string;
+        expiresAt: string;
+        computedAt: string;
+        contributingReporterIds: Array<string>;
+        evidenceReportIds: Array<string>;
+    };
+    reachable: boolean;
+    opinions: Array<{
+        reporterId: string;
+        health: string;
+        state: {
+            [key: string]: unknown;
+        };
+        freshness: 'fresh' | 'stale';
+        observedAt: string;
+        expiresAt: string;
+        evidenceReportIds: Array<string>;
+    }>;
+};
+
+export type Observation = {
+    observations: Array<{
+        id: string;
+        reporterId: string;
+        observedAt: string;
+        receivedAt: string;
+        type: string;
+        data: {
+            [key: string]: unknown;
+        };
+    }>;
+};
+
+export type Metric = {
+    samples: Array<{
+        id: string;
+        reporterId: string;
+        observedAt: string;
+        receivedAt: string;
+        name: string;
+        type: string;
+        unit: string | null;
+        dimensions: {
+            [key: string]: string;
+        };
+        value: number;
+    }>;
+};
+
+export type Log = {
+    logs: Array<{
+        id: string;
+        reporterId: string;
+        observedAt: string;
+        receivedAt: string;
+        level: string;
+        message: string;
+        context: {
+            [key: string]: unknown;
+        };
+    }>;
+};
+
+export type Report = {
+    accepted: number;
 };
 
 export type GetHealthData = {
@@ -185,7 +407,7 @@ export type GetOrganisationsResponses = {
         organisations: Array<{
             id: string;
             name: string;
-            created_at: string;
+            createdAt: string;
             roles: Array<{
                 id: string;
                 label: string;
@@ -205,7 +427,7 @@ export type PostOrganisationsData = {
         /**
          * Your name as the organisation's members will see it.
          */
-        display_name: string;
+        displayName: string;
     };
     path?: never;
     query?: never;
@@ -444,7 +666,7 @@ export type PatchOrganisationsByIdMembersMeData = {
         /**
          * Your name in this organisation.
          */
-        display_name: string;
+        displayName: string;
     };
     path: {
         /**
@@ -486,8 +708,8 @@ export type PatchOrganisationsByIdMembersMeResponses = {
      * Your updated profile
      */
     200: {
-        user_id: string;
-        display_name: string;
+        userId: string;
+        displayName: string;
     };
 };
 
@@ -708,10 +930,10 @@ export type GetOrganisationsByIdInvitationsResponses = {
         invitations: Array<{
             id: string;
             email: string | null;
-            user_id: string | null;
-            invited_by: string | null;
-            created_at: string;
-            expires_at: string;
+            userId: string | null;
+            invitedBy: string | null;
+            createdAt: string;
+            expiresAt: string;
         }>;
     };
 };
@@ -727,7 +949,7 @@ export type PostOrganisationsByIdInvitationsData = {
         /**
          * The account to invite.
          */
-        user_id?: string;
+        userId?: string;
     };
     path: {
         /**
@@ -779,10 +1001,10 @@ export type PostOrganisationsByIdInvitationsResponses = {
     201: {
         id: string;
         email: string | null;
-        user_id: string | null;
-        invited_by: string | null;
-        created_at: string;
-        expires_at: string;
+        userId: string | null;
+        invitedBy: string | null;
+        createdAt: string;
+        expiresAt: string;
     };
 };
 
@@ -838,6 +1060,2370 @@ export type DeleteOrganisationsByIdInvitationsByInvitationIdResponses = {
 
 export type DeleteOrganisationsByIdInvitationsByInvitationIdResponse = DeleteOrganisationsByIdInvitationsByInvitationIdResponses[keyof DeleteOrganisationsByIdInvitationsByInvitationIdResponses];
 
+export type GetOrganisationsByIdNetworksData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/networks';
+};
+
+export type GetOrganisationsByIdNetworksErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdNetworksError = GetOrganisationsByIdNetworksErrors[keyof GetOrganisationsByIdNetworksErrors];
+
+export type GetOrganisationsByIdNetworksResponses = {
+    /**
+     * The networks, oldest first
+     */
+    200: {
+        networks: Array<{
+            name: string;
+            id: string;
+            createdAt: string;
+            activeAgent: {
+                id: string;
+            } | null;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdNetworksResponse = GetOrganisationsByIdNetworksResponses[keyof GetOrganisationsByIdNetworksResponses];
+
+export type PostOrganisationsByIdNetworksData = {
+    body: {
+        /**
+         * The network name.
+         */
+        name: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/networks';
+};
+
+export type PostOrganisationsByIdNetworksErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdNetworksError = PostOrganisationsByIdNetworksErrors[keyof PostOrganisationsByIdNetworksErrors];
+
+export type PostOrganisationsByIdNetworksResponses = {
+    /**
+     * The new network
+     */
+    201: Network;
+};
+
+export type PostOrganisationsByIdNetworksResponse = PostOrganisationsByIdNetworksResponses[keyof PostOrganisationsByIdNetworksResponses];
+
+export type DeleteOrganisationsByIdNetworksByNetworkIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The network.
+         */
+        networkId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/networks/{networkId}';
+};
+
+export type DeleteOrganisationsByIdNetworksByNetworkIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdNetworksByNetworkIdError = DeleteOrganisationsByIdNetworksByNetworkIdErrors[keyof DeleteOrganisationsByIdNetworksByNetworkIdErrors];
+
+export type DeleteOrganisationsByIdNetworksByNetworkIdResponses = {
+    /**
+     * Deleted
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdNetworksByNetworkIdResponse = DeleteOrganisationsByIdNetworksByNetworkIdResponses[keyof DeleteOrganisationsByIdNetworksByNetworkIdResponses];
+
+export type GetOrganisationsByIdNetworksByNetworkIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The network.
+         */
+        networkId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/networks/{networkId}';
+};
+
+export type GetOrganisationsByIdNetworksByNetworkIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdNetworksByNetworkIdError = GetOrganisationsByIdNetworksByNetworkIdErrors[keyof GetOrganisationsByIdNetworksByNetworkIdErrors];
+
+export type GetOrganisationsByIdNetworksByNetworkIdResponses = {
+    /**
+     * The network
+     */
+    200: Network;
+};
+
+export type GetOrganisationsByIdNetworksByNetworkIdResponse = GetOrganisationsByIdNetworksByNetworkIdResponses[keyof GetOrganisationsByIdNetworksByNetworkIdResponses];
+
+export type PatchOrganisationsByIdNetworksByNetworkIdData = {
+    body: {
+        /**
+         * The network name.
+         */
+        name: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The network.
+         */
+        networkId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/networks/{networkId}';
+};
+
+export type PatchOrganisationsByIdNetworksByNetworkIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdNetworksByNetworkIdError = PatchOrganisationsByIdNetworksByNetworkIdErrors[keyof PatchOrganisationsByIdNetworksByNetworkIdErrors];
+
+export type PatchOrganisationsByIdNetworksByNetworkIdResponses = {
+    /**
+     * The updated network
+     */
+    200: Network;
+};
+
+export type PatchOrganisationsByIdNetworksByNetworkIdResponse = PatchOrganisationsByIdNetworksByNetworkIdResponses[keyof PatchOrganisationsByIdNetworksByNetworkIdResponses];
+
+export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentData = {
+    body: {
+        /**
+         * An agent registered on this network, or null for none.
+         */
+        agentId: string | null;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The network.
+         */
+        networkId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/networks/{networkId}/active-agent';
+};
+
+export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentError = PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors[keyof PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors];
+
+export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses = {
+    /**
+     * The network
+     */
+    200: Network;
+};
+
+export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponse = PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses[keyof PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses];
+
+export type GetOrganisationsByIdDevicesData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: {
+        /**
+         * Only devices of this kind.
+         */
+        kind?: 'agent' | 'camera' | 'browser';
+    };
+    url: '/organisations/{id}/devices';
+};
+
+export type GetOrganisationsByIdDevicesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdDevicesError = GetOrganisationsByIdDevicesErrors[keyof GetOrganisationsByIdDevicesErrors];
+
+export type GetOrganisationsByIdDevicesResponses = {
+    /**
+     * The devices, oldest first
+     */
+    200: {
+        devices: Array<{
+            id: string;
+            kind: 'agent' | 'camera' | 'browser';
+            name: string;
+            networkId: string | null;
+            publicKey: string;
+            publicId: string;
+            createdAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdDevicesResponse = GetOrganisationsByIdDevicesResponses[keyof GetOrganisationsByIdDevicesResponses];
+
+export type GetOrganisationsByIdDevicesByDeviceIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The device.
+         */
+        deviceId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/devices/{deviceId}';
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdError = GetOrganisationsByIdDevicesByDeviceIdErrors[keyof GetOrganisationsByIdDevicesByDeviceIdErrors];
+
+export type GetOrganisationsByIdDevicesByDeviceIdResponses = {
+    /**
+     * The device
+     */
+    200: Device;
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdResponse = GetOrganisationsByIdDevicesByDeviceIdResponses[keyof GetOrganisationsByIdDevicesByDeviceIdResponses];
+
+export type PatchOrganisationsByIdDevicesByDeviceIdData = {
+    body: {
+        /**
+         * The device name.
+         */
+        name?: string;
+        /**
+         * A network of the organisation, or null for the internet.
+         */
+        networkId?: string | null;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The device.
+         */
+        deviceId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/devices/{deviceId}';
+};
+
+export type PatchOrganisationsByIdDevicesByDeviceIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdDevicesByDeviceIdError = PatchOrganisationsByIdDevicesByDeviceIdErrors[keyof PatchOrganisationsByIdDevicesByDeviceIdErrors];
+
+export type PatchOrganisationsByIdDevicesByDeviceIdResponses = {
+    /**
+     * The updated device
+     */
+    200: Device;
+};
+
+export type PatchOrganisationsByIdDevicesByDeviceIdResponse = PatchOrganisationsByIdDevicesByDeviceIdResponses[keyof PatchOrganisationsByIdDevicesByDeviceIdResponses];
+
+export type GetOrganisationsByIdCamerasData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras';
+};
+
+export type GetOrganisationsByIdCamerasErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdCamerasError = GetOrganisationsByIdCamerasErrors[keyof GetOrganisationsByIdCamerasErrors];
+
+export type GetOrganisationsByIdCamerasResponses = {
+    /**
+     * The cameras, oldest first
+     */
+    200: {
+        cameras: Array<{
+            id: string;
+            settings: {
+                [key: string]: unknown;
+            };
+            device: {
+                name: string;
+                createdAt: string;
+                publicKey: string;
+                kind: 'agent' | 'camera' | 'browser';
+                networkId: string | null;
+                publicId: string;
+            } | null;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdCamerasResponse = GetOrganisationsByIdCamerasResponses[keyof GetOrganisationsByIdCamerasResponses];
+
+export type PostOrganisationsByIdCamerasData = {
+    body: {
+        /**
+         * The device name.
+         */
+        name: string;
+        /**
+         * A network of the organisation, or null for the internet.
+         */
+        networkId?: string | null;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        settings?: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras';
+};
+
+export type PostOrganisationsByIdCamerasErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdCamerasError = PostOrganisationsByIdCamerasErrors[keyof PostOrganisationsByIdCamerasErrors];
+
+export type PostOrganisationsByIdCamerasResponses = {
+    /**
+     * The new camera
+     */
+    201: Camera;
+};
+
+export type PostOrganisationsByIdCamerasResponse = PostOrganisationsByIdCamerasResponses[keyof PostOrganisationsByIdCamerasResponses];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}';
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdError = DeleteOrganisationsByIdCamerasByCameraIdErrors[keyof DeleteOrganisationsByIdCamerasByCameraIdErrors];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdResponse = DeleteOrganisationsByIdCamerasByCameraIdResponses[keyof DeleteOrganisationsByIdCamerasByCameraIdResponses];
+
+export type GetOrganisationsByIdCamerasByCameraIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}';
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdError = GetOrganisationsByIdCamerasByCameraIdErrors[keyof GetOrganisationsByIdCamerasByCameraIdErrors];
+
+export type GetOrganisationsByIdCamerasByCameraIdResponses = {
+    /**
+     * The camera
+     */
+    200: Camera;
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdResponse = GetOrganisationsByIdCamerasByCameraIdResponses[keyof GetOrganisationsByIdCamerasByCameraIdResponses];
+
+export type PatchOrganisationsByIdCamerasByCameraIdData = {
+    body: {
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        settings: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}';
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdError = PatchOrganisationsByIdCamerasByCameraIdErrors[keyof PatchOrganisationsByIdCamerasByCameraIdErrors];
+
+export type PatchOrganisationsByIdCamerasByCameraIdResponses = {
+    /**
+     * The updated camera
+     */
+    200: Camera;
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdResponse = PatchOrganisationsByIdCamerasByCameraIdResponses[keyof PatchOrganisationsByIdCamerasByCameraIdResponses];
+
+export type PutOrganisationsByIdBrowserData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/browser';
+};
+
+export type PutOrganisationsByIdBrowserErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdBrowserError = PutOrganisationsByIdBrowserErrors[keyof PutOrganisationsByIdBrowserErrors];
+
+export type PutOrganisationsByIdBrowserResponses = {
+    /**
+     * The browser device, with its private key
+     */
+    200: Browser;
+};
+
+export type PutOrganisationsByIdBrowserResponse = PutOrganisationsByIdBrowserResponses[keyof PutOrganisationsByIdBrowserResponses];
+
+export type GetOrganisationsByIdAgentsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: {
+        /**
+         * Only agents on this network.
+         */
+        networkId?: string;
+    };
+    url: '/organisations/{id}/agents';
+};
+
+export type GetOrganisationsByIdAgentsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdAgentsError = GetOrganisationsByIdAgentsErrors[keyof GetOrganisationsByIdAgentsErrors];
+
+export type GetOrganisationsByIdAgentsResponses = {
+    /**
+     * The agents, oldest first
+     */
+    200: {
+        agents: Array<{
+            id: string;
+            active: boolean;
+            networkId: string;
+            priority: number;
+            device: {
+                name: string;
+                createdAt: string;
+                publicKey: string;
+                kind: 'agent' | 'camera' | 'browser';
+                networkId: string | null;
+                publicId: string;
+            } | null;
+            servedRevision: {
+                id: string;
+            } | null;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdAgentsResponse = GetOrganisationsByIdAgentsResponses[keyof GetOrganisationsByIdAgentsResponses];
+
+export type PostOrganisationsByIdAgentsData = {
+    body: {
+        /**
+         * The device name.
+         */
+        name: string;
+        /**
+         * The network the agent is on and serves.
+         */
+        networkId: string;
+        /**
+         * Standby preference; higher is preferred.
+         */
+        priority?: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents';
+};
+
+export type PostOrganisationsByIdAgentsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdAgentsError = PostOrganisationsByIdAgentsErrors[keyof PostOrganisationsByIdAgentsErrors];
+
+export type PostOrganisationsByIdAgentsResponses = {
+    /**
+     * The new agent
+     */
+    201: Agent;
+};
+
+export type PostOrganisationsByIdAgentsResponse = PostOrganisationsByIdAgentsResponses[keyof PostOrganisationsByIdAgentsResponses];
+
+export type DeleteOrganisationsByIdAgentsByAgentIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}';
+};
+
+export type DeleteOrganisationsByIdAgentsByAgentIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdAgentsByAgentIdError = DeleteOrganisationsByIdAgentsByAgentIdErrors[keyof DeleteOrganisationsByIdAgentsByAgentIdErrors];
+
+export type DeleteOrganisationsByIdAgentsByAgentIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdAgentsByAgentIdResponse = DeleteOrganisationsByIdAgentsByAgentIdResponses[keyof DeleteOrganisationsByIdAgentsByAgentIdResponses];
+
+export type GetOrganisationsByIdAgentsByAgentIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}';
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdError = GetOrganisationsByIdAgentsByAgentIdErrors[keyof GetOrganisationsByIdAgentsByAgentIdErrors];
+
+export type GetOrganisationsByIdAgentsByAgentIdResponses = {
+    /**
+     * The agent
+     */
+    200: Agent;
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdResponse = GetOrganisationsByIdAgentsByAgentIdResponses[keyof GetOrganisationsByIdAgentsByAgentIdResponses];
+
+export type PatchOrganisationsByIdAgentsByAgentIdData = {
+    body: {
+        /**
+         * Standby preference; higher is preferred.
+         */
+        priority: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}';
+};
+
+export type PatchOrganisationsByIdAgentsByAgentIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdAgentsByAgentIdError = PatchOrganisationsByIdAgentsByAgentIdErrors[keyof PatchOrganisationsByIdAgentsByAgentIdErrors];
+
+export type PatchOrganisationsByIdAgentsByAgentIdResponses = {
+    /**
+     * The updated agent
+     */
+    200: Agent;
+};
+
+export type PatchOrganisationsByIdAgentsByAgentIdResponse = PatchOrganisationsByIdAgentsByAgentIdResponses[keyof PatchOrganisationsByIdAgentsByAgentIdResponses];
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: {
+        limit?: number;
+    };
+    url: '/organisations/{id}/agents/{agentId}/revisions';
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsError = GetOrganisationsByIdAgentsByAgentIdRevisionsErrors[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsErrors];
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsResponses = {
+    /**
+     * The revisions, newest first
+     */
+    200: {
+        revisions: Array<{
+            id: string;
+            diagnostics: Array<{
+                severity: 'error' | 'warning';
+                code: string;
+                message: string;
+                target?: {
+                    kind: string;
+                    id: string;
+                };
+                recovery?: 'retryable' | 'change-required';
+                details?: {
+                    [key: string]: unknown;
+                };
+            }>;
+            hasErrors: boolean;
+            served: boolean;
+            createdAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsResponse = GetOrganisationsByIdAgentsByAgentIdRevisionsResponses[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsResponses];
+
+export type PostOrganisationsByIdAgentsByAgentIdRevisionsData = {
+    body: {
+        /**
+         * The rendered configuration.
+         */
+        config: {
+            [key: string]: Schema0;
+        };
+        diagnostics?: Array<{
+            severity: 'warning' | 'error';
+            code: string;
+            message: string;
+            target?: {
+                kind: string;
+                id: string;
+            };
+            recovery?: 'retryable' | 'change-required';
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            details?: {
+                [key: string]: Schema0;
+            };
+        }>;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}/revisions';
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdRevisionsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdRevisionsError = PostOrganisationsByIdAgentsByAgentIdRevisionsErrors[keyof PostOrganisationsByIdAgentsByAgentIdRevisionsErrors];
+
+export type PostOrganisationsByIdAgentsByAgentIdRevisionsResponses = {
+    /**
+     * The candidate revision
+     */
+    201: Revision;
+};
+
+export type PostOrganisationsByIdAgentsByAgentIdRevisionsResponse = PostOrganisationsByIdAgentsByAgentIdRevisionsResponses[keyof PostOrganisationsByIdAgentsByAgentIdRevisionsResponses];
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+        /**
+         * The configuration revision.
+         */
+        revisionId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}/revisions/{revisionId}';
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdError = GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors];
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses = {
+    /**
+     * The revision
+     */
+    200: Revision;
+};
+
+export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponse = GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses];
+
+export type PutOrganisationsByIdAgentsByAgentIdServedRevisionData = {
+    body: {
+        /**
+         * A revision of this agent without errors.
+         */
+        revisionId: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The agent.
+         */
+        agentId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/agents/{agentId}/served-revision';
+};
+
+export type PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The revision has errors, so it cannot be served
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdAgentsByAgentIdServedRevisionError = PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors[keyof PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors];
+
+export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses = {
+    /**
+     * The agent
+     */
+    200: Agent;
+};
+
+export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponse = PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses[keyof PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses];
+
+export type GetOrganisationsByIdStreamsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams';
+};
+
+export type GetOrganisationsByIdStreamsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdStreamsError = GetOrganisationsByIdStreamsErrors[keyof GetOrganisationsByIdStreamsErrors];
+
+export type GetOrganisationsByIdStreamsResponses = {
+    /**
+     * The streams, oldest first
+     */
+    200: {
+        streams: Array<{
+            id: string;
+            name: string;
+            sourceDeviceId: string | null;
+            createdAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdStreamsResponse = GetOrganisationsByIdStreamsResponses[keyof GetOrganisationsByIdStreamsResponses];
+
+export type PostOrganisationsByIdStreamsData = {
+    body: {
+        /**
+         * The stream name.
+         */
+        name: string;
+        /**
+         * The device the stream comes from, such as its camera, or null for none yet.
+         */
+        sourceDeviceId?: string | null;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams';
+};
+
+export type PostOrganisationsByIdStreamsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdStreamsError = PostOrganisationsByIdStreamsErrors[keyof PostOrganisationsByIdStreamsErrors];
+
+export type PostOrganisationsByIdStreamsResponses = {
+    /**
+     * The new stream
+     */
+    201: {
+        id: string;
+        name: string;
+        sourceDeviceId: string | null;
+        createdAt: string;
+    };
+};
+
+export type PostOrganisationsByIdStreamsResponse = PostOrganisationsByIdStreamsResponses[keyof PostOrganisationsByIdStreamsResponses];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}';
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdError = DeleteOrganisationsByIdStreamsByStreamIdErrors[keyof DeleteOrganisationsByIdStreamsByStreamIdErrors];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdResponses = {
+    /**
+     * Deleted
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdResponse = DeleteOrganisationsByIdStreamsByStreamIdResponses[keyof DeleteOrganisationsByIdStreamsByStreamIdResponses];
+
+export type GetOrganisationsByIdStreamsByStreamIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}';
+};
+
+export type GetOrganisationsByIdStreamsByStreamIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdStreamsByStreamIdError = GetOrganisationsByIdStreamsByStreamIdErrors[keyof GetOrganisationsByIdStreamsByStreamIdErrors];
+
+export type GetOrganisationsByIdStreamsByStreamIdResponses = {
+    /**
+     * The stream
+     */
+    200: Stream;
+};
+
+export type GetOrganisationsByIdStreamsByStreamIdResponse = GetOrganisationsByIdStreamsByStreamIdResponses[keyof GetOrganisationsByIdStreamsByStreamIdResponses];
+
+export type PatchOrganisationsByIdStreamsByStreamIdData = {
+    body: {
+        /**
+         * The stream name.
+         */
+        name?: string;
+        /**
+         * The device the stream comes from, such as its camera, or null for none yet.
+         */
+        sourceDeviceId?: string | null;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}';
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdError = PatchOrganisationsByIdStreamsByStreamIdErrors[keyof PatchOrganisationsByIdStreamsByStreamIdErrors];
+
+export type PatchOrganisationsByIdStreamsByStreamIdResponses = {
+    /**
+     * The updated stream, without its exposures and recorders
+     */
+    200: {
+        id: string;
+        name: string;
+        sourceDeviceId: string | null;
+        createdAt: string;
+    };
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdResponse = PatchOrganisationsByIdStreamsByStreamIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdResponses];
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
+    body: {
+        /**
+         * A network of the organisation, or null for the internet.
+         */
+        networkId?: string | null;
+        /**
+         * The delivery protocol, such as `moq` or `rtsp`.
+         */
+        protocol: string;
+        params?: {
+            renditions?: Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }>;
+            [key: string]: Schema0 | Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }> | undefined;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/exposures';
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresError = PostOrganisationsByIdStreamsByStreamIdExposuresErrors[keyof PostOrganisationsByIdStreamsByStreamIdExposuresErrors];
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresResponses = {
+    /**
+     * The new exposure
+     */
+    201: Exposure;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresResponse = PostOrganisationsByIdStreamsByStreamIdExposuresResponses[keyof PostOrganisationsByIdStreamsByStreamIdExposuresResponses];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+        /**
+         * The exposure.
+         */
+        exposureId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}';
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdError = DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors[keyof DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse = DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses[keyof DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses];
+
+export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
+    body: {
+        /**
+         * A network of the organisation, or null for the internet.
+         */
+        networkId?: string | null;
+        /**
+         * The delivery protocol, such as `moq` or `rtsp`.
+         */
+        protocol?: string;
+        params?: {
+            renditions?: Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }>;
+            [key: string]: Schema0 | Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }> | undefined;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+        /**
+         * The exposure.
+         */
+        exposureId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}';
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdError = PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors[keyof PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors];
+
+export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses = {
+    /**
+     * The updated exposure
+     */
+    200: Exposure;
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse = PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses];
+
+export type PostOrganisationsByIdStreamsByStreamIdRecordersData = {
+    body: {
+        /**
+         * The exposure of this stream to record.
+         */
+        exposureId: string;
+        /**
+         * The recording implementation.
+         */
+        kind: string;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        params?: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/recorders';
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdRecordersErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdRecordersError = PostOrganisationsByIdStreamsByStreamIdRecordersErrors[keyof PostOrganisationsByIdStreamsByStreamIdRecordersErrors];
+
+export type PostOrganisationsByIdStreamsByStreamIdRecordersResponses = {
+    /**
+     * The new recorder
+     */
+    201: Recorder;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdRecordersResponse = PostOrganisationsByIdStreamsByStreamIdRecordersResponses[keyof PostOrganisationsByIdStreamsByStreamIdRecordersResponses];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+        /**
+         * The recorder.
+         */
+        recorderId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/recorders/{recorderId}';
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdError = DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors[keyof DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse = DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses[keyof DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses];
+
+export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdData = {
+    body: {
+        /**
+         * The exposure of this stream to record.
+         */
+        exposureId?: string;
+        /**
+         * The recording implementation.
+         */
+        kind?: string;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        params?: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+        /**
+         * The recorder.
+         */
+        recorderId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/recorders/{recorderId}';
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdError = PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors[keyof PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors];
+
+export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses = {
+    /**
+     * The updated recorder
+     */
+    200: Recorder;
+};
+
+export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse = PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/subjects/{subjectId}/state';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateError = GetOrganisationsByIdSubjectsBySubjectIdStateErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdStateErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateResponses = {
+    /**
+     * The state, with opinions oldest reporter first
+     */
+    200: Subject;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdStateResponse = GetOrganisationsByIdSubjectsBySubjectIdStateResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdStateResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+    };
+    url: '/organisations/{id}/subjects/{subjectId}/observations';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsError = GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses = {
+    /**
+     * The observations
+     */
+    200: Observation;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdObservationsResponse = GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+        /**
+         * Only samples of this metric.
+         */
+        name?: string;
+    };
+    url: '/organisations/{id}/subjects/{subjectId}/metrics';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsError = GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses = {
+    /**
+     * The samples
+     */
+    200: Metric;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+    };
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+    };
+    url: '/organisations/{id}/subjects/{subjectId}/logs';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsError = GetOrganisationsByIdSubjectsBySubjectIdLogsErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdLogsErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponses = {
+    /**
+     * The log records
+     */
+    200: Log;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponse = GetOrganisationsByIdSubjectsBySubjectIdLogsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdLogsResponses];
+
 export type GetInvitationsData = {
     body?: never;
     path?: never;
@@ -873,7 +3459,7 @@ export type GetInvitationsResponses = {
                 id: string;
                 name: string;
             };
-            expires_at: string;
+            expiresAt: string;
         }>;
     };
 };
@@ -931,7 +3517,7 @@ export type PostInvitationsByIdAcceptData = {
         /**
          * Your name as the organisation's members will see it.
          */
-        display_name: string;
+        displayName: string;
     };
     path: {
         /**
@@ -985,9 +3571,9 @@ export type PostInvitationsByIdAcceptResponses = {
      * The new membership
      */
     200: {
-        organisation_id: string;
-        user_id: string;
-        joined_at: string;
+        organisationId: string;
+        userId: string;
+        joinedAt: string;
     };
 };
 
@@ -1051,3 +3637,95 @@ export type PostInvitationsByIdDeclineResponses = {
 };
 
 export type PostInvitationsByIdDeclineResponse = PostInvitationsByIdDeclineResponses[keyof PostInvitationsByIdDeclineResponses];
+
+export type PostReportsData = {
+    body: {
+        reports: Array<{
+            kind: 'event';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                type: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                data?: {
+                    [key: string]: Schema0;
+                };
+            };
+        } | {
+            kind: 'metric';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                name: string;
+                type: 'gauge' | 'counter';
+                value: number;
+                unit?: string | null;
+                dimensions?: {
+                    [key: string]: string;
+                };
+            };
+        } | {
+            kind: 'log';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                level: string;
+                message: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                context?: {
+                    [key: string]: Schema0;
+                };
+            };
+        }>;
+    };
+    path?: never;
+    query?: never;
+    url: '/reports';
+};
+
+export type PostReportsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The submission is larger than 1 MiB
+     */
+    413: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostReportsError = PostReportsErrors[keyof PostReportsErrors];
+
+export type PostReportsResponses = {
+    /**
+     * Accepted
+     */
+    202: Report;
+};
+
+export type PostReportsResponse = PostReportsResponses[keyof PostReportsResponses];

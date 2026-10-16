@@ -15,8 +15,8 @@ export type Invitation = {
         id: string;
         name: string;
     };
-    needs_code: boolean;
-    expires_at: string;
+    needsCode: boolean;
+    expiresAt: string;
 };
 
 export type GetInvitationsByIdData = {

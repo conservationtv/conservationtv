@@ -54,9 +54,9 @@ export class Members extends HeyApiClient {
      */
     public updateSelf<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        display_name: string;
+        displayName: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdMembersMeErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'display_name' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'displayName' }] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdMembersMeErrors, ThrowOnError>({
             url: '/organisations/{id}/members/me',
             ...options,

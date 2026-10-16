@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 
-import { DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema } from './zod.gen.js';
+import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdCamerasByCameraIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsQuerySchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdCamerasByCameraIdPathSchema, GetOrganisationsByIdCamerasPathSchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdDevicesQuerySchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdPathSchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdCamerasBodySchema, PostOrganisationsByIdCamerasPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PostReportsBodySchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema, PutOrganisationsByIdBrowserPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
@@ -25,7 +25,7 @@ export type OrganisationListParams = z.infer<typeof OrganisationListParamsSchema
 
 export const OrganisationCreateParamsSchema = z.object({
     name: PostOrganisationsBodySchema.shape.name.nonoptional().describe('The organisation name.'),
-    display_name: PostOrganisationsBodySchema.shape.display_name.nonoptional().describe('Your name as the organisation\'s members will see it.')
+    displayName: PostOrganisationsBodySchema.shape.displayName.nonoptional().describe('Your name as the organisation\'s members will see it.')
 });
 
 export type OrganisationCreateParams = z.infer<typeof OrganisationCreateParamsSchema>;
@@ -57,7 +57,7 @@ export type MemberListParams = z.infer<typeof MemberListParamsSchema>;
 
 export const MemberUpdateSelfParamsSchema = z.object({
     id: PatchOrganisationsByIdMembersMePathSchema.shape.id.nonoptional().describe('The organisation.'),
-    display_name: PatchOrganisationsByIdMembersMeBodySchema.shape.display_name.nonoptional().describe('Your name in this organisation.')
+    displayName: PatchOrganisationsByIdMembersMeBodySchema.shape.displayName.nonoptional().describe('Your name in this organisation.')
 });
 
 export type MemberUpdateSelfParams = z.infer<typeof MemberUpdateSelfParamsSchema>;
@@ -92,7 +92,7 @@ export type InvitationListParams = z.infer<typeof InvitationListParamsSchema>;
 export const InvitationCreateParamsSchema = z.object({
     id: PostOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
     email: PostOrganisationsByIdInvitationsBodySchema.shape.email.optional().describe('The address to send the invitation to.'),
-    user_id: PostOrganisationsByIdInvitationsBodySchema.shape.user_id.optional().describe('The account to invite.')
+    userId: PostOrganisationsByIdInvitationsBodySchema.shape.userId.optional().describe('The account to invite.')
 });
 
 export type InvitationCreateParams = z.infer<typeof InvitationCreateParamsSchema>;
@@ -103,6 +103,316 @@ export const InvitationCancelParamsSchema = z.object({
 });
 
 export type InvitationCancelParams = z.infer<typeof InvitationCancelParamsSchema>;
+
+export const NetworkListParamsSchema = z.object({
+    id: GetOrganisationsByIdNetworksPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type NetworkListParams = z.infer<typeof NetworkListParamsSchema>;
+
+export const NetworkCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdNetworksPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdNetworksBodySchema.shape.name.nonoptional().describe('The network name.')
+});
+
+export type NetworkCreateParams = z.infer<typeof NetworkCreateParamsSchema>;
+
+export const NetworkDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdNetworksByNetworkIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    networkId: DeleteOrganisationsByIdNetworksByNetworkIdPathSchema.shape.networkId.nonoptional().describe('The network.')
+});
+
+export type NetworkDeleteParams = z.infer<typeof NetworkDeleteParamsSchema>;
+
+export const NetworkGetParamsSchema = z.object({
+    id: GetOrganisationsByIdNetworksByNetworkIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    networkId: GetOrganisationsByIdNetworksByNetworkIdPathSchema.shape.networkId.nonoptional().describe('The network.')
+});
+
+export type NetworkGetParams = z.infer<typeof NetworkGetParamsSchema>;
+
+export const NetworkUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdNetworksByNetworkIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    networkId: PatchOrganisationsByIdNetworksByNetworkIdPathSchema.shape.networkId.nonoptional().describe('The network.'),
+    name: PatchOrganisationsByIdNetworksByNetworkIdBodySchema.shape.name.nonoptional().describe('The network name.')
+});
+
+export type NetworkUpdateParams = z.infer<typeof NetworkUpdateParamsSchema>;
+
+export const NetworkSetActiveAgentParamsSchema = z.object({
+    id: PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    networkId: PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema.shape.networkId.nonoptional().describe('The network.'),
+    agentId: PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema.shape.agentId.nonoptional().describe('An agent registered on this network, or null for none.')
+});
+
+export type NetworkSetActiveAgentParams = z.infer<typeof NetworkSetActiveAgentParamsSchema>;
+
+export const DeviceListParamsSchema = z.object({
+    id: GetOrganisationsByIdDevicesPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    kind: GetOrganisationsByIdDevicesQuerySchema.shape.kind.optional().describe('Only devices of this kind.')
+});
+
+export type DeviceListParams = z.infer<typeof DeviceListParamsSchema>;
+
+export const DeviceGetParamsSchema = z.object({
+    id: GetOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    deviceId: GetOrganisationsByIdDevicesByDeviceIdPathSchema.shape.deviceId.nonoptional().describe('The device.')
+});
+
+export type DeviceGetParams = z.infer<typeof DeviceGetParamsSchema>;
+
+export const DeviceUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    deviceId: PatchOrganisationsByIdDevicesByDeviceIdPathSchema.shape.deviceId.nonoptional().describe('The device.'),
+    name: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.name.optional().describe('The device name.'),
+    networkId: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.')
+});
+
+export type DeviceUpdateParams = z.infer<typeof DeviceUpdateParamsSchema>;
+
+export const CameraListParamsSchema = z.object({
+    id: GetOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type CameraListParams = z.infer<typeof CameraListParamsSchema>;
+
+export const CameraCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
+    networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
+    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+});
+
+export type CameraCreateParams = z.infer<typeof CameraCreateParamsSchema>;
+
+export const CameraDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    cameraId: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.')
+});
+
+export type CameraDeleteParams = z.infer<typeof CameraDeleteParamsSchema>;
+
+export const CameraGetParamsSchema = z.object({
+    id: GetOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    cameraId: GetOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.')
+});
+
+export type CameraGetParams = z.infer<typeof CameraGetParamsSchema>;
+
+export const CameraUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
+    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.nonoptional().describe('Settings validated by the implementation that reads them.')
+});
+
+export type CameraUpdateParams = z.infer<typeof CameraUpdateParamsSchema>;
+
+export const BrowserEnsureParamsSchema = z.object({
+    id: PutOrganisationsByIdBrowserPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type BrowserEnsureParams = z.infer<typeof BrowserEnsureParamsSchema>;
+
+export const AgentListParamsSchema = z.object({
+    id: GetOrganisationsByIdAgentsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    networkId: GetOrganisationsByIdAgentsQuerySchema.shape.networkId.optional().describe('Only agents on this network.')
+});
+
+export type AgentListParams = z.infer<typeof AgentListParamsSchema>;
+
+export const AgentCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdAgentsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdAgentsBodySchema.shape.name.nonoptional().describe('The device name.'),
+    networkId: PostOrganisationsByIdAgentsBodySchema.shape.networkId.nonoptional().describe('The network the agent is on and serves.'),
+    priority: PostOrganisationsByIdAgentsBodySchema.shape.priority.optional().describe('Standby preference; higher is preferred.')
+});
+
+export type AgentCreateParams = z.infer<typeof AgentCreateParamsSchema>;
+
+export const AgentDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdAgentsByAgentIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: DeleteOrganisationsByIdAgentsByAgentIdPathSchema.shape.agentId.nonoptional().describe('The agent.')
+});
+
+export type AgentDeleteParams = z.infer<typeof AgentDeleteParamsSchema>;
+
+export const AgentGetParamsSchema = z.object({
+    id: GetOrganisationsByIdAgentsByAgentIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: GetOrganisationsByIdAgentsByAgentIdPathSchema.shape.agentId.nonoptional().describe('The agent.')
+});
+
+export type AgentGetParams = z.infer<typeof AgentGetParamsSchema>;
+
+export const AgentUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.agentId.nonoptional().describe('The agent.'),
+    priority: PatchOrganisationsByIdAgentsByAgentIdBodySchema.shape.priority.nonoptional().describe('Standby preference; higher is preferred.')
+});
+
+export type AgentUpdateParams = z.infer<typeof AgentUpdateParamsSchema>;
+
+export const RevisionListParamsSchema = z.object({
+    id: GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema.shape.agentId.nonoptional().describe('The agent.'),
+    limit: GetOrganisationsByIdAgentsByAgentIdRevisionsQuerySchema.shape.limit.optional()
+});
+
+export type RevisionListParams = z.infer<typeof RevisionListParamsSchema>;
+
+export const RevisionCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema.shape.agentId.nonoptional().describe('The agent.'),
+    config: PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema.shape.config.nonoptional().describe('The rendered configuration.'),
+    diagnostics: PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema.shape.diagnostics.optional()
+});
+
+export type RevisionCreateParams = z.infer<typeof RevisionCreateParamsSchema>;
+
+export const RevisionGetParamsSchema = z.object({
+    id: GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema.shape.agentId.nonoptional().describe('The agent.'),
+    revisionId: GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema.shape.revisionId.nonoptional().describe('The configuration revision.')
+});
+
+export type RevisionGetParams = z.infer<typeof RevisionGetParamsSchema>;
+
+export const AgentServeRevisionParamsSchema = z.object({
+    id: PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema.shape.agentId.nonoptional().describe('The agent.'),
+    revisionId: PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema.shape.revisionId.nonoptional().describe('A revision of this agent without errors.')
+});
+
+export type AgentServeRevisionParams = z.infer<typeof AgentServeRevisionParamsSchema>;
+
+export const StreamListParamsSchema = z.object({
+    id: GetOrganisationsByIdStreamsPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type StreamListParams = z.infer<typeof StreamListParamsSchema>;
+
+export const StreamCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdStreamsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdStreamsBodySchema.shape.name.nonoptional().describe('The stream name.'),
+    sourceDeviceId: PostOrganisationsByIdStreamsBodySchema.shape.sourceDeviceId.optional().describe('The device the stream comes from, such as its camera, or null for none yet.')
+});
+
+export type StreamCreateParams = z.infer<typeof StreamCreateParamsSchema>;
+
+export const StreamDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdStreamsByStreamIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: DeleteOrganisationsByIdStreamsByStreamIdPathSchema.shape.streamId.nonoptional().describe('The stream.')
+});
+
+export type StreamDeleteParams = z.infer<typeof StreamDeleteParamsSchema>;
+
+export const StreamGetParamsSchema = z.object({
+    id: GetOrganisationsByIdStreamsByStreamIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: GetOrganisationsByIdStreamsByStreamIdPathSchema.shape.streamId.nonoptional().describe('The stream.')
+});
+
+export type StreamGetParams = z.infer<typeof StreamGetParamsSchema>;
+
+export const StreamUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdStreamsByStreamIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PatchOrganisationsByIdStreamsByStreamIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    name: PatchOrganisationsByIdStreamsByStreamIdBodySchema.shape.name.optional().describe('The stream name.'),
+    sourceDeviceId: PatchOrganisationsByIdStreamsByStreamIdBodySchema.shape.sourceDeviceId.optional().describe('The device the stream comes from, such as its camera, or null for none yet.')
+});
+
+export type StreamUpdateParams = z.infer<typeof StreamUpdateParamsSchema>;
+
+export const ExposureCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    networkId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
+    protocol: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.protocol.nonoptional().describe('The delivery protocol, such as `moq` or `rtsp`.'),
+    params: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.params.optional()
+});
+
+export type ExposureCreateParams = z.infer<typeof ExposureCreateParamsSchema>;
+
+export const ExposureDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    exposureId: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId.nonoptional().describe('The exposure.')
+});
+
+export type ExposureDeleteParams = z.infer<typeof ExposureDeleteParamsSchema>;
+
+export const ExposureUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    exposureId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
+    networkId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
+    protocol: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.protocol.optional().describe('The delivery protocol, such as `moq` or `rtsp`.'),
+    params: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.params.optional()
+});
+
+export type ExposureUpdateParams = z.infer<typeof ExposureUpdateParamsSchema>;
+
+export const RecorderCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    exposureId: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.exposureId.nonoptional().describe('The exposure of this stream to record.'),
+    kind: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.kind.nonoptional().describe('The recording implementation.'),
+    params: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
+});
+
+export type RecorderCreateParams = z.infer<typeof RecorderCreateParamsSchema>;
+
+export const RecorderDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    recorderId: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.')
+});
+
+export type RecorderDeleteParams = z.infer<typeof RecorderDeleteParamsSchema>;
+
+export const RecorderUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    recorderId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.'),
+    exposureId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.exposureId.optional().describe('The exposure of this stream to record.'),
+    kind: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.kind.optional().describe('The recording implementation.'),
+    params: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
+});
+
+export type RecorderUpdateParams = z.infer<typeof RecorderUpdateParamsSchema>;
+
+export const SubjectStateParamsSchema = z.object({
+    id: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.id.nonoptional().describe('The organisation.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.')
+});
+
+export type SubjectStateParams = z.infer<typeof SubjectStateParamsSchema>;
+
+export const ObservationListParamsSchema = z.object({
+    id: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'),
+    limit: GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
+    before: GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.')
+});
+
+export type ObservationListParams = z.infer<typeof ObservationListParamsSchema>;
+
+export const MetricListParamsSchema = z.object({
+    id: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'),
+    limit: GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
+    before: GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.'),
+    name: GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema.shape.name.optional().describe('Only samples of this metric.')
+});
+
+export type MetricListParams = z.infer<typeof MetricListParamsSchema>;
+
+export const LogListParamsSchema = z.object({
+    id: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'),
+    limit: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
+    before: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.')
+});
+
+export type LogListParams = z.infer<typeof LogListParamsSchema>;
 
 export const InvitationListMineParamsSchema = z.object({});
 
@@ -117,7 +427,7 @@ export type InvitationGetParams = z.infer<typeof InvitationGetParamsSchema>;
 export const InvitationAcceptParamsSchema = z.object({
     id: PostInvitationsByIdAcceptPathSchema.shape.id.nonoptional().describe('The invitation.'),
     code: PostInvitationsByIdAcceptBodySchema.shape.code.optional().describe('The one-time code from an emailed invitation\'s link.'),
-    display_name: PostInvitationsByIdAcceptBodySchema.shape.display_name.nonoptional().describe('Your name as the organisation\'s members will see it.')
+    displayName: PostInvitationsByIdAcceptBodySchema.shape.displayName.nonoptional().describe('Your name as the organisation\'s members will see it.')
 });
 
 export type InvitationAcceptParams = z.infer<typeof InvitationAcceptParamsSchema>;
@@ -128,3 +438,9 @@ export const InvitationDeclineParamsSchema = z.object({
 });
 
 export type InvitationDeclineParams = z.infer<typeof InvitationDeclineParamsSchema>;
+
+export const ReportSubmitParamsSchema = z.object({
+    reports: PostReportsBodySchema.shape.reports.nonoptional()
+});
+
+export type ReportSubmitParams = z.infer<typeof ReportSubmitParamsSchema>;

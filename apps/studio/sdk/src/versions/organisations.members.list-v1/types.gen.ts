@@ -11,9 +11,9 @@ export type Error = {
 
 export type Member = {
     members: Array<{
-        user_id: string;
-        display_name: string | null;
-        joined_at: string;
+        userId: string;
+        displayName: string | null;
+        joinedAt: string;
         roles: Array<{
             id: string;
             label: string;

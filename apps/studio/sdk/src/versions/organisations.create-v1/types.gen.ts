@@ -12,7 +12,7 @@ export type Error = {
 export type Organisation = {
     id: string;
     name: string;
-    created_at: string;
+    createdAt: string;
 };
 
 export type PostOrganisationsData = {
@@ -24,7 +24,7 @@ export type PostOrganisationsData = {
         /**
          * Your name as the organisation's members will see it.
          */
-        display_name: string;
+        displayName: string;
     };
     path?: never;
     query?: never;

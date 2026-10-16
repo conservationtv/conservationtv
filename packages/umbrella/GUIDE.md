@@ -229,6 +229,37 @@ The three migrations are applied in that order and in one transaction, so the ta
 
 Create a login role for request traffic and give it only the privileges your protected queries need. The policies decide which rows; ordinary privileges decide which tables and columns.
 
+The simplest way is to let `umbrella generate --role app` (or `rlsMigration(schema, { applicationRole: 'app' })`) write them. The role then gets, on every protected table, the operations its actions declare, minus `trusted` actions. It can select every column except `hidden` ones, insert and delete whole rows, and update every column except the primary key, generated columns and immutable ones:
+
+```ts
+export const invitations = withAccess(pgTable('invitations', { ... }), t => ({
+  name: 'invitations',
+  scope: organisations.$access.scope.via(t.organisationId),
+  actions: { read: ['select'], create: ['insert'], cancel: ['delete'] },
+  // Request sessions write the code hash when inviting, and never read it back.
+  hidden: [t.codeHash],
+  roles: { ... }
+}));
+
+export const memberships = withAccess(pgTable('memberships', { ... }), t => ({
+  // ...
+  actions: { read: ['select'], remove: ['delete'] },
+  // `inspect` still answers who may remove members, but only trusted code deletes them, alongside their grants.
+  trusted: ['remove'],
+  roles: { ... }
+}));
+```
+
+The role still needs to exist, and to use the schema and its sequences. Grant those once yourself:
+
+```sql
+create role app login password '...';
+grant usage on schema public to app;
+grant usage on all sequences in schema public to app;
+```
+
+Without `--role`, grant the table privileges by hand:
+
 ```sql
 create role app login password '...';
 grant usage on schema public to app;

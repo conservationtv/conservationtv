@@ -13,8 +13,8 @@ export const InvitationSchema = z.object({
         id: z.string(),
         name: z.string()
     }),
-    needs_code: z.boolean(),
-    expires_at: z.string()
+    needsCode: z.boolean(),
+    expiresAt: z.string()
 });
 
 export const GetInvitationsByIdPathSchema = z.object({

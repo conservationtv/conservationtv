@@ -6,7 +6,7 @@ import { PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMember
 
 export const MemberUpdateSelfV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdMembersMePathSchema.shape.id.nonoptional().describe('The organisation.'),
-    display_name: PatchOrganisationsByIdMembersMeBodySchema.shape.display_name.nonoptional().describe('Your name in this organisation.')
+    displayName: PatchOrganisationsByIdMembersMeBodySchema.shape.displayName.nonoptional().describe('Your name in this organisation.')
 });
 
 export type MemberUpdateSelfV1Params = z.infer<typeof MemberUpdateSelfV1ParamsSchema>;
