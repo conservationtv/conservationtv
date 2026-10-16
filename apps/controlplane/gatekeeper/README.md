@@ -228,5 +228,6 @@ Release snapshots work as in the reference: `pnpm snapshot gatekeeper-v1.0.0` fr
 `api-contracts` command reading `contracts.config.ts`. No snapshot has been cut yet, so every contract is still
 provisional.
 
-Toolchain note: worker type-checking uses TypeScript 7. Response inference and Hey API need the TypeScript compiler
-API, which TypeScript 7 does not ship, so the shared package and the SDK and CLI use TypeScript 6.
+Toolchain note: every package type-checks with TypeScript 7 (the workspace catalog). Response inference and Hey API
+need the TypeScript compiler API, which TypeScript 7 does not ship: the shared package imports TypeScript 6 as
+`typescript-api`, and `.pnpmfile.cjs` gives Hey API (and Pulumi) a TypeScript 6 of their own.
