@@ -210,6 +210,13 @@ both cascading, and a trigger (the `browser_devices` migration) deletes its devi
 session ends, the account leaves the organisation, or the account is deleted. Members see every browser under
 `/devices`, as they see every device; nothing reads a browser's private key but its own session.
 
+Every device is also a principal, `device(<id>)`, in its organisation: a trigger grants it the shared
+`organisationDevice` role there when it is created, and another revokes its grants when it is deleted (the
+`device_grants` migration), so the grant lives and dies with the row however it is made or removed. That role reads the
+organisation's devices and nothing else, so a device, like any member, can list its organisation's public IDs for an
+iroh allowlist. Nothing authenticates a device as a principal yet; once something does, it runs queries with
+`authorization.as(app, device(id))`.
+
 Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
 configuration builders that produce revisions, how an agent fetches its served revision, and sharing across
 organisations.
