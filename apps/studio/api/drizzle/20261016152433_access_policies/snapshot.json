@@ -1,7 +1,7 @@
 {
-  "id": "2522451d-f61e-4dd2-adde-b5ca491a73eb",
+  "id": "23bdccea-3a56-42c2-9b2d-d094ff204c2e",
   "prevIds": [
-    "ffe8d434-f3b3-422e-a440-8a1935371eb8"
+    "007ed645-b85f-4d2c-b9e4-1e876647f021"
   ],
   "version": "8",
   "dialect": "postgres",
@@ -1989,7 +1989,7 @@
       "table": "observation"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2093,7 +2093,7 @@
       "table": "reporter_opinion"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2262,7 +2262,7 @@
       "table": "subject_state"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 1,
@@ -2314,7 +2314,7 @@
       "table": "metric_sample"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -2457,7 +2457,7 @@
       "table": "log_record"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,

@@ -1,7 +1,7 @@
 CREATE TABLE "observation" (
 	"organisation_id" uuid NOT NULL,
 	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
-	"reporter_id" uuid NOT NULL,
+	"reporter_id" text NOT NULL,
 	"subject_id" text NOT NULL,
 	"observed_at" timestamp NOT NULL,
 	"received_at" timestamp DEFAULT now() NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE "observation" (
 CREATE TABLE "reporter_opinion" (
 	"organisation_id" uuid NOT NULL,
 	"subject_id" text,
-	"reporter_id" uuid,
+	"reporter_id" text,
 	"health" text NOT NULL,
 	"state" jsonb DEFAULT '{}' NOT NULL,
 	"observed_at" timestamp NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE "subject_state" (
 	"observed_at" timestamp NOT NULL,
 	"expires_at" timestamp NOT NULL,
 	"computed_at" timestamp NOT NULL,
-	"contributing_reporter_ids" uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+	"contributing_reporter_ids" text[] DEFAULT '{}'::text[] NOT NULL,
 	"evidence_report_ids" uuid[] DEFAULT '{}'::uuid[] NOT NULL,
 	CONSTRAINT "subject_state_pkey" PRIMARY KEY("organisation_id","subject_id"),
 	CONSTRAINT "subject_state_health" CHECK ("health" in ('healthy', 'unhealthy', 'unknown'))
@@ -39,7 +39,7 @@ CREATE TABLE "subject_state" (
 CREATE TABLE "metric_sample" (
 	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
 	"organisation_id" uuid NOT NULL,
-	"reporter_id" uuid NOT NULL,
+	"reporter_id" text NOT NULL,
 	"subject_id" text NOT NULL,
 	"observed_at" timestamp NOT NULL,
 	"received_at" timestamp DEFAULT now() NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE "metric_sample" (
 CREATE TABLE "log_record" (
 	"organisation_id" uuid NOT NULL,
 	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
-	"reporter_id" uuid NOT NULL,
+	"reporter_id" text NOT NULL,
 	"subject_id" text NOT NULL,
 	"observed_at" timestamp NOT NULL,
 	"received_at" timestamp DEFAULT now() NOT NULL,

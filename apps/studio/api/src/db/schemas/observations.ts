@@ -21,7 +21,7 @@ export const observations = withAccess(
       id: uuid('id')
         .primaryKey()
         .default(sql`uuidv7()`),
-      reporterId: uuid('reporter_id').notNull(),
+      reporterId: text('reporter_id').notNull(),
       subjectId: text('subject_id').notNull(),
       observedAt: timestamp('observed_at').notNull(),
       receivedAt: timestamp('received_at').defaultNow().notNull(),
@@ -45,7 +45,7 @@ export const reporterOpinions = withAccess(
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
       subjectId: text('subject_id').notNull(),
-      reporterId: uuid('reporter_id').notNull(),
+      reporterId: text('reporter_id').notNull(),
       health: text('health').notNull(),
       state: jsonb('state').$type<Settings>().default({}).notNull(),
       observedAt: timestamp('observed_at').notNull(),
@@ -74,7 +74,7 @@ export const subjectStates = withAccess(
       observedAt: timestamp('observed_at').notNull(),
       expiresAt: timestamp('expires_at').notNull(),
       computedAt: timestamp('computed_at').notNull(),
-      contributingReporterIds: uuid('contributing_reporter_ids').array().default([]).notNull(),
+      contributingReporterIds: text('contributing_reporter_ids').array().default([]).notNull(),
       evidenceReportIds: uuid('evidence_report_ids').array().default([]).notNull()
     },
     t => [
