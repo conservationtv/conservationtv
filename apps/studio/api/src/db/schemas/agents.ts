@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  text,
   timestamp,
   unique,
   uniqueIndex,
