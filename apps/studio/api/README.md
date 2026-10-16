@@ -90,8 +90,7 @@ bindings:
 | `HYPERDRIVE_ADMIN`    | Hyperdrive | the owning role: migrations, Better Auth, grants                         |
 | `HYPERDRIVE_APP`      | Hyperdrive | the application role (`studio_app`): request sessions, under RLS        |
 | `BETTER_AUTH_SECRET`  | secret     | Better Auth's signing secret                                            |
-| `FIELD_KEYS`          | secret     | comma-separated `<version>:<base64 key>` master keys for encrypted columns; the highest seals |
-| `FIELD_INDEX_KEY`     | secret     | base64 key for blind indexes; never rotates                             |
+| `FIELD_KEY`           | secret     | base64 32-byte master key for encrypted columns and blind indexes       |
 | `APP_URL`             | text       | where the API is served; Better Auth's base URL and passkey relying party |
 | `WEB_ORIGINS`         | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
 | `OTP_DELIVERY`        | text       | `log` only, see above                                                   |
@@ -106,7 +105,7 @@ refuses to run request sessions on a connection that could bypass row-level secu
 pnpm install
 pnpm --filter @conservationtv/studio-api db:up       # docker-compose Postgres 18 on :5434, with both roles
 pnpm --filter @conservationtv/studio-api db:migrate
-cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECRET, FIELD_KEYS, FIELD_INDEX_KEY
+cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECRET and FIELD_KEY
 pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 ```
 
@@ -199,12 +198,14 @@ organisations.
 `encrypted(purpose, codec)` (`src/db/encrypted.ts`) is a `bytea` column sealed with AES-256-GCM in the application, so
 the database and its backups only hold ciphertext. The codec maps plaintext bytes to the column's TypeScript type
 (`BytesSchema`, `Utf8Schema`, `json(schema)`, which can nest codecs such as `IsoDatetimeSchema`). Each purpose seals
-under its own subkey (HKDF-SHA256 of the master key, the purpose as its info), so a ciphertext copied into another column fails to open; the
-purpose must never change, which keeps renamed columns readable. A sealed value is `version ‖ iv ‖ tag ‖ ciphertext`: the keyring
-(`src/db/keyring.ts`, from `FIELD_KEYS`, installed per request with `withKeyring`) seals with its highest version and
-opens any version it lists, so rotating is adding a key, and an old key can go once no row is sealed under it.
-`blindIndex(purpose, codec, value)` is a keyed hash for equality lookups on an encrypted value, kept in a column beside
-it; its key never rotates, since every stored index would change.
+under its own subkey (HKDF-SHA256 of the field key, the purpose as its info), so a ciphertext copied into another
+column fails to open; the purpose must never change, which keeps renamed columns readable. The field key comes from
+`FIELD_KEY` and is installed per request with `withFieldKey` (`src/db/field-key.ts`). `blindIndex(purpose, codec, value)` is a keyed hash for
+equality lookups on an encrypted value, kept in a column beside it, under its own subkey.
+
+A sealed value is `version ‖ iv ‖ tag ‖ ciphertext`, and the version is always 1: there is one key and no rotation, since
+nothing re-seals existing rows yet. The version byte is there so rotation can be added without rewriting stored values.
+Rotating would also change every blind index, so those would need recomputing too.
 
 ## Contracts, SDK and CLI
 
