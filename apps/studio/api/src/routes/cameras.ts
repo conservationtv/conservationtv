@@ -52,7 +52,7 @@ function readCamera(tx: Transaction, organisationId: string, cameraId: string) {
 // network are edited under /devices, with the same ID.
 export default new Hono()
   .get(
-    '/:id/cameras',
+    '/',
     describeRoute({
       operationId: 'organisations.cameras.list',
       ...operationVersion(1),
@@ -81,7 +81,7 @@ export default new Hono()
     }
   )
   .post(
-    '/:id/cameras',
+    '/',
     describeRoute({
       operationId: 'organisations.cameras.create',
       ...operationVersion(1),
@@ -134,7 +134,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/cameras/:cameraId',
+    '/:cameraId',
     describeRoute({
       operationId: 'organisations.cameras.get',
       ...operationVersion(1),
@@ -162,7 +162,7 @@ export default new Hono()
     }
   )
   .patch(
-    '/:id/cameras/:cameraId',
+    '/:cameraId',
     describeRoute({
       operationId: 'organisations.cameras.update',
       ...operationVersion(1),
@@ -208,7 +208,7 @@ export default new Hono()
     }
   )
   .delete(
-    '/:id/cameras/:cameraId',
+    '/:cameraId',
     describeRoute({
       operationId: 'organisations.cameras.delete',
       ...operationVersion(1),

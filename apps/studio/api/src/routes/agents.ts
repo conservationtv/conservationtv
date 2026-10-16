@@ -52,7 +52,7 @@ function readAgent(tx: Transaction, organisationId: string, agentId: string) {
 // created and removed with its device, and its device's name is edited under /devices, with the same ID.
 export default new Hono()
   .get(
-    '/:id/agents',
+    '/',
     describeRoute({
       operationId: 'organisations.agents.list',
       ...operationVersion(1),
@@ -87,7 +87,7 @@ export default new Hono()
     }
   )
   .post(
-    '/:id/agents',
+    '/',
     describeRoute({
       operationId: 'organisations.agents.create',
       ...operationVersion(1),
@@ -137,7 +137,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/agents/:agentId',
+    '/:agentId',
     describeRoute({
       operationId: 'organisations.agents.get',
       ...operationVersion(1),
@@ -165,7 +165,7 @@ export default new Hono()
     }
   )
   .patch(
-    '/:id/agents/:agentId',
+    '/:agentId',
     describeRoute({
       operationId: 'organisations.agents.update',
       ...operationVersion(1),
@@ -206,7 +206,7 @@ export default new Hono()
     }
   )
   .delete(
-    '/:id/agents/:agentId',
+    '/:agentId',
     describeRoute({
       operationId: 'organisations.agents.delete',
       ...operationVersion(1),
@@ -243,7 +243,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/agents/:agentId/revisions',
+    '/:agentId/revisions',
     describeRoute({
       operationId: 'organisations.agents.revisions.list',
       ...operationVersion(1),
@@ -286,7 +286,7 @@ export default new Hono()
     }
   )
   .post(
-    '/:id/agents/:agentId/revisions',
+    '/:agentId/revisions',
     describeRoute({
       operationId: 'organisations.agents.revisions.create',
       ...operationVersion(1),
@@ -342,7 +342,7 @@ export default new Hono()
     }
   )
   .get(
-    '/:id/agents/:agentId/revisions/:revisionId',
+    '/:agentId/revisions/:revisionId',
     describeRoute({
       operationId: 'organisations.agents.revisions.get',
       ...operationVersion(1),
@@ -389,7 +389,7 @@ export default new Hono()
     }
   )
   .put(
-    '/:id/agents/:agentId/served-revision',
+    '/:agentId/served-revision',
     describeRoute({
       operationId: 'organisations.agents.serveRevision',
       ...operationVersion(1),
