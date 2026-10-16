@@ -50,7 +50,7 @@ export class Devices extends HeyApiClient {
     /**
      * Add a device
      *
-     * Administrators only.
+     * Administrators only. The device gets a new Ed25519 identity: its public key and public ID.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;

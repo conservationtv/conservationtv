@@ -289,8 +289,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('create', { description: 'Add a device\n\nAdministrators only.' }).command('v1', {
-        description: 'Add a device\n\nAdministrators only.',
+    })).command(Cli.create('create', { description: 'Add a device\n\nAdministrators only. The device gets a new Ed25519 identity: its public key and public ID.' }).command('v1', {
+        description: 'Add a device\n\nAdministrators only. The device gets a new Ed25519 identity: its public key and public ID.',
         options: cliOptions(DeviceCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

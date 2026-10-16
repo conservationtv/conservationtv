@@ -14,8 +14,12 @@ CREATE TABLE "device" (
 	"network_id" uuid,
 	"native_exposures" jsonb DEFAULT '[]' NOT NULL,
 	"settings" jsonb DEFAULT '{}' NOT NULL,
+	"public_key" text NOT NULL,
+	"public_id" text NOT NULL CONSTRAINT "device_public_id" UNIQUE,
+	"private_key" bytea NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "device_organisation_id" UNIQUE("organisation_id","id")
+	CONSTRAINT "device_organisation_id" UNIQUE("organisation_id","id"),
+	CONSTRAINT "device_public_id_hex" CHECK ("public_id" ~ '^[0-9a-f]{64}$')
 );
 --> statement-breakpoint
 CREATE TABLE "agent" (

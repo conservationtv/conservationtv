@@ -6,6 +6,7 @@ import { devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
+import { deviceIdentity } from '../topology/identity.ts';
 import { NativeExposureSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
@@ -70,6 +71,8 @@ export default new Hono()
             networkId: devices.networkId,
             nativeExposures: devices.nativeExposures,
             settings: devices.settings,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId,
             createdAt: devices.createdAt
           })
           .from(devices)
@@ -86,7 +89,7 @@ export default new Hono()
       operationId: 'organisations.devices.create',
       ...operationVersion(1),
       summary: 'Add a device',
-      description: 'Administrators only.',
+      description: 'Administrators only. The device gets a new Ed25519 identity: its public key and public ID.',
       responses: {
         201: { description: 'The new device' },
         400: invalidRequest,
@@ -115,10 +118,12 @@ export default new Hono()
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
+      const identity = await deviceIdentity();
       const [row] = await session.transaction(async tx =>
         tx
           .insert(devices)
           .values({
+            ...identity,
             organisationId: id,
             type: body.type,
             name: body.name,
@@ -133,6 +138,8 @@ export default new Hono()
             networkId: devices.networkId,
             nativeExposures: devices.nativeExposures,
             settings: devices.settings,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId,
             createdAt: devices.createdAt
           })
       );
@@ -171,6 +178,8 @@ export default new Hono()
             networkId: devices.networkId,
             nativeExposures: devices.nativeExposures,
             settings: devices.settings,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId,
             createdAt: devices.createdAt
           })
           .from(devices)
@@ -238,6 +247,8 @@ export default new Hono()
             networkId: devices.networkId,
             nativeExposures: devices.nativeExposures,
             settings: devices.settings,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId,
             createdAt: devices.createdAt
           });
         if (!device) throw await unchanged(tx, devices.id, deviceId);

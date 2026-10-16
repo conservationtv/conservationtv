@@ -5,7 +5,10 @@ grant select, insert, delete on "network" to studio_app;
 --> statement-breakpoint
 grant update ("name") on "network" to studio_app;
 --> statement-breakpoint
-grant select, insert, delete on "device" to studio_app;
+-- A device's private key is written once, when it is created, and never read back in a request session.
+grant select ("id", "organisation_id", "type", "name", "network_id", "native_exposures", "settings", "public_key", "public_id", "created_at") on "device" to studio_app;
+--> statement-breakpoint
+grant insert, delete on "device" to studio_app;
 --> statement-breakpoint
 grant update ("type", "name", "network_id", "native_exposures", "settings") on "device" to studio_app;
 --> statement-breakpoint

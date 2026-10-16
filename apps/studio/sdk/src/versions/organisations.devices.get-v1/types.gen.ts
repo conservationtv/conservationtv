@@ -24,6 +24,8 @@ export type Device = {
     settings: {
         [key: string]: unknown;
     };
+    publicKey: string;
+    publicId: string;
     createdAt: string;
 };
 

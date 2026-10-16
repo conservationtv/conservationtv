@@ -90,6 +90,8 @@ bindings:
 | `HYPERDRIVE_ADMIN`    | Hyperdrive | the owning role: migrations, Better Auth, grants                         |
 | `HYPERDRIVE_APP`      | Hyperdrive | the application role (`studio_app`): request sessions, under RLS        |
 | `BETTER_AUTH_SECRET`  | secret     | Better Auth's signing secret                                            |
+| `FIELD_KEYS`          | secret     | comma-separated `<version>:<base64 key>` master keys for encrypted columns; the highest seals |
+| `FIELD_INDEX_KEY`     | secret     | base64 key for blind indexes; never rotates                             |
 | `APP_URL`             | text       | where the API is served; Better Auth's base URL and passkey relying party |
 | `WEB_ORIGINS`         | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
 | `OTP_DELIVERY`        | text       | `log` only, see above                                                   |
@@ -104,7 +106,7 @@ refuses to run request sessions on a connection that could bypass row-level secu
 pnpm install
 pnpm --filter @conservationtv/studio-api db:up       # docker-compose Postgres 18 on :5434, with both roles
 pnpm --filter @conservationtv/studio-api db:migrate
-cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECRET
+cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECRET, FIELD_KEYS, FIELD_INDEX_KEY
 pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 ```
 
@@ -183,9 +185,26 @@ and a delete of something still used (409 `in_use`). A partial unique index allo
 one served configuration revision per agent; a check constraint refuses serving a revision whose diagnostics include
 an error, so a rejected candidate never replaces the served one. Privileges are in the `topology_privileges` migration.
 
+Every device gets an Ed25519 identity when it is created (`src/topology/identity.ts`): `publicKey` (unpadded
+base64url) and `publicId`, derived as iroh derives an endpoint ID (the public key bytes in lowercase hex, unique).
+Neither ever changes. The private key, the 32-byte seed iroh calls a `SecretKey`, is stored encrypted and request
+sessions cannot select it: it is written once, at creation, and only trusted code can read it.
+
 Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
 configuration builders that produce revisions, how an agent fetches its served revision, and sharing across
 organisations.
+
+## Encrypted columns
+
+`encrypted(purpose, codec)` (`src/db/encrypted.ts`) is a `bytea` column sealed with AES-256-GCM in the application, so
+the database and its backups only hold ciphertext. The codec maps plaintext bytes to the column's TypeScript type
+(`BytesSchema`, `Utf8Schema`, `json(schema)`, which can nest codecs such as `IsoDatetimeSchema`). Each purpose seals
+under its own subkey (HMAC-SHA256 of the master key), so a ciphertext copied into another column fails to open; the
+purpose must never change, which keeps renamed columns readable. A sealed value is `version ‖ iv ‖ tag ‖ ciphertext`: the keyring
+(`src/db/keyring.ts`, from `FIELD_KEYS`, installed per request with `withKeyring`) seals with its highest version and
+opens any version it lists, so rotating is adding a key, and an old key can go once no row is sealed under it.
+`blindIndex(purpose, codec, value)` is a keyed hash for equality lookups on an encrypted value, kept in a column beside
+it; its key never rotates, since every stored index would change.
 
 ## Contracts, SDK and CLI
 
