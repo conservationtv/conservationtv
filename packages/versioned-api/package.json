@@ -13,7 +13,8 @@
     "./cli": "./src/cli/index.ts"
   },
   "bin": {
-    "api-contracts": "./bin/api-contracts.mjs"
+    "api-contracts": "./bin/api-contracts.mjs",
+    "share-client": "./bin/share-client.mjs"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"
