@@ -310,6 +310,12 @@
             "type": "object",
             "additionalProperties": {}
           },
+          "publicKey": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "string"
           }
@@ -321,6 +327,8 @@
           "networkId",
           "nativeExposures",
           "settings",
+          "publicKey",
+          "publicId",
           "createdAt"
         ]
       },
@@ -3110,6 +3118,12 @@
                             "type": "object",
                             "additionalProperties": {}
                           },
+                          "publicKey": {
+                            "type": "string"
+                          },
+                          "publicId": {
+                            "type": "string"
+                          },
                           "createdAt": {
                             "type": "string"
                           }
@@ -3121,6 +3135,8 @@
                           "networkId",
                           "nativeExposures",
                           "settings",
+                          "publicKey",
+                          "publicId",
                           "createdAt"
                         ]
                       }
@@ -3195,7 +3211,7 @@
         "operationId": "organisations.devices.create",
         "x-operation-version": 1,
         "summary": "Add a device",
-        "description": "Administrators only.",
+        "description": "Administrators only. The device gets a new Ed25519 identity: its public key and public ID.",
         "responses": {
           "201": {
             "description": "The new device",
@@ -10900,6 +10916,12 @@
                       "type": "object",
                       "additionalProperties": {}
                     },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
                     "createdAt": {
                       "type": "string"
                     }
@@ -10911,6 +10933,8 @@
                     "networkId",
                     "nativeExposures",
                     "settings",
+                    "publicKey",
+                    "publicId",
                     "createdAt"
                   ]
                 }
@@ -11130,6 +11154,12 @@
                 "type": "object",
                 "additionalProperties": {}
               },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
               "createdAt": {
                 "type": "string"
               }
@@ -11141,6 +11171,8 @@
               "networkId",
               "nativeExposures",
               "settings",
+              "publicKey",
+              "publicId",
               "createdAt"
             ]
           }
@@ -11152,7 +11184,7 @@
             "operationId": "organisations.devices.create",
             "x-operation-version": 1,
             "summary": "Add a device",
-            "description": "Administrators only.",
+            "description": "Administrators only. The device gets a new Ed25519 identity: its public key and public ID.",
             "responses": {
               "201": {
                 "description": "The new device",
@@ -11443,6 +11475,12 @@
                 "type": "object",
                 "additionalProperties": {}
               },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
               "createdAt": {
                 "type": "string"
               }
@@ -11454,6 +11492,8 @@
               "networkId",
               "nativeExposures",
               "settings",
+              "publicKey",
+              "publicId",
               "createdAt"
             ]
           }
@@ -11687,6 +11727,12 @@
                 "type": "object",
                 "additionalProperties": {}
               },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
               "createdAt": {
                 "type": "string"
               }
@@ -11698,6 +11744,8 @@
               "networkId",
               "nativeExposures",
               "settings",
+              "publicKey",
+              "publicId",
               "createdAt"
             ]
           }

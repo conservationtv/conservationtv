@@ -26,6 +26,8 @@ export const DeviceSchema = z.object({
         params: z.record(z.string(), z.unknown()).optional()
     })),
     settings: z.record(z.string(), z.unknown()),
+    publicKey: z.string(),
+    publicId: z.string(),
     createdAt: z.string()
 });
 

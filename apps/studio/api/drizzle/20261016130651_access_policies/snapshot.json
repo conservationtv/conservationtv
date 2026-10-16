@@ -1,7 +1,7 @@
 {
-  "id": "72aa53b1-3809-4686-a6f8-fbb79663aa14",
+  "id": "55207154-bd6c-4786-a859-f11e55f64547",
   "prevIds": [
-    "439168cc-db34-43e8-8c9e-73221c7c2077"
+    "80e94a42-058d-4a87-9143-d912c1e09976"
   ],
   "version": "8",
   "dialect": "postgres",
@@ -1319,6 +1319,45 @@
       "generated": null,
       "identity": null,
       "name": "settings",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "public_key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "public_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device"
+    },
+    {
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "private_key",
       "entityType": "columns",
       "schema": "public",
       "table": "device"
@@ -3010,6 +3049,17 @@
     {
       "nameExplicit": true,
       "columns": [
+        "public_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "device_public_id",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "device"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "organisation_id",
         "id"
       ],
@@ -3078,6 +3128,13 @@
       "entityType": "checks",
       "schema": "public",
       "table": "organisation_invitation"
+    },
+    {
+      "value": "\"public_id\" ~ '^[0-9a-f]{64}$'",
+      "name": "device_public_id_hex",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "device"
     },
     {
       "value": "not (\"served\" and \"has_errors\")",

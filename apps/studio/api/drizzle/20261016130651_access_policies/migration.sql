@@ -144,7 +144,7 @@ create policy "authz_delete" on "device" for delete using (("organisation_id" = 
 --> statement-breakpoint
 create function "authz:devices:immutable"() returns trigger language plpgsql as $authz$
     begin
-      if coalesce(current_setting('authz.principal_kind', true), '') <> '' and (new."created_at" is distinct from old."created_at" or new."organisation_id" is distinct from old."organisation_id") then
+      if coalesce(current_setting('authz.principal_kind', true), '') <> '' and (new."public_key" is distinct from old."public_key" or new."public_id" is distinct from old."public_id" or new."private_key" is distinct from old."private_key" or new."created_at" is distinct from old."created_at" or new."organisation_id" is distinct from old."organisation_id") then
         raise exception 'Immutable access column on %', tg_table_name using errcode = '42501';
       end if;
       return new;
