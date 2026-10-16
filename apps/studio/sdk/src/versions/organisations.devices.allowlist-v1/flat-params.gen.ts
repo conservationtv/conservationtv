@@ -2,10 +2,10 @@
 
 import * as z from 'zod';
 
-import { GetOrganisationsByIdDevicesPublicIdsPathSchema } from './zod.gen.js';
+import { GetOrganisationsByIdDevicesAllowlistPathSchema } from './zod.gen.js';
 
 export const DeviceAllowlistV1ParamsSchema = z.object({
-    id: GetOrganisationsByIdDevicesPublicIdsPathSchema.shape.id.nonoptional().describe('The organisation.')
+    id: GetOrganisationsByIdDevicesAllowlistPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
 export type DeviceAllowlistV1Params = z.infer<typeof DeviceAllowlistV1ParamsSchema>;

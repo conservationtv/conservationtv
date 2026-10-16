@@ -3413,7 +3413,7 @@
         ]
       }
     },
-    "/organisations/{id}/devices/public-ids": {
+    "/organisations/{id}/devices/allowlist": {
       "get": {
         "operationId": "organisations.devices.allowlist",
         "x-operation-version": 1,
@@ -12379,7 +12379,7 @@
         }
       },
       "paths": {
-        "/organisations/{id}/devices/public-ids": {
+        "/organisations/{id}/devices/allowlist": {
           "get": {
             "operationId": "organisations.devices.allowlist",
             "x-operation-version": 1,

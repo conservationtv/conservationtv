@@ -13,7 +13,7 @@ export type Device = {
     publicIds: Array<string>;
 };
 
-export type GetOrganisationsByIdDevicesPublicIdsData = {
+export type GetOrganisationsByIdDevicesAllowlistData = {
     body?: never;
     path: {
         /**
@@ -22,10 +22,10 @@ export type GetOrganisationsByIdDevicesPublicIdsData = {
         id: string;
     };
     query?: never;
-    url: '/organisations/{id}/devices/public-ids';
+    url: '/organisations/{id}/devices/allowlist';
 };
 
-export type GetOrganisationsByIdDevicesPublicIdsErrors = {
+export type GetOrganisationsByIdDevicesAllowlistErrors = {
     /**
      * The request is malformed
      */
@@ -44,13 +44,13 @@ export type GetOrganisationsByIdDevicesPublicIdsErrors = {
     503: Error;
 };
 
-export type GetOrganisationsByIdDevicesPublicIdsError = GetOrganisationsByIdDevicesPublicIdsErrors[keyof GetOrganisationsByIdDevicesPublicIdsErrors];
+export type GetOrganisationsByIdDevicesAllowlistError = GetOrganisationsByIdDevicesAllowlistErrors[keyof GetOrganisationsByIdDevicesAllowlistErrors];
 
-export type GetOrganisationsByIdDevicesPublicIdsResponses = {
+export type GetOrganisationsByIdDevicesAllowlistResponses = {
     /**
      * The public IDs, oldest device first
      */
     200: Device;
 };
 
-export type GetOrganisationsByIdDevicesPublicIdsResponse = GetOrganisationsByIdDevicesPublicIdsResponses[keyof GetOrganisationsByIdDevicesPublicIdsResponses];
+export type GetOrganisationsByIdDevicesAllowlistResponse = GetOrganisationsByIdDevicesAllowlistResponses[keyof GetOrganisationsByIdDevicesAllowlistResponses];

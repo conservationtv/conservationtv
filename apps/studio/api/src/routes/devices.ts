@@ -53,7 +53,7 @@ export const deviceColumns = {
 // browser (/browser). Devices themselves, signing their requests, read only the organisation's public IDs.
 export default new Hono()
   .get(
-    '/public-ids',
+    '/allowlist',
     describeRoute({
       operationId: 'organisations.devices.allowlist',
       ...operationVersion(1),
