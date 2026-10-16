@@ -36,6 +36,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET`, `POST /organisations/{id}/networks`; `GET`, `PATCH`, `DELETE …/networks/{networkId}` | members read, administrators write | `organisations.networks.*` v1 |
 | `PUT /organisations/{id}/networks/{networkId}/active-agent` | administrators | `organisations.networks.setActiveAgent` v1 |
 | `GET /organisations/{id}/devices`; `GET`, `PATCH …/devices/{deviceId}` | members read, administrators rename and move | `organisations.devices.*` v1: every kind |
+| `GET /organisations/{id}/devices/allowlist` | members, and devices by signature | `organisations.devices.allowlist` v1: for iroh allowlists |
 | `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}` | members read, administrators write | `organisations.cameras.*` v1 |
 | `PUT /organisations/{id}/browser` | members | `organisations.browser.ensure` v1: this session's browser device, with its private key |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}` | members read, administrators write | `organisations.agents.*` v1 |
