@@ -11,24 +11,14 @@ export type Error = {
 
 export type Agent = {
     servedRevisionId: string | null;
-    id: string;
-    type: string;
-    name: string;
-    networkId: string;
-    nativeExposures: Array<{
-        networkId: string | null;
-        protocol: string;
-        params?: {
-            [key: string]: unknown;
-        };
-    }>;
-    settings: {
-        [key: string]: unknown;
-    };
-    publicKey: string;
-    publicId: string;
     priority: number;
     active: boolean;
+    id: string;
+    kind: 'agent' | 'camera';
+    name: string;
+    networkId: string | null;
+    publicKey: string;
+    publicId: string;
     createdAt: string;
 };
 

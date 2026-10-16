@@ -63,9 +63,15 @@ export type Network = {
 
 export type Device = {
     id: string;
-    type: string;
+    kind: 'agent' | 'camera';
     name: string;
     networkId: string | null;
+    publicKey: string;
+    publicId: string;
+    createdAt: string;
+};
+
+export type Camera = {
     nativeExposures: Array<{
         networkId: string | null;
         protocol: string;
@@ -76,6 +82,10 @@ export type Device = {
     settings: {
         [key: string]: unknown;
     };
+    id: string;
+    kind: 'agent' | 'camera';
+    name: string;
+    networkId: string | null;
     publicKey: string;
     publicId: string;
     createdAt: string;
@@ -83,24 +93,14 @@ export type Device = {
 
 export type Agent = {
     servedRevisionId: string | null;
-    id: string;
-    type: string;
-    name: string;
-    networkId: string;
-    nativeExposures: Array<{
-        networkId: string | null;
-        protocol: string;
-        params?: {
-            [key: string]: unknown;
-        };
-    }>;
-    settings: {
-        [key: string]: unknown;
-    };
-    publicKey: string;
-    publicId: string;
     priority: number;
     active: boolean;
+    id: string;
+    kind: 'agent' | 'camera';
+    name: string;
+    networkId: string | null;
+    publicKey: string;
+    publicId: string;
     createdAt: string;
 };
 
@@ -1329,7 +1329,12 @@ export type GetOrganisationsByIdDevicesData = {
          */
         id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Only devices of this kind.
+         */
+        kind?: 'agent' | 'camera';
+    };
     url: '/organisations/{id}/devices';
 };
 
@@ -1361,19 +1366,9 @@ export type GetOrganisationsByIdDevicesResponses = {
     200: {
         devices: Array<{
             id: string;
-            type: string;
+            kind: 'agent' | 'camera';
             name: string;
             networkId: string | null;
-            nativeExposures: Array<{
-                networkId: string | null;
-                protocol: string;
-                params?: {
-                    [key: string]: unknown;
-                };
-            }>;
-            settings: {
-                [key: string]: unknown;
-            };
             publicKey: string;
             publicId: string;
             createdAt: string;
@@ -1382,149 +1377,6 @@ export type GetOrganisationsByIdDevicesResponses = {
 };
 
 export type GetOrganisationsByIdDevicesResponse = GetOrganisationsByIdDevicesResponses[keyof GetOrganisationsByIdDevicesResponses];
-
-export type PostOrganisationsByIdDevicesData = {
-    body: {
-        /**
-         * What the device is, such as `camera` or `server`.
-         */
-        type: string;
-        /**
-         * The device name.
-         */
-        name: string;
-        /**
-         * A network of the organisation, or null for the internet.
-         */
-        networkId?: string | null;
-        /**
-         * The endpoints the device offers by itself, such as a camera’s RTSP feed.
-         */
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        /**
-         * Settings validated by the implementation that reads them.
-         */
-        settings?: {
-            [key: string]: Schema0;
-        };
-    };
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/devices';
-};
-
-export type PostOrganisationsByIdDevicesErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
-     */
-    422: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PostOrganisationsByIdDevicesError = PostOrganisationsByIdDevicesErrors[keyof PostOrganisationsByIdDevicesErrors];
-
-export type PostOrganisationsByIdDevicesResponses = {
-    /**
-     * The new device
-     */
-    201: Device;
-};
-
-export type PostOrganisationsByIdDevicesResponse = PostOrganisationsByIdDevicesResponses[keyof PostOrganisationsByIdDevicesResponses];
-
-export type DeleteOrganisationsByIdDevicesByDeviceIdData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * The device.
-         */
-        deviceId: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/devices/{deviceId}';
-};
-
-export type DeleteOrganisationsByIdDevicesByDeviceIdErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The resource is still used by another resource
-     */
-    409: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type DeleteOrganisationsByIdDevicesByDeviceIdError = DeleteOrganisationsByIdDevicesByDeviceIdErrors[keyof DeleteOrganisationsByIdDevicesByDeviceIdErrors];
-
-export type DeleteOrganisationsByIdDevicesByDeviceIdResponses = {
-    /**
-     * Removed
-     */
-    204: void;
-};
-
-export type DeleteOrganisationsByIdDevicesByDeviceIdResponse = DeleteOrganisationsByIdDevicesByDeviceIdResponses[keyof DeleteOrganisationsByIdDevicesByDeviceIdResponses];
 
 export type GetOrganisationsByIdDevicesByDeviceIdData = {
     body?: never;
@@ -1579,10 +1431,6 @@ export type GetOrganisationsByIdDevicesByDeviceIdResponse = GetOrganisationsById
 export type PatchOrganisationsByIdDevicesByDeviceIdData = {
     body: {
         /**
-         * What the device is, such as `camera` or `server`.
-         */
-        type?: string;
-        /**
          * The device name.
          */
         name?: string;
@@ -1590,28 +1438,6 @@ export type PatchOrganisationsByIdDevicesByDeviceIdData = {
          * A network of the organisation, or null for the internet.
          */
         networkId?: string | null;
-        /**
-         * The endpoints the device offers by itself, such as a camera’s RTSP feed.
-         */
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        /**
-         * Settings validated by the implementation that reads them.
-         */
-        settings?: {
-            [key: string]: Schema0;
-        };
     };
     path: {
         /**
@@ -1673,6 +1499,334 @@ export type PatchOrganisationsByIdDevicesByDeviceIdResponses = {
 
 export type PatchOrganisationsByIdDevicesByDeviceIdResponse = PatchOrganisationsByIdDevicesByDeviceIdResponses[keyof PatchOrganisationsByIdDevicesByDeviceIdResponses];
 
+export type GetOrganisationsByIdCamerasData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras';
+};
+
+export type GetOrganisationsByIdCamerasErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdCamerasError = GetOrganisationsByIdCamerasErrors[keyof GetOrganisationsByIdCamerasErrors];
+
+export type GetOrganisationsByIdCamerasResponses = {
+    /**
+     * The cameras, oldest first
+     */
+    200: {
+        cameras: Array<{
+            nativeExposures: Array<{
+                networkId: string | null;
+                protocol: string;
+                params?: {
+                    [key: string]: unknown;
+                };
+            }>;
+            settings: {
+                [key: string]: unknown;
+            };
+            id: string;
+            kind: 'agent' | 'camera';
+            name: string;
+            networkId: string | null;
+            publicKey: string;
+            publicId: string;
+            createdAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdCamerasResponse = GetOrganisationsByIdCamerasResponses[keyof GetOrganisationsByIdCamerasResponses];
+
+export type PostOrganisationsByIdCamerasData = {
+    body: {
+        /**
+         * The device name.
+         */
+        name: string;
+        /**
+         * A network of the organisation, or null for the internet.
+         */
+        networkId?: string | null;
+        /**
+         * The endpoints the camera offers by itself, such as its RTSP feed.
+         */
+        nativeExposures?: Array<{
+            /**
+             * A network of the organisation, or null for the internet.
+             */
+            networkId: string | null;
+            protocol: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            params?: {
+                [key: string]: Schema0;
+            };
+        }>;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        settings?: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras';
+};
+
+export type PostOrganisationsByIdCamerasErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdCamerasError = PostOrganisationsByIdCamerasErrors[keyof PostOrganisationsByIdCamerasErrors];
+
+export type PostOrganisationsByIdCamerasResponses = {
+    /**
+     * The new camera
+     */
+    201: Camera;
+};
+
+export type PostOrganisationsByIdCamerasResponse = PostOrganisationsByIdCamerasResponses[keyof PostOrganisationsByIdCamerasResponses];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}';
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdError = DeleteOrganisationsByIdCamerasByCameraIdErrors[keyof DeleteOrganisationsByIdCamerasByCameraIdErrors];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdResponse = DeleteOrganisationsByIdCamerasByCameraIdResponses[keyof DeleteOrganisationsByIdCamerasByCameraIdResponses];
+
+export type GetOrganisationsByIdCamerasByCameraIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}';
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdError = GetOrganisationsByIdCamerasByCameraIdErrors[keyof GetOrganisationsByIdCamerasByCameraIdErrors];
+
+export type GetOrganisationsByIdCamerasByCameraIdResponses = {
+    /**
+     * The camera
+     */
+    200: Camera;
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdResponse = GetOrganisationsByIdCamerasByCameraIdResponses[keyof GetOrganisationsByIdCamerasByCameraIdResponses];
+
+export type PatchOrganisationsByIdCamerasByCameraIdData = {
+    body: {
+        /**
+         * The endpoints the camera offers by itself, such as its RTSP feed.
+         */
+        nativeExposures?: Array<{
+            /**
+             * A network of the organisation, or null for the internet.
+             */
+            networkId: string | null;
+            protocol: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            params?: {
+                [key: string]: Schema0;
+            };
+        }>;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        settings?: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}';
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdError = PatchOrganisationsByIdCamerasByCameraIdErrors[keyof PatchOrganisationsByIdCamerasByCameraIdErrors];
+
+export type PatchOrganisationsByIdCamerasByCameraIdResponses = {
+    /**
+     * The updated camera
+     */
+    200: Camera;
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdResponse = PatchOrganisationsByIdCamerasByCameraIdResponses[keyof PatchOrganisationsByIdCamerasByCameraIdResponses];
+
 export type GetOrganisationsByIdAgentsData = {
     body?: never;
     path: {
@@ -1718,24 +1872,14 @@ export type GetOrganisationsByIdAgentsResponses = {
     200: {
         agents: Array<{
             servedRevisionId: string | null;
-            id: string;
-            type: string;
-            name: string;
-            networkId: string;
-            nativeExposures: Array<{
-                networkId: string | null;
-                protocol: string;
-                params?: {
-                    [key: string]: unknown;
-                };
-            }>;
-            settings: {
-                [key: string]: unknown;
-            };
-            publicKey: string;
-            publicId: string;
             priority: number;
             active: boolean;
+            id: string;
+            kind: 'agent' | 'camera';
+            name: string;
+            networkId: string | null;
+            publicKey: string;
+            publicId: string;
             createdAt: string;
         }>;
     };
@@ -1746,10 +1890,6 @@ export type GetOrganisationsByIdAgentsResponse = GetOrganisationsByIdAgentsRespo
 export type PostOrganisationsByIdAgentsData = {
     body: {
         /**
-         * What the device is, such as `camera` or `server`.
-         */
-        type: string;
-        /**
          * The device name.
          */
         name: string;
@@ -1757,28 +1897,6 @@ export type PostOrganisationsByIdAgentsData = {
          * The network the agent is on and serves.
          */
         networkId: string;
-        /**
-         * The endpoints the device offers by itself, such as a camera’s RTSP feed.
-         */
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        /**
-         * Settings validated by the implementation that reads them.
-         */
-        settings?: {
-            [key: string]: Schema0;
-        };
         /**
          * Standby preference; higher is preferred.
          */
@@ -1829,25 +1947,15 @@ export type PostOrganisationsByIdAgentsResponses = {
      */
     201: {
         servedRevisionId: null;
-        networkId: string;
         priority: number;
         active: boolean;
-        createdAt: string;
         id: string;
-        type: string;
+        kind: 'agent' | 'camera';
         name: string;
-        nativeExposures: Array<{
-            networkId: string | null;
-            protocol: string;
-            params?: {
-                [key: string]: unknown;
-            };
-        }>;
-        settings: {
-            [key: string]: unknown;
-        };
+        networkId: string | null;
         publicKey: string;
         publicId: string;
+        createdAt: string;
     };
 };
 
@@ -2283,24 +2391,14 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses = {
      */
     200: {
         servedRevisionId: string;
-        id: string;
-        type: string;
-        name: string;
-        networkId: string;
-        nativeExposures: Array<{
-            networkId: string | null;
-            protocol: string;
-            params?: {
-                [key: string]: unknown;
-            };
-        }>;
-        settings: {
-            [key: string]: unknown;
-        };
-        publicKey: string;
-        publicId: string;
         priority: number;
         active: boolean;
+        id: string;
+        kind: 'agent' | 'camera';
+        name: string;
+        networkId: string | null;
+        publicKey: string;
+        publicId: string;
         createdAt: string;
     };
 };

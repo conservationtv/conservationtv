@@ -261,8 +261,12 @@
           "id": {
             "type": "string"
           },
-          "type": {
-            "type": "string"
+          "kind": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "camera"
+            ]
           },
           "name": {
             "type": "string"
@@ -277,6 +281,29 @@
               }
             ]
           },
+          "publicKey": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "networkId",
+          "publicKey",
+          "publicId",
+          "createdAt"
+        ]
+      },
+      "Camera": {
+        "type": "object",
+        "properties": {
           "nativeExposures": {
             "type": "array",
             "items": {
@@ -310,6 +337,29 @@
             "type": "object",
             "additionalProperties": {}
           },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "camera"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "publicKey": {
             "type": "string"
           },
@@ -321,12 +371,12 @@
           }
         },
         "required": [
-          "id",
-          "type",
-          "name",
-          "networkId",
           "nativeExposures",
           "settings",
+          "id",
+          "kind",
+          "name",
+          "networkId",
           "publicKey",
           "publicId",
           "createdAt"
@@ -345,50 +395,34 @@
               }
             ]
           },
+          "priority": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
           "id": {
             "type": "string"
           },
-          "type": {
-            "type": "string"
+          "kind": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "camera"
+            ]
           },
           "name": {
             "type": "string"
           },
           "networkId": {
-            "type": "string"
-          },
-          "nativeExposures": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "networkId": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "protocol": {
-                  "type": "string"
-                },
-                "params": {
-                  "type": "object",
-                  "additionalProperties": {}
-                }
+            "anyOf": [
+              {
+                "type": "string"
               },
-              "required": [
-                "networkId",
-                "protocol"
-              ]
-            }
-          },
-          "settings": {
-            "type": "object",
-            "additionalProperties": {}
+              {
+                "type": "null"
+              }
+            ]
           },
           "publicKey": {
             "type": "string"
@@ -396,28 +430,20 @@
           "publicId": {
             "type": "string"
           },
-          "priority": {
-            "type": "number"
-          },
-          "active": {
-            "type": "boolean"
-          },
           "createdAt": {
             "type": "string"
           }
         },
         "required": [
           "servedRevisionId",
-          "id",
-          "type",
-          "name",
-          "networkId",
-          "nativeExposures",
-          "settings",
-          "publicKey",
-          "publicId",
           "priority",
           "active",
+          "id",
+          "kind",
+          "name",
+          "networkId",
+          "publicKey",
+          "publicId",
           "createdAt"
         ]
       },
@@ -3099,7 +3125,7 @@
         "operationId": "organisations.devices.list",
         "x-operation-version": 1,
         "summary": "List an organisation's devices",
-        "description": "Empty for organisations you are not a member of.",
+        "description": "Every kind (agent, camera), optionally only one. Empty for organisations you are not a member of.",
         "responses": {
           "200": {
             "description": "The devices, oldest first",
@@ -3116,8 +3142,12 @@
                           "id": {
                             "type": "string"
                           },
-                          "type": {
-                            "type": "string"
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "agent",
+                              "camera"
+                            ]
                           },
                           "name": {
                             "type": "string"
@@ -3132,39 +3162,6 @@
                               }
                             ]
                           },
-                          "nativeExposures": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "networkId": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "protocol": {
-                                  "type": "string"
-                                },
-                                "params": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                }
-                              },
-                              "required": [
-                                "networkId",
-                                "protocol"
-                              ]
-                            }
-                          },
-                          "settings": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          },
                           "publicKey": {
                             "type": "string"
                           },
@@ -3177,11 +3174,9 @@
                         },
                         "required": [
                           "id",
-                          "type",
+                          "kind",
                           "name",
                           "networkId",
-                          "nativeExposures",
-                          "settings",
                           "publicKey",
                           "publicId",
                           "createdAt"
@@ -3248,202 +3243,20 @@
             },
             "required": true,
             "description": "The organisation."
-          }
-        ],
-        "x-operation-versions": [
-          1
-        ]
-      },
-      "post": {
-        "operationId": "organisations.devices.create",
-        "x-operation-version": 1,
-        "summary": "Add a device",
-        "description": "Administrators only. The device gets a new Ed25519 identity: its public key and public ID.",
-        "responses": {
-          "201": {
-            "description": "The new device",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Device"
-                }
-              }
-            }
           },
-          "400": {
-            "description": "The request is malformed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No signed-in session was presented",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The resource is visible, but this account may not do this to it",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "The selected operation version is not served",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The database is unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
           {
-            "in": "path",
-            "name": "id",
+            "in": "query",
+            "name": "kind",
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              "enum": [
+                "agent",
+                "camera"
+              ]
             },
-            "required": true,
-            "description": "The organisation."
+            "description": "Only devices of this kind."
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "What the device is, such as `camera` or `server`."
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120,
-                    "description": "The device name."
-                  },
-                  "networkId": {
-                    "default": null,
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "A network of the organisation, or null for the internet."
-                  },
-                  "nativeExposures": {
-                    "default": [],
-                    "maxItems": 32,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "networkId": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uuid",
-                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ],
-                          "description": "A network of the organisation, or null for the internet."
-                        },
-                        "protocol": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 60
-                        },
-                        "params": {
-                          "type": "object",
-                          "propertyNames": {
-                            "type": "string",
-                            "maxLength": 120
-                          },
-                          "additionalProperties": {
-                            "$ref": "#/components/schemas/__schema0"
-                          },
-                          "description": "Settings validated by the implementation that reads them."
-                        }
-                      },
-                      "required": [
-                        "networkId",
-                        "protocol"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
-                  },
-                  "settings": {
-                    "default": {},
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string",
-                      "maxLength": 120
-                    },
-                    "additionalProperties": {
-                      "$ref": "#/components/schemas/__schema0"
-                    },
-                    "description": "Settings validated by the implementation that reads them."
-                  }
-                },
-                "required": [
-                  "type",
-                  "name"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
         "x-operation-versions": [
           1
         ]
@@ -3547,8 +3360,8 @@
       "patch": {
         "operationId": "organisations.devices.update",
         "x-operation-version": 1,
-        "summary": "Update a device",
-        "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.",
+        "summary": "Rename or move a device",
+        "description": "Administrators only. Changes only the fields given. An agent’s network cannot change.",
         "responses": {
           "200": {
             "description": "The updated device",
@@ -3672,12 +3485,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "type": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "What the device is, such as `camera` or `server`."
-                  },
                   "name": {
                     "type": "string",
                     "minLength": 1,
@@ -3696,7 +3503,573 @@
                       }
                     ],
                     "description": "A network of the organisation, or null for the internet."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/cameras": {
+      "get": {
+        "operationId": "organisations.cameras.list",
+        "x-operation-version": 1,
+        "summary": "List an organisation's cameras",
+        "description": "Empty for organisations you are not a member of.",
+        "responses": {
+          "200": {
+            "description": "The cameras, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cameras": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nativeExposures": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "networkId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "protocol": {
+                                  "type": "string"
+                                },
+                                "params": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                }
+                              },
+                              "required": [
+                                "networkId",
+                                "protocol"
+                              ]
+                            }
+                          },
+                          "settings": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "agent",
+                              "camera"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "networkId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "publicKey": {
+                            "type": "string"
+                          },
+                          "publicId": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nativeExposures",
+                          "settings",
+                          "id",
+                          "kind",
+                          "name",
+                          "networkId",
+                          "publicKey",
+                          "publicId",
+                          "createdAt"
+                        ]
+                      }
+                    }
                   },
+                  "required": [
+                    "cameras"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      },
+      "post": {
+        "operationId": "organisations.cameras.create",
+        "x-operation-version": 1,
+        "summary": "Add a camera",
+        "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.",
+        "responses": {
+          "201": {
+            "description": "The new camera",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Camera"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The resource is visible, but this account may not do this to it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "The device name."
+                  },
+                  "networkId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "A network of the organisation, or null for the internet."
+                  },
+                  "nativeExposures": {
+                    "default": [],
+                    "maxItems": 32,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "networkId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "A network of the organisation, or null for the internet."
+                        },
+                        "protocol": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "params": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "additionalProperties": {
+                            "$ref": "#/components/schemas/__schema0"
+                          },
+                          "description": "Settings validated by the implementation that reads them."
+                        }
+                      },
+                      "required": [
+                        "networkId",
+                        "protocol"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "The endpoints the camera offers by itself, such as its RTSP feed."
+                  },
+                  "settings": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/__schema0"
+                    },
+                    "description": "Settings validated by the implementation that reads them."
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/cameras/{cameraId}": {
+      "get": {
+        "operationId": "organisations.cameras.get",
+        "x-operation-version": 1,
+        "summary": "Read a camera",
+        "responses": {
+          "200": {
+            "description": "The camera",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Camera"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "cameraId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The camera."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      },
+      "patch": {
+        "operationId": "organisations.cameras.update",
+        "x-operation-version": 1,
+        "summary": "Update a camera",
+        "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.",
+        "responses": {
+          "200": {
+            "description": "The updated camera",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Camera"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The resource is visible, but this account may not do this to it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "cameraId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The camera."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
                   "nativeExposures": {
                     "maxItems": 32,
                     "type": "array",
@@ -3739,7 +4112,7 @@
                       ],
                       "additionalProperties": false
                     },
-                    "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
+                    "description": "The endpoints the camera offers by itself, such as its RTSP feed."
                   },
                   "settings": {
                     "type": "object",
@@ -3763,10 +4136,10 @@
         ]
       },
       "delete": {
-        "operationId": "organisations.devices.delete",
+        "operationId": "organisations.cameras.delete",
         "x-operation-version": 1,
-        "summary": "Remove a device",
-        "description": "Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.",
+        "summary": "Remove a camera",
+        "description": "Administrators only. Removes its device too. Refused while a stream uses it as its source.",
         "responses": {
           "204": {
             "description": "Removed"
@@ -3856,14 +4229,14 @@
           },
           {
             "in": "path",
-            "name": "deviceId",
+            "name": "cameraId",
             "schema": {
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             },
             "required": true,
-            "description": "The device."
+            "description": "The camera."
           }
         ],
         "x-operation-versions": [
@@ -3900,50 +4273,34 @@
                               }
                             ]
                           },
+                          "priority": {
+                            "type": "number"
+                          },
+                          "active": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "string"
                           },
-                          "type": {
-                            "type": "string"
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "agent",
+                              "camera"
+                            ]
                           },
                           "name": {
                             "type": "string"
                           },
                           "networkId": {
-                            "type": "string"
-                          },
-                          "nativeExposures": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "networkId": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "protocol": {
-                                  "type": "string"
-                                },
-                                "params": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                }
+                            "anyOf": [
+                              {
+                                "type": "string"
                               },
-                              "required": [
-                                "networkId",
-                                "protocol"
-                              ]
-                            }
-                          },
-                          "settings": {
-                            "type": "object",
-                            "additionalProperties": {}
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
                           "publicKey": {
                             "type": "string"
@@ -3951,28 +4308,20 @@
                           "publicId": {
                             "type": "string"
                           },
-                          "priority": {
-                            "type": "number"
-                          },
-                          "active": {
-                            "type": "boolean"
-                          },
                           "createdAt": {
                             "type": "string"
                           }
                         },
                         "required": [
                           "servedRevisionId",
-                          "id",
-                          "type",
-                          "name",
-                          "networkId",
-                          "nativeExposures",
-                          "settings",
-                          "publicKey",
-                          "publicId",
                           "priority",
                           "active",
+                          "id",
+                          "kind",
+                          "name",
+                          "networkId",
+                          "publicKey",
+                          "publicId",
                           "createdAt"
                         ]
                       }
@@ -4069,80 +4418,56 @@
                     "servedRevisionId": {
                       "type": "null"
                     },
-                    "networkId": {
-                      "type": "string"
-                    },
                     "priority": {
                       "type": "number"
                     },
                     "active": {
                       "type": "boolean"
                     },
-                    "createdAt": {
-                      "type": "string"
-                    },
                     "id": {
                       "type": "string"
                     },
-                    "type": {
-                      "type": "string"
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "camera"
+                      ]
                     },
                     "name": {
                       "type": "string"
                     },
-                    "nativeExposures": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "networkId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "protocol": {
-                            "type": "string"
-                          },
-                          "params": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
                         },
-                        "required": [
-                          "networkId",
-                          "protocol"
-                        ]
-                      }
-                    },
-                    "settings": {
-                      "type": "object",
-                      "additionalProperties": {}
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "publicKey": {
                       "type": "string"
                     },
                     "publicId": {
                       "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
                     }
                   },
                   "required": [
                     "servedRevisionId",
-                    "networkId",
                     "priority",
                     "active",
-                    "createdAt",
                     "id",
-                    "type",
+                    "kind",
                     "name",
-                    "nativeExposures",
-                    "settings",
+                    "networkId",
                     "publicKey",
-                    "publicId"
+                    "publicId",
+                    "createdAt"
                   ]
                 }
               }
@@ -4229,12 +4554,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "type": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "What the device is, such as `camera` or `server`."
-                  },
                   "name": {
                     "type": "string",
                     "minLength": 1,
@@ -4247,63 +4566,6 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                     "description": "The network the agent is on and serves."
                   },
-                  "nativeExposures": {
-                    "default": [],
-                    "maxItems": 32,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "networkId": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uuid",
-                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ],
-                          "description": "A network of the organisation, or null for the internet."
-                        },
-                        "protocol": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 60
-                        },
-                        "params": {
-                          "type": "object",
-                          "propertyNames": {
-                            "type": "string",
-                            "maxLength": 120
-                          },
-                          "additionalProperties": {
-                            "$ref": "#/components/schemas/__schema0"
-                          },
-                          "description": "Settings validated by the implementation that reads them."
-                        }
-                      },
-                      "required": [
-                        "networkId",
-                        "protocol"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
-                  },
-                  "settings": {
-                    "default": {},
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string",
-                      "maxLength": 120
-                    },
-                    "additionalProperties": {
-                      "$ref": "#/components/schemas/__schema0"
-                    },
-                    "description": "Settings validated by the implementation that reads them."
-                  },
                   "priority": {
                     "default": 0,
                     "type": "integer",
@@ -4313,7 +4575,6 @@
                   }
                 },
                 "required": [
-                  "type",
                   "name",
                   "networkId"
                 ],
@@ -4426,7 +4687,7 @@
         "operationId": "organisations.agents.update",
         "x-operation-version": 1,
         "summary": "Update an agent",
-        "description": "Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.",
+        "description": "Administrators only: change its priority. Its name is changed under `/devices`, with the same ID; which agent is active is set on the network.",
         "responses": {
           "200": {
             "description": "The updated agent",
@@ -5166,50 +5427,34 @@
                     "servedRevisionId": {
                       "type": "string"
                     },
+                    "priority": {
+                      "type": "number"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
                     "id": {
                       "type": "string"
                     },
-                    "type": {
-                      "type": "string"
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "camera"
+                      ]
                     },
                     "name": {
                       "type": "string"
                     },
                     "networkId": {
-                      "type": "string"
-                    },
-                    "nativeExposures": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "networkId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "protocol": {
-                            "type": "string"
-                          },
-                          "params": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
+                      "anyOf": [
+                        {
+                          "type": "string"
                         },
-                        "required": [
-                          "networkId",
-                          "protocol"
-                        ]
-                      }
-                    },
-                    "settings": {
-                      "type": "object",
-                      "additionalProperties": {}
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "publicKey": {
                       "type": "string"
@@ -5217,28 +5462,20 @@
                     "publicId": {
                       "type": "string"
                     },
-                    "priority": {
-                      "type": "number"
-                    },
-                    "active": {
-                      "type": "boolean"
-                    },
                     "createdAt": {
                       "type": "string"
                     }
                   },
                   "required": [
                     "servedRevisionId",
-                    "id",
-                    "type",
-                    "name",
-                    "networkId",
-                    "nativeExposures",
-                    "settings",
-                    "publicKey",
-                    "publicId",
                     "priority",
                     "active",
+                    "id",
+                    "kind",
+                    "name",
+                    "networkId",
+                    "publicKey",
+                    "publicId",
                     "createdAt"
                   ]
                 }
@@ -11094,8 +11331,12 @@
                     "id": {
                       "type": "string"
                     },
-                    "type": {
-                      "type": "string"
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "camera"
+                      ]
                     },
                     "name": {
                       "type": "string"
@@ -11110,39 +11351,6 @@
                         }
                       ]
                     },
-                    "nativeExposures": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "networkId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "protocol": {
-                            "type": "string"
-                          },
-                          "params": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
-                        },
-                        "required": [
-                          "networkId",
-                          "protocol"
-                        ]
-                      }
-                    },
-                    "settings": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    },
                     "publicKey": {
                       "type": "string"
                     },
@@ -11155,11 +11363,9 @@
                   },
                   "required": [
                     "id",
-                    "type",
+                    "kind",
                     "name",
                     "networkId",
-                    "nativeExposures",
-                    "settings",
                     "publicKey",
                     "publicId",
                     "createdAt"
@@ -11179,7 +11385,7 @@
             "operationId": "organisations.devices.list",
             "x-operation-version": 1,
             "summary": "List an organisation's devices",
-            "description": "Empty for organisations you are not a member of.",
+            "description": "Every kind (agent, camera), optionally only one. Empty for organisations you are not a member of.",
             "responses": {
               "200": {
                 "description": "The devices, oldest first",
@@ -11245,6 +11451,18 @@
                 "description": "The organisation."
               },
               {
+                "in": "query",
+                "name": "kind",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "agent",
+                    "camera"
+                  ]
+                },
+                "description": "Only devices of this kind."
+              },
+              {
                 "in": "header",
                 "name": "Operation-Version",
                 "required": true,
@@ -11295,45 +11513,18 @@
               "error_description"
             ]
           },
-          "__schema0": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              },
-              {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              }
-            ]
-          },
           "Device": {
             "type": "object",
             "properties": {
               "id": {
                 "type": "string"
               },
-              "type": {
-                "type": "string"
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
               },
               "name": {
                 "type": "string"
@@ -11348,39 +11539,6 @@
                   }
                 ]
               },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
-              },
               "publicKey": {
                 "type": "string"
               },
@@ -11393,332 +11551,9 @@
             },
             "required": [
               "id",
-              "type",
+              "kind",
               "name",
               "networkId",
-              "nativeExposures",
-              "settings",
-              "publicKey",
-              "publicId",
-              "createdAt"
-            ]
-          }
-        }
-      },
-      "paths": {
-        "/organisations/{id}/devices": {
-          "post": {
-            "operationId": "organisations.devices.create",
-            "x-operation-version": 1,
-            "summary": "Add a device",
-            "description": "Administrators only. The device gets a new Ed25519 identity: its public key and public ID.",
-            "responses": {
-              "201": {
-                "description": "The new device",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Device"
-                    }
-                  }
-                }
-              },
-              "400": {
-                "description": "The request is malformed",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "401": {
-                "description": "No signed-in session was presented",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "403": {
-                "description": "The resource is visible, but this account may not do this to it",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "412": {
-                "description": "The selected operation version is not served",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "503": {
-                "description": "The database is unavailable",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              }
-            },
-            "parameters": [
-              {
-                "in": "path",
-                "name": "id",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "required": true,
-                "description": "The organisation."
-              },
-              {
-                "in": "header",
-                "name": "Operation-Version",
-                "required": true,
-                "description": "Selects this immutable operation contract.",
-                "schema": {
-                  "type": "string",
-                  "const": "1"
-                }
-              }
-            ],
-            "requestBody": {
-              "required": true,
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "What the device is, such as `camera` or `server`."
-                      },
-                      "name": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120,
-                        "description": "The device name."
-                      },
-                      "networkId": {
-                        "default": null,
-                        "anyOf": [
-                          {
-                            "type": "string",
-                            "format": "uuid",
-                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ],
-                        "description": "A network of the organisation, or null for the internet."
-                      },
-                      "nativeExposures": {
-                        "default": [],
-                        "maxItems": 32,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "networkId": {
-                              "anyOf": [
-                                {
-                                  "type": "string",
-                                  "format": "uuid",
-                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "A network of the organisation, or null for the internet."
-                            },
-                            "protocol": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 60
-                            },
-                            "params": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string",
-                                "maxLength": 120
-                              },
-                              "additionalProperties": {
-                                "$ref": "#/components/schemas/__schema0"
-                              },
-                              "description": "Settings validated by the implementation that reads them."
-                            }
-                          },
-                          "required": [
-                            "networkId",
-                            "protocol"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
-                      },
-                      "settings": {
-                        "default": {},
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string",
-                          "maxLength": 120
-                        },
-                        "additionalProperties": {
-                          "$ref": "#/components/schemas/__schema0"
-                        },
-                        "description": "Settings validated by the implementation that reads them."
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "name"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "openapi": "3.1.0",
-      "info": {
-        "title": "Studio API",
-        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
-        "version": "0.1.0"
-      },
-      "components": {
-        "responses": {
-          "InvalidRequest": {
-            "description": "The request is invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "schemas": {
-          "Error": {
-            "type": "object",
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_description": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "error",
-              "error_description"
-            ]
-          },
-          "Device": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "networkId": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
-              },
-              "publicKey": {
-                "type": "string"
-              },
-              "publicId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "type",
-              "name",
-              "networkId",
-              "nativeExposures",
-              "settings",
               "publicKey",
               "publicId",
               "createdAt"
@@ -11868,45 +11703,18 @@
               "error_description"
             ]
           },
-          "__schema0": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              },
-              {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              }
-            ]
-          },
           "Device": {
             "type": "object",
             "properties": {
               "id": {
                 "type": "string"
               },
-              "type": {
-                "type": "string"
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
               },
               "name": {
                 "type": "string"
@@ -11921,39 +11729,6 @@
                   }
                 ]
               },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
-              },
               "publicKey": {
                 "type": "string"
               },
@@ -11966,11 +11741,9 @@
             },
             "required": [
               "id",
-              "type",
+              "kind",
               "name",
               "networkId",
-              "nativeExposures",
-              "settings",
               "publicKey",
               "publicId",
               "createdAt"
@@ -11983,8 +11756,8 @@
           "patch": {
             "operationId": "organisations.devices.update",
             "x-operation-version": 1,
-            "summary": "Update a device",
-            "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.",
+            "summary": "Rename or move a device",
+            "description": "Administrators only. Changes only the fields given. An agent’s network cannot change.",
             "responses": {
               "200": {
                 "description": "The updated device",
@@ -12118,12 +11891,6 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "type": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "What the device is, such as `camera` or `server`."
-                      },
                       "name": {
                         "type": "string",
                         "minLength": 1,
@@ -12142,7 +11909,1077 @@
                           }
                         ],
                         "description": "A network of the organisation, or null for the internet."
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Camera": {
+            "type": "object",
+            "properties": {
+              "cameras": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "nativeExposures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "networkId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "protocol": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "networkId",
+                          "protocol"
+                        ]
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "camera"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "nativeExposures",
+                    "settings",
+                    "id",
+                    "kind",
+                    "name",
+                    "networkId",
+                    "publicKey",
+                    "publicId",
+                    "createdAt"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "cameras"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/cameras": {
+          "get": {
+            "operationId": "organisations.cameras.list",
+            "x-operation-version": 1,
+            "summary": "List an organisation's cameras",
+            "description": "Empty for organisations you are not a member of.",
+            "responses": {
+              "200": {
+                "description": "The cameras, oldest first",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Camera"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              }
+            ]
+          },
+          "Camera": {
+            "type": "object",
+            "properties": {
+              "nativeExposures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "protocol"
+                  ]
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "networkId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "nativeExposures",
+              "settings",
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
+              "createdAt"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/cameras": {
+          "post": {
+            "operationId": "organisations.cameras.create",
+            "x-operation-version": 1,
+            "summary": "Add a camera",
+            "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.",
+            "responses": {
+              "201": {
+                "description": "The new camera",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Camera"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The resource is visible, but this account may not do this to it",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "422": {
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "description": "The device name."
                       },
+                      "networkId": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "A network of the organisation, or null for the internet."
+                      },
+                      "nativeExposures": {
+                        "default": [],
+                        "maxItems": 32,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "networkId": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "A network of the organisation, or null for the internet."
+                            },
+                            "protocol": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 60
+                            },
+                            "params": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string",
+                                "maxLength": 120
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/components/schemas/__schema0"
+                              },
+                              "description": "Settings validated by the implementation that reads them."
+                            }
+                          },
+                          "required": [
+                            "networkId",
+                            "protocol"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "description": "The endpoints the camera offers by itself, such as its RTSP feed."
+                      },
+                      "settings": {
+                        "default": {},
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/components/schemas/__schema0"
+                        },
+                        "description": "Settings validated by the implementation that reads them."
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Camera": {
+            "type": "object",
+            "properties": {
+              "nativeExposures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "protocol"
+                  ]
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "networkId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "nativeExposures",
+              "settings",
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
+              "createdAt"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/cameras/{cameraId}": {
+          "get": {
+            "operationId": "organisations.cameras.get",
+            "x-operation-version": 1,
+            "summary": "Read a camera",
+            "responses": {
+              "200": {
+                "description": "The camera",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Camera"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "cameraId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The camera."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              }
+            ]
+          },
+          "Camera": {
+            "type": "object",
+            "properties": {
+              "nativeExposures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "protocol"
+                  ]
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "networkId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "nativeExposures",
+              "settings",
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
+              "createdAt"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/cameras/{cameraId}": {
+          "patch": {
+            "operationId": "organisations.cameras.update",
+            "x-operation-version": 1,
+            "summary": "Update a camera",
+            "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.",
+            "responses": {
+              "200": {
+                "description": "The updated camera",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Camera"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The resource is visible, but this account may not do this to it",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "cameraId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The camera."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
                       "nativeExposures": {
                         "maxItems": 32,
                         "type": "array",
@@ -12185,7 +13022,7 @@
                           ],
                           "additionalProperties": false
                         },
-                        "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
+                        "description": "The endpoints the camera offers by itself, such as its RTSP feed."
                       },
                       "settings": {
                         "type": "object",
@@ -12247,12 +13084,12 @@
         }
       },
       "paths": {
-        "/organisations/{id}/devices/{deviceId}": {
+        "/organisations/{id}/cameras/{cameraId}": {
           "delete": {
-            "operationId": "organisations.devices.delete",
+            "operationId": "organisations.cameras.delete",
             "x-operation-version": 1,
-            "summary": "Remove a device",
-            "description": "Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.",
+            "summary": "Remove a camera",
+            "description": "Administrators only. Removes its device too. Refused while a stream uses it as its source.",
             "responses": {
               "204": {
                 "description": "Removed"
@@ -12342,14 +13179,14 @@
               },
               {
                 "in": "path",
-                "name": "deviceId",
+                "name": "cameraId",
                 "schema": {
                   "type": "string",
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
                 "required": true,
-                "description": "The device."
+                "description": "The camera."
               },
               {
                 "in": "header",
@@ -12420,50 +13257,34 @@
                         }
                       ]
                     },
+                    "priority": {
+                      "type": "number"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
                     "id": {
                       "type": "string"
                     },
-                    "type": {
-                      "type": "string"
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "camera"
+                      ]
                     },
                     "name": {
                       "type": "string"
                     },
                     "networkId": {
-                      "type": "string"
-                    },
-                    "nativeExposures": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "networkId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "protocol": {
-                            "type": "string"
-                          },
-                          "params": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
+                      "anyOf": [
+                        {
+                          "type": "string"
                         },
-                        "required": [
-                          "networkId",
-                          "protocol"
-                        ]
-                      }
-                    },
-                    "settings": {
-                      "type": "object",
-                      "additionalProperties": {}
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "publicKey": {
                       "type": "string"
@@ -12471,28 +13292,20 @@
                     "publicId": {
                       "type": "string"
                     },
-                    "priority": {
-                      "type": "number"
-                    },
-                    "active": {
-                      "type": "boolean"
-                    },
                     "createdAt": {
                       "type": "string"
                     }
                   },
                   "required": [
                     "servedRevisionId",
-                    "id",
-                    "type",
-                    "name",
-                    "networkId",
-                    "nativeExposures",
-                    "settings",
-                    "publicKey",
-                    "publicId",
                     "priority",
                     "active",
+                    "id",
+                    "kind",
+                    "name",
+                    "networkId",
+                    "publicKey",
+                    "publicId",
                     "createdAt"
                   ]
                 }
@@ -12636,45 +13449,11 @@
               "error_description"
             ]
           },
-          "__schema0": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              },
-              {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              }
-            ]
-          },
           "Agent": {
             "type": "object",
             "properties": {
               "servedRevisionId": {
                 "type": "null"
-              },
-              "networkId": {
-                "type": "string"
               },
               "priority": {
                 "type": "number"
@@ -12682,71 +13461,50 @@
               "active": {
                 "type": "boolean"
               },
-              "createdAt": {
-                "type": "string"
-              },
               "id": {
                 "type": "string"
               },
-              "type": {
-                "type": "string"
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
               },
               "name": {
                 "type": "string"
               },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
+              "networkId": {
+                "anyOf": [
+                  {
+                    "type": "string"
                   },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "publicKey": {
                 "type": "string"
               },
               "publicId": {
                 "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
               }
             },
             "required": [
               "servedRevisionId",
-              "networkId",
               "priority",
               "active",
-              "createdAt",
               "id",
-              "type",
+              "kind",
               "name",
-              "nativeExposures",
-              "settings",
+              "networkId",
               "publicKey",
-              "publicId"
+              "publicId",
+              "createdAt"
             ]
           }
         }
@@ -12860,12 +13618,6 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "type": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "What the device is, such as `camera` or `server`."
-                      },
                       "name": {
                         "type": "string",
                         "minLength": 1,
@@ -12878,63 +13630,6 @@
                         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                         "description": "The network the agent is on and serves."
                       },
-                      "nativeExposures": {
-                        "default": [],
-                        "maxItems": 32,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "networkId": {
-                              "anyOf": [
-                                {
-                                  "type": "string",
-                                  "format": "uuid",
-                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "A network of the organisation, or null for the internet."
-                            },
-                            "protocol": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 60
-                            },
-                            "params": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string",
-                                "maxLength": 120
-                              },
-                              "additionalProperties": {
-                                "$ref": "#/components/schemas/__schema0"
-                              },
-                              "description": "Settings validated by the implementation that reads them."
-                            }
-                          },
-                          "required": [
-                            "networkId",
-                            "protocol"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
-                      },
-                      "settings": {
-                        "default": {},
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string",
-                          "maxLength": 120
-                        },
-                        "additionalProperties": {
-                          "$ref": "#/components/schemas/__schema0"
-                        },
-                        "description": "Settings validated by the implementation that reads them."
-                      },
                       "priority": {
                         "default": 0,
                         "type": "integer",
@@ -12944,7 +13639,6 @@
                       }
                     },
                     "required": [
-                      "type",
                       "name",
                       "networkId"
                     ],
@@ -13006,50 +13700,34 @@
                   }
                 ]
               },
+              "priority": {
+                "type": "number"
+              },
+              "active": {
+                "type": "boolean"
+              },
               "id": {
                 "type": "string"
               },
-              "type": {
-                "type": "string"
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
               },
               "name": {
                 "type": "string"
               },
               "networkId": {
-                "type": "string"
-              },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
+                "anyOf": [
+                  {
+                    "type": "string"
                   },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "publicKey": {
                 "type": "string"
@@ -13057,28 +13735,20 @@
               "publicId": {
                 "type": "string"
               },
-              "priority": {
-                "type": "number"
-              },
-              "active": {
-                "type": "boolean"
-              },
               "createdAt": {
                 "type": "string"
               }
             },
             "required": [
               "servedRevisionId",
-              "id",
-              "type",
-              "name",
-              "networkId",
-              "nativeExposures",
-              "settings",
-              "publicKey",
-              "publicId",
               "priority",
               "active",
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
               "createdAt"
             ]
           }
@@ -13239,50 +13909,34 @@
                   }
                 ]
               },
+              "priority": {
+                "type": "number"
+              },
+              "active": {
+                "type": "boolean"
+              },
               "id": {
                 "type": "string"
               },
-              "type": {
-                "type": "string"
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
               },
               "name": {
                 "type": "string"
               },
               "networkId": {
-                "type": "string"
-              },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
+                "anyOf": [
+                  {
+                    "type": "string"
                   },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "publicKey": {
                 "type": "string"
@@ -13290,28 +13944,20 @@
               "publicId": {
                 "type": "string"
               },
-              "priority": {
-                "type": "number"
-              },
-              "active": {
-                "type": "boolean"
-              },
               "createdAt": {
                 "type": "string"
               }
             },
             "required": [
               "servedRevisionId",
-              "id",
-              "type",
-              "name",
-              "networkId",
-              "nativeExposures",
-              "settings",
-              "publicKey",
-              "publicId",
               "priority",
               "active",
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
               "createdAt"
             ]
           }
@@ -13323,7 +13969,7 @@
             "operationId": "organisations.agents.update",
             "x-operation-version": 1,
             "summary": "Update an agent",
-            "description": "Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.",
+            "description": "Administrators only: change its priority. Its name is changed under `/devices`, with the same ID; which agent is active is set on the network.",
             "responses": {
               "200": {
                 "description": "The updated agent",
@@ -14489,50 +15135,34 @@
               "servedRevisionId": {
                 "type": "string"
               },
+              "priority": {
+                "type": "number"
+              },
+              "active": {
+                "type": "boolean"
+              },
               "id": {
                 "type": "string"
               },
-              "type": {
-                "type": "string"
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera"
+                ]
               },
               "name": {
                 "type": "string"
               },
               "networkId": {
-                "type": "string"
-              },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
+                "anyOf": [
+                  {
+                    "type": "string"
                   },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "publicKey": {
                 "type": "string"
@@ -14540,28 +15170,20 @@
               "publicId": {
                 "type": "string"
               },
-              "priority": {
-                "type": "number"
-              },
-              "active": {
-                "type": "boolean"
-              },
               "createdAt": {
                 "type": "string"
               }
             },
             "required": [
               "servedRevisionId",
-              "id",
-              "type",
-              "name",
-              "networkId",
-              "nativeExposures",
-              "settings",
-              "publicKey",
-              "publicId",
               "priority",
               "active",
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
               "createdAt"
             ]
           }

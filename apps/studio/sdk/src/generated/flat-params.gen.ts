@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 
-import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdDevicesByDeviceIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsQuerySchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdDevicesBodySchema, PostOrganisationsByIdDevicesPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
+import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdCamerasByCameraIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, GetOrganisationsByIdAgentsByAgentIdRevisionsQuerySchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdCamerasByCameraIdPathSchema, GetOrganisationsByIdCamerasPathSchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdDevicesQuerySchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdPathSchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema, PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdCamerasBodySchema, PostOrganisationsByIdCamerasPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema, PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
@@ -148,28 +148,11 @@ export const NetworkSetActiveAgentParamsSchema = z.object({
 export type NetworkSetActiveAgentParams = z.infer<typeof NetworkSetActiveAgentParamsSchema>;
 
 export const DeviceListParamsSchema = z.object({
-    id: GetOrganisationsByIdDevicesPathSchema.shape.id.nonoptional().describe('The organisation.')
+    id: GetOrganisationsByIdDevicesPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    kind: GetOrganisationsByIdDevicesQuerySchema.shape.kind.optional().describe('Only devices of this kind.')
 });
 
 export type DeviceListParams = z.infer<typeof DeviceListParamsSchema>;
-
-export const DeviceCreateParamsSchema = z.object({
-    id: PostOrganisationsByIdDevicesPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    type: PostOrganisationsByIdDevicesBodySchema.shape.type.nonoptional().describe('What the device is, such as `camera` or `server`.'),
-    name: PostOrganisationsByIdDevicesBodySchema.shape.name.nonoptional().describe('The device name.'),
-    networkId: PostOrganisationsByIdDevicesBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    nativeExposures: PostOrganisationsByIdDevicesBodySchema.shape.nativeExposures.optional().describe('The endpoints the device offers by itself, such as a camera’s RTSP feed.'),
-    settings: PostOrganisationsByIdDevicesBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
-});
-
-export type DeviceCreateParams = z.infer<typeof DeviceCreateParamsSchema>;
-
-export const DeviceDeleteParamsSchema = z.object({
-    id: DeleteOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    deviceId: DeleteOrganisationsByIdDevicesByDeviceIdPathSchema.shape.deviceId.nonoptional().describe('The device.')
-});
-
-export type DeviceDeleteParams = z.infer<typeof DeviceDeleteParamsSchema>;
 
 export const DeviceGetParamsSchema = z.object({
     id: GetOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
@@ -181,14 +164,50 @@ export type DeviceGetParams = z.infer<typeof DeviceGetParamsSchema>;
 export const DeviceUpdateParamsSchema = z.object({
     id: PatchOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     deviceId: PatchOrganisationsByIdDevicesByDeviceIdPathSchema.shape.deviceId.nonoptional().describe('The device.'),
-    type: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.type.optional().describe('What the device is, such as `camera` or `server`.'),
     name: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.name.optional().describe('The device name.'),
-    networkId: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    nativeExposures: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.nativeExposures.optional().describe('The endpoints the device offers by itself, such as a camera’s RTSP feed.'),
-    settings: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    networkId: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.')
 });
 
 export type DeviceUpdateParams = z.infer<typeof DeviceUpdateParamsSchema>;
+
+export const CameraListParamsSchema = z.object({
+    id: GetOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type CameraListParams = z.infer<typeof CameraListParamsSchema>;
+
+export const CameraCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
+    networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
+    nativeExposures: PostOrganisationsByIdCamerasBodySchema.shape.nativeExposures.optional().describe('The endpoints the camera offers by itself, such as its RTSP feed.'),
+    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+});
+
+export type CameraCreateParams = z.infer<typeof CameraCreateParamsSchema>;
+
+export const CameraDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    cameraId: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.')
+});
+
+export type CameraDeleteParams = z.infer<typeof CameraDeleteParamsSchema>;
+
+export const CameraGetParamsSchema = z.object({
+    id: GetOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    cameraId: GetOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.')
+});
+
+export type CameraGetParams = z.infer<typeof CameraGetParamsSchema>;
+
+export const CameraUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
+    nativeExposures: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.nativeExposures.optional().describe('The endpoints the camera offers by itself, such as its RTSP feed.'),
+    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+});
+
+export type CameraUpdateParams = z.infer<typeof CameraUpdateParamsSchema>;
 
 export const AgentListParamsSchema = z.object({
     id: GetOrganisationsByIdAgentsPathSchema.shape.id.nonoptional().describe('The organisation.'),
@@ -199,11 +218,8 @@ export type AgentListParams = z.infer<typeof AgentListParamsSchema>;
 
 export const AgentCreateParamsSchema = z.object({
     id: PostOrganisationsByIdAgentsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    type: PostOrganisationsByIdAgentsBodySchema.shape.type.nonoptional().describe('What the device is, such as `camera` or `server`.'),
     name: PostOrganisationsByIdAgentsBodySchema.shape.name.nonoptional().describe('The device name.'),
     networkId: PostOrganisationsByIdAgentsBodySchema.shape.networkId.nonoptional().describe('The network the agent is on and serves.'),
-    nativeExposures: PostOrganisationsByIdAgentsBodySchema.shape.nativeExposures.optional().describe('The endpoints the device offers by itself, such as a camera’s RTSP feed.'),
-    settings: PostOrganisationsByIdAgentsBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.'),
     priority: PostOrganisationsByIdAgentsBodySchema.shape.priority.optional().describe('Standby preference; higher is preferred.')
 });
 

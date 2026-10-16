@@ -7,55 +7,26 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
-export const Schema0Schema = z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.array(z.lazy((): any => Schema0Schema)),
-    z.record(z.string(), z.lazy((): any => Schema0Schema))
-]).nullable();
-
 export const AgentSchema = z.object({
     servedRevisionId: z.null(),
-    networkId: z.string(),
     priority: z.number(),
     active: z.boolean(),
-    createdAt: z.string(),
     id: z.string(),
-    type: z.string(),
+    kind: z.enum(['agent', 'camera']),
     name: z.string(),
-    nativeExposures: z.array(z.object({
-        networkId: z.string().nullable(),
-        protocol: z.string(),
-        params: z.record(z.string(), z.unknown()).optional()
-    })),
-    settings: z.record(z.string(), z.unknown()),
+    networkId: z.string().nullable(),
     publicKey: z.string(),
-    publicId: z.string()
+    publicId: z.string(),
+    createdAt: z.string()
 });
 
 export const PostOrganisationsByIdAgentsBodySchema = z.object({
-    type: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'What the device is, such as `camera` or `server`.'
-    }),
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The device name.'
     }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The network the agent is on and serves.'
     }),
-    nativeExposures: z.array(z.object({
-        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-        protocol: z.string().min(1).max(60),
-        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-            description: 'Settings validated by the implementation that reads them.'
-        }).optional()
-    })).max(32).register(z.globalRegistry, {
-        description: 'The endpoints the device offers by itself, such as a camera’s RTSP feed.'
-    }).optional().default([]),
-    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({}),
     priority: z.int().gte(-1000).lte(1000).register(z.globalRegistry, {
         description: 'Standby preference; higher is preferred.'
     }).optional().default(0)

@@ -35,7 +35,8 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `POST /invitations/{id}/decline` | invitees | `invitations.decline` v1 |
 | `GET`, `POST /organisations/{id}/networks`; `GET`, `PATCH`, `DELETE …/networks/{networkId}` | members read, administrators write | `organisations.networks.*` v1 |
 | `PUT /organisations/{id}/networks/{networkId}/active-agent` | administrators | `organisations.networks.setActiveAgent` v1 |
-| `GET`, `POST /organisations/{id}/devices`; `GET`, `PATCH`, `DELETE …/devices/{deviceId}` | members read, administrators write | `organisations.devices.*` v1 |
+| `GET /organisations/{id}/devices`; `GET`, `PATCH …/devices/{deviceId}` | members read, administrators rename and move | `organisations.devices.*` v1: every kind |
+| `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}` | members read, administrators write | `organisations.cameras.*` v1 |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}` | members read, administrators write | `organisations.agents.*` v1 |
 | `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision` | members read, administrators write | `organisations.agents.revisions.*`, `serveRevision` v1 |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
@@ -173,8 +174,9 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 
 ## Stream topology
 
-What each organisation runs, in `src/db/schemas/`: networks, devices, agents (devices that serve the network they are
-on, one active at a time), streams with a source device, their exposures (network, protocol, desired renditions) and recorders (always backed by an exposure of the same stream).
+What each organisation runs, in `src/db/schemas/`: networks, devices of two kinds, cameras and agents (which serve the
+network they are on, one active at a time), streams with a source device, their exposures (network, protocol, desired
+renditions) and recorders (always backed by an exposure of the same stream).
 
 Every row binds to its organisation's scope through `organisation_id`: `organisationMember` reads it all and
 `organisationAdmin` manages it, in the request session. References between rows are composite foreign keys that
@@ -183,16 +185,19 @@ and a delete of something still used (409 `in_use`). A partial unique index allo
 one served configuration revision per agent; a check constraint refuses serving a revision whose diagnostics include
 an error, so a rejected candidate never replaces the served one. Privileges are in the `topology_privileges` migration.
 
-Every device gets an Ed25519 identity when it is created (`src/topology/identity.ts`): `publicKey` (unpadded
-base64url) and `publicId`, derived as iroh derives an endpoint ID (the public key bytes in lowercase hex, unique).
-Neither ever changes. The private key, the 32-byte seed iroh calls a `SecretKey`, is stored encrypted and request
-sessions cannot select it: it is written once, at creation, and only trusted code can read it.
+A device is minimal: a name, a network (or the internet), a `kind` and an Ed25519 identity, generated when it is
+created (`src/topology/identity.ts`): `publicKey` (unpadded base64url) and `publicId`, derived as iroh derives an
+endpoint ID (the public key bytes in lowercase hex, unique). The private key, the 32-byte seed iroh calls a
+`SecretKey`, is stored encrypted and request sessions cannot select it: it is written once, at creation, and only
+trusted code can read it. The kind and identity never change.
 
-An agent is a device with more to it: the `agent` row shares its device's ID, and adds the network it serves (the
-device's own network), its standby priority and whether it is active. `POST …/agents` creates both, the device with
-its identity, and `DELETE …/agents/{agentId}` removes both; the agent routes return the device's fields too, which are
-edited under `…/devices/{deviceId}` with the same ID. A composite foreign key ties the agent to its device and network,
-so while it is an agent, the device cannot be deleted under `/devices` or moved to another network (409 `in_use`).
+Everything else belongs to the device's kind, a table whose row shares the device's ID: a `camera` adds the endpoints
+it offers by itself (`nativeExposures`) and its `settings`; an `agent` adds the network it serves (the device's own),
+its standby priority and whether it is active. Each kind's table carries its kind as a generated column in a composite
+foreign key to the device, so a device is only ever the kind it was created as. `POST …/cameras` and `POST …/agents`
+create the device, with its identity, and its kind's row together, and their `DELETE` removes both; their routes
+return the device's fields too. `/devices` lists every device and renames or moves one, but never creates or deletes:
+an agent's device cannot change network (409 `in_use`), and a device a stream uses as its source cannot be removed.
 
 Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
 configuration builders that produce revisions, how an agent fetches its served revision, and sharing across

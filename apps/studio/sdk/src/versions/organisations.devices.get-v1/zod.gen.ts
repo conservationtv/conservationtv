@@ -9,15 +9,9 @@ export const ErrorSchema = z.object({
 
 export const DeviceSchema = z.object({
     id: z.string(),
-    type: z.string(),
+    kind: z.enum(['agent', 'camera']),
     name: z.string(),
     networkId: z.string().nullable(),
-    nativeExposures: z.array(z.object({
-        networkId: z.string().nullable(),
-        protocol: z.string(),
-        params: z.record(z.string(), z.unknown()).optional()
-    })),
-    settings: z.record(z.string(), z.unknown()),
     publicKey: z.string(),
     publicId: z.string(),
     createdAt: z.string()

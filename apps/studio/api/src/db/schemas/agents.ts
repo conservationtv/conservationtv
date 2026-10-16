@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -19,8 +20,8 @@ import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
- * A device that is also an agent, serving the network it is on: the agent shares the device's ID, and with it the
- * device's identity, name and settings. A network may have several agents for high availability; at most one is
+ * A device that is an agent, serving the network it is on: the agent shares the device's ID, and with it the device's
+ * name and identity. A network may have several agents for high availability; at most one is
  * active, which the partial unique index guarantees.
  */
 export const agents = withAccess(
@@ -31,18 +32,21 @@ export const agents = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
+      kind: text('kind')
+        .generatedAlwaysAs(sql`'agent'`)
+        .notNull(),
       networkId: uuid('network_id').notNull(),
       priority: integer('priority').default(0).notNull(),
-      active: boolean('active').default(false).notNull(),
-      createdAt: timestamp('created_at').defaultNow().notNull()
+      active: boolean('active').default(false).notNull()
     },
     t => [
       unique('agent_organisation_id').on(t.organisationId, t.id),
-      // The agent is its device, on the device's network: neither can change while it is an agent.
+      // The agent is its device, which is an agent and nothing else, on the device's network: the network cannot change
+      // while it is an agent.
       foreignKey({
         name: 'agent_device_fk',
-        columns: [t.organisationId, t.id, t.networkId],
-        foreignColumns: [devices.organisationId, devices.id, devices.networkId]
+        columns: [t.organisationId, t.id, t.kind, t.networkId],
+        foreignColumns: [devices.organisationId, devices.id, devices.kind, devices.networkId]
       }),
       uniqueIndex('agent_network_active')
         .on(t.networkId)
@@ -53,7 +57,7 @@ export const agents = withAccess(
   t => ({
     name: 'agents',
     scope: organisations.$access.scope.via(t.organisationId),
-    immutable: [t.networkId, t.createdAt],
+    immutable: [t.networkId],
     actions: topologyActions,
     roles: topologyRoles
   })

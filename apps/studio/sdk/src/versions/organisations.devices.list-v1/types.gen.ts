@@ -12,19 +12,9 @@ export type Error = {
 export type Device = {
     devices: Array<{
         id: string;
-        type: string;
+        kind: 'agent' | 'camera';
         name: string;
         networkId: string | null;
-        nativeExposures: Array<{
-            networkId: string | null;
-            protocol: string;
-            params?: {
-                [key: string]: unknown;
-            };
-        }>;
-        settings: {
-            [key: string]: unknown;
-        };
         publicKey: string;
         publicId: string;
         createdAt: string;
@@ -39,7 +29,12 @@ export type GetOrganisationsByIdDevicesData = {
          */
         id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Only devices of this kind.
+         */
+        kind?: 'agent' | 'camera';
+    };
     url: '/organisations/{id}/devices';
 };
 

@@ -8,8 +8,8 @@ import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
- * The lasting identity of a logical video feed. Its source is a device of the same organisation (the system resolves
- * which of the device's native feeds to use), or none yet. Replacing the camera does not make a new stream.
+ * The lasting identity of a logical video feed. Its source is a device of the same organisation, usually a camera (the
+ * system resolves which of a camera's native exposures to use), or none yet. Replacing the camera does not make a new stream.
  */
 export const streams = withAccess(
   pgTable(

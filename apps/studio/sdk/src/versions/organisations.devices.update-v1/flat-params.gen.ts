@@ -7,11 +7,8 @@ import { PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsBy
 export const DeviceUpdateV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     deviceId: PatchOrganisationsByIdDevicesByDeviceIdPathSchema.shape.deviceId.nonoptional().describe('The device.'),
-    type: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.type.optional().describe('What the device is, such as `camera` or `server`.'),
     name: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.name.optional().describe('The device name.'),
-    networkId: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    nativeExposures: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.nativeExposures.optional().describe('The endpoints the device offers by itself, such as a camera’s RTSP feed.'),
-    settings: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    networkId: PatchOrganisationsByIdDevicesByDeviceIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.')
 });
 
 export type DeviceUpdateV1Params = z.infer<typeof DeviceUpdateV1ParamsSchema>;

@@ -10,15 +10,9 @@ export const ErrorSchema = z.object({
 export const DeviceSchema = z.object({
     devices: z.array(z.object({
         id: z.string(),
-        type: z.string(),
+        kind: z.enum(['agent', 'camera']),
         name: z.string(),
         networkId: z.string().nullable(),
-        nativeExposures: z.array(z.object({
-            networkId: z.string().nullable(),
-            protocol: z.string(),
-            params: z.record(z.string(), z.unknown()).optional()
-        })),
-        settings: z.record(z.string(), z.unknown()),
         publicKey: z.string(),
         publicId: z.string(),
         createdAt: z.string()
@@ -29,6 +23,12 @@ export const GetOrganisationsByIdDevicesPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     })
+});
+
+export const GetOrganisationsByIdDevicesQuerySchema = z.object({
+    kind: z.enum(['agent', 'camera']).register(z.globalRegistry, {
+        description: 'Only devices of this kind.'
+    }).optional()
 });
 
 /**

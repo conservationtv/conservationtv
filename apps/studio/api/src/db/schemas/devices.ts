@@ -1,17 +1,17 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
-import type { NativeExposure, Settings } from '../../topology/settings.ts';
+import { check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { DEVICE_KINDS, type DeviceKind } from '../../topology/device-kinds.ts';
 import { BytesSchema, encrypted } from '../encrypted.ts';
 import { networks } from './networks.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
- * A camera, server or other device, on a managed network or (`network_id` null) the internet. `native_exposures` are
- * the endpoints it offers by itself, as opposed to the exposures streams manage. Each has an Ed25519 identity from
- * creation (src/topology/identity.ts): the public key and public ID never change, and the private key is encrypted at
- * rest and never readable in a request session.
+ * What every device has, on a managed network or (`network_id` null) the internet: its name, and an Ed25519 identity
+ * from creation (src/topology/identity.ts). The public key and public ID never change, and the private key is
+ * encrypted at rest and never readable in a request session. Everything else belongs to its kind (`agent` or
+ * `camera`), whose row shares the device's ID; the kind never changes, so a device is only ever one of them.
  */
 export const devices = withAccess(
   pgTable(
@@ -23,11 +23,9 @@ export const devices = withAccess(
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
-      type: text('type').notNull(),
+      kind: text('kind').$type<DeviceKind>().notNull(),
       name: text('name').notNull(),
       networkId: uuid('network_id'),
-      nativeExposures: jsonb('native_exposures').$type<NativeExposure[]>().default([]).notNull(),
-      settings: jsonb('settings').$type<Settings>().default({}).notNull(),
       publicKey: text('public_key').notNull(),
       publicId: text('public_id').notNull(),
       privateKey: encrypted('device.private_key', BytesSchema)('private_key').notNull(),
@@ -35,8 +33,10 @@ export const devices = withAccess(
     },
     t => [
       unique('device_organisation_id').on(t.organisationId, t.id),
-      unique('device_organisation_id_network').on(t.organisationId, t.id, t.networkId),
+      unique('device_organisation_id_kind').on(t.organisationId, t.id, t.kind),
+      unique('device_organisation_id_kind_network').on(t.organisationId, t.id, t.kind, t.networkId),
       unique('device_public_id').on(t.publicId),
+      check('device_kind', sql.raw(`kind in (${DEVICE_KINDS.map(kind => `'${kind}'`).join(', ')})`)),
       check('device_public_id_hex', sql`${t.publicId} ~ '^[0-9a-f]{64}$'`),
       foreignKey({
         name: 'device_network_fk',
@@ -49,7 +49,7 @@ export const devices = withAccess(
   t => ({
     name: 'devices',
     scope: organisations.$access.scope.via(t.organisationId),
-    immutable: [t.publicKey, t.publicId, t.privateKey, t.createdAt],
+    immutable: [t.kind, t.publicKey, t.publicId, t.privateKey, t.createdAt],
     actions: topologyActions,
     roles: topologyRoles
   })
