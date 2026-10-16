@@ -8269,7 +8269,7 @@
         "operationId": "reports.submit",
         "x-operation-version": 1,
         "summary": "Submit a batch of reports",
-        "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000. The `batch` is JSON text signed, byte for byte, by the Ed25519 identity of the agent named by `publicId`, its reporter. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.",
+        "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Agents only: the request carries an RFC 9421 HTTP Message Signature by the agent's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type`, RFC 9530 `Content-Digest` and `Idempotency-Key`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. A retry with the same `Idempotency-Key` and body, within a day, returns the first result without storing the batch again; each retry needs a fresh signature.",
         "responses": {
           "202": {
             "description": "Accepted",
@@ -8292,7 +8292,17 @@
             }
           },
           "401": {
-            "description": "The signing key is unknown or revoked, or the signature is wrong",
+            "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The signing device is not an agent",
             "content": {
               "application/json": {
                 "schema": {
@@ -8321,6 +8331,16 @@
               }
             }
           },
+          "422": {
+            "description": "The idempotency key was already used with a different body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "503": {
             "description": "The database is unavailable",
             "content": {
@@ -8332,6 +8352,18 @@
             }
           }
         },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "schema": {
+              "type": "string",
+              "pattern": "^[\\x21-\\x7e]{1,255}$"
+            },
+            "required": true,
+            "description": "Unique to the batch: a retry with the same key and body returns the first result."
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -8339,27 +8371,205 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "publicId": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$",
-                    "description": "The reporting agent's public ID, which identifies its key."
-                  },
-                  "batch": {
-                    "type": "string",
-                    "minLength": 2,
-                    "description": "The batch, as JSON text: the exact bytes that were signed."
-                  },
-                  "signature": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "description": "The agent's Ed25519 signature of the batch text, unpadded base64url."
+                  "reports": {
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "event"
+                            },
+                            "subjectId": {
+                              "type": "string",
+                              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$",
+                              "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+                            },
+                            "observedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "payload": {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 120
+                                },
+                                "data": {
+                                  "default": {},
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "maxLength": 120
+                                  },
+                                  "additionalProperties": {
+                                    "$ref": "#/components/schemas/__schema0"
+                                  },
+                                  "description": "Settings validated by the implementation that reads them."
+                                }
+                              },
+                              "required": [
+                                "type"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "subjectId",
+                            "observedAt",
+                            "payload"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "metric"
+                            },
+                            "subjectId": {
+                              "type": "string",
+                              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$",
+                              "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+                            },
+                            "observedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "payload": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "gauge",
+                                    "counter"
+                                  ]
+                                },
+                                "value": {
+                                  "type": "number"
+                                },
+                                "unit": {
+                                  "default": null,
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 60
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "dimensions": {
+                                  "default": {},
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 60
+                                  },
+                                  "additionalProperties": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  }
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "type",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "subjectId",
+                            "observedAt",
+                            "payload"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "log"
+                            },
+                            "subjectId": {
+                              "type": "string",
+                              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$",
+                              "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+                            },
+                            "observedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "payload": {
+                              "type": "object",
+                              "properties": {
+                                "level": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 20
+                                },
+                                "message": {
+                                  "type": "string",
+                                  "maxLength": 16384
+                                },
+                                "context": {
+                                  "default": {},
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "maxLength": 120
+                                  },
+                                  "additionalProperties": {
+                                    "$ref": "#/components/schemas/__schema0"
+                                  },
+                                  "description": "Settings validated by the implementation that reads them."
+                                }
+                              },
+                              "required": [
+                                "level",
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "subjectId",
+                            "observedAt",
+                            "payload"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
                   }
                 },
                 "required": [
-                  "publicId",
-                  "batch",
-                  "signature"
+                  "reports"
                 ],
                 "additionalProperties": false
               }
@@ -20480,6 +20690,37 @@
               "error_description"
             ]
           },
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              }
+            ]
+          },
           "Report": {
             "type": "object",
             "properties": {
@@ -20499,7 +20740,7 @@
             "operationId": "reports.submit",
             "x-operation-version": 1,
             "summary": "Submit a batch of reports",
-            "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000. The `batch` is JSON text signed, byte for byte, by the Ed25519 identity of the agent named by `publicId`, its reporter. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.",
+            "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Agents only: the request carries an RFC 9421 HTTP Message Signature by the agent's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type`, RFC 9530 `Content-Digest` and `Idempotency-Key`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. A retry with the same `Idempotency-Key` and body, within a day, returns the first result without storing the batch again; each retry needs a fresh signature.",
             "responses": {
               "202": {
                 "description": "Accepted",
@@ -20522,7 +20763,17 @@
                 }
               },
               "401": {
-                "description": "The signing key is unknown or revoked, or the signature is wrong",
+                "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The signing device is not an agent",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -20551,6 +20802,16 @@
                   }
                 }
               },
+              "422": {
+                "description": "The idempotency key was already used with a different body",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
               "503": {
                 "description": "The database is unavailable",
                 "content": {
@@ -20562,41 +20823,17 @@
                 }
               }
             },
-            "requestBody": {
-              "required": true,
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "publicId": {
-                        "type": "string",
-                        "pattern": "^[0-9a-f]{64}$",
-                        "description": "The reporting agent's public ID, which identifies its key."
-                      },
-                      "batch": {
-                        "type": "string",
-                        "minLength": 2,
-                        "description": "The batch, as JSON text: the exact bytes that were signed."
-                      },
-                      "signature": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128,
-                        "description": "The agent's Ed25519 signature of the batch text, unpadded base64url."
-                      }
-                    },
-                    "required": [
-                      "publicId",
-                      "batch",
-                      "signature"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            },
             "parameters": [
+              {
+                "in": "header",
+                "name": "idempotency-key",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[\\x21-\\x7e]{1,255}$"
+                },
+                "required": true,
+                "description": "Unique to the batch: a retry with the same key and body returns the first result."
+              },
               {
                 "in": "header",
                 "name": "Operation-Version",
@@ -20607,7 +20844,219 @@
                   "const": "1"
                 }
               }
-            ]
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "reports": {
+                        "minItems": 1,
+                        "maxItems": 1000,
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "event"
+                                },
+                                "subjectId": {
+                                  "type": "string",
+                                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$",
+                                  "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+                                },
+                                "observedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                },
+                                "payload": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 120
+                                    },
+                                    "data": {
+                                      "default": {},
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      "additionalProperties": {
+                                        "$ref": "#/components/schemas/__schema0"
+                                      },
+                                      "description": "Settings validated by the implementation that reads them."
+                                    }
+                                  },
+                                  "required": [
+                                    "type"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "subjectId",
+                                "observedAt",
+                                "payload"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "metric"
+                                },
+                                "subjectId": {
+                                  "type": "string",
+                                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$",
+                                  "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+                                },
+                                "observedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                },
+                                "payload": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "gauge",
+                                        "counter"
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "unit": {
+                                      "default": null,
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 60
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "dimensions": {
+                                      "default": {},
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 60
+                                      },
+                                      "additionalProperties": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "type",
+                                    "value"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "subjectId",
+                                "observedAt",
+                                "payload"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "log"
+                                },
+                                "subjectId": {
+                                  "type": "string",
+                                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$",
+                                  "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+                                },
+                                "observedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                },
+                                "payload": {
+                                  "type": "object",
+                                  "properties": {
+                                    "level": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 20
+                                    },
+                                    "message": {
+                                      "type": "string",
+                                      "maxLength": 16384
+                                    },
+                                    "context": {
+                                      "default": {},
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      "additionalProperties": {
+                                        "$ref": "#/components/schemas/__schema0"
+                                      },
+                                      "description": "Settings validated by the implementation that reads them."
+                                    }
+                                  },
+                                  "required": [
+                                    "level",
+                                    "message"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "subjectId",
+                                "observedAt",
+                                "payload"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "reports"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
           }
         }
       }

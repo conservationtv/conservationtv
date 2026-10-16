@@ -2,12 +2,11 @@
 
 import * as z from 'zod';
 
-import { PostReportsBodySchema } from './zod.gen.js';
+import { PostReportsBodySchema, PostReportsHeadersSchema } from './zod.gen.js';
 
 export const ReportSubmitV1ParamsSchema = z.object({
-    publicId: PostReportsBodySchema.shape.publicId.nonoptional().describe('The reporting agent\'s public ID, which identifies its key.'),
-    batch: PostReportsBodySchema.shape.batch.nonoptional().describe('The batch, as JSON text: the exact bytes that were signed.'),
-    signature: PostReportsBodySchema.shape.signature.nonoptional().describe('The agent\'s Ed25519 signature of the batch text, unpadded base64url.')
+    'idempotency-key': PostReportsHeadersSchema.shape['idempotency-key'].nonoptional().describe('Unique to the batch: a retry with the same key and body returns the first result.'),
+    reports: PostReportsBodySchema.shape.reports.nonoptional()
 });
 
 export type ReportSubmitV1Params = z.infer<typeof ReportSubmitV1ParamsSchema>;

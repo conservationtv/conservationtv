@@ -1,24 +1,25 @@
-import { parseStrictJson } from '@conservationtv/versioned-api/server';
+import { createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { agents, devices, logRecords, metricSamples, observations } from '../db/schema.ts';
+import { useCache } from '../cache/cache.ts';
+import { agents, logRecords, metricSamples, observations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { trusted, type Transaction } from '../organisations/membership.ts';
+import type { AuthenticatedDevice } from '../middleware/device.ts';
 import { useServices } from '../services.ts';
 import { MetricDimensionsSchema, SettingsSchema } from '../topology/settings.ts';
-import { verifySignature } from './signatures.ts';
 import { SubjectIdSchema } from './subjects.ts';
 
-// Signed report ingestion: trusted code on the owning connection, because the signature, not a session, authenticates
-// the reporter. An agent is a device (src/db/schemas/agents.ts), and sends its reports in batches, each signed once with
-// its identity: the submission names the agent by its public ID, and the signature must cover the batch text exactly
-// under its public key. Reports are stored in the agent's organisation, about whichever subject they name
-// (src/reports/subjects.ts): which subjects an agent may report about is not restricted yet.
+// Report ingestion: trusted code on the owning connection, because the device's signature, not a session,
+// authenticates the reporter (src/middleware/device.ts). Only an agent reports, in batches, about whichever subjects it
+// names (src/reports/subjects.ts): which subjects an agent may report about is not restricted yet.
 //
-// A batch is accepted or refused whole, and only for trust or shape: a bad signature, a signer that is not an agent, a
-// malformed report or one observed in the future. Everything else is stored as given. Reports are cheap operational signals, so
-// nothing deduplicates them: an agent that retries a batch may store it twice. Ordering, late reports and their effect
-// on state are the state consumer's concern.
+// A batch is accepted or refused whole, and only for trust or shape: an unsigned or tampered request, a device that is
+// not an agent, a malformed report or one observed in the future. Everything else is stored as given. Each batch
+// carries an idempotency key, and a retry with the same key and body returns the first result without storing the
+// batch again; the result is kept in the cache (src/cache/cache.ts) for a day, so with Workers KV, two concurrent or
+// near-simultaneous retries can still both be stored. Ordering, late reports and their effect on state are the state
+// consumer's concern.
 
 /** How far ahead of the control plane's clock a report's observation time may be. */
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
@@ -26,16 +27,22 @@ const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 /** The most reports one batch may carry. */
 export const MAX_BATCH_REPORTS = 1000;
 
-/** A signed batch, as the ingestion endpoint receives it. */
-export const SubmissionSchema = z.strictObject({
-  publicId: z
-    .string()
-    .regex(/^[0-9a-f]{64}$/)
-    .describe("The reporting agent's public ID, which identifies its key."),
-  batch: z.string().min(2).describe('The batch, as JSON text: the exact bytes that were signed.'),
-  signature: z.string().min(1).max(128).describe("The agent's Ed25519 signature of the batch text, unpadded base64url.")
-});
-export type Submission = z.output<typeof SubmissionSchema>;
+/** How long a batch's result is kept for retries with its idempotency key. */
+const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+
+export const IdempotencyKeySchema = z
+  .string()
+  .regex(/^[\x21-\x7e]{1,255}$/)
+  .describe('Unique to the batch: a retry with the same key and body returns the first result.');
+export type IdempotencyKey = z.output<typeof IdempotencyKeySchema>;
+
+/** What a stored batch returns, and what a retry with its key returns again. */
+const AcceptedSchema = z.object({ accepted: z.int() });
+export type Accepted = z.output<typeof AcceptedSchema>;
+
+/** A batch's stored result, with the SHA-256 of the body it was stored from. */
+const IdempotentResultSchema = z.object({ bodyHash: z.string(), result: AcceptedSchema });
+export type IdempotentResult = z.output<typeof IdempotentResultSchema>;
 
 const reportOf = <Kind extends string, Payload extends z.ZodType>(kind: Kind, payload: Payload) =>
   z.strictObject({
@@ -82,42 +89,21 @@ export const BatchSchema = z.strictObject({
 });
 export type Batch = z.output<typeof BatchSchema>;
 
-/** The agent whose identity signed the submission, or `invalidSignature`. */
-async function signer(tx: Transaction, submission: Submission) {
+/** The signing device's agent, which must exist: only agents report. */
+async function reportingAgent(tx: Transaction, device: AuthenticatedDevice) {
   const [agent] = await tx
-    .select({ id: agents.id, organisationId: agents.organisationId, publicKey: devices.publicKey })
+    .select({ id: agents.id, organisationId: agents.organisationId })
     .from(agents)
-    .innerJoin(devices, eq(devices.id, agents.id))
-    .where(eq(devices.publicId, submission.publicId));
-  // An unknown device, a device that is not an agent and a wrong signature are indistinguishable to the submitter.
-  if (!agent || !(await verifySignature(agent.publicKey, submission.batch, submission.signature)))
-    throw new ApiFailure('invalid_signature');
+    .where(eq(agents.id, device.id));
+  if (!agent) throw new ApiFailure('not_an_agent');
   return agent;
 }
 
-/** The signed batch text as strict JSON (no duplicate members), for the batch schema to parse. */
-function batchJson(submission: Submission) {
-  try {
-    return parseStrictJson(submission.batch);
-  } catch (error) {
-    throw new ApiFailure('invalid_report', { cause: error });
-  }
-}
-
-/** The signed batch, parsed with the batch schema. */
-function parseBatch(submission: Submission) {
-  const parsed = BatchSchema.safeParse(batchJson(submission));
-  if (!parsed.success) throw new ApiFailure('invalid_report', { cause: parsed.error });
-  return parsed.data;
-}
-
-/** Verify a submission's signer and signature, then store every report in its batch. */
-export function ingestBatch(submission: Submission) {
+/** Store every report in the batch, as the device's agent. */
+function storeBatch(device: AuthenticatedDevice, batch: Batch) {
   return trusted(async tx => {
-    // Authenticate first, so nothing about an unsigned batch is parsed; then refuse it whole if any report is from the
-    // future, and otherwise store each kind of report with one insert.
-    const agent = await signer(tx, submission);
-    const batch = parseBatch(submission);
+    // Refuse the whole batch if any report is from the future, then store each kind with one insert.
+    const agent = await reportingAgent(tx, device);
     const services = useServices();
     const now = services.clock();
     if (batch.reports.some(report => Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS))
@@ -142,4 +128,35 @@ export function ingestBatch(submission: Submission) {
       await tx.insert(logRecords).values(logs.map(report => ({ ...reported(report), ...report.payload })));
     return { accepted: batch.reports.length };
   });
+}
+
+/** The result stored under the key, if any; `idempotency_key_reused` if it was for a different body. */
+async function previousResult(key: string, bodyHash: string) {
+  const cache = useCache();
+  const stored = await cache.get(key);
+  if (stored === null) return undefined;
+  const previous = IdempotentResultSchema.parse(JSON.parse(stored));
+  if (previous.bodyHash !== bodyHash) throw new ApiFailure('idempotency_key_reused');
+  return previous.result;
+}
+
+/**
+ * Store a signed batch once per idempotency key: a retry with the same key and body returns the first result. `body`
+ * is the request body the batch was parsed from.
+ */
+export async function ingestBatch(
+  device: AuthenticatedDevice,
+  idempotencyKey: string,
+  body: ArrayBuffer,
+  batch: Batch
+) {
+  const key = `report-batch:${device.id}:${idempotencyKey}`;
+  const bodyHash = createHash('sha256').update(Buffer.from(body)).digest('base64');
+  const previous = await previousResult(key, bodyHash);
+  if (previous) return previous;
+  const result = await storeBatch(device, batch);
+  const cache = useCache();
+  const stored: IdempotentResult = { bodyHash, result };
+  await cache.put(key, JSON.stringify(stored), IDEMPOTENCY_TTL_SECONDS);
+  return result;
 }
