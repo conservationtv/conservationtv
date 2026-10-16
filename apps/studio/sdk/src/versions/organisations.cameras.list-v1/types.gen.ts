@@ -12,13 +12,6 @@ export type Error = {
 export type Camera = {
     cameras: Array<{
         id: string;
-        nativeExposures: Array<{
-            networkId: string | null;
-            protocol: string;
-            params?: {
-                [key: string]: unknown;
-            };
-        }>;
         settings: {
             [key: string]: unknown;
         };

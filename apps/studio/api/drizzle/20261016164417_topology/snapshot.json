@@ -1,10 +1,10 @@
 {
-  "id": "a69ebbff-1d0b-4728-aa80-c0d151cd4d71",
-  "prevIds": [
-    "dd02a5bb-b970-4c3c-98b5-a122d661eddf"
-  ],
   "version": "8",
   "dialect": "postgres",
+  "id": "6c5f8a0d-dc76-4a70-8393-ad5ede40b7ed",
+  "prevIds": [
+    "7b944b2d-1ba4-49d1-8333-93023f61dc7d"
+  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -1399,19 +1399,6 @@
       },
       "identity": null,
       "name": "kind",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "camera"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'[]'",
-      "generated": null,
-      "identity": null,
-      "name": "native_exposures",
       "entityType": "columns",
       "schema": "public",
       "table": "camera"

@@ -56,19 +56,6 @@ export class Cameras extends HeyApiClient {
         id: string;
         name: string;
         networkId?: string | null;
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
         settings?: {
             [key: string]: Schema0;
         };
@@ -77,7 +64,6 @@ export class Cameras extends HeyApiClient {
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'nativeExposures' },
                     { in: 'body', key: 'settings' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError>({

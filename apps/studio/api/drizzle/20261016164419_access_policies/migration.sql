@@ -159,7 +159,7 @@ grant select on "camera" to "studio_app";
 --> statement-breakpoint
 grant insert, delete on "camera" to "studio_app";
 --> statement-breakpoint
-grant update ("native_exposures", "settings") on "camera" to "studio_app";
+grant update ("settings") on "camera" to "studio_app";
 --> statement-breakpoint
 alter table "configuration_revision" enable row level security;
 --> statement-breakpoint

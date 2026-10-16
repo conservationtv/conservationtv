@@ -16,14 +16,6 @@ export const NetworkReferenceSchema = z
   .describe('A network of the organisation, or null for the internet.');
 export type NetworkReference = z.output<typeof NetworkReferenceSchema>;
 
-/** An endpoint a device offers by itself, such as a camera's RTSP feed: not a managed exposure. */
-export const NativeExposureSchema = z.strictObject({
-  networkId: NetworkReferenceSchema,
-  protocol: z.string().trim().min(1).max(60),
-  params: SettingsSchema.optional()
-});
-export type NativeExposure = z.output<typeof NativeExposureSchema>;
-
 /** A quality an exposure should deliver, identified within the exposure. */
 export const RenditionSchema = z.strictObject({
   id: z.string().trim().min(1).max(60),

@@ -10,11 +10,6 @@ export const ErrorSchema = z.object({
 export const CameraSchema = z.object({
     cameras: z.array(z.object({
         id: z.string(),
-        nativeExposures: z.array(z.object({
-            networkId: z.string().nullable(),
-            protocol: z.string(),
-            params: z.record(z.string(), z.unknown()).optional()
-        })),
         settings: z.record(z.string(), z.unknown()),
         device: z.object({
             name: z.string(),

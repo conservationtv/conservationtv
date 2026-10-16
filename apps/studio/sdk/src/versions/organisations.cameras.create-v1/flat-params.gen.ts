@@ -8,7 +8,6 @@ export const CameraCreateV1ParamsSchema = z.object({
     id: PostOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.'),
     name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
     networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    nativeExposures: PostOrganisationsByIdCamerasBodySchema.shape.nativeExposures.optional().describe('The endpoints the camera offers by itself, such as its RTSP feed.'),
     settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
 });
 

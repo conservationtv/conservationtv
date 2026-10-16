@@ -195,8 +195,8 @@ endpoint ID (the public key bytes in lowercase hex, unique). The private key, th
 `SecretKey`, is stored encrypted and request sessions cannot select it: it is written once, at creation, and only
 trusted code can read it. The kind and identity never change.
 
-Everything else belongs to the device's kind, a table whose row shares the device's ID: a `camera` adds the endpoints
-it offers by itself (`nativeExposures`) and its `settings`; an `agent` adds the network it serves (the device's own),
+Everything else belongs to the device's kind, a table whose row shares the device's ID: a `camera` adds its `settings`
+(including the endpoints it offers by itself, from which those are derived); an `agent` adds the network it serves (the device's own),
 its standby priority and whether it is active. Each kind's table carries its kind as a generated column in a composite
 foreign key to the device, so a device is only ever the kind it was created as. `POST …/cameras` and `POST …/agents`
 create the device, with its identity, and its kind's row together, and their `DELETE` removes both. Their routes
