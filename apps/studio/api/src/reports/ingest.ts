@@ -1,5 +1,5 @@
 import { parseStrictJson } from '@conservationtv/versioned-api/server';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { agents, devices, logRecords, metricSamples, observations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
@@ -10,13 +10,13 @@ import { verifySignature } from './signatures.ts';
 import { SubjectIdSchema } from './subjects.ts';
 
 // Signed report ingestion: trusted code on the owning connection, because the signature, not a session, authenticates
-// the reporter. An agent sends its reports in batches, each signed once with its host device's identity: the
-// submission names the device by its public ID, the signature must cover the batch text exactly under the device's
-// public key, and the reporting agent must run on that device. Reports are stored in that agent's organisation, about
-// whichever subject they name (src/reports/subjects.ts): which subjects an agent may report about is not restricted yet.
+// the reporter. An agent is a device (src/db/schemas/agents.ts), and sends its reports in batches, each signed once with
+// its identity: the submission names the agent by its public ID, and the signature must cover the batch text exactly
+// under its public key. Reports are stored in the agent's organisation, about whichever subject they name
+// (src/reports/subjects.ts): which subjects an agent may report about is not restricted yet.
 //
-// A batch is accepted or refused whole, and only for trust or shape: a bad signature, the wrong reporter, a malformed
-// report or one observed in the future. Everything else is stored as given. Reports are cheap operational signals, so
+// A batch is accepted or refused whole, and only for trust or shape: a bad signature, a signer that is not an agent, a
+// malformed report or one observed in the future. Everything else is stored as given. Reports are cheap operational signals, so
 // nothing deduplicates them: an agent that retries a batch may store it twice. Ordering, late reports and their effect
 // on state are the state consumer's concern.
 
@@ -31,13 +31,9 @@ export const SubmissionSchema = z.strictObject({
   publicId: z
     .string()
     .regex(/^[0-9a-f]{64}$/)
-    .describe("The signing device's public ID: the reporting agent's host device."),
+    .describe("The reporting agent's public ID, which identifies its key."),
   batch: z.string().min(2).describe('The batch, as JSON text: the exact bytes that were signed.'),
-  signature: z
-    .string()
-    .min(1)
-    .max(128)
-    .describe("The device's Ed25519 signature of the batch text, unpadded base64url.")
+  signature: z.string().min(1).max(128).describe("The agent's Ed25519 signature of the batch text, unpadded base64url.")
 });
 export type Submission = z.output<typeof SubmissionSchema>;
 
@@ -77,9 +73,8 @@ export const LogReportSchema = reportOf(
 );
 export type LogReport = z.output<typeof LogReportSchema>;
 
-/** The signed batch: one reporter's reports, of any kinds and subjects. */
+/** The signed batch: one agent's reports, of any kinds and subjects. */
 export const BatchSchema = z.strictObject({
-  reporterId: z.uuid(),
   reports: z
     .array(z.discriminatedUnion('kind', [EventReportSchema, MetricReportSchema, LogReportSchema]))
     .min(1)
@@ -87,24 +82,16 @@ export const BatchSchema = z.strictObject({
 });
 export type Batch = z.output<typeof BatchSchema>;
 
-/** The device whose identity signed the submission, or `invalidSignature`. */
+/** The agent whose identity signed the submission, or `invalidSignature`. */
 async function signer(tx: Transaction, submission: Submission) {
-  const [device] = await tx
-    .select({ id: devices.id, publicKey: devices.publicKey })
-    .from(devices)
-    .where(eq(devices.publicId, submission.publicId));
-  // An unknown device and a wrong signature are indistinguishable to the submitter.
-  if (!device || !(await verifySignature(device.publicKey, submission.batch, submission.signature)))
-    throw new ApiFailure('invalid_signature');
-  return device;
-}
-
-/** The reporting agent, if it runs on the signing device. */
-async function reporter(tx: Transaction, deviceId: string, batch: Batch) {
   const [agent] = await tx
-    .select({ id: agents.id, organisationId: agents.organisationId })
+    .select({ id: agents.id, organisationId: agents.organisationId, publicKey: devices.publicKey })
     .from(agents)
-    .where(and(eq(agents.id, batch.reporterId), eq(agents.deviceId, deviceId)));
+    .innerJoin(devices, eq(devices.id, agents.id))
+    .where(eq(devices.publicId, submission.publicId));
+  // An unknown device, a device that is not an agent and a wrong signature are indistinguishable to the submitter.
+  if (!agent || !(await verifySignature(agent.publicKey, submission.batch, submission.signature)))
+    throw new ApiFailure('invalid_signature');
   return agent;
 }
 
@@ -124,14 +111,13 @@ function parseBatch(submission: Submission) {
   return parsed.data;
 }
 
-/** Verify a submission's key and signature, then store every report in its batch. */
+/** Verify a submission's signer and signature, then store every report in its batch. */
 export function ingestBatch(submission: Submission) {
   return trusted(async tx => {
-    const device = await signer(tx, submission);
+    // Authenticate first, so nothing about an unsigned batch is parsed; then refuse it whole if any report is from the
+    // future, and otherwise store each kind of report with one insert.
+    const agent = await signer(tx, submission);
     const batch = parseBatch(submission);
-    // The signature authenticates the device, so the batch must claim an agent that runs on it as its reporter.
-    const agent = await reporter(tx, device.id, batch);
-    if (!agent) throw new ApiFailure('invalid_signature');
     const services = useServices();
     const now = services.clock();
     if (batch.reports.some(report => Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS))

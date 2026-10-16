@@ -5,9 +5,9 @@ import * as z from 'zod';
 import { PostReportsBodySchema } from './zod.gen.js';
 
 export const ReportSubmitV1ParamsSchema = z.object({
-    publicId: PostReportsBodySchema.shape.publicId.nonoptional().describe('The signing device\'s public ID: the reporting agent\'s host device.'),
+    publicId: PostReportsBodySchema.shape.publicId.nonoptional().describe('The reporting agent\'s public ID, which identifies its key.'),
     batch: PostReportsBodySchema.shape.batch.nonoptional().describe('The batch, as JSON text: the exact bytes that were signed.'),
-    signature: PostReportsBodySchema.shape.signature.nonoptional().describe('The device\'s Ed25519 signature of the batch text, unpadded base64url.')
+    signature: PostReportsBodySchema.shape.signature.nonoptional().describe('The agent\'s Ed25519 signature of the batch text, unpadded base64url.')
 });
 
 export type ReportSubmitV1Params = z.infer<typeof ReportSubmitV1ParamsSchema>;

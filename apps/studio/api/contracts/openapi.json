@@ -815,6 +815,284 @@
           "params",
           "createdAt"
         ]
+      },
+      "Subject": {
+        "type": "object",
+        "properties": {
+          "subjectId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "object",
+            "properties": {
+              "health": {
+                "type": "string"
+              },
+              "state": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "freshness": {
+                "type": "string",
+                "enum": [
+                  "fresh",
+                  "stale"
+                ]
+              },
+              "observedAt": {
+                "type": "string"
+              },
+              "expiresAt": {
+                "type": "string"
+              },
+              "computedAt": {
+                "type": "string"
+              },
+              "contributingReporterIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "evidenceReportIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "health",
+              "state",
+              "freshness",
+              "observedAt",
+              "expiresAt",
+              "computedAt",
+              "contributingReporterIds",
+              "evidenceReportIds"
+            ]
+          },
+          "reachable": {
+            "type": "boolean"
+          },
+          "opinions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reporterId": {
+                  "type": "string"
+                },
+                "health": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "freshness": {
+                  "type": "string",
+                  "enum": [
+                    "fresh",
+                    "stale"
+                  ]
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "type": "string"
+                },
+                "evidenceReportIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "reporterId",
+                "health",
+                "state",
+                "freshness",
+                "observedAt",
+                "expiresAt",
+                "evidenceReportIds"
+              ]
+            }
+          }
+        },
+        "required": [
+          "subjectId",
+          "state",
+          "reachable",
+          "opinions"
+        ]
+      },
+      "Observation": {
+        "type": "object",
+        "properties": {
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "reporterId": {
+                  "type": "string"
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "receivedAt": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "id",
+                "reporterId",
+                "observedAt",
+                "receivedAt",
+                "type",
+                "data"
+              ]
+            }
+          }
+        },
+        "required": [
+          "observations"
+        ]
+      },
+      "Metric": {
+        "type": "object",
+        "properties": {
+          "samples": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "reporterId": {
+                  "type": "string"
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "receivedAt": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "unit": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dimensions": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "reporterId",
+                "observedAt",
+                "receivedAt",
+                "name",
+                "type",
+                "unit",
+                "dimensions",
+                "value"
+              ]
+            }
+          }
+        },
+        "required": [
+          "samples"
+        ]
+      },
+      "Log": {
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "reporterId": {
+                  "type": "string"
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "receivedAt": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "context": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "id",
+                "reporterId",
+                "observedAt",
+                "receivedAt",
+                "level",
+                "message",
+                "context"
+              ]
+            }
+          }
+        },
+        "required": [
+          "logs"
+        ]
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "accepted"
+        ]
       }
     }
   },
@@ -4790,7 +5068,7 @@
         "operationId": "organisations.agents.delete",
         "x-operation-version": 1,
         "summary": "Remove an agent",
-        "description": "Administrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.",
+        "description": "Administrators only. Removes its device too, its configuration revisions and every report it made. Refused while a stream uses its device as its source.",
         "responses": {
           "204": {
             "description": "Removed"
@@ -7123,6 +7401,423 @@
         ]
       }
     },
+    "/organisations/{id}/subjects/{subjectId}/state": {
+      "get": {
+        "operationId": "organisations.subjects.state",
+        "x-operation-version": 1,
+        "summary": "Read a subject's current state",
+        "description": "The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one.",
+        "responses": {
+          "200": {
+            "description": "The state, with opinions oldest reporter first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "subjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+            },
+            "required": true,
+            "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/subjects/{subjectId}/observations": {
+      "get": {
+        "operationId": "organisations.subjects.observations.list",
+        "x-operation-version": 1,
+        "summary": "List the events reported about a subject",
+        "description": "Every reporter’s accepted event reports, newest observation first.",
+        "responses": {
+          "200": {
+            "description": "The observations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Observation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "subjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+            },
+            "required": true,
+            "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "description": "At most this many, newest first."
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "description": "Only those observed before this time, to page back."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/subjects/{subjectId}/metrics": {
+      "get": {
+        "operationId": "organisations.subjects.metrics.list",
+        "x-operation-version": 1,
+        "summary": "List the metric samples reported about a subject",
+        "description": "Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.",
+        "responses": {
+          "200": {
+            "description": "The samples",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metric"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "subjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+            },
+            "required": true,
+            "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "description": "At most this many, newest first."
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "description": "Only those observed before this time, to page back."
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "Only samples of this metric."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/subjects/{subjectId}/logs": {
+      "get": {
+        "operationId": "organisations.subjects.logs.list",
+        "x-operation-version": 1,
+        "summary": "List the logs reported about a subject",
+        "description": "Every reporter’s accepted log reports, newest observation first.",
+        "responses": {
+          "200": {
+            "description": "The log records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Log"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "subjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+            },
+            "required": true,
+            "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "description": "At most this many, newest first."
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "description": "Only those observed before this time, to page back."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
     "/invitations": {
       "get": {
         "operationId": "invitations.listMine",
@@ -7559,6 +8254,113 @@
                     "description": "The one-time code from an emailed invitation's link."
                   }
                 },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/reports": {
+      "post": {
+        "operationId": "reports.submit",
+        "x-operation-version": 1,
+        "summary": "Submit a batch of reports",
+        "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000. The `batch` is JSON text signed, byte for byte, by the Ed25519 identity of the agent named by `publicId`, its reporter. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The signing key is unknown or revoked, or the signature is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The submission is larger than 1 MiB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "publicId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$",
+                    "description": "The reporting agent's public ID, which identifies its key."
+                  },
+                  "batch": {
+                    "type": "string",
+                    "minLength": 2,
+                    "description": "The batch, as JSON text: the exact bytes that were signed."
+                  },
+                  "signature": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "The agent's Ed25519 signature of the batch text, unpadded base64url."
+                  }
+                },
+                "required": [
+                  "publicId",
+                  "batch",
+                  "signature"
+                ],
                 "additionalProperties": false
               }
             }
@@ -14287,7 +15089,7 @@
             "operationId": "organisations.agents.delete",
             "x-operation-version": 1,
             "summary": "Remove an agent",
-            "description": "Administrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.",
+            "description": "Administrators only. Removes its device too, its configuration revisions and every report it made. Refused while a stream uses its device as its source.",
             "responses": {
               "204": {
                 "description": "Removed"
@@ -18121,6 +18923,882 @@
               "error_description"
             ]
           },
+          "Subject": {
+            "type": "object",
+            "properties": {
+              "subjectId": {
+                "type": "string"
+              },
+              "state": {
+                "type": "object",
+                "properties": {
+                  "health": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "freshness": {
+                    "type": "string",
+                    "enum": [
+                      "fresh",
+                      "stale"
+                    ]
+                  },
+                  "observedAt": {
+                    "type": "string"
+                  },
+                  "expiresAt": {
+                    "type": "string"
+                  },
+                  "computedAt": {
+                    "type": "string"
+                  },
+                  "contributingReporterIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidenceReportIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "health",
+                  "state",
+                  "freshness",
+                  "observedAt",
+                  "expiresAt",
+                  "computedAt",
+                  "contributingReporterIds",
+                  "evidenceReportIds"
+                ]
+              },
+              "reachable": {
+                "type": "boolean"
+              },
+              "opinions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "reporterId": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "freshness": {
+                      "type": "string",
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "evidenceReportIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "reporterId",
+                    "health",
+                    "state",
+                    "freshness",
+                    "observedAt",
+                    "expiresAt",
+                    "evidenceReportIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "subjectId",
+              "state",
+              "reachable",
+              "opinions"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/{subjectId}/state": {
+          "get": {
+            "operationId": "organisations.subjects.state",
+            "x-operation-version": 1,
+            "summary": "Read a subject's current state",
+            "description": "The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one.",
+            "responses": {
+              "200": {
+                "description": "The state, with opinions oldest reporter first",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Subject"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "subjectId",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+                },
+                "required": true,
+                "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Observation": {
+            "type": "object",
+            "properties": {
+              "observations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reporterId": {
+                      "type": "string"
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "receivedAt": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reporterId",
+                    "observedAt",
+                    "receivedAt",
+                    "type",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "observations"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/{subjectId}/observations": {
+          "get": {
+            "operationId": "organisations.subjects.observations.list",
+            "x-operation-version": 1,
+            "summary": "List the events reported about a subject",
+            "description": "Every reporter’s accepted event reports, newest observation first.",
+            "responses": {
+              "200": {
+                "description": "The observations",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Observation"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "subjectId",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+                },
+                "required": true,
+                "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+              },
+              {
+                "in": "query",
+                "name": "limit",
+                "schema": {
+                  "default": 100,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000
+                },
+                "description": "At most this many, newest first."
+              },
+              {
+                "in": "query",
+                "name": "before",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "description": "Only those observed before this time, to page back."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Metric": {
+            "type": "object",
+            "properties": {
+              "samples": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reporterId": {
+                      "type": "string"
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "receivedAt": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "unit": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "dimensions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reporterId",
+                    "observedAt",
+                    "receivedAt",
+                    "name",
+                    "type",
+                    "unit",
+                    "dimensions",
+                    "value"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "samples"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/{subjectId}/metrics": {
+          "get": {
+            "operationId": "organisations.subjects.metrics.list",
+            "x-operation-version": 1,
+            "summary": "List the metric samples reported about a subject",
+            "description": "Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.",
+            "responses": {
+              "200": {
+                "description": "The samples",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Metric"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "subjectId",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+                },
+                "required": true,
+                "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+              },
+              {
+                "in": "query",
+                "name": "limit",
+                "schema": {
+                  "default": 100,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000
+                },
+                "description": "At most this many, newest first."
+              },
+              {
+                "in": "query",
+                "name": "before",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "description": "Only those observed before this time, to page back."
+              },
+              {
+                "in": "query",
+                "name": "name",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "description": "Only samples of this metric."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Log": {
+            "type": "object",
+            "properties": {
+              "logs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "reporterId": {
+                      "type": "string"
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "receivedAt": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "context": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reporterId",
+                    "observedAt",
+                    "receivedAt",
+                    "level",
+                    "message",
+                    "context"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "logs"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/{subjectId}/logs": {
+          "get": {
+            "operationId": "organisations.subjects.logs.list",
+            "x-operation-version": 1,
+            "summary": "List the logs reported about a subject",
+            "description": "Every reporter’s accepted log reports, newest observation first.",
+            "responses": {
+              "200": {
+                "description": "The log records",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Log"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "subjectId",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+                },
+                "required": true,
+                "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+              },
+              {
+                "in": "query",
+                "name": "limit",
+                "schema": {
+                  "default": 100,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000
+                },
+                "description": "At most this many, newest first."
+              },
+              {
+                "in": "query",
+                "name": "before",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "description": "Only those observed before this time, to page back."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
           "Invitation": {
             "type": "object",
             "properties": {
@@ -18762,6 +20440,174 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Report": {
+            "type": "object",
+            "properties": {
+              "accepted": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "accepted"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/reports": {
+          "post": {
+            "operationId": "reports.submit",
+            "x-operation-version": 1,
+            "summary": "Submit a batch of reports",
+            "description": "Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000. The `batch` is JSON text signed, byte for byte, by the Ed25519 identity of the agent named by `publicId`, its reporter. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.",
+            "responses": {
+              "202": {
+                "description": "Accepted",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Report"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The signing key is unknown or revoked, or the signature is wrong",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "413": {
+                "description": "The submission is larger than 1 MiB",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "publicId": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$",
+                        "description": "The reporting agent's public ID, which identifies its key."
+                      },
+                      "batch": {
+                        "type": "string",
+                        "minLength": 2,
+                        "description": "The batch, as JSON text: the exact bytes that were signed."
+                      },
+                      "signature": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "description": "The agent's Ed25519 signature of the batch text, unpadded base64url."
+                      }
+                    },
+                    "required": [
+                      "publicId",
+                      "batch",
+                      "signature"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
           }
         }
       }

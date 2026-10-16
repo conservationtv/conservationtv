@@ -1444,13 +1444,13 @@ export const PostInvitationsByIdDeclineResponseSchema = z.void().register(z.glob
 
 export const PostReportsBodySchema = z.object({
     publicId: z.string().regex(/^[0-9a-f]{64}$/).register(z.globalRegistry, {
-        description: 'The signing device\'s public ID: the reporting agent\'s host device.'
+        description: 'The reporting agent\'s public ID, which identifies its key.'
     }),
     batch: z.string().min(2).register(z.globalRegistry, {
         description: 'The batch, as JSON text: the exact bytes that were signed.'
     }),
     signature: z.string().min(1).max(128).register(z.globalRegistry, {
-        description: 'The device\'s Ed25519 signature of the batch text, unpadded base64url.'
+        description: 'The agent\'s Ed25519 signature of the batch text, unpadded base64url.'
     })
 });
 
