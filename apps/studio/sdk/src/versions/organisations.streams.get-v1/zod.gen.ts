@@ -8,10 +8,11 @@ export const ErrorSchema = z.object({
 });
 
 export const StreamSchema = z.object({
+    name: z.string(),
+    id: z.string(),
+    createdAt: z.string(),
+    sourceDeviceId: z.string().nullable(),
     exposures: z.array(z.object({
-        id: z.string(),
-        networkId: z.string().nullable(),
-        protocol: z.string(),
         params: z.object({
             renditions: z.array(z.object({
                 id: z.string(),
@@ -20,19 +21,18 @@ export const StreamSchema = z.object({
                 bitrate: z.number().optional()
             })).optional()
         }),
-        createdAt: z.string()
+        id: z.string(),
+        createdAt: z.string(),
+        networkId: z.string().nullable(),
+        protocol: z.string()
     })),
     recorders: z.array(z.object({
-        id: z.string(),
-        exposureId: z.string(),
-        kind: z.string(),
         params: z.record(z.string(), z.unknown()),
-        createdAt: z.string()
-    })),
-    id: z.string(),
-    name: z.string(),
-    sourceDeviceId: z.string().nullable(),
-    createdAt: z.string()
+        id: z.string(),
+        createdAt: z.string(),
+        kind: z.string(),
+        exposureId: z.string()
+    }))
 });
 
 export const GetOrganisationsByIdStreamsByStreamIdPathSchema = z.object({
