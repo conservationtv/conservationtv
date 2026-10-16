@@ -10,8 +10,17 @@ export const ErrorSchema = z.object({
 export const AgentSchema = z.object({
     servedRevisionId: z.string(),
     id: z.string(),
+    type: z.string(),
+    name: z.string(),
     networkId: z.string(),
-    deviceId: z.string(),
+    nativeExposures: z.array(z.object({
+        networkId: z.string().nullable(),
+        protocol: z.string(),
+        params: z.record(z.string(), z.unknown()).optional()
+    })),
+    settings: z.record(z.string(), z.unknown()),
+    publicKey: z.string(),
+    publicId: z.string(),
     priority: z.number(),
     active: z.boolean(),
     createdAt: z.string()

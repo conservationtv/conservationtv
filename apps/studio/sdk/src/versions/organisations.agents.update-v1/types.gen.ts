@@ -10,10 +10,23 @@ export type Error = {
 };
 
 export type Agent = {
-    servedRevisionId: string;
+    servedRevisionId: string | null;
     id: string;
+    type: string;
+    name: string;
     networkId: string;
-    deviceId: string;
+    nativeExposures: Array<{
+        networkId: string | null;
+        protocol: string;
+        params?: {
+            [key: string]: unknown;
+        };
+    }>;
+    settings: {
+        [key: string]: unknown;
+    };
+    publicKey: string;
+    publicId: string;
     priority: number;
     active: boolean;
     createdAt: string;
@@ -22,13 +35,9 @@ export type Agent = {
 export type PatchOrganisationsByIdAgentsByAgentIdData = {
     body: {
         /**
-         * The device the agent runs on.
-         */
-        deviceId?: string;
-        /**
          * Standby preference; higher is preferred.
          */
-        priority?: number;
+        priority: number;
     };
     path: {
         /**
@@ -65,10 +74,6 @@ export type PatchOrganisationsByIdAgentsByAgentIdErrors = {
      * The selected operation version is not served
      */
     412: Error;
-    /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
-     */
-    422: Error;
     /**
      * The database is unavailable
      */

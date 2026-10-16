@@ -43,6 +43,10 @@ export type DeleteOrganisationsByIdAgentsByAgentIdErrors = {
      */
     404: Error;
     /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;

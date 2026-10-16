@@ -27,11 +27,16 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const DeviceParamsSchema = OrganisationParamsSchema.extend({ deviceId: z.uuid().describe('The device.') });
 export type DeviceParams = z.output<typeof DeviceParamsSchema>;
 
-const DeviceTypeSchema = z.string().trim().min(1).max(60).describe('What the device is, such as `camera` or `server`.');
+export const DeviceTypeSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(60)
+  .describe('What the device is, such as `camera` or `server`.');
 export type DeviceType = z.output<typeof DeviceTypeSchema>;
-const DeviceNameSchema = z.string().trim().min(1).max(120).describe('The device name.');
+export const DeviceNameSchema = z.string().trim().min(1).max(120).describe('The device name.');
 export type DeviceName = z.output<typeof DeviceNameSchema>;
-const NativeExposuresSchema = z
+export const NativeExposuresSchema = z
   .array(NativeExposureSchema)
   .max(32)
   .describe('The endpoints the device offers by itself, such as a camera’s RTSP feed.');
@@ -197,13 +202,14 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a device',
       description:
-        'Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.',
+        'Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.',
       responses: {
         200: { description: 'The updated device' },
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
         404: notFound,
+        409: inUse,
         412: versionMismatch,
         422: invalidReference,
         503: unavailable
@@ -264,7 +270,8 @@ export default new Hono()
       operationId: 'organisations.devices.delete',
       ...operationVersion(1),
       summary: 'Remove a device',
-      description: 'Administrators only. Refused while an agent runs on it or a stream uses it as its source.',
+      description:
+        'Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,

@@ -301,8 +301,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('delete', { description: 'Remove a device\n\nAdministrators only. Refused while an agent runs on it or a stream uses it as its source.' }).command('v1', {
-        description: 'Remove a device\n\nAdministrators only. Refused while an agent runs on it or a stream uses it as its source.',
+    })).command(Cli.create('delete', { description: 'Remove a device\n\nAdministrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.' }).command('v1', {
+        description: 'Remove a device\n\nAdministrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.',
         options: cliOptions(DeviceDeleteV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -325,8 +325,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update a device\n\nAdministrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.' }).command('v1', {
-        description: 'Update a device\n\nAdministrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.',
+    })).command(Cli.create('update', { description: 'Update a device\n\nAdministrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.' }).command('v1', {
+        description: 'Update a device\n\nAdministrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.',
         options: cliOptions(DeviceUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -337,8 +337,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    }))).command(Cli.create('agents').command(Cli.create('list', { description: 'List an organisation\'s agents\n\nOptionally only those registered on one network. Empty for organisations you are not a member of.' }).command('v1', {
-        description: 'List an organisation\'s agents\n\nOptionally only those registered on one network. Empty for organisations you are not a member of.',
+    }))).command(Cli.create('agents').command(Cli.create('list', { description: 'List an organisation\'s agents\n\nOptionally only those on one network. Empty for organisations you are not a member of.' }).command('v1', {
+        description: 'List an organisation\'s agents\n\nOptionally only those on one network. Empty for organisations you are not a member of.',
         options: cliOptions(AgentListV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -349,8 +349,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('create', { description: 'Register an agent\n\nAdministrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.' }).command('v1', {
-        description: 'Register an agent\n\nAdministrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.',
+    })).command(Cli.create('create', { description: 'Add an agent\n\nAdministrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.' }).command('v1', {
+        description: 'Add an agent\n\nAdministrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.',
         options: cliOptions(AgentCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -361,8 +361,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('delete', { description: 'Remove an agent\n\nAdministrators only. Deletes its configuration revisions.' }).command('v1', {
-        description: 'Remove an agent\n\nAdministrators only. Deletes its configuration revisions.',
+    })).command(Cli.create('delete', { description: 'Remove an agent\n\nAdministrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.' }).command('v1', {
+        description: 'Remove an agent\n\nAdministrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.',
         options: cliOptions(AgentDeleteV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -385,8 +385,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update an agent\n\nAdministrators only: move it to another device, or change its priority. An agent stays on its network; which agent is active is set on the network.' }).command('v1', {
-        description: 'Update an agent\n\nAdministrators only: move it to another device, or change its priority. An agent stays on its network; which agent is active is set on the network.',
+    })).command(Cli.create('update', { description: 'Update an agent\n\nAdministrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.' }).command('v1', {
+        description: 'Update an agent\n\nAdministrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.',
         options: cliOptions(AgentUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

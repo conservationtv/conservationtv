@@ -50,7 +50,7 @@ export class Agents extends HeyApiClient {
     /**
      * List an organisation's agents
      *
-     * Optionally only those registered on one network. Empty for organisations you are not a member of.
+     * Optionally only those on one network. Empty for organisations you are not a member of.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;

@@ -7,8 +7,7 @@ import { PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsById
 export const AgentUpdateV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     agentId: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.agentId.nonoptional().describe('The agent.'),
-    deviceId: PatchOrganisationsByIdAgentsByAgentIdBodySchema.shape.deviceId.optional().describe('The device the agent runs on.'),
-    priority: PatchOrganisationsByIdAgentsByAgentIdBodySchema.shape.priority.optional().describe('Standby preference; higher is preferred.')
+    priority: PatchOrganisationsByIdAgentsByAgentIdBodySchema.shape.priority.nonoptional().describe('Standby preference; higher is preferred.')
 });
 
 export type AgentUpdateV1Params = z.infer<typeof AgentUpdateV1ParamsSchema>;

@@ -173,9 +173,8 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 
 ## Stream topology
 
-What each organisation runs, in `src/db/schemas/`: networks, devices,
-the agents that serve a network from a host device (one active at a time), streams with a source device, their
-exposures (network, protocol, desired renditions) and recorders (always backed by an exposure of the same stream).
+What each organisation runs, in `src/db/schemas/`: networks, devices, agents (devices that serve the network they are
+on, one active at a time), streams with a source device, their exposures (network, protocol, desired renditions) and recorders (always backed by an exposure of the same stream).
 
 Every row binds to its organisation's scope through `organisation_id`: `organisationMember` reads it all and
 `organisationAdmin` manages it, in the request session. References between rows are composite foreign keys that
@@ -188,6 +187,12 @@ Every device gets an Ed25519 identity when it is created (`src/topology/identity
 base64url) and `publicId`, derived as iroh derives an endpoint ID (the public key bytes in lowercase hex, unique).
 Neither ever changes. The private key, the 32-byte seed iroh calls a `SecretKey`, is stored encrypted and request
 sessions cannot select it: it is written once, at creation, and only trusted code can read it.
+
+An agent is a device with more to it: the `agent` row shares its device's ID, and adds the network it serves (the
+device's own network), its standby priority and whether it is active. `POST …/agents` creates both, the device with
+its identity, and `DELETE …/agents/{agentId}` removes both; the agent routes return the device's fields too, which are
+edited under `…/devices/{deviceId}` with the same ID. A composite foreign key ties the agent to its device and network,
+so while it is an agent, the device cannot be deleted under `/devices` or moved to another network (409 `in_use`).
 
 Not built yet: agents' signed reports and the state derived from them, failover from expired agent state, the
 configuration builders that produce revisions, how an agent fetches its served revision, and sharing across

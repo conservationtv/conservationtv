@@ -19,14 +19,14 @@ CREATE TABLE "device" (
 	"private_key" bytea NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "device_organisation_id" UNIQUE("organisation_id","id"),
+	CONSTRAINT "device_organisation_id_network" UNIQUE("organisation_id","id","network_id"),
 	CONSTRAINT "device_public_id_hex" CHECK ("public_id" ~ '^[0-9a-f]{64}$')
 );
 --> statement-breakpoint
 CREATE TABLE "agent" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7(),
+	"id" uuid PRIMARY KEY,
 	"organisation_id" uuid NOT NULL,
 	"network_id" uuid NOT NULL,
-	"device_id" uuid NOT NULL,
 	"priority" integer DEFAULT 0 NOT NULL,
 	"active" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -78,7 +78,6 @@ CREATE TABLE "stream" (
 CREATE INDEX "device_network_idx" ON "device" ("network_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "agent_network_active" ON "agent" ("network_id") WHERE "active";--> statement-breakpoint
 CREATE INDEX "agent_network_idx" ON "agent" ("network_id");--> statement-breakpoint
-CREATE INDEX "agent_device_idx" ON "agent" ("device_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "configuration_revision_agent_served" ON "configuration_revision" ("agent_id") WHERE "served";--> statement-breakpoint
 CREATE INDEX "configuration_revision_agent_idx" ON "configuration_revision" ("agent_id");--> statement-breakpoint
 CREATE INDEX "exposure_network_idx" ON "exposure" ("network_id");--> statement-breakpoint
@@ -89,8 +88,7 @@ ALTER TABLE "network" ADD CONSTRAINT "network_organisation_id_organisation_id_fk
 ALTER TABLE "device" ADD CONSTRAINT "device_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "device" ADD CONSTRAINT "device_network_fk" FOREIGN KEY ("organisation_id","network_id") REFERENCES "network"("organisation_id","id");--> statement-breakpoint
 ALTER TABLE "agent" ADD CONSTRAINT "agent_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "agent" ADD CONSTRAINT "agent_network_fk" FOREIGN KEY ("organisation_id","network_id") REFERENCES "network"("organisation_id","id");--> statement-breakpoint
-ALTER TABLE "agent" ADD CONSTRAINT "agent_device_fk" FOREIGN KEY ("organisation_id","device_id") REFERENCES "device"("organisation_id","id");--> statement-breakpoint
+ALTER TABLE "agent" ADD CONSTRAINT "agent_device_fk" FOREIGN KEY ("organisation_id","id","network_id") REFERENCES "device"("organisation_id","id","network_id");--> statement-breakpoint
 ALTER TABLE "configuration_revision" ADD CONSTRAINT "configuration_revision_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "configuration_revision" ADD CONSTRAINT "configuration_revision_agent_fk" FOREIGN KEY ("organisation_id","agent_id") REFERENCES "agent"("organisation_id","id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "exposure" ADD CONSTRAINT "exposure_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint

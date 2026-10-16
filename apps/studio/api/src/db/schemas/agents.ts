@@ -15,47 +15,39 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { BuildDiagnostic, Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
-import { networks } from './networks.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
- * An agent serving one network from a host device of the same organisation. A network may have several for high
- * availability; at most one is active, which the partial unique index guarantees.
+ * A device that is also an agent, serving the network it is on: the agent shares the device's ID, and with it the
+ * device's identity, name and settings. A network may have several agents for high availability; at most one is
+ * active, which the partial unique index guarantees.
  */
 export const agents = withAccess(
   pgTable(
     'agent',
     {
-      id: uuid('id')
-        .primaryKey()
-        .default(sql`uuidv7()`),
+      id: uuid('id').primaryKey(),
       organisationId: uuid('organisation_id')
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
       networkId: uuid('network_id').notNull(),
-      deviceId: uuid('device_id').notNull(),
       priority: integer('priority').default(0).notNull(),
       active: boolean('active').default(false).notNull(),
       createdAt: timestamp('created_at').defaultNow().notNull()
     },
     t => [
       unique('agent_organisation_id').on(t.organisationId, t.id),
-      foreignKey({
-        name: 'agent_network_fk',
-        columns: [t.organisationId, t.networkId],
-        foreignColumns: [networks.organisationId, networks.id]
-      }),
+      // The agent is its device, on the device's network: neither can change while it is an agent.
       foreignKey({
         name: 'agent_device_fk',
-        columns: [t.organisationId, t.deviceId],
-        foreignColumns: [devices.organisationId, devices.id]
+        columns: [t.organisationId, t.id, t.networkId],
+        foreignColumns: [devices.organisationId, devices.id, devices.networkId]
       }),
       uniqueIndex('agent_network_active')
         .on(t.networkId)
         .where(sql`${t.active}`),
-      index('agent_network_idx').on(t.networkId),
-      index('agent_device_idx').on(t.deviceId)
+      index('agent_network_idx').on(t.networkId)
     ]
   ),
   t => ({
