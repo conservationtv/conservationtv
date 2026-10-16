@@ -1,10 +1,10 @@
 {
+  "id": "ffebee12-316a-41be-8156-68418c0b74ee",
+  "prevIds": [
+    "b5024754-1635-48d9-a08f-b1af0919723e"
+  ],
   "version": "8",
   "dialect": "postgres",
-  "id": "7d33c1d8-6535-4e84-94b0-430dc506aa3d",
-  "prevIds": [
-    "55bea5dd-52a3-461f-a19e-50a6e3c3268b"
-  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -1410,7 +1410,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "uuidv7()",
+      "default": null,
       "generated": null,
       "identity": null,
       "name": "id",
@@ -1440,19 +1440,6 @@
       "generated": null,
       "identity": null,
       "name": "network_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "agent"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "device_id",
       "entityType": "columns",
       "schema": "public",
       "table": "agent"
@@ -2838,27 +2825,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "device_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "agent_device_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "agent"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "agent_id",
           "isExpression": false,
           "asc": true,
@@ -3315,32 +3281,15 @@
       "nameExplicit": true,
       "columns": [
         "organisation_id",
+        "id",
         "network_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "network",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "agent_network_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "agent"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
-        "device_id"
       ],
       "schemaTo": "public",
       "tableTo": "device",
       "columnsTo": [
         "organisation_id",
-        "id"
+        "id",
+        "network_id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
@@ -3975,6 +3924,19 @@
       ],
       "nullsNotDistinct": false,
       "name": "device_organisation_id",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "device"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "id",
+        "network_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "device_organisation_id_network",
       "entityType": "uniques",
       "schema": "public",
       "table": "device"

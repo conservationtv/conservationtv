@@ -3641,7 +3641,7 @@ export type PostInvitationsByIdDeclineResponse = PostInvitationsByIdDeclineRespo
 export type PostReportsData = {
     body: {
         /**
-         * The signing device's public ID: the reporting agent's host device.
+         * The reporting agent's public ID, which identifies its key.
          */
         publicId: string;
         /**
@@ -3649,7 +3649,7 @@ export type PostReportsData = {
          */
         batch: string;
         /**
-         * The device's Ed25519 signature of the batch text, unpadded base64url.
+         * The agent's Ed25519 signature of the batch text, unpadded base64url.
          */
         signature: string;
     };

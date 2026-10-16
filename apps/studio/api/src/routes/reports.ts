@@ -24,7 +24,7 @@ export default new Hono().post(
     operationId: 'reports.submit',
     ...operationVersion(1),
     summary: 'Submit a batch of reports',
-    description: `Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most ${MAX_BATCH_REPORTS}. The \`batch\` is JSON text signed, byte for byte, by the Ed25519 identity of the device named by \`publicId\`, and its \`reporterId\` must be an agent running on that device. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.`,
+    description: `Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most ${MAX_BATCH_REPORTS}. The \`batch\` is JSON text signed, byte for byte, by the Ed25519 identity of the agent named by \`publicId\`, its reporter. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.`,
     responses: {
       202: { description: 'Accepted' },
       400: invalidRequest,

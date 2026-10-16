@@ -229,14 +229,13 @@ organisation revokes every grant at it. Nothing authenticates a device yet; once
 The only triggers are umbrella's `authz_immutable`, which refuse request sessions' changes to immutable columns.
 
 Agents report to `POST /reports` without a session, in batches. Each submission is `{ publicId, batch, signature }`:
-`batch` is the JSON text `{ reporterId, reports: [...] }`, signed once, byte for byte, with the identity of the device
-named by `publicId`, which must be the reporting agent's host. A batch holds up to 1000 reports of any kind (`event`,
-`metric` or `log`) and subject, each with its own `observedAt`, and the whole submission may be at most 1 MiB.
-Ingestion is trusted code (`src/reports/ingest.ts`): it verifies the signature under the device's public key and that
-`reporterId` runs on it, refuses malformed reports and those observed more than five minutes ahead, and stores the
-batch in that agent's organisation with one insert per kind. Moving an agent to another host moves which key it signs
-with. A batch is stored or refused whole, and only for trust or
-shape. Nothing is deduplicated, so a retried batch may be stored twice. Request sessions only read reports.
+`batch` is the JSON text `{ reports: [...] }`, signed once, byte for byte, with the identity of the agent named by
+`publicId`, its reporter. A batch holds up to 1000 reports of any kind (`event`, `metric` or `log`) and subject, each
+with its own `observedAt`, and the whole submission may be at most 1 MiB. Ingestion is trusted code
+(`src/reports/ingest.ts`): it verifies the signature under the agent's public key, refuses malformed reports and those
+observed more than five minutes ahead, and stores the batch in the agent's organisation with one insert per kind. A
+batch is stored or refused whole, and only for trust or shape. Nothing is deduplicated, so a retried batch may be
+stored twice. Request sessions only read reports.
 
 A report's `subjectId` names what it is about by convention (`src/reports/subjects.ts`), not by reference:
 `<kind>:<id>` for a network, device, agent, stream or exposure, such as `device:0199e8b2-…`, or `external:<name>` for

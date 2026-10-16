@@ -50,7 +50,7 @@ export class Reports extends HeyApiClient {
     /**
      * Submit a batch of reports
      *
-     * Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000. The `batch` is JSON text signed, byte for byte, by the Ed25519 identity of the device named by `publicId`, and its `reporterId` must be an agent running on that device. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.
+     * Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000. The `batch` is JSON text signed, byte for byte, by the Ed25519 identity of the agent named by `publicId`, its reporter. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.
      */
     public submit<ThrowOnError extends boolean = false>(parameters: {
         publicId: string;
