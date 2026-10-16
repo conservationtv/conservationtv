@@ -153,43 +153,23 @@ export default new Hono()
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
-      const row = await session.transaction(async tx => {
-        const [stream] = await tx
-          .select({
-            id: streams.id,
-            name: streams.name,
-            sourceDeviceId: streams.sourceDeviceId,
-            createdAt: streams.createdAt
-          })
-          .from(streams)
-          .where(and(eq(streams.organisationId, id), eq(streams.id, streamId)));
-        if (!stream) throw new ApiFailure('not_found');
-        return {
-          ...stream,
-          exposures: await tx
-            .select({
-              id: exposures.id,
-              networkId: exposures.networkId,
-              protocol: exposures.protocol,
-              params: exposures.params,
-              createdAt: exposures.createdAt
-            })
-            .from(exposures)
-            .where(eq(exposures.streamId, streamId))
-            .orderBy(exposures.id),
-          recorders: await tx
-            .select({
-              id: recorders.id,
-              exposureId: recorders.exposureId,
-              kind: recorders.kind,
-              params: recorders.params,
-              createdAt: recorders.createdAt
-            })
-            .from(recorders)
-            .where(eq(recorders.streamId, streamId))
-            .orderBy(recorders.id)
-        };
-      });
+      const row = await session.transaction(tx =>
+        tx.query.streams.findFirst({
+          columns: { id: true, name: true, sourceDeviceId: true, createdAt: true },
+          where: { organisationId: id, id: streamId },
+          with: {
+            exposures: {
+              columns: { id: true, networkId: true, protocol: true, params: true, createdAt: true },
+              orderBy: { id: 'asc' }
+            },
+            recorders: {
+              columns: { id: true, exposureId: true, kind: true, params: true, createdAt: true },
+              orderBy: { id: 'asc' }
+            }
+          }
+        })
+      );
+      if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }

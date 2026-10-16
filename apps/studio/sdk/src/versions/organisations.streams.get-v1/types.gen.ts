@@ -10,10 +10,11 @@ export type Error = {
 };
 
 export type Stream = {
+    name: string;
+    id: string;
+    createdAt: string;
+    sourceDeviceId: string | null;
     exposures: Array<{
-        id: string;
-        networkId: string | null;
-        protocol: string;
         params: {
             renditions?: Array<{
                 id: string;
@@ -23,21 +24,20 @@ export type Stream = {
             }>;
             [key: string]: unknown;
         };
+        id: string;
         createdAt: string;
+        networkId: string | null;
+        protocol: string;
     }>;
     recorders: Array<{
-        id: string;
-        exposureId: string;
-        kind: string;
         params: {
             [key: string]: unknown;
         };
+        id: string;
         createdAt: string;
+        kind: string;
+        exposureId: string;
     }>;
-    id: string;
-    name: string;
-    sourceDeviceId: string | null;
-    createdAt: string;
 };
 
 export type GetOrganisationsByIdStreamsByStreamIdData = {

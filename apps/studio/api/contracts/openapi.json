@@ -585,27 +585,30 @@
       "Stream": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "sourceDeviceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "exposures": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "networkId": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "protocol": {
-                  "type": "string"
-                },
                 "params": {
                   "type": "object",
                   "properties": {
@@ -635,16 +638,32 @@
                   },
                   "additionalProperties": {}
                 },
+                "id": {
+                  "type": "string"
+                },
                 "createdAt": {
+                  "type": "string"
+                },
+                "networkId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "protocol": {
                   "type": "string"
                 }
               },
               "required": [
-                "id",
-                "networkId",
-                "protocol",
                 "params",
-                "createdAt"
+                "id",
+                "createdAt",
+                "networkId",
+                "protocol"
               ]
             }
           },
@@ -653,59 +672,40 @@
             "items": {
               "type": "object",
               "properties": {
+                "params": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
                 "id": {
                   "type": "string"
                 },
-                "exposureId": {
+                "createdAt": {
                   "type": "string"
                 },
                 "kind": {
                   "type": "string"
                 },
-                "params": {
-                  "type": "object",
-                  "additionalProperties": {}
-                },
-                "createdAt": {
+                "exposureId": {
                   "type": "string"
                 }
               },
               "required": [
-                "id",
-                "exposureId",
-                "kind",
                 "params",
-                "createdAt"
+                "id",
+                "createdAt",
+                "kind",
+                "exposureId"
               ]
             }
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "sourceDeviceId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "createdAt": {
-            "type": "string"
           }
         },
         "required": [
-          "exposures",
-          "recorders",
-          "id",
           "name",
+          "id",
+          "createdAt",
           "sourceDeviceId",
-          "createdAt"
+          "exposures",
+          "recorders"
         ]
       },
       "Exposure": {
@@ -16106,27 +16106,30 @@
           "Stream": {
             "type": "object",
             "properties": {
+              "name": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "sourceDeviceId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "exposures": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
                     "params": {
                       "type": "object",
                       "properties": {
@@ -16156,16 +16159,32 @@
                       },
                       "additionalProperties": {}
                     },
+                    "id": {
+                      "type": "string"
+                    },
                     "createdAt": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
                       "type": "string"
                     }
                   },
                   "required": [
-                    "id",
-                    "networkId",
-                    "protocol",
                     "params",
-                    "createdAt"
+                    "id",
+                    "createdAt",
+                    "networkId",
+                    "protocol"
                   ]
                 }
               },
@@ -16174,59 +16193,40 @@
                 "items": {
                   "type": "object",
                   "properties": {
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
                     "id": {
                       "type": "string"
                     },
-                    "exposureId": {
+                    "createdAt": {
                       "type": "string"
                     },
                     "kind": {
                       "type": "string"
                     },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    },
-                    "createdAt": {
+                    "exposureId": {
                       "type": "string"
                     }
                   },
                   "required": [
-                    "id",
-                    "exposureId",
-                    "kind",
                     "params",
-                    "createdAt"
+                    "id",
+                    "createdAt",
+                    "kind",
+                    "exposureId"
                   ]
                 }
-              },
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "sourceDeviceId": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "createdAt": {
-                "type": "string"
               }
             },
             "required": [
-              "exposures",
-              "recorders",
-              "id",
               "name",
+              "id",
+              "createdAt",
               "sourceDeviceId",
-              "createdAt"
+              "exposures",
+              "recorders"
             ]
           }
         }
