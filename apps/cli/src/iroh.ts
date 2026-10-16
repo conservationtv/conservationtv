@@ -1,11 +1,10 @@
 import { Endpoint, EndpointAddr, EndpointId } from '@number0/iroh';
 import { connect, ORIGIN_SUFFIX } from '@strangecyan/iroh-http-node';
 
-/** An open HTTP over iroh connection to one agent, as the SDK's base URL and `fetch`. */
-export interface AgentConnection {
+/** An open HTTP over iroh connection to one agent, as an SDK's base URL and `fetch`. Disposing it closes it. */
+export interface AgentConnection extends AsyncDisposable {
   baseUrl: string;
   fetch: typeof fetch;
-  close(): Promise<void>;
 }
 
 function parseEndpointId(agent: string) {
@@ -26,21 +25,17 @@ export async function connectAgent(agent: string, secretKey: Uint8Array): Promis
   const builder = Endpoint.builder();
   builder.applyN0();
   builder.secretKey(Array.from(secretKey));
+  // Closed here if connecting fails; handed to the connection if it succeeds.
+  await using opened = new AsyncDisposableStack();
   const endpoint = await builder.bind();
-  try {
-    const client = await connect(endpoint, address);
-    const peer = client.peer;
-    return {
-      // The origin the client gives relative targets, so requests built from it go to the same peer.
-      baseUrl: `http://${peer.endpointId}${ORIGIN_SUFFIX}`,
-      fetch: (input, init) => client.fetch(input, init),
-      close: async () => {
-        client.close();
-        await endpoint.close();
-      }
-    };
-  } catch (error) {
-    await endpoint.close();
-    throw error;
-  }
+  opened.defer(() => endpoint.close());
+  const client = await connect(endpoint, address);
+  opened.defer(() => client.close());
+  const owned = opened.move();
+  return {
+    // The origin the client gives relative targets, so requests built from it go to the same peer.
+    baseUrl: `http://${client.peer.endpointId}${ORIGIN_SUFFIX}`,
+    fetch: (input, init) => client.fetch(input, init),
+    [Symbol.asyncDispose]: () => owned.disposeAsync()
+  };
 }

@@ -2,6 +2,8 @@ import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
+import { apiUrl } from './api.js';
+import { LoginError } from './errors.js';
 
 // Logins from `ctv login`, one per API URL, in the user's config directory. A login is one session token and a profile
 // per organisation the session joined: the browser device it registered there, whose private key is the CLI's iroh
@@ -36,6 +38,7 @@ const CredentialSchema = z
   })
   .refine(credential => credential.current in credential.profiles, 'The current profile must exist');
 export type Credential = z.output<typeof CredentialSchema>;
+
 const CredentialsFileSchema = z.record(z.url(), CredentialSchema);
 type CredentialsFile = z.output<typeof CredentialsFileSchema>;
 
@@ -44,7 +47,7 @@ export function credentialsPath(): string {
   return join(base, 'ctv', 'credentials.json');
 }
 
-function readAll(): CredentialsFile {
+function readCredentials(): CredentialsFile {
   try {
     return CredentialsFileSchema.parse(JSON.parse(readFileSync(credentialsPath(), 'utf8')));
   } catch {
@@ -53,7 +56,7 @@ function readAll(): CredentialsFile {
   }
 }
 
-function writeAll(file: CredentialsFile): void {
+function writeCredentials(file: CredentialsFile): void {
   const path = credentialsPath();
   if (Object.keys(file).length === 0) {
     rmSync(path, { force: true });
@@ -64,25 +67,42 @@ function writeAll(file: CredentialsFile): void {
   chmodSync(path, 0o600);
 }
 
-export function readCredential(apiUrl: string): Credential | undefined {
-  return readAll()[apiUrl];
+/** The login stored for the API, if any. */
+export function readCredential(): Credential | undefined {
+  const file = readCredentials();
+  return file[apiUrl];
 }
 
-export function writeCredential(apiUrl: string, credential: Credential): void {
-  writeAll({ ...readAll(), [apiUrl]: credential });
+/** The stored login; being signed out is a failure the person can fix. */
+export function requireCredential(): Credential {
+  const credential = readCredential();
+  if (credential === undefined) throw new LoginError('Not logged in: run `ctv login` first.');
+  return credential;
 }
 
-export function clearCredential(apiUrl: string): void {
-  const { [apiUrl]: _, ...rest } = readAll();
-  writeAll(rest);
+export function saveCredential(credential: Credential): void {
+  const file = readCredentials();
+  writeCredentials({ ...file, [apiUrl]: credential });
 }
 
-/** The device's private key as the secret key bytes iroh takes. */
-export function secretKeyOf(device: Device): Uint8Array {
-  return new Uint8Array(Buffer.from(device.privateKey, 'base64url'));
+export function forgetCredential(): void {
+  const { [apiUrl]: _, ...rest } = readCredentials();
+  writeCredentials(rest);
+}
+
+/** The bearer token studio commands send: `STUDIO_TOKEN` for scripts and CI, else the stored login's. */
+export function currentToken(): string | undefined {
+  if (process.env.STUDIO_TOKEN) return process.env.STUDIO_TOKEN;
+  const credential = readCredential();
+  return credential?.token;
 }
 
 /** The profile commands act as. */
 export function currentProfile(credential: Credential): Profile {
   return credential.profiles[credential.current]!;
+}
+
+/** The device's private key as the secret key bytes iroh takes. */
+export function secretKeyOf(device: Device): Uint8Array {
+  return new Uint8Array(Buffer.from(device.privateKey, 'base64url'));
 }
