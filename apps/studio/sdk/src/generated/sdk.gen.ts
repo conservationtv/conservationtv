@@ -456,19 +456,6 @@ export class Cameras extends HeyApiClient {
         id: string;
         name: string;
         networkId?: string | null;
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
         settings?: {
             [key: string]: Schema0;
         };
@@ -477,7 +464,6 @@ export class Cameras extends HeyApiClient {
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'nativeExposures' },
                     { in: 'body', key: 'settings' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError>({
@@ -527,32 +513,18 @@ export class Cameras extends HeyApiClient {
     /**
      * Update a camera
      *
-     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.
+     * Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         cameraId: string;
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        settings?: {
+        settings: {
             [key: string]: Schema0;
         };
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'cameraId' },
-                    { in: 'body', key: 'nativeExposures' },
                     { in: 'body', key: 'settings' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({

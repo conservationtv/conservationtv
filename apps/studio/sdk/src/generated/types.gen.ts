@@ -75,13 +75,6 @@ export type Device = {
 
 export type Camera = {
     id: string;
-    nativeExposures: Array<{
-        networkId: string | null;
-        protocol: string;
-        params?: {
-            [key: string]: unknown;
-        };
-    }>;
     settings: {
         [key: string]: unknown;
     };
@@ -1546,13 +1539,6 @@ export type GetOrganisationsByIdCamerasResponses = {
     200: {
         cameras: Array<{
             id: string;
-            nativeExposures: Array<{
-                networkId: string | null;
-                protocol: string;
-                params?: {
-                    [key: string]: unknown;
-                };
-            }>;
             settings: {
                 [key: string]: unknown;
             };
@@ -1580,22 +1566,6 @@ export type PostOrganisationsByIdCamerasData = {
          * A network of the organisation, or null for the internet.
          */
         networkId?: string | null;
-        /**
-         * The endpoints the camera offers by itself, such as its RTSP feed.
-         */
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
         /**
          * Settings validated by the implementation that reads them.
          */
@@ -1762,25 +1732,9 @@ export type GetOrganisationsByIdCamerasByCameraIdResponse = GetOrganisationsById
 export type PatchOrganisationsByIdCamerasByCameraIdData = {
     body: {
         /**
-         * The endpoints the camera offers by itself, such as its RTSP feed.
-         */
-        nativeExposures?: Array<{
-            /**
-             * A network of the organisation, or null for the internet.
-             */
-            networkId: string | null;
-            protocol: string;
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            params?: {
-                [key: string]: Schema0;
-            };
-        }>;
-        /**
          * Settings validated by the implementation that reads them.
          */
-        settings?: {
+        settings: {
             [key: string]: Schema0;
         };
     };

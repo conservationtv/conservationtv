@@ -9,7 +9,8 @@ import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
  * The lasting identity of a logical video feed. Its source is a device of the same organisation, usually a camera (the
- * system resolves which of a camera's native exposures to use), or none yet. Replacing the camera does not make a new stream.
+ * system resolves which of the camera's own endpoints to use), or none yet. Replacing the camera does not make a new
+ * stream.
  */
 export const streams = withAccess(
   pgTable(

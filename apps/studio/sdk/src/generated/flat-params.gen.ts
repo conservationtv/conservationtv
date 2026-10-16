@@ -180,7 +180,6 @@ export const CameraCreateParamsSchema = z.object({
     id: PostOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.'),
     name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
     networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    nativeExposures: PostOrganisationsByIdCamerasBodySchema.shape.nativeExposures.optional().describe('The endpoints the camera offers by itself, such as its RTSP feed.'),
     settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
 });
 
@@ -203,8 +202,7 @@ export type CameraGetParams = z.infer<typeof CameraGetParamsSchema>;
 export const CameraUpdateParamsSchema = z.object({
     id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
-    nativeExposures: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.nativeExposures.optional().describe('The endpoints the camera offers by itself, such as its RTSP feed.'),
-    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.nonoptional().describe('Settings validated by the implementation that reads them.')
 });
 
 export type CameraUpdateParams = z.infer<typeof CameraUpdateParamsSchema>;

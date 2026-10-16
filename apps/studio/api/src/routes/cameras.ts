@@ -8,7 +8,7 @@ import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { deviceIdentity } from '../topology/identity.ts';
-import { NativeExposureSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
+import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import type { Transaction } from '../organisations/membership.ts';
 import { unchanged } from '../topology/transaction.ts';
 import { DeviceNameSchema, deviceQuery } from './devices.ts';
@@ -30,15 +30,9 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const CameraParamsSchema = OrganisationParamsSchema.extend({ cameraId: z.uuid().describe('The camera.') });
 export type CameraParams = z.output<typeof CameraParamsSchema>;
 
-const NativeExposuresSchema = z
-  .array(NativeExposureSchema)
-  .max(32)
-  .describe('The endpoints the camera offers by itself, such as its RTSP feed.');
-export type NativeExposures = z.output<typeof NativeExposuresSchema>;
-
 /** A camera as every camera route returns it: its own fields and its device's. */
 const cameraQuery = {
-  columns: { id: true, nativeExposures: true, settings: true },
+  columns: { id: true, settings: true },
   with: { device: deviceQuery }
 } as const;
 
@@ -104,7 +98,6 @@ export default new Hono()
       z.strictObject({
         name: DeviceNameSchema,
         networkId: NetworkReferenceSchema.default(null),
-        nativeExposures: NativeExposuresSchema.default([]),
         settings: SettingsSchema.default({})
       })
     ),
@@ -119,12 +112,7 @@ export default new Hono()
           .insert(devices)
           .values({ ...identity, organisationId: id, kind: 'camera', name: body.name, networkId: body.networkId })
           .returning({ id: devices.id });
-        await tx.insert(cameras).values({
-          id: device!.id,
-          organisationId: id,
-          nativeExposures: body.nativeExposures,
-          settings: body.settings
-        });
+        await tx.insert(cameras).values({ id: device!.id, organisationId: id, settings: body.settings });
         await grantDevice(access, id, device!.id);
         const camera = await readCamera(tx, id, device!.id);
         return camera!;
@@ -168,7 +156,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a camera',
       description:
-        'Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.',
+        'Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.',
       responses: {
         200: { description: 'The updated camera' },
         400: invalidRequest,
@@ -181,12 +169,7 @@ export default new Hono()
     }),
     requirePrincipal,
     validator('param', CameraParamsSchema),
-    validator(
-      'json',
-      z
-        .strictObject({ nativeExposures: NativeExposuresSchema.optional(), settings: SettingsSchema.optional() })
-        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
-    ),
+    validator('json', z.strictObject({ settings: SettingsSchema })),
     async c => {
       const { id, cameraId } = c.req.valid('param');
       const body = c.req.valid('json');
@@ -196,7 +179,7 @@ export default new Hono()
       const row = await session.transaction(async tx => {
         const updated = await tx
           .update(cameras)
-          .set({ nativeExposures: body.nativeExposures, settings: body.settings })
+          .set({ settings: body.settings })
           .where(and(eq(cameras.organisationId, id), eq(cameras.id, cameraId)))
           .returning({ id: cameras.id });
         if (updated.length === 0) throw await unchanged(tx, cameras.id, cameraId);

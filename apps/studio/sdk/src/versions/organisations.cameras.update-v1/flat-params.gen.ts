@@ -7,8 +7,7 @@ import { PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsBy
 export const CameraUpdateV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
-    nativeExposures: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.nativeExposures.optional().describe('The endpoints the camera offers by itself, such as its RTSP feed.'),
-    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.nonoptional().describe('Settings validated by the implementation that reads them.')
 });
 
 export type CameraUpdateV1Params = z.infer<typeof CameraUpdateV1ParamsSchema>;

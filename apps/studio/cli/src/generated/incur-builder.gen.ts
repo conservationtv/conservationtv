@@ -361,8 +361,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update a camera\n\nAdministrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.' }).command('v1', {
-        description: 'Update a camera\n\nAdministrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.',
+    })).command(Cli.create('update', { description: 'Update a camera\n\nAdministrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.' }).command('v1', {
+        description: 'Update a camera\n\nAdministrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.',
         options: cliOptions(CameraUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

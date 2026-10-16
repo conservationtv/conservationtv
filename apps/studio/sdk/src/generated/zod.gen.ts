@@ -81,11 +81,6 @@ export const DeviceSchema = z.object({
 
 export const CameraSchema = z.object({
     id: z.string(),
-    nativeExposures: z.array(z.object({
-        networkId: z.string().nullable(),
-        protocol: z.string(),
-        params: z.record(z.string(), z.unknown()).optional()
-    })),
     settings: z.record(z.string(), z.unknown()),
     device: z.object({
         name: z.string(),
@@ -641,11 +636,6 @@ export const GetOrganisationsByIdCamerasPathSchema = z.object({
 export const GetOrganisationsByIdCamerasResponseSchema = z.object({
     cameras: z.array(z.object({
         id: z.string(),
-        nativeExposures: z.array(z.object({
-            networkId: z.string().nullable(),
-            protocol: z.string(),
-            params: z.record(z.string(), z.unknown()).optional()
-        })),
         settings: z.record(z.string(), z.unknown()),
         device: z.object({
             name: z.string(),
@@ -669,15 +659,6 @@ export const PostOrganisationsByIdCamerasBodySchema = z.object({
         description: 'The device name.'
     }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    nativeExposures: z.array(z.object({
-        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-        protocol: z.string().min(1).max(60),
-        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-            description: 'Settings validated by the implementation that reads them.'
-        }).optional()
-    })).max(32).register(z.globalRegistry, {
-        description: 'The endpoints the camera offers by itself, such as its RTSP feed.'
-    }).optional().default([]),
     settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
         description: 'Settings validated by the implementation that reads them.'
     }).optional().default({})
@@ -725,18 +706,9 @@ export const GetOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
 export const GetOrganisationsByIdCamerasByCameraIdResponseSchema = CameraSchema;
 
 export const PatchOrganisationsByIdCamerasByCameraIdBodySchema = z.object({
-    nativeExposures: z.array(z.object({
-        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-        protocol: z.string().min(1).max(60),
-        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-            description: 'Settings validated by the implementation that reads them.'
-        }).optional()
-    })).max(32).register(z.globalRegistry, {
-        description: 'The endpoints the camera offers by itself, such as its RTSP feed.'
-    }).optional(),
     settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
         description: 'Settings validated by the implementation that reads them.'
-    }).optional()
+    })
 });
 
 export const PatchOrganisationsByIdCamerasByCameraIdPathSchema = z.object({

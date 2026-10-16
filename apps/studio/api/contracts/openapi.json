@@ -316,35 +316,6 @@
           "id": {
             "type": "string"
           },
-          "nativeExposures": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "networkId": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "protocol": {
-                  "type": "string"
-                },
-                "params": {
-                  "type": "object",
-                  "additionalProperties": {}
-                }
-              },
-              "required": [
-                "networkId",
-                "protocol"
-              ]
-            }
-          },
           "settings": {
             "type": "object",
             "additionalProperties": {}
@@ -402,7 +373,6 @@
         },
         "required": [
           "id",
-          "nativeExposures",
           "settings",
           "device"
         ]
@@ -3584,35 +3554,6 @@
                           "id": {
                             "type": "string"
                           },
-                          "nativeExposures": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "networkId": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "protocol": {
-                                  "type": "string"
-                                },
-                                "params": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                }
-                              },
-                              "required": [
-                                "networkId",
-                                "protocol"
-                              ]
-                            }
-                          },
                           "settings": {
                             "type": "object",
                             "additionalProperties": {}
@@ -3670,7 +3611,6 @@
                         },
                         "required": [
                           "id",
-                          "nativeExposures",
                           "settings",
                           "device"
                         ]
@@ -3859,51 +3799,6 @@
                     ],
                     "description": "A network of the organisation, or null for the internet."
                   },
-                  "nativeExposures": {
-                    "default": [],
-                    "maxItems": 32,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "networkId": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uuid",
-                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ],
-                          "description": "A network of the organisation, or null for the internet."
-                        },
-                        "protocol": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 60
-                        },
-                        "params": {
-                          "type": "object",
-                          "propertyNames": {
-                            "type": "string",
-                            "maxLength": 120
-                          },
-                          "additionalProperties": {
-                            "$ref": "#/components/schemas/__schema0"
-                          },
-                          "description": "Settings validated by the implementation that reads them."
-                        }
-                      },
-                      "required": [
-                        "networkId",
-                        "protocol"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "description": "The endpoints the camera offers by itself, such as its RTSP feed."
-                  },
                   "settings": {
                     "default": {},
                     "type": "object",
@@ -4029,7 +3924,7 @@
         "operationId": "organisations.cameras.update",
         "x-operation-version": 1,
         "summary": "Update a camera",
-        "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.",
+        "description": "Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.",
         "responses": {
           "200": {
             "description": "The updated camera",
@@ -4133,50 +4028,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "nativeExposures": {
-                    "maxItems": 32,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "networkId": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uuid",
-                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ],
-                          "description": "A network of the organisation, or null for the internet."
-                        },
-                        "protocol": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 60
-                        },
-                        "params": {
-                          "type": "object",
-                          "propertyNames": {
-                            "type": "string",
-                            "maxLength": 120
-                          },
-                          "additionalProperties": {
-                            "$ref": "#/components/schemas/__schema0"
-                          },
-                          "description": "Settings validated by the implementation that reads them."
-                        }
-                      },
-                      "required": [
-                        "networkId",
-                        "protocol"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "description": "The endpoints the camera offers by itself, such as its RTSP feed."
-                  },
                   "settings": {
                     "type": "object",
                     "propertyNames": {
@@ -4189,6 +4040,9 @@
                     "description": "Settings validated by the implementation that reads them."
                   }
                 },
+                "required": [
+                  "settings"
+                ],
                 "additionalProperties": false
               }
             }
@@ -12092,35 +11946,6 @@
                     "id": {
                       "type": "string"
                     },
-                    "nativeExposures": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "networkId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "protocol": {
-                            "type": "string"
-                          },
-                          "params": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
-                        },
-                        "required": [
-                          "networkId",
-                          "protocol"
-                        ]
-                      }
-                    },
                     "settings": {
                       "type": "object",
                       "additionalProperties": {}
@@ -12178,7 +12003,6 @@
                   },
                   "required": [
                     "id",
-                    "nativeExposures",
                     "settings",
                     "device"
                   ]
@@ -12350,35 +12174,6 @@
               "id": {
                 "type": "string"
               },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
               "settings": {
                 "type": "object",
                 "additionalProperties": {}
@@ -12436,7 +12231,6 @@
             },
             "required": [
               "id",
-              "nativeExposures",
               "settings",
               "device"
             ]
@@ -12572,51 +12366,6 @@
                         ],
                         "description": "A network of the organisation, or null for the internet."
                       },
-                      "nativeExposures": {
-                        "default": [],
-                        "maxItems": 32,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "networkId": {
-                              "anyOf": [
-                                {
-                                  "type": "string",
-                                  "format": "uuid",
-                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "A network of the organisation, or null for the internet."
-                            },
-                            "protocol": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 60
-                            },
-                            "params": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string",
-                                "maxLength": 120
-                              },
-                              "additionalProperties": {
-                                "$ref": "#/components/schemas/__schema0"
-                              },
-                              "description": "Settings validated by the implementation that reads them."
-                            }
-                          },
-                          "required": [
-                            "networkId",
-                            "protocol"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "description": "The endpoints the camera offers by itself, such as its RTSP feed."
-                      },
                       "settings": {
                         "default": {},
                         "type": "object",
@@ -12684,35 +12433,6 @@
               "id": {
                 "type": "string"
               },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
               "settings": {
                 "type": "object",
                 "additionalProperties": {}
@@ -12770,7 +12490,6 @@
             },
             "required": [
               "id",
-              "nativeExposures",
               "settings",
               "device"
             ]
@@ -12956,35 +12675,6 @@
               "id": {
                 "type": "string"
               },
-              "nativeExposures": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "protocol": {
-                      "type": "string"
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "networkId",
-                    "protocol"
-                  ]
-                }
-              },
               "settings": {
                 "type": "object",
                 "additionalProperties": {}
@@ -13042,7 +12732,6 @@
             },
             "required": [
               "id",
-              "nativeExposures",
               "settings",
               "device"
             ]
@@ -13055,7 +12744,7 @@
             "operationId": "organisations.cameras.update",
             "x-operation-version": 1,
             "summary": "Update a camera",
-            "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. Its name and network are changed under `/devices`, with the same ID.",
+            "description": "Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.",
             "responses": {
               "200": {
                 "description": "The updated camera",
@@ -13169,50 +12858,6 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "nativeExposures": {
-                        "maxItems": 32,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "networkId": {
-                              "anyOf": [
-                                {
-                                  "type": "string",
-                                  "format": "uuid",
-                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "A network of the organisation, or null for the internet."
-                            },
-                            "protocol": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 60
-                            },
-                            "params": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string",
-                                "maxLength": 120
-                              },
-                              "additionalProperties": {
-                                "$ref": "#/components/schemas/__schema0"
-                              },
-                              "description": "Settings validated by the implementation that reads them."
-                            }
-                          },
-                          "required": [
-                            "networkId",
-                            "protocol"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "description": "The endpoints the camera offers by itself, such as its RTSP feed."
-                      },
                       "settings": {
                         "type": "object",
                         "propertyNames": {
@@ -13225,6 +12870,9 @@
                         "description": "Settings validated by the implementation that reads them."
                       }
                     },
+                    "required": [
+                      "settings"
+                    ],
                     "additionalProperties": false
                   }
                 }

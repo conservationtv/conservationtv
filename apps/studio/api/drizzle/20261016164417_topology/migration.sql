@@ -28,7 +28,6 @@ CREATE TABLE "camera" (
 	"id" uuid PRIMARY KEY,
 	"organisation_id" uuid NOT NULL,
 	"kind" text GENERATED ALWAYS AS ('camera') STORED NOT NULL,
-	"native_exposures" jsonb DEFAULT '[]' NOT NULL,
 	"settings" jsonb DEFAULT '{}' NOT NULL
 );
 --> statement-breakpoint
