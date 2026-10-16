@@ -10,16 +10,21 @@ export type Error = {
 };
 
 export type Agent = {
-    servedRevisionId: string | null;
-    priority: number;
-    active: boolean;
     id: string;
-    kind: 'agent' | 'camera' | 'browser';
-    name: string;
-    networkId: string | null;
-    publicKey: string;
-    publicId: string;
-    createdAt: string;
+    active: boolean;
+    networkId: string;
+    priority: number;
+    device: {
+        name: string;
+        createdAt: string;
+        publicKey: string;
+        kind: 'agent' | 'camera' | 'browser';
+        networkId: string | null;
+        publicId: string;
+    } | null;
+    servedRevision: {
+        id: string;
+    } | null;
 };
 
 export type PatchOrganisationsByIdAgentsByAgentIdData = {

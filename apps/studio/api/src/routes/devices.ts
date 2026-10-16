@@ -30,7 +30,12 @@ export type DeviceParams = z.output<typeof DeviceParamsSchema>;
 export const DeviceNameSchema = z.string().trim().min(1).max(120).describe('The device name.');
 export type DeviceName = z.output<typeof DeviceNameSchema>;
 
-/** A device: the columns every device route returns, and that its kind's routes return too. */
+/** A device's fields, as an agent or camera nests them under `device`: all but its ID, which is theirs too. */
+export const deviceQuery = {
+  columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
+} as const;
+
+/** A device: the columns every device route returns. */
 export const deviceColumns = {
   id: devices.id,
   kind: devices.kind,

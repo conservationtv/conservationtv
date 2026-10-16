@@ -57,10 +57,12 @@ export const InvitationSchema = z.object({
 });
 
 export const NetworkSchema = z.object({
-    id: z.string(),
     name: z.string(),
-    activeAgentId: z.string().nullable(),
-    createdAt: z.string()
+    id: z.string(),
+    createdAt: z.string(),
+    activeAgent: z.object({
+        id: z.string()
+    }).nullable()
 });
 
 export const DeviceSchema = z.object({
@@ -78,55 +80,62 @@ export const DeviceSchema = z.object({
 });
 
 export const CameraSchema = z.object({
+    id: z.string(),
     nativeExposures: z.array(z.object({
         networkId: z.string().nullable(),
         protocol: z.string(),
         params: z.record(z.string(), z.unknown()).optional()
     })),
     settings: z.record(z.string(), z.unknown()),
-    id: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    name: z.string(),
-    networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
+    device: z.object({
+        name: z.string(),
+        createdAt: z.string(),
+        publicKey: z.string(),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
+        networkId: z.string().nullable(),
+        publicId: z.string()
+    }).nullable()
 });
 
 export const BrowserSchema = z.object({
     privateKey: z.string(),
+    name: z.string(),
     id: z.string(),
+    createdAt: z.string(),
+    publicKey: z.string(),
     kind: z.enum([
         'agent',
         'camera',
         'browser'
     ]),
-    name: z.string(),
     networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
+    publicId: z.string()
 });
 
 export const AgentSchema = z.object({
-    servedRevisionId: z.string().nullable(),
-    priority: z.number(),
-    active: z.boolean(),
     id: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    name: z.string(),
-    networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
+    active: z.boolean(),
+    networkId: z.string(),
+    priority: z.number(),
+    device: z.object({
+        name: z.string(),
+        createdAt: z.string(),
+        publicKey: z.string(),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
+        networkId: z.string().nullable(),
+        publicId: z.string()
+    }).nullable(),
+    servedRevision: z.object({
+        id: z.string()
+    }).nullable()
 });
 
 export const RevisionSchema = z.object({
@@ -452,10 +461,12 @@ export const GetOrganisationsByIdNetworksPathSchema = z.object({
  */
 export const GetOrganisationsByIdNetworksResponseSchema = z.object({
     networks: z.array(z.object({
-        id: z.string(),
         name: z.string(),
-        activeAgentId: z.string().nullable(),
-        createdAt: z.string()
+        id: z.string(),
+        createdAt: z.string(),
+        activeAgent: z.object({
+            id: z.string()
+        }).nullable()
     }))
 }).register(z.globalRegistry, {
     description: 'The networks, oldest first'
@@ -476,14 +487,7 @@ export const PostOrganisationsByIdNetworksPathSchema = z.object({
 /**
  * The new network
  */
-export const PostOrganisationsByIdNetworksResponseSchema = z.object({
-    activeAgentId: z.null(),
-    id: z.string(),
-    name: z.string(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The new network'
-});
+export const PostOrganisationsByIdNetworksResponseSchema = NetworkSchema;
 
 export const DeleteOrganisationsByIdNetworksByNetworkIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -533,14 +537,7 @@ export const PatchOrganisationsByIdNetworksByNetworkIdPathSchema = z.object({
 /**
  * The updated network
  */
-export const PatchOrganisationsByIdNetworksByNetworkIdResponseSchema = z.object({
-    activeAgentId: z.string(),
-    id: z.string(),
-    name: z.string(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The updated network'
-});
+export const PatchOrganisationsByIdNetworksByNetworkIdResponseSchema = NetworkSchema;
 
 export const PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema = z.object({
     agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable()
@@ -558,14 +555,7 @@ export const PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema = z.ob
 /**
  * The network
  */
-export const PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponseSchema = z.object({
-    activeAgentId: z.string().nullable(),
-    id: z.string(),
-    name: z.string(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The network'
-});
+export const PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponseSchema = NetworkSchema;
 
 export const GetOrganisationsByIdDevicesPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -650,23 +640,25 @@ export const GetOrganisationsByIdCamerasPathSchema = z.object({
  */
 export const GetOrganisationsByIdCamerasResponseSchema = z.object({
     cameras: z.array(z.object({
+        id: z.string(),
         nativeExposures: z.array(z.object({
             networkId: z.string().nullable(),
             protocol: z.string(),
             params: z.record(z.string(), z.unknown()).optional()
         })),
         settings: z.record(z.string(), z.unknown()),
-        id: z.string(),
-        kind: z.enum([
-            'agent',
-            'camera',
-            'browser'
-        ]),
-        name: z.string(),
-        networkId: z.string().nullable(),
-        publicKey: z.string(),
-        publicId: z.string(),
-        createdAt: z.string()
+        device: z.object({
+            name: z.string(),
+            createdAt: z.string(),
+            publicKey: z.string(),
+            kind: z.enum([
+                'agent',
+                'camera',
+                'browser'
+            ]),
+            networkId: z.string().nullable(),
+            publicId: z.string()
+        }).nullable()
     }))
 }).register(z.globalRegistry, {
     description: 'The cameras, oldest first'
@@ -789,20 +781,25 @@ export const GetOrganisationsByIdAgentsQuerySchema = z.object({
  */
 export const GetOrganisationsByIdAgentsResponseSchema = z.object({
     agents: z.array(z.object({
-        servedRevisionId: z.string().nullable(),
-        priority: z.number(),
-        active: z.boolean(),
         id: z.string(),
-        kind: z.enum([
-            'agent',
-            'camera',
-            'browser'
-        ]),
-        name: z.string(),
-        networkId: z.string().nullable(),
-        publicKey: z.string(),
-        publicId: z.string(),
-        createdAt: z.string()
+        active: z.boolean(),
+        networkId: z.string(),
+        priority: z.number(),
+        device: z.object({
+            name: z.string(),
+            createdAt: z.string(),
+            publicKey: z.string(),
+            kind: z.enum([
+                'agent',
+                'camera',
+                'browser'
+            ]),
+            networkId: z.string().nullable(),
+            publicId: z.string()
+        }).nullable(),
+        servedRevision: z.object({
+            id: z.string()
+        }).nullable()
     }))
 }).register(z.globalRegistry, {
     description: 'The agents, oldest first'
@@ -829,24 +826,7 @@ export const PostOrganisationsByIdAgentsPathSchema = z.object({
 /**
  * The new agent
  */
-export const PostOrganisationsByIdAgentsResponseSchema = z.object({
-    servedRevisionId: z.null(),
-    priority: z.number(),
-    active: z.boolean(),
-    id: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    name: z.string(),
-    networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The new agent'
-});
+export const PostOrganisationsByIdAgentsResponseSchema = AgentSchema;
 
 export const DeleteOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -1004,24 +984,7 @@ export const PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema = z.obj
 /**
  * The agent
  */
-export const PutOrganisationsByIdAgentsByAgentIdServedRevisionResponseSchema = z.object({
-    servedRevisionId: z.string(),
-    priority: z.number(),
-    active: z.boolean(),
-    id: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    name: z.string(),
-    networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The agent'
-});
+export const PutOrganisationsByIdAgentsByAgentIdServedRevisionResponseSchema = AgentSchema;
 
 export const GetOrganisationsByIdStreamsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {

@@ -73,6 +73,7 @@ export const relations = defineRelations(schema, r => ({
     organisation: r.one.organisations({ from: r.networks.organisationId, to: r.organisations.id }),
     devices: r.many.devices({ from: r.networks.id, to: r.devices.networkId }),
     agents: r.many.agents({ from: r.networks.id, to: r.agents.networkId }),
+    activeAgent: r.one.agents({ from: r.networks.id, to: r.agents.networkId, where: { active: true } }),
     exposures: r.many.exposures({ from: r.networks.id, to: r.exposures.networkId })
   },
   devices: {
@@ -91,7 +92,12 @@ export const relations = defineRelations(schema, r => ({
     organisation: r.one.organisations({ from: r.agents.organisationId, to: r.organisations.id }),
     device: r.one.devices({ from: r.agents.id, to: r.devices.id }),
     network: r.one.networks({ from: r.agents.networkId, to: r.networks.id }),
-    revisions: r.many.configurationRevisions({ from: r.agents.id, to: r.configurationRevisions.agentId })
+    revisions: r.many.configurationRevisions({ from: r.agents.id, to: r.configurationRevisions.agentId }),
+    servedRevision: r.one.configurationRevisions({
+      from: r.agents.id,
+      to: r.configurationRevisions.agentId,
+      where: { served: true }
+    })
   },
   configurationRevisions: {
     organisation: r.one.organisations({ from: r.configurationRevisions.organisationId, to: r.organisations.id }),

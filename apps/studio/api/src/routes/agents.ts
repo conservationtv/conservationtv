@@ -8,8 +8,9 @@ import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
-import { DeviceNameSchema, deviceColumns } from './devices.ts';
+import { DeviceNameSchema, deviceQuery } from './devices.ts';
 import { deviceIdentity } from '../topology/identity.ts';
+import type { Transaction } from '../organisations/membership.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
@@ -35,8 +36,16 @@ export type RevisionParams = z.output<typeof RevisionParamsSchema>;
 const PrioritySchema = z.int().min(-1000).max(1000).describe('Standby preference; higher is preferred.');
 export type Priority = z.output<typeof PrioritySchema>;
 
-/** An agent with its device's fields: the columns every agent route returns, but its served revision. */
-const agentColumns = { ...deviceColumns, priority: agents.priority, active: agents.active };
+/** An agent as every agent route returns it: its own fields, its device's, and the revision it is served. */
+const agentQuery = {
+  columns: { id: true, networkId: true, priority: true, active: true },
+  with: { device: deviceQuery, servedRevision: { columns: { id: true } } }
+} as const;
+
+/** The agent, as its routes return it. */
+function readAgent(tx: Transaction, organisationId: string, agentId: string) {
+  return tx.query.agents.findFirst({ ...agentQuery, where: { organisationId, id: agentId } });
+}
 
 // An organisation's agents and their configuration revisions, in the principal's request session: members read them,
 // administrators manage them. An agent is a device that serves the network it is on (src/db/schemas/agents.ts): it is
@@ -67,18 +76,11 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await services.session(principal);
       const rows = await session.transaction(tx =>
-        tx
-          .select({ ...agentColumns, servedRevisionId: configurationRevisions.id })
-          .from(agents)
-          .innerJoin(devices, eq(devices.id, agents.id))
-          .leftJoin(
-            configurationRevisions,
-            and(eq(configurationRevisions.agentId, agents.id), eq(configurationRevisions.served, true))
-          )
-          .where(
-            and(eq(agents.organisationId, id), networkId === undefined ? undefined : eq(agents.networkId, networkId))
-          )
-          .orderBy(agents.id)
+        tx.query.agents.findMany({
+          ...agentQuery,
+          where: { organisationId: id, networkId },
+          orderBy: { id: 'asc' }
+        })
       );
       c.header('Cache-Control', 'no-store');
       return c.json({ agents: rows }, 200);
@@ -122,13 +124,13 @@ export default new Hono()
         const [device] = await tx
           .insert(devices)
           .values({ ...identity, organisationId: id, kind: 'agent', name: body.name, networkId: body.networkId })
-          .returning(deviceColumns);
-        const [agent] = await tx
+          .returning({ id: devices.id });
+        await tx
           .insert(agents)
-          .values({ id: device!.id, organisationId: id, networkId: body.networkId, priority: body.priority })
-          .returning({ priority: agents.priority, active: agents.active });
+          .values({ id: device!.id, organisationId: id, networkId: body.networkId, priority: body.priority });
         await grantDevice(access, id, device!.id);
-        return { ...device!, ...agent!, servedRevisionId: null };
+        const agent = await readAgent(tx, id, device!.id);
+        return agent!;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
@@ -156,17 +158,7 @@ export default new Hono()
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
-          .select({ ...agentColumns, servedRevisionId: configurationRevisions.id })
-          .from(agents)
-          .innerJoin(devices, eq(devices.id, agents.id))
-          .leftJoin(
-            configurationRevisions,
-            and(eq(configurationRevisions.agentId, agents.id), eq(configurationRevisions.served, true))
-          )
-          .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
-      );
+      const row = await session.transaction(tx => readAgent(tx, id, agentId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -206,15 +198,7 @@ export default new Hono()
           .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
           .returning({ id: agents.id });
         if (updated.length === 0) throw await unchanged(tx, agents.id, agentId);
-        const [agent] = await tx
-          .select({ ...agentColumns, servedRevisionId: configurationRevisions.id })
-          .from(agents)
-          .innerJoin(devices, eq(devices.id, agents.id))
-          .leftJoin(
-            configurationRevisions,
-            and(eq(configurationRevisions.agentId, agents.id), eq(configurationRevisions.served, true))
-          )
-          .where(eq(agents.id, agentId));
+        const agent = await readAgent(tx, id, agentId);
         return agent!;
       });
       c.header('Cache-Control', 'no-store');
@@ -435,9 +419,8 @@ export default new Hono()
       const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
-          .select(agentColumns)
+          .select({ id: agents.id })
           .from(agents)
-          .innerJoin(devices, eq(devices.id, agents.id))
           .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)));
         if (!agent) throw new ApiFailure('not_found');
         const [revision] = await tx
@@ -460,7 +443,8 @@ export default new Hono()
             .returning({ id: configurationRevisions.id });
           if (!served) throw new ApiFailure('forbidden');
         }
-        return { ...agent, servedRevisionId: revisionId };
+        const changed = await readAgent(tx, id, agentId);
+        return changed!;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);

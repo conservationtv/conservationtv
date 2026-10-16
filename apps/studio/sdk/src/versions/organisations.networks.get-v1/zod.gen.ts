@@ -8,10 +8,12 @@ export const ErrorSchema = z.object({
 });
 
 export const NetworkSchema = z.object({
-    id: z.string(),
     name: z.string(),
-    activeAgentId: z.string().nullable(),
-    createdAt: z.string()
+    id: z.string(),
+    createdAt: z.string(),
+    activeAgent: z.object({
+        id: z.string()
+    }).nullable()
 });
 
 export const GetOrganisationsByIdNetworksByNetworkIdPathSchema = z.object({

@@ -16,25 +16,23 @@ import { deviceIdentity } from './identity.ts';
 /** The longest device name; a browser is named after its session's user agent. */
 const MAX_NAME_LENGTH = 120;
 
-const browserColumns = {
-  id: devices.id,
-  kind: devices.kind,
-  name: devices.name,
-  networkId: devices.networkId,
-  publicKey: devices.publicKey,
-  publicId: devices.publicId,
-  privateKey: devices.privateKey,
-  createdAt: devices.createdAt
-};
+/** A browser as the route returns it: its device, with the private key. */
+const browserQuery = {
+  columns: {
+    id: true,
+    kind: true,
+    name: true,
+    networkId: true,
+    publicKey: true,
+    publicId: true,
+    privateKey: true,
+    createdAt: true
+  }
+} as const;
 
-/** The session's browser in the organisation, if it has one. */
-async function existingBrowser(tx: Transaction, sessionId: string, organisationId: string) {
-  const [browser] = await tx
-    .select(browserColumns)
-    .from(browsers)
-    .innerJoin(devices, eq(devices.id, browsers.id))
-    .where(and(eq(browsers.sessionId, sessionId), eq(browsers.organisationId, organisationId)));
-  return browser;
+/** The device of the session's browser in the organisation, if it has one. */
+function existingBrowser(tx: Transaction, sessionId: string, organisationId: string) {
+  return tx.query.devices.findFirst({ ...browserQuery, where: { browser: { sessionId, organisationId } } });
 }
 
 /** Whether the principal belongs to the organisation. */
@@ -70,10 +68,11 @@ export function ensureBrowser(principal: UserPrincipal, sessionId: string, organ
     const [device] = await tx
       .insert(devices)
       .values({ ...identity, organisationId, kind: 'browser', name, networkId: null })
-      .returning(browserColumns);
+      .returning({ id: devices.id });
     await tx.insert(browsers).values({ id: device!.id, organisationId, userId: principal.id, sessionId });
     await grantDevice(access, organisationId, device!.id);
-    return device!;
+    const created = await existingBrowser(tx, sessionId, organisationId);
+    return created!;
   });
 }
 

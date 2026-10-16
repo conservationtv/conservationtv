@@ -11,13 +11,13 @@ export type Error = {
 
 export type Browser = {
     privateKey: string;
-    id: string;
-    kind: 'agent' | 'camera' | 'browser';
     name: string;
-    networkId: string | null;
-    publicKey: string;
-    publicId: string;
+    id: string;
     createdAt: string;
+    publicKey: string;
+    kind: 'agent' | 'camera' | 'browser';
+    networkId: string | null;
+    publicId: string;
 };
 
 export type PutOrganisationsByIdBrowserData = {

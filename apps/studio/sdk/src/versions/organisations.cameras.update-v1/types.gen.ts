@@ -14,6 +14,7 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 };
 
 export type Camera = {
+    id: string;
     nativeExposures: Array<{
         networkId: string | null;
         protocol: string;
@@ -24,13 +25,14 @@ export type Camera = {
     settings: {
         [key: string]: unknown;
     };
-    id: string;
-    kind: 'agent' | 'camera' | 'browser';
-    name: string;
-    networkId: string | null;
-    publicKey: string;
-    publicId: string;
-    createdAt: string;
+    device: {
+        name: string;
+        createdAt: string;
+        publicKey: string;
+        kind: 'agent' | 'camera' | 'browser';
+        networkId: string | null;
+        publicId: string;
+    } | null;
 };
 
 export type PatchOrganisationsByIdCamerasByCameraIdData = {
