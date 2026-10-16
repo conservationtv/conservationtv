@@ -74,7 +74,8 @@ export default defineConfig([
     parser: { filters: { operations: { include: defined.map(operation => operation.key) }, orphans: false } },
     plugins: [
       { name: '@hey-api/typescript', includeInEntry: false },
-      '@hey-api/client-fetch',
+      // Without its own copy of the client runtime: `share-client` points it at src/generated/client's.
+      { name: '@hey-api/client-fetch', bundle: false },
       { ...zod, includeInEntry: false },
       sdk,
       flatParams({ versionSuffix: true })
