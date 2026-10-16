@@ -199,7 +199,7 @@ organisations.
 `encrypted(purpose, codec)` (`src/db/encrypted.ts`) is a `bytea` column sealed with AES-256-GCM in the application, so
 the database and its backups only hold ciphertext. The codec maps plaintext bytes to the column's TypeScript type
 (`BytesSchema`, `Utf8Schema`, `json(schema)`, which can nest codecs such as `IsoDatetimeSchema`). Each purpose seals
-under its own subkey (HMAC-SHA256 of the master key), so a ciphertext copied into another column fails to open; the
+under its own subkey (HKDF-SHA256 of the master key, the purpose as its info), so a ciphertext copied into another column fails to open; the
 purpose must never change, which keeps renamed columns readable. A sealed value is `version ‖ iv ‖ tag ‖ ciphertext`: the keyring
 (`src/db/keyring.ts`, from `FIELD_KEYS`, installed per request with `withKeyring`) seals with its highest version and
 opens any version it lists, so rotating is adding a key, and an old key can go once no row is sealed under it.
