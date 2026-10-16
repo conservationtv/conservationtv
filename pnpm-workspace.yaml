@@ -13,6 +13,7 @@ catalog:
   drizzle-orm: 1.0.0-rc.4
   input-otp: 1.5.0
   pg: 8.23.1
+  typescript: 7.0.2
   zod: 4.6.2
   '@pulumi/cloudflare': 6.22.0
   '@pulumi/command': 1.2.1
@@ -28,8 +29,8 @@ overrides:
   '@pulumi/pulumi': 'catalog:'
   # Better Auth accepts two kysely majors; one resolution keeps a single drizzle-orm instance across the workspace.
   kysely: 0.29.6
-  # valibot's optional TypeScript peer would split hono-openapi by each package's TypeScript (6 where Hey API needs
-  # the compiler API, 7 elsewhere). Route metadata is keyed by a per-instance symbol, so every package must share one.
+  # valibot's optional TypeScript peer would split hono-openapi by each package's TypeScript. Route metadata is keyed
+  # by a per-instance symbol, so every package must share one.
   'valibot>typescript': '-'
 
 allowBuilds:
