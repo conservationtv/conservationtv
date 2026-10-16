@@ -13,7 +13,6 @@ export type Log = {
     logs: Array<{
         id: string;
         reporterId: string;
-        keyId: string;
         observedAt: string;
         receivedAt: string;
         level: string;

@@ -117,16 +117,6 @@ export type Agent = {
     } | null;
 };
 
-export type SigningKey = {
-    signingKeys: Array<{
-        id: string;
-        algorithm: string;
-        publicKey: string;
-        createdAt: string;
-        revokedAt: string | null;
-    }>;
-};
-
 export type Revision = {
     id: string;
     config: {
@@ -239,7 +229,6 @@ export type Observation = {
     observations: Array<{
         id: string;
         reporterId: string;
-        keyId: string;
         observedAt: string;
         receivedAt: string;
         type: string;
@@ -253,7 +242,6 @@ export type Metric = {
     samples: Array<{
         id: string;
         reporterId: string;
-        keyId: string;
         observedAt: string;
         receivedAt: string;
         name: string;
@@ -270,7 +258,6 @@ export type Log = {
     logs: Array<{
         id: string;
         reporterId: string;
-        keyId: string;
         observedAt: string;
         receivedAt: string;
         level: string;
@@ -2219,185 +2206,6 @@ export type PatchOrganisationsByIdAgentsByAgentIdResponses = {
 
 export type PatchOrganisationsByIdAgentsByAgentIdResponse = PatchOrganisationsByIdAgentsByAgentIdResponses[keyof PatchOrganisationsByIdAgentsByAgentIdResponses];
 
-export type GetOrganisationsByIdAgentsByAgentIdSigningKeysData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * The agent.
-         */
-        agentId: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/agents/{agentId}/signing-keys';
-};
-
-export type GetOrganisationsByIdAgentsByAgentIdSigningKeysErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type GetOrganisationsByIdAgentsByAgentIdSigningKeysError = GetOrganisationsByIdAgentsByAgentIdSigningKeysErrors[keyof GetOrganisationsByIdAgentsByAgentIdSigningKeysErrors];
-
-export type GetOrganisationsByIdAgentsByAgentIdSigningKeysResponses = {
-    /**
-     * The keys, oldest first
-     */
-    200: SigningKey;
-};
-
-export type GetOrganisationsByIdAgentsByAgentIdSigningKeysResponse = GetOrganisationsByIdAgentsByAgentIdSigningKeysResponses[keyof GetOrganisationsByIdAgentsByAgentIdSigningKeysResponses];
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysData = {
-    body: {
-        /**
-         * The signing algorithm.
-         */
-        algorithm?: 'Ed25519';
-        /**
-         * The raw 32-byte Ed25519 public key, unpadded base64url.
-         */
-        publicKey: string;
-    };
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * The agent.
-         */
-        agentId: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/agents/{agentId}/signing-keys';
-};
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysError = PostOrganisationsByIdAgentsByAgentIdSigningKeysErrors[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysErrors];
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysResponses = {
-    /**
-     * The registered key
-     */
-    201: {
-        id: string;
-        algorithm: string;
-        publicKey: string;
-        createdAt: string;
-        revokedAt: string | null;
-    };
-};
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysResponse = PostOrganisationsByIdAgentsByAgentIdSigningKeysResponses[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysResponses];
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-        /**
-         * The agent.
-         */
-        agentId: string;
-        /**
-         * The signing key.
-         */
-        keyId: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/agents/{agentId}/signing-keys/{keyId}/revoke';
-};
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeError = PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeErrors[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeErrors];
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponses = {
-    /**
-     * The revoked key
-     */
-    200: {
-        id: string;
-        algorithm: string;
-        publicKey: string;
-        createdAt: string;
-        revokedAt: string | null;
-    };
-};
-
-export type PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponse = PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponses[keyof PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponses];
-
 export type GetOrganisationsByIdAgentsByAgentIdRevisionsData = {
     body?: never;
     path: {
@@ -3833,15 +3641,15 @@ export type PostInvitationsByIdDeclineResponse = PostInvitationsByIdDeclineRespo
 export type PostReportsData = {
     body: {
         /**
-         * The registered signing key.
+         * The signing device's public ID: the reporting agent's host device.
          */
-        keyId: string;
+        publicId: string;
         /**
          * The batch, as JSON text: the exact bytes that were signed.
          */
         batch: string;
         /**
-         * The key's Ed25519 signature of the batch text, unpadded base64url.
+         * The device's Ed25519 signature of the batch text, unpadded base64url.
          */
         signature: string;
     };

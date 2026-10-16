@@ -1,7 +1,7 @@
 import { organisationAdmin, organisationMember } from '../roles.ts';
 
 // The access shared by what agents report about subjects (observations, metrics and logs) and the state derived from
-// them. Each record keeps its reporter (the agent whose key signed it) separate from its subject (what was observed,
+// them. Each record keeps its reporter (the agent whose host device signed it) separate from its subject (what was observed,
 // named by the convention in src/reports/subjects.ts). A composite foreign key keeps the reporter in the record's
 // organisation; the subject is a string, and only means something within that organisation.
 //

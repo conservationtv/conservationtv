@@ -2,7 +2,7 @@ import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
 import { foreignKey, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import type { Settings } from '../../topology/settings.ts';
-import { agentSigningKeys, agents } from './agents.ts';
+import { agents } from './agents.ts';
 import { organisations } from './organisations.ts';
 import { observationAccess } from './report-access.ts';
 
@@ -19,9 +19,6 @@ export const logRecords = withAccess(
         .default(sql`uuidv7()`),
       reporterId: uuid('reporter_id').notNull(),
       subjectId: text('subject_id').notNull(),
-      keyId: uuid('key_id')
-        .notNull()
-        .references(() => agentSigningKeys.id),
       observedAt: timestamp('observed_at').notNull(),
       receivedAt: timestamp('received_at').defaultNow().notNull(),
       level: text('level').notNull(),

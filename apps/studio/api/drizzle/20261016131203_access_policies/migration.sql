@@ -17,45 +17,6 @@ end $authz$;
 --> statement-breakpoint
 alter table "authz_role_assignments" enable row level security;
 --> statement-breakpoint
-alter table "agent_signing_key" enable row level security;
---> statement-breakpoint
-create function "authz:agentSigningKeys:select:0"()
-    returns setof uuid language sql stable security definer set search_path = pg_catalog, public, pg_temp as $authz$ select case when "authz_role_assignments"."scope_name" = 'organisation'
-    then "authz_role_assignments"."scope_id"::uuid end from "authz_role_assignments" where "authz_role_assignments"."principal_kind" = current_setting('authz.principal_kind', true) and "authz_role_assignments"."principal_id" = current_setting('authz.principal_id', true)
-    and (("authz_role_assignments"."starts_at" is null or "authz_role_assignments"."starts_at" <= statement_timestamp()) and
-    ("authz_role_assignments"."expires_at" is null or "authz_role_assignments"."expires_at" > statement_timestamp())) and "authz_role_assignments"."scope_name" = 'organisation'
-    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('agentSigningKeys', 'member'), ('@shared', 'organisationMember'), ('agentSigningKeys', 'admin'), ('@shared', 'organisationAdmin')) $authz$;
---> statement-breakpoint
-create policy "authz_select" on "agent_signing_key" for select using (("organisation_id" = any(array(select "authz:agentSigningKeys:select:0"()))));
---> statement-breakpoint
-create function "authz:agentSigningKeys:insert:0"()
-    returns setof uuid language sql stable security definer set search_path = pg_catalog, public, pg_temp as $authz$ select case when "authz_role_assignments"."scope_name" = 'organisation'
-    then "authz_role_assignments"."scope_id"::uuid end from "authz_role_assignments" where "authz_role_assignments"."principal_kind" = current_setting('authz.principal_kind', true) and "authz_role_assignments"."principal_id" = current_setting('authz.principal_id', true)
-    and (("authz_role_assignments"."starts_at" is null or "authz_role_assignments"."starts_at" <= statement_timestamp()) and
-    ("authz_role_assignments"."expires_at" is null or "authz_role_assignments"."expires_at" > statement_timestamp())) and "authz_role_assignments"."scope_name" = 'organisation'
-    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('agentSigningKeys', 'admin'), ('@shared', 'organisationAdmin')) $authz$;
---> statement-breakpoint
-create policy "authz_insert" on "agent_signing_key" for insert with check (("organisation_id" = any(array(select "authz:agentSigningKeys:insert:0"()))));
---> statement-breakpoint
-create function "authz:agentSigningKeys:update:0"()
-    returns setof uuid language sql stable security definer set search_path = pg_catalog, public, pg_temp as $authz$ select case when "authz_role_assignments"."scope_name" = 'organisation'
-    then "authz_role_assignments"."scope_id"::uuid end from "authz_role_assignments" where "authz_role_assignments"."principal_kind" = current_setting('authz.principal_kind', true) and "authz_role_assignments"."principal_id" = current_setting('authz.principal_id', true)
-    and (("authz_role_assignments"."starts_at" is null or "authz_role_assignments"."starts_at" <= statement_timestamp()) and
-    ("authz_role_assignments"."expires_at" is null or "authz_role_assignments"."expires_at" > statement_timestamp())) and "authz_role_assignments"."scope_name" = 'organisation'
-    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('agentSigningKeys', 'admin'), ('@shared', 'organisationAdmin')) $authz$;
---> statement-breakpoint
-create policy "authz_update" on "agent_signing_key" for update using (("organisation_id" = any(array(select "authz:agentSigningKeys:update:0"())))) with check (("organisation_id" = any(array(select "authz:agentSigningKeys:update:0"()))));
---> statement-breakpoint
-create function "authz:agentSigningKeys:immutable"() returns trigger language plpgsql as $authz$
-    begin
-      if coalesce(current_setting('authz.principal_kind', true), '') <> '' and (new."agent_id" is distinct from old."agent_id" or new."algorithm" is distinct from old."algorithm" or new."public_key" is distinct from old."public_key" or new."created_at" is distinct from old."created_at" or new."organisation_id" is distinct from old."organisation_id") then
-        raise exception 'Immutable access column on %', tg_table_name using errcode = '42501';
-      end if;
-      return new;
-    end $authz$;
---> statement-breakpoint
-create trigger "authz_immutable" before update on "agent_signing_key" for each row execute function "authz:agentSigningKeys:immutable"();
---> statement-breakpoint
 alter table "agent" enable row level security;
 --> statement-breakpoint
 create function "authz:agents:select:0"()
@@ -183,7 +144,7 @@ create policy "authz_delete" on "device" for delete using (("organisation_id" = 
 --> statement-breakpoint
 create function "authz:devices:immutable"() returns trigger language plpgsql as $authz$
     begin
-      if coalesce(current_setting('authz.principal_kind', true), '') <> '' and (new."created_at" is distinct from old."created_at" or new."organisation_id" is distinct from old."organisation_id") then
+      if coalesce(current_setting('authz.principal_kind', true), '') <> '' and (new."public_key" is distinct from old."public_key" or new."public_id" is distinct from old."public_id" or new."private_key" is distinct from old."private_key" or new."created_at" is distinct from old."created_at" or new."organisation_id" is distinct from old."organisation_id") then
         raise exception 'Immutable access column on %', tg_table_name using errcode = '42501';
       end if;
       return new;

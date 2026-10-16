@@ -133,16 +133,6 @@ export const AgentSchema = z.object({
     }).nullable()
 });
 
-export const SigningKeySchema = z.object({
-    signingKeys: z.array(z.object({
-        id: z.string(),
-        algorithm: z.string(),
-        publicKey: z.string(),
-        createdAt: z.string(),
-        revokedAt: z.string().nullable()
-    }))
-});
-
 export const RevisionSchema = z.object({
     id: z.string(),
     config: z.record(z.string(), z.unknown()),
@@ -241,7 +231,6 @@ export const ObservationSchema = z.object({
     observations: z.array(z.object({
         id: z.string(),
         reporterId: z.string(),
-        keyId: z.string(),
         observedAt: z.string(),
         receivedAt: z.string(),
         type: z.string(),
@@ -253,7 +242,6 @@ export const MetricSchema = z.object({
     samples: z.array(z.object({
         id: z.string(),
         reporterId: z.string(),
-        keyId: z.string(),
         observedAt: z.string(),
         receivedAt: z.string(),
         name: z.string(),
@@ -268,7 +256,6 @@ export const LogSchema = z.object({
     logs: z.array(z.object({
         id: z.string(),
         reporterId: z.string(),
-        keyId: z.string(),
         observedAt: z.string(),
         receivedAt: z.string(),
         level: z.string(),
@@ -928,76 +915,6 @@ export const PatchOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
  */
 export const PatchOrganisationsByIdAgentsByAgentIdResponseSchema = AgentSchema;
 
-export const GetOrganisationsByIdAgentsByAgentIdSigningKeysPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The agent.'
-    })
-});
-
-/**
- * The keys, oldest first
- */
-export const GetOrganisationsByIdAgentsByAgentIdSigningKeysResponseSchema = SigningKeySchema;
-
-export const PostOrganisationsByIdAgentsByAgentIdSigningKeysBodySchema = z.object({
-    algorithm: z.literal('Ed25519').register(z.globalRegistry, {
-        description: 'The signing algorithm.'
-    }).optional().default('Ed25519'),
-    publicKey: z.string().length(43).register(z.globalRegistry, {
-        description: 'The raw 32-byte Ed25519 public key, unpadded base64url.'
-    })
-});
-
-export const PostOrganisationsByIdAgentsByAgentIdSigningKeysPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The agent.'
-    })
-});
-
-/**
- * The registered key
- */
-export const PostOrganisationsByIdAgentsByAgentIdSigningKeysResponseSchema = z.object({
-    id: z.string(),
-    algorithm: z.string(),
-    publicKey: z.string(),
-    createdAt: z.string(),
-    revokedAt: z.string().nullable()
-}).register(z.globalRegistry, {
-    description: 'The registered key'
-});
-
-export const PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokePathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
-    }),
-    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The agent.'
-    }),
-    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The signing key.'
-    })
-});
-
-/**
- * The revoked key
- */
-export const PostOrganisationsByIdAgentsByAgentIdSigningKeysByKeyIdRevokeResponseSchema = z.object({
-    id: z.string(),
-    algorithm: z.string(),
-    publicKey: z.string(),
-    createdAt: z.string(),
-    revokedAt: z.string().nullable()
-}).register(z.globalRegistry, {
-    description: 'The revoked key'
-});
-
 export const GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
@@ -1526,14 +1443,14 @@ export const PostInvitationsByIdDeclineResponseSchema = z.void().register(z.glob
 });
 
 export const PostReportsBodySchema = z.object({
-    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The registered signing key.'
+    publicId: z.string().regex(/^[0-9a-f]{64}$/).register(z.globalRegistry, {
+        description: 'The signing device\'s public ID: the reporting agent\'s host device.'
     }),
     batch: z.string().min(2).register(z.globalRegistry, {
         description: 'The batch, as JSON text: the exact bytes that were signed.'
     }),
     signature: z.string().min(1).max(128).register(z.globalRegistry, {
-        description: 'The key\'s Ed25519 signature of the batch text, unpadded base64url.'
+        description: 'The device\'s Ed25519 signature of the batch text, unpadded base64url.'
     })
 });
 

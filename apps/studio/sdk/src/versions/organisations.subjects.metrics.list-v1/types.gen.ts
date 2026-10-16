@@ -13,7 +13,6 @@ export type Metric = {
     samples: Array<{
         id: string;
         reporterId: string;
-        keyId: string;
         observedAt: string;
         receivedAt: string;
         name: string;

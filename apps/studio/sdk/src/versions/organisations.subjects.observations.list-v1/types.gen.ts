@@ -13,7 +13,6 @@ export type Observation = {
     observations: Array<{
         id: string;
         reporterId: string;
-        keyId: string;
         observedAt: string;
         receivedAt: string;
         type: string;

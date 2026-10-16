@@ -11,7 +11,6 @@ export const LogSchema = z.object({
     logs: z.array(z.object({
         id: z.string(),
         reporterId: z.string(),
-        keyId: z.string(),
         observedAt: z.string(),
         receivedAt: z.string(),
         level: z.string(),
