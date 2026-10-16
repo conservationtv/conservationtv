@@ -5,9 +5,8 @@ import { z } from 'zod';
 import { agents, configurationRevisions, devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { trusted } from '../organisations/membership.ts';
 import { useServices } from '../services.ts';
-import { grantDevice, revokeDevice } from '../topology/device-principals.ts';
+import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
 import { DeviceNameSchema, deviceColumns } from './devices.ts';
 import { deviceIdentity } from '../topology/identity.ts';
@@ -116,11 +115,10 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
       const principal = usePrincipal();
-      const session = await services.session(principal);
       const identity = await deviceIdentity();
-      const row = await session.transaction(async tx => {
+      // Trusted, so the device's principal grant is made with it (src/topology/device-principals.ts).
+      const row = await changeDevices(principal, id, 'create', async (tx, access) => {
         const [device] = await tx
           .insert(devices)
           .values({ ...identity, organisationId: id, kind: 'agent', name: body.name, networkId: body.networkId })
@@ -129,11 +127,9 @@ export default new Hono()
           .insert(agents)
           .values({ id: device!.id, organisationId: id, networkId: body.networkId, priority: body.priority })
           .returning({ priority: agents.priority, active: agents.active });
+        await grantDevice(access, id, device!.id);
         return { ...device!, ...agent!, servedRevisionId: null };
       });
-      // Its device is a principal of the organisation (src/topology/device-principals.ts), granted in trusted code once
-      // the device exists.
-      await trusted((_tx, access) => grantDevice(access, id, row.id));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
     }
@@ -248,18 +244,17 @@ export default new Hono()
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');
-      const services = useServices();
       const principal = usePrincipal();
-      const session = await services.session(principal);
-      await session.transaction(async tx => {
+      // Trusted, so the device's principal grant is revoked with it (src/topology/device-principals.ts).
+      await changeDevices(principal, id, 'remove', async (tx, access) => {
         const deleted = await tx
           .delete(agents)
           .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
           .returning({ id: agents.id });
-        if (deleted.length === 0) throw await unchanged(tx, agents.id, agentId);
+        if (deleted.length === 0) throw new ApiFailure('not_found');
         await tx.delete(devices).where(and(eq(devices.organisationId, id), eq(devices.id, agentId)));
+        await revokeDevice(access, id, agentId);
       });
-      await trusted((_tx, access) => revokeDevice(access, id, agentId));
       return c.body(null, 204);
     }
   )
