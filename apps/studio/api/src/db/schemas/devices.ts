@@ -35,6 +35,7 @@ export const devices = withAccess(
     },
     t => [
       unique('device_organisation_id').on(t.organisationId, t.id),
+      unique('device_organisation_id_network').on(t.organisationId, t.id, t.networkId),
       unique('device_public_id').on(t.publicId),
       check('device_public_id_hex', sql`${t.publicId} ~ '^[0-9a-f]{64}$'`),
       foreignKey({

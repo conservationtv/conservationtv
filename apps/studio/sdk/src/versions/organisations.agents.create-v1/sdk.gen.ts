@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses } from './types.gen.js';
+import type { PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -48,20 +48,40 @@ class HeyApiRegistry<T> {
 
 export class Agents extends HeyApiClient {
     /**
-     * Register an agent
+     * Add an agent
      *
-     * Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.
+     * Administrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
+        type: string;
+        name: string;
         networkId: string;
-        deviceId: string;
+        nativeExposures?: Array<{
+            /**
+             * A network of the organisation, or null for the internet.
+             */
+            networkId: string | null;
+            protocol: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            params?: {
+                [key: string]: Schema0;
+            };
+        }>;
+        settings?: {
+            [key: string]: Schema0;
+        };
         priority?: number;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
+                    { in: 'body', key: 'type' },
+                    { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'deviceId' },
+                    { in: 'body', key: 'nativeExposures' },
+                    { in: 'body', key: 'settings' },
                     { in: 'body', key: 'priority' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError>({

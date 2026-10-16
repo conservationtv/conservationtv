@@ -6,8 +6,11 @@ import { PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsPathS
 
 export const AgentCreateV1ParamsSchema = z.object({
     id: PostOrganisationsByIdAgentsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    networkId: PostOrganisationsByIdAgentsBodySchema.shape.networkId.nonoptional().describe('The network the agent serves.'),
-    deviceId: PostOrganisationsByIdAgentsBodySchema.shape.deviceId.nonoptional().describe('The device the agent runs on.'),
+    type: PostOrganisationsByIdAgentsBodySchema.shape.type.nonoptional().describe('What the device is, such as `camera` or `server`.'),
+    name: PostOrganisationsByIdAgentsBodySchema.shape.name.nonoptional().describe('The device name.'),
+    networkId: PostOrganisationsByIdAgentsBodySchema.shape.networkId.nonoptional().describe('The network the agent is on and serves.'),
+    nativeExposures: PostOrganisationsByIdAgentsBodySchema.shape.nativeExposures.optional().describe('The endpoints the device offers by itself, such as a camera’s RTSP feed.'),
+    settings: PostOrganisationsByIdAgentsBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.'),
     priority: PostOrganisationsByIdAgentsBodySchema.shape.priority.optional().describe('Standby preference; higher is preferred.')
 });
 

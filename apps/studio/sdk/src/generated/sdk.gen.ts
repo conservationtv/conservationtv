@@ -434,7 +434,7 @@ export class Devices extends HeyApiClient {
     /**
      * Remove a device
      *
-     * Administrators only. Refused while an agent runs on it or a stream uses it as its source.
+     * Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -466,7 +466,7 @@ export class Devices extends HeyApiClient {
     /**
      * Update a device
      *
-     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.
+     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -609,7 +609,7 @@ export class Agents extends HeyApiClient {
     /**
      * List an organisation's agents
      *
-     * Optionally only those registered on one network. Empty for organisations you are not a member of.
+     * Optionally only those on one network. Empty for organisations you are not a member of.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -624,20 +624,40 @@ export class Agents extends HeyApiClient {
     }
     
     /**
-     * Register an agent
+     * Add an agent
      *
-     * Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.
+     * Administrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
+        type: string;
+        name: string;
         networkId: string;
-        deviceId: string;
+        nativeExposures?: Array<{
+            /**
+             * A network of the organisation, or null for the internet.
+             */
+            networkId: string | null;
+            protocol: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            params?: {
+                [key: string]: Schema0;
+            };
+        }>;
+        settings?: {
+            [key: string]: Schema0;
+        };
         priority?: number;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
+                    { in: 'body', key: 'type' },
+                    { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'deviceId' },
+                    { in: 'body', key: 'nativeExposures' },
+                    { in: 'body', key: 'settings' },
                     { in: 'body', key: 'priority' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError>({
@@ -655,7 +675,7 @@ export class Agents extends HeyApiClient {
     /**
      * Remove an agent
      *
-     * Administrators only. Deletes its configuration revisions.
+     * Administrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -687,18 +707,16 @@ export class Agents extends HeyApiClient {
     /**
      * Update an agent
      *
-     * Administrators only: move it to another device, or change its priority. An agent stays on its network; which agent is active is set on the network.
+     * Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         agentId: string;
-        deviceId?: string;
-        priority?: number;
+        priority: number;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'agentId' },
-                    { in: 'body', key: 'deviceId' },
                     { in: 'body', key: 'priority' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError>({

@@ -50,7 +50,7 @@ export class Devices extends HeyApiClient {
     /**
      * Update a device
      *
-     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.
+     * Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;

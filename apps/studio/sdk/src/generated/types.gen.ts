@@ -82,12 +82,25 @@ export type Device = {
 };
 
 export type Agent = {
+    servedRevisionId: string | null;
     id: string;
+    type: string;
+    name: string;
     networkId: string;
-    deviceId: string;
+    nativeExposures: Array<{
+        networkId: string | null;
+        protocol: string;
+        params?: {
+            [key: string]: unknown;
+        };
+    }>;
+    settings: {
+        [key: string]: unknown;
+    };
+    publicKey: string;
+    publicId: string;
     priority: number;
     active: boolean;
-    servedRevisionId: string | null;
     createdAt: string;
 };
 
@@ -1632,6 +1645,10 @@ export type PatchOrganisationsByIdDevicesByDeviceIdErrors = {
      */
     404: Error;
     /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;
@@ -1700,12 +1717,25 @@ export type GetOrganisationsByIdAgentsResponses = {
      */
     200: {
         agents: Array<{
+            servedRevisionId: string | null;
             id: string;
+            type: string;
+            name: string;
             networkId: string;
-            deviceId: string;
+            nativeExposures: Array<{
+                networkId: string | null;
+                protocol: string;
+                params?: {
+                    [key: string]: unknown;
+                };
+            }>;
+            settings: {
+                [key: string]: unknown;
+            };
+            publicKey: string;
+            publicId: string;
             priority: number;
             active: boolean;
-            servedRevisionId: string | null;
             createdAt: string;
         }>;
     };
@@ -1716,13 +1746,39 @@ export type GetOrganisationsByIdAgentsResponse = GetOrganisationsByIdAgentsRespo
 export type PostOrganisationsByIdAgentsData = {
     body: {
         /**
-         * The network the agent serves.
+         * What the device is, such as `camera` or `server`.
+         */
+        type: string;
+        /**
+         * The device name.
+         */
+        name: string;
+        /**
+         * The network the agent is on and serves.
          */
         networkId: string;
         /**
-         * The device the agent runs on.
+         * The endpoints the device offers by itself, such as a camera’s RTSP feed.
          */
-        deviceId: string;
+        nativeExposures?: Array<{
+            /**
+             * A network of the organisation, or null for the internet.
+             */
+            networkId: string | null;
+            protocol: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            params?: {
+                [key: string]: Schema0;
+            };
+        }>;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        settings?: {
+            [key: string]: Schema0;
+        };
         /**
          * Standby preference; higher is preferred.
          */
@@ -1773,12 +1829,25 @@ export type PostOrganisationsByIdAgentsResponses = {
      */
     201: {
         servedRevisionId: null;
-        id: string;
         networkId: string;
-        deviceId: string;
         priority: number;
         active: boolean;
         createdAt: string;
+        id: string;
+        type: string;
+        name: string;
+        nativeExposures: Array<{
+            networkId: string | null;
+            protocol: string;
+            params?: {
+                [key: string]: unknown;
+            };
+        }>;
+        settings: {
+            [key: string]: unknown;
+        };
+        publicKey: string;
+        publicId: string;
     };
 };
 
@@ -1817,6 +1886,10 @@ export type DeleteOrganisationsByIdAgentsByAgentIdErrors = {
      * The resource does not exist or is not visible to this account
      */
     404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
     /**
      * The selected operation version is not served
      */
@@ -1891,13 +1964,9 @@ export type GetOrganisationsByIdAgentsByAgentIdResponse = GetOrganisationsByIdAg
 export type PatchOrganisationsByIdAgentsByAgentIdData = {
     body: {
         /**
-         * The device the agent runs on.
-         */
-        deviceId?: string;
-        /**
          * Standby preference; higher is preferred.
          */
-        priority?: number;
+        priority: number;
     };
     path: {
         /**
@@ -1935,10 +2004,6 @@ export type PatchOrganisationsByIdAgentsByAgentIdErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
-     */
-    422: Error;
-    /**
      * The database is unavailable
      */
     503: Error;
@@ -1950,15 +2015,7 @@ export type PatchOrganisationsByIdAgentsByAgentIdResponses = {
     /**
      * The updated agent
      */
-    200: {
-        servedRevisionId: string;
-        id: string;
-        networkId: string;
-        deviceId: string;
-        priority: number;
-        active: boolean;
-        createdAt: string;
-    };
+    200: Agent;
 };
 
 export type PatchOrganisationsByIdAgentsByAgentIdResponse = PatchOrganisationsByIdAgentsByAgentIdResponses[keyof PatchOrganisationsByIdAgentsByAgentIdResponses];
@@ -2227,8 +2284,21 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses = {
     200: {
         servedRevisionId: string;
         id: string;
+        type: string;
+        name: string;
         networkId: string;
-        deviceId: string;
+        nativeExposures: Array<{
+            networkId: string | null;
+            protocol: string;
+            params?: {
+                [key: string]: unknown;
+            };
+        }>;
+        settings: {
+            [key: string]: unknown;
+        };
+        publicKey: string;
+        publicId: string;
         priority: number;
         active: boolean;
         createdAt: string;

@@ -2,14 +2,17 @@ import { and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { agents, configurationRevisions } from '../db/schema.ts';
+import { agents, configurationRevisions, devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useServices } from '../services.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
+import { DeviceNameSchema, DeviceTypeSchema, NativeExposuresSchema } from './devices.ts';
+import { deviceIdentity } from '../topology/identity.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
+  inUse,
   invalidReference,
   invalidRequest,
   notFound,
@@ -25,17 +28,30 @@ const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisat
 export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const AgentParamsSchema = OrganisationParamsSchema.extend({ agentId: z.uuid().describe('The agent.') });
 export type AgentParams = z.output<typeof AgentParamsSchema>;
-const SigningKeyParamsSchema = AgentParamsSchema.extend({ keyId: z.uuid().describe('The signing key.') });
-export type SigningKeyParams = z.output<typeof SigningKeyParamsSchema>;
 const RevisionParamsSchema = AgentParamsSchema.extend({ revisionId: z.uuid().describe('The configuration revision.') });
 export type RevisionParams = z.output<typeof RevisionParamsSchema>;
 
 const PrioritySchema = z.int().min(-1000).max(1000).describe('Standby preference; higher is preferred.');
 export type Priority = z.output<typeof PrioritySchema>;
 
-// An organisation's agents and their configuration revisions, in the principal's request
-// session: members read them, administrators manage them. An agent serves one network from a host device of the same
-// organisation (the database's composite foreign keys refuse any other).
+/** An agent with its device's fields: the columns every agent route returns, but its served revision. */
+const agentColumns = {
+  id: agents.id,
+  type: devices.type,
+  name: devices.name,
+  networkId: agents.networkId,
+  nativeExposures: devices.nativeExposures,
+  settings: devices.settings,
+  publicKey: devices.publicKey,
+  publicId: devices.publicId,
+  priority: agents.priority,
+  active: agents.active,
+  createdAt: agents.createdAt
+};
+
+// An organisation's agents and their configuration revisions, in the principal's request session: members read them,
+// administrators manage them. An agent is a device that serves the network it is on (src/db/schemas/agents.ts): it is
+// created and removed with its device, and its device's fields are edited under /devices, with the same ID.
 export default new Hono()
   .get(
     '/:id/agents',
@@ -43,7 +59,7 @@ export default new Hono()
       operationId: 'organisations.agents.list',
       ...operationVersion(1),
       summary: "List an organisation's agents",
-      description: 'Optionally only those registered on one network. Empty for organisations you are not a member of.',
+      description: 'Optionally only those on one network. Empty for organisations you are not a member of.',
       responses: {
         200: { description: 'The agents, oldest first' },
         400: invalidRequest,
@@ -63,16 +79,9 @@ export default new Hono()
       const session = await services.session(principal);
       const rows = await session.transaction(tx =>
         tx
-          .select({
-            id: agents.id,
-            networkId: agents.networkId,
-            deviceId: agents.deviceId,
-            priority: agents.priority,
-            active: agents.active,
-            servedRevisionId: configurationRevisions.id,
-            createdAt: agents.createdAt
-          })
+          .select({ ...agentColumns, servedRevisionId: configurationRevisions.id })
           .from(agents)
+          .innerJoin(devices, eq(devices.id, agents.id))
           .leftJoin(
             configurationRevisions,
             and(eq(configurationRevisions.agentId, agents.id), eq(configurationRevisions.served, true))
@@ -91,9 +100,9 @@ export default new Hono()
     describeRoute({
       operationId: 'organisations.agents.create',
       ...operationVersion(1),
-      summary: 'Register an agent',
+      summary: 'Add an agent',
       description:
-        'Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.',
+        'Administrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.',
       responses: {
         201: { description: 'The new agent' },
         400: invalidRequest,
@@ -109,8 +118,11 @@ export default new Hono()
     validator(
       'json',
       z.strictObject({
-        networkId: z.uuid().describe('The network the agent serves.'),
-        deviceId: z.uuid().describe('The device the agent runs on.'),
+        type: DeviceTypeSchema,
+        name: DeviceNameSchema,
+        networkId: z.uuid().describe('The network the agent is on and serves.'),
+        nativeExposures: NativeExposuresSchema.default([]),
+        settings: SettingsSchema.default({}),
         priority: PrioritySchema.default(0)
       })
     ),
@@ -120,26 +132,41 @@ export default new Hono()
       const services = useServices();
       const principal = usePrincipal();
       const session = await services.session(principal);
-      const [row] = await session.transaction(async tx =>
-        tx
-          .insert(agents)
+      const identity = await deviceIdentity();
+      const row = await session.transaction(async tx => {
+        const [device] = await tx
+          .insert(devices)
           .values({
+            ...identity,
             organisationId: id,
+            type: body.type,
+            name: body.name,
             networkId: body.networkId,
-            deviceId: body.deviceId,
-            priority: body.priority
+            nativeExposures: body.nativeExposures,
+            settings: body.settings
           })
           .returning({
-            id: agents.id,
+            id: devices.id,
+            type: devices.type,
+            name: devices.name,
+            nativeExposures: devices.nativeExposures,
+            settings: devices.settings,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId
+          });
+        const [agent] = await tx
+          .insert(agents)
+          .values({ id: device!.id, organisationId: id, networkId: body.networkId, priority: body.priority })
+          .returning({
             networkId: agents.networkId,
-            deviceId: agents.deviceId,
             priority: agents.priority,
             active: agents.active,
             createdAt: agents.createdAt
-          })
-      );
+          });
+        return { ...device!, ...agent!, servedRevisionId: null };
+      });
       c.header('Cache-Control', 'no-store');
-      return c.json({ ...row!, servedRevisionId: null }, 201);
+      return c.json(row, 201);
     }
   )
   .get(
@@ -166,16 +193,9 @@ export default new Hono()
       const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
-          .select({
-            id: agents.id,
-            networkId: agents.networkId,
-            deviceId: agents.deviceId,
-            priority: agents.priority,
-            active: agents.active,
-            servedRevisionId: configurationRevisions.id,
-            createdAt: agents.createdAt
-          })
+          .select({ ...agentColumns, servedRevisionId: configurationRevisions.id })
           .from(agents)
+          .innerJoin(devices, eq(devices.id, agents.id))
           .leftJoin(
             configurationRevisions,
             and(eq(configurationRevisions.agentId, agents.id), eq(configurationRevisions.served, true))
@@ -194,7 +214,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update an agent',
       description:
-        'Administrators only: move it to another device, or change its priority. An agent stays on its network; which agent is active is set on the network.',
+        'Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.',
       responses: {
         200: { description: 'The updated agent' },
         400: invalidRequest,
@@ -202,21 +222,12 @@ export default new Hono()
         403: forbidden,
         404: notFound,
         412: versionMismatch,
-        422: invalidReference,
         503: unavailable
       }
     }),
     requirePrincipal,
     validator('param', AgentParamsSchema),
-    validator(
-      'json',
-      z
-        .strictObject({
-          deviceId: z.uuid().optional().describe('The device the agent runs on.'),
-          priority: PrioritySchema.optional()
-        })
-        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
-    ),
+    validator('json', z.strictObject({ priority: PrioritySchema })),
     async c => {
       const { id, agentId } = c.req.valid('param');
       const body = c.req.valid('json');
@@ -224,24 +235,22 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await services.session(principal);
       const row = await session.transaction(async tx => {
-        const [agent] = await tx
+        const updated = await tx
           .update(agents)
-          .set({ deviceId: body.deviceId, priority: body.priority })
+          .set({ priority: body.priority })
           .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
-          .returning({
-            id: agents.id,
-            networkId: agents.networkId,
-            deviceId: agents.deviceId,
-            priority: agents.priority,
-            active: agents.active,
-            createdAt: agents.createdAt
-          });
-        if (!agent) throw await unchanged(tx, agents.id, agentId);
-        const [served] = await tx
-          .select({ id: configurationRevisions.id })
-          .from(configurationRevisions)
-          .where(and(eq(configurationRevisions.agentId, agentId), eq(configurationRevisions.served, true)));
-        return { ...agent, servedRevisionId: served?.id ?? null };
+          .returning({ id: agents.id });
+        if (updated.length === 0) throw await unchanged(tx, agents.id, agentId);
+        const [agent] = await tx
+          .select({ ...agentColumns, servedRevisionId: configurationRevisions.id })
+          .from(agents)
+          .innerJoin(devices, eq(devices.id, agents.id))
+          .leftJoin(
+            configurationRevisions,
+            and(eq(configurationRevisions.agentId, agents.id), eq(configurationRevisions.served, true))
+          )
+          .where(eq(agents.id, agentId));
+        return agent!;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -253,13 +262,15 @@ export default new Hono()
       operationId: 'organisations.agents.delete',
       ...operationVersion(1),
       summary: 'Remove an agent',
-      description: 'Administrators only. Deletes its configuration revisions.',
+      description:
+        'Administrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
         404: notFound,
+        409: inUse,
         412: versionMismatch,
         503: unavailable
       }
@@ -277,6 +288,7 @@ export default new Hono()
           .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
           .returning({ id: agents.id });
         if (deleted.length === 0) throw await unchanged(tx, agents.id, agentId);
+        await tx.delete(devices).where(and(eq(devices.organisationId, id), eq(devices.id, agentId)));
       });
       return c.body(null, 204);
     }
@@ -458,15 +470,9 @@ export default new Hono()
       const session = await services.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
-          .select({
-            id: agents.id,
-            networkId: agents.networkId,
-            deviceId: agents.deviceId,
-            priority: agents.priority,
-            active: agents.active,
-            createdAt: agents.createdAt
-          })
+          .select(agentColumns)
           .from(agents)
+          .innerJoin(devices, eq(devices.id, agents.id))
           .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)));
         if (!agent) throw new ApiFailure('not_found');
         const [revision] = await tx

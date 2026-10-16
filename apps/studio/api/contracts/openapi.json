@@ -335,21 +335,6 @@
       "Agent": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "networkId": {
-            "type": "string"
-          },
-          "deviceId": {
-            "type": "string"
-          },
-          "priority": {
-            "type": "number"
-          },
-          "active": {
-            "type": "boolean"
-          },
           "servedRevisionId": {
             "anyOf": [
               {
@@ -360,17 +345,79 @@
               }
             ]
           },
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "networkId": {
+            "type": "string"
+          },
+          "nativeExposures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "networkId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "protocol": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "networkId",
+                "protocol"
+              ]
+            }
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string"
           }
         },
         "required": [
+          "servedRevisionId",
           "id",
+          "type",
+          "name",
           "networkId",
-          "deviceId",
+          "nativeExposures",
+          "settings",
+          "publicKey",
+          "publicId",
           "priority",
           "active",
-          "servedRevisionId",
           "createdAt"
         ]
       },
@@ -3501,7 +3548,7 @@
         "operationId": "organisations.devices.update",
         "x-operation-version": 1,
         "summary": "Update a device",
-        "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.",
+        "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.",
         "responses": {
           "200": {
             "description": "The updated device",
@@ -3545,6 +3592,16 @@
           },
           "404": {
             "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The resource is still used by another resource",
             "content": {
               "application/json": {
                 "schema": {
@@ -3709,7 +3766,7 @@
         "operationId": "organisations.devices.delete",
         "x-operation-version": 1,
         "summary": "Remove a device",
-        "description": "Administrators only. Refused while an agent runs on it or a stream uses it as its source.",
+        "description": "Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.",
         "responses": {
           "204": {
             "description": "Removed"
@@ -3819,7 +3876,7 @@
         "operationId": "organisations.agents.list",
         "x-operation-version": 1,
         "summary": "List an organisation's agents",
-        "description": "Optionally only those registered on one network. Empty for organisations you are not a member of.",
+        "description": "Optionally only those on one network. Empty for organisations you are not a member of.",
         "responses": {
           "200": {
             "description": "The agents, oldest first",
@@ -3833,21 +3890,6 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "networkId": {
-                            "type": "string"
-                          },
-                          "deviceId": {
-                            "type": "string"
-                          },
-                          "priority": {
-                            "type": "number"
-                          },
-                          "active": {
-                            "type": "boolean"
-                          },
                           "servedRevisionId": {
                             "anyOf": [
                               {
@@ -3858,17 +3900,79 @@
                               }
                             ]
                           },
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "networkId": {
+                            "type": "string"
+                          },
+                          "nativeExposures": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "networkId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "protocol": {
+                                  "type": "string"
+                                },
+                                "params": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                }
+                              },
+                              "required": [
+                                "networkId",
+                                "protocol"
+                              ]
+                            }
+                          },
+                          "settings": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "publicKey": {
+                            "type": "string"
+                          },
+                          "publicId": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "number"
+                          },
+                          "active": {
+                            "type": "boolean"
+                          },
                           "createdAt": {
                             "type": "string"
                           }
                         },
                         "required": [
+                          "servedRevisionId",
                           "id",
+                          "type",
+                          "name",
                           "networkId",
-                          "deviceId",
+                          "nativeExposures",
+                          "settings",
+                          "publicKey",
+                          "publicId",
                           "priority",
                           "active",
-                          "servedRevisionId",
                           "createdAt"
                         ]
                       }
@@ -3952,8 +4056,8 @@
       "post": {
         "operationId": "organisations.agents.create",
         "x-operation-version": 1,
-        "summary": "Register an agent",
-        "description": "Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.",
+        "summary": "Add an agent",
+        "description": "Administrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.",
         "responses": {
           "201": {
             "description": "The new agent",
@@ -3965,13 +4069,7 @@
                     "servedRevisionId": {
                       "type": "null"
                     },
-                    "id": {
-                      "type": "string"
-                    },
                     "networkId": {
-                      "type": "string"
-                    },
-                    "deviceId": {
                       "type": "string"
                     },
                     "priority": {
@@ -3982,16 +4080,69 @@
                     },
                     "createdAt": {
                       "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "nativeExposures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "networkId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "protocol": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "networkId",
+                          "protocol"
+                        ]
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
+                      "type": "string"
                     }
                   },
                   "required": [
                     "servedRevisionId",
-                    "id",
                     "networkId",
-                    "deviceId",
                     "priority",
                     "active",
-                    "createdAt"
+                    "createdAt",
+                    "id",
+                    "type",
+                    "name",
+                    "nativeExposures",
+                    "settings",
+                    "publicKey",
+                    "publicId"
                   ]
                 }
               }
@@ -4078,17 +4229,80 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "What the device is, such as `camera` or `server`."
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "The device name."
+                  },
                   "networkId": {
                     "type": "string",
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "The network the agent serves."
+                    "description": "The network the agent is on and serves."
                   },
-                  "deviceId": {
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "The device the agent runs on."
+                  "nativeExposures": {
+                    "default": [],
+                    "maxItems": 32,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "networkId": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "A network of the organisation, or null for the internet."
+                        },
+                        "protocol": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "params": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "additionalProperties": {
+                            "$ref": "#/components/schemas/__schema0"
+                          },
+                          "description": "Settings validated by the implementation that reads them."
+                        }
+                      },
+                      "required": [
+                        "networkId",
+                        "protocol"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
+                  },
+                  "settings": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/__schema0"
+                    },
+                    "description": "Settings validated by the implementation that reads them."
                   },
                   "priority": {
                     "default": 0,
@@ -4099,8 +4313,9 @@
                   }
                 },
                 "required": [
-                  "networkId",
-                  "deviceId"
+                  "type",
+                  "name",
+                  "networkId"
                 ],
                 "additionalProperties": false
               }
@@ -4211,46 +4426,14 @@
         "operationId": "organisations.agents.update",
         "x-operation-version": 1,
         "summary": "Update an agent",
-        "description": "Administrators only: move it to another device, or change its priority. An agent stays on its network; which agent is active is set on the network.",
+        "description": "Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.",
         "responses": {
           "200": {
             "description": "The updated agent",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "servedRevisionId": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "networkId": {
-                      "type": "string"
-                    },
-                    "deviceId": {
-                      "type": "string"
-                    },
-                    "priority": {
-                      "type": "number"
-                    },
-                    "active": {
-                      "type": "boolean"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "servedRevisionId",
-                    "id",
-                    "networkId",
-                    "deviceId",
-                    "priority",
-                    "active",
-                    "createdAt"
-                  ]
+                  "$ref": "#/components/schemas/Agent"
                 }
               }
             }
@@ -4305,16 +4488,6 @@
               }
             }
           },
-          "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "503": {
             "description": "The database is unavailable",
             "content": {
@@ -4357,12 +4530,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "deviceId": {
-                    "description": "The device the agent runs on.",
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                  },
                   "priority": {
                     "type": "integer",
                     "minimum": -1000,
@@ -4370,6 +4537,9 @@
                     "description": "Standby preference; higher is preferred."
                   }
                 },
+                "required": [
+                  "priority"
+                ],
                 "additionalProperties": false
               }
             }
@@ -4383,7 +4553,7 @@
         "operationId": "organisations.agents.delete",
         "x-operation-version": 1,
         "summary": "Remove an agent",
-        "description": "Administrators only. Deletes its configuration revisions.",
+        "description": "Administrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.",
         "responses": {
           "204": {
             "description": "Removed"
@@ -4420,6 +4590,16 @@
           },
           "404": {
             "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The resource is still used by another resource",
             "content": {
               "application/json": {
                 "schema": {
@@ -4989,10 +5169,52 @@
                     "id": {
                       "type": "string"
                     },
+                    "type": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
                     "networkId": {
                       "type": "string"
                     },
-                    "deviceId": {
+                    "nativeExposures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "networkId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "protocol": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "networkId",
+                          "protocol"
+                        ]
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
                       "type": "string"
                     },
                     "priority": {
@@ -5008,8 +5230,13 @@
                   "required": [
                     "servedRevisionId",
                     "id",
+                    "type",
+                    "name",
                     "networkId",
-                    "deviceId",
+                    "nativeExposures",
+                    "settings",
+                    "publicKey",
+                    "publicId",
                     "priority",
                     "active",
                     "createdAt"
@@ -11757,7 +11984,7 @@
             "operationId": "organisations.devices.update",
             "x-operation-version": 1,
             "summary": "Update a device",
-            "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole.",
+            "description": "Administrators only. Changes only the fields given; `nativeExposures` and `settings` are replaced whole. An agent’s network cannot change.",
             "responses": {
               "200": {
                 "description": "The updated device",
@@ -11801,6 +12028,16 @@
               },
               "404": {
                 "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "409": {
+                "description": "The resource is still used by another resource",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -12015,7 +12252,7 @@
             "operationId": "organisations.devices.delete",
             "x-operation-version": 1,
             "summary": "Remove a device",
-            "description": "Administrators only. Refused while an agent runs on it or a stream uses it as its source.",
+            "description": "Administrators only. Refused for an agent, which is removed through its agents route, and while a stream uses it as its source.",
             "responses": {
               "204": {
                 "description": "Removed"
@@ -12173,21 +12410,6 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "networkId": {
-                      "type": "string"
-                    },
-                    "deviceId": {
-                      "type": "string"
-                    },
-                    "priority": {
-                      "type": "number"
-                    },
-                    "active": {
-                      "type": "boolean"
-                    },
                     "servedRevisionId": {
                       "anyOf": [
                         {
@@ -12198,17 +12420,79 @@
                         }
                       ]
                     },
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "type": "string"
+                    },
+                    "nativeExposures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "networkId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "protocol": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "networkId",
+                          "protocol"
+                        ]
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
+                    "priority": {
+                      "type": "number"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
                     "createdAt": {
                       "type": "string"
                     }
                   },
                   "required": [
+                    "servedRevisionId",
                     "id",
+                    "type",
+                    "name",
                     "networkId",
-                    "deviceId",
+                    "nativeExposures",
+                    "settings",
+                    "publicKey",
+                    "publicId",
                     "priority",
                     "active",
-                    "servedRevisionId",
                     "createdAt"
                   ]
                 }
@@ -12226,7 +12510,7 @@
             "operationId": "organisations.agents.list",
             "x-operation-version": 1,
             "summary": "List an organisation's agents",
-            "description": "Optionally only those registered on one network. Empty for organisations you are not a member of.",
+            "description": "Optionally only those on one network. Empty for organisations you are not a member of.",
             "responses": {
               "200": {
                 "description": "The agents, oldest first",
@@ -12352,19 +12636,44 @@
               "error_description"
             ]
           },
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              }
+            ]
+          },
           "Agent": {
             "type": "object",
             "properties": {
               "servedRevisionId": {
                 "type": "null"
               },
-              "id": {
-                "type": "string"
-              },
               "networkId": {
-                "type": "string"
-              },
-              "deviceId": {
                 "type": "string"
               },
               "priority": {
@@ -12375,16 +12684,69 @@
               },
               "createdAt": {
                 "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "nativeExposures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "protocol"
+                  ]
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
               }
             },
             "required": [
               "servedRevisionId",
-              "id",
               "networkId",
-              "deviceId",
               "priority",
               "active",
-              "createdAt"
+              "createdAt",
+              "id",
+              "type",
+              "name",
+              "nativeExposures",
+              "settings",
+              "publicKey",
+              "publicId"
             ]
           }
         }
@@ -12394,8 +12756,8 @@
           "post": {
             "operationId": "organisations.agents.create",
             "x-operation-version": 1,
-            "summary": "Register an agent",
-            "description": "Administrators only. The agent serves a network of the organisation from one of its devices, and starts as a standby.",
+            "summary": "Add an agent",
+            "description": "Administrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.",
             "responses": {
               "201": {
                 "description": "The new agent",
@@ -12498,17 +12860,80 @@
                   "schema": {
                     "type": "object",
                     "properties": {
+                      "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60,
+                        "description": "What the device is, such as `camera` or `server`."
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "description": "The device name."
+                      },
                       "networkId": {
                         "type": "string",
                         "format": "uuid",
                         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "description": "The network the agent serves."
+                        "description": "The network the agent is on and serves."
                       },
-                      "deviceId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "description": "The device the agent runs on."
+                      "nativeExposures": {
+                        "default": [],
+                        "maxItems": 32,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "networkId": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "A network of the organisation, or null for the internet."
+                            },
+                            "protocol": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 60
+                            },
+                            "params": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string",
+                                "maxLength": 120
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/components/schemas/__schema0"
+                              },
+                              "description": "Settings validated by the implementation that reads them."
+                            }
+                          },
+                          "required": [
+                            "networkId",
+                            "protocol"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "description": "The endpoints the device offers by itself, such as a camera’s RTSP feed."
+                      },
+                      "settings": {
+                        "default": {},
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/components/schemas/__schema0"
+                        },
+                        "description": "Settings validated by the implementation that reads them."
                       },
                       "priority": {
                         "default": 0,
@@ -12519,8 +12944,9 @@
                       }
                     },
                     "required": [
-                      "networkId",
-                      "deviceId"
+                      "type",
+                      "name",
+                      "networkId"
                     ],
                     "additionalProperties": false
                   }
@@ -12570,21 +12996,6 @@
           "Agent": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string"
-              },
-              "networkId": {
-                "type": "string"
-              },
-              "deviceId": {
-                "type": "string"
-              },
-              "priority": {
-                "type": "number"
-              },
-              "active": {
-                "type": "boolean"
-              },
               "servedRevisionId": {
                 "anyOf": [
                   {
@@ -12595,17 +13006,79 @@
                   }
                 ]
               },
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "networkId": {
+                "type": "string"
+              },
+              "nativeExposures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "protocol"
+                  ]
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "number"
+              },
+              "active": {
+                "type": "boolean"
+              },
               "createdAt": {
                 "type": "string"
               }
             },
             "required": [
+              "servedRevisionId",
               "id",
+              "type",
+              "name",
               "networkId",
-              "deviceId",
+              "nativeExposures",
+              "settings",
+              "publicKey",
+              "publicId",
               "priority",
               "active",
-              "servedRevisionId",
               "createdAt"
             ]
           }
@@ -12757,15 +13230,64 @@
             "type": "object",
             "properties": {
               "servedRevisionId": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "name": {
                 "type": "string"
               },
               "networkId": {
                 "type": "string"
               },
-              "deviceId": {
+              "nativeExposures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "protocol"
+                  ]
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
                 "type": "string"
               },
               "priority": {
@@ -12781,8 +13303,13 @@
             "required": [
               "servedRevisionId",
               "id",
+              "type",
+              "name",
               "networkId",
-              "deviceId",
+              "nativeExposures",
+              "settings",
+              "publicKey",
+              "publicId",
               "priority",
               "active",
               "createdAt"
@@ -12796,7 +13323,7 @@
             "operationId": "organisations.agents.update",
             "x-operation-version": 1,
             "summary": "Update an agent",
-            "description": "Administrators only: move it to another device, or change its priority. An agent stays on its network; which agent is active is set on the network.",
+            "description": "Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.",
             "responses": {
               "200": {
                 "description": "The updated agent",
@@ -12858,16 +13385,6 @@
                   }
                 }
               },
-              "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
               "503": {
                 "description": "The database is unavailable",
                 "content": {
@@ -12920,12 +13437,6 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "deviceId": {
-                        "description": "The device the agent runs on.",
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                      },
                       "priority": {
                         "type": "integer",
                         "minimum": -1000,
@@ -12933,6 +13444,9 @@
                         "description": "Standby preference; higher is preferred."
                       }
                     },
+                    "required": [
+                      "priority"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -12986,7 +13500,7 @@
             "operationId": "organisations.agents.delete",
             "x-operation-version": 1,
             "summary": "Remove an agent",
-            "description": "Administrators only. Deletes its configuration revisions.",
+            "description": "Administrators only. Removes its device too, and its configuration revisions. Refused while a stream uses its device as its source.",
             "responses": {
               "204": {
                 "description": "Removed"
@@ -13023,6 +13537,16 @@
               },
               "404": {
                 "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "409": {
+                "description": "The resource is still used by another resource",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -13968,10 +14492,52 @@
               "id": {
                 "type": "string"
               },
+              "type": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
               "networkId": {
                 "type": "string"
               },
-              "deviceId": {
+              "nativeExposures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "protocol"
+                  ]
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
                 "type": "string"
               },
               "priority": {
@@ -13987,8 +14553,13 @@
             "required": [
               "servedRevisionId",
               "id",
+              "type",
+              "name",
               "networkId",
-              "deviceId",
+              "nativeExposures",
+              "settings",
+              "publicKey",
+              "publicId",
               "priority",
               "active",
               "createdAt"

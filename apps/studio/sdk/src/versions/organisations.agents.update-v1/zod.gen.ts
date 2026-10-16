@@ -8,22 +8,28 @@ export const ErrorSchema = z.object({
 });
 
 export const AgentSchema = z.object({
-    servedRevisionId: z.string(),
+    servedRevisionId: z.string().nullable(),
     id: z.string(),
+    type: z.string(),
+    name: z.string(),
     networkId: z.string(),
-    deviceId: z.string(),
+    nativeExposures: z.array(z.object({
+        networkId: z.string().nullable(),
+        protocol: z.string(),
+        params: z.record(z.string(), z.unknown()).optional()
+    })),
+    settings: z.record(z.string(), z.unknown()),
+    publicKey: z.string(),
+    publicId: z.string(),
     priority: z.number(),
     active: z.boolean(),
     createdAt: z.string()
 });
 
 export const PatchOrganisationsByIdAgentsByAgentIdBodySchema = z.object({
-    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The device the agent runs on.'
-    }).optional(),
     priority: z.int().gte(-1000).lte(1000).register(z.globalRegistry, {
         description: 'Standby preference; higher is preferred.'
-    }).optional()
+    })
 });
 
 export const PatchOrganisationsByIdAgentsByAgentIdPathSchema = z.object({

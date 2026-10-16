@@ -80,12 +80,21 @@ export const DeviceSchema = z.object({
 });
 
 export const AgentSchema = z.object({
+    servedRevisionId: z.string().nullable(),
     id: z.string(),
+    type: z.string(),
+    name: z.string(),
     networkId: z.string(),
-    deviceId: z.string(),
+    nativeExposures: z.array(z.object({
+        networkId: z.string().nullable(),
+        protocol: z.string(),
+        params: z.record(z.string(), z.unknown()).optional()
+    })),
+    settings: z.record(z.string(), z.unknown()),
+    publicKey: z.string(),
+    publicId: z.string(),
     priority: z.number(),
     active: z.boolean(),
-    servedRevisionId: z.string().nullable(),
     createdAt: z.string()
 });
 
@@ -672,12 +681,21 @@ export const GetOrganisationsByIdAgentsQuerySchema = z.object({
  */
 export const GetOrganisationsByIdAgentsResponseSchema = z.object({
     agents: z.array(z.object({
+        servedRevisionId: z.string().nullable(),
         id: z.string(),
+        type: z.string(),
+        name: z.string(),
         networkId: z.string(),
-        deviceId: z.string(),
+        nativeExposures: z.array(z.object({
+            networkId: z.string().nullable(),
+            protocol: z.string(),
+            params: z.record(z.string(), z.unknown()).optional()
+        })),
+        settings: z.record(z.string(), z.unknown()),
+        publicKey: z.string(),
+        publicId: z.string(),
         priority: z.number(),
         active: z.boolean(),
-        servedRevisionId: z.string().nullable(),
         createdAt: z.string()
     }))
 }).register(z.globalRegistry, {
@@ -685,12 +703,27 @@ export const GetOrganisationsByIdAgentsResponseSchema = z.object({
 });
 
 export const PostOrganisationsByIdAgentsBodySchema = z.object({
+    type: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'What the device is, such as `camera` or `server`.'
+    }),
+    name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The device name.'
+    }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The network the agent serves.'
+        description: 'The network the agent is on and serves.'
     }),
-    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The device the agent runs on.'
-    }),
+    nativeExposures: z.array(z.object({
+        networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
+        protocol: z.string().min(1).max(60),
+        params: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+            description: 'Settings validated by the implementation that reads them.'
+        }).optional()
+    })).max(32).register(z.globalRegistry, {
+        description: 'The endpoints the device offers by itself, such as a camera’s RTSP feed.'
+    }).optional().default([]),
+    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+        description: 'Settings validated by the implementation that reads them.'
+    }).optional().default({}),
     priority: z.int().gte(-1000).lte(1000).register(z.globalRegistry, {
         description: 'Standby preference; higher is preferred.'
     }).optional().default(0)
@@ -707,12 +740,21 @@ export const PostOrganisationsByIdAgentsPathSchema = z.object({
  */
 export const PostOrganisationsByIdAgentsResponseSchema = z.object({
     servedRevisionId: z.null(),
-    id: z.string(),
     networkId: z.string(),
-    deviceId: z.string(),
     priority: z.number(),
     active: z.boolean(),
-    createdAt: z.string()
+    createdAt: z.string(),
+    id: z.string(),
+    type: z.string(),
+    name: z.string(),
+    nativeExposures: z.array(z.object({
+        networkId: z.string().nullable(),
+        protocol: z.string(),
+        params: z.record(z.string(), z.unknown()).optional()
+    })),
+    settings: z.record(z.string(), z.unknown()),
+    publicKey: z.string(),
+    publicId: z.string()
 }).register(z.globalRegistry, {
     description: 'The new agent'
 });
@@ -748,12 +790,9 @@ export const GetOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
 export const GetOrganisationsByIdAgentsByAgentIdResponseSchema = AgentSchema;
 
 export const PatchOrganisationsByIdAgentsByAgentIdBodySchema = z.object({
-    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The device the agent runs on.'
-    }).optional(),
     priority: z.int().gte(-1000).lte(1000).register(z.globalRegistry, {
         description: 'Standby preference; higher is preferred.'
-    }).optional()
+    })
 });
 
 export const PatchOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
@@ -768,17 +807,7 @@ export const PatchOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
 /**
  * The updated agent
  */
-export const PatchOrganisationsByIdAgentsByAgentIdResponseSchema = z.object({
-    servedRevisionId: z.string(),
-    id: z.string(),
-    networkId: z.string(),
-    deviceId: z.string(),
-    priority: z.number(),
-    active: z.boolean(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The updated agent'
-});
+export const PatchOrganisationsByIdAgentsByAgentIdResponseSchema = AgentSchema;
 
 export const GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -889,8 +918,17 @@ export const PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema = z.obj
 export const PutOrganisationsByIdAgentsByAgentIdServedRevisionResponseSchema = z.object({
     servedRevisionId: z.string(),
     id: z.string(),
+    type: z.string(),
+    name: z.string(),
     networkId: z.string(),
-    deviceId: z.string(),
+    nativeExposures: z.array(z.object({
+        networkId: z.string().nullable(),
+        protocol: z.string(),
+        params: z.record(z.string(), z.unknown()).optional()
+    })),
+    settings: z.record(z.string(), z.unknown()),
+    publicKey: z.string(),
+    publicId: z.string(),
     priority: z.number(),
     active: z.boolean(),
     createdAt: z.string()

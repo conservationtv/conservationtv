@@ -50,18 +50,16 @@ export class Agents extends HeyApiClient {
     /**
      * Update an agent
      *
-     * Administrators only: move it to another device, or change its priority. An agent stays on its network; which agent is active is set on the network.
+     * Administrators only: change its priority. Its device’s fields are changed under `/devices`, with the same ID; which agent is active is set on the network.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         agentId: string;
-        deviceId?: string;
-        priority?: number;
+        priority: number;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'agentId' },
-                    { in: 'body', key: 'deviceId' },
                     { in: 'body', key: 'priority' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError>({

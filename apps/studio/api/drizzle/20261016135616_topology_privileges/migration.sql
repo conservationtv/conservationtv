@@ -14,7 +14,8 @@ grant update ("type", "name", "network_id", "native_exposures", "settings") on "
 --> statement-breakpoint
 grant select, insert, delete on "agent" to studio_app;
 --> statement-breakpoint
-grant update ("device_id", "priority", "active") on "agent" to studio_app;
+-- An agent stays its device, on its network: only its standby preference and whether it is active change.
+grant update ("priority", "active") on "agent" to studio_app;
 --> statement-breakpoint
 -- Candidates never change: only which one is served.
 grant select, insert on "configuration_revision" to studio_app;
