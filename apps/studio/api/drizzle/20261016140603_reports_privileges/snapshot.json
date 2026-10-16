@@ -1,7 +1,7 @@
 {
-  "id": "ffebee12-316a-41be-8156-68418c0b74ee",
+  "id": "d238262d-37d9-4189-aed7-f7529244b0f1",
   "prevIds": [
-    "b5024754-1635-48d9-a08f-b1af0919723e"
+    "99963119-9f8e-43c3-b8c0-9896d499b417"
   ],
   "version": "8",
   "dialect": "postgres",
@@ -81,6 +81,12 @@
     {
       "isRlsEnabled": false,
       "name": "device",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "camera",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1296,7 +1302,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "type",
+      "name": "kind",
       "entityType": "columns",
       "schema": "public",
       "table": "device"
@@ -1323,32 +1329,6 @@
       "generated": null,
       "identity": null,
       "name": "network_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "device"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'[]'",
-      "generated": null,
-      "identity": null,
-      "name": "native_exposures",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "device"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'{}'",
-      "generated": null,
-      "identity": null,
-      "name": "settings",
       "entityType": "columns",
       "schema": "public",
       "table": "device"
@@ -1416,6 +1396,74 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "camera"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organisation_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "'camera'",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'[]'",
+      "generated": null,
+      "identity": null,
+      "name": "native_exposures",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'{}'",
+      "generated": null,
+      "identity": null,
+      "name": "settings",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "agent"
     },
     {
@@ -1427,6 +1475,22 @@
       "generated": null,
       "identity": null,
       "name": "organisation_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "agent"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": {
+        "as": "'agent'",
+        "type": "stored"
+      },
+      "identity": null,
+      "name": "kind",
       "entityType": "columns",
       "schema": "public",
       "table": "agent"
@@ -1466,19 +1530,6 @@
       "generated": null,
       "identity": null,
       "name": "active",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "agent"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
       "table": "agent"
@@ -3272,6 +3323,44 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
+      "name": "camera_organisation_id_organisation_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
+      "schemaTo": "public",
+      "tableTo": "device",
+      "columnsTo": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "camera_device_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organisation_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organisation",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "agent_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3282,6 +3371,7 @@
       "columns": [
         "organisation_id",
         "id",
+        "kind",
         "network_id"
       ],
       "schemaTo": "public",
@@ -3289,6 +3379,7 @@
       "columnsTo": [
         "organisation_id",
         "id",
+        "kind",
         "network_id"
       ],
       "onUpdate": "NO ACTION",
@@ -3799,6 +3890,16 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "camera_pkey",
+      "schema": "public",
+      "table": "camera",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "agent_pkey",
       "schema": "public",
       "table": "agent",
@@ -3933,10 +4034,24 @@
       "columns": [
         "organisation_id",
         "id",
+        "kind"
+      ],
+      "nullsNotDistinct": false,
+      "name": "device_organisation_id_kind",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "device"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind",
         "network_id"
       ],
       "nullsNotDistinct": false,
-      "name": "device_organisation_id_network",
+      "name": "device_organisation_id_kind_network",
       "entityType": "uniques",
       "schema": "public",
       "table": "device"
@@ -4023,6 +4138,13 @@
       "entityType": "checks",
       "schema": "public",
       "table": "organisation_invitation"
+    },
+    {
+      "value": "kind in ('agent', 'camera')",
+      "name": "device_kind",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "device"
     },
     {
       "value": "\"public_id\" ~ '^[0-9a-f]{64}$'",
