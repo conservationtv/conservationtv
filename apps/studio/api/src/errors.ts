@@ -25,11 +25,6 @@ const categories = {
   revision_has_errors: { status: 409, description: 'The revision has errors, so it cannot be served.' },
   invalid_report: { status: 400, description: 'The report batch has a report observed in the future.' },
   invalid_signature: { status: 401, description: 'The request signature could not be verified.' },
-  not_an_agent: { status: 403, description: 'Only agents report.' },
-  idempotency_key_reused: {
-    status: 422,
-    description: 'The idempotency key was already used for a different request body.'
-  },
   batch_too_large: { status: 413, description: 'The report batch is too large.' },
   database_unavailable: { status: 503, description: 'The database is unavailable.' }
 } satisfies Record<string, ErrorCategory>;

@@ -66,11 +66,11 @@ CREATE INDEX "observation_subject_observed_idx" ON "observation" ("organisation_
 CREATE INDEX "metric_sample_subject_observed_idx" ON "metric_sample" ("organisation_id","subject_id","observed_at");--> statement-breakpoint
 CREATE INDEX "log_record_subject_observed_idx" ON "log_record" ("organisation_id","subject_id","observed_at");--> statement-breakpoint
 ALTER TABLE "observation" ADD CONSTRAINT "observation_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "observation" ADD CONSTRAINT "observation_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "agent"("organisation_id","id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "observation" ADD CONSTRAINT "observation_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "device"("organisation_id","id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "reporter_opinion" ADD CONSTRAINT "reporter_opinion_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "reporter_opinion" ADD CONSTRAINT "reporter_opinion_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "agent"("organisation_id","id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "reporter_opinion" ADD CONSTRAINT "reporter_opinion_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "device"("organisation_id","id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "subject_state" ADD CONSTRAINT "subject_state_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "metric_sample" ADD CONSTRAINT "metric_sample_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "metric_sample" ADD CONSTRAINT "metric_sample_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "agent"("organisation_id","id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "metric_sample" ADD CONSTRAINT "metric_sample_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "device"("organisation_id","id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "log_record" ADD CONSTRAINT "log_record_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
-ALTER TABLE "log_record" ADD CONSTRAINT "log_record_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "agent"("organisation_id","id") ON DELETE CASCADE;
+ALTER TABLE "log_record" ADD CONSTRAINT "log_record_reporter_fk" FOREIGN KEY ("organisation_id","reporter_id") REFERENCES "device"("organisation_id","id") ON DELETE CASCADE;

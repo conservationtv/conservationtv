@@ -70,12 +70,6 @@ export type PostReportsData = {
             };
         }>;
     };
-    headers: {
-        /**
-         * Unique to the batch: a retry with the same key and body returns the first result.
-         */
-        'idempotency-key': string;
-    };
     path?: never;
     query?: never;
     url: '/reports';
@@ -91,10 +85,6 @@ export type PostReportsErrors = {
      */
     401: Error;
     /**
-     * The signing device is not an agent
-     */
-    403: Error;
-    /**
      * The selected operation version is not served
      */
     412: Error;
@@ -102,10 +92,6 @@ export type PostReportsErrors = {
      * The submission is larger than 1 MiB
      */
     413: Error;
-    /**
-     * The idempotency key was already used with a different body
-     */
-    422: Error;
     /**
      * The database is unavailable
      */

@@ -65,12 +65,6 @@ export const PostReportsBodySchema = z.object({
     ])).min(1).max(1000)
 });
 
-export const PostReportsHeadersSchema = z.object({
-    'idempotency-key': z.string().regex(/^[\x21-\x7e]{1,255}$/).register(z.globalRegistry, {
-        description: 'Unique to the batch: a retry with the same key and body returns the first result.'
-    })
-});
-
 /**
  * Accepted
  */

@@ -26,7 +26,7 @@ const HistoryQuerySchema = z.object({
 });
 export type HistoryQuery = z.output<typeof HistoryQuerySchema>;
 
-// What agents report about a subject, in the principal's request session: members read it all. A subject is a string
+// What devices report about a subject, in the principal's request session: members read it all. A subject is a string
 // (src/reports/subjects.ts), so there is nothing to create or delete, and one nothing was reported about reads as empty.
 // Reports themselves are only ever written by signed ingestion (/reports), and opinions and subject state by the state
 // consumer. Freshness is evaluated by Postgres against each expiry when read, so state

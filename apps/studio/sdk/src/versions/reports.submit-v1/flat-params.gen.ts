@@ -2,10 +2,9 @@
 
 import * as z from 'zod';
 
-import { PostReportsBodySchema, PostReportsHeadersSchema } from './zod.gen.js';
+import { PostReportsBodySchema } from './zod.gen.js';
 
 export const ReportSubmitV1ParamsSchema = z.object({
-    'idempotency-key': PostReportsHeadersSchema.shape['idempotency-key'].nonoptional().describe('Unique to the batch: a retry with the same key and body returns the first result.'),
     reports: PostReportsBodySchema.shape.reports.nonoptional()
 });
 

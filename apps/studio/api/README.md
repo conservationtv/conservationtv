@@ -43,7 +43,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs` | members | `organisations.subjects.*` v1 |
-| `POST /reports` | agents, by device signature | `reports.submit` v1: a batch of events, metrics and logs, with an `Idempotency-Key` |
+| `POST /reports` | devices, by signature | `reports.submit` v1: a batch of events, metrics and logs |
 | `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
 | `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
 
@@ -93,7 +93,7 @@ bindings:
 | --------------------- | ---------- | ----------------------------------------------------------------------- |
 | `HYPERDRIVE_ADMIN`    | Hyperdrive | the owning role: migrations, Better Auth, grants                         |
 | `HYPERDRIVE_APP`      | Hyperdrive | the application role (`studio_app`): request sessions, under RLS        |
-| `CACHE`               | KV         | the key-value cache: device request nonces, report idempotency, grant checks |
+| `CACHE`               | KV         | the key-value cache: device request nonces and grant checks               |
 | `BETTER_AUTH_SECRET`  | secret     | Better Auth's signing secret                                            |
 | `FIELD_KEY`           | secret     | base64 32-byte master key for encrypted columns and blind indexes       |
 | `APP_URL`             | text       | where the API is served; Better Auth's base URL and passkey relying party |
@@ -234,13 +234,13 @@ queries with `authorization.as(app, useDevice().principal)`.
 
 ### Device authentication
 
-Devices sign their requests with their own identity: no other credential exists for them. `requireDevice()`
+Devices sign their requests with their own identity: no other credential exists for them. `requireDevice`
 (`src/middleware/device.ts`) verifies an RFC 9421 HTTP Message Signature (`http-message-sig`) by the device's Ed25519
 key, with its public ID as `keyid`. The signature must cover `@method`, `@target-uri`, the RFC 9530 `Content-Digest`
-(of empty content for a request without a body), `Content-Type` when present and any headers the route asks for, with
-`created`, `expires` and a `nonce`; it may be at most a minute old, with five seconds' clock skew. The body must match
-the signed digest (`httpbis-digest-headers`), and each nonce is accepted once, kept in the cache for as long as the
-signature could still be valid. Only then is the nonce spent. Every failure is 401 `invalid_signature`, and a retry
+(of empty content for a request without a body) and `Content-Type` when present, with `created`, `expires` and a
+`nonce`; it may be at most a minute old, with five seconds' clock skew. The body must match the signed digest
+(`httpbis-digest-headers`), and each nonce is accepted once, kept in the cache for as long as the signature could still
+be valid; it is spent only once everything else holds. Every failure is 401 `invalid_signature`, and a retry
 needs a fresh signature. Downstream, `useDevice()` is the device and its principal.
 
 ### Cache
@@ -249,20 +249,19 @@ needs a fresh signature. Downstream, `useDevice()` is the device and its princip
 read with `useCache()`: `get`, `put` and `add` (store only if absent), all with a TTL. The first implementation is
 Workers KV (`src/cache/kv.ts`, the `CACHE` binding), which raises TTLs to KV's minimum of a minute. KV is eventually
 consistent and has no conditional write, so its `add` reads, then writes: two concurrent adds, or two within the time
-a write takes to propagate (up to a minute), can both succeed. Nonces and idempotency are therefore best effort until a
-cache with an atomic `add`, such as a Durable Object, implements the interface.
+a write takes to propagate (up to a minute), can both succeed. Nonces are therefore best effort until a cache with an
+atomic `add`, such as a Durable Object, implements the interface.
 
 The only triggers are umbrella's `authz_immutable`, which refuse request sessions' changes to immutable columns.
 
-Agents report to `POST /reports` without a session, as devices: the request is signed by the agent's identity
-(above), and must also cover an `Idempotency-Key`. The body is `{ reports: [...] }`, up to 1000 reports of any kind
-(`event`, `metric` or `log`) and subject, each with its own `observedAt`, and at most 1 MiB. Ingestion is trusted code
-(`src/reports/ingest.ts`): it refuses a device that is not an agent (403 `not_an_agent`), malformed reports and those
-observed more than five minutes ahead, and stores the batch in the agent's organisation with one insert per kind. A
-batch is stored or refused whole, and only for trust or shape. Its result is kept in the cache for a day under the
-agent and idempotency key, with a hash of the body: a retry with the same key and body returns it without storing the
-batch again, and the same key with a different body is 422 `idempotency_key_reused`. With KV, a retry sent before the
-first result is visible can still be stored twice. Request sessions only read reports.
+Devices report to `POST /reports` without a session: the request is signed by the device's identity (above), and
+the body is `{ reports: [...] }`, up to 1000 reports of any kind (`event`, `metric` or `log`) and subject, each with
+its own `observedAt`, and at most 1 MiB. Any device may report, and is the reporter of what it sends. Ingestion is
+trusted code (`src/reports/ingest.ts`): it refuses malformed reports and those observed more than five minutes ahead,
+and stores the batch in the device's organisation with one insert per kind. A batch is stored or refused whole, and
+only for trust or shape. The signature's nonce stops a request from being stored twice, but nothing else deduplicates:
+a retry is signed again, and may be stored twice. Deleting a device deletes its reports. Request sessions only read
+reports.
 
 A report's `subjectId` names what it is about by convention (`src/reports/subjects.ts`), not by reference:
 `<kind>:<id>` for a network, device, agent, stream or exposure, such as `device:0199e8b2-…`, or `external:<name>` for
