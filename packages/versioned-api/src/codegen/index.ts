@@ -9,3 +9,4 @@ export {
 } from './operation-versions.js';
 export { flatParams } from './flat-params.plugin.js';
 export { sdkClient } from './sdk-client.plugin.js';
+export { shareClient } from './share-client.js';
