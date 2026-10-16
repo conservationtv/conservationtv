@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { GetOrganisationsByIdDevicesPublicIdsErrors, GetOrganisationsByIdDevicesPublicIdsResponses } from './types.gen.js';
+import type { GetOrganisationsByIdDevicesAllowlistErrors, GetOrganisationsByIdDevicesAllowlistResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -54,10 +54,10 @@ export class Devices extends HeyApiClient {
      */
     public allowlist<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdDevicesPublicIdsResponses, GetOrganisationsByIdDevicesPublicIdsErrors, ThrowOnError> {
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesAllowlistErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
-        return (options?.client ?? this.client).get<GetOrganisationsByIdDevicesPublicIdsResponses, GetOrganisationsByIdDevicesPublicIdsErrors, ThrowOnError>({
-            url: '/organisations/{id}/devices/public-ids',
+        return (options?.client ?? this.client).get<GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesAllowlistErrors, ThrowOnError>({
+            url: '/organisations/{id}/devices/allowlist',
             ...options,
             ...params
         });
