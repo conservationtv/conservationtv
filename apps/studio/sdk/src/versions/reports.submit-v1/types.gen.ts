@@ -16,15 +16,15 @@ export type Report = {
 export type PostReportsData = {
     body: {
         /**
-         * The registered signing key.
+         * The signing device's public ID: the reporting agent's host device.
          */
-        keyId: string;
+        publicId: string;
         /**
          * The batch, as JSON text: the exact bytes that were signed.
          */
         batch: string;
         /**
-         * The key's Ed25519 signature of the batch text, unpadded base64url.
+         * The device's Ed25519 signature of the batch text, unpadded base64url.
          */
         signature: string;
     };

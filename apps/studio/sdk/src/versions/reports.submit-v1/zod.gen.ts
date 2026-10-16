@@ -12,14 +12,14 @@ export const ReportSchema = z.object({
 });
 
 export const PostReportsBodySchema = z.object({
-    keyId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The registered signing key.'
+    publicId: z.string().regex(/^[0-9a-f]{64}$/).register(z.globalRegistry, {
+        description: 'The signing device\'s public ID: the reporting agent\'s host device.'
     }),
     batch: z.string().min(2).register(z.globalRegistry, {
         description: 'The batch, as JSON text: the exact bytes that were signed.'
     }),
     signature: z.string().min(1).max(128).register(z.globalRegistry, {
-        description: 'The key\'s Ed25519 signature of the batch text, unpadded base64url.'
+        description: 'The device\'s Ed25519 signature of the batch text, unpadded base64url.'
     })
 });
 

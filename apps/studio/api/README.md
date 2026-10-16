@@ -39,7 +39,6 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}` | members read, administrators write | `organisations.cameras.*` v1 |
 | `PUT /organisations/{id}/browser` | members | `organisations.browser.ensure` v1: this session's browser device, with its private key |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}` | members read, administrators write | `organisations.agents.*` v1 |
-| `…/agents/{agentId}/signing-keys` (list, create, `…/{keyId}/revoke`) | members read, administrators write | `organisations.agents.signingKeys.*` v1 |
 | `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision` | members read, administrators write | `organisations.agents.revisions.*`, `serveRevision` v1 |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
@@ -229,13 +228,14 @@ organisation revokes every grant at it. Nothing authenticates a device yet; once
 
 The only triggers are umbrella's `authz_immutable`, which refuse request sessions' changes to immutable columns.
 
-Agents report to `POST /reports` without a session, in batches. Each submission is `{ keyId, batch, signature }`:
-`batch` is the JSON text `{ reporterId, reports: [...] }`, signed once, byte for byte, with an Ed25519 key registered for
-the reporting agent (`…/agents/{agentId}/signing-keys`, raw 32-byte keys in unpadded base64url). A batch holds up to
-1000 reports of any kind (`event`, `metric` or `log`) and subject, each with its own `observedAt`, and the whole
-submission may be at most 1 MiB. Ingestion is trusted code (`src/reports/ingest.ts`): it checks the key is unrevoked
-and belongs to `reporterId`, refuses malformed reports and those observed more than five minutes ahead, and stores the
-batch in that agent's organisation with one insert per kind. A batch is stored or refused whole, and only for trust or
+Agents report to `POST /reports` without a session, in batches. Each submission is `{ publicId, batch, signature }`:
+`batch` is the JSON text `{ reporterId, reports: [...] }`, signed once, byte for byte, with the identity of the device
+named by `publicId`, which must be the reporting agent's host. A batch holds up to 1000 reports of any kind (`event`,
+`metric` or `log`) and subject, each with its own `observedAt`, and the whole submission may be at most 1 MiB.
+Ingestion is trusted code (`src/reports/ingest.ts`): it verifies the signature under the device's public key and that
+`reporterId` runs on it, refuses malformed reports and those observed more than five minutes ahead, and stores the
+batch in that agent's organisation with one insert per kind. Moving an agent to another host moves which key it signs
+with. A batch is stored or refused whole, and only for trust or
 shape. Nothing is deduplicated, so a retried batch may be stored twice. Request sessions only read reports.
 
 A report's `subjectId` names what it is about by convention (`src/reports/subjects.ts`), not by reference:
@@ -245,9 +245,10 @@ about a deleted entity remain. Read them under `/organisations/{id}/subjects/{su
 URL-encoded. Metric samples keep the type, unit and dimensions they were reported with; they are not grouped into
 series, and samples from different reporters are never summed.
 
-Not built yet: the state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so
-`…/state` returns `state: null`, stale, until it exists), failover from expired agent state, the configuration
-builders that produce revisions, how an agent fetches its served revision, and sharing across organisations.
+Not built yet: provisioning a device with its private key, rotating or revoking a device identity, the state
+consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns `state: null`,
+stale, until it exists), failover from expired agent state, the configuration builders that produce revisions, how an
+agent fetches its served revision, and sharing across organisations.
 
 ## Encrypted columns
 

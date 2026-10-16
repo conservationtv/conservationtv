@@ -11,7 +11,6 @@ export const MetricSchema = z.object({
     samples: z.array(z.object({
         id: z.string(),
         reporterId: z.string(),
-        keyId: z.string(),
         observedAt: z.string(),
         receivedAt: z.string(),
         name: z.string(),

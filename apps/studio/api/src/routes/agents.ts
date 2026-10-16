@@ -1,11 +1,10 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { agentSigningKeys, agents, configurationRevisions, devices } from '../db/schema.ts';
+import { agents, configurationRevisions, devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { SIGNING_ALGORITHM, verificationKey } from '../reports/signatures.ts';
 import { useServices } from '../services.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
@@ -48,7 +47,7 @@ function readAgent(tx: Transaction, organisationId: string, agentId: string) {
   return tx.query.agents.findFirst({ ...agentQuery, where: { organisationId, id: agentId } });
 }
 
-// An organisation's agents, their signing keys and their configuration revisions, in the principal's request session: members read them,
+// An organisation's agents and their configuration revisions, in the principal's request session: members read them,
 // administrators manage them. An agent is a device that serves the network it is on (src/db/schemas/agents.ts): it is
 // created and removed with its device, and its device's name is edited under /devices, with the same ID.
 export default new Hono()
@@ -213,7 +212,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Remove an agent',
       description:
-        'Administrators only. Removes its device too, its signing keys, configuration revisions and every report it made. Refused while a stream uses its device as its source.',
+        'Administrators only. Removes its device too, its configuration revisions and every report it made. Refused while a stream uses its device as its source.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,
@@ -241,166 +240,6 @@ export default new Hono()
         await revokeDevice(access, id, agentId);
       });
       return c.body(null, 204);
-    }
-  )
-  .get(
-    '/:agentId/signing-keys',
-    describeRoute({
-      operationId: 'organisations.agents.signingKeys.list',
-      ...operationVersion(1),
-      summary: "List an agent's signing keys",
-      description: 'Including revoked keys, which still identify the reports they verified.',
-      responses: {
-        200: { description: 'The keys, oldest first' },
-        400: invalidRequest,
-        401: unauthenticated,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    requirePrincipal,
-    validator('param', AgentParamsSchema),
-    async c => {
-      const { id, agentId } = c.req.valid('param');
-      const services = useServices();
-      const principal = usePrincipal();
-      const session = await services.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
-          .select({
-            id: agentSigningKeys.id,
-            algorithm: agentSigningKeys.algorithm,
-            publicKey: agentSigningKeys.publicKey,
-            createdAt: agentSigningKeys.createdAt,
-            revokedAt: agentSigningKeys.revokedAt
-          })
-          .from(agentSigningKeys)
-          .where(and(eq(agentSigningKeys.organisationId, id), eq(agentSigningKeys.agentId, agentId)))
-          .orderBy(agentSigningKeys.id)
-      );
-      c.header('Cache-Control', 'no-store');
-      return c.json({ signingKeys: rows }, 200);
-    }
-  )
-  .post(
-    '/:agentId/signing-keys',
-    describeRoute({
-      operationId: 'organisations.agents.signingKeys.create',
-      ...operationVersion(1),
-      summary: 'Register a signing key for an agent',
-      description:
-        'Administrators only. The agent signs each report with the private half; its reports name the returned key ID. An agent may hold several keys, for rotation.',
-      responses: {
-        201: { description: 'The registered key' },
-        400: invalidRequest,
-        401: unauthenticated,
-        403: forbidden,
-        404: notFound,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    requirePrincipal,
-    validator('param', AgentParamsSchema),
-    validator(
-      'json',
-      z.strictObject({
-        algorithm: z.literal(SIGNING_ALGORITHM).default(SIGNING_ALGORITHM).describe('The signing algorithm.'),
-        publicKey: z
-          .string()
-          .length(43)
-          .describe('The raw 32-byte Ed25519 public key, unpadded base64url.')
-          .refine(async publicKey => (await verificationKey(publicKey)) !== undefined, 'Not an Ed25519 public key')
-      })
-    ),
-    async c => {
-      const { id, agentId } = c.req.valid('param');
-      const body = c.req.valid('json');
-      const services = useServices();
-      const principal = usePrincipal();
-      const session = await services.session(principal);
-      const row = await session.transaction(async tx => {
-        const [agent] = await tx
-          .select({ id: agents.id })
-          .from(agents)
-          .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)));
-        if (!agent) throw new ApiFailure('not_found');
-        const [key] = await tx
-          .insert(agentSigningKeys)
-          .values({ organisationId: id, agentId, algorithm: body.algorithm, publicKey: body.publicKey })
-          .returning({
-            id: agentSigningKeys.id,
-            algorithm: agentSigningKeys.algorithm,
-            publicKey: agentSigningKeys.publicKey,
-            createdAt: agentSigningKeys.createdAt,
-            revokedAt: agentSigningKeys.revokedAt
-          });
-        return key!;
-      });
-      c.header('Cache-Control', 'no-store');
-      return c.json(row, 201);
-    }
-  )
-  .post(
-    '/:agentId/signing-keys/:keyId/revoke',
-    describeRoute({
-      operationId: 'organisations.agents.signingKeys.revoke',
-      ...operationVersion(1),
-      summary: "Revoke an agent's signing key",
-      description:
-        'Administrators only. Reports signed with it are refused from now on; those already accepted keep it. Revoking a revoked key changes nothing.',
-      responses: {
-        200: { description: 'The revoked key' },
-        400: invalidRequest,
-        401: unauthenticated,
-        403: forbidden,
-        404: notFound,
-        412: versionMismatch,
-        503: unavailable
-      }
-    }),
-    requirePrincipal,
-    validator('param', SigningKeyParamsSchema),
-    async c => {
-      const { id, agentId, keyId } = c.req.valid('param');
-      const services = useServices();
-      const principal = usePrincipal();
-      const session = await services.session(principal);
-      const row = await session.transaction(async tx => {
-        const [key] = await tx
-          .select({
-            id: agentSigningKeys.id,
-            algorithm: agentSigningKeys.algorithm,
-            publicKey: agentSigningKeys.publicKey,
-            createdAt: agentSigningKeys.createdAt,
-            revokedAt: agentSigningKeys.revokedAt
-          })
-          .from(agentSigningKeys)
-          .where(
-            and(
-              eq(agentSigningKeys.organisationId, id),
-              eq(agentSigningKeys.agentId, agentId),
-              eq(agentSigningKeys.id, keyId)
-            )
-          );
-        if (!key) throw new ApiFailure('not_found');
-        if (key.revokedAt !== null) return key;
-        const [revoked] = await tx
-          .update(agentSigningKeys)
-          .set({ revokedAt: new Date(services.clock()) })
-          .where(and(eq(agentSigningKeys.id, keyId), isNull(agentSigningKeys.revokedAt)))
-          .returning({
-            id: agentSigningKeys.id,
-            algorithm: agentSigningKeys.algorithm,
-            publicKey: agentSigningKeys.publicKey,
-            createdAt: agentSigningKeys.createdAt,
-            revokedAt: agentSigningKeys.revokedAt
-          });
-        if (!revoked) throw new ApiFailure('forbidden');
-        return revoked;
-      });
-      c.header('Cache-Control', 'no-store');
-      return c.json(row, 200);
     }
   )
   .get(

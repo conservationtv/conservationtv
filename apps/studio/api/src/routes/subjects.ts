@@ -123,7 +123,6 @@ export default new Hono()
           .select({
             id: observations.id,
             reporterId: observations.reporterId,
-            keyId: observations.keyId,
             observedAt: observations.observedAt,
             receivedAt: observations.receivedAt,
             type: observations.type,
@@ -179,7 +178,6 @@ export default new Hono()
           .select({
             id: metricSamples.id,
             reporterId: metricSamples.reporterId,
-            keyId: metricSamples.keyId,
             observedAt: metricSamples.observedAt,
             receivedAt: metricSamples.receivedAt,
             name: metricSamples.name,
@@ -233,7 +231,6 @@ export default new Hono()
           .select({
             id: logRecords.id,
             reporterId: logRecords.reporterId,
-            keyId: logRecords.keyId,
             observedAt: logRecords.observedAt,
             receivedAt: logRecords.receivedAt,
             level: logRecords.level,
