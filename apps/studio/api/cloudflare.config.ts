@@ -25,9 +25,8 @@ export default defineConfig({
       }),
       /** Better Auth's signing secret; see .dev.vars.example. */
       BETTER_AUTH_SECRET: bindings.secret(),
-      /** Master keys for encrypted columns, and the blind index key; see .dev.vars.example. */
-      FIELD_KEYS: bindings.secret(),
-      FIELD_INDEX_KEY: bindings.secret(),
+      /** The master key for encrypted columns and blind indexes; see .dev.vars.example. */
+      FIELD_KEY: bindings.secret(),
       /**
        * Where this API is served: Better Auth's base URL and the passkey relying party. The environment can override
        * the localhost default, e.g. to serve dev over Tailscale for testing on a phone.
