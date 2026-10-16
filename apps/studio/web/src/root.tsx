@@ -2,7 +2,6 @@ import type { ReactNode, FC } from 'react';
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { MotionConfig } from 'motion/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Spinner } from '@conservationtv/ui/components/spinner';
 import { TooltipProvider } from '@conservationtv/ui/components/tooltip';
 

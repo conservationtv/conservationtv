@@ -14,7 +14,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem
@@ -22,7 +21,6 @@ import {
 
 import { NavMain } from '@/components/blocks/sidebar-07/nav-main';
 import { NavProjects } from '@/components/blocks/sidebar-07/nav-projects';
-import { Avatar, AvatarFallback } from '@conservationtv/ui/components/avatar';
 
 // Placeholder navigation, carried over from the sidebar-07 preview until the real sections exist.
 const navMain = [
