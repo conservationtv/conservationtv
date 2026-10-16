@@ -1,6 +1,9 @@
 import app from './app.ts';
+import { kvCache } from './cache/kv.ts';
+import { withCache } from './cache/cache.ts';
 import { loadConfig, type Config } from './config.ts';
-import { servicesFor, withServices } from './services.ts';
+import { servicesFor } from './services-for.ts';
+import { withServices } from './services.ts';
 
 // Loaded on first use and kept for the isolate. A failed load keeps nothing, so every request fails the same way.
 let config: Config | undefined = undefined;
@@ -14,7 +17,8 @@ export default {
       task => ctx.waitUntil(task)
     );
     try {
-      return await withServices(services, () => app.fetch(request));
+      const cache = kvCache(env.CACHE);
+      return await withServices(services, () => withCache(cache, () => app.fetch(request)));
     } finally {
       ctx.waitUntil(close());
     }

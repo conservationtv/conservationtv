@@ -10,8 +10,8 @@ export type Error = {
 };
 
 export type Member = {
-    user_id: string;
-    display_name: string;
+    userId: string;
+    displayName: string;
 };
 
 export type PatchOrganisationsByIdMembersMeData = {
@@ -19,7 +19,7 @@ export type PatchOrganisationsByIdMembersMeData = {
         /**
          * Your name in this organisation.
          */
-        display_name: string;
+        displayName: string;
     };
     path: {
         /**

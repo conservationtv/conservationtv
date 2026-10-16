@@ -10,7 +10,7 @@ export const ErrorSchema = z.object({
 export const OrganisationSchema = z.object({
     id: z.string(),
     name: z.string(),
-    created_at: z.string()
+    createdAt: z.string()
 });
 
 export const GetOrganisationsByIdPathSchema = z.object({

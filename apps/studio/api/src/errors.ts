@@ -16,6 +16,16 @@ const categories = {
   already_invited: { status: 409, description: 'That recipient already has an open invitation to the organisation.' },
   invitation_expired: { status: 410, description: 'The invitation has expired.' },
   last_admin: { status: 409, description: 'An organisation must keep at least one administrator.' },
+  in_use: { status: 409, description: 'The resource is still used by another resource.' },
+  conflict: { status: 409, description: 'The change conflicts with the current state of the resource.' },
+  invalid_reference: {
+    status: 422,
+    description: 'A referenced resource does not exist, is not visible to you, or belongs to another organisation.'
+  },
+  revision_has_errors: { status: 409, description: 'The revision has errors, so it cannot be served.' },
+  invalid_report: { status: 400, description: 'The report batch has a report observed in the future.' },
+  invalid_signature: { status: 401, description: 'The request signature could not be verified.' },
+  batch_too_large: { status: 413, description: 'The report batch is too large.' },
   database_unavailable: { status: 503, description: 'The database is unavailable.' }
 } satisfies Record<string, ErrorCategory>;
 

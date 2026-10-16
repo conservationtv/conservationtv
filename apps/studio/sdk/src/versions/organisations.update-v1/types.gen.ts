@@ -12,7 +12,7 @@ export type Error = {
 export type Organisation = {
     id: string;
     name: string;
-    created_at: string;
+    createdAt: string;
 };
 
 export type PatchOrganisationsByIdData = {

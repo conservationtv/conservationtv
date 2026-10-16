@@ -1,4 +1,4 @@
-// Only for `pnpm auth:generate`: Better Auth's CLI reads an auth instance's plugins to write src/db/auth-schema.ts.
+// Only for `pnpm auth:generate`: Better Auth's CLI reads an auth instance's plugins to write src/db/schemas/auth.ts.
 // The Worker builds its real instance per request in src/auth/auth.ts.
 import { betterAuth } from 'better-auth';
 import { bearer, deviceAuthorization, emailOTP } from 'better-auth/plugins';

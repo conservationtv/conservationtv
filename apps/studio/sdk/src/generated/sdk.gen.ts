@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses } from './types.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsErrors, GetOrganisationsResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostReportsErrors, PostReportsResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdBrowserErrors, PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -112,9 +112,9 @@ export class Members extends HeyApiClient {
      */
     public updateSelf<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        display_name: string;
+        displayName: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdMembersMeErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'display_name' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'displayName' }] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdMembersMeErrors, ThrowOnError>({
             url: '/organisations/{id}/members/me',
             ...options,
@@ -199,17 +199,17 @@ export class Invitations extends HeyApiClient {
     /**
      * Invite someone
      *
-     * Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `user_id`, an account that accepts by signing in. Invitations last 14 days.
+     * Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         email?: string;
-        user_id?: string;
+        userId?: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdInvitationsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'email' },
-                    { in: 'body', key: 'user_id' }
+                    { in: 'body', key: 'userId' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdInvitationsErrors, ThrowOnError>({
             url: '/organisations/{id}/invitations',
@@ -241,6 +241,1004 @@ export class Invitations extends HeyApiClient {
     }
 }
 
+export class Networks extends HeyApiClient {
+    /**
+     * List an organisation's networks
+     *
+     * Each with the agent currently active on it, if any. Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdNetworksErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdNetworksErrors, ThrowOnError>({
+            url: '/organisations/{id}/networks',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Create a network
+     *
+     * Administrators only.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdNetworksErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'name' }] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdNetworksErrors, ThrowOnError>({
+            url: '/organisations/{id}/networks',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete a network
+     *
+     * Administrators only. Refused while agents, devices or exposures use it.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        networkId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'networkId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/networks/{networkId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read a network
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        networkId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'networkId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/networks/{networkId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Rename a network
+     *
+     * Administrators only.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        networkId: string;
+        name: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'networkId' },
+                    { in: 'body', key: 'name' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/networks/{networkId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Choose a network's active agent
+     *
+     * Administrators only. Makes one of the agents registered on the network the active one, or (`agentId` null) none. The previously active agent becomes a standby.
+     */
+    public setActiveAgent<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        networkId: string;
+        agentId: string | null;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'networkId' },
+                    { in: 'body', key: 'agentId' }
+                ] }]);
+        return (options?.client ?? this.client).put<PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, ThrowOnError>({
+            url: '/organisations/{id}/networks/{networkId}/active-agent',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Devices extends HeyApiClient {
+    /**
+     * List an organisation's devices
+     *
+     * Every kind (agent, camera, browser), optionally only one. Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        kind?: 'agent' | 'camera' | 'browser';
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdDevicesErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdDevicesErrors, ThrowOnError>({
+            url: '/organisations/{id}/devices',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read a device
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        deviceId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'deviceId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/devices/{deviceId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Rename or move a device
+     *
+     * Administrators only. Changes only the fields given. An agent’s network cannot change, and a browser stays on the internet.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        deviceId: string;
+        name?: string;
+        networkId?: string | null;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'deviceId' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'networkId' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/devices/{deviceId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Cameras extends HeyApiClient {
+    /**
+     * List an organisation's cameras
+     *
+     * Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdCamerasErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdCamerasErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Add a camera
+     *
+     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
+        networkId?: string | null;
+        settings?: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'settings' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a camera
+     *
+     * Administrators only. Removes its device too. Refused while a stream uses it as its source.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        cameraId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras/{cameraId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read a camera
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        cameraId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras/{cameraId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update a camera
+     *
+     * Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        cameraId: string;
+        settings: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'cameraId' },
+                    { in: 'body', key: 'settings' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/cameras/{cameraId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Browser extends HeyApiClient {
+    /**
+     * Get or create this session's browser device
+     *
+     * Members only. One per auth session and organisation, created on the first request, on the internet, for iroh connections through a relay. Returned with its private key (the raw 32-byte Ed25519 seed, unpadded base64url), so the browser can act as it. It is removed when the session ends or the account leaves the organisation.
+     */
+    public ensure<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdBrowserErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).put<PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdBrowserErrors, ThrowOnError>({
+            url: '/organisations/{id}/browser',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Revisions extends HeyApiClient {
+    /**
+     * List an agent's configuration revisions
+     *
+     * Newest first, with their diagnostics but not their configuration, which is read one revision at a time.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        agentId: string;
+        limit?: number;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'agentId' },
+                    { in: 'query', key: 'limit' }
+                ] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents/{agentId}/revisions',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Record a candidate configuration
+     *
+     * Administrators only. A rendered configuration and every diagnostic its builders reported. Recording it changes nothing the agent is served: serving is a separate step, refused for a candidate with any error.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        agentId: string;
+        config: {
+            [key: string]: Schema0;
+        };
+        diagnostics?: Array<{
+            severity: 'warning' | 'error';
+            code: string;
+            message: string;
+            target?: {
+                kind: string;
+                id: string;
+            };
+            recovery?: 'retryable' | 'change-required';
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            details?: {
+                [key: string]: Schema0;
+            };
+        }>;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'agentId' },
+                    { in: 'body', key: 'config' },
+                    { in: 'body', key: 'diagnostics' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents/{agentId}/revisions',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Read a configuration revision
+     *
+     * With its configuration.
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        agentId: string;
+        revisionId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'agentId' },
+                    { in: 'path', key: 'revisionId' }
+                ] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents/{agentId}/revisions/{revisionId}',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Agents extends HeyApiClient {
+    /**
+     * List an organisation's agents
+     *
+     * Optionally only those on one network. Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        networkId?: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdAgentsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'query', key: 'networkId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdAgentsErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Add an agent
+     *
+     * Administrators only. Creates the agent’s device on the network it serves, with a new Ed25519 identity, and the agent as a standby.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
+        networkId: string;
+        priority?: number;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'priority' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdAgentsErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove an agent
+     *
+     * Administrators only. Removes its device too, and its configuration revisions; its reports remain. Refused while a stream uses its device as its source.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        agentId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'agentId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents/{agentId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read an agent
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        agentId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'agentId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents/{agentId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update an agent
+     *
+     * Administrators only: change its priority. Its name is changed under `/devices`, with the same ID; which agent is active is set on the network.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        agentId: string;
+        priority: number;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'agentId' },
+                    { in: 'body', key: 'priority' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents/{agentId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Serve a configuration revision to an agent
+     *
+     * Administrators only. Activates one of the agent’s revisions, which must have no errors; the agent keeps its current revision otherwise. Serving the served revision again changes nothing.
+     */
+    public serveRevision<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        agentId: string;
+        revisionId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'agentId' },
+                    { in: 'body', key: 'revisionId' }
+                ] }]);
+        return (options?.client ?? this.client).put<PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, ThrowOnError>({
+            url: '/organisations/{id}/agents/{agentId}/served-revision',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    private _revisions?: Revisions;
+    get revisions(): Revisions {
+        return this._revisions ??= new Revisions({ client: this.client });
+    }
+}
+
+export class Exposures extends HeyApiClient {
+    /**
+     * Expose a stream
+     *
+     * Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+        networkId?: string | null;
+        protocol: string;
+        params?: {
+            renditions?: Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }>;
+            [key: string]: Schema0 | Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }> | undefined;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'streamId' },
+                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'params' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}/exposures',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove an exposure
+     *
+     * Administrators only. Refused while a recorder uses it.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+        exposureId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'streamId' },
+                    { in: 'path', key: 'exposureId' }
+                ] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update an exposure
+     *
+     * Administrators only. Changes only the fields given; `params` is replaced whole.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+        exposureId: string;
+        networkId?: string | null;
+        protocol?: string;
+        params?: {
+            renditions?: Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }>;
+            [key: string]: Schema0 | Array<{
+                id: string;
+                width?: number;
+                height?: number;
+                /**
+                 * Bits per second.
+                 */
+                bitrate?: number;
+            }> | undefined;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'streamId' },
+                    { in: 'path', key: 'exposureId' },
+                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'params' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Recorders extends HeyApiClient {
+    /**
+     * Record a stream
+     *
+     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and protocol.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+        exposureId: string;
+        kind: string;
+        params?: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'streamId' },
+                    { in: 'body', key: 'exposureId' },
+                    { in: 'body', key: 'kind' },
+                    { in: 'body', key: 'params' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}/recorders',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a recorder
+     *
+     * Administrators only.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+        recorderId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'streamId' },
+                    { in: 'path', key: 'recorderId' }
+                ] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}/recorders/{recorderId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update a recorder
+     *
+     * Administrators only. Changes only the fields given; `params` is replaced whole.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+        recorderId: string;
+        exposureId?: string;
+        kind?: string;
+        params?: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'streamId' },
+                    { in: 'path', key: 'recorderId' },
+                    { in: 'body', key: 'exposureId' },
+                    { in: 'body', key: 'kind' },
+                    { in: 'body', key: 'params' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}/recorders/{recorderId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Streams extends HeyApiClient {
+    /**
+     * List an organisation's streams
+     *
+     * Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdStreamsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdStreamsErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Create a stream
+     *
+     * Administrators only.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
+        sourceDeviceId?: string | null;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdStreamsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'sourceDeviceId' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdStreamsErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete a stream
+     *
+     * Administrators only, with its exposures and recorders.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdStreamsByStreamIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'streamId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdStreamsByStreamIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read a stream
+     *
+     * With its exposures and recorders.
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'streamId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update a stream
+     *
+     * Administrators only: rename it, or change its source device. The stream's identity stays the same when its camera changes.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        streamId: string;
+        name?: string;
+        sourceDeviceId?: string | null;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdStreamsByStreamIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'streamId' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'sourceDeviceId' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdStreamsByStreamIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/streams/{streamId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    private _exposures?: Exposures;
+    get exposures(): Exposures {
+        return this._exposures ??= new Exposures({ client: this.client });
+    }
+    
+    private _recorders?: Recorders;
+    get recorders(): Recorders {
+        return this._recorders ??= new Recorders({ client: this.client });
+    }
+}
+
+export class Observations extends HeyApiClient {
+    /**
+     * List the events reported about a subject
+     *
+     * Every reporter’s accepted event reports, newest observation first.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        subjectId: string;
+        limit?: number;
+        before?: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'subjectId' },
+                    { in: 'query', key: 'limit' },
+                    { in: 'query', key: 'before' }
+                ] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, ThrowOnError>({
+            url: '/organisations/{id}/subjects/{subjectId}/observations',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Metrics extends HeyApiClient {
+    /**
+     * List the metric samples reported about a subject
+     *
+     * Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        subjectId: string;
+        limit?: number;
+        before?: string;
+        name?: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'subjectId' },
+                    { in: 'query', key: 'limit' },
+                    { in: 'query', key: 'before' },
+                    { in: 'query', key: 'name' }
+                ] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, ThrowOnError>({
+            url: '/organisations/{id}/subjects/{subjectId}/metrics',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Logs extends HeyApiClient {
+    /**
+     * List the logs reported about a subject
+     *
+     * Every reporter’s accepted log reports, newest observation first.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        subjectId: string;
+        limit?: number;
+        before?: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'subjectId' },
+                    { in: 'query', key: 'limit' },
+                    { in: 'query', key: 'before' }
+                ] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, ThrowOnError>({
+            url: '/organisations/{id}/subjects/{subjectId}/logs',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Subjects extends HeyApiClient {
+    /**
+     * Read a subject's current state
+     *
+     * The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one.
+     */
+    public state<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        subjectId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'subjectId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, ThrowOnError>({
+            url: '/organisations/{id}/subjects/{subjectId}/state',
+            ...options,
+            ...params
+        });
+    }
+    
+    private _observations?: Observations;
+    get observations(): Observations {
+        return this._observations ??= new Observations({ client: this.client });
+    }
+    
+    private _metrics?: Metrics;
+    get metrics(): Metrics {
+        return this._metrics ??= new Metrics({ client: this.client });
+    }
+    
+    private _logs?: Logs;
+    get logs(): Logs {
+        return this._logs ??= new Logs({ client: this.client });
+    }
+}
+
 export class Organisations extends HeyApiClient {
     /**
      * List your organisations
@@ -258,9 +1256,9 @@ export class Organisations extends HeyApiClient {
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         name: string;
-        display_name: string;
+        displayName: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsResponses, PostOrganisationsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'name' }, { in: 'body', key: 'display_name' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'name' }, { in: 'body', key: 'displayName' }] }]);
         return (options?.client ?? this.client).post<PostOrganisationsResponses, PostOrganisationsErrors, ThrowOnError>({
             url: '/organisations',
             ...options,
@@ -336,6 +1334,41 @@ export class Organisations extends HeyApiClient {
     get invitations(): Invitations {
         return this._invitations ??= new Invitations({ client: this.client });
     }
+    
+    private _networks?: Networks;
+    get networks(): Networks {
+        return this._networks ??= new Networks({ client: this.client });
+    }
+    
+    private _devices?: Devices;
+    get devices(): Devices {
+        return this._devices ??= new Devices({ client: this.client });
+    }
+    
+    private _cameras?: Cameras;
+    get cameras(): Cameras {
+        return this._cameras ??= new Cameras({ client: this.client });
+    }
+    
+    private _browser?: Browser;
+    get browser(): Browser {
+        return this._browser ??= new Browser({ client: this.client });
+    }
+    
+    private _agents?: Agents;
+    get agents(): Agents {
+        return this._agents ??= new Agents({ client: this.client });
+    }
+    
+    private _streams?: Streams;
+    get streams(): Streams {
+        return this._streams ??= new Streams({ client: this.client });
+    }
+    
+    private _subjects?: Subjects;
+    get subjects(): Subjects {
+        return this._subjects ??= new Subjects({ client: this.client });
+    }
 }
 
 export class Invitations2 extends HeyApiClient {
@@ -372,12 +1405,12 @@ export class Invitations2 extends HeyApiClient {
     public accept<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         code?: string;
-        display_name: string;
+        displayName: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostInvitationsByIdAcceptResponses, PostInvitationsByIdAcceptErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'code' },
-                    { in: 'body', key: 'display_name' }
+                    { in: 'body', key: 'displayName' }
                 ] }]);
         return (options?.client ?? this.client).post<PostInvitationsByIdAcceptResponses, PostInvitationsByIdAcceptErrors, ThrowOnError>({
             url: '/invitations/{id}/accept',
@@ -403,6 +1436,78 @@ export class Invitations2 extends HeyApiClient {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'body', key: 'code' }] }]);
         return (options?.client ?? this.client).post<PostInvitationsByIdDeclineResponses, PostInvitationsByIdDeclineErrors, ThrowOnError>({
             url: '/invitations/{id}/decline',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Reports extends HeyApiClient {
+    /**
+     * Submit a batch of reports
+     *
+     * Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.
+     */
+    public submit<ThrowOnError extends boolean = false>(parameters: {
+        reports: Array<{
+            kind: 'event';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                type: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                data?: {
+                    [key: string]: Schema0;
+                };
+            };
+        } | {
+            kind: 'metric';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                name: string;
+                type: 'gauge' | 'counter';
+                value: number;
+                unit?: string | null;
+                dimensions?: {
+                    [key: string]: string;
+                };
+            };
+        } | {
+            kind: 'log';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                level: string;
+                message: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                context?: {
+                    [key: string]: Schema0;
+                };
+            };
+        }>;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostReportsResponses, PostReportsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'reports' }] }]);
+        return (options?.client ?? this.client).post<PostReportsResponses, PostReportsErrors, ThrowOnError>({
+            url: '/reports',
             ...options,
             ...params,
             headers: {
@@ -443,5 +1548,10 @@ export class BaseClient extends HeyApiClient {
     private _invitations?: Invitations2;
     get invitations(): Invitations2 {
         return this._invitations ??= new Invitations2({ client: this.client });
+    }
+    
+    private _reports?: Reports;
+    get reports(): Reports {
+        return this._reports ??= new Reports({ client: this.client });
     }
 }

@@ -37,7 +37,8 @@ export default new Hono()
     requirePrincipal,
     async c => {
       const principal = usePrincipal();
-      const session = await useServices().session(principal);
+      const services = useServices();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -53,17 +54,7 @@ export default new Hono()
       );
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          id: row.id,
-          name: row.name,
-          email: row.email,
-          email_verified: row.emailVerified,
-          image: row.image,
-          created_at: row.createdAt.toISOString()
-        },
-        200
-      );
+      return c.json(row, 200);
     }
   )
   .patch(
@@ -96,7 +87,8 @@ export default new Hono()
     async c => {
       const principal = usePrincipal();
       const changes = c.req.valid('json');
-      const session = await useServices().session(principal);
+      const services = useServices();
+      const session = await services.session(principal);
       const [row] = await session.transaction(tx =>
         tx.update(users).set(changes).where(eq(users.id, principal.id)).returning({
           id: users.id,
@@ -110,16 +102,6 @@ export default new Hono()
       // An update that reaches no row means the account is not visible to this session.
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
-      return c.json(
-        {
-          id: row.id,
-          name: row.name,
-          email: row.email,
-          email_verified: row.emailVerified,
-          image: row.image,
-          created_at: row.createdAt.toISOString()
-        },
-        200
-      );
+      return c.json(row, 200);
     }
   );

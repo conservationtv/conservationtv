@@ -14,7 +14,12 @@ export const loadConfig = () =>
     WEB_ORIGINS: z.array(z.url()).nonempty(),
     /** Only logging exists; see src/auth/otp.ts. */
     OTP_DELIVERY: z.literal('log'),
-    BETTER_AUTH_SECRET: z.string().min(32)
+    BETTER_AUTH_SECRET: z.string().min(32),
+    /** The master key for encrypted columns and blind indexes, as base64; its 32 bytes. See src/db/encrypted.ts. */
+    FIELD_KEY: z
+      .base64()
+      .transform(text => new Uint8Array(Buffer.from(text, 'base64')))
+      .refine(key => key.length === 32, 'FIELD_KEY must be 32 bytes of base64')
   });
 
 export type Config = ReturnType<typeof loadConfig>;

@@ -22,13 +22,24 @@ export const globalAdmin = role('globalAdmin', {
 /** Granted at an organisation to every member: the organisation and its member directory. */
 export const organisationMember = role('organisationMember', {
   label: 'Member',
-  description: 'See the organisation and its members.',
+  description: 'See the organisation, its members, its stream topology and what its agents observe.',
+  assignableScopes: ['organisation']
+});
+
+/**
+ * Granted at its organisation to every device when it is created, and revoked when it is deleted
+ * (src/topology/device-principals.ts). A device principal reads its organisation's devices, for an iroh allowlist of
+ * their public IDs, and nothing else.
+ */
+export const organisationDevice = role('organisationDevice', {
+  label: 'Device',
+  description: "Read the organisation's devices and their public identities.",
   assignableScopes: ['organisation']
 });
 
 /** Granted alongside `organisationMember` to the people who run an organisation. */
 export const organisationAdmin = role('organisationAdmin', {
   label: 'Administrator',
-  description: 'Manage the organisation, its members, their profiles and its invitations.',
+  description: 'Manage the organisation, its members, their profiles and its invitations, and its stream topology.',
   assignableScopes: ['organisation']
 });

@@ -11,9 +11,9 @@ export const AccountSchema = z.object({
     id: z.string(),
     name: z.string(),
     email: z.string(),
-    email_verified: z.boolean(),
+    emailVerified: z.boolean(),
     image: z.string().nullable(),
-    created_at: z.string()
+    createdAt: z.string()
 });
 
 /**

@@ -54,9 +54,9 @@ export class Organisations extends HeyApiClient {
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         name: string;
-        display_name: string;
+        displayName: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsResponses, PostOrganisationsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'name' }, { in: 'body', key: 'display_name' }] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'name' }, { in: 'body', key: 'displayName' }] }]);
         return (options?.client ?? this.client).post<PostOrganisationsResponses, PostOrganisationsErrors, ThrowOnError>({
             url: '/organisations',
             ...options,

@@ -1,10 +1,8 @@
 import { createStore } from '@conservationtv/store';
 import type { Principal, Session } from '@conservationtv/umbrella';
-import { authorization } from './access.ts';
-import { createAuth, type Auth } from './auth/auth.ts';
-import { otpDelivery } from './auth/otp.ts';
+import type { Auth } from './auth/auth.ts';
 import type { Config } from './config.ts';
-import { connectLazily, type Database } from './db/client.ts';
+import type { Database } from './db/client.ts';
 
 /** Milliseconds since the epoch. Injected so time-dependent decisions can be exercised deterministically. */
 export type Clock = () => number;
@@ -32,39 +30,3 @@ export interface Services {
 
 const ServicesStore = createStore<Services>('services');
 export const [withServices, useServices] = ServicesStore;
-
-/** Where the two Postgres roles connect: the Worker's Hyperdrive bindings. */
-export interface ConnectionStrings {
-  admin: string;
-  app: string;
-}
-
-/** One request's services, and `close` to end its connections once the response is sent. */
-export function servicesFor(config: Config, connections: ConnectionStrings, background: Background) {
-  const admin = connectLazily(connections.admin);
-  const application = connectLazily(connections.app);
-  let auth: Promise<Auth> | undefined = undefined;
-  const services: Services = {
-    config,
-    clock: Date.now,
-    background,
-    admin: admin.database,
-    app: application.database,
-    session: async principal => authorization.as(await application.database(), principal),
-    // Better Auth owns its tables, so it is built over the admin connection, once per request.
-    auth: () => {
-      if (auth === undefined)
-        auth = admin.database().then(database =>
-          createAuth({
-            database,
-            access: authorization.access(database),
-            config,
-            deliverOtp: otpDelivery(config.OTP_DELIVERY),
-            background
-          })
-        );
-      return auth;
-    }
-  };
-  return { services, close: () => Promise.all([admin.close(), application.close()]) };
-}
