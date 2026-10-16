@@ -15,10 +15,12 @@
     "@clack/prompts": "1.8.1",
     "@conservationtv/agent-cli": "workspace:*",
     "@conservationtv/agent-sdk": "workspace:*",
+    "@conservationtv/store": "workspace:*",
     "@conservationtv/studio-cli": "workspace:*",
     "@conservationtv/studio-sdk": "workspace:*",
     "@number0/iroh": "1.0.0",
     "@strangecyan/iroh-http-node": "0.2.0",
+    "better-auth": "catalog:",
     "incur": "0.6.1",
     "tsx": "4.23.15",
     "zod": "catalog:"
