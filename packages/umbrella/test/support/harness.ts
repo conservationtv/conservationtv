@@ -62,7 +62,7 @@ export interface Harness extends Connection {
 export function useHarness(): () => Harness {
   let current: Harness | undefined = undefined;
   beforeEach(async () => {
-    template ??= buildTemplate();
+    if (template === undefined) template = buildTemplate();
     // SAFETY: Cloning a PGlite instance produces another PGlite instance.
     const pg = (await (await template).clone()) as PGlite;
     let now: Date | undefined = undefined;
