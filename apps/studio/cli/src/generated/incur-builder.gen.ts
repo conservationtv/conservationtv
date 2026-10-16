@@ -409,8 +409,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('delete', { description: 'Remove an agent\n\nAdministrators only. Removes its device too, its configuration revisions and every report it made. Refused while a stream uses its device as its source.' }).command('v1', {
-        description: 'Remove an agent\n\nAdministrators only. Removes its device too, its configuration revisions and every report it made. Refused while a stream uses its device as its source.',
+    })).command(Cli.create('delete', { description: 'Remove an agent\n\nAdministrators only. Removes its device too, and its configuration revisions; its reports remain. Refused while a stream uses its device as its source.' }).command('v1', {
+        description: 'Remove an agent\n\nAdministrators only. Removes its device too, and its configuration revisions; its reports remain. Refused while a stream uses its device as its source.',
         options: cliOptions(AgentDeleteV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

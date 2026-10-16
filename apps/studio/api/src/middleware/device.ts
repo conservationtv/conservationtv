@@ -104,7 +104,7 @@ async function bodyMatchesDigest(body: ArrayBuffer, digest: string) {
   }
 }
 
-/** Ensure the device's principal grant now and then: it should exist from creation, and this heals one that does not. */
+/** Ensure the device's principal grant now and then: it exists from creation, and this heals one that does not. */
 async function ensureGrant(device: AuthenticatedDevice) {
   const cache = useCache();
   const key = `device-grant:${device.id}`;

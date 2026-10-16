@@ -1,7 +1,7 @@
 {
-  "id": "1ab491d6-38cd-4b99-8b40-5b25f7221f10",
+  "id": "a15de165-9a1c-4205-b308-6e66aa0547ae",
   "prevIds": [
-    "3b2fcad0-00c2-4d80-878e-9e0f574b755b"
+    "2522451d-f61e-4dd2-adde-b5ca491a73eb"
   ],
   "version": "8",
   "dialect": "postgres",
@@ -3758,25 +3758,6 @@
       "table": "observation"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
-        "reporter_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "device",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "observation_reporter_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "observation"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         "organisation_id"
@@ -3789,25 +3770,6 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "reporter_opinion_organisation_id_organisation_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "reporter_opinion"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
-        "reporter_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "device",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "reporter_opinion_reporter_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "reporter_opinion"
@@ -3847,25 +3809,6 @@
       "table": "metric_sample"
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
-        "reporter_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "device",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "metric_sample_reporter_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "metric_sample"
-    },
-    {
       "nameExplicit": false,
       "columns": [
         "organisation_id"
@@ -3878,25 +3821,6 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "log_record_organisation_id_organisation_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "log_record"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
-        "reporter_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "device",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "log_record_reporter_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "log_record"

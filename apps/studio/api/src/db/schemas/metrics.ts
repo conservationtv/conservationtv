@@ -1,8 +1,7 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
-import { doublePrecision, foreignKey, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { doublePrecision, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import type { MetricDimensions } from '../../topology/settings.ts';
-import { devices } from './devices.ts';
 import { organisations } from './organisations.ts';
 import { observationAccess } from './report-access.ts';
 
@@ -31,14 +30,7 @@ export const metricSamples = withAccess(
       dimensions: jsonb('dimensions').$type<MetricDimensions>().default({}).notNull(),
       value: doublePrecision('value').notNull()
     },
-    t => [
-      foreignKey({
-        name: 'metric_sample_reporter_fk',
-        columns: [t.organisationId, t.reporterId],
-        foreignColumns: [devices.organisationId, devices.id]
-      }).onDelete('cascade'),
-      index('metric_sample_subject_observed_idx').on(t.organisationId, t.subjectId, t.observedAt)
-    ]
+    t => [index('metric_sample_subject_observed_idx').on(t.organisationId, t.subjectId, t.observedAt)]
   ),
   t => ({ name: 'metricSamples', scope: organisations.$access.scope.via(t.organisationId), ...observationAccess })
 );

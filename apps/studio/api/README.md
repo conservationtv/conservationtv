@@ -260,8 +260,9 @@ its own `observedAt`, and at most 1 MiB. Any device may report, and is the repor
 trusted code (`src/reports/ingest.ts`): it refuses malformed reports and those observed more than five minutes ahead,
 and stores the batch in the device's organisation with one insert per kind. A batch is stored or refused whole, and
 only for trust or shape. The signature's nonce stops a request from being stored twice, but nothing else deduplicates:
-a retry is signed again, and may be stored twice. Deleting a device deletes its reports. Request sessions only read
-reports.
+a retry is signed again, and may be stored twice. A report's reporter, like its subject, is recorded as given rather
+than referenced, so reports stay when their device is deleted; they go with their organisation. Request sessions only
+read reports.
 
 A report's `subjectId` names what it is about by convention (`src/reports/subjects.ts`), not by reference:
 `<kind>:<id>` for a network, device, agent, stream or exposure, such as `device:0199e8b2-…`, or `external:<name>` for
