@@ -147,11 +147,11 @@ export const NetworkSetActiveAgentParamsSchema = z.object({
 
 export type NetworkSetActiveAgentParams = z.infer<typeof NetworkSetActiveAgentParamsSchema>;
 
-export const DeviceListPublicIdsParamsSchema = z.object({
+export const DeviceAllowlistParamsSchema = z.object({
     id: GetOrganisationsByIdDevicesPublicIdsPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
-export type DeviceListPublicIdsParams = z.infer<typeof DeviceListPublicIdsParamsSchema>;
+export type DeviceAllowlistParams = z.infer<typeof DeviceAllowlistParamsSchema>;
 
 export const DeviceListParamsSchema = z.object({
     id: GetOrganisationsByIdDevicesPathSchema.shape.id.nonoptional().describe('The organisation.'),

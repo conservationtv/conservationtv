@@ -4,8 +4,8 @@ import * as z from 'zod';
 
 import { GetOrganisationsByIdDevicesPublicIdsPathSchema } from './zod.gen.js';
 
-export const DeviceListPublicIdsV1ParamsSchema = z.object({
+export const DeviceAllowlistV1ParamsSchema = z.object({
     id: GetOrganisationsByIdDevicesPublicIdsPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
-export type DeviceListPublicIdsV1Params = z.infer<typeof DeviceListPublicIdsV1ParamsSchema>;
+export type DeviceAllowlistV1Params = z.infer<typeof DeviceAllowlistV1ParamsSchema>;
