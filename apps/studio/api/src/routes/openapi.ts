@@ -27,5 +27,8 @@ export const revisionHasErrors = errorResponse('The revision has errors, so it c
 export const invalidSignature = errorResponse(
   'The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest'
 );
+export const noCaller = errorResponse(
+  'No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest'
+);
 
 export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');
