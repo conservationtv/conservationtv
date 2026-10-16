@@ -1396,6 +1396,50 @@ export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses = {
 
 export type PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponse = PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses[keyof PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses];
 
+export type GetOrganisationsByIdDevicesAllowlistData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/devices/allowlist';
+};
+
+export type GetOrganisationsByIdDevicesAllowlistErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdDevicesAllowlistError = GetOrganisationsByIdDevicesAllowlistErrors[keyof GetOrganisationsByIdDevicesAllowlistErrors];
+
+export type GetOrganisationsByIdDevicesAllowlistResponses = {
+    /**
+     * The public IDs, oldest device first
+     */
+    200: {
+        publicIds: Array<string>;
+    };
+};
+
+export type GetOrganisationsByIdDevicesAllowlistResponse = GetOrganisationsByIdDevicesAllowlistResponses[keyof GetOrganisationsByIdDevicesAllowlistResponses];
+
 export type GetOrganisationsByIdDevicesData = {
     body?: never;
     path: {

@@ -3413,6 +3413,93 @@
         ]
       }
     },
+    "/organisations/{id}/devices/allowlist": {
+      "get": {
+        "operationId": "organisations.devices.allowlist",
+        "x-operation-version": 1,
+        "summary": "List the public IDs of an organisation's devices",
+        "description": "Every device's iroh endpoint ID, for an allowlist. Members call it signed in; devices call it with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`. Empty for organisations you are not a member of, or a signing device does not belong to.",
+        "responses": {
+          "200": {
+            "description": "The public IDs, oldest device first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "publicIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "publicIds"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
     "/organisations/{id}/devices": {
       "get": {
         "operationId": "organisations.devices.list",
@@ -12235,6 +12322,144 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Device": {
+            "type": "object",
+            "properties": {
+              "publicIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "publicIds"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/devices/allowlist": {
+          "get": {
+            "operationId": "organisations.devices.allowlist",
+            "x-operation-version": 1,
+            "summary": "List the public IDs of an organisation's devices",
+            "description": "Every device's iroh endpoint ID, for an allowlist. Members call it signed in; devices call it with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`. Empty for organisations you are not a member of, or a signing device does not belong to.",
+            "responses": {
+              "200": {
+                "description": "The public IDs, oldest device first",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Device"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
           }
         }
       }

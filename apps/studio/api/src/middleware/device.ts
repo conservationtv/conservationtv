@@ -10,6 +10,7 @@ import { ApiFailure } from '../errors.ts';
 import { trusted } from '../organisations/membership.ts';
 import { useServices } from '../services.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
+import { requirePrincipal, usePrincipal } from './principal.ts';
 
 // Devices authenticate with their own identity (src/topology/identity.ts): each request carries an RFC 9421 HTTP
 // Message Signature by the device's Ed25519 key, named by its public ID as `keyid`. The signature must cover the
@@ -116,4 +117,24 @@ export const requireDevice = createMiddleware(async (c, next) => {
   );
   if (!fresh) throw new ApiFailure('invalid_signature');
   await withDevice(device, next);
+});
+
+/** Who a request either a member or a device may make runs as. */
+export const [withCaller, useCaller] = createStore<Principal<string, 'user' | 'device'>>('caller');
+
+/**
+ * Require a device's signature when the request carries one (`requireDevice`), and a signed-in session otherwise
+ * (`requirePrincipal`). Downstream, `useCaller()` is the device's principal or the account's.
+ */
+export const requireCaller = createMiddleware(async (c, next) => {
+  if (c.req.header('signature') !== undefined) {
+    return requireDevice(c, () => {
+      const device = useDevice();
+      return withCaller(device.principal, next);
+    });
+  }
+  return requirePrincipal(c, () => {
+    const principal = usePrincipal();
+    return withCaller(principal, next);
+  });
 });
