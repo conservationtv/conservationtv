@@ -1,0 +1,12 @@
+# The build context is the repository root; send only what an install and build need.
+**/node_modules
+**/dist
+**/build
+**/.react-router
+**/.wrangler
+**/.cloudflare
+**/.dev.vars
+**/.env*
+**/*.log
+**/.DS_Store
+.git

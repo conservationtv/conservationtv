@@ -232,6 +232,155 @@ importers:
         specifier: ^1.78.0
         version: 1.87.0
 
+  apps/agent/cli:
+    dependencies:
+      '@conservationtv/agent-sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@conservationtv/versioned-api':
+        specifier: workspace:*
+        version: link:../../../packages/versioned-api
+      incur:
+        specifier: 0.6.1
+        version: 0.6.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@conservationtv/agent-api':
+        specifier: workspace:*
+        version: link:../core
+      '@hey-api/openapi-ts':
+        specifier: 0.99.0
+        version: 0.99.0(typescript@6.0.3)
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  apps/agent/core:
+    dependencies:
+      '@conservationtv/store':
+        specifier: workspace:*
+        version: link:../../../packages/store
+      '@conservationtv/versioned-api':
+        specifier: workspace:*
+        version: link:../../../packages/versioned-api
+      '@number0/iroh':
+        specifier: 1.0.0
+        version: 1.0.0
+      '@strangecyan/iroh-http-node':
+        specifier: 0.2.0
+        version: 0.2.0
+      hono:
+        specifier: 4.13.8
+        version: 4.13.8
+      hono-openapi:
+        specifier: 1.3.3
+        version: 1.3.3(hono@4.13.8)(valibot@1.5.0)(zod-to-json-schema@3.25.2(zod@4.6.2))(zod@4.6.2)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  apps/agent/runner:
+    dependencies:
+      '@arkenv/standard':
+        specifier: 'catalog:'
+        version: 1.0.0-rc.4(zod@4.6.2)
+      '@conservationtv/agent-api':
+        specifier: workspace:*
+        version: link:../core
+      close-with-grace:
+        specifier: 2.5.0
+        version: 2.5.0
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  apps/agent/sdk:
+    dependencies:
+      '@conservationtv/versioned-api':
+        specifier: workspace:*
+        version: link:../../../packages/versioned-api
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@conservationtv/agent-api':
+        specifier: workspace:*
+        version: link:../core
+      '@hey-api/openapi-ts':
+        specifier: 0.99.0
+        version: 0.99.0(typescript@6.0.3)
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  apps/cli:
+    dependencies:
+      '@clack/prompts':
+        specifier: 1.8.1
+        version: 1.8.1
+      '@conservationtv/agent-cli':
+        specifier: workspace:*
+        version: link:../agent/cli
+      '@conservationtv/agent-sdk':
+        specifier: workspace:*
+        version: link:../agent/sdk
+      '@conservationtv/studio-cli':
+        specifier: workspace:*
+        version: link:../studio/cli
+      '@conservationtv/studio-sdk':
+        specifier: workspace:*
+        version: link:../studio/sdk
+      '@number0/iroh':
+        specifier: 1.0.0
+        version: 1.0.0
+      '@strangecyan/iroh-http-node':
+        specifier: 0.2.0
+        version: 0.2.0
+      incur:
+        specifier: 0.6.1
+        version: 0.6.1
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   apps/controlplane/cli:
     dependencies:
       '@conservationtv/controlplane-sdk':
@@ -304,7 +453,7 @@ importers:
         version: 0.8.6
       '@cloudflare/vite-plugin':
         specifier: beta
-        version: 2.0.0-beta.sha-52b0dc0e9(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261006.1)
+        version: 2.0.0-beta.v.0(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261006.1)
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
@@ -536,9 +685,6 @@ importers:
       incur:
         specifier: 0.6.1
         version: 0.6.1
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       zod:
         specifier: 'catalog:'
         version: 4.6.2
@@ -1200,9 +1346,6 @@ packages:
     resolution: {integrity: sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==}
     engines: {node: '>= 20.12.0'}
 
-  '@cloudflare/build-output-utils@0.8.4':
-    resolution: {integrity: sha512-IjFovj2NV5GXA2D4EZu243M5iiwcEEVeQwaOySfz6L+D9U6C5pVtO8WINQCVLc3zPW8Av9grQzBX2UvCbntnbw==}
-
   '@cloudflare/build-output-utils@0.8.6':
     resolution: {integrity: sha512-Ku4UL7tUX9kpto9AisUg2jPNS4yXC6lMy8DMMKdDquArNjxpqDJfkW68WSlA8yfrLSFO3fgxMWW47rtxv/GHgQ==}
 
@@ -1213,9 +1356,6 @@ packages:
     resolution: {integrity: sha512-DSRpLpM0J8vD7oLKvViS6NMlMVnc6F38JXCrVy0q3KouSS5I71do1QRvGwtJjVHVOULPWlxy/DvA6cIIz3481g==}
     hasBin: true
 
-  '@cloudflare/config@0.22.0':
-    resolution: {integrity: sha512-6FoqVlQicGs6DcUn5zbWUbcXomqtqIe+dFKwYJGKTJI/3W1dNQ2sKzxttNthiQG9RJhrENki4BNrpZtZuHwvXw==}
-
   '@cloudflare/config@0.24.0':
     resolution: {integrity: sha512-DBKkL2fFfHIL0cdjXOoWybNzBxD5xAvuebu0nfcBphWeUiWKnSUYu8JMaboKzmAJRp6V1RGtPAdfdtXMHueqAA==}
 
@@ -1224,9 +1364,6 @@ packages:
 
   '@cloudflare/runtime-types@0.1.11':
     resolution: {integrity: sha512-iLOEoGkJidkJ+E5BuWeSXH137Z8oKyxsLN00/POU5rjz1+Rs5W1cq4PeHSfGd6GBR/7JL3Tt4/DK+uQhNDvxsg==}
-
-  '@cloudflare/runtime-types@0.1.6':
-    resolution: {integrity: sha512-sXsT4U4r9uSHzbN6fVio6mhtaBa4B0TwQHpeatD13e6LYnTG1I7tvjC8dYtfvoKSaazpxXdH49MiU+nqQaEDRA==}
 
   '@cloudflare/runtime-types@0.1.8':
     resolution: {integrity: sha512-gYeU3d/eRGWveJSwaAVU0bQ40xgxgfMVgioib7PnUGEYxKGHfFGc85lkNG7gyYoZnsYuPBYOH4umr+H+F4+apg==}
@@ -1240,23 +1377,11 @@ packages:
       workerd:
         optional: true
 
-  '@cloudflare/vite-plugin@2.0.0-beta.sha-52b0dc0e9':
-    resolution: {integrity: sha512-gJ4YBAGMzrrRiPMPnkz7tK9bUJsr9i2t6gWW4Oy8fdUNx9EDSeT3rljH4Jd6P/V4da0AgMNIGVK7gfPT6i1Jkw==}
-    hasBin: true
-    peerDependencies:
-      vite: ^7.0.0 || ^8.0.0
-
   '@cloudflare/vite-plugin@2.0.0-beta.v.0':
     resolution: {integrity: sha512-G7492jrrCF/pUOuKEv7cLdjDDHPjsd+VJXtT0MjEDATiqNV5XsmztSNSEJt9MM5lPw6KbeKKcPHe5az/qrTOmQ==}
     hasBin: true
     peerDependencies:
       vite: ^7.0.0 || ^8.0.0
-
-  '@cloudflare/workerd-darwin-64@1.20260930.2':
-    resolution: {integrity: sha512-wxKsfekWeev6xkjHEMx3x7nz6WfWOn1/scQ8geqWQhUm8qRl1ZRZhjnj+rucIMLhLhP9RGSYMZIjEm3AV0zwVQ==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [darwin]
 
   '@cloudflare/workerd-darwin-64@1.20261006.1':
     resolution: {integrity: sha512-lCX6avJO2It9AyDEYitjmOtJRVp/xmaW0TziyoLAnfxlzozyyRbSFfIIMMCiDx/sTP1++E4VLbV+7BHSD33f0Q==}
@@ -1268,12 +1393,6 @@ packages:
     resolution: {integrity: sha512-dkTL9aY3V4D40b+jBpGPCistWUPFQ/M61wlWi6i1o8MvHFFgEw7EQkcaYEv6Yd3bkPDD/3TFT4hRsMb2xVZSwQ==}
     engines: {node: '>=16'}
     cpu: [x64]
-    os: [darwin]
-
-  '@cloudflare/workerd-darwin-arm64@1.20260930.2':
-    resolution: {integrity: sha512-cviPpheZGQ2H5X+Ctxd3wfxhksNrdyoNprjSgg3br2+psetKacjdEvK8CILdN/2GF+u1KOExvr45amSL6lgzGA==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
     os: [darwin]
 
   '@cloudflare/workerd-darwin-arm64@1.20261006.1':
@@ -1288,12 +1407,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@cloudflare/workerd-linux-64@1.20260930.2':
-    resolution: {integrity: sha512-cwrJAC5y/avPd1OzGyhc5OvUUfPXBFc065TY5CjXp7Hb3dhiTx6JeB5Pc8L3G8L8M44HyAfRHSpoLtRr+SR3cQ==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [linux]
-
   '@cloudflare/workerd-linux-64@1.20261006.1':
     resolution: {integrity: sha512-Ntf9S8eesmVufdjaT2kzWlz6Ng9XGYTc6cHQVRKAg59lFufwsIabGeMT6U4KkrpEeSIxgHq8aPtuLbZXE19tCA==}
     engines: {node: '>=16'}
@@ -1304,12 +1417,6 @@ packages:
     resolution: {integrity: sha512-uMe7ONHnLxStD1Ye0YFHBO36uj4cStv5P53rW+5GVWXFT8BRjqVixlH0IqCAHe1Pmcwyd1+7fVoGde89MZSCJg==}
     engines: {node: '>=16'}
     cpu: [x64]
-    os: [linux]
-
-  '@cloudflare/workerd-linux-arm64@1.20260930.2':
-    resolution: {integrity: sha512-FHucB4gak1IuT+IxLx3KbtMBMapZhcqD9EdhHvBxk1FpHwD2QU5x26MRRVN53jIKG/O25HUmE9yffb3cMANQgw==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
     os: [linux]
 
   '@cloudflare/workerd-linux-arm64@1.20261006.1':
@@ -1323,12 +1430,6 @@ packages:
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [linux]
-
-  '@cloudflare/workerd-windows-64@1.20260930.2':
-    resolution: {integrity: sha512-JHFMdGFMqP+M2QiVzZq1S8Ie66Gvxo7Og5EYz/KtmDvGCqge5L3lK+ksZxAhF3j/tpSLqdvlUvcTKoR9PkwTTQ==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [win32]
 
   '@cloudflare/workerd-windows-64@1.20261006.1':
     resolution: {integrity: sha512-nWP0URNqOBN9fa/gZ7eh/w051DwjOXN8j4lDZDYVXyQPsux6sV3DfyYZT+CjR/rt9nKBSmJT9QE9/bWT18+84w==}
@@ -2382,10 +2483,22 @@ packages:
     resolution: {integrity: sha512-mGUWr1uMnf0le2TwfOZY4SFxZGXGfm4Jtay/nwAa2FLNAKXUoUwaGwBMNH36UHPtinWfTSJ3nqFQr0091CxVGg==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
+  '@number0/iroh-android-arm-eabi@1.0.0':
+    resolution: {integrity: sha512-AkrdmoQ2YhC+X0JgD14SNE+KOSGLKC8z5HSWnPY5tvSXrASPbwCtvWFCVmyPKWj2kQHv0blMI5lBGeGFe+v54w==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [android]
+
   '@number0/iroh-android-arm-eabi@1.1.0':
     resolution: {integrity: sha512-PcrwZUGdqEnR0/tus0ehulEa68wVrJRJzFjZN5iBV1Jjhgy00oQ5hKtRdCam1lYAQp3jWmRGktLHF2ejj0xAMg==}
     engines: {node: '>= 10'}
     cpu: [arm]
+    os: [android]
+
+  '@number0/iroh-android-arm64@1.0.0':
+    resolution: {integrity: sha512-EkZh6hl5XJ1JQlWWANc2yDdScP5yGbi9IlF9bttd4DuUelAI8yqEMzXq4YdPB0kQqPlmPk8nEGLEtPWbVCNTLg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
     os: [android]
 
   '@number0/iroh-android-arm64@1.1.0':
@@ -2394,14 +2507,32 @@ packages:
     cpu: [arm64]
     os: [android]
 
+  '@number0/iroh-darwin-arm64@1.0.0':
+    resolution: {integrity: sha512-zmf9CE1l6TWy9zDlNs3EvcxPxHfVQKvkod7wuF6llkGi/2WaSRc+x1vaaMEfpguaxnRfP4NNvIKyy8Ni4imIQg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
   '@number0/iroh-darwin-arm64@1.1.0':
     resolution: {integrity: sha512-CM6gaQ+6r9K0HRswc2gOKeGL8XYUHUbz7ESkgOltBFin9OsYKmIo+JVYFxlahH8C7ypGEKq1ybU22Ifcf2kXnQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
+  '@number0/iroh-linux-arm-gnueabihf@1.0.0':
+    resolution: {integrity: sha512-obp3eZIJrOGD0rUL1Y0SSCFUNa6NQAsZS+z2khmurqD/rOIIjzvVNYakS4+MEWQLzF1acuUvN7aprHAceUkiuQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [linux]
+
   '@number0/iroh-linux-arm-gnueabihf@1.1.0':
     resolution: {integrity: sha512-5K4Kaz4gzyPo5s5LLAFO0zLXc2F0EZ3BXeMKzQc5zuPaeHQt4XqdwxozXVtn0/3EiUYqFNH1JIowagpwahxAlw==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [linux]
+
+  '@number0/iroh-linux-arm-musleabihf@1.0.0':
+    resolution: {integrity: sha512-5OXTzmdej7CPaQCReg3vf0/jDCRdVgiOsbC0gcyoPBOdNPs7tZgSoXRBQsod7ioObrjegPM2UfvdF+bIyGst4Q==}
     engines: {node: '>= 10'}
     cpu: [arm]
     os: [linux]
@@ -2412,12 +2543,26 @@ packages:
     cpu: [arm]
     os: [linux]
 
+  '@number0/iroh-linux-arm64-gnu@1.0.0':
+    resolution: {integrity: sha512-whQ36eFP+9aYRJxpZn/Q35EVlvEJm45AFSO2mfctVYvZFJKC/YjZWue4p60VWuW4/yBdjBTErwUum5mMppoeLQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
   '@number0/iroh-linux-arm64-gnu@1.1.0':
     resolution: {integrity: sha512-AZHpCKQEcJdXya9llNld5u+S2Cz+ehWgGzILtpEJ1qljNYJAClDovzA+5ehUVaXEc+P7ZUNQ+pIjMcWXM0cAug==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
+
+  '@number0/iroh-linux-arm64-musl@1.0.0':
+    resolution: {integrity: sha512-Xb4Yy9I2MXlv2SeZZcEIkJIgG1do+5F4R5GkXb4L0if/5vTuuKj7KGQE/ehaIJjNcv+TE+KIOhUvGCxO02l7Nw==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
 
   '@number0/iroh-linux-arm64-musl@1.1.0':
     resolution: {integrity: sha512-4ZS/U2L4+zk2E5cn5WmxxuUDTkdwWiyxRq0NFArRQNFbuH7mjtQok2aDIbOIFOIrTTB4x1hwb4Gt0OJw4om4SQ==}
@@ -2426,12 +2571,26 @@ packages:
     os: [linux]
     libc: [musl]
 
+  '@number0/iroh-linux-x64-gnu@1.0.0':
+    resolution: {integrity: sha512-ZOOWURPAWhnBmj5ElLaB/wCjoWNdrjOblaOs0YViW+dlTc5qwInSGJdYEDRdSoZ61MIP0gI2H9EwENe8UYWRcg==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
   '@number0/iroh-linux-x64-gnu@1.1.0':
     resolution: {integrity: sha512-P2mo734gUjrfJgwbma1fHAyfeWqtY5IHTx53b1peei2/05JKZ2JJ4LS/YzI4qYW20mVtLKD9GS0T3q/iFYVC9Q==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
+
+  '@number0/iroh-linux-x64-musl@1.0.0':
+    resolution: {integrity: sha512-sJzuehJ9BnuZe4lnP6cWA1wDedC+rbOiI/Hu4V9BGTUE50Z/s28rXDQFJCqVWz1qseXCqHYQ/Jt3U1XdX+Gmtw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
 
   '@number0/iroh-linux-x64-musl@1.1.0':
     resolution: {integrity: sha512-GTnr8v59AeS5iGmXLyqcgLCsTAFW2w6tdfDzjyyCYr6iO3h4vZuBv9HG3CwaVU+vOzzig9ojDzauDLgl96nniw==}
@@ -2440,10 +2599,22 @@ packages:
     os: [linux]
     libc: [musl]
 
+  '@number0/iroh-win32-arm64-msvc@1.0.0':
+    resolution: {integrity: sha512-7KgpUvinndcJnQgbYdV0zs7nGTxKi9zZDBxyTX9PRlQm/9TfTDZhSkur+sZYW2xca2P31XGkjZYZ78yAjYviqQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
   '@number0/iroh-win32-arm64-msvc@1.1.0':
     resolution: {integrity: sha512-LvG4Vcw8D7tFAxZpuZsh6rmyW1YmtS3McDIQjEUNhf9VNBFzQ7WHyEIxdr1GAg/HvC8rmPJ1MQBM24RCDbdUew==}
     engines: {node: '>= 10'}
     cpu: [arm64]
+    os: [win32]
+
+  '@number0/iroh-win32-x64-msvc@1.0.0':
+    resolution: {integrity: sha512-mNgHds9US3IWfrvZn+yBuyE/kjrM//jSFpWn1llu3aiNgGq8Rf7yW2TJWvmrFT+eeTi2osOsh1nJfykXTe9xYQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
     os: [win32]
 
   '@number0/iroh-win32-x64-msvc@1.1.0':
@@ -2451,6 +2622,10 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
+
+  '@number0/iroh@1.0.0':
+    resolution: {integrity: sha512-QeuRYxfLPm8HGbWKYpZZA//hCn8J+WO8hVrEAU2VQG0BLnfHTX9tcqGbQJLzcePFdtFVVXVIkm3IkSAUWajOXg==}
+    engines: {node: '>= 20.3.0'}
 
   '@number0/iroh@1.1.0':
     resolution: {integrity: sha512-DlrJ4Sza5MiI+WwQg63lg+7eSbxlfQR2Bd+wVDjo7XTqenALD2OCRoSfPTuD12IhcvDbVHr4l7qH48DilocqYA==}
@@ -3734,6 +3909,13 @@ packages:
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
 
+  '@strangecyan/iroh-http-core@0.2.0':
+    resolution: {integrity: sha512-i1lQQR7zNA9CbiuezPzvIDUQHuXZOoqHS+8D5wkkEFtPIKIzjS6t7LuzsoL1OS4eY2g2gkeuaxUGf/SivCKUqw==}
+
+  '@strangecyan/iroh-http-node@0.2.0':
+    resolution: {integrity: sha512-5DnT1R9AQGqozkW454Rv2tOpt9vdAyU+7U29gZ8i8sV091XT85XyNzJwqZsNs4d3D5g1/xQeolqC6TV5mQOvIg==}
+    engines: {node: '>=22.18.0'}
+
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
@@ -4584,6 +4766,9 @@ packages:
   cliui@8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
+
+  close-with-grace@2.5.0:
+    resolution: {integrity: sha512-MewUtZQU6N4YVHIne63zGtjIQzTINgr6lQp2Y0CutaCw2FsdYahW57dH1Wdz+aV5ipbBzEBZD5znwX2NooS+IA==}
 
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
@@ -5896,10 +6081,6 @@ packages:
   mimic-response@3.1.0:
     resolution: {integrity: sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ==}
     engines: {node: '>=10'}
-
-  miniflare@5.20260930.0-alpha:
-    resolution: {integrity: sha512-vZljfRtOEeynbhJtuvYsnCU8t6zF5wIUm9ql4YFHB7zvYw2+F2tpT0BzXjzaa++eiUIml1gsODCf02qShBmJdg==}
-    engines: {node: '>=22.0.0'}
 
   miniflare@5.20261006.0-alpha:
     resolution: {integrity: sha512-UP3qIeQKHba59GHxBqD8H2GateacluT4vrjIpqEgH78kCSUxdu8jA0f7MH7ftRSAnnB1oOvEsDtav3xevQDbpQ==}
@@ -7316,11 +7497,6 @@ packages:
     engines: {node: '>=20.11'}
     hasBin: true
 
-  workerd@1.20260930.2:
-    resolution: {integrity: sha512-k1lQzEiGyCDqaRsR5+o9PBT5wVU5omtas6hXx3spbEHHMFo8a7tkAixVCMsWFeiT7xhrmg21Hd6a9jLNrkcUMg==}
-    engines: {node: '>=16'}
-    hasBin: true
-
   workerd@1.20261006.1:
     resolution: {integrity: sha512-8MadBuffZ5NdpLwZjUmsqT5QlaKXq4gjgT6wzcKeynZTICNXyePhc+5QVoKiK7+MMhFTLNrRO2KXLlpk8Q6BkA==}
     engines: {node: '>=16'}
@@ -7812,10 +7988,6 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
-  '@cloudflare/build-output-utils@0.8.4':
-    dependencies:
-      '@cloudflare/config': 0.22.0
-
   '@cloudflare/build-output-utils@0.8.6':
     dependencies:
       '@cloudflare/config': 0.24.0
@@ -7825,10 +7997,6 @@ snapshots:
       '@cloudflare/config': 0.26.0
 
   '@cloudflare/codemods@0.4.1': {}
-
-  '@cloudflare/config@0.22.0':
-    dependencies:
-      zod: 4.4.3
 
   '@cloudflare/config@0.24.0':
     dependencies:
@@ -7842,15 +8010,6 @@ snapshots:
     dependencies:
       miniflare: 5.20261012.0-beta(@types/node@24.10.1)
       workerd: 1.20261012.1
-    transitivePeerDependencies:
-      - '@types/node'
-      - bufferutil
-      - utf-8-validate
-
-  '@cloudflare/runtime-types@0.1.6(@types/node@24.10.1)':
-    dependencies:
-      miniflare: 5.20260930.0-alpha(@types/node@24.10.1)
-      workerd: 1.20260930.2
     transitivePeerDependencies:
       - '@types/node'
       - bufferutil
@@ -7871,22 +8030,6 @@ snapshots:
     optionalDependencies:
       workerd: 1.20261006.1
 
-  '@cloudflare/vite-plugin@2.0.0-beta.sha-52b0dc0e9(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261006.1)':
-    dependencies:
-      '@cloudflare/build-output-utils': 0.8.4
-      '@cloudflare/config': 0.22.0
-      '@cloudflare/runtime-types': 0.1.6(@types/node@24.10.1)
-      '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261006.1)
-      miniflare: 5.20260930.0-alpha(@types/node@24.10.1)
-      unenv: 2.0.0-rc.24
-      vite: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
-      ws: 8.21.0
-    transitivePeerDependencies:
-      - '@types/node'
-      - bufferutil
-      - utf-8-validate
-      - workerd
-
   '@cloudflare/vite-plugin@2.0.0-beta.v.0(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261006.1)':
     dependencies:
       '@cloudflare/build-output-utils': 0.9.2
@@ -7903,16 +8046,10 @@ snapshots:
       - utf-8-validate
       - workerd
 
-  '@cloudflare/workerd-darwin-64@1.20260930.2':
-    optional: true
-
   '@cloudflare/workerd-darwin-64@1.20261006.1':
     optional: true
 
   '@cloudflare/workerd-darwin-64@1.20261012.1':
-    optional: true
-
-  '@cloudflare/workerd-darwin-arm64@1.20260930.2':
     optional: true
 
   '@cloudflare/workerd-darwin-arm64@1.20261006.1':
@@ -7921,25 +8058,16 @@ snapshots:
   '@cloudflare/workerd-darwin-arm64@1.20261012.1':
     optional: true
 
-  '@cloudflare/workerd-linux-64@1.20260930.2':
-    optional: true
-
   '@cloudflare/workerd-linux-64@1.20261006.1':
     optional: true
 
   '@cloudflare/workerd-linux-64@1.20261012.1':
     optional: true
 
-  '@cloudflare/workerd-linux-arm64@1.20260930.2':
-    optional: true
-
   '@cloudflare/workerd-linux-arm64@1.20261006.1':
     optional: true
 
   '@cloudflare/workerd-linux-arm64@1.20261012.1':
-    optional: true
-
-  '@cloudflare/workerd-windows-64@1.20260930.2':
     optional: true
 
   '@cloudflare/workerd-windows-64@1.20261006.1':
@@ -8836,38 +8964,85 @@ snapshots:
       node-gyp: 12.4.0
       proc-log: 6.1.0
 
+  '@number0/iroh-android-arm-eabi@1.0.0':
+    optional: true
+
   '@number0/iroh-android-arm-eabi@1.1.0':
+    optional: true
+
+  '@number0/iroh-android-arm64@1.0.0':
     optional: true
 
   '@number0/iroh-android-arm64@1.1.0':
     optional: true
 
+  '@number0/iroh-darwin-arm64@1.0.0':
+    optional: true
+
   '@number0/iroh-darwin-arm64@1.1.0':
+    optional: true
+
+  '@number0/iroh-linux-arm-gnueabihf@1.0.0':
     optional: true
 
   '@number0/iroh-linux-arm-gnueabihf@1.1.0':
     optional: true
 
+  '@number0/iroh-linux-arm-musleabihf@1.0.0':
+    optional: true
+
   '@number0/iroh-linux-arm-musleabihf@1.1.0':
+    optional: true
+
+  '@number0/iroh-linux-arm64-gnu@1.0.0':
     optional: true
 
   '@number0/iroh-linux-arm64-gnu@1.1.0':
     optional: true
 
+  '@number0/iroh-linux-arm64-musl@1.0.0':
+    optional: true
+
   '@number0/iroh-linux-arm64-musl@1.1.0':
+    optional: true
+
+  '@number0/iroh-linux-x64-gnu@1.0.0':
     optional: true
 
   '@number0/iroh-linux-x64-gnu@1.1.0':
     optional: true
 
+  '@number0/iroh-linux-x64-musl@1.0.0':
+    optional: true
+
   '@number0/iroh-linux-x64-musl@1.1.0':
+    optional: true
+
+  '@number0/iroh-win32-arm64-msvc@1.0.0':
     optional: true
 
   '@number0/iroh-win32-arm64-msvc@1.1.0':
     optional: true
 
+  '@number0/iroh-win32-x64-msvc@1.0.0':
+    optional: true
+
   '@number0/iroh-win32-x64-msvc@1.1.0':
     optional: true
+
+  '@number0/iroh@1.0.0':
+    optionalDependencies:
+      '@number0/iroh-android-arm-eabi': 1.0.0
+      '@number0/iroh-android-arm64': 1.0.0
+      '@number0/iroh-darwin-arm64': 1.0.0
+      '@number0/iroh-linux-arm-gnueabihf': 1.0.0
+      '@number0/iroh-linux-arm-musleabihf': 1.0.0
+      '@number0/iroh-linux-arm64-gnu': 1.0.0
+      '@number0/iroh-linux-arm64-musl': 1.0.0
+      '@number0/iroh-linux-x64-gnu': 1.0.0
+      '@number0/iroh-linux-x64-musl': 1.0.0
+      '@number0/iroh-win32-arm64-msvc': 1.0.0
+      '@number0/iroh-win32-x64-msvc': 1.0.0
 
   '@number0/iroh@1.1.0':
     optionalDependencies:
@@ -9951,6 +10126,13 @@ snapshots:
 
   '@standard-schema/utils@0.3.0': {}
 
+  '@strangecyan/iroh-http-core@0.2.0': {}
+
+  '@strangecyan/iroh-http-node@0.2.0':
+    dependencies:
+      '@number0/iroh': 1.0.0
+      '@strangecyan/iroh-http-core': 0.2.0
+
   '@swc/helpers@0.5.23':
     dependencies:
       tslib: 2.8.1
@@ -10831,6 +11013,8 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
+
+  close-with-grace@2.5.0: {}
 
   clsx@2.1.1: {}
 
@@ -11909,19 +12093,6 @@ snapshots:
 
   mimic-response@3.1.0:
     optional: true
-
-  miniflare@5.20260930.0-alpha(@types/node@24.10.1):
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      sharp: 0.35.4(@types/node@24.10.1)
-      undici: 7.29.1
-      workerd: 1.20260930.2
-      ws: 8.21.0
-      youch: 4.1.0-beta.10
-    transitivePeerDependencies:
-      - '@types/node'
-      - bufferutil
-      - utf-8-validate
 
   miniflare@5.20261006.0-alpha(@types/node@24.10.1):
     dependencies:
@@ -13628,14 +13799,6 @@ snapshots:
       stackback: 0.0.2
 
   why-is-node-running@3.2.1: {}
-
-  workerd@1.20260930.2:
-    optionalDependencies:
-      '@cloudflare/workerd-darwin-64': 1.20260930.2
-      '@cloudflare/workerd-darwin-arm64': 1.20260930.2
-      '@cloudflare/workerd-linux-64': 1.20260930.2
-      '@cloudflare/workerd-linux-arm64': 1.20260930.2
-      '@cloudflare/workerd-windows-64': 1.20260930.2
 
   workerd@1.20261006.1:
     optionalDependencies:

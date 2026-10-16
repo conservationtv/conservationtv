@@ -1,0 +1,14 @@
+name: agent
+
+services:
+  agent:
+    build:
+      context: ../../..
+      dockerfile: apps/agent/docker/Dockerfile
+    environment:
+      AGENT_NAME: agent
+      # The agent's identity; keep it across restarts. `pnpm --filter @conservationtv/agent-runner keygen` makes one.
+      AGENT_SECRET_KEY: ${AGENT_SECRET_KEY:?Set AGENT_SECRET_KEY to the agent's secret key}
+      SHUTDOWN_DELAY_MS: 10000
+    # Longer than SHUTDOWN_DELAY_MS, so close-with-grace's own deadline ends the process rather than Docker's SIGKILL.
+    stop_grace_period: 15s

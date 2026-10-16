@@ -1,0 +1,33 @@
+{
+  "name": "@conservationtv/agent-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/app.ts",
+    "./openapi.json": "./contracts/openapi.json"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "generate": "api-contracts generate",
+    "snapshot": "api-contracts snapshot",
+    "check:release": "api-contracts check-release",
+    "check:snapshot": "api-contracts check-snapshot",
+    "snapshot:required": "api-contracts check-snapshot --required",
+    "ci:contracts": "api-contracts ci"
+  },
+  "dependencies": {
+    "@conservationtv/store": "workspace:*",
+    "@conservationtv/versioned-api": "workspace:*",
+    "@number0/iroh": "1.0.0",
+    "@strangecyan/iroh-http-node": "0.2.0",
+    "hono": "4.13.8",
+    "hono-openapi": "1.3.3",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

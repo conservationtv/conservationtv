@@ -1,8 +1,10 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 import { clearCredential, readCredential, writeCredential, type Credential } from './credentials.js';
+import { LoginError } from './errors.js';
+import { firstProfile, summarise, type ProfileSummary } from './profiles.js';
 
-/** The client ID the API's device flow accepts for this CLI. */
+/** The client ID the API's device flow accepts for this CLI: named for the studio CLI it replaced. */
 export const CLIENT_ID = 'studio-cli';
 
 const DeviceCodeSchema = z.object({
@@ -31,7 +33,7 @@ type Pending = z.output<typeof PendingSchema>;
 const SessionSchema = z.object({ user: z.object({ email: z.string() }) }).nullable();
 type Session = z.output<typeof SessionSchema>;
 
-export class LoginError extends Error {}
+export { LoginError } from './errors.js';
 
 type JsonBody = Record<string, string>;
 
@@ -72,7 +74,7 @@ async function waitForApproval(apiUrl: string, code: DeviceCode): Promise<Token>
         throw new LoginError(pending.error_description ?? `Login failed: ${pending.error}`);
     }
   }
-  throw new LoginError('The code expired before it was approved. Run `studio login` again.');
+  throw new LoginError('The code expired before it was approved. Log in again.');
 }
 
 async function whoAmI(apiUrl: string, token: string): Promise<Session> {
@@ -80,28 +82,71 @@ async function whoAmI(apiUrl: string, token: string): Promise<Session> {
   return response.ok ? SessionSchema.parse(await response.json()) : null;
 }
 
-export interface LoginResult {
-  api: string;
+/** A signed-in session, before it has a device. */
+interface SignedIn {
+  token: string;
   email: string | undefined;
 }
 
-/** The OAuth device flow: show a code, wait for approval in the browser, store the resulting token. */
-export async function login(apiUrl: string, announce: (message: string) => void): Promise<LoginResult> {
+/** The OAuth device flow: show a code and wait for approval in the browser. */
+async function authorize(apiUrl: string, announce: (message: string) => void): Promise<SignedIn> {
   const code = await requestDeviceCode(apiUrl);
   announce(`Open ${code.verification_uri_complete ?? code.verification_uri} and approve the code ${code.user_code}.`);
   const token = await waitForApproval(apiUrl, code);
   const session = await whoAmI(apiUrl, token.access_token);
-  const credential: Credential = { token: token.access_token, email: session?.user.email };
-  writeCredential(apiUrl, credential);
-  return { api: apiUrl, email: credential.email };
+  return { token: token.access_token, email: session?.user.email };
 }
 
-/** Revoke the stored session on the API, then forget it locally either way. */
+/** Revoke a session on the API, which also removes its browser devices. */
+async function signOut(apiUrl: string, token: string): Promise<void> {
+  await postJson(`${apiUrl}/auth/sign-out`, {}, token);
+}
+
+/** The new session's first profile; a session that can't register a device is signed out rather than left open. */
+async function firstProfileOrSignOut(apiUrl: string, token: string, organisation: string | undefined) {
+  try {
+    return await firstProfile(apiUrl, token, organisation);
+  } catch (error) {
+    await signOut(apiUrl, token).catch(() => undefined);
+    throw error;
+  }
+}
+
+export interface LoginResult {
+  api: string;
+  email: string | undefined;
+  profile: ProfileSummary;
+}
+
+/**
+ * Sign in: the OAuth device flow, then this session's browser device in the organisation `organisation` names, or
+ * one the person picks, as its first and current profile. A login it replaces is signed out, removing that session's
+ * devices.
+ */
+export async function login(
+  apiUrl: string,
+  organisation: string | undefined,
+  announce: (message: string) => void
+): Promise<LoginResult> {
+  const session = await authorize(apiUrl, announce);
+  const profile = await firstProfileOrSignOut(apiUrl, session.token, organisation);
+  const previous = readCredential(apiUrl);
+  const credential: Credential = {
+    ...session,
+    profiles: { [profile.organisationId]: profile },
+    current: profile.organisationId
+  };
+  writeCredential(apiUrl, credential);
+  if (previous !== undefined) await signOut(apiUrl, previous.token).catch(() => undefined);
+  return { api: apiUrl, email: credential.email, profile: summarise(profile, credential) };
+}
+
+/** Revoke the stored session on the API, which removes its browser devices, then forget it locally either way. */
 export async function logout(apiUrl: string): Promise<boolean> {
   const credential = readCredential(apiUrl);
   if (!credential) return false;
   try {
-    await postJson(`${apiUrl}/auth/sign-out`, {}, credential.token);
+    await signOut(apiUrl, credential.token);
   } finally {
     clearCredential(apiUrl);
   }
