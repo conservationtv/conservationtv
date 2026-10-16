@@ -36,6 +36,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      # Pulumi downloads github:// provider plugins through the GitHub API; unauthenticated, runners share its rate limit.
+      GITHUB_TOKEN: ${{ github.token }}
     defaults:
       run:
         working-directory: apps/controlplane/infrastructure
