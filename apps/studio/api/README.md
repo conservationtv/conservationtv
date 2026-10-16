@@ -213,11 +213,12 @@ every browser under `/devices`, as they see every device; nothing reads a browse
 
 Every device is also a principal, `device(<id>)`, in its organisation, holding the shared `organisationDevice` role
 there (`src/topology/device-principals.ts`). That role reads the organisation's devices and nothing else, so a device,
-like any member, can list its organisation's public IDs for an iroh allowlist. The code that creates and deletes
-devices grants and revokes it in trusted code, and deleting an organisation revokes every grant at it. A grant is
-idempotent, so whatever authenticates devices in future should ensure it again, healing one that was missed; a grant
-left by a deleted device is harmless, since nothing can authenticate as it. Nothing authenticates a device yet; once
-something does, it runs queries with `authorization.as(app, device(id))`.
+like any member, can list its organisation's public IDs for an iroh allowlist. The grant is made in the transaction
+that creates the device and revoked in the one that deletes it, so a device never exists without it. Request sessions
+cannot write grants, so creating and deleting agents, cameras and browsers is trusted code: `changeDevices` first
+checks the principal's own permissions on devices, giving the same 404 or 403 row-level security would. Deleting an
+organisation revokes every grant at it. Nothing authenticates a device yet; once something does, it runs queries with
+`authorization.as(app, device(id))`.
 
 The only triggers are umbrella's `authz_immutable`, which refuse request sessions' changes to immutable columns.
 
