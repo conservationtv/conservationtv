@@ -1451,18 +1451,62 @@ export class Reports extends HeyApiClient {
     /**
      * Submit a batch of reports
      *
-     * Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000. The `batch` is JSON text signed, byte for byte, by the Ed25519 identity of the agent named by `publicId`, its reporter. The batch is stored or refused whole; reports are not deduplicated, so a retried batch may be stored twice. The submission, envelope included, may be at most 1 MiB.
+     * Events (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Agents only: the request carries an RFC 9421 HTTP Message Signature by the agent's Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type`, RFC 9530 `Content-Digest` and `Idempotency-Key`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. A retry with the same `Idempotency-Key` and body, within a day, returns the first result without storing the batch again; each retry needs a fresh signature.
      */
     public submit<ThrowOnError extends boolean = false>(parameters: {
-        publicId: string;
-        batch: string;
-        signature: string;
+        'idempotency-key': string;
+        reports: Array<{
+            kind: 'event';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                type: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                data?: {
+                    [key: string]: Schema0;
+                };
+            };
+        } | {
+            kind: 'metric';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                name: string;
+                type: 'gauge' | 'counter';
+                value: number;
+                unit?: string | null;
+                dimensions?: {
+                    [key: string]: string;
+                };
+            };
+        } | {
+            kind: 'log';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                level: string;
+                message: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                context?: {
+                    [key: string]: Schema0;
+                };
+            };
+        }>;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostReportsResponses, PostReportsErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'body', key: 'publicId' },
-                    { in: 'body', key: 'batch' },
-                    { in: 'body', key: 'signature' }
-                ] }]);
+        const params = buildClientParams([parameters], [{ args: [{ in: 'headers', key: 'idempotency-key' }, { in: 'body', key: 'reports' }] }]);
         return (options?.client ?? this.client).post<PostReportsResponses, PostReportsErrors, ThrowOnError>({
             url: '/reports',
             ...options,

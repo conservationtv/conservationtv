@@ -9,24 +9,72 @@ export type Error = {
     error_description: string;
 };
 
+export type Schema0 = string | number | boolean | null | Array<Schema0> | {
+    [key: string]: Schema0;
+};
+
 export type Report = {
     accepted: number;
 };
 
 export type PostReportsData = {
     body: {
+        reports: Array<{
+            kind: 'event';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                type: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                data?: {
+                    [key: string]: Schema0;
+                };
+            };
+        } | {
+            kind: 'metric';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                name: string;
+                type: 'gauge' | 'counter';
+                value: number;
+                unit?: string | null;
+                dimensions?: {
+                    [key: string]: string;
+                };
+            };
+        } | {
+            kind: 'log';
+            /**
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             */
+            subjectId: string;
+            observedAt: string;
+            payload: {
+                level: string;
+                message: string;
+                /**
+                 * Settings validated by the implementation that reads them.
+                 */
+                context?: {
+                    [key: string]: Schema0;
+                };
+            };
+        }>;
+    };
+    headers: {
         /**
-         * The reporting agent's public ID, which identifies its key.
+         * Unique to the batch: a retry with the same key and body returns the first result.
          */
-        publicId: string;
-        /**
-         * The batch, as JSON text: the exact bytes that were signed.
-         */
-        batch: string;
-        /**
-         * The agent's Ed25519 signature of the batch text, unpadded base64url.
-         */
-        signature: string;
+        'idempotency-key': string;
     };
     path?: never;
     query?: never;
@@ -39,9 +87,13 @@ export type PostReportsErrors = {
      */
     400: Error;
     /**
-     * The signing key is unknown or revoked, or the signature is wrong
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
      */
     401: Error;
+    /**
+     * The signing device is not an agent
+     */
+    403: Error;
     /**
      * The selected operation version is not served
      */
@@ -50,6 +102,10 @@ export type PostReportsErrors = {
      * The submission is larger than 1 MiB
      */
     413: Error;
+    /**
+     * The idempotency key was already used with a different body
+     */
+    422: Error;
     /**
      * The database is unavailable
      */

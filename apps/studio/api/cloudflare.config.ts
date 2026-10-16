@@ -5,6 +5,7 @@ import * as entrypoint from './src/index.ts' with { type: 'cf-worker' };
 // Not deployed yet: the Hyperdrive IDs are placeholders until a stack owns the Worker and its database. Local
 // development uses the docker-compose database through both bindings, as the two Postgres roles umbrella needs.
 const placeholderHyperdriveIds = { admin: '00000000000000000000000000000001', app: '00000000000000000000000000000002' };
+const placeholderCacheId = '00000000000000000000000000000003';
 
 export default defineConfig({
   worker: {
@@ -23,6 +24,8 @@ export default defineConfig({
         id: placeholderHyperdriveIds.app,
         dev: { connectionString: LOCAL_APP_DATABASE_URL }
       }),
+      /** The key-value cache (src/cache.ts): device request nonces and report idempotency. Local in development. */
+      CACHE: bindings.kv({ id: placeholderCacheId }),
       /** Better Auth's signing secret; see .dev.vars.example. */
       BETTER_AUTH_SECRET: bindings.secret(),
       /** The master key for encrypted columns and blind indexes; see .dev.vars.example. */

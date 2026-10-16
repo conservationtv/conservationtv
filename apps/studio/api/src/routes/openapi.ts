@@ -24,5 +24,9 @@ export const invalidReference = errorResponse(
   'A referenced resource does not exist, is not visible to this account, or belongs to another organisation'
 );
 export const revisionHasErrors = errorResponse('The revision has errors, so it cannot be served');
-export const invalidSignature = errorResponse('The signing key is unknown or revoked, or the signature is wrong');
+export const invalidSignature = errorResponse(
+  'The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest'
+);
+export const notAnAgent = errorResponse('The signing device is not an agent');
+export const idempotencyKeyReused = errorResponse('The idempotency key was already used with a different body');
 export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');
