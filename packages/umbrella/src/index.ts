@@ -29,7 +29,7 @@ export {
   type Database,
   type Session
 } from './client.js';
-export { rlsMigration, rlsTeardownMigration } from './rls.js';
+export { rlsMigration, rlsTeardownMigration, type RlsMigrationOptions } from './rls.js';
 export type {
   AccessCatalog,
   CatalogRole,

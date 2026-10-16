@@ -53,6 +53,8 @@ export const devices = withAccess(
     name: 'devices',
     scope: organisations.$access.scope.via(t.organisationId),
     immutable: [t.kind, t.publicKey, t.publicId, t.privateKey, t.createdAt],
+    // Written once, at creation; only trusted code reads it back.
+    hidden: [t.privateKey],
     actions: topologyActions,
     roles: {
       ...topologyRoles,

@@ -97,9 +97,12 @@ bindings:
 | `WEB_ORIGINS`         | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
 | `OTP_DELIVERY`        | text       | `log` only, see above                                                   |
 
-The application role is `studio_app` in every environment: `docker/init.sql` creates it locally, and the migration
-`drizzle/20261012223459_app_role_privileges/migration.sql` grants it `select` on `user` and `update` of the profile columns. Umbrella
-refuses to run request sessions on a connection that could bypass row-level security.
+The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
+every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access
+definitions in each access-policies migration (every operation an action declares except `trusted` ones; `select`
+of every column but `hidden` ones; `update` of every column that is not a primary key, generated or immutable), and
+replaces whatever the role held before. The only hand-written grant left is `grants_readable`, on umbrella's own
+grants table. Umbrella refuses to run request sessions on a connection that could bypass row-level security.
 
 ## Develop
 
@@ -125,8 +128,8 @@ curl -c jar -X POST localhost:5175/auth/sign-in/email-otp -H 'content-type: appl
 curl -b jar localhost:5175/account
 ```
 
-Schema changes: edit the tables in `src/db/schemas/` (`src/db/schema.ts` exports everything drizzle-kit migrates), then `pnpm db:generate` (drizzle-kit, then `umbrella generate` for the
-access policies) and commit the migrations in `drizzle/`. Regenerate Better Auth's tables with `pnpm auth:generate`
+Schema changes: edit the tables in `src/db/schemas/` (`src/db/schema.ts` exports everything drizzle-kit migrates), then `pnpm db:generate` (drizzle-kit, then `umbrella generate --role studio_app` for the
+access policies and privileges) and commit the migrations in `drizzle/`. Regenerate Better Auth's tables with `pnpm auth:generate`
 after changing its plugins; the access definitions live beside it in `src/db/schemas/`, so regeneration never overwrites them.
 Relational queries (`db.query`, also inside request sessions) use the relations in `src/db/relations.ts`.
 
@@ -166,7 +169,7 @@ listing your own, accepting, declining) is trusted code, because an emailed invi
 someone presents its code. Creating an organisation, joining, removing and deleting change grants as well as rows, so
 they run as trusted code in one admin transaction (`src/organisations/membership.ts`), taking their decisions from the
 access definitions through `inspect`. Changes to an organisation's administrators lock its row, and its last
-administrator cannot leave or be removed. The privileges are in the `organisation_privileges` migration.
+administrator cannot leave or be removed. Deleting an organisation and removing a member are therefore `trusted` actions: declared for `inspect`, never granted to request sessions.
 
 Request sessions may read umbrella's grants table (the `grants_readable` migration, a select-only policy): the member
 directory and your organisation list show roles, and run under row-level security like every other read. A bug in
@@ -184,7 +187,7 @@ Every row binds to its organisation's scope through `organisation_id`: `organisa
 include `organisation_id`, so the database refuses a reference into another organisation (422 `invalid_reference`)
 and a delete of something still used (409 `in_use`). A partial unique index allows one active agent per network, and
 one served configuration revision per agent; a check constraint refuses serving a revision whose diagnostics include
-an error, so a rejected candidate never replaces the served one. Privileges are in the `topology_privileges` migration.
+an error, so a rejected candidate never replaces the served one.
 
 A device is minimal: a name, a network (or the internet), a `kind` and an Ed25519 identity, generated when it is
 created (`src/topology/identity.ts`): `publicKey` (unpadded base64url) and `publicId`, derived as iroh derives an

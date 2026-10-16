@@ -1,12 +1,25 @@
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
 import { eq, sql } from 'drizzle-orm';
+import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
-import { AuthorizationError, roleAssignments, user, withAuthorization } from '../src/index.js';
+import {
+  AuthorizationError,
+  rlsMigration,
+  roleAssignments,
+  user,
+  withAccess,
+  withAuthorization
+} from '../src/index.js';
 import { assertHolds, assignmentsHidden, grantsUnforgeable, noPrincipalNoRows } from './support/guarantees.js';
 import { appRole, useHarness, type Harness } from './support/harness.js';
 import { ids } from './support/queries.js';
 import { countries, organisation, project, projects, regions, tables, tasks } from './support/schema.js';
 
 const alice = user('alice');
+interface PrivilegeRow {
+  ok: boolean;
+}
 const count = async (h: Harness, query: string) => {
   const result = await h.secured
     .as(alice)
@@ -137,5 +150,92 @@ describe('row-level security', () => {
     const h = harness();
     await h.raw.update(tasks).set({ projectId: 'zeus' }).where(eq(tasks.id, 'apollo-1'));
     expect(await h.raw.select().from(tasks)).toHaveLength(3);
+  });
+
+  describe('application role privileges', () => {
+    // A table exercising every rule: a hidden secret, an immutable column, a generated one and a trusted action.
+    const accounts = withAccess(
+      pgTable('accounts', {
+        id: text().primaryKey(),
+        name: text().notNull(),
+        secret: text().notNull(),
+        createdBy: text('created_by').notNull(),
+        size: integer().generatedAlwaysAs(sql`1`)
+      }),
+      table => ({
+        name: 'accounts',
+        immutable: [table.createdBy],
+        hidden: [table.secret],
+        actions: { read: ['select'], create: ['insert'], edit: ['update'], remove: ['delete'] },
+        trusted: ['remove']
+      })
+    );
+    const accountsDdl = `create table accounts (
+      id text primary key, name text not null, secret text not null, created_by text not null,
+      size integer generated always as (1) stored
+    )`;
+    const privileges = async (migration: string, before = '') => {
+      const pg = new PGlite();
+      try {
+        await pg.exec(await readFile(new URL('../migrations/0000_authz.sql', import.meta.url), 'utf8'));
+        await pg.exec(`${accountsDdl}; create role reader; ${before}`);
+        await pg.exec(migration);
+        const has = async (check: string) => (await pg.query<PrivilegeRow>(`select ${check} as ok`)).rows[0]?.ok;
+        return {
+          select: await has(`has_table_privilege('reader', 'accounts', 'select')`),
+          selectName: await has(`has_column_privilege('reader', 'accounts', 'name', 'select')`),
+          selectSecret: await has(`has_column_privilege('reader', 'accounts', 'secret', 'select')`),
+          insert: await has(`has_table_privilege('reader', 'accounts', 'insert')`),
+          delete: await has(`has_table_privilege('reader', 'accounts', 'delete')`),
+          updateName: await has(`has_column_privilege('reader', 'accounts', 'name', 'update')`),
+          updateSecret: await has(`has_column_privilege('reader', 'accounts', 'secret', 'update')`),
+          updateId: await has(`has_column_privilege('reader', 'accounts', 'id', 'update')`),
+          updateCreatedBy: await has(`has_column_privilege('reader', 'accounts', 'created_by', 'update')`),
+          updateSize: await has(`has_column_privilege('reader', 'accounts', 'size', 'update')`)
+        };
+      } finally {
+        await pg.close();
+      }
+    };
+
+    it('follow the definitions: hidden columns unreadable, trusted actions and fixed columns ungranted', async () => {
+      expect(await privileges(rlsMigration({ accounts }, { applicationRole: 'reader' }))).toEqual({
+        select: false,
+        selectName: true,
+        selectSecret: false,
+        insert: true,
+        delete: false,
+        updateName: true,
+        updateSecret: true,
+        updateId: false,
+        updateCreatedBy: false,
+        updateSize: false
+      });
+    });
+
+    it('replace whatever the role held before', async () => {
+      const migration = rlsMigration({ accounts }, { applicationRole: 'reader' });
+      const result = await privileges(
+        migration,
+        'grant all on accounts to reader; grant select (secret) on accounts to reader'
+      );
+      expect(result).toMatchObject({ selectSecret: false, delete: false, updateId: false });
+    });
+
+    it('are left alone without an application role', async () => {
+      const result = await privileges(rlsMigration({ accounts }), 'grant all on accounts to reader');
+      expect(result).toMatchObject({ select: true, selectSecret: true, delete: true });
+    });
+
+    it('refuse a trusted action that is not declared', () => {
+      expect(() =>
+        // @ts-expect-error -- `remove` is not an action of this table
+        withAccess(pgTable('broken', { id: text().primaryKey() }), () => ({
+          name: 'broken',
+          actions: { read: ['select'] },
+          trusted: ['remove']
+        }))
+      ).toThrow('Unknown trusted action: remove');
+    });
   });
 });
