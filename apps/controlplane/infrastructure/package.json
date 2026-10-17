@@ -10,6 +10,7 @@
   "dependencies": {
     "@moq-ha/vps-fleet": "workspace:*",
     "@pulumi/cloudflare": "catalog:",
+    "@pulumi/command": "catalog:",
     "@pulumi/digitalocean": "catalog:",
     "@pulumi/planetscale": "workspace:*",
     "@pulumi/pulumi": "catalog:",

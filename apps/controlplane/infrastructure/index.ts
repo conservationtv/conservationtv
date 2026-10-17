@@ -1,5 +1,6 @@
 import { createPrivateKey } from 'node:crypto';
 import * as cloudflare from '@pulumi/cloudflare';
+import * as command from '@pulumi/command';
 import * as digitalocean from '@pulumi/digitalocean';
 import * as planetscale from '@pulumi/planetscale';
 import * as pulumi from '@pulumi/pulumi';
@@ -113,7 +114,7 @@ const gatekeeperWorker = new cloudflare.Worker('gatekeeper', {
   subdomain: { enabled: false }
 });
 // Gatekeeper's PlanetScale Postgres database, next to the relays in London. Creating its main branch creates the
-// database. PS-5, the default, runs as HA (a primary and two replicas): the provider cannot choose single-node.
+// database, as HA (a primary and two replicas); `gatekeeper-database-replicas` below then sets its replica count.
 const planetscaleOrganization = config.require('planetscaleOrganization');
 const gatekeeperDatabase = new planetscale.PostgresBranch(
   'gatekeeper-database',
@@ -138,6 +139,53 @@ const databaseRole = (name: string, inheritedRoles: string[]) =>
 // The Worker reads and writes; migrations run as a separate role that can change the schema.
 const gatekeeperAppRole = databaseRole('gatekeeper', ['pg_read_all_data', 'pg_write_all_data']);
 const gatekeeperMigrationRole = databaseRole('gatekeeper_migrate', ['postgres']);
+
+// The provider can't choose the replica count (`replicas` is read-only on its branch), so this asks PlanetScale's API
+// for it with a branch change request, and waits until the cluster has resized. 0, the default, is a single node (PS-5
+// is then $5 a month); 2 or more is HA. Gatekeeper fails closed while its database is down, so a single node trades
+// availability during PlanetScale maintenance for cost. Reruns whenever the branch or the count changes.
+const databaseReplicas = Number(config.get('databaseReplicas') ?? '0');
+if (!Number.isInteger(databaseReplicas) || databaseReplicas < 0) {
+  throw new Error('databaseReplicas must be a non-negative integer');
+}
+const setDatabaseReplicas = `
+const changes = process.env.CHANGES_URL;
+const headers = {
+  authorization: process.env.PLANETSCALE_SERVICE_TOKEN_ID + ':' + process.env.PLANETSCALE_SERVICE_TOKEN,
+  'content-type': 'application/json'
+};
+const send = async (url, init) => {
+  const response = await fetch(url, { headers, ...init });
+  const body = await response.text();
+  if (!response.ok) throw new Error(init?.method ?? 'GET', { cause: response.status + ' ' + body });
+  return JSON.parse(body);
+};
+const body = JSON.stringify({ replicas: Number(process.env.REPLICAS) });
+const { id } = await send(changes, { method: 'PATCH', body });
+const deadline = Date.now() + 30 * 60 * 1000;
+for (;;) {
+  const { state } = await send(changes + '/' + id);
+  console.log('change request', id, state);
+  if (state === 'completed') break;
+  if (state === 'canceled') throw new Error('PlanetScale canceled the change request');
+  if (Date.now() > deadline) throw new Error('The change request did not complete within 30 minutes');
+  await new Promise(resolve => setTimeout(resolve, 15_000));
+}
+`;
+new command.local.Command(
+  'gatekeeper-database-replicas',
+  {
+    interpreter: ['node', '--input-type=module', '--eval'],
+    create: setDatabaseReplicas,
+    // The token comes from the environment Pulumi runs in, as the PlanetScale provider's does, never from state.
+    environment: {
+      CHANGES_URL: pulumi.interpolate`https://api.planetscale.com/v1/organizations/${planetscaleOrganization}/databases/${gatekeeperDatabase.database}/branches/${gatekeeperDatabase.name}/changes`,
+      REPLICAS: String(databaseReplicas)
+    },
+    triggers: [gatekeeperDatabase.id, databaseReplicas]
+  },
+  { dependsOn: [gatekeeperAppRole, gatekeeperMigrationRole] }
+);
 
 // Query caching is disabled: lease and revocation reads must be fresh.
 const gatekeeperHyperdrive = new cloudflare.HyperdriveConfig('gatekeeper', {
