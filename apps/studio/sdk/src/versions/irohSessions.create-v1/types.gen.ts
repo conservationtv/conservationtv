@@ -16,12 +16,7 @@ export type Relay = {
 };
 
 export type IrohSession = {
-    relays: {
-        type: 'n0';
-    } | {
-        type: 'custom';
-        relays: Array<Relay>;
-    };
+    relay: Relay;
 };
 
 export type PostIrohSessionsData = {
@@ -50,7 +45,7 @@ export type PostIrohSessionsError = PostIrohSessionsErrors[keyof PostIrohSession
 
 export type PostIrohSessionsResponses = {
     /**
-     * The relays to use
+     * The relay to use
      */
     200: IrohSession;
 };

@@ -45,7 +45,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs` | members | `organisations.subjects.*` v1 |
 | `POST /reports` | devices, by signature | `reports.submit` v1: a batch of events, metrics and logs |
-| `POST /iroh-sessions` | devices, by signature | `irohSessions.create` v1: the relays an iroh endpoint uses, asked for each time one is bound |
+| `POST /iroh-sessions` | devices, by signature | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
 | `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
 | `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
 
@@ -101,6 +101,7 @@ bindings:
 | `APP_URL`             | text       | where the API is served; Better Auth's base URL and passkey relying party |
 | `WEB_ORIGINS`         | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
 | `OTP_DELIVERY`        | text       | `log` only, see above                                                   |
+| `IROH_RELAY_URL`      | text       | the iroh relay every device's session uses (`irohSessions.create`)      |
 
 The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
 every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access

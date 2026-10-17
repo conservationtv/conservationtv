@@ -275,15 +275,7 @@ export const ReportSchema = z.object({
 });
 
 export const IrohSessionSchema = z.object({
-    relays: z.union([
-        z.object({
-            type: z.literal('n0')
-        }),
-        z.object({
-            type: z.literal('custom'),
-            relays: z.array(RelaySchema)
-        })
-    ])
+    relay: RelaySchema
 });
 
 /**
@@ -1527,6 +1519,6 @@ export const PostReportsBodySchema = z.object({
 export const PostReportsResponseSchema = ReportSchema;
 
 /**
- * The relays to use
+ * The relay to use
  */
 export const PostIrohSessionsResponseSchema = IrohSessionSchema;

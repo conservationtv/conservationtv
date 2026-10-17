@@ -4,7 +4,13 @@ import { z } from 'zod';
 
 /** Options every command parses, wherever they appear on the command line. */
 export const GlobalsSchema = z.object({
-  endpoint: z.string().optional().describe('For `agent` commands: the iroh endpoint id of the agent to call')
+  endpoint: z.string().optional().describe('For `agent` commands: the iroh endpoint id of the agent to call'),
+  direct: z
+    .boolean()
+    .default(false)
+    .describe(
+      "For `agent` commands: reach a direct agent, through n0's relays and address lookup, not the studio's relay"
+    )
 });
 
 export type Globals = z.output<typeof GlobalsSchema>;
