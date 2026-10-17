@@ -313,9 +313,6 @@ importers:
       close-with-grace:
         specifier: 2.5.0
         version: 2.5.0
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       zod:
         specifier: 'catalog:'
         version: 4.6.2
@@ -323,6 +320,12 @@ importers:
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
