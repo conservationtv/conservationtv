@@ -1,6 +1,5 @@
 import { arkenv } from '@arkenv/standard';
-import { Client as GatekeeperClient } from '@conservationtv/controlplane-sdk';
-import { parseStrictJson } from '@conservationtv/versioned-api/server';
+import { bearer, Client as GatekeeperClient } from '@conservationtv/controlplane-sdk';
 import type { Principal } from '@conservationtv/umbrella';
 import { z } from 'zod';
 import { authorization } from '../access.ts';
@@ -8,7 +7,6 @@ import { createAuth, type Auth } from '../auth/auth.ts';
 import { otpDelivery } from '../auth/otp.ts';
 import type { Cache } from '../cache/cache.ts';
 import { connectLazily } from '../db/client.ts';
-import { GrantSigningKeysSchema } from '../gatekeeper/keys.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
 // Building the environment loads the database schema, Better Auth and the authorization client. It is kept apart from
@@ -30,12 +28,8 @@ export const config = {
    * relay that admits every endpoint, such as n0's, when sessions carry no lease.
    */
   GATEKEEPER_URL: z.url().optional(),
-  /** The keys this API signs its gatekeeper assertions with, as JSON; see src/gatekeeper/keys.ts. */
-  GRANT_SIGNING_KEYS: z
-    .string()
-    .transform(text => parseStrictJson(text))
-    .pipe(GrantSigningKeysSchema)
-    .optional(),
+  /** The consumer token of the gatekeeper's environment, which trusts whoever holds it with its relays. */
+  GATEKEEPER_TOKEN: z.string().min(1).optional(),
   /** Only logging exists; see src/auth/otp.ts. */
   OTP_DELIVERY: z.literal('log'),
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -70,24 +64,22 @@ export const services = (variables: Variables, bindings: Bindings) => {
 
   // Optional clients
   const gatekeeper = (() => {
-    if (variables.GATEKEEPER_URL === undefined && variables.GRANT_SIGNING_KEYS === undefined) {
+    if (variables.GATEKEEPER_URL === undefined && variables.GATEKEEPER_TOKEN === undefined) {
       return;
     }
 
     // Leasing needs both; either alone is a half-configured deployment.
-    if (variables.GATEKEEPER_URL === undefined || variables.GRANT_SIGNING_KEYS === undefined) {
-      throw new Error('Set GATEKEEPER_URL and GRANT_SIGNING_KEYS together, or neither');
+    if (variables.GATEKEEPER_URL === undefined || variables.GATEKEEPER_TOKEN === undefined) {
+      throw new Error('Set GATEKEEPER_URL and GATEKEEPER_TOKEN together, or neither');
     }
 
     const url = variables.GATEKEEPER_URL;
+    const token = variables.GATEKEEPER_TOKEN;
     let client: Promise<GatekeeperClient> | undefined = undefined;
     return {
-      url,
-      /** The keys this API signs its gatekeeper assertions with. */
-      keys: variables.GRANT_SIGNING_KEYS,
       /** The deployment's gatekeeper, handshaken; rejects if the handshake fails. */
       client: () => {
-        if (client === undefined) client = connectGatekeeper(url);
+        if (client === undefined) client = connectGatekeeper(url, token);
         return client;
       }
     };
@@ -134,8 +126,8 @@ export const services = (variables: Variables, bindings: Bindings) => {
 };
 
 /** A client for the deployment's gatekeeper, once it has handshaken. */
-const connectGatekeeper = async (url: string) => {
-  const client = new GatekeeperClient({ baseUrl: url });
+const connectGatekeeper = async (url: string, token: string) => {
+  const client = new GatekeeperClient({ baseUrl: url, auth: bearer(token) });
   await client.handshake();
   return client;
 };

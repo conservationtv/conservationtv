@@ -7,8 +7,8 @@ export const specOptions = {
       title: 'Gatekeeper',
       version: '0.1.0',
       description:
-        'The conservation.stream control plane: a relay capability broker that exchanges consumer-signed grant ' +
-        'assertions for MoQ and Iroh relay credentials.'
+        "The conservation.stream control plane: a relay capability broker that exchanges its environment's " +
+        "consumer's grants for MoQ and Iroh relay credentials."
     },
     components: {
       responses: {

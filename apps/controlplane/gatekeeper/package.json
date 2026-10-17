@@ -21,6 +21,8 @@
     "ci:contracts": "api-contracts ci",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
+    "local:up": "docker compose --profile relays up -d --wait",
+    "local:down": "docker compose --profile relays down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "test": "pnpm build && vitest run"

@@ -1,8 +1,8 @@
-import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import { grants, irohLeases } from '../db/schema.ts';
 import { EndpointIdSchema } from '../grants/identifiers.ts';
 import { useEnvironment } from '../env/env.ts';
-import { matchesSecret } from './secrets.ts';
+import { matchesSecret } from '../secrets.ts';
 
 export type RelayAdmission = 'allow' | 'deny' | 'unauthenticated';
 
@@ -12,7 +12,7 @@ const isRelayToken = (authorization: string | undefined) =>
 
 /**
  * The Iroh relay's access callout. Admits an endpoint only while it holds an active, unexpired lease whose grant has
- * not been revoked, issued to a consumer that is still registered and enabled, for an endpoint that isn't denied.
+ * not been revoked, for an endpoint that isn't denied.
  */
 export async function admitIrohEndpoint(
   authorization: string | undefined,
@@ -20,10 +20,8 @@ export async function admitIrohEndpoint(
 ): Promise<RelayAdmission> {
   if (!(await isRelayToken(authorization))) return 'unauthenticated';
   const endpoint = EndpointIdSchema.safeParse(endpointHeader);
-  const { policy, clock } = useEnvironment();
-  if (!endpoint.success || policy.deniedIrohEndpoints.includes(endpoint.data)) return 'deny';
-  const principals = policy.consumers.filter(consumer => consumer.enabled).map(consumer => consumer.principal_id);
-  if (principals.length === 0) return 'deny';
+  const { variables, clock } = useEnvironment();
+  if (!endpoint.success || variables.DENIED_IROH_ENDPOINTS.includes(endpoint.data)) return 'deny';
   const db = await useEnvironment().database();
   const [lease] = await db
     .select({ id: irohLeases.id })
@@ -34,7 +32,6 @@ export async function admitIrohEndpoint(
         eq(irohLeases.endpointId, endpoint.data),
         eq(irohLeases.status, 'active'),
         gt(irohLeases.expiresAt, new Date(clock())),
-        inArray(irohLeases.principalId, principals),
         isNull(grants.revokedAt)
       )
     )
