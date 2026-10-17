@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@conservationtv/store": "workspace:*",
+    "@conservationtv/studio-sdk": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",
     "@number0/iroh": "1.0.0",
     "@strangecyan/iroh-http-node": "0.2.0",

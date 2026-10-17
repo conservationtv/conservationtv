@@ -1,10 +1,10 @@
 import { OperationRouter, PUBLISHED_DOCUMENT_PATH, servePublishedDocument } from '@conservationtv/versioned-api/server';
-import { Endpoint } from '@number0/iroh';
-import { ALPN, serve, type IrohHttpServer } from '@strangecyan/iroh-http-node';
+import { serve, type IrohHttpServer } from '@strangecyan/iroh-http-node';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import document from '../contracts/openapi.json' with { type: 'json' };
 import { withConfig, type AgentConfiguration } from './config.ts';
+import { bindEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import status from './routes/status.ts';
 
@@ -33,17 +33,13 @@ export class Agent {
 
   constructor(readonly config: AgentConfiguration) {}
 
-  /** Bind the endpoint and serve on it. Resolves once requests are being accepted. */
+  /** Start an iroh session, and serve on its endpoint. Resolves once requests are being accepted. */
   async start() {
     if (this.server !== undefined) throw new Error('The agent is already started');
     const config = this.config;
     console.log(JSON.stringify({ event: 'starting', name: config.name }));
 
-    const builder = Endpoint.builder();
-    builder.applyN0();
-    builder.secretKey(Array.from(config.secretKey));
-    builder.alpns([ALPN]);
-    const endpoint = await builder.bind();
+    const endpoint = await bindEndpoint(config);
 
     // The server owns the endpoint from here: disposing it closes the endpoint too. If accepting fails, `closed`
     // rejects unhandled, which the host's process lifecycle treats as fatal.

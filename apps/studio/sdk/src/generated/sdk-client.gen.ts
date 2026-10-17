@@ -6,6 +6,7 @@ import { BaseClient as BaseClient59 } from '../versions/invitations.accept-v1/sd
 import { BaseClient as BaseClient60 } from '../versions/invitations.decline-v1/sdk.gen.js';
 import { BaseClient as BaseClient58 } from '../versions/invitations.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient57 } from '../versions/invitations.listMine-v1/sdk.gen.js';
+import { BaseClient as BaseClient62 } from '../versions/irohSessions.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient34 } from '../versions/organisations.agents.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient37 } from '../versions/organisations.agents.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient35 } from '../versions/organisations.agents.get-v1/sdk.gen.js';
@@ -170,5 +171,8 @@ export class Client extends ClientCore {
     };
     readonly reports = {
         submit: this.versioned('reports.submit', { v1: BaseClient61 })
+    };
+    readonly irohSessions = {
+        create: this.versioned('irohSessions.create', { v1: BaseClient62 })
     };
 }

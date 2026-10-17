@@ -45,6 +45,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs` | members | `organisations.subjects.*` v1 |
 | `POST /reports` | devices, by signature | `reports.submit` v1: a batch of events, metrics and logs |
+| `POST /iroh-sessions` | devices, by signature | `irohSessions.create` v1: the relays an iroh endpoint uses, asked for each time one is bound |
 | `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
 | `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
 
