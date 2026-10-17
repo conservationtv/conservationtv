@@ -24,6 +24,7 @@ export * from './organisations.networks.setActiveAgent-v1/index.js';
 export * from './organisations.devices.allowlist-v1/index.js';
 export * from './organisations.devices.list-v1/index.js';
 export * from './organisations.devices.get-v1/index.js';
+export * from './organisations.devices.getKeyPair-v1/index.js';
 export * from './organisations.devices.update-v1/index.js';
 export * from './organisations.cameras.list-v1/index.js';
 export * from './organisations.cameras.create-v1/index.js';
