@@ -23,6 +23,8 @@ export interface AuthenticatedDevice {
   id: string;
   organisationId: string;
   kind: DeviceKind;
+  /** Its iroh endpoint ID. */
+  publicId: string;
   principal: Principal<string, 'device'>;
 }
 
@@ -46,6 +48,7 @@ async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerif
         id: devices.id,
         organisationId: devices.organisationId,
         kind: devices.kind,
+        publicId: devices.publicId,
         publicKey: devices.publicKey
       })
       .from(devices)
@@ -59,7 +62,7 @@ async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerif
   const principal = devicePrincipal(row.id);
   return {
     ...verifier,
-    device: { id: row.id, organisationId: row.organisationId, kind: row.kind, principal }
+    device: { id: row.id, organisationId: row.organisationId, kind: row.kind, publicId: row.publicId, principal }
   };
 }
 
