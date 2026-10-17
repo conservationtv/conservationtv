@@ -18,6 +18,10 @@ export const invalidCode = errorResponse('The invitation is for an email address
 export const expired = errorResponse('The invitation has expired');
 export const lastAdmin = errorResponse('The organisation would be left without an administrator');
 export const unavailable = errorResponse('The database is unavailable');
+export const leaseUnavailable = errorResponse('The database is unavailable, or the relay cannot lease the endpoint');
+export const endpointRefused = errorResponse(
+  "The relay will never admit the device's endpoint: it is denied, or leased to another service"
+);
 export const inUse = errorResponse('The resource is still used by another resource');
 export const conflict = errorResponse('The change conflicts with the current state of the resource');
 export const invalidReference = errorResponse(

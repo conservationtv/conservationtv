@@ -140,11 +140,14 @@ connections but do not terminate an already admitted connection. Both
 
 ### Consumer JWKS
 
-Fetched only from the registered HTTPS URI, which must be a public DNS name. Redirects are refused. Documents are
-limited to 64 KiB and 16 keys, and any private or symmetric key material is refused. Key sets are cached in isolate
-memory and in Postgres, fresh for the server's `max-age` clamped to 1 minute–1 hour. After that they are refreshed
-opportunistically but still used for one more hour if the consumer's JWKS is down, then refused (fail closed). An
-unknown `kid` triggers at most one refresh per 30 seconds.
+Fetched only from the registered HTTPS URI, which must be a public DNS name; registrations naming plain HTTP or a
+local JWKS host fail every request unless `ALLOW_INSECURE_CONSUMERS` is set, which only local development does (for
+the studio API's dev server, registered in `.dev.vars.example`). Redirects are refused. Documents are
+limited to 64 KiB and 16 keys, and any private or symmetric key material is refused. Key sets are cached only in
+Postgres (`jwks_cache`), shared by every isolate, and fresh for the server's `max-age` clamped to 1 minute–1 hour.
+After that they are refreshed opportunistically but still used for one more hour if the consumer's JWKS is down, then
+refused (fail closed). An unknown `kid` triggers a refresh, and optional refreshes are claimed in Postgres, so across
+all isolates at most one is attempted per 30 seconds.
 
 ## Configuration
 
@@ -153,7 +156,7 @@ Consumer registrations and endpoint denials are JSON arrays in the `CONSUMER_REG
 `src/config/registrations.ts`; override the bindings per deployment or in `.dev.vars` for local development.
 An override replaces the entire list, so `[]` explicitly clears it. Empty strings, malformed JSON, invalid entries
 and duplicate consumer identities fail every request rather than falling back to defaults.
-All bindings are validated by `src/config/env.ts` (ArkEnv over `process.env`) and cached on the first request in each
+All bindings are declared by `config` in `src/env/config.ts` (ArkEnv over `process.env`) and parsed on the first request in each
 isolate; apply changes through a deployment/restart.
 Revocation options are:
 
@@ -166,6 +169,7 @@ Revocation options are:
 | --------------------------------- | ----------------- | ---------------------------------------------------------------- |
 | `CONSUMER_REGISTRATIONS`          | text (JSON array) | Complete consumer registrations; defaults to the checked-in list |
 | `DENIED_IROH_ENDPOINTS`           | text (JSON array) | Denied endpoint IDs; defaults to the checked-in list             |
+| `ALLOW_INSECURE_CONSUMERS`        | text              | `false`; local development only, admits HTTP and local consumers |
 | `HYPERDRIVE`                      | Hyperdrive        | PlanetScale Postgres, uncached; ID from the controlplane stack   |
 | `MOQ_SIGNING_KEYS`                | secret            | `{ active_kid, keys: [private ES256 JWK…] }`                     |
 | `IROH_RELAY_TOKEN`                | secret            | shared with the Iroh relay's `access.http.bearer_token`          |
@@ -211,8 +215,10 @@ through `@conservationtv/gatekeeper/testing`, with isolated Postgres containers 
 
 Schema changes: edit `src/db/schema.ts`, then `pnpm db:generate` and commit the migration in `drizzle/`.
 
-Request handling reads its dependencies through `useServices()`, a `createStore` from `@conservationtv/store` (AsyncLocalStorage, `src/services.ts`). Only the
-production Worker entrypoint constructs those dependencies.
+Request handling reads its dependencies through `useEnvironment()`, a `createStore` from `@conservationtv/store`
+(AsyncLocalStorage, `src/env/env.ts`): the deployment's `variables` and the clients built from them. Only the
+production Worker entrypoint creates it, through `createEnvironment` (`src/env/config.ts`), whose `services`
+initialises every client that uses some configuration.
 
 ## Contracts, SDK and CLI
 
@@ -220,7 +226,7 @@ production Worker entrypoint constructs those dependencies.
 pnpm --filter @conservationtv/gatekeeper generate             # contracts/openapi.json from routes + handler types
 pnpm --filter @conservationtv/controlplane-sdk generate
 pnpm --filter @conservationtv/controlplane-cli generate
-GATEKEEPER_URL=http://localhost:5173 pnpm --filter @conservationtv/controlplane-cli cli grants exchange v1 --grant_assertion <jwt>
+GATEKEEPER_URL=http://localhost:5176 pnpm --filter @conservationtv/controlplane-cli cli grants exchange v1 --grant_assertion <jwt>
 ```
 
 Release snapshots work as in the reference: `pnpm snapshot gatekeeper-v1.0.0` freezes the current bundle under

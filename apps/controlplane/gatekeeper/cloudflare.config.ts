@@ -27,6 +27,8 @@ export default defineConfig({
       /** JSON arrays, replaceable per deployment or through .dev.vars. */
       CONSUMER_REGISTRATIONS: bindings.text(JSON.stringify(consumerRegistrations)),
       DENIED_IROH_ENDPOINTS: bindings.text(JSON.stringify(deniedIrohEndpoints)),
+      /** Never in a deployment; .dev.vars sets it for consumers served locally over plain HTTP. */
+      ALLOW_INSECURE_CONSUMERS: bindings.text('false'),
       HYPERDRIVE: bindings.hyperdrive({
         id: stack?.hyperdriveId ?? placeholderHyperdriveId,
         dev: { connectionString: LOCAL_DATABASE_URL }

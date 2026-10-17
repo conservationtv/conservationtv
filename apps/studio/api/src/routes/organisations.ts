@@ -16,7 +16,7 @@ import {
   listOwnOrganisations,
   revokeAdmin
 } from '../organisations/membership.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import {
   accountNotFound,
   alreadyInvited,
@@ -127,9 +127,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt })
@@ -163,9 +163,9 @@ export default new Hono()
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The organisation name.') })),
     async c => {
       const { id } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .update(organisations)
@@ -224,9 +224,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const rows = await listMembers(principal, id);
       // Every member sees at least themselves, so no rows means the organisation is hidden, or its members are.
       if (rows.length === 0 && !(await visible(session, id))) throw new ApiFailure('not_found');
@@ -259,8 +259,8 @@ export default new Hono()
     async c => {
       const principal = usePrincipal();
       const { id } = c.req.valid('param');
-      const services = useServices();
-      const session = await services.session(principal);
+      const environment = useEnvironment();
+      const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .update(organisationProfiles)

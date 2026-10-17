@@ -3,7 +3,7 @@ import { logRecords, metricSamples, observations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { trusted } from '../organisations/membership.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import { MetricDimensionsSchema, SettingsSchema } from '../topology/settings.ts';
 import { deviceSubject, SubjectIdSchema } from './subjects.ts';
 
@@ -72,8 +72,8 @@ export type Batch = z.output<typeof BatchSchema>;
 export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
   return trusted(async tx => {
     // Refuse the whole batch if any report is from the future, then store each kind with one insert.
-    const services = useServices();
-    const now = services.clock();
+    const environment = useEnvironment();
+    const now = environment.clock();
     if (batch.reports.some(report => Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS))
       throw new ApiFailure('invalid_report');
 
