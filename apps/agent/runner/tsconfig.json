@@ -1,5 +1,5 @@
 {
-  // Run through tsx; this project only type-checks.
+  // Run through tsx, and bundled by esbuild for the image; this project only type-checks.
   "compilerOptions": {
     "target": "es2024",
     "lib": ["es2024", "DOM"],
