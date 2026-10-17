@@ -8,14 +8,14 @@ on:
       - packages/fleet/**
       - pnpm-lock.yaml
       - .github/workflows/controlplane.yml
-  # Pushes to main release to staging; prod is released by hand, from a commit staging already runs.
+  # Pushes to main release to staging; prod is released by hand, from a commit staging already runs. Pushes have no
+  # inputs, so `inputs.stack || 'staging'` below is the one default, for pushes and dispatches without a stack alike.
   workflow_dispatch:
     inputs:
       stack:
         description: The controlplane stack to release
         type: choice
         options: [staging, prod]
-        default: staging
 
 # One deploy per stack at a time; a newer push waits rather than cancelling an apply in progress.
 concurrency:
