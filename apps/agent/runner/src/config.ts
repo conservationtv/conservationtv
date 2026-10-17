@@ -6,7 +6,9 @@ export const loadConfig = () =>
   arkenv({
     /** The agent's name, as it reports itself. */
     AGENT_NAME: z.string().min(1).default('agent'),
-    /** The agent's ed25519 secret key as hex: its 32 bytes. `pnpm keygen` makes one. */
+    /** The studio API the agent starts its iroh sessions with. */
+    STUDIO_API_URL: z.url(),
+    /** The secret key of the agent's device in the studio, as hex: its 32-byte Ed25519 seed. */
     AGENT_SECRET_KEY: z
       .string()
       .regex(/^[0-9a-f]{64}$/i, 'AGENT_SECRET_KEY must be 32 bytes of hex')

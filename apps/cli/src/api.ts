@@ -1,4 +1,4 @@
-import { Client } from '@conservationtv/studio-sdk';
+import { bearer, Client } from '@conservationtv/studio-sdk';
 import { createAuthClient } from 'better-auth/client';
 import { deviceAuthorizationClient } from 'better-auth/client/plugins';
 
@@ -12,6 +12,6 @@ export function authClient() {
 
 /** A studio client sending `token`, without a handshake: the generated commands make their own. */
 export function studioClient(token: string | undefined) {
-  const headers = token ? { authorization: `Bearer ${token}` } : undefined;
-  return new Client({ baseUrl: apiUrl, headers });
+  const auth = token ? bearer(token) : undefined;
+  return new Client({ baseUrl: apiUrl, auth });
 }

@@ -7,7 +7,6 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
-    "keygen": "node -e \"console.log(require('node:crypto').randomBytes(32).toString('hex'))\"",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

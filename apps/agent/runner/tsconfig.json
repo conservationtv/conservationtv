@@ -2,7 +2,7 @@
   // Run through tsx; this project only type-checks.
   "compilerOptions": {
     "target": "es2024",
-    "lib": ["es2024"],
+    "lib": ["es2024", "DOM"],
     "module": "preserve",
     "moduleResolution": "bundler",
     "types": ["node"],

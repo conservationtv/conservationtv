@@ -7,8 +7,10 @@ services:
       dockerfile: apps/agent/docker/Dockerfile
     environment:
       AGENT_NAME: agent
-      # The agent's identity; keep it across restarts. `pnpm --filter @conservationtv/agent-runner keygen` makes one.
-      AGENT_SECRET_KEY: ${AGENT_SECRET_KEY:?Set AGENT_SECRET_KEY to the agent's secret key}
+      # The studio API, reachable from the container: on the host, http://host.docker.internal:5175.
+      STUDIO_API_URL: ${STUDIO_API_URL:?Set STUDIO_API_URL to the studio API}
+      # The agent's identity: its device's secret key in the studio, as hex.
+      AGENT_SECRET_KEY: ${AGENT_SECRET_KEY:?Set AGENT_SECRET_KEY to the agent device's secret key}
       SHUTDOWN_DELAY_MS: 10000
     # Longer than SHUTDOWN_DELAY_MS, so close-with-grace's own deadline ends the process rather than Docker's SIGKILL.
     stop_grace_period: 15s
