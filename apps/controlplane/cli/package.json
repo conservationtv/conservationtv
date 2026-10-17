@@ -23,6 +23,6 @@
     "@conservationtv/gatekeeper": "workspace:*",
     "@hey-api/openapi-ts": "0.99.0",
     "@types/node": "24.10.1",
-    "typescript": "6.0.3"
+    "typescript": "catalog:"
   }
 }
