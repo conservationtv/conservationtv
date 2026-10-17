@@ -4,11 +4,10 @@ import { eq } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
 import { verifySignature, webcrypto, isSignatureError, type Verifier } from 'http-message-sig';
 import { verifyContentDigest } from 'httpbis-digest-headers';
-import { useCache } from '../cache/cache.ts';
 import { devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { trusted } from '../organisations/membership.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
 import { requirePrincipal, usePrincipal } from './principal.ts';
 
@@ -68,8 +67,8 @@ async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerif
 
 /** The verified signature over the request, by a known device. */
 async function verifiedSignature(request: Request) {
-  const services = useServices();
-  const now = Math.floor(services.clock() / 1000);
+  const environment = useEnvironment();
+  const now = Math.floor(environment.clock() / 1000);
   try {
     return await verifySignature<DeviceVerifier>(request, {
       policy: {
@@ -112,8 +111,8 @@ export const requireDevice = createMiddleware(async (c, next) => {
   const body = await c.req.arrayBuffer();
   if (!(await bodyMatchesDigest(body, c.req.header('content-digest') ?? ''))) throw new ApiFailure('invalid_signature');
   // Only after everything else holds, so a rejected request cannot spend a nonce.
-  const cache = useCache();
-  const fresh = await cache.add(
+  const environment = useEnvironment();
+  const fresh = await environment.cache.add(
     `nonce:${device.id}:${signature.parameters.nonce}`,
     '1',
     MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
