@@ -143,10 +143,11 @@ connections but do not terminate an already admitted connection. Both
 Fetched only from the registered HTTPS URI, which must be a public DNS name; registrations naming plain HTTP or a
 local JWKS host fail every request unless `ALLOW_INSECURE_CONSUMERS` is set, which only local development does (for
 the studio API's dev server, registered in `.dev.vars.example`). Redirects are refused. Documents are
-limited to 64 KiB and 16 keys, and any private or symmetric key material is refused. Key sets are cached in isolate
-memory and in Postgres, fresh for the server's `max-age` clamped to 1 minute–1 hour. After that they are refreshed
-opportunistically but still used for one more hour if the consumer's JWKS is down, then refused (fail closed). An
-unknown `kid` triggers at most one refresh per 30 seconds.
+limited to 64 KiB and 16 keys, and any private or symmetric key material is refused. Key sets are cached only in
+Postgres (`jwks_cache`), shared by every isolate, and fresh for the server's `max-age` clamped to 1 minute–1 hour.
+After that they are refreshed opportunistically but still used for one more hour if the consumer's JWKS is down, then
+refused (fail closed). An unknown `kid` triggers a refresh, and optional refreshes are claimed in Postgres, so across
+all isolates at most one is attempted per 30 seconds.
 
 ## Configuration
 
