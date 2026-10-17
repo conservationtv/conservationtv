@@ -185,13 +185,11 @@ pnpm --filter @conservationtv/gatekeeper test        # builds Worker, then tests
 ```
 
 The local tokens are fixed in `.dev.vars.example`, the compose file and the studio API's `.dev.vars.example`, so the
-studio API only needs its commented gatekeeper lines enabled to lease endpoints on the local iroh-relay
-(`IROH_RELAY_URL=http://localhost:3340`). iroh-relay runs in `--dev` mode over plain HTTP. moq-relay generates a
+studio API leases endpoints on the local iroh-relay with `pnpm dev:controlplane` (see its README). iroh-relay runs in `--dev` mode over plain HTTP. moq-relay generates a
 certificate for `localhost` and publishes its hash at `http://localhost:4443/certificate.sha256`, for WebTransport's
 `serverCertificateHashes`. `pnpm db:up` starts Postgres alone; `pnpm local:down` stops everything.
 
-To use staging's relays from a local studio API instead, set its `GATEKEEPER_URL`, `GATEKEEPER_TOKEN` and
-`IROH_RELAY_URL` to staging's, as its `.dev.vars.example` shows; no local gatekeeper is involved.
+To use staging's relays from a local studio API instead, run its `pnpm dev:staging`; no local gatekeeper is involved.
 
 Tests run the production `cf build` output in Miniflare/workerd, including `src/index.ts`, its configuration
 validation, signing-key loading and per-request database connections. Node/Vitest uses ordinary HTTP requests to the
