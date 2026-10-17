@@ -67,13 +67,17 @@ async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: Gatekeepe
  */
 async function exchange(assertion: string): Promise<Grant> {
   const services = useServices();
-  const client = await services.gatekeeper().catch(cause => {
+  try {
+    const client = await services.gatekeeper();
+    const result = await client.grants.exchange.v1({ grant_assertion: assertion });
+    if (!(result instanceof Error)) return result;
+    const refused = result instanceof HttpError && result.code === 'invalid_endpoint_id';
+    throw new ApiFailure(refused ? 'forbidden' : 'relay_unavailable', { cause: result });
+  } catch (cause) {
+    // The ApiFailure thrown above passes through; anything else is gatekeeper being unreachable.
+    if (cause instanceof ApiFailure) throw cause;
     throw new ApiFailure('relay_unavailable', { cause });
-  });
-  const result = await client.grants.exchange.v1({ grant_assertion: assertion });
-  if (!(result instanceof Error)) return result;
-  const refused = result instanceof HttpError && result.code === 'invalid_endpoint_id';
-  throw new ApiFailure(refused ? 'forbidden' : 'relay_unavailable', { cause: result });
+  }
 }
 
 /** Lease the device's endpoint from gatekeeper, failing as `exchange` does. */
