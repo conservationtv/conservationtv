@@ -12,6 +12,8 @@ export const loadConfig = () =>
     APP_URL: z.url(),
     /** Comma-separated. The first is the studio web app, which hosts the device-flow approval page. */
     WEB_ORIGINS: z.array(z.url()).nonempty(),
+    /** The iroh relay every device's session uses; see src/topology/iroh.ts. */
+    IROH_RELAY_URL: z.url(),
     /** Only logging exists; see src/auth/otp.ts. */
     OTP_DELIVERY: z.literal('log'),
     BETTER_AUTH_SECRET: z.string().min(32),

@@ -60,3 +60,4 @@ export * from './invitations.get-v1/index.js';
 export * from './invitations.accept-v1/index.js';
 export * from './invitations.decline-v1/index.js';
 export * from './reports.submit-v1/index.js';
+export * from './irohSessions.create-v1/index.js';

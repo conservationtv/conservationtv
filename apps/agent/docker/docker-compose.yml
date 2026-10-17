@@ -1,0 +1,19 @@
+name: agent
+
+services:
+  agent:
+    build:
+      context: ../../..
+      dockerfile: apps/agent/docker/Dockerfile
+    environment:
+      AGENT_NAME: agent
+      # `conservationtv` asks the studio API for its sessions; `direct` uses n0's relays and address lookup.
+      # Each passed through from the host when set there, so the runner's defaults apply otherwise.
+      AGENT_MODE:
+      # For `conservationtv`, reachable from the container: on the host, http://host.docker.internal:5175.
+      STUDIO_API_URL:
+      # The agent's identity, as hex: its device's secret key in the studio, or for `direct`, any (`pnpm keygen`).
+      AGENT_SECRET_KEY: ${AGENT_SECRET_KEY:?Set AGENT_SECRET_KEY to the agent's secret key}
+      SHUTDOWN_DELAY_MS: 10000
+    # Longer than SHUTDOWN_DELAY_MS, so close-with-grace's own deadline ends the process rather than Docker's SIGKILL.
+    stop_grace_period: 15s

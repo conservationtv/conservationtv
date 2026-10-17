@@ -3,20 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A generated version-aware CLI for the conservation.tv studio API.",
-  "bin": {
-    "studio": "./bin/studio.mjs"
+  "description": "Commands generated from the studio API, mounted by the conservation.tv CLI (apps/cli).",
+  "exports": {
+    ".": "./src/generated/incur-builder.gen.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
-    "cli": "node bin/studio.mjs",
     "generate": "openapi-ts --file openapi-ts.config.ts"
   },
   "dependencies": {
     "@conservationtv/studio-sdk": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",
     "incur": "0.6.1",
-    "tsx": "4.23.15",
     "zod": "catalog:"
   },
   "devDependencies": {

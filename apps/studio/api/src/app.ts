@@ -11,6 +11,7 @@ import cameras from './routes/cameras.ts';
 import devices from './routes/devices.ts';
 import health from './routes/health.ts';
 import invitations from './routes/invitations.ts';
+import irohSessions from './routes/iroh-sessions.ts';
 import networks from './routes/networks.ts';
 import organisations from './routes/organisations.ts';
 import reports from './routes/reports.ts';
@@ -53,6 +54,7 @@ const app = new Hono({ router: operationRouter })
   .route('/invitations', invitations)
   // Signed by agents rather than signed in: no session.
   .route('/reports', reports)
+  .route('/iroh-sessions', irohSessions)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)
   .onError(handleError);
