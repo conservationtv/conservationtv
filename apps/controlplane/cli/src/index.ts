@@ -1,4 +1,5 @@
 import {
+  bearer,
   HttpError,
   HandshakeError,
   OperationVersionChangedError,
@@ -27,4 +28,11 @@ cli.use(async (context, next) => {
     throw error;
   }
 });
-await buildCli(cli, () => new Client({ baseUrl: process.env.GATEKEEPER_URL ?? 'http://localhost:5176' })).serve();
+// GATEKEEPER_TOKEN is the environment's consumer token, which `grants exchange` requires.
+const token = process.env.GATEKEEPER_TOKEN;
+const client = () =>
+  new Client({
+    baseUrl: process.env.GATEKEEPER_URL ?? 'http://localhost:5176',
+    auth: token === undefined ? undefined : bearer(token)
+  });
+await buildCli(cli, client).serve();

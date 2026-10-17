@@ -1,0 +1,7 @@
+config:
+  controlplane:domain: staging.conservation.tv
+  controlplane:zoneId: d070375f1867a6beb82f703c9d6f8a58
+  controlplane:acmeEmail: james@siliconlemonade.com
+  controlplane:gatekeeperDomain: gatekeeper.staging.conservation.tv
+  controlplane:planetscaleOrganization: conservationtv
+encryptionsalt: v1:xC7wH9P7Ehk=:v1:/AIN3meykMQDt5XD:62pcPhXwnXLjnrQ/WU7k4Pji04HsFA==

@@ -4,19 +4,17 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { grants } from '../src/db/schema.ts';
 import { type SetupToken } from '../src/relays/moq.ts';
-import { exampleGrant, registration, signAssertion, signingKey } from './support/consumer.ts';
+import { exampleGrant } from './support/consumer.ts';
 import { connectTestDatabase, startWorker, MOQ_KEY_ID, MOQ_RELAY_TOKEN, MOQ_CLUSTER_TOKEN } from './support/harness.ts';
 import { MOQ_CLUSTER_GRANT_SECONDS } from '../src/relays/moq.ts';
 import { type GrantExchangeResult, GrantExchangeResultSchema } from './support/responses.ts';
 
 const database = connectTestDatabase();
 const worker = await startWorker();
-const key = await signingKey();
 
 beforeEach(async () => {
   await worker.restart({});
   await database.reset();
-  worker.jwks.keys = [key.publicJwk];
 });
 
 afterAll(async () => {
@@ -25,9 +23,7 @@ afterAll(async () => {
 });
 
 async function exchange(expiresIn = 300): Promise<GrantExchangeResult> {
-  const response = await worker.exchange(
-    await signAssertion({ key, now: Date.now(), grant: { ...exampleGrant(), expires_in: expiresIn } })
-  );
+  const response = await worker.exchange({ ...exampleGrant(), expires_in: expiresIn });
   return GrantExchangeResultSchema.parse(await response.json());
 }
 
@@ -72,7 +68,7 @@ describe('MoQ relay auth callout', () => {
         subscribe: [],
         expires: expect.any(Number),
         revalidate: 60,
-        tier: registration().principal_id
+        tier: 'consumer'
       }
     });
   });
@@ -150,12 +146,6 @@ describe('MoQ relay auth callout', () => {
     expect((await admission(session)).status).toBe(200);
     await database.database.update(grants).set({ revokedAt: new Date() }).where(eq(grants.id, grant_id));
     expect((await admission(session)).status).toBe(403);
-  });
-
-  it('refuses once the consumer is disabled', async () => {
-    const token = await moqToken();
-    await worker.restart({ CONSUMER_REGISTRATIONS: JSON.stringify([{ ...registration(), enabled: false }]) });
-    expect((await admission({ path: '/app-a/t_92/room_71', query: `jwt=${token}` })).status).toBe(403);
   });
 
   it('accepts any username but requires the relay key as the Basic password', async () => {

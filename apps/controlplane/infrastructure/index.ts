@@ -23,6 +23,8 @@ const domain = config.require('domain');
 const zoneId = config.require('zoneId');
 const gatekeeperDomain = config.require('gatekeeperDomain');
 const gatekeeperUrl = `https://${gatekeeperDomain}`;
+// Account-wide names: prod keeps the bare `gatekeeper`, other stacks (staging) are suffixed with their name.
+const gatekeeperName = stack === 'prod' ? 'gatekeeper' : `gatekeeper-${stack}`;
 const accountId = cloudflare.getZoneOutput({ zoneId }).account.id;
 // Relays are named by service and site: <service>.<site>.nodes.<domain>.
 const site = 'ldn1';
@@ -82,6 +84,12 @@ const moqClusterToken = new random.RandomBytes('moq-cluster-token', {
   keepers: { generation: config.get('clusterTokenGeneration') ?? '1' }
 });
 const irohToken = new random.RandomBytes('iroh-token', { length: 32 });
+// The environment's one consumer credential: whoever holds it may exchange grants for this stack's relays. To rotate,
+// increment consumerTokenGeneration, release, and hand the new value to its holders; there is no overlap.
+const consumerToken = new random.RandomBytes('consumer-token', {
+  length: 32,
+  keepers: { generation: config.get('consumerTokenGeneration') ?? '1' }
+});
 
 const moq = new MoqRelayCluster('moq-relay', {
   relays: [{ machine: moqMachine, hostname: moqHostname }],
@@ -100,21 +108,21 @@ const iroh = new IrohRelayCluster('iroh-relay', {
 // routes traffic to the one tagged `gatekeeperVersion` once that is set.
 const gatekeeperWorker = new cloudflare.Worker('gatekeeper', {
   accountId,
-  name: 'gatekeeper',
+  name: gatekeeperName,
   observability: { enabled: true },
   subdomain: { enabled: false }
 });
 // Gatekeeper's PlanetScale Postgres database, next to the relays in London. Creating its main branch creates the
-// database. PS-5 runs as HA (a primary and two replicas): the provider cannot choose single-node.
+// database. PS-5, the default, runs as HA (a primary and two replicas): the provider cannot choose single-node.
 const planetscaleOrganization = config.require('planetscaleOrganization');
 const gatekeeperDatabase = new planetscale.PostgresBranch(
   'gatekeeper-database',
   {
     organization: planetscaleOrganization,
-    database: 'gatekeeper',
+    database: gatekeeperName,
     name: 'main',
     region: 'aws-eu-west-2',
-    clusterSize: 'PS_5_AWS_X86',
+    clusterSize: config.get('databaseClusterSize') ?? 'PS_5_AWS_X86',
     deletionProtected: true
   },
   { protect: true }
@@ -134,7 +142,7 @@ const gatekeeperMigrationRole = databaseRole('gatekeeper_migrate', ['postgres'])
 // Query caching is disabled: lease and revocation reads must be fresh.
 const gatekeeperHyperdrive = new cloudflare.HyperdriveConfig('gatekeeper', {
   accountId,
-  name: 'gatekeeper',
+  name: gatekeeperName,
   origin: {
     scheme: 'postgres',
     host: gatekeeperAppRole.accessHostUrl,
@@ -215,6 +223,7 @@ if (gatekeeperVersionId) {
 
 /** Gatekeeper's build settings, read from STACK_OUTPUT_JSON. */
 export const gatekeeper = {
+  workerName: gatekeeperName,
   versionTag: gatekeeperVersion,
   domain: gatekeeperDomain,
   hyperdriveId: gatekeeperHyperdrive.id,
@@ -225,8 +234,11 @@ export const gatekeeperSecrets = pulumi.secret({
   MOQ_SIGNING_KEYS: moqSigningKeys,
   MOQ_RELAY_TOKEN: moqRelayToken.hex,
   MOQ_CLUSTER_TOKEN: moqClusterToken.hex,
-  IROH_RELAY_TOKEN: irohToken.hex
+  IROH_RELAY_TOKEN: irohToken.hex,
+  CONSUMER_TOKEN: consumerToken.hex
 });
+/** The consumer token, which the environment's consumers present as GATEKEEPER_TOKEN. */
+export const gatekeeperConsumerToken = pulumi.secret(consumerToken.hex);
 /** Gatekeeper's `DATABASE_URL` for `pnpm db:migrate`. */
 export const gatekeeperMigrationUrl = pulumi
   .all([
