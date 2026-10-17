@@ -7,6 +7,12 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
+export const RelaySchema = z.object({
+    url: z.string(),
+    quicPort: z.number().optional(),
+    authToken: z.string().optional()
+});
+
 export const IrohSessionSchema = z.object({
     relays: z.union([
         z.object({
@@ -14,11 +20,7 @@ export const IrohSessionSchema = z.object({
         }),
         z.object({
             type: z.literal('custom'),
-            relays: z.array(z.object({
-                url: z.string(),
-                quicPort: z.number().optional(),
-                authToken: z.string().optional()
-            }))
+            relays: z.array(RelaySchema)
         })
     ])
 });

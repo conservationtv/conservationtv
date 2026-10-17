@@ -13,6 +13,12 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
 
+export type Relay = {
+    url: string;
+    quicPort?: number;
+    authToken?: string;
+};
+
 export type Health = {
     status: 'ok';
 };
@@ -277,11 +283,7 @@ export type IrohSession = {
         type: 'n0';
     } | {
         type: 'custom';
-        relays: Array<{
-            url: string;
-            quicPort?: number;
-            authToken?: string;
-        }>;
+        relays: Array<Relay>;
     };
 };
 

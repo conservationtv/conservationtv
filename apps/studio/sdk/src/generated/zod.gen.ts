@@ -15,6 +15,12 @@ export const Schema0Schema = z.union([
     z.record(z.string(), z.lazy((): any => Schema0Schema))
 ]).nullable();
 
+export const RelaySchema = z.object({
+    url: z.string(),
+    quicPort: z.number().optional(),
+    authToken: z.string().optional()
+});
+
 export const HealthSchema = z.object({
     status: z.literal('ok')
 });
@@ -275,11 +281,7 @@ export const IrohSessionSchema = z.object({
         }),
         z.object({
             type: z.literal('custom'),
-            relays: z.array(z.object({
-                url: z.string(),
-                quicPort: z.number().optional(),
-                authToken: z.string().optional()
-            }))
+            relays: z.array(RelaySchema)
         })
     ])
 });

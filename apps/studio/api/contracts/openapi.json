@@ -65,6 +65,23 @@
           }
         ]
       },
+      "Relay": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "quicPort": {
+            "type": "number"
+          },
+          "authToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
       "Health": {
         "type": "object",
         "properties": {
@@ -1121,21 +1138,7 @@
                   "relays": {
                     "type": "array",
                     "items": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        },
-                        "quicPort": {
-                          "type": "number"
-                        },
-                        "authToken": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "url"
-                      ]
+                      "$ref": "#/components/schemas/Relay"
                     }
                   }
                 },
@@ -21370,6 +21373,23 @@
               "error_description"
             ]
           },
+          "Relay": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "quicPort": {
+                "type": "number"
+              },
+              "authToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url"
+            ]
+          },
           "IrohSession": {
             "type": "object",
             "properties": {
@@ -21397,21 +21417,7 @@
                       "relays": {
                         "type": "array",
                         "items": {
-                          "type": "object",
-                          "properties": {
-                            "url": {
-                              "type": "string"
-                            },
-                            "quicPort": {
-                              "type": "number"
-                            },
-                            "authToken": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "url"
-                          ]
+                          "$ref": "#/components/schemas/Relay"
                         }
                       }
                     },
