@@ -8,5 +8,10 @@ MOQ_CLUSTER_TOKEN=REPLACE_WITH_GENERATED_TOKEN
 
 # Optional JSON overrides, replacing the complete checked-in lists. Paste registrations matching
 # src/config/registrations.ts into the array; [] explicitly registers no consumers.
-# CONSUMER_REGISTRATIONS='[]'
 # DENIED_IROH_ENDPOINTS='[]'
+
+# The studio API's dev server (apps/studio/api, http://localhost:5175) as a consumer, leasing its devices' endpoints:
+# give it GATEKEEPER_URL=http://localhost:5176 and GRANT_SIGNING_KEYS. Plain HTTP on localhost is never admitted
+# without ALLOW_INSECURE_CONSUMERS.
+ALLOW_INSECURE_CONSUMERS=true
+CONSUMER_REGISTRATIONS='[{"principal_id":"studio-local","authentication":{"method":"federated_jwt","issuer":"http://localhost:5175","jwks_uri":"http://localhost:5175/.well-known/jwks.json","audience":"http://localhost:5176/grants/exchange","subject":"studio-api","allowed_algorithms":["EdDSA"],"max_assertion_lifetime_seconds":60},"delegation":{"subject_prefixes":["studio"],"iroh":{"actions":["connect"]},"max_credential_lifetime_seconds":3600},"enabled":true}]'

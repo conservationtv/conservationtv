@@ -102,6 +102,8 @@ bindings:
 | `WEB_ORIGINS`         | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
 | `OTP_DELIVERY`        | text       | `log` only, see above                                                   |
 | `IROH_RELAY_URL`      | text       | the iroh relay every device's session uses (`irohSessions.create`)      |
+| `GATEKEEPER_URL`      | text       | optional: the control plane leasing each session's endpoint on that relay |
+| `GRANT_SIGNING_KEYS`  | secret     | optional, with `GATEKEEPER_URL`: `{ active_kid, keys: [private Ed25519 JWK…] }` |
 
 The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
 every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access
