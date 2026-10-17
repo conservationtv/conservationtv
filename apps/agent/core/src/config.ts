@@ -1,5 +1,4 @@
 import { createStore } from '@conservationtv/store';
-import type { IrohSession } from '@conservationtv/studio-sdk';
 
 interface BaseConfiguration {
   name: string;
@@ -10,11 +9,9 @@ interface BaseConfiguration {
   secretKey: Uint8Array;
 }
 
-/** An agent on its own: given everything the studio API would supply, which it never calls. Any key will do. */
+/** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */
 export interface DirectConfiguration extends BaseConfiguration {
   type: 'direct';
-  /** The iroh session, as the studio API's `irohSessions.create` would return it. */
-  session: IrohSession;
 }
 
 /** An agent of a conservation.tv organisation: its key is its device's, and the studio API supplies its session. */

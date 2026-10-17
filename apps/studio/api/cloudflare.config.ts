@@ -40,6 +40,11 @@ export default defineConfig({
        * Overridable from the environment, as APP_URL is.
        */
       WEB_ORIGINS: bindings.text(process.env.WEB_ORIGINS ?? 'http://localhost:5173'),
+      /**
+       * The iroh relay every device's session uses: until there is one per organisation, n0's public relay in Europe.
+       * Overridable from the environment, as APP_URL is.
+       */
+      IROH_RELAY_URL: bindings.text(process.env.IROH_RELAY_URL ?? 'https://euc1-1.relay.n0.iroh.link./'),
       /** How sign-in codes reach people. Only `log` exists; a deployment needs an email provider first. */
       OTP_DELIVERY: bindings.text('log')
     }

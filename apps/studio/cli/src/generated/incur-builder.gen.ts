@@ -745,8 +745,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    }))).command(Cli.create('irohSessions').command(Cli.create('create', { description: 'Start an iroh session\n\nHow the signing device\'s iroh endpoint connects: n0\'s public relays, or its organisation\'s own, each with any token it needs. Asked for each time the device binds an endpoint, and not kept. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, as for `reports.submit`, over an empty body.' }).command('v1', {
-        description: 'Start an iroh session\n\nHow the signing device\'s iroh endpoint connects: n0\'s public relays, or its organisation\'s own, each with any token it needs. Asked for each time the device binds an endpoint, and not kept. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, as for `reports.submit`, over an empty body.',
+    }))).command(Cli.create('irohSessions').command(Cli.create('create', { description: 'Start an iroh session\n\nThe relay the signing device\'s iroh endpoint uses, with any token it needs. Every device gets the same one, so a device is reached at its endpoint ID on that relay, with no address lookup. Asked for each time the device binds an endpoint, and not kept. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, as for `reports.submit`, over an empty body.' }).command('v1', {
+        description: 'Start an iroh session\n\nThe relay the signing device\'s iroh endpoint uses, with any token it needs. Every device gets the same one, so a device is reached at its endpoint ID on that relay, with no address lookup. Asked for each time the device binds an endpoint, and not kept. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, as for `reports.submit`, over an empty body.',
         options: cliOptions(IrohSessionCreateV1ParamsSchema),
         run: async () => {
             const client = await resolveClient();
