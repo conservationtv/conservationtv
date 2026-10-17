@@ -5,12 +5,16 @@ BETTER_AUTH_SECRET=REPLACE_WITH_GENERATED_SECRET
 # The master key for encrypted columns and blind indexes: 32 random bytes, generated the same way.
 FIELD_KEY=REPLACE_WITH_GENERATED_KEY
 
-# Optional: lease devices' endpoints from a gatekeeper, whose relay IROH_RELAY_URL then names. Gatekeeper fetches
-# this API's keys from APP_URL/.well-known/jwks.json; its own .dev.vars.example registers this dev server.
-# Generate a key set:
-# node -e "crypto.subtle.generateKey('Ed25519',true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(j=>console.log(JSON.stringify({active_kid:'studio-1',keys:[{...j,kid:'studio-1'}]})))"
+# Optional: lease devices' endpoints from a gatekeeper, on the relay IROH_RELAY_URL names. Locally, that is the
+# controlplane's local environment (apps/controlplane/gatekeeper: `pnpm local:up` and `pnpm dev`), whose consumer
+# token this is:
 # GATEKEEPER_URL=http://localhost:5176
-# GRANT_SIGNING_KEYS={"active_kid":"studio-1","keys":[...]}
+# GATEKEEPER_TOKEN=local-consumer-token
+# IROH_RELAY_URL=http://localhost:3340
+# Or staging's, with the token from 1Password (or `pulumi stack output gatekeeperConsumerToken --show-secrets`):
+# GATEKEEPER_URL=https://gatekeeper.staging.conservation.tv
+# GATEKEEPER_TOKEN=…
+# IROH_RELAY_URL=https://iroh.ldn1.nodes.staging.conservation.tv/
 
 # Optional overrides of the checked-in development defaults.
 # APP_URL=http://localhost:5175

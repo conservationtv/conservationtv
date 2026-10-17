@@ -31,9 +31,21 @@ export type Grant = {
 export type PostGrantsExchangeData = {
     body: {
         /**
-         * A compact JWS grant assertion signed by the consumer, with `typ: relay-grant+jwt`.
+         * Who the credentials are for, recorded for audit, such as `app:device:42`.
          */
-        grant_assertion: string;
+        subject: string;
+        requested_capabilities: {
+            moq?: {
+                root: string;
+                publish: Array<'' | string>;
+                subscribe: Array<'' | string>;
+            };
+            iroh?: {
+                endpoint_id: string;
+                action: 'connect';
+            };
+        };
+        expires_in: number;
     };
     path?: never;
     query?: never;
@@ -42,15 +54,15 @@ export type PostGrantsExchangeData = {
 
 export type PostGrantsExchangeErrors = {
     /**
-     * The request or its signed grant is malformed
+     * The request or its grant is malformed
      */
     400: Error;
     /**
-     * The grant assertion failed authentication or validation
+     * The consumer token is missing or invalid
      */
     401: Error;
     /**
-     * The signed grant exceeds the consumer's delegation
+     * The requested endpoint cannot be admitted
      */
     403: Error;
     /**

@@ -8,11 +8,18 @@ on:
       - packages/fleet/**
       - pnpm-lock.yaml
       - .github/workflows/controlplane.yml
+  # Pushes to main release to staging; prod is released by hand, from a commit staging already runs.
   workflow_dispatch:
+    inputs:
+      stack:
+        description: The controlplane stack to release
+        type: choice
+        options: [staging, prod]
+        default: staging
 
-# One deploy at a time; a newer push waits rather than cancelling an apply in progress.
+# One deploy per stack at a time; a newer push waits rather than cancelling an apply in progress.
 concurrency:
-  group: controlplane-prod
+  group: controlplane-${{ inputs.stack || 'staging' }}
   cancel-in-progress: false
 
 permissions:
@@ -21,9 +28,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{ inputs.stack || 'staging' }}
     env:
-      STACK: prod
+      STACK: ${{ inputs.stack || 'staging' }}
       PULUMI_BACKEND_URL: ${{ vars.PULUMI_BACKEND_URL }}
       PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
       PGHOST: ${{ secrets.PGHOST }}

@@ -1,4 +1,6 @@
-# Local stand-in for the PlanetScale Postgres database that production reaches through Hyperdrive.
+# Local stand-ins: Postgres for the PlanetScale database production reaches through Hyperdrive, and (with the `relays`
+# profile, `pnpm local:up`) the MoQ and Iroh relays, calling back to the gatekeeper dev server on the host's :5176.
+# Their credentials are the local ones in .dev.vars.example.
 services:
   postgres:
     image: postgres:18-alpine
@@ -16,6 +18,43 @@ services:
       interval: 2s
       timeout: 5s
       retries: 15
+
+  # iroh-relay in dev mode (plain HTTP): devices use http://localhost:3340 as IROH_RELAY_URL.
+  iroh-relay:
+    profiles: [relays]
+    image: n0computer/iroh-relay:v1.3.0@sha256:7a51e3826531dba5eee73d8b48a8f27284684d98c4d0da271d99127cc43b9d57
+    command: ['--dev', '--config-path', '/config.toml']
+    environment:
+      IROH_RELAY_HTTP_BEARER_TOKEN: local-iroh-relay-token
+    volumes:
+      - ./local/iroh-relay.toml:/config.toml:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '3340:3340'
+
+  # moq-relay with a generated certificate: QUIC on :4433, plain HTTP (and /certificate.sha256) on :4443.
+  moq-relay:
+    profiles: [relays]
+    image: moqdev/moq-relay:0.17.2
+    environment:
+      MOQ_LISTEN: '[::]:4433'
+      MOQ_LISTEN_TLS_GENERATE: localhost
+      MOQ_WEB_HTTP_LISTEN: '[::]:4443'
+      MOQ_STATS_NODE: local
+      # moq-relay accepts plain HTTP auth URLs only on loopback, so the sidecar below forwards this one to the host.
+      MOQ_AUTH_URL: http://moq-relay:local-moq-relay-token@127.0.0.1:4440/relays/moq/admission
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '4433:4433/udp'
+      - '4443:4443'
+
+  moq-relay-auth:
+    profiles: [relays]
+    image: alpine/socat:1.8.1.3
+    network_mode: service:moq-relay
+    command: ['TCP-LISTEN:4440,fork,reuseaddr,bind=127.0.0.1', 'TCP:host.docker.internal:5176']
 
 volumes:
   gatekeeper-postgres-18:

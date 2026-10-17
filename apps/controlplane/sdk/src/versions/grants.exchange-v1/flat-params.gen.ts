@@ -5,7 +5,9 @@ import * as z from 'zod';
 import { PostGrantsExchangeBodySchema } from './zod.gen.js';
 
 export const GrantExchangeV1ParamsSchema = z.object({
-    grant_assertion: PostGrantsExchangeBodySchema.shape.grant_assertion.nonoptional().describe('A compact JWS grant assertion signed by the consumer, with `typ: relay-grant+jwt`.')
+    subject: PostGrantsExchangeBodySchema.shape.subject.nonoptional().describe('Who the credentials are for, recorded for audit, such as `app:device:42`.'),
+    requested_capabilities: PostGrantsExchangeBodySchema.shape.requested_capabilities.nonoptional(),
+    expires_in: PostGrantsExchangeBodySchema.shape.expires_in.nonoptional()
 });
 
 export type GrantExchangeV1Params = z.infer<typeof GrantExchangeV1ParamsSchema>;

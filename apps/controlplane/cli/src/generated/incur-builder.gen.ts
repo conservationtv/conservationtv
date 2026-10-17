@@ -25,8 +25,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('grants').command(Cli.create('exchange', { description: 'Exchange a grant assertion\n\nExchanges a consumer-signed `relay-grant+jwt` assertion for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Every security-relevant field lives inside the signed assertion; each assertion can be exchanged once. Responses are secrets and are never cacheable.' }).command('v1', {
-        description: 'Exchange a grant assertion\n\nExchanges a consumer-signed `relay-grant+jwt` assertion for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Every security-relevant field lives inside the signed assertion; each assertion can be exchanged once. Responses are secrets and are never cacheable.',
+    })).command(Cli.create('grants').command(Cli.create('exchange', { description: 'Exchange a grant\n\nExchanges a grant for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Requires the environment\'s consumer token as `Authorization: Bearer …`. Responses are secrets and are never cacheable.' }).command('v1', {
+        description: 'Exchange a grant\n\nExchanges a grant for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Requires the environment\'s consumer token as `Authorization: Bearer …`. Responses are secrets and are never cacheable.',
         options: cliOptions(GrantExchangeV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

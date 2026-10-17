@@ -7,7 +7,7 @@ import { parseStrictJson } from '@conservationtv/versioned-api/server';
 import { MOQ_SIGNING_ALGORITHM } from '../moq/keys.ts';
 import { isSubtreePattern, ScopeError, scopeToDialedPath } from '../moq/scope.ts';
 import { useEnvironment } from '../env/env.ts';
-import { matchesSecret } from './secrets.ts';
+import { matchesSecret } from '../secrets.ts';
 
 /** How often moq-relay re-asks about a live session, so a revoked grant closes its sessions within this bound. */
 export const MOQ_REVALIDATE_SECONDS = 60;
@@ -151,19 +151,16 @@ async function verifiedClaims(token: string): Promise<MoqTokenClaims> {
   }
 }
 
-/** The grant behind the token must still stand: recorded, unrevoked, unexpired, and its consumer still enabled. */
-async function grantingPrincipal(claims: MoqTokenClaims): Promise<string> {
+/** The grant behind the token must still stand: recorded, unrevoked and unexpired. */
+async function assertGrantStands(claims: MoqTokenClaims): Promise<void> {
   const db = await useEnvironment().database();
   const [grant] = await db
-    .select({ principalId: grants.principalId, revokedAt: grants.revokedAt, expiresAt: grants.expiresAt })
+    .select({ revokedAt: grants.revokedAt, expiresAt: grants.expiresAt })
     .from(grants)
     .where(eq(grants.id, claims.jti))
     .limit(1);
   if (!grant || grant.revokedAt !== null) throw new Refusal('the grant is unknown or revoked');
   if (grant.expiresAt.getTime() <= useEnvironment().clock()) throw new Refusal('the grant has expired');
-  const consumer = useEnvironment().policy.consumers.find(candidate => candidate.principal_id === grant.principalId);
-  if (!consumer?.enabled) throw new Refusal('the consumer is no longer enabled');
-  return grant.principalId;
 }
 
 /** Shared cluster credentials grant only root peer sessions, never public HTTP or scoped consumer sessions. */
@@ -185,14 +182,14 @@ async function decide(request: MoqAuthRequest): Promise<MoqGrant> {
   const token = sessionToken(request);
   if (await matchesSecret(token, useEnvironment().variables.MOQ_CLUSTER_TOKEN)) return clusterGrant(request);
   const claims = await verifiedClaims(token);
-  const principalId = await grantingPrincipal(claims);
+  await assertGrantStands(claims);
   try {
     const permissions = scopeToDialedPath(claims.root, claims, request.path);
     return {
       ...permissions,
       expires: claims.exp,
       revalidate: MOQ_REVALIDATE_SECONDS,
-      tier: principalId
+      tier: 'consumer'
     };
   } catch (error) {
     throw error instanceof ScopeError ? new Refusal(error.message) : error;

@@ -6,31 +6,12 @@ interface ErrorCategory {
 }
 
 /**
- * Failure categories and their fixed public descriptions. Descriptions never echo registered issuers, subjects or keys:
- * 400 for malformed requests, 401 for authentication and assertion failures, 403 for authenticated requests outside
- * the caller's delegation, and 503 when a dependency the decision needs is unavailable.
+ * Failure categories and their fixed public descriptions: 401 without the consumer credential, 403 for an endpoint
+ * that may not be admitted, and 503 when a dependency the decision needs is unavailable. Malformed requests are the
+ * common handler's `invalid_request`.
  */
 const categories = {
-  invalid_request: { status: 400, description: 'The request is malformed.' },
-  invalid_assertion: { status: 401, description: 'The grant assertion is malformed or invalid.' },
-  invalid_token_type: { status: 401, description: 'The grant assertion has an unexpected token type.' },
-  unknown_issuer: { status: 401, description: 'The grant assertion issuer is not recognised.' },
-  unknown_principal: { status: 401, description: 'The grant assertion principal is not recognised.' },
-  unknown_key: { status: 401, description: 'The grant assertion signing key is not recognised.' },
-  invalid_signature: { status: 401, description: 'The grant assertion signature is invalid.' },
-  invalid_audience: { status: 401, description: 'The grant assertion audience is invalid.' },
-  assertion_not_yet_valid: { status: 401, description: 'The grant assertion is not yet valid.' },
-  assertion_expired: { status: 401, description: 'The grant assertion has expired.' },
-  assertion_replayed: { status: 401, description: 'The grant assertion has already been consumed.' },
-  consumer_disabled: { status: 401, description: 'The consumer is not permitted to exchange grants.' },
-  unsupported_grant_version: { status: 400, description: 'The grant version is not supported.' },
-  invalid_grant: { status: 400, description: 'The signed grant is malformed.' },
-  invalid_subject: { status: 403, description: "The grant subject is outside the caller's namespace." },
-  capability_not_delegated: {
-    status: 403,
-    description: "The requested capability is outside the caller's delegation."
-  },
-  invalid_resource: { status: 403, description: "The requested resource is outside the caller's delegation." },
+  invalid_token: { status: 401, description: 'The consumer credential is missing or invalid.' },
   invalid_endpoint_id: { status: 403, description: 'The requested endpoint cannot be admitted.' },
   relay_unavailable: { status: 503, description: 'A dependency required to issue relay credentials is unavailable.' }
 } satisfies Record<string, ErrorCategory>;
