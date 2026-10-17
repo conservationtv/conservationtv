@@ -1,0 +1,26 @@
+{
+  "name": "@conservationtv/agent-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Commands generated from the agent API, mounted by the conservation.tv CLI (apps/cli).",
+  "exports": {
+    ".": "./src/generated/incur-builder.gen.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "generate": "openapi-ts --file openapi-ts.config.ts"
+  },
+  "dependencies": {
+    "@conservationtv/agent-sdk": "workspace:*",
+    "@conservationtv/versioned-api": "workspace:*",
+    "incur": "0.6.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@conservationtv/agent-api": "workspace:*",
+    "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "24.10.1",
+    "typescript": "catalog:"
+  }
+}

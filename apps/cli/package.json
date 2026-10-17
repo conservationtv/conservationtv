@@ -1,0 +1,32 @@
+{
+  "name": "@conservationtv/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The conservation.tv CLI: signs in, keeps a profile per organisation, and calls the studio API and agents.",
+  "bin": {
+    "ctv": "./bin/ctv.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "cli": "node bin/ctv.mjs"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.8.1",
+    "@conservationtv/agent-cli": "workspace:*",
+    "@conservationtv/agent-sdk": "workspace:*",
+    "@conservationtv/store": "workspace:*",
+    "@conservationtv/studio-cli": "workspace:*",
+    "@conservationtv/studio-sdk": "workspace:*",
+    "@number0/iroh": "1.0.0",
+    "@strangecyan/iroh-http-node": "0.2.0",
+    "better-auth": "catalog:",
+    "incur": "0.6.1",
+    "tsx": "4.23.15",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "catalog:"
+  }
+}

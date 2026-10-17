@@ -13,6 +13,12 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
 
+export type Relay = {
+    url: string;
+    quicPort?: number;
+    authToken?: string;
+};
+
 export type Health = {
     status: 'ok';
 };
@@ -270,6 +276,10 @@ export type Log = {
 
 export type Report = {
     accepted: number;
+};
+
+export type IrohSession = {
+    relay: Relay;
 };
 
 export type GetHealthData = {
@@ -3773,3 +3783,36 @@ export type PostReportsResponses = {
 };
 
 export type PostReportsResponse = PostReportsResponses[keyof PostReportsResponses];
+
+export type PostIrohSessionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/iroh-sessions';
+};
+
+export type PostIrohSessionsErrors = {
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostIrohSessionsError = PostIrohSessionsErrors[keyof PostIrohSessionsErrors];
+
+export type PostIrohSessionsResponses = {
+    /**
+     * The relay to use
+     */
+    200: IrohSession;
+};
+
+export type PostIrohSessionsResponse = PostIrohSessionsResponses[keyof PostIrohSessionsResponses];

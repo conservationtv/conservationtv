@@ -1,0 +1,14 @@
+{
+  // The generator config and its plugins run under Node at generation time, outside the package build.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["openapi-ts.config.ts"]
+}

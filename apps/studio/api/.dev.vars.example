@@ -8,4 +8,5 @@ FIELD_KEY=REPLACE_WITH_GENERATED_KEY
 # Optional overrides of the checked-in development defaults.
 # APP_URL=http://localhost:5175
 # WEB_ORIGINS=http://localhost:5173
+# IROH_RELAY_URL=https://euc1-1.relay.n0.iroh.link./
 # OTP_DELIVERY=log
