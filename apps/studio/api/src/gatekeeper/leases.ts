@@ -1,4 +1,4 @@
-import { Client, HttpError, type Grant } from '@conservationtv/controlplane-sdk';
+import { HttpError, type Grant } from '@conservationtv/controlplane-sdk';
 import { SignJWT } from 'jose';
 import { ApiFailure } from '../errors.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
@@ -38,24 +38,6 @@ export interface IrohLease {
   expiresAt: string;
 }
 
-// One client for the isolate, as the configuration is loaded once, so only the first lease waits on its handshake; it
-// handshakes again by itself if gatekeeper changes versions. A failed handshake is not kept, so the next lease tries
-// again.
-let client: Promise<Client> | undefined = undefined;
-
-/** The handshaken client for gatekeeper at `url`. */
-function gatekeeperClient(url: string): Promise<Client> {
-  if (client === undefined) {
-    const created = new Client({ baseUrl: url });
-    const ready = created.handshake().then(() => created);
-    ready.catch(() => {
-      client = undefined;
-    });
-    client = ready;
-  }
-  return client;
-}
-
 /** An assertion asking gatekeeper to lease the device's endpoint, signed as this API. */
 async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: GatekeeperSettings) {
   const services = useServices();
@@ -83,8 +65,9 @@ async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: Gatekeepe
  * Exchange the assertion. `forbidden` if gatekeeper will not admit the endpoint (it is denied, or leased to another
  * consumer); `relay_unavailable` for any other failure, which is gatekeeper's or this API's.
  */
-async function exchange(assertion: string, gatekeeper: GatekeeperSettings): Promise<Grant> {
-  const client = await gatekeeperClient(gatekeeper.url).catch(cause => {
+async function exchange(assertion: string): Promise<Grant> {
+  const services = useServices();
+  const client = await services.gatekeeper().catch(cause => {
     throw new ApiFailure('relay_unavailable', { cause });
   });
   const result = await client.grants.exchange.v1({ grant_assertion: assertion });
@@ -96,7 +79,7 @@ async function exchange(assertion: string, gatekeeper: GatekeeperSettings): Prom
 /** Lease the device's endpoint from gatekeeper, failing as `exchange` does. */
 export async function leaseEndpoint(device: AuthenticatedDevice, gatekeeper: GatekeeperSettings): Promise<IrohLease> {
   const assertion = await leaseAssertion(device, gatekeeper);
-  const result = await exchange(assertion, gatekeeper);
+  const result = await exchange(assertion);
   const lease = result.credentials.iroh;
   if (lease === undefined) throw new ApiFailure('relay_unavailable', { cause: 'Gatekeeper issued no Iroh lease' });
   return { id: lease.lease_id, grantId: result.grant_id, expiresAt: lease.expires_at };

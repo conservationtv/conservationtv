@@ -1,3 +1,4 @@
+import { Client as GatekeeperClient } from '@conservationtv/controlplane-sdk';
 import { authorization } from './access.ts';
 import { createAuth, type Auth } from './auth/auth.ts';
 import { otpDelivery } from './auth/otp.ts';
@@ -15,11 +16,20 @@ export interface ConnectionStrings {
   app: string;
 }
 
+/** A client for the deployment's gatekeeper, once it has handshaken. */
+async function connectGatekeeper(url: string | undefined) {
+  if (url === undefined) throw new Error('GATEKEEPER_URL is not set');
+  const client = new GatekeeperClient({ baseUrl: url });
+  await client.handshake();
+  return client;
+}
+
 /** One request's services, and `close` to end its connections once the response is sent. */
 export function servicesFor(config: Config, connections: ConnectionStrings, background: Background) {
   const admin = connectLazily(connections.admin);
   const application = connectLazily(connections.app);
   let auth: Promise<Auth> | undefined = undefined;
+  let gatekeeper: Promise<GatekeeperClient> | undefined = undefined;
   const services: Services = {
     config,
     clock: Date.now,
@@ -40,6 +50,11 @@ export function servicesFor(config: Config, connections: ConnectionStrings, back
           })
         );
       return auth;
+    },
+    // Within the request, like every client here: a handshake is I/O, which a Worker cannot share between requests.
+    gatekeeper: () => {
+      if (gatekeeper === undefined) gatekeeper = connectGatekeeper(config.GATEKEEPER_URL);
+      return gatekeeper;
     }
   };
   return { services, close: () => Promise.all([admin.close(), application.close()]) };
