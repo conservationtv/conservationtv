@@ -209,6 +209,9 @@ catalogs:
     pg:
       specifier: 8.23.1
       version: 8.23.1
+    typescript:
+      specifier: 7.0.2
+      version: 7.0.2
     zod:
       specifier: 4.6.2
       version: 4.6.2
@@ -217,6 +220,8 @@ overrides:
   '@pulumi/pulumi': 3.268.0
   kysely: 0.29.6
   valibot>typescript: '-'
+
+pnpmfileChecksum: sha256-OMNguYWtEOboe/QA6qy5PdYjeSB+o12XOl+29udcVUs=
 
 importers:
 
@@ -252,13 +257,13 @@ importers:
         version: link:../core
       '@hey-api/openapi-ts':
         specifier: 0.99.0
-        version: 0.99.0(typescript@6.0.3)
+        version: 0.99.0
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/agent/core:
     dependencies:
@@ -294,7 +299,7 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
 
   apps/agent/runner:
@@ -319,7 +324,7 @@ importers:
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
 
   apps/agent/sdk:
@@ -336,13 +341,13 @@ importers:
         version: link:../core
       '@hey-api/openapi-ts':
         specifier: 0.99.0
-        version: 0.99.0(typescript@6.0.3)
+        version: 0.99.0
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/cli:
     dependencies:
@@ -387,8 +392,8 @@ importers:
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/controlplane/cli:
     dependencies:
@@ -413,13 +418,13 @@ importers:
         version: link:../gatekeeper
       '@hey-api/openapi-ts':
         specifier: 0.99.0
-        version: 0.99.0(typescript@6.0.3)
+        version: 0.99.0
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/controlplane/gatekeeper:
     dependencies:
@@ -482,7 +487,7 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.3.0
@@ -498,38 +503,38 @@ importers:
         version: link:../../../packages/fleet
       '@pulumi/cloudflare':
         specifier: 'catalog:'
-        version: 6.22.0(supports-color@10.2.2)(typescript@5.8.3)
+        version: 6.22.0(supports-color@10.2.2)
       '@pulumi/digitalocean':
         specifier: 'catalog:'
-        version: 4.83.0(supports-color@10.2.2)(typescript@5.8.3)
+        version: 4.83.0(supports-color@10.2.2)
       '@pulumi/planetscale':
         specifier: workspace:*
         version: link:sdks/planetscale
       '@pulumi/pulumi':
         specifier: 3.268.0
-        version: 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+        version: 3.268.0(supports-color@10.2.2)
       '@pulumi/random':
         specifier: 'catalog:'
-        version: 4.21.2(supports-color@10.2.2)(typescript@5.8.3)
+        version: 4.21.2(supports-color@10.2.2)
       '@pulumi/tls':
         specifier: 'catalog:'
-        version: 5.6.1(supports-color@10.2.2)(typescript@5.8.3)
+        version: 5.6.1(supports-color@10.2.2)
       '@pulumiverse/acme':
         specifier: 'catalog:'
-        version: 0.18.1(supports-color@10.2.2)(typescript@5.8.3)
+        version: 0.18.1(supports-color@10.2.2)
     devDependencies:
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 5.8.3
-        version: 5.8.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/controlplane/infrastructure/sdks/planetscale:
     dependencies:
       '@pulumi/pulumi':
         specifier: 3.268.0
-        version: 3.268.0(supports-color@10.2.2)(typescript@4.9.5)
+        version: 3.268.0(supports-color@10.2.2)
       '@types/node':
         specifier: ^20
         version: 20.19.43
@@ -551,13 +556,13 @@ importers:
         version: link:../gatekeeper
       '@hey-api/openapi-ts':
         specifier: 0.99.0
-        version: 0.99.0(typescript@6.0.3)
+        version: 0.99.0
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/controlplane/tests:
     devDependencies:
@@ -598,7 +603,7 @@ importers:
         specifier: 12.2.0
         version: 12.2.0(supports-color@10.2.2)
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.3.0
@@ -677,7 +682,7 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.3.0
@@ -703,13 +708,13 @@ importers:
         version: link:../api
       '@hey-api/openapi-ts':
         specifier: 0.99.0
-        version: 0.99.0(typescript@6.0.3)
+        version: 0.99.0
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/studio/sdk:
     dependencies:
@@ -731,13 +736,13 @@ importers:
         version: link:../api
       '@hey-api/openapi-ts':
         specifier: 0.99.0
-        version: 0.99.0(typescript@6.0.3)
+        version: 0.99.0
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   apps/studio/web:
     dependencies:
@@ -798,7 +803,7 @@ importers:
     devDependencies:
       '@react-router/dev':
         specifier: 8.4.0
-        version: 8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        version: 8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@10.2.2)(typescript@7.0.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@tailwindcss/vite':
         specifier: ^4
         version: 4.3.3(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
@@ -821,8 +826,8 @@ importers:
         specifier: 0.152.0
         version: 0.152.0
       typescript:
-        specifier: ~6.0.2
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
       vite:
         specifier: ^8
         version: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
@@ -831,16 +836,16 @@ importers:
     dependencies:
       '@pulumi/command':
         specifier: 'catalog:'
-        version: 1.2.1(supports-color@10.2.2)(typescript@5.8.3)
+        version: 1.2.1(supports-color@10.2.2)
       '@pulumi/pulumi':
         specifier: 3.268.0
-        version: 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+        version: 3.268.0(supports-color@10.2.2)
       '@pulumi/random':
         specifier: 'catalog:'
-        version: 4.21.2(supports-color@10.2.2)(typescript@5.8.3)
+        version: 4.21.2(supports-color@10.2.2)
       '@pulumi/tls':
         specifier: 'catalog:'
-        version: 5.6.1(supports-color@10.2.2)(typescript@5.8.3)
+        version: 5.6.1(supports-color@10.2.2)
       dedent:
         specifier: 1.7.2
         version: 1.7.2
@@ -850,16 +855,16 @@ importers:
     devDependencies:
       '@pulumi/cloudflare':
         specifier: 'catalog:'
-        version: 6.22.0(supports-color@10.2.2)(typescript@5.8.3)
+        version: 6.22.0(supports-color@10.2.2)
       '@pulumi/digitalocean':
         specifier: 'catalog:'
-        version: 4.83.0(supports-color@10.2.2)(typescript@5.8.3)
+        version: 4.83.0(supports-color@10.2.2)
       '@pulumi/openstack':
         specifier: 'catalog:'
-        version: 5.5.2(supports-color@10.2.2)(typescript@5.8.3)
+        version: 5.5.2(supports-color@10.2.2)
       '@pulumiverse/acme':
         specifier: 'catalog:'
-        version: 0.18.1(supports-color@10.2.2)(typescript@5.8.3)
+        version: 0.18.1(supports-color@10.2.2)
       '@types/node':
         specifier: 24.0.6
         version: 24.0.6
@@ -867,8 +872,8 @@ importers:
         specifier: 1.9.1
         version: 1.9.1
       typescript:
-        specifier: 5.8.3
-        version: 5.8.3
+        specifier: 'catalog:'
+        version: 7.0.2
       vitest:
         specifier: 3.2.6
         version: 3.2.6(@types/node@24.0.6)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.0)
@@ -879,8 +884,8 @@ importers:
         specifier: 24.10.1
         version: 24.10.1
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   packages/ui:
     dependencies:
@@ -958,8 +963,8 @@ importers:
         specifier: ^4
         version: 4.3.3
       typescript:
-        specifier: ~6.0.2
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
   packages/umbrella:
     dependencies:
@@ -995,8 +1000,8 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
       vitest:
         specifier: 5.0.3
         version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
@@ -1024,7 +1029,7 @@ importers:
     devDependencies:
       '@hey-api/openapi-ts':
         specifier: 0.99.0
-        version: 0.99.0(typescript@6.0.3)
+        version: 0.99.0
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
@@ -1038,8 +1043,8 @@ importers:
         specifier: 1.3.3
         version: 1.3.3(hono@4.13.8)(valibot@1.5.0)(zod-to-json-schema@3.25.2(zod@4.6.2))(zod@4.6.2)
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 'catalog:'
+        version: 7.0.2
 
 packages:
 
@@ -1849,8 +1854,6 @@ packages:
     resolution: {integrity: sha512-SePU/5oEWWkvUBYmvzdYRctseoLuskyhs4ET0RvLIcmzc8yLQoA2R+KtBIQ8bPsoSUB0m4E5SmBnl6aGSA0szQ==}
     engines: {node: '>=22.18.0'}
     hasBin: true
-    peerDependencies:
-      typescript: '>=5.5.3 || >=6.0.0 || 6.0.1-rc'
 
   '@hey-api/shared@0.5.0':
     resolution: {integrity: sha512-JN/j4Ebh4cJGYIQ5cwWuqe7GeSUyQoz7oC51WqyhKOcrejK6DKZMDkshc5d1eKTRuRL+rjozuRcoUaZZn2DGPw==}
@@ -3263,11 +3266,8 @@ packages:
     engines: {node: '>=22'}
     peerDependencies:
       ts-node: '>= 7.0.1 < 12'
-      typescript: '>= 3.8.3 < 7'
     peerDependenciesMeta:
       ts-node:
-        optional: true
-      typescript:
         optional: true
 
   '@pulumi/random@4.21.2':
@@ -7217,11 +7217,6 @@ packages:
     engines: {node: '>=4.2.0'}
     hasBin: true
 
-  typescript@5.8.3:
-    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
@@ -8345,7 +8340,7 @@ snapshots:
       '@types/json-schema': 7.0.15
       js-yaml: 4.2.0
 
-  '@hey-api/openapi-ts@0.99.0(typescript@6.0.3)':
+  '@hey-api/openapi-ts@0.99.0':
     dependencies:
       '@hey-api/codegen-core': 0.9.1
       '@hey-api/json-schema-ref-parser': 1.4.4
@@ -9526,39 +9521,35 @@ snapshots:
 
   '@protobufjs/utf8@1.1.2': {}
 
-  '@pulumi/cloudflare@6.22.0(supports-color@10.2.2)(typescript@5.8.3)':
+  '@pulumi/cloudflare@6.22.0(supports-color@10.2.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
-      - typescript
 
-  '@pulumi/command@1.2.1(supports-color@10.2.2)(typescript@5.8.3)':
+  '@pulumi/command@1.2.1(supports-color@10.2.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
-      - typescript
 
-  '@pulumi/digitalocean@4.83.0(supports-color@10.2.2)(typescript@5.8.3)':
+  '@pulumi/digitalocean@4.83.0(supports-color@10.2.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
-      - typescript
 
-  '@pulumi/openstack@5.5.2(supports-color@10.2.2)(typescript@5.8.3)':
+  '@pulumi/openstack@5.5.2(supports-color@10.2.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
-      - typescript
 
-  '@pulumi/pulumi@3.268.0(supports-color@10.2.2)(typescript@4.9.5)':
+  '@pulumi/pulumi@3.268.0(supports-color@10.2.2)':
     dependencies:
       '@grpc/grpc-js': 1.14.6
       '@logdna/tail-file': 2.2.0
@@ -9584,67 +9575,31 @@ snapshots:
       require-from-string: 2.0.2
       semver: 7.8.5
       source-map-support: 0.5.21
+      typescript: 6.0.3
       upath: 1.2.0
-    optionalDependencies:
-      typescript: 4.9.5
     transitivePeerDependencies:
       - supports-color
 
-  '@pulumi/pulumi@3.268.0(supports-color@10.2.2)(typescript@5.8.3)':
+  '@pulumi/random@4.21.2(supports-color@10.2.2)':
     dependencies:
-      '@grpc/grpc-js': 1.14.6
-      '@logdna/tail-file': 2.2.0
-      '@npmcli/arborist': 9.9.2(supports-color@10.2.2)
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/exporter-trace-otlp-grpc': 0.220.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/exporter-zipkin': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-grpc': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.43.0
-      '@types/google-protobuf': 3.15.12
-      '@types/semver': 7.8.0
-      execa: 5.1.1
-      google-protobuf: 3.21.4
-      ini: 2.0.0
-      js-yaml: 4.3.2
-      minimist: 1.2.8
-      normalize-package-data: 6.0.2
-      require-from-string: 2.0.2
-      semver: 7.8.5
-      source-map-support: 0.5.21
-      upath: 1.2.0
-    optionalDependencies:
-      typescript: 5.8.3
-    transitivePeerDependencies:
-      - supports-color
-
-  '@pulumi/random@4.21.2(supports-color@10.2.2)(typescript@5.8.3)':
-    dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
-      - typescript
 
-  '@pulumi/tls@5.6.1(supports-color@10.2.2)(typescript@5.8.3)':
+  '@pulumi/tls@5.6.1(supports-color@10.2.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
-      - typescript
 
-  '@pulumiverse/acme@0.18.1(supports-color@10.2.2)(typescript@5.8.3)':
+  '@pulumiverse/acme@0.18.1(supports-color@10.2.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)(typescript@5.8.3)
+      '@pulumi/pulumi': 3.268.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
-      - typescript
 
   '@radix-ui/primitive@1.2.0': {}
 
@@ -9784,14 +9739,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  '@react-router/dev@8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
+  '@react-router/dev@8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@10.2.2)(typescript@7.0.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/generator': 7.29.8
       '@babel/parser': 7.29.9
       '@babel/traverse': 7.29.10(supports-color@10.2.2)
       '@babel/types': 7.29.8
-      '@react-router/node': 8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)
+      '@react-router/node': 8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@7.0.2)
       '@remix-run/node-fetch-server': 0.14.2
       babel-dead-code-elimination: 1.0.12(supports-color@10.2.2)
       chokidar: 5.0.0
@@ -9812,17 +9767,17 @@ snapshots:
       valibot: 1.5.0
       vite: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
     optionalDependencies:
-      typescript: 6.0.3
+      typescript: 7.0.2
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
 
-  '@react-router/node@8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)':
+  '@react-router/node@8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@7.0.2)':
     dependencies:
       '@remix-run/node-fetch-server': 0.14.2
       react-router: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     optionalDependencies:
-      typescript: 6.0.3
+      typescript: 7.0.2
 
   '@reduxjs/toolkit@2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)':
     dependencies:
@@ -13489,8 +13444,6 @@ snapshots:
       mime-types: 3.0.2
 
   typescript@4.9.5: {}
-
-  typescript@5.8.3: {}
 
   typescript@6.0.3: {}
 
