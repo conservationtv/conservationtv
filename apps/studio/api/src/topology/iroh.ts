@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { leaseEndpoint, type IrohLease } from '../gatekeeper/leases.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 
 // How a device starts an iroh session: the relay its endpoint uses, whether it serves (an agent) or dials (the CLI, a
 // browser). Devices ask for it signed, each time they bind an endpoint, so this is where each device's endpoint is
@@ -36,10 +36,9 @@ export interface IrohSession {
 
 /** The iroh session the device starts now, with its endpoint leased on the relay if the relay requires it. */
 export async function irohSession(device: AuthenticatedDevice): Promise<IrohSession> {
-  const services = useServices();
-  const { IROH_RELAY_URL, GATEKEEPER_URL, GRANT_SIGNING_KEYS } = services.config;
-  const relay = { url: IROH_RELAY_URL };
-  if (GATEKEEPER_URL === undefined || GRANT_SIGNING_KEYS === undefined) return { relay };
-  const lease = await leaseEndpoint(device, { url: GATEKEEPER_URL, keys: GRANT_SIGNING_KEYS });
+  const environment = useEnvironment();
+  const relay = { url: environment.variables.IROH_RELAY_URL };
+  if (environment.gatekeeper === undefined) return { relay };
+  const lease = await leaseEndpoint(device, environment.gatekeeper);
   return { relay, lease };
 }

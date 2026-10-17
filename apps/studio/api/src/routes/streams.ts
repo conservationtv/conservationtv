@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { exposures, recorders, streams } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import { ExposureParamsSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
@@ -66,9 +66,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -108,9 +108,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const [row] = await session.transaction(async tx =>
         tx
           .insert(streams)
@@ -150,9 +150,9 @@ export default new Hono()
     validator('param', StreamParamsSchema),
     async c => {
       const { id, streamId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(tx =>
         tx.query.streams.findFirst({
           columns: { id: true, name: true, sourceDeviceId: true, createdAt: true },
@@ -204,9 +204,9 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [stream] = await tx
           .update(streams)
@@ -246,9 +246,9 @@ export default new Hono()
     validator('param', StreamParamsSchema),
     async c => {
       const { id, streamId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(streams)
@@ -291,9 +291,9 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [stream] = await tx
           .select({ id: streams.id })
@@ -355,9 +355,9 @@ export default new Hono()
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [exposure] = await tx
           .update(exposures)
@@ -399,9 +399,9 @@ export default new Hono()
     validator('param', ExposurePathParamsSchema),
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(exposures)
@@ -444,9 +444,9 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [stream] = await tx
           .select({ id: streams.id })
@@ -502,9 +502,9 @@ export default new Hono()
     async c => {
       const { id, streamId, recorderId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [recorder] = await tx
           .update(recorders)
@@ -545,9 +545,9 @@ export default new Hono()
     validator('param', RecorderParamsSchema),
     async c => {
       const { id, streamId, recorderId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(recorders)

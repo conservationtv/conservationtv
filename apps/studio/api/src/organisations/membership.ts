@@ -6,7 +6,7 @@ import { organisationAdmin, organisationMember } from '../db/roles.ts';
 import { browsers, organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import type { UserPrincipal } from '../middleware/principal.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import { deleteBrowsers } from '../topology/browsers.ts';
 
 // Joining and leaving change rows and grants together, so every write here is trusted code on the admin connection,
@@ -29,8 +29,8 @@ export interface NewMember {
 export const organisationScope = (organisationId: string) => organisations.$access.scope.at(organisationId);
 
 export async function trusted<Result>(run: (tx: Transaction, access: Access) => Promise<Result>) {
-  const services = useServices();
-  const admin = await services.admin();
+  const environment = useEnvironment();
+  const admin = await environment.admin();
   return admin.transaction(tx => run(tx, authorization.access(tx)));
 }
 
@@ -229,8 +229,8 @@ export interface MemberRole {
  * sessions (see the `grantsReadable` migration), only adds their roles.
  */
 export async function listMembers(principal: UserPrincipal, organisationId: string) {
-  const services = useServices();
-  const session = await services.session(principal);
+  const environment = useEnvironment();
+  const session = await environment.session(principal);
   return session.transaction(tx => {
     const roles = authorization
       .access(tx)
@@ -264,8 +264,8 @@ export async function listMembers(principal: UserPrincipal, organisationId: stri
 
 /** The principal's organisations, each with the roles they hold there, aggregated as `listMembers` is, in their session. */
 export async function listOwnOrganisations(principal: UserPrincipal) {
-  const services = useServices();
-  const session = await services.session(principal);
+  const environment = useEnvironment();
+  const session = await environment.session(principal);
   return session.transaction(tx => {
     const roles = authorization.access(tx).grantsQuery({ principal, active: true }).as('own_roles');
     return tx

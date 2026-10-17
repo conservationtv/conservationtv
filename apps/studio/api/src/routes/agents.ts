@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { agents, configurationRevisions, devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { BuildDiagnosticSchema, SettingsSchema } from '../topology/settings.ts';
 import { DeviceNameSchema, deviceQuery } from './devices.ts';
@@ -72,9 +72,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { networkId } = c.req.valid('query');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx.query.agents.findMany({
           ...agentQuery,
@@ -155,9 +155,9 @@ export default new Hono()
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(tx => readAgent(tx, id, agentId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
@@ -188,9 +188,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const updated = await tx
           .update(agents)
@@ -264,9 +264,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const { limit } = c.req.valid('query');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
@@ -315,9 +315,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
           .select({ id: agents.id })
@@ -361,9 +361,9 @@ export default new Hono()
     validator('param', RevisionParamsSchema),
     async c => {
       const { id, agentId, revisionId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -414,9 +414,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const { revisionId } = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [agent] = await tx
           .select({ id: agents.id })

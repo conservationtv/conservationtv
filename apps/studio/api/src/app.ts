@@ -18,7 +18,7 @@ import reports from './routes/reports.ts';
 import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
 import wellKnown from './routes/well-known.ts';
-import { useServices } from './services.ts';
+import { useEnvironment } from './env/env.ts';
 
 export const operationRouter = new OperationRouter();
 
@@ -27,8 +27,8 @@ const app = new Hono({ router: operationRouter })
   .use(
     cors({
       origin: origin => {
-        const services = useServices();
-        return services.config.WEB_ORIGINS.includes(origin) ? origin : null;
+        const environment = useEnvironment();
+        return environment.variables.WEB_ORIGINS.includes(origin) ? origin : null;
       },
       credentials: true,
       allowHeaders: ['Authorization', 'Content-Type', 'Operation-Version'],
@@ -38,8 +38,8 @@ const app = new Hono({ router: operationRouter })
   .route('/', health)
   // Better Auth's own routes (sign-in codes, passkeys, sessions) are its contract, not this API's.
   .on(['GET', 'POST'], '/auth/*', describeRoute({ hide: true }), async c => {
-    const services = useServices();
-    const auth = await services.auth();
+    const environment = useEnvironment();
+    const auth = await environment.auth();
     return auth.handler(c.req.raw);
   })
   .route('/account', account)

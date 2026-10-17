@@ -2,8 +2,8 @@ import { HttpError, type Grant } from '@conservationtv/controlplane-sdk';
 import { SignJWT } from 'jose';
 import { ApiFailure } from '../errors.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
-import { useServices } from '../services.ts';
-import { GRANT_SIGNING_ALGORITHM, grantSigner, type GrantSigningKeys } from './keys.ts';
+import { useEnvironment, type Environment } from '../env/env.ts';
+import { GRANT_SIGNING_ALGORITHM, grantSigner } from './keys.ts';
 
 // Iroh endpoint leases from gatekeeper. Its relay admits an endpoint only while gatekeeper holds an active lease for
 // the endpoint ID, which the relay's handshake has already proven the device owns, so a lease is never presented by
@@ -23,11 +23,8 @@ const ASSERTION_LIFETIME_SECONDS = 60;
  */
 const LEASE_LIFETIME_SECONDS = 3_600;
 
-/** Where gatekeeper is, and the keys this API signs its assertions with. */
-export interface GatekeeperSettings {
-  url: string;
-  keys: GrantSigningKeys;
-}
+/** The deployment's gatekeeper: where it is, the keys this API signs its assertions with, and its client. */
+type Gatekeeper = NonNullable<Environment['gatekeeper']>;
 
 /** The lease admitting a device's endpoint to the relay. */
 export interface IrohLease {
@@ -39,9 +36,9 @@ export interface IrohLease {
 }
 
 /** An assertion asking gatekeeper to lease the device's endpoint, signed as this API. */
-async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: GatekeeperSettings) {
-  const services = useServices();
-  const now = Math.floor(services.clock() / 1000);
+async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: Gatekeeper) {
+  const environment = useEnvironment();
+  const now = Math.floor(environment.clock() / 1000);
   const signer = await grantSigner(gatekeeper.keys);
   const grant = {
     version: 1,
@@ -51,7 +48,7 @@ async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: Gatekeepe
   };
   return new SignJWT({ grant })
     .setProtectedHeader({ alg: GRANT_SIGNING_ALGORITHM, kid: signer.kid, typ: 'relay-grant+jwt' })
-    .setIssuer(services.config.APP_URL)
+    .setIssuer(environment.variables.APP_URL)
     .setSubject(CONSUMER_SUBJECT)
     .setAudience(new URL('/grants/exchange', gatekeeper.url).href)
     .setIssuedAt(now)
@@ -65,10 +62,9 @@ async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: Gatekeepe
  * Exchange the assertion. `forbidden` if gatekeeper will not admit the endpoint (it is denied, or leased to another
  * consumer); `relay_unavailable` for any other failure, which is gatekeeper's or this API's.
  */
-async function exchange(assertion: string): Promise<Grant> {
-  const services = useServices();
+async function exchange(assertion: string, gatekeeper: Gatekeeper): Promise<Grant> {
   try {
-    const client = await services.gatekeeper();
+    const client = await gatekeeper.client();
     const result = await client.grants.exchange.v1({ grant_assertion: assertion });
     if (!(result instanceof Error)) return result;
     const refused = result instanceof HttpError && result.code === 'invalid_endpoint_id';
@@ -81,9 +77,9 @@ async function exchange(assertion: string): Promise<Grant> {
 }
 
 /** Lease the device's endpoint from gatekeeper, failing as `exchange` does. */
-export async function leaseEndpoint(device: AuthenticatedDevice, gatekeeper: GatekeeperSettings): Promise<IrohLease> {
+export async function leaseEndpoint(device: AuthenticatedDevice, gatekeeper: Gatekeeper): Promise<IrohLease> {
   const assertion = await leaseAssertion(device, gatekeeper);
-  const result = await exchange(assertion);
+  const result = await exchange(assertion, gatekeeper);
   const lease = result.credentials.iroh;
   if (lease === undefined) throw new ApiFailure('relay_unavailable', { cause: 'Gatekeeper issued no Iroh lease' });
   return { id: lease.lease_id, grantId: result.grant_id, expiresAt: lease.expires_at };
