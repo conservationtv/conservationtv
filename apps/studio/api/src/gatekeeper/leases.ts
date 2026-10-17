@@ -1,5 +1,5 @@
+import { Client, HttpError, type Grant } from '@conservationtv/controlplane-sdk';
 import { SignJWT } from 'jose';
-import { z } from 'zod';
 import { ApiFailure } from '../errors.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
 import { useServices } from '../services.ts';
@@ -38,16 +38,21 @@ export interface IrohLease {
   expiresAt: string;
 }
 
-/** The parts of `grants.exchange` v1's answer used here, and its failures' stable code. */
-const ExchangeResultSchema = z.object({
-  grant_id: z.string(),
-  credentials: z.object({
-    iroh: z.object({ endpoint_id: z.string(), lease_id: z.string(), expires_at: z.string() }).optional()
-  })
-});
-type ExchangeResult = z.output<typeof ExchangeResultSchema>;
-const ExchangeFailureSchema = z.object({ error: z.string() });
-type ExchangeFailure = z.output<typeof ExchangeFailureSchema>;
+// One client per gatekeeper for the isolate, so only the first lease waits on its handshake; it handshakes again by
+// itself if gatekeeper changes versions. A failed handshake is not kept, so the next lease tries again.
+const clients = new Map<string, Promise<Client>>();
+
+/** The handshaken client for gatekeeper at `url`. */
+function gatekeeperClient(url: string): Promise<Client> {
+  let ready = clients.get(url);
+  if (ready === undefined) {
+    const client = new Client({ baseUrl: url });
+    ready = client.handshake().then(() => client);
+    ready.catch(() => clients.delete(url));
+    clients.set(url, ready);
+  }
+  return ready;
+}
 
 /** An assertion asking gatekeeper to lease the device's endpoint, signed as this API. */
 async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: GatekeeperSettings) {
@@ -73,28 +78,17 @@ async function leaseAssertion(device: AuthenticatedDevice, gatekeeper: Gatekeepe
 }
 
 /**
- * Exchange the assertion. Not through the controlplane SDK: one call at one version needs no handshake, and
- * gatekeeper answers 412 if it stops serving it. `forbidden` if gatekeeper will not admit the endpoint (it is denied,
- * or leased to another consumer); `relay_unavailable` for any other failure, which is gatekeeper's or this API's.
+ * Exchange the assertion. `forbidden` if gatekeeper will not admit the endpoint (it is denied, or leased to another
+ * consumer); `relay_unavailable` for any other failure, which is gatekeeper's or this API's.
  */
-async function exchange(assertion: string, gatekeeper: GatekeeperSettings): Promise<ExchangeResult> {
-  const response = await fetch(new URL('/grants/exchange', gatekeeper.url), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'operation-version': '1' },
-    body: JSON.stringify({ grant_assertion: assertion })
-  }).catch(cause => {
+async function exchange(assertion: string, gatekeeper: GatekeeperSettings): Promise<Grant> {
+  const client = await gatekeeperClient(gatekeeper.url).catch(cause => {
     throw new ApiFailure('relay_unavailable', { cause });
   });
-  const body: unknown = await response.json().catch(() => undefined);
-  if (response.ok) {
-    const result = ExchangeResultSchema.safeParse(body);
-    if (result.success) return result.data;
-    throw new ApiFailure('relay_unavailable', { cause: result.error });
-  }
-  const parsed = ExchangeFailureSchema.safeParse(body);
-  const code: ExchangeFailure['error'] = parsed.data?.error ?? 'unknown';
-  const cause = `Gatekeeper answered ${response.status} ${code}`;
-  throw new ApiFailure(code === 'invalid_endpoint_id' ? 'forbidden' : 'relay_unavailable', { cause });
+  const result = await client.grants.exchange.v1({ grant_assertion: assertion });
+  if (!(result instanceof Error)) return result;
+  const refused = result instanceof HttpError && result.code === 'invalid_endpoint_id';
+  throw new ApiFailure(refused ? 'forbidden' : 'relay_unavailable', { cause: result });
 }
 
 /** Lease the device's endpoint from gatekeeper, failing as `exchange` does. */
