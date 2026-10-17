@@ -55,11 +55,13 @@ export const irohLeases = pgTable(
   table => [index().on(table.endpointId, table.expiresAt), index().on(table.grantId)]
 );
 
-/** Consumer JWKS documents, persisted so isolates can share them and keep using them through short outages. */
+/** Consumer JWKS documents: the only cache of them, shared by every isolate and used through short outages. */
 export const jwksCache = pgTable('jwks_cache', {
   jwksUri: text('jwks_uri').primaryKey(),
   keys: jsonb('keys').notNull(),
   fetchedAt: instant('fetched_at').notNull(),
   freshUntil: instant('fresh_until').notNull(),
-  staleUntil: instant('stale_until').notNull()
+  staleUntil: instant('stale_until').notNull(),
+  /** The last refresh attempt since the last fetch, claimed so failures are retried at most once per interval. */
+  attemptedAt: instant('attempted_at')
 });

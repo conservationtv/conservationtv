@@ -7,9 +7,9 @@ import type { Access } from '@conservationtv/umbrella';
 import type { Database } from '../db/client.ts';
 import { self } from '../db/roles.ts';
 import { account, deviceCodes, passkeys, session, users, verification } from '../db/schema.ts';
-import type { Config } from '../config.ts';
+import type { Variables } from '../env/config.ts';
 import { endSessionBrowsers } from '../topology/browsers.ts';
-import type { Background } from '../services.ts';
+import type { Background } from '../env/env.ts';
 import type { OtpDelivery } from './otp.ts';
 
 /** The device-flow clients this API issues sessions to. */
@@ -20,7 +20,7 @@ export interface AuthDependencies {
   database: Database;
   /** The management API over the same owning connection, for provisioning grants. */
   access: Access;
-  config: Config;
+  variables: Variables;
   deliverOtp: OtpDelivery;
   background: Background;
 }
@@ -32,16 +32,16 @@ export interface AuthDependencies {
  * The CLI signs in with the OAuth device flow: it shows a code, the person approves it in the web app at
  * `/device`, and the token it receives is sent as a bearer token on every request.
  */
-export function createAuth({ database, access, config, deliverOtp, background }: AuthDependencies) {
-  const appUrl = new URL(config.APP_URL);
+export function createAuth({ database, access, variables, deliverOtp, background }: AuthDependencies) {
+  const appUrl = new URL(variables.APP_URL);
   const ensureSelfGrant = async (userId: string): Promise<void> => {
     await access.at(users.$access.scope.at(userId)).grant({ principal: principalOf(userId), role: self });
   };
   return betterAuth({
-    baseURL: config.APP_URL,
+    baseURL: variables.APP_URL,
     basePath: '/auth',
-    secret: config.BETTER_AUTH_SECRET,
-    trustedOrigins: config.WEB_ORIGINS,
+    secret: variables.BETTER_AUTH_SECRET,
+    trustedOrigins: variables.WEB_ORIGINS,
     database: drizzleAdapter(database, {
       provider: 'pg',
       schema: { user: users, session, account, verification, passkey: passkeys, deviceCode: deviceCodes }
@@ -66,13 +66,13 @@ export function createAuth({ database, access, config, deliverOtp, background }:
       passkey({
         rpID: appUrl.hostname,
         rpName: 'conservation.tv studio',
-        origin: [config.APP_URL, ...config.WEB_ORIGINS],
+        origin: [variables.APP_URL, ...variables.WEB_ORIGINS],
         // Discoverable credentials carry their account, so the web app can sign in with a passkey without asking for
         // (or storing) an email first.
         authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' }
       }),
       deviceAuthorization({
-        verificationUri: `${config.WEB_ORIGINS[0]}/device`,
+        verificationUri: `${variables.WEB_ORIGINS[0]}/device`,
         validateClient: clientId => DEVICE_CLIENTS.has(clientId)
       }),
       bearer()

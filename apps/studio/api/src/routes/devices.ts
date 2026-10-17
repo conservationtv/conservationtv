@@ -6,7 +6,7 @@ import { devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requireCaller, useCaller } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import { DEVICE_KINDS } from '../topology/device-kinds.ts';
 import { NetworkReferenceSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
@@ -72,9 +72,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const caller = useCaller();
-      const session = await services.session(caller);
+      const session = await environment.session(caller);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -108,9 +108,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { kind } = c.req.valid('query');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select(deviceColumns)
@@ -141,9 +141,9 @@ export default new Hono()
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select(deviceColumns)
@@ -186,9 +186,9 @@ export default new Hono()
     async c => {
       const { id, deviceId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [device] = await tx
           .update(devices)

@@ -4,8 +4,8 @@ import type { ConsumerRegistration, ConsumerRegistrations } from '../config/sche
 import { AssertionAlgorithmSchema } from '../config/schemas.ts';
 import { GrantError } from '../errors.ts';
 import { type Json, parseStrictJson } from '@conservationtv/versioned-api/server';
-import { useServices } from '../services.ts';
-import type { PublishedJwk } from './jwks.ts';
+import { useEnvironment } from '../env/env.ts';
+import { consumerKey, type PublishedJwk } from './jwks.ts';
 
 export const MAX_ASSERTION_LENGTH = 16_384;
 
@@ -110,7 +110,7 @@ function checkHeader(registration: ConsumerRegistration, header: ProtectedHeader
 
 /** Step 3: resolve the key from the registered JWKS only, and import it for exactly the registered algorithm. */
 async function resolveKey(registration: ConsumerRegistration, header: ProtectedHeader, algorithm: string) {
-  const jwk: PublishedJwk = await useServices().jwks.key(registration.authentication.jwks_uri, header.kid);
+  const jwk: PublishedJwk = await consumerKey(registration.authentication.jwks_uri, header.kid);
   if (jwk.alg !== undefined && jwk.alg !== algorithm) throw new GrantError('unknown_key');
   try {
     return await importJWK(jwk, algorithm);
@@ -134,8 +134,8 @@ async function verifySignature(token: string, key: Awaited<ReturnType<typeof imp
  * expired, ordered iat <= nbf < exp, and no longer-lived than the consumer's registered maximum.
  */
 function checkTimes(registration: ConsumerRegistration, claims: AssertionClaims) {
-  const now = Math.floor(useServices().clock() / 1000);
-  const skew = useServices().policy.clockSkewSeconds;
+  const now = Math.floor(useEnvironment().clock() / 1000);
+  const skew = useEnvironment().policy.clockSkewSeconds;
   if (claims.nbf < claims.iat || claims.exp <= claims.nbf) throw new GrantError('invalid_assertion');
   if (claims.exp - claims.iat > registration.authentication.max_assertion_lifetime_seconds) {
     throw new GrantError('invalid_assertion');

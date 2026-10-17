@@ -1,6 +1,8 @@
 {
   // Generation scripts and tool configs run under Node: Node's globals, not the Workers runtime's. Worker source they
-  // import is checked again here, so it must stay runtime-neutral (only src/index.ts touches Workers APIs).
+  // import is checked again here, so it must stay runtime-neutral (only src/index.ts touches Workers APIs). The DOM
+  // library is for the fetch types generated SDKs (the controlplane's, in src/gatekeeper) name, as Node provides them.
   "extends": "./tsconfig.json",
+  "compilerOptions": { "lib": ["es2024", "DOM"] },
   "include": ["scripts", "contracts.config.ts", "drizzle.config.ts"]
 }

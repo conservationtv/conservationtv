@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { agents, networks } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import type { Transaction } from '../organisations/membership.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
@@ -61,9 +61,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx.query.networks.findMany({ ...networkQuery, where: { organisationId: id }, orderBy: { id: 'asc' } })
       );
@@ -93,9 +93,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { name } = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [network] = await tx.insert(networks).values({ organisationId: id, name }).returning({ id: networks.id });
         const created = await readNetwork(tx, id, network!.id);
@@ -124,9 +124,9 @@ export default new Hono()
     validator('param', NetworkParamsSchema),
     async c => {
       const { id, networkId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(tx => readNetwork(tx, id, networkId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
@@ -156,9 +156,9 @@ export default new Hono()
     async c => {
       const { id, networkId } = c.req.valid('param');
       const { name } = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const updated = await tx
           .update(networks)
@@ -195,9 +195,9 @@ export default new Hono()
     validator('param', NetworkParamsSchema),
     async c => {
       const { id, networkId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       await session.transaction(async tx => {
         const deleted = await tx
           .delete(networks)
@@ -239,9 +239,9 @@ export default new Hono()
     async c => {
       const { id, networkId } = c.req.valid('param');
       const { agentId } = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const [network] = await tx
           .select({ id: networks.id })

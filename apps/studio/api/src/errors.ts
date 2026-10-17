@@ -26,7 +26,8 @@ const categories = {
   invalid_report: { status: 400, description: 'The report batch has a report observed in the future.' },
   invalid_signature: { status: 401, description: 'The request signature could not be verified.' },
   batch_too_large: { status: 413, description: 'The report batch is too large.' },
-  database_unavailable: { status: 503, description: 'The database is unavailable.' }
+  database_unavailable: { status: 503, description: 'The database is unavailable.' },
+  relay_unavailable: { status: 503, description: 'The relay cannot admit the device right now.' }
 } satisfies Record<string, ErrorCategory>;
 
 export type ApiFailureCode = keyof typeof categories;

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { users } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import {
   invalidRequest,
   notFound,
@@ -37,8 +37,8 @@ export default new Hono()
     requirePrincipal,
     async c => {
       const principal = usePrincipal();
-      const services = useServices();
-      const session = await services.session(principal);
+      const environment = useEnvironment();
+      const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
           .select({
@@ -87,8 +87,8 @@ export default new Hono()
     async c => {
       const principal = usePrincipal();
       const changes = c.req.valid('json');
-      const services = useServices();
-      const session = await services.session(principal);
+      const environment = useEnvironment();
+      const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx.update(users).set(changes).where(eq(users.id, principal.id)).returning({
           id: users.id,

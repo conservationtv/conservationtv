@@ -45,6 +45,13 @@ export default defineConfig({
        * Overridable from the environment, as APP_URL is.
        */
       IROH_RELAY_URL: bindings.text(process.env.IROH_RELAY_URL ?? 'https://euc1-1.relay.n0.iroh.link./'),
+      /**
+       * The control plane that leases devices' endpoints on a relay that requires it, as the controlplane's does. Set
+       * from the environment, with GRANT_SIGNING_KEYS; unset, as for n0's relay, sessions carry no lease.
+       */
+      ...(process.env.GATEKEEPER_URL ? { GATEKEEPER_URL: bindings.text(process.env.GATEKEEPER_URL) } : {}),
+      /** The keys this API signs its control plane grants with; see .dev.vars.example. */
+      GRANT_SIGNING_KEYS: bindings.secret(),
       /** How sign-in codes reach people. Only `log` exists; a deployment needs an email provider first. */
       OTP_DELIVERY: bindings.text('log')
     }
