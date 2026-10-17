@@ -1633,6 +1633,64 @@ export type PatchOrganisationsByIdDevicesByDeviceIdResponses = {
 
 export type PatchOrganisationsByIdDevicesByDeviceIdResponse = PatchOrganisationsByIdDevicesByDeviceIdResponses[keyof PatchOrganisationsByIdDevicesByDeviceIdResponses];
 
+export type GetOrganisationsByIdDevicesByDeviceIdKeyPairData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The device.
+         */
+        deviceId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/devices/{deviceId}/key-pair';
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdKeyPairError = GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors[keyof GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors];
+
+export type GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses = {
+    /**
+     * The key pair
+     */
+    200: {
+        privateKey: string;
+        publicKey: string;
+        publicId: string;
+    };
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdKeyPairResponse = GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses[keyof GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses];
+
 export type GetOrganisationsByIdCamerasData = {
     body?: never;
     path: {
