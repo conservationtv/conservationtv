@@ -156,7 +156,7 @@ Consumer registrations and endpoint denials are JSON arrays in the `CONSUMER_REG
 `src/config/registrations.ts`; override the bindings per deployment or in `.dev.vars` for local development.
 An override replaces the entire list, so `[]` explicitly clears it. Empty strings, malformed JSON, invalid entries
 and duplicate consumer identities fail every request rather than falling back to defaults.
-All bindings are validated by `src/config/env.ts` (ArkEnv over `process.env`) and cached on the first request in each
+All bindings are declared by `config` in `src/env/config.ts` (ArkEnv over `process.env`) and parsed on the first request in each
 isolate; apply changes through a deployment/restart.
 Revocation options are:
 
@@ -215,8 +215,10 @@ through `@conservationtv/gatekeeper/testing`, with isolated Postgres containers 
 
 Schema changes: edit `src/db/schema.ts`, then `pnpm db:generate` and commit the migration in `drizzle/`.
 
-Request handling reads its dependencies through `useServices()`, a `createStore` from `@conservationtv/store` (AsyncLocalStorage, `src/services.ts`). Only the
-production Worker entrypoint constructs those dependencies.
+Request handling reads its dependencies through `useEnvironment()`, a `createStore` from `@conservationtv/store`
+(AsyncLocalStorage, `src/env/env.ts`): the deployment's `variables` and the clients built from them. Only the
+production Worker entrypoint creates it, through `createEnvironment` (`src/env/config.ts`), whose `services`
+initialises every client that uses some configuration.
 
 ## Contracts, SDK and CLI
 
