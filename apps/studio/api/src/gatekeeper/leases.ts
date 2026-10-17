@@ -38,20 +38,22 @@ export interface IrohLease {
   expiresAt: string;
 }
 
-// One client per gatekeeper for the isolate, so only the first lease waits on its handshake; it handshakes again by
-// itself if gatekeeper changes versions. A failed handshake is not kept, so the next lease tries again.
-const clients = new Map<string, Promise<Client>>();
+// One client for the isolate, as the configuration is loaded once, so only the first lease waits on its handshake; it
+// handshakes again by itself if gatekeeper changes versions. A failed handshake is not kept, so the next lease tries
+// again.
+let client: Promise<Client> | undefined = undefined;
 
 /** The handshaken client for gatekeeper at `url`. */
 function gatekeeperClient(url: string): Promise<Client> {
-  let ready = clients.get(url);
-  if (ready === undefined) {
-    const client = new Client({ baseUrl: url });
-    ready = client.handshake().then(() => client);
-    ready.catch(() => clients.delete(url));
-    clients.set(url, ready);
+  if (client === undefined) {
+    const created = new Client({ baseUrl: url });
+    const ready = created.handshake().then(() => created);
+    ready.catch(() => {
+      client = undefined;
+    });
+    client = ready;
   }
-  return ready;
+  return client;
 }
 
 /** An assertion asking gatekeeper to lease the device's endpoint, signed as this API. */
