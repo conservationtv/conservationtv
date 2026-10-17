@@ -1,3 +1,4 @@
+import type { Client as GatekeeperClient } from '@conservationtv/controlplane-sdk';
 import { createStore } from '@conservationtv/store';
 import type { Principal, Session } from '@conservationtv/umbrella';
 import type { Auth } from './auth/auth.ts';
@@ -26,6 +27,8 @@ export interface Services {
   /** The principal's request session over the application connection: every protected query runs inside it. */
   session(principal: Principal): Promise<Session<Database>>;
   auth(): Promise<Auth>;
+  /** The deployment's gatekeeper, handshaken; rejects if it names none, or the handshake fails. */
+  gatekeeper(): Promise<GatekeeperClient>;
 }
 
 const ServicesStore = createStore<Services>('services');
