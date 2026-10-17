@@ -8,6 +8,7 @@ import { requireCaller, useCaller } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import { DEVICE_KINDS } from '../topology/device-kinds.ts';
+import { deviceKeyPair } from '../topology/identity.ts';
 import { NetworkReferenceSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
@@ -50,7 +51,8 @@ export const deviceColumns = {
 
 // An organisation's devices, in the principal's request session: members read them, administrators rename and move
 // them. A device is created and removed as its kind: under /agents or /cameras, which share its ID, or as a session's
-// browser (/browser). Devices themselves, signing their requests, read only the organisation's public IDs.
+// browser (/browser). Administrators alone read a device's private key. Devices themselves, signing their requests, read
+// only the organisation's public IDs.
 export default new Hono()
   .get(
     '/allowlist',
@@ -153,6 +155,35 @@ export default new Hono()
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
+    }
+  )
+  .get(
+    '/:deviceId/key-pair',
+    describeRoute({
+      operationId: 'organisations.devices.getKeyPair',
+      ...operationVersion(1),
+      summary: "Read a device's key pair",
+      description:
+        'Administrators only. The Ed25519 identity the device was created with: its public key (unpadded base64url), its public ID (the iroh endpoint ID, lowercase hex) and its private key (the raw 32-byte seed, unpadded base64url), so the device can be provisioned to act as it.',
+      responses: {
+        200: { description: 'The key pair' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', DeviceParamsSchema),
+    async c => {
+      const { id, deviceId } = c.req.valid('param');
+      const principal = usePrincipal();
+      const keyPair = await deviceKeyPair(principal, id, deviceId);
+      const privateKey = Buffer.from(keyPair.privateKey).toString('base64url');
+      c.header('Cache-Control', 'no-store');
+      return c.json({ ...keyPair, privateKey }, 200);
     }
   )
   .patch(

@@ -3944,6 +3944,129 @@
         ]
       }
     },
+    "/organisations/{id}/devices/{deviceId}/key-pair": {
+      "get": {
+        "operationId": "organisations.devices.getKeyPair",
+        "x-operation-version": 1,
+        "summary": "Read a device's key pair",
+        "description": "Administrators only. The Ed25519 identity the device was created with: its public key (unpadded base64url), its public ID (the iroh endpoint ID, lowercase hex) and its private key (the raw 32-byte seed, unpadded base64url), so the device can be provisioned to act as it.",
+        "responses": {
+          "200": {
+            "description": "The key pair",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "privateKey": {
+                      "type": "string"
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "privateKey",
+                    "publicKey",
+                    "publicId"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The resource is visible, but this account may not do this to it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "deviceId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The device."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
     "/organisations/{id}/cameras": {
       "get": {
         "operationId": "organisations.cameras.list",
@@ -12883,6 +13006,180 @@
               },
               "401": {
                 "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "deviceId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The device."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Device": {
+            "type": "object",
+            "properties": {
+              "privateKey": {
+                "type": "string"
+              },
+              "publicKey": {
+                "type": "string"
+              },
+              "publicId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "privateKey",
+              "publicKey",
+              "publicId"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/devices/{deviceId}/key-pair": {
+          "get": {
+            "operationId": "organisations.devices.getKeyPair",
+            "x-operation-version": 1,
+            "summary": "Read a device's key pair",
+            "description": "Administrators only. The Ed25519 identity the device was created with: its public key (unpadded base64url), its public ID (the iroh endpoint ID, lowercase hex) and its private key (the raw 32-byte seed, unpadded base64url), so the device can be provisioned to act as it.",
+            "responses": {
+              "200": {
+                "description": "The key pair",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Device"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The resource is visible, but this account may not do this to it",
                 "content": {
                   "application/json": {
                     "schema": {

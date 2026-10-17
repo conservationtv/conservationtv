@@ -719,6 +719,26 @@ export const PatchOrganisationsByIdDevicesByDeviceIdPathSchema = z.object({
  */
 export const PatchOrganisationsByIdDevicesByDeviceIdResponseSchema = DeviceSchema;
 
+export const GetOrganisationsByIdDevicesByDeviceIdKeyPairPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The device.'
+    })
+});
+
+/**
+ * The key pair
+ */
+export const GetOrganisationsByIdDevicesByDeviceIdKeyPairResponseSchema = z.object({
+    privateKey: z.string(),
+    publicKey: z.string(),
+    publicId: z.string()
+}).register(z.globalRegistry, {
+    description: 'The key pair'
+});
+
 export const GetOrganisationsByIdCamerasPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
