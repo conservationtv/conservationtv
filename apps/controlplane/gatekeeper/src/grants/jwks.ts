@@ -4,7 +4,7 @@ import type { JwksUri } from '../config/schemas.ts';
 import { jwksCache } from '../db/schema.ts';
 import { GrantError } from '../errors.ts';
 import { parseStrictJson } from '@conservationtv/versioned-api/server';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 
 const MAX_DOCUMENT_BYTES = 64 * 1024;
 const MAX_KEYS = 16;
@@ -104,7 +104,7 @@ async function readLimited(response: Response): Promise<string> {
 
 /** Only the registered URI is fetched. Redirects are refused rather than followed to a host nobody registered. */
 async function download(uri: JwksUri): Promise<KeySet> {
-  const { fetch, clock } = useServices();
+  const { fetch, clock } = useEnvironment();
   const response = await fetch(uri, {
     redirect: 'manual',
     headers: { accept: 'application/jwk-set+json, application/json' },
@@ -122,7 +122,7 @@ async function download(uri: JwksUri): Promise<KeySet> {
 
 /** The persisted set for the URI, if there is one. */
 async function restore(uri: JwksUri): Promise<KeySet | undefined> {
-  const db = await useServices().database();
+  const db = await useEnvironment().database();
   const [row] = await db.select().from(jwksCache).where(eq(jwksCache.jwksUri, uri)).limit(1);
   const keys = StoredKeysSchema.safeParse(row?.keys);
   if (!row || !keys.success) return undefined;
@@ -137,7 +137,7 @@ async function restore(uri: JwksUri): Promise<KeySet | undefined> {
 /** A failure to persist must not fail an exchange that already has valid keys; the next one fetches again. */
 async function persist(uri: JwksUri, entry: KeySet): Promise<void> {
   try {
-    const db = await useServices().database();
+    const db = await useEnvironment().database();
     const values = {
       keys: entry.keys,
       fetchedAt: new Date(entry.fetchedAt),
@@ -167,7 +167,7 @@ async function refresh(uri: JwksUri): Promise<KeySet> {
  */
 async function claimRefresh(uri: JwksUri, now: number): Promise<boolean> {
   const cutoff = new Date(now - REFRESH_INTERVAL_MS);
-  const db = await useServices().database();
+  const db = await useEnvironment().database();
   const claimed = await db
     .update(jwksCache)
     .set({ attemptedAt: new Date(now) })
@@ -207,7 +207,7 @@ async function optional(uri: JwksUri, current: KeySet, now: number): Promise<Key
  * Nothing is kept in the isolate between requests.
  */
 export async function consumerKey(uri: JwksUri, kid: string): Promise<PublishedJwk> {
-  const now = useServices().clock();
+  const now = useEnvironment().clock();
   let entry = await restore(uri);
   // Fail closed once the stale-use period has elapsed; otherwise prefer cached keys over a live request.
   if (!entry || now >= entry.staleUntil) entry = await required(uri);
