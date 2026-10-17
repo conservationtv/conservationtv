@@ -1,6 +1,6 @@
 # AI Usage Policy
 
-A human must be responsible for all contributions to this project. We do accept code that was written by coding agents but contributors are expected to understand and verify all the code in their contribution. No fully automated contributions are accepted.
+A human must be responsible for all contributions to this project. We accept code that was written by coding agents but contributors are expected to understand and verify all the code in their contribution. No fully automated contributions are accepted.
 
 We do not accept AI generated images, illustrations or art. As a rule, we do not accept AI written or edited prose for our knowledge base, guides and FAQs. That includes localisations and translations.
 
