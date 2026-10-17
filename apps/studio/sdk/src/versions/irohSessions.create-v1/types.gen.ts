@@ -9,16 +9,18 @@ export type Error = {
     error_description: string;
 };
 
+export type Relay = {
+    url: string;
+    quicPort?: number;
+    authToken?: string;
+};
+
 export type IrohSession = {
     relays: {
         type: 'n0';
     } | {
         type: 'custom';
-        relays: Array<{
-            url: string;
-            quicPort?: number;
-            authToken?: string;
-        }>;
+        relays: Array<Relay>;
     };
 };
 

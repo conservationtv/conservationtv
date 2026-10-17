@@ -8,7 +8,14 @@ import { bindEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import status from './routes/status.ts';
 
-export { useConfig, type AgentConfiguration } from './config.ts';
+export {
+  useConfig,
+  type AgentConfiguration,
+  type ConservationTvConfiguration,
+  type DirectConfiguration
+} from './config.ts';
+// A direct agent's session takes the studio API's form, so hosts can check its relays against the API's schema.
+export { RelaySchema, type IrohSession } from '@conservationtv/studio-sdk';
 
 /** Every request arrives over iroh, from a peer the QUIC handshake authenticated: `peer` is its endpoint id. */
 export interface AgentBindings {
@@ -37,7 +44,7 @@ export class Agent {
   async start() {
     if (this.server !== undefined) throw new Error('The agent is already started');
     const config = this.config;
-    console.log(JSON.stringify({ event: 'starting', name: config.name }));
+    console.log(JSON.stringify({ event: 'starting', name: config.name, type: config.type }));
 
     const endpoint = await bindEndpoint(config);
 
