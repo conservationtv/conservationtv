@@ -1,0 +1,1 @@
+ALTER TABLE "jwks_cache" ADD COLUMN "attempted_at" timestamp with time zone;

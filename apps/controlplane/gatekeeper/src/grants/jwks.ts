@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { z } from 'zod';
 import type { JwksUri } from '../config/schemas.ts';
 import { jwksCache } from '../db/schema.ts';
@@ -14,7 +14,7 @@ const MIN_FRESH_SECONDS = 60;
 const MAX_FRESH_SECONDS = 3_600;
 /** How long a cached set stays usable after it should have been refreshed, covering short consumer JWKS outages. */
 const STALE_USE_SECONDS = 3_600;
-/** Optional refreshes (stale sets, unknown `kid`s) are attempted at most this often per JWKS URI. */
+/** Optional refreshes (stale sets, unknown `kid`s) are attempted at most this often per JWKS URI, by any isolate. */
 const REFRESH_INTERVAL_MS = 30_000;
 
 /** A published verification key, reduced to the members the verifier uses. */
@@ -120,96 +120,104 @@ async function download(uri: JwksUri): Promise<KeySet> {
   return { keys: verificationKeys(document), fetchedAt, freshUntil, staleUntil: freshUntil + STALE_USE_SECONDS * 1000 };
 }
 
+/** The persisted set for the URI, if there is one. */
+async function restore(uri: JwksUri): Promise<KeySet | undefined> {
+  const db = await useServices().database();
+  const [row] = await db.select().from(jwksCache).where(eq(jwksCache.jwksUri, uri)).limit(1);
+  const keys = StoredKeysSchema.safeParse(row?.keys);
+  if (!row || !keys.success) return undefined;
+  return {
+    keys: keys.data,
+    fetchedAt: row.fetchedAt.getTime(),
+    freshUntil: row.freshUntil.getTime(),
+    staleUntil: row.staleUntil.getTime()
+  };
+}
+
+/** A failure to persist must not fail an exchange that already has valid keys; the next one fetches again. */
+async function persist(uri: JwksUri, entry: KeySet): Promise<void> {
+  try {
+    const db = await useServices().database();
+    const values = {
+      keys: entry.keys,
+      fetchedAt: new Date(entry.fetchedAt),
+      freshUntil: new Date(entry.freshUntil),
+      staleUntil: new Date(entry.staleUntil),
+      attemptedAt: null
+    };
+    await db
+      .insert(jwksCache)
+      .values({ jwksUri: uri, ...values })
+      .onConflictDoUpdate({ target: jwksCache.jwksUri, set: values });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: 'jwks_persist_failed', uri, error: String(error) }));
+  }
+}
+
+/** Download and persist the set. */
+async function refresh(uri: JwksUri): Promise<KeySet> {
+  const entry = await download(uri);
+  await persist(uri, entry);
+  return entry;
+}
+
 /**
- * Consumer key sets, cached in isolate memory and persisted so other isolates (and restarts) start warm. Normal
+ * Claim the URI's next optional refresh, if neither a fetch nor a failed attempt happened in the last interval. The
+ * claim is one conditional update, so across every isolate only one exchange per interval contacts the consumer.
+ */
+async function claimRefresh(uri: JwksUri, now: number): Promise<boolean> {
+  const cutoff = new Date(now - REFRESH_INTERVAL_MS);
+  const db = await useServices().database();
+  const claimed = await db
+    .update(jwksCache)
+    .set({ attemptedAt: new Date(now) })
+    .where(
+      and(
+        eq(jwksCache.jwksUri, uri),
+        lte(jwksCache.fetchedAt, cutoff),
+        or(isNull(jwksCache.attemptedAt), lte(jwksCache.attemptedAt, cutoff))
+      )
+    )
+    .returning({ jwksUri: jwksCache.jwksUri });
+  return claimed.length > 0;
+}
+
+/** A set is needed and none is usable: the exchange depends on the consumer's JWKS. */
+async function required(uri: JwksUri): Promise<KeySet> {
+  try {
+    return await refresh(uri);
+  } catch (error) {
+    throw new GrantError('relay_unavailable', { cause: error });
+  }
+}
+
+/** Refresh if the claim allows, keeping the current set when it doesn't or the refresh fails. */
+async function optional(uri: JwksUri, current: KeySet, now: number): Promise<KeySet> {
+  if (!(await claimRefresh(uri, now))) return current;
+  return refresh(uri).catch(error => {
+    console.warn(JSON.stringify({ event: 'jwks_refresh_failed', uri, error: String(error) }));
+    return current;
+  });
+}
+
+/**
+ * The consumer's verification key `kid`, from its key set persisted in Postgres and shared by every isolate. Normal
  * validation never waits on the network: a fresh set is used as is, a stale one is refreshed opportunistically and
  * still used if the refresh fails, and only a missing or expired set makes the exchange depend on the consumer's JWKS.
+ * Nothing is kept in the isolate between requests.
  */
-export class JwksCache {
-  private readonly entries = new Map<string, KeySet>();
-  private readonly pending = new Map<string, Promise<KeySet>>();
-  private readonly attempted = new Map<string, number>();
-
-  async key(uri: JwksUri, kid: string): Promise<PublishedJwk> {
-    const now = useServices().clock();
-    let entry = this.entries.get(uri) ?? (await this.restore(uri));
-    // Fail closed once the stale-use period has elapsed; otherwise prefer cached keys over a live request.
-    if (!entry || now >= entry.staleUntil) entry = await this.required(uri);
-    else if (now >= entry.freshUntil) entry = await this.optional(uri, entry, now);
-    let key = entry.keys.find(candidate => candidate.kid === kid);
-    // An unknown kid may be a newly rotated key: allow one rate-limited refresh before rejecting it.
-    if (!key && now - entry.fetchedAt >= REFRESH_INTERVAL_MS) {
-      entry = await this.optional(uri, entry, now);
-      key = entry.keys.find(candidate => candidate.kid === kid);
-    }
-    if (!key) throw new GrantError('unknown_key');
-    return key;
+export async function consumerKey(uri: JwksUri, kid: string): Promise<PublishedJwk> {
+  const now = useServices().clock();
+  let entry = await restore(uri);
+  // Fail closed once the stale-use period has elapsed; otherwise prefer cached keys over a live request.
+  if (!entry || now >= entry.staleUntil) entry = await required(uri);
+  else if (now >= entry.freshUntil) entry = await optional(uri, entry, now);
+  let key = entry.keys.find(candidate => candidate.kid === kid);
+  // An unknown kid may be a newly rotated key: allow one rate-limited refresh before rejecting it.
+  if (!key) {
+    entry = await optional(uri, entry, now);
+    key = entry.keys.find(candidate => candidate.kid === kid);
   }
-
-  private async required(uri: JwksUri): Promise<KeySet> {
-    try {
-      return await this.refresh(uri);
-    } catch (error) {
-      throw new GrantError('relay_unavailable', { cause: error });
-    }
-  }
-
-  private async optional(uri: JwksUri, current: KeySet, now: number): Promise<KeySet> {
-    if (now - (this.attempted.get(uri) ?? 0) < REFRESH_INTERVAL_MS) return current;
-    return this.refresh(uri).catch(error => {
-      console.warn(JSON.stringify({ event: 'jwks_refresh_failed', uri, error: String(error) }));
-      return current;
-    });
-  }
-
-  /** Concurrent refreshes of one URI share a single request. */
-  private refresh(uri: JwksUri): Promise<KeySet> {
-    let request = this.pending.get(uri);
-    if (!request) {
-      this.attempted.set(uri, useServices().clock());
-      request = download(uri)
-        .then(async entry => {
-          this.entries.set(uri, entry);
-          await this.persist(uri, entry);
-          return entry;
-        })
-        .finally(() => this.pending.delete(uri));
-      this.pending.set(uri, request);
-    }
-    return request;
-  }
-
-  private async restore(uri: JwksUri): Promise<KeySet | undefined> {
-    const db = await useServices().database();
-    const [row] = await db.select().from(jwksCache).where(eq(jwksCache.jwksUri, uri)).limit(1);
-    const keys = StoredKeysSchema.safeParse(row?.keys);
-    if (!row || !keys.success) return undefined;
-    const entry = {
-      keys: keys.data,
-      fetchedAt: row.fetchedAt.getTime(),
-      freshUntil: row.freshUntil.getTime(),
-      staleUntil: row.staleUntil.getTime()
-    };
-    this.entries.set(uri, entry);
-    return entry;
-  }
-
-  /** Persistence is an optimisation; a failure here must not fail an exchange that already has valid keys. */
-  private async persist(uri: JwksUri, entry: KeySet): Promise<void> {
-    try {
-      const db = await useServices().database();
-      const values = {
-        keys: entry.keys,
-        fetchedAt: new Date(entry.fetchedAt),
-        freshUntil: new Date(entry.freshUntil),
-        staleUntil: new Date(entry.staleUntil)
-      };
-      await db
-        .insert(jwksCache)
-        .values({ jwksUri: uri, ...values })
-        .onConflictDoUpdate({ target: jwksCache.jwksUri, set: values });
-    } catch (error) {
-      console.warn(JSON.stringify({ event: 'jwks_persist_failed', uri, error: String(error) }));
-    }
-  }
+  if (!key) throw new GrantError('unknown_key');
+  return key;
 }

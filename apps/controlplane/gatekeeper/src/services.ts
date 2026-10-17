@@ -2,7 +2,6 @@ import { createStore } from '@conservationtv/store';
 import type { Config } from './config/env.ts';
 import type { PolicyConfig } from './config/schemas.ts';
 import { connectLazily, type Database } from './db/client.ts';
-import { JwksCache } from './grants/jwks.ts';
 import { loadMoqKeyring, type MoqKeyring } from './moq/keys.ts';
 
 const CLOCK_SKEW_SECONDS = 30;
@@ -21,7 +20,6 @@ export interface Services {
   /** Used only for consumer JWKS retrieval. */
   fetch: typeof fetch;
   clock: Clock;
-  jwks: JwksCache;
   moqKeys(): Promise<MoqKeyring>;
   irohRelayToken: string;
   moqRelayToken: string;
@@ -31,8 +29,7 @@ export interface Services {
 const ServicesStore = createStore<Services>('services');
 export const [withServices, useServices] = ServicesStore;
 
-// Isolate-wide state: the JWKS cache and the imported signing keys outlive individual requests.
-const jwks = new JwksCache();
+// Isolate-wide state: the imported signing keys outlive individual requests.
 let moqKeyring: Promise<MoqKeyring> | undefined = undefined;
 
 /** One request's (or scheduled run's) services, and `close` to end its connection once the work is done. */
@@ -48,7 +45,6 @@ export function servicesFor(config: Config, connectionString: string) {
     database: connection.database,
     fetch: (input, init) => fetch(input, init),
     clock: Date.now,
-    jwks,
     moqKeys: () => {
       if (moqKeyring === undefined) moqKeyring = loadMoqKeyring(config.MOQ_SIGNING_KEYS);
       return moqKeyring;
