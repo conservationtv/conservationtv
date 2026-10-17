@@ -450,3 +450,7 @@ export const ReportSubmitParamsSchema = z.object({
 });
 
 export type ReportSubmitParams = z.infer<typeof ReportSubmitParamsSchema>;
+
+export const IrohSessionCreateParamsSchema = z.object({});
+
+export type IrohSessionCreateParams = z.infer<typeof IrohSessionCreateParamsSchema>;

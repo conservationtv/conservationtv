@@ -268,6 +268,22 @@ export const ReportSchema = z.object({
     accepted: z.number()
 });
 
+export const IrohSessionSchema = z.object({
+    relays: z.union([
+        z.object({
+            type: z.literal('n0')
+        }),
+        z.object({
+            type: z.literal('custom'),
+            relays: z.array(z.object({
+                url: z.string(),
+                quicPort: z.number().optional(),
+                authToken: z.string().optional()
+            }))
+        })
+    ])
+});
+
 /**
  * The server is ready
  */
@@ -1507,3 +1523,8 @@ export const PostReportsBodySchema = z.object({
  * Accepted
  */
 export const PostReportsResponseSchema = ReportSchema;
+
+/**
+ * The relays to use
+ */
+export const PostIrohSessionsResponseSchema = IrohSessionSchema;

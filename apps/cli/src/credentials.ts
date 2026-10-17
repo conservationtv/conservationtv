@@ -1,6 +1,7 @@
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { DeviceIdentity } from '@conservationtv/studio-sdk';
 import { z } from 'zod';
 import { apiUrl } from './api.js';
 import { LoginError } from './errors.js';
@@ -102,7 +103,8 @@ export function currentProfile(credential: Credential): Profile {
   return credential.profiles[credential.current]!;
 }
 
-/** The device's private key as the secret key bytes iroh takes. */
-export function secretKeyOf(device: Device): Uint8Array {
-  return new Uint8Array(Buffer.from(device.privateKey, 'base64url'));
+/** The device's identity, from its stored private key. */
+export function identityOf(device: Device): Promise<DeviceIdentity> {
+  const secretKey = new Uint8Array(Buffer.from(device.privateKey, 'base64url'));
+  return DeviceIdentity.fromSecretKey(secretKey);
 }

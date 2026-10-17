@@ -3,7 +3,11 @@ import closeWithGrace from 'close-with-grace';
 import { loadConfig } from './config.ts';
 
 const config = loadConfig();
-const agent = new Agent({ name: config.AGENT_NAME, secretKey: config.AGENT_SECRET_KEY });
+const agent = new Agent({
+  name: config.AGENT_NAME,
+  studioUrl: config.STUDIO_API_URL,
+  secretKey: config.AGENT_SECRET_KEY
+});
 
 // A signal, an uncaught error or an unhandled rejection all stop the agent once. A second signal, or the delay
 // running out, exits immediately; an error exits non-zero.
