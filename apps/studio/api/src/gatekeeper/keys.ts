@@ -33,7 +33,7 @@ export interface GrantSigner {
   key: Awaited<ReturnType<typeof importJWK>>;
 }
 
-// Imported once per isolate, as the configuration is loaded once.
+// Imported once per isolate, as the variables are parsed once.
 const signers = new WeakMap<GrantSigningKeys, Promise<GrantSigner>>();
 
 /** The active key, ready to sign. */

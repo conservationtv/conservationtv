@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes } from 'node:crypto';
 import { customType } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 
 // Fields encrypted at rest, application-side, so the database and its backups only ever hold ciphertext. Each column
 // seals under a subkey of the field key derived for its purpose. Equality lookups go through a blind index: a keyed
@@ -21,8 +21,8 @@ const KEY_VERSION = 1;
  * its info. The field key is already uniformly random, so the salt is empty.
  */
 const derive = (label: string) => {
-  const services = useServices();
-  return Buffer.from(hkdfSync('sha256', services.config.FIELD_KEY, new Uint8Array(), label, 32));
+  const environment = useEnvironment();
+  return Buffer.from(hkdfSync('sha256', environment.variables.FIELD_KEY, new Uint8Array(), label, 32));
 };
 
 /** `version ‖ iv ‖ tag ‖ ciphertext`. */

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { cameras, devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useServices } from '../services.ts';
+import { useEnvironment } from '../env/env.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { deviceIdentity } from '../topology/identity.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
@@ -64,9 +64,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx.query.cameras.findMany({ ...cameraQuery, where: { organisationId: id }, orderBy: { id: 'asc' } })
       );
@@ -140,9 +140,9 @@ export default new Hono()
     validator('param', CameraParamsSchema),
     async c => {
       const { id, cameraId } = c.req.valid('param');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(tx => readCamera(tx, id, cameraId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
@@ -173,9 +173,9 @@ export default new Hono()
     async c => {
       const { id, cameraId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const services = useServices();
+      const environment = useEnvironment();
       const principal = usePrincipal();
-      const session = await services.session(principal);
+      const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
         const updated = await tx
           .update(cameras)

@@ -13,41 +13,41 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 
 ## Endpoints
 
-| Route            | Audience | Contract                                                 |
-| ---------------- | -------- | -------------------------------------------------------- |
-| `GET /health`    | anyone   | `health.get`, versionless                                |
-| `GET /account`   | accounts | `account.get` v1: the signed-in account                  |
-| `PATCH /account` | accounts | `account.update` v1: its profile fields (`name`, `image`) |
-| `GET /organisations` | accounts | `organisations.list` v1: the organisations it is a member of |
-| `POST /organisations` | accounts | `organisations.create` v1: a new organisation, administered by its creator |
-| `GET /organisations/{id}` | members | `organisations.get` v1 |
-| `PATCH /organisations/{id}` | administrators | `organisations.update` v1: its `name` |
-| `DELETE /organisations/{id}` | global administrators | `organisations.delete` v1: with its memberships, profiles, invitations and grants |
-| `GET /organisations/{id}/members` | members | `organisations.members.list` v1: the directory, with each member's profile |
-| `PATCH /organisations/{id}/members/me` | members | `organisations.members.updateSelf` v1: your `displayName` there |
-| `DELETE /organisations/{id}/members/{userId}` | administrators, or `me` | `organisations.members.remove` v1: remove a member, or leave |
-| `GET /organisations/{id}/invitations` | administrators | `organisations.invitations.list` v1 |
-| `POST /organisations/{id}/invitations` | administrators | `organisations.invitations.create` v1: an `email` (sent a link) or a `userId` |
-| `DELETE /organisations/{id}/invitations/{invitationId}` | administrators | `organisations.invitations.cancel` v1 |
-| `GET /invitations` | accounts | `invitations.listMine` v1: open invitations to the signed-in account |
-| `GET /invitations/{id}` | anyone with the link | `invitations.get` v1: the organisation it is for |
-| `POST /invitations/{id}/accept` | invitees | `invitations.accept` v1: join, with a `displayName` and an emailed invitation's `code` |
-| `POST /invitations/{id}/decline` | invitees | `invitations.decline` v1 |
-| `GET`, `POST /organisations/{id}/networks`; `GET`, `PATCH`, `DELETE …/networks/{networkId}` | members read, administrators write | `organisations.networks.*` v1 |
-| `PUT /organisations/{id}/networks/{networkId}/active-agent` | administrators | `organisations.networks.setActiveAgent` v1 |
-| `GET /organisations/{id}/devices`; `GET`, `PATCH …/devices/{deviceId}` | members read, administrators rename and move | `organisations.devices.*` v1: every kind |
-| `GET /organisations/{id}/devices/allowlist` | members, and devices by signature | `organisations.devices.allowlist` v1: for iroh allowlists |
-| `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}` | members read, administrators write | `organisations.cameras.*` v1 |
-| `PUT /organisations/{id}/browser` | members | `organisations.browser.ensure` v1: this session's browser device, with its private key |
-| `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}` | members read, administrators write | `organisations.agents.*` v1 |
-| `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision` | members read, administrators write | `organisations.agents.revisions.*`, `serveRevision` v1 |
-| `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}` | members read, administrators write | `organisations.streams.*` v1 |
-| `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
-| `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs` | members | `organisations.subjects.*` v1 |
-| `POST /reports` | devices, by signature | `reports.submit` v1: a batch of events, metrics and logs |
-| `POST /iroh-sessions` | devices, by signature | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
-| `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
-| `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
+| Route                                                                                       | Audience                                     | Contract                                                                                                 |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `GET /health`                                                                               | anyone                                       | `health.get`, versionless                                                                                |
+| `GET /account`                                                                              | accounts                                     | `account.get` v1: the signed-in account                                                                  |
+| `PATCH /account`                                                                            | accounts                                     | `account.update` v1: its profile fields (`name`, `image`)                                                |
+| `GET /organisations`                                                                        | accounts                                     | `organisations.list` v1: the organisations it is a member of                                             |
+| `POST /organisations`                                                                       | accounts                                     | `organisations.create` v1: a new organisation, administered by its creator                               |
+| `GET /organisations/{id}`                                                                   | members                                      | `organisations.get` v1                                                                                   |
+| `PATCH /organisations/{id}`                                                                 | administrators                               | `organisations.update` v1: its `name`                                                                    |
+| `DELETE /organisations/{id}`                                                                | global administrators                        | `organisations.delete` v1: with its memberships, profiles, invitations and grants                        |
+| `GET /organisations/{id}/members`                                                           | members                                      | `organisations.members.list` v1: the directory, with each member's profile                               |
+| `PATCH /organisations/{id}/members/me`                                                      | members                                      | `organisations.members.updateSelf` v1: your `displayName` there                                          |
+| `DELETE /organisations/{id}/members/{userId}`                                               | administrators, or `me`                      | `organisations.members.remove` v1: remove a member, or leave                                             |
+| `GET /organisations/{id}/invitations`                                                       | administrators                               | `organisations.invitations.list` v1                                                                      |
+| `POST /organisations/{id}/invitations`                                                      | administrators                               | `organisations.invitations.create` v1: an `email` (sent a link) or a `userId`                            |
+| `DELETE /organisations/{id}/invitations/{invitationId}`                                     | administrators                               | `organisations.invitations.cancel` v1                                                                    |
+| `GET /invitations`                                                                          | accounts                                     | `invitations.listMine` v1: open invitations to the signed-in account                                     |
+| `GET /invitations/{id}`                                                                     | anyone with the link                         | `invitations.get` v1: the organisation it is for                                                         |
+| `POST /invitations/{id}/accept`                                                             | invitees                                     | `invitations.accept` v1: join, with a `displayName` and an emailed invitation's `code`                   |
+| `POST /invitations/{id}/decline`                                                            | invitees                                     | `invitations.decline` v1                                                                                 |
+| `GET`, `POST /organisations/{id}/networks`; `GET`, `PATCH`, `DELETE …/networks/{networkId}` | members read, administrators write           | `organisations.networks.*` v1                                                                            |
+| `PUT /organisations/{id}/networks/{networkId}/active-agent`                                 | administrators                               | `organisations.networks.setActiveAgent` v1                                                               |
+| `GET /organisations/{id}/devices`; `GET`, `PATCH …/devices/{deviceId}`                      | members read, administrators rename and move | `organisations.devices.*` v1: every kind                                                                 |
+| `GET /organisations/{id}/devices/allowlist`                                                 | members, and devices by signature            | `organisations.devices.allowlist` v1: for iroh allowlists                                                |
+| `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}`    | members read, administrators write           | `organisations.cameras.*` v1                                                                             |
+| `PUT /organisations/{id}/browser`                                                           | members                                      | `organisations.browser.ensure` v1: this session's browser device, with its private key                   |
+| `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}`       | members read, administrators write           | `organisations.agents.*` v1                                                                              |
+| `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision`                 | members read, administrators write           | `organisations.agents.revisions.*`, `serveRevision` v1                                                   |
+| `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}`    | members read, administrators write           | `organisations.streams.*` v1                                                                             |
+| `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete)                    | administrators                               | `organisations.streams.exposures.*`, `.recorders.*` v1                                                   |
+| `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs`   | members                                      | `organisations.subjects.*` v1                                                                            |
+| `POST /reports`                                                                             | devices, by signature                        | `reports.submit` v1: a batch of events, metrics and logs                                                 |
+| `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
+| `GET /openapi.json`                                                                         | SDK/CLI                                      | the published capability bundle                                                                          |
+| `/auth/*`                                                                                   | accounts                                     | Better Auth's routes, hidden from the contract                                                           |
 
 Request and response fields are camelCase. Failures use the shared `{ "error", "error_description" }`: 400 for malformed requests, 401 without a session, 403 when the row
 is visible but the account may not change it (or `invalid_invitation_code`), 404 when the row is not visible to the
@@ -86,24 +86,24 @@ Auth creates an account, a `databaseHooks.user.create.after` hook grants `self` 
 verification and creation time are immutable through request sessions.
 
 `src/access.ts` compiles the definitions once with `defineAuthorization`. Handlers run queries inside
-`useServices().session(principal)`, a session over the application connection only, so an account can only ever read or
+`useEnvironment().session(principal)`, a session over the application connection only, so an account can only ever read or
 update its own row; a different account's row is simply absent. Only Better Auth's provisioning hooks and the membership operations (see [Organisations](#organisations)) hold
 `authorization.access(admin)`, and a request that never grants opens no admin connection. Umbrella needs two database roles, so there are two Hyperdrive
 bindings:
 
-| Binding               | Kind       | Purpose                                                                 |
-| --------------------- | ---------- | ----------------------------------------------------------------------- |
-| `HYPERDRIVE_ADMIN`    | Hyperdrive | the owning role: migrations, Better Auth, grants                         |
-| `HYPERDRIVE_APP`      | Hyperdrive | the application role (`studio_app`): request sessions, under RLS        |
-| `CACHE`               | KV         | the key-value cache: device request nonces                                |
-| `BETTER_AUTH_SECRET`  | secret     | Better Auth's signing secret                                            |
-| `FIELD_KEY`           | secret     | base64 32-byte master key for encrypted columns and blind indexes       |
-| `APP_URL`             | text       | where the API is served; Better Auth's base URL and passkey relying party |
-| `WEB_ORIGINS`         | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
-| `OTP_DELIVERY`        | text       | `log` only, see above                                                   |
-| `IROH_RELAY_URL`      | text       | the iroh relay every device's session uses (`irohSessions.create`)      |
-| `GATEKEEPER_URL`      | text       | optional: the control plane leasing each session's endpoint on that relay |
-| `GRANT_SIGNING_KEYS`  | secret     | optional, with `GATEKEEPER_URL`: `{ active_kid, keys: [private Ed25519 JWK…] }` |
+| Binding              | Kind       | Purpose                                                                             |
+| -------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| `HYPERDRIVE_ADMIN`   | Hyperdrive | the owning role: migrations, Better Auth, grants                                    |
+| `HYPERDRIVE_APP`     | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                    |
+| `CACHE`              | KV         | the key-value cache: device request nonces                                          |
+| `BETTER_AUTH_SECRET` | secret     | Better Auth's signing secret                                                        |
+| `FIELD_KEY`          | secret     | base64 32-byte master key for encrypted columns and blind indexes                   |
+| `APP_URL`            | text       | where the API is served; Better Auth's base URL and passkey relying party           |
+| `WEB_ORIGINS`        | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
+| `OTP_DELIVERY`       | text       | `log` only, see above                                                               |
+| `IROH_RELAY_URL`     | text       | the iroh relay every device's session uses (`irohSessions.create`)                  |
+| `GATEKEEPER_URL`     | text       | optional: the control plane leasing each session's endpoint on that relay           |
+| `GRANT_SIGNING_KEYS` | secret     | optional, with `GATEKEEPER_URL`: `{ active_kid, keys: [private Ed25519 JWK…] }`     |
 
 The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
 every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access
@@ -141,11 +141,13 @@ access policies and privileges) and commit the migrations in `drizzle/`. Regener
 after changing its plugins; the access definitions live beside it in `src/db/schemas/`, so regeneration never overwrites them.
 Relational queries (`db.query`, also inside request sessions) use the relations in `src/db/relations.ts`.
 
-Request handling reads its dependencies through `useServices()`, a `createStore` from `@conservationtv/store`
-(AsyncLocalStorage, `src/services.ts`). Only the production Worker entrypoint constructs them, through
-`servicesFor` (`src/services-for.ts`); the database clients, the authorization client and Better Auth open on first use within a request. The
-text bindings and secrets are validated by `src/config.ts` (ArkEnv over `process.env`) on the first request in each
-isolate; an invalid deployment fails every request.
+Request handling reads its dependencies through `useEnvironment()`, a `createStore` from `@conservationtv/store`
+(AsyncLocalStorage, `src/env/env.ts`): the deployment's `variables` and the clients built from them. Only the
+production Worker entrypoint creates it, through `createEnvironment` (`src/env/config.ts`), whose `services`
+initialises every client that uses some configuration; the database clients, the authorization client, Better Auth
+and gatekeeper's client open on first use within a request, and an optional client (gatekeeper) is absent when its
+variables are unset. The text bindings and secrets (`config`, ArkEnv over `process.env`) are parsed on the first
+request in each isolate; an invalid deployment fails every request.
 
 ## Organisations
 
@@ -245,8 +247,8 @@ needs a fresh signature. Downstream, `useDevice()` is the device and its princip
 
 ### Cache
 
-`Cache` (`src/cache/cache.ts`) is a key-value cache for short-lived values, installed per request with `withCache` and
-read with `useCache()`: `get`, `put` and `add` (store only if absent), all with a TTL. The first implementation is
+`Cache` (`src/cache/cache.ts`) is a key-value cache for short-lived values, bound per request by the entrypoint and
+read with `useEnvironment().cache`: `get`, `put` and `add` (store only if absent), all with a TTL. The first implementation is
 Workers KV (`src/cache/kv.ts`, the `CACHE` binding), which raises TTLs to KV's minimum of a minute. KV is eventually
 consistent and has no conditional write, so its `add` reads, then writes: two concurrent adds, or two within the time
 a write takes to propagate (up to a minute), can both succeed. Nonces are therefore best effort until a cache with an
@@ -284,7 +286,7 @@ the database and its backups only hold ciphertext. The codec maps plaintext byte
 (`BytesSchema`, `Utf8Schema`, `json(schema)`, which can nest codecs such as `IsoDatetimeSchema`). Each purpose seals
 under its own subkey (HKDF-SHA256 of the field key, the purpose as its info), so a ciphertext copied into another
 column fails to open; the purpose must never change, which keeps renamed columns readable. The field key comes from
-`FIELD_KEY`, which the config decodes to its 32 bytes (`useServices().config.FIELD_KEY`), so sealing and opening need
+`FIELD_KEY`, which the config decodes to its 32 bytes (`useEnvironment().variables.FIELD_KEY`), so sealing and opening need
 the request's services. `blindIndex(purpose, codec, value)` is a keyed hash for equality lookups on an encrypted value,
 kept in a column beside it, under its own subkey.
 
