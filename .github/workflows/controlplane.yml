@@ -8,18 +8,19 @@ on:
       - packages/fleet/**
       - pnpm-lock.yaml
       - .github/workflows/controlplane.yml
-  # Pushes to main release to staging; prod is released by hand, from a commit staging already runs. Pushes have no
-  # inputs, so `inputs.stack || 'staging'` below is the one default, for pushes and dispatches without a stack alike.
+  # Pushes to main release to staging; prod is released by hand, from a commit staging already runs. A dispatch must
+  # name its stack: below, only a push means staging.
   workflow_dispatch:
     inputs:
       stack:
         description: The controlplane stack to release
         type: choice
         options: [staging, prod]
+        required: true
 
 # One deploy per stack at a time; a newer push waits rather than cancelling an apply in progress.
 concurrency:
-  group: controlplane-${{ inputs.stack || 'staging' }}
+  group: controlplane-${{ github.event_name == 'push' && 'staging' || inputs.stack }}
   cancel-in-progress: false
 
 permissions:
@@ -28,9 +29,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.stack || 'staging' }}
+    environment: ${{ github.event_name == 'push' && 'staging' || inputs.stack }}
     env:
-      STACK: ${{ inputs.stack || 'staging' }}
+      STACK: ${{ github.event_name == 'push' && 'staging' || inputs.stack }}
       PULUMI_BACKEND_URL: ${{ vars.PULUMI_BACKEND_URL }}
       PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
       PGHOST: ${{ secrets.PGHOST }}
