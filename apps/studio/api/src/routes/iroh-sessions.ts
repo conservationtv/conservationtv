@@ -13,9 +13,9 @@ export default new Hono().post(
     ...operationVersion(1),
     summary: 'Start an iroh session',
     description:
-      "How the signing device's iroh endpoint connects: n0's public relays, or its organisation's own, each with any token it needs. Asked for each time the device binds an endpoint, and not kept. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+      "The relay the signing device's iroh endpoint uses, with any token it needs. Every device gets the same one, so a device is reached at its endpoint ID on that relay, with no address lookup. Asked for each time the device binds an endpoint, and not kept. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
     responses: {
-      200: { description: 'The relays to use' },
+      200: { description: 'The relay to use' },
       401: invalidSignature,
       412: versionMismatch,
       503: unavailable

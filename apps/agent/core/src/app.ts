@@ -14,8 +14,6 @@ export {
   type ConservationTvConfiguration,
   type DirectConfiguration
 } from './config.ts';
-// A direct agent's session takes the studio API's form, so hosts can check its relays against the API's schema.
-export { RelaySchema, type IrohSession } from '@conservationtv/studio-sdk';
 
 /** Every request arrives over iroh, from a peer the QUIC handshake authenticated: `peer` is its endpoint id. */
 export interface AgentBindings {
