@@ -1,11 +1,10 @@
-import { Client, type Grant } from '@conservationtv/controlplane-sdk';
+import { bearer, Client, type Grant } from '@conservationtv/controlplane-sdk';
 import {
   connectTestDatabase,
+  CONSUMER_TOKEN,
   startWorker,
   exampleGrant,
   MIGRATIONS_FOLDER,
-  signAssertion,
-  signingKey,
   type TestDatabase
 } from '@conservationtv/gatekeeper/testing';
 import { serve, type ServerType } from '@hono/node-server';
@@ -31,7 +30,7 @@ export interface GatekeeperServer {
   containerUrl: string;
   database: TestDatabase;
   callouts: RelayCallout[];
-  /** Sign `grant` as the registered consumer and exchange it through the SDK. */
+  /** Exchange `grant` as the consumer, through the SDK. */
   exchange(grant: ExampleGrant): Promise<Grant>;
   /** Clear state and start a fresh Worker isolate. */
   reset(): Promise<void>;
@@ -53,9 +52,7 @@ export async function startGatekeeper(): Promise<GatekeeperServer> {
   const database = connectTestDatabase(postgres.getConnectionUri());
   await migrate(database.database, { migrationsFolder: MIGRATIONS_FOLDER });
   const callouts: RelayCallout[] = [];
-  const key = await signingKey();
   const worker = await startWorker({ connectionString: postgres.getConnectionUri() });
-  worker.jwks.keys = [key.publicJwk];
 
   const server = await listen(async request => {
     const { pathname, search } = new URL(request.url);
@@ -76,7 +73,7 @@ export async function startGatekeeper(): Promise<GatekeeperServer> {
   // eslint-disable-next-line anti-slop/no-runtime-typeof -- Node returns an address object, a Unix socket path, or null.
   if (!info || typeof info === 'string') throw new Error('Expecting a AddressInfo object rather than a string.');
   const port = info.port;
-  const client = new Client({ baseUrl: `http://127.0.0.1:${port}` });
+  const client = new Client({ baseUrl: `http://127.0.0.1:${port}`, auth: bearer(CONSUMER_TOKEN) });
   await client.handshake();
 
   return {
@@ -84,8 +81,7 @@ export async function startGatekeeper(): Promise<GatekeeperServer> {
     database,
     callouts,
     async exchange(grant) {
-      const assertion = await signAssertion({ key, now: Date.now(), grant });
-      const result = await client.grants.exchange.v1({ grant_assertion: assertion });
+      const result = await client.grants.exchange.v1(grant);
       if (result instanceof Error) throw result;
       return result;
     },

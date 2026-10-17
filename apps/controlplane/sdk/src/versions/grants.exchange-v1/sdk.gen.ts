@@ -49,14 +49,30 @@ class HeyApiRegistry<T> {
 
 export class Grants extends HeyApiClient {
     /**
-     * Exchange a grant assertion
+     * Exchange a grant
      *
-     * Exchanges a consumer-signed `relay-grant+jwt` assertion for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Every security-relevant field lives inside the signed assertion; each assertion can be exchanged once. Responses are secrets and are never cacheable.
+     * Exchanges a grant for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Requires the environment's consumer token as `Authorization: Bearer …`. Responses are secrets and are never cacheable.
      */
     public exchange<ThrowOnError extends boolean = false>(parameters: {
-        grant_assertion: string;
+        subject: string;
+        requested_capabilities: {
+            moq?: {
+                root: string;
+                publish: Array<'' | string>;
+                subscribe: Array<'' | string>;
+            };
+            iroh?: {
+                endpoint_id: string;
+                action: 'connect';
+            };
+        };
+        expires_in: number;
     }, options?: Options<never, ThrowOnError>): RequestResult<PostGrantsExchangeResponses, PostGrantsExchangeErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [{ in: 'body', key: 'grant_assertion' }] }]);
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'body', key: 'subject' },
+                    { in: 'body', key: 'requested_capabilities' },
+                    { in: 'body', key: 'expires_in' }
+                ] }]);
         return (options?.client ?? this.client).post<PostGrantsExchangeResponses, PostGrantsExchangeErrors, ThrowOnError>({
             url: '/grants/exchange',
             ...options,

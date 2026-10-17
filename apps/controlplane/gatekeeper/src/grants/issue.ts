@@ -1,14 +1,9 @@
-import { and, eq, gt, ne, sql } from 'drizzle-orm';
-import type { ConsumerRegistration } from '../config/schemas.ts';
 import type { Database } from '../db/client.ts';
-import { assertionReplays, grants, irohLeases } from '../db/schema.ts';
-import { GrantError } from '../errors.ts';
+import { grants, irohLeases } from '../db/schema.ts';
+import { useEnvironment } from '../env/env.ts';
 import { newId } from '../ids.ts';
 import { signMoqToken } from '../moq/tokens.ts';
-import { useEnvironment } from '../env/env.ts';
-import type { VerifiedAssertion } from './assertion.ts';
-import { effectiveLifetimeSeconds } from './delegation.ts';
-import type { GrantV1, IrohRequest, MoqRequest } from './grant.ts';
+import { type Grant, type IrohRequest, type MoqRequest, PROTOCOL_MAX_LIFETIME_SECONDS } from './grant.ts';
 
 export interface MoqCredential {
   root: string;
@@ -39,9 +34,7 @@ export interface GrantExchangeResult {
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 interface Issuance {
-  registration: ConsumerRegistration;
-  assertion: VerifiedAssertion;
-  grant: GrantV1;
+  grant: Grant;
   grantId: string;
   issuedAt: Date;
   expiresAt: Date;
@@ -49,50 +42,21 @@ interface Issuance {
 
 const timestamp = (date: Date) => date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 
-/** Consume the assertion's `jti`. A second exchange of the same assertion finds the row and is refused. */
-async function consumeAssertion(tx: Transaction, issuance: Issuance) {
-  const { claims } = issuance.assertion;
-  const skew = useEnvironment().policy.clockSkewSeconds;
-  const consumed = await tx
-    .insert(assertionReplays)
-    .values({
-      principalId: issuance.registration.principal_id,
-      jti: claims.jti,
-      expiresAt: new Date((claims.exp + skew) * 1000)
-    })
-    .onConflictDoNothing()
-    .returning({ jti: assertionReplays.jti });
-  if (consumed.length === 0) throw new GrantError('assertion_replayed');
-}
+/** The lowest of the requested, environment and protocol lifetimes. */
+const lifetimeSeconds = (grant: Grant) =>
+  Math.min(grant.expires_in, useEnvironment().variables.MAX_CREDENTIAL_LIFETIME_SECONDS, PROTOCOL_MAX_LIFETIME_SECONDS);
 
-/** An endpoint actively leased to another consumer can't be leased again until that lease ends. */
 async function leaseEndpoint(tx: Transaction, issuance: Issuance, iroh: IrohRequest): Promise<IrohCredential> {
-  const { registration, grantId, issuedAt, expiresAt, grant } = issuance;
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${iroh.endpoint_id}, 0))`);
-  const [conflict] = await tx
-    .select({ id: irohLeases.id })
-    .from(irohLeases)
-    .where(
-      and(
-        eq(irohLeases.endpointId, iroh.endpoint_id),
-        eq(irohLeases.status, 'active'),
-        gt(irohLeases.expiresAt, issuedAt),
-        ne(irohLeases.principalId, registration.principal_id)
-      )
-    )
-    .limit(1);
-  if (conflict) throw new GrantError('invalid_endpoint_id');
-  const leaseId = newId('irl', issuedAt.getTime());
+  const leaseId = newId('irl', issuance.issuedAt.getTime());
   await tx.insert(irohLeases).values({
     id: leaseId,
     endpointId: iroh.endpoint_id,
-    grantId,
-    principalId: registration.principal_id,
-    subject: grant.subject,
-    expiresAt,
-    createdAt: issuedAt
+    grantId: issuance.grantId,
+    subject: issuance.grant.subject,
+    expiresAt: issuance.expiresAt,
+    createdAt: issuance.issuedAt
   });
-  return { endpoint_id: iroh.endpoint_id, lease_id: leaseId, expires_at: timestamp(expiresAt) };
+  return { endpoint_id: iroh.endpoint_id, lease_id: leaseId, expires_at: timestamp(issuance.expiresAt) };
 }
 
 async function moqCredential(issuance: Issuance, moq: MoqRequest): Promise<MoqCredential> {
@@ -107,30 +71,19 @@ async function moqCredential(issuance: Issuance, moq: MoqRequest): Promise<MoqCr
   return { root: moq.root, token, expires_at: timestamp(issuance.expiresAt) };
 }
 
-/**
- * Step 9. Replay consumption, the grant audit record, the MoQ token and the Iroh lease succeed or fail together: a
- * rejection anywhere leaves no record and no consumed `jti`.
- */
-export async function issueCredentials(
-  registration: ConsumerRegistration,
-  assertion: VerifiedAssertion,
-  grant: GrantV1
-): Promise<GrantExchangeResult> {
+/** The grant audit record, the MoQ token and the Iroh lease succeed or fail together. */
+export async function issueCredentials(grant: Grant): Promise<GrantExchangeResult> {
   const now = Math.floor(useEnvironment().clock() / 1000) * 1000;
   const issuedAt = new Date(now);
-  const expiresAt = new Date(now + effectiveLifetimeSeconds(registration, grant, useEnvironment().policy) * 1000);
-  const issuance = { registration, assertion, grant, grantId: newId('grt', now), issuedAt, expiresAt };
+  const expiresAt = new Date(now + lifetimeSeconds(grant) * 1000);
+  const issuance = { grant, grantId: newId('grt', now), issuedAt, expiresAt };
   const { moq, iroh } = grant.requested_capabilities;
   const db = await useEnvironment().database();
   return db.transaction(async tx => {
-    // Consume first so a replay fails before any other write; each requested capability adds its own credential.
-    await consumeAssertion(tx, issuance);
+    // The audit record first, as the lease references it; each requested capability then adds its own credential.
     await tx.insert(grants).values({
       id: issuance.grantId,
-      principalId: registration.principal_id,
       subject: grant.subject,
-      assertionJti: assertion.claims.jti,
-      assertionKeyId: assertion.keyId,
       moqRoot: moq?.root,
       moqPublish: moq?.publish,
       moqSubscribe: moq?.subscribe,

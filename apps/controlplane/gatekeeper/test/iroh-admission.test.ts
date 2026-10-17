@@ -1,18 +1,16 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { grants } from '../src/db/schema.ts';
-import { exampleGrant, randomEndpointId, registration, signAssertion, signingKey } from './support/consumer.ts';
+import { exampleGrant, randomEndpointId } from './support/consumer.ts';
 import { connectTestDatabase, startWorker, RELAY_TOKEN } from './support/harness.ts';
 import { GrantExchangeResultSchema } from './support/responses.ts';
 
 const database = connectTestDatabase();
 const worker = await startWorker();
-const key = await signingKey();
 
 beforeEach(async () => {
   await worker.restart({});
   await database.reset();
-  worker.jwks.keys = [key.publicJwk];
 });
 
 afterAll(async () => {
@@ -21,9 +19,7 @@ afterAll(async () => {
 });
 
 async function lease(endpointId: string, expiresIn = 300) {
-  const response = await worker.exchange(
-    await signAssertion({ key, now: Date.now(), grant: { ...exampleGrant(endpointId), expires_in: expiresIn } })
-  );
+  const response = await worker.exchange({ ...exampleGrant(endpointId), expires_in: expiresIn });
   return GrantExchangeResultSchema.parse(await response.json());
 }
 
@@ -75,13 +71,6 @@ describe('Iroh relay access callout', () => {
     const endpointId = randomEndpointId();
     const { grant_id } = await lease(endpointId);
     await database.database.update(grants).set({ revokedAt: new Date() }).where(eq(grants.id, grant_id));
-    expect(await admission(endpointId)).toEqual({ status: 403, body: 'false' });
-  });
-
-  it('refuses when the consumer has since been disabled', async () => {
-    const endpointId = randomEndpointId();
-    await lease(endpointId);
-    await worker.restart({ CONSUMER_REGISTRATIONS: JSON.stringify([{ ...registration(), enabled: false }]) });
     expect(await admission(endpointId)).toEqual({ status: 403, body: 'false' });
   });
 
