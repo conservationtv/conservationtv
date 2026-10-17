@@ -123,6 +123,13 @@ cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECR
 pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 ```
 
+`pnpm dev` uses n0's public relay and no gatekeeper. To lease devices' endpoints from a controlplane gatekeeper, run
+`pnpm dev:controlplane` (the local controlplane; see [gatekeeper's README](../../controlplane/gatekeeper/README.md#develop))
+or `pnpm dev:staging` (staging's relays) instead. Each sets `GATEKEEPER_URL` and `IROH_RELAY_URL`, and reads its
+secrets from `.dev.vars.controlplane` or `.dev.vars.staging`, which replace `.dev.vars`: copy `.dev.vars` and add that
+environment's `GATEKEEPER_TOKEN` (`local-consumer-token`, or staging's from 1Password,
+`gatekeeper_staging_consumer_token`). Text bindings are never read from `.dev.vars` files, only from the environment.
+
 Sign in from the terminal with the CLI, which opens the device flow (the web app must be running for the approval
 page) and then registers the session's browser device in an organisation you pick, or with curl: request a code, read it from the dev server's log (`"event":"email_otp"`), exchange it, and use
 the returned session cookie:
