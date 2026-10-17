@@ -1,8 +1,9 @@
 # Gatekeeper
 
-The conservation.stream control plane: a **relay capability broker** for the MoQ and Iroh relays. Application APIs
-(consumers) authenticate their own users, decide what they may do, and sign a complete grant request. Gatekeeper
-verifies that signed assertion, enforces the consumer's delegation ceiling, and issues relay credentials:
+The conservation.stream control plane: a **relay capability broker** for the MoQ and Iroh relays. Each environment
+(local, staging, prod) has its own gatekeeper and relays, and one **consumer token**: whoever holds it (the studio API,
+or a trusted developer's local one against staging) authenticates its own users, decides what they may do, and asks
+for relay credentials on their behalf. Gatekeeper records each grant and issues:
 
 - a control-plane-signed **moq-relay token**, and/or
 - a short-lived **Iroh endpoint lease**, checked by the Iroh relay's access callout.
@@ -17,7 +18,7 @@ release gates and SDK/CLI generators are shared through [`@conservationtv/versio
 | Route                         | Audience   | Contract                                                                  |
 | ----------------------------- | ---------- | ------------------------------------------------------------------------- |
 | `GET /health`                 | anyone     | `health.get`, versionless                                                 |
-| `POST /grants/exchange`       | consumers  | `grants.exchange` v1 (`Operation-Version: 1`)                             |
+| `POST /grants/exchange`       | consumer   | `grants.exchange` v1 (`Operation-Version: 1`), with the consumer token    |
 | `GET /openapi.json`           | SDK/CLI    | the published capability bundle                                           |
 | `POST /relays/moq/admission`  | MoQ relay  | moq-relay `--auth-url`: a moq-auth `Request` in, a `Grant` or 401/403 out |
 | `POST /relays/iroh/admission` | Iroh relay | iroh-relay `access.http`: `200 true` admits, anything else refuses        |
@@ -27,31 +28,32 @@ Signing keys are never published: the control plane is the only party that verif
 
 ## Grant exchange
 
-`POST /grants/exchange` takes exactly `{ "grant_assertion": "<compact JWS>" }`. Everything security-relevant
-(subject, capabilities, lifetime) lives inside the signed assertion. The order of checks follows the design
-document; see `src/grants/exchange.ts`:
+`POST /grants/exchange` requires the environment's consumer token as `Authorization: Bearer <CONSUMER_TOKEN>`, compared
+with the fixed-length digest comparison the relay callbacks use, and takes the grant itself as strict JSON (duplicate
+members and unknown fields are refused at every level):
 
-1. **Envelope**: strict JSON (duplicate members are refused), compact JWS, protected header of exactly `alg`, `kid`
-   and `typ`. `jku`, `x5u`, `jwk`, `x5c`, `crit` and `b64` are refused.
-2. **Registration**: an exact `iss` + `sub` match. The unverified values only select a candidate.
-3. **Key**: from the registered `jwks_uri` only, by `kid`, unless the `kid` is in `denied_key_ids`.
-4. **Header**: `typ` must be `relay-grant+jwt`, and `alg` must be one the consumer registered.
-5. **Signature and claims**: exact `iss`, `sub`, `aud`; `iat ≤ nbf < exp`; 30 s clock skew; lifetime ≤ the registered
-   maximum; unknown claims refused; consumer enabled.
-6. **Grant schema** (only now is `grant` read): `version: 1`, strict at every level, bounded sizes, canonical paths
-   (no empty, `.`, `..`, wildcard or encoded segments), lowercase-hex Ed25519 endpoint IDs.
-7. **Subject**: must start with a registered `<prefix>:`.
-8. **Delegation**: the MoQ root is at or beneath a registered root (on segment boundaries), and each action and Iroh
-   access is delegated. Requests are accepted or rejected as signed, never widened or trimmed.
-9. **Issue**: in one transaction, consume the `jti`, write the grant audit record, sign the MoQ token and create the
-   Iroh lease. An endpoint actively leased to a different consumer is refused. A rejection leaves nothing behind.
+```json
+{
+  "subject": "studio:device:42",
+  "requested_capabilities": {
+    "moq": { "root": "org/stream", "publish": ["camera"], "subscribe": [] },
+    "iroh": { "endpoint_id": "<lowercase hex Ed25519 public key>", "action": "connect" }
+  },
+  "expires_in": 3600
+}
+```
 
-The credential lifetime is the lowest of the requested `expires_in`, the consumer's maximum,
-`MAX_CREDENTIAL_LIFETIME_SECONDS` and 24 hours.
+`subject` is the consumer's own label for who the credentials are for, kept for audit. Paths are canonical (no empty,
+`.`, `..`, wildcard or encoded segments), at most one of each capability, and at least one. The consumer is trusted
+with the environment's relays, so the grant is issued as asked: there are no per-consumer namespaces or delegation
+ceilings. The only refusal beyond validation is an endpoint in `DENIED_IROH_ENDPOINTS`. In one transaction, gatekeeper
+writes the grant audit record, signs the MoQ token and creates the Iroh lease; a rejection leaves nothing behind.
 
-Failures use `{ "error", "error_description" }` with fixed, non-revealing descriptions: 400 for malformed requests and
-grants, 401 for authentication and assertion failures, 403 for requests outside the delegation, and 503 when a needed
-dependency (consumer JWKS, database) is unavailable. Every response is `Cache-Control: no-store`.
+The credential lifetime is the lowest of the requested `expires_in`, `MAX_CREDENTIAL_LIFETIME_SECONDS` and 24 hours.
+
+Failures use `{ "error", "error_description" }` with fixed, non-revealing descriptions: 400 `invalid_request` for
+malformed requests, 401 `invalid_token` without the consumer token, 403 `invalid_endpoint_id` for a denied endpoint,
+and 503 when the database is unavailable. Every response is `Cache-Control: no-store`.
 
 ### MoQ tokens
 
@@ -68,8 +70,8 @@ no node registry; the callback's `node` field is informational. Invalid callback
 refused session gets 403, and an accepted `end` event gets 204.
 
 For consumer sessions, the client's token comes from `?jwt=` or a type 0 SETUP token (both only if they agree).
-Gatekeeper verifies the ES256 signature and recorded grant, checks revocation and consumer enablement, and scopes
-permissions to the dialed path. Grants expire with the token and revalidate every 60 seconds. A consumer token never receives `peer: true`.
+Gatekeeper verifies the ES256 signature and recorded grant, checks revocation, and scopes permissions to the dialed
+path. Grants expire with the token and revalidate every 60 seconds. A consumer token never receives `peer: true`.
 
 ### Peer authentication
 
@@ -132,83 +134,74 @@ Fleet's `IrohRelayWorkload` takes `admissionUrl` pointing to this endpoint and
 `IROH_RELAY_HTTP_BEARER_TOKEN`, which iroh-relay uses for the callback's Authorization
 header. The default relay image is pinned to v1.3.0 and its multi-platform digest.
 
-An endpoint is admitted while it holds an active, unexpired lease. The lease's grant must not be revoked, its
-consumer must still be registered and enabled, and the endpoint must not be in `deniedIrohEndpoints`.
+An endpoint is admitted while it holds an active, unexpired lease. The lease's grant must not be revoked, and the
+endpoint must not be in `DENIED_IROH_ENDPOINTS`.
 Iroh v1.3.0 performs this check on connection; expiry and revocation prevent subsequent
 connections but do not terminate an already admitted connection. Both
 `X-Iroh-Endpoint-Id` and the deprecated `X-Iroh-NodeId` are accepted; iroh-relay v1.3.0 still sends only the latter.
 
-### Consumer JWKS
-
-Fetched only from the registered HTTPS URI, which must be a public DNS name; registrations naming plain HTTP or a
-local JWKS host fail every request unless `ALLOW_INSECURE_CONSUMERS` is set, which only local development does (for
-the studio API's dev server, registered in `.dev.vars.example`). Redirects are refused. Documents are
-limited to 64 KiB and 16 keys, and any private or symmetric key material is refused. Key sets are cached only in
-Postgres (`jwks_cache`), shared by every isolate, and fresh for the server's `max-age` clamped to 1 minute–1 hour.
-After that they are refreshed opportunistically but still used for one more hour if the consumer's JWKS is down, then
-refused (fail closed). An unknown `kid` triggers a refresh, and optional refreshes are claimed in Postgres, so across
-all isolates at most one is attempted per 30 seconds.
-
 ## Configuration
 
-Consumer registrations and endpoint denials are JSON arrays in the `CONSUMER_REGISTRATIONS` and
-`DENIED_IROH_ENDPOINTS` Worker environment bindings. The build supplies defaults from
-`src/config/registrations.ts`; override the bindings per deployment or in `.dev.vars` for local development.
-An override replaces the entire list, so `[]` explicitly clears it. Empty strings, malformed JSON, invalid entries
-and duplicate consumer identities fail every request rather than falling back to defaults.
-All bindings are declared by `config` in `src/env/config.ts` (ArkEnv over `process.env`) and parsed on the first request in each
-isolate; apply changes through a deployment/restart.
-Revocation options are:
+All bindings are declared by `config` in `src/env/config.ts` (ArkEnv over `process.env`) and parsed on the first
+request in each isolate; an invalid one fails every request rather than falling back to a default. Apply changes
+through a deployment/restart. Revocation options are:
 
-- set `enabled: false` in `CONSUMER_REGISTRATIONS`;
-- add a `kid` to `denied_key_ids`;
+- rotate `CONSUMER_TOKEN`, which stops new exchanges (issued credentials last until they expire or are revoked);
 - add an endpoint to `DENIED_IROH_ENDPOINTS`;
-- set `grants.revoked_at`, which immediately stops Iroh admission for that grant's leases.
+- set `grants.revoked_at`, which immediately stops Iroh admission for that grant's leases and closes its MoQ sessions
+  at their next revalidation.
 
-| Binding                           | Kind              | Purpose                                                          |
-| --------------------------------- | ----------------- | ---------------------------------------------------------------- |
-| `CONSUMER_REGISTRATIONS`          | text (JSON array) | Complete consumer registrations; defaults to the checked-in list |
-| `DENIED_IROH_ENDPOINTS`           | text (JSON array) | Denied endpoint IDs; defaults to the checked-in list             |
-| `ALLOW_INSECURE_CONSUMERS`        | text              | `false`; local development only, admits HTTP and local consumers |
-| `HYPERDRIVE`                      | Hyperdrive        | PlanetScale Postgres, uncached; ID from the controlplane stack   |
-| `MOQ_SIGNING_KEYS`                | secret            | `{ active_kid, keys: [private ES256 JWK…] }`                     |
-| `IROH_RELAY_TOKEN`                | secret            | shared with the Iroh relay's `access.http.bearer_token`          |
-| `MOQ_RELAY_TOKEN`                 | secret            | Pulumi-generated key MoQ relays present on admission callbacks   |
-| `MOQ_CLUSTER_TOKEN`               | secret            | Pulumi-generated opaque credential shared by MoQ peers           |
-| `MAX_CREDENTIAL_LIFETIME_SECONDS` | text              | environment ceiling on credential lifetimes                      |
+| Binding                           | Kind              | Purpose                                                        |
+| --------------------------------- | ----------------- | -------------------------------------------------------------- |
+| `CONSUMER_TOKEN`                  | secret            | Pulumi-generated token the environment's consumer presents     |
+| `DENIED_IROH_ENDPOINTS`           | text (JSON array) | Denied endpoint IDs; `[]` by default                           |
+| `HYPERDRIVE`                      | Hyperdrive        | PlanetScale Postgres, uncached; ID from the controlplane stack |
+| `MOQ_SIGNING_KEYS`                | secret            | `{ active_kid, keys: [private ES256 JWK…] }`                   |
+| `IROH_RELAY_TOKEN`                | secret            | shared with the Iroh relay's `access.http.bearer_token`        |
+| `MOQ_RELAY_TOKEN`                 | secret            | Pulumi-generated key MoQ relays present on admission callbacks |
+| `MOQ_CLUSTER_TOKEN`               | secret            | Pulumi-generated opaque credential shared by MoQ peers         |
+| `MAX_CREDENTIAL_LIFETIME_SECONDS` | text              | environment ceiling on credential lifetimes                    |
 
-The controlplane Pulumi stack owns the Worker, its Hyperdrive config and every secret, including the signing keys.
+Each controlplane Pulumi stack (`staging`, `prod`) owns its Worker, Hyperdrive config and every secret, including the
+signing keys and the consumer token (`pulumi stack output gatekeeperConsumerToken --show-secrets`).
 `pnpm upload` uploads a version without deploying it; the Hyperdrive ID comes from that stack's outputs, passed as
 `STACK_OUTPUT_JSON`. CI releases it on pushes to `main`, as described in the
 [controlplane README](../infrastructure/README.md#release-gatekeeper), which also covers key rotation.
 
-`pnpm keys:generate [kid]` prints a `MOQ_SIGNING_KEYS` value for local development.
-
-A cron trigger (every 15 minutes) purges expired replay identifiers and leases that expired over a day ago. Grant
-audit records are kept.
+A cron trigger (every 15 minutes) purges leases that expired over a day ago. Grant audit records are kept.
 
 ## Develop
 
+The local environment runs everything on this machine: Postgres and both relays in docker compose, gatekeeper's dev
+server on the host, which the relays call back to through `host.docker.internal:5176`.
+
 ```sh
 pnpm install
-pnpm --filter @conservationtv/gatekeeper db:up       # docker-compose Postgres on :5433
+pnpm --filter @conservationtv/gatekeeper local:up     # Postgres on :5433, iroh-relay on :3340, moq-relay on :4433/:4443
 pnpm --filter @conservationtv/gatekeeper db:migrate
-cp .dev.vars.example .dev.vars                       # then paste `pnpm keys:generate` output
-pnpm --filter @conservationtv/gatekeeper dev
+cp .dev.vars.example .dev.vars                       # then generate MOQ_SIGNING_KEYS as it describes
+pnpm --filter @conservationtv/gatekeeper dev         # http://localhost:5176
 pnpm --filter @conservationtv/gatekeeper test        # builds Worker, then tests in workerd; needs db:up
 ```
+
+The local tokens are fixed in `.dev.vars.example`, the compose file and the studio API's `.dev.vars.example`, so the
+studio API only needs its commented gatekeeper lines enabled to lease endpoints on the local iroh-relay
+(`IROH_RELAY_URL=http://localhost:3340`). iroh-relay runs in `--dev` mode over plain HTTP. moq-relay generates a
+certificate for `localhost` and publishes its hash at `http://localhost:4443/certificate.sha256`, for WebTransport's
+`serverCertificateHashes`. `pnpm db:up` starts Postgres alone; `pnpm local:down` stops everything.
+
+To use staging's relays from a local studio API instead, set its `GATEKEEPER_URL`, `GATEKEEPER_TOKEN` and
+`IROH_RELAY_URL` to staging's, as its `.dev.vars.example` shows; no local gatekeeper is involved.
 
 Tests run the production `cf build` output in Miniflare/workerd, including `src/index.ts`, its configuration
 validation, signing-key loading and per-request database connections. Node/Vitest uses ordinary HTTP requests to the
 Worker's local server. Relay tests additionally use Miniflare's trusted `cf` metadata injection to model the
-Cloudflare edge; there is no application auth bypass or trusted-header fallback. Postgres is real; the external consumer JWKS endpoint is controlled at the runtime's
-outbound HTTP boundary. No application services or Worker clock are replaced. Each case starts a fresh Worker and
+Cloudflare edge; there is no application auth bypass or trusted-header fallback. Postgres is real. No application services or Worker clock are replaced. Each case starts a fresh Worker and
 clears the shared database, so files run serially. Each suite explicitly owns and closes its Worker and database;
 configuration changes use `worker.restart(bindings)`. For a focused run, build first, then use `pnpm exec vitest run <file>`.
 
-Expiry cases issue short-lived credentials and observe admission until expiry. JWKS cache cases age persisted
-records and restart the Worker to exercise cold-isolate recovery, freshness and stale-use limits without waiting
-an hour. They cover those persisted-cache transitions, rather than advancing a live isolate's clock.
+Expiry cases issue short-lived credentials and observe admission until expiry, rather than advancing the Worker's
+clock.
 
 End-to-end tests against real relay images live in [`../tests`](../tests). They use the same built-Worker harness
 through `@conservationtv/gatekeeper/testing`, with isolated Postgres containers and the generated SDK.
@@ -226,7 +219,9 @@ initialises every client that uses some configuration.
 pnpm --filter @conservationtv/gatekeeper generate             # contracts/openapi.json from routes + handler types
 pnpm --filter @conservationtv/controlplane-sdk generate
 pnpm --filter @conservationtv/controlplane-cli generate
-GATEKEEPER_URL=http://localhost:5176 pnpm --filter @conservationtv/controlplane-cli cli grants exchange v1 --grant_assertion <jwt>
+GATEKEEPER_URL=http://localhost:5176 GATEKEEPER_TOKEN=local-consumer-token pnpm --filter @conservationtv/controlplane-cli \
+  cli grants exchange v1 --subject cli:me --requested_capabilities '{"iroh":{"endpoint_id":"<id>","action":"connect"}}' \
+  --expires_in 300
 ```
 
 Release snapshots work as in the reference: `pnpm snapshot gatekeeper-v1.0.0` freezes the current bundle under

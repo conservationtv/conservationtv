@@ -1,29 +1,24 @@
 import { arkenv } from '@arkenv/standard';
 import { z } from 'zod';
-import {
-  ConsumerRegistrationsSchema,
-  DeniedEndpointsSchema,
-  isSecureRegistration,
-  type PolicyConfig
-} from '../config/schemas.ts';
 import { connectLazily } from '../db/client.ts';
+import { EndpointIdSchema } from '../grants/identifiers.ts';
 import { loadMoqKeyring, type MoqKeyring } from '../moq/keys.ts';
 import type { Clock, Environment } from './env.ts';
-
-const CLOCK_SKEW_SECONDS = 30;
 
 /**
  * The deployment's text bindings and secrets: under `nodejs_compat` they are also `process.env`, which ArkEnv reads.
  */
 export const config = {
-  /** JSON arrays, replaceable per deployment or through .dev.vars. */
-  CONSUMER_REGISTRATIONS: ConsumerRegistrationsSchema,
-  /** Local development only: admit registrations on plain HTTP and local names; see `isSecureRegistration`. */
-  ALLOW_INSECURE_CONSUMERS: z.stringbool().default(false),
-  DENIED_IROH_ENDPOINTS: DeniedEndpointsSchema,
+  /**
+   * The environment's one consumer credential, presented as a bearer token to exchange grants. Whoever holds it is
+   * trusted with the environment's relays. Empty matches nothing, so no grant is exchanged.
+   */
+  CONSUMER_TOKEN: z.string(),
+  /** Endpoint IDs never admitted to the Iroh relay, as a JSON array. */
+  DENIED_IROH_ENDPOINTS: z.array(EndpointIdSchema),
   /** The environment-specific ceiling on issued credential lifetimes, in seconds. */
   MAX_CREDENTIAL_LIFETIME_SECONDS: z.int().min(1).max(86_400),
-  /** The control plane's MoQ signing key set; see `pnpm keys:generate`. */
+  /** The control plane's MoQ signing key set; see .dev.vars.example. */
   MOQ_SIGNING_KEYS: z.string(),
   /** Relay credentials. Empty ones match nothing, so that relay is refused. */
   IROH_RELAY_TOKEN: z.string(),
@@ -54,19 +49,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
     and the database connects on first use: requests that never touch storage never open a connection.
   */
 
-  // An insecure registration fails every request rather than running with a partial policy.
-  const insecure = variables.CONSUMER_REGISTRATIONS.find(registration => !isSecureRegistration(registration));
-  if (insecure !== undefined && !variables.ALLOW_INSECURE_CONSUMERS) {
-    throw new Error(`Consumer registration ${insecure.principal_id} must use HTTPS and a public JWKS host`);
-  }
-
-  const policy: PolicyConfig = {
-    consumers: variables.CONSUMER_REGISTRATIONS,
-    deniedIrohEndpoints: variables.DENIED_IROH_ENDPOINTS,
-    maxCredentialLifetimeSeconds: variables.MAX_CREDENTIAL_LIFETIME_SECONDS,
-    clockSkewSeconds: CLOCK_SKEW_SECONDS
-  };
-
   // Required clients
   const connection = connectLazily(bindings.database);
 
@@ -77,13 +59,8 @@ export const services = (variables: Variables, bindings: Bindings) => {
 
   const clock: Clock = Date.now;
 
-  /** Used only for consumer JWKS retrieval. */
-  const fetcher: typeof fetch = (input, init) => fetch(input, init);
-
   return {
-    policy,
     database: connection.database,
-    fetch: fetcher,
     clock,
     moqKeys,
     close: connection.close

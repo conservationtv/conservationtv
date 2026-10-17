@@ -27,9 +27,21 @@ export const GrantSchema = z.object({
 });
 
 export const PostGrantsExchangeBodySchema = z.object({
-    grant_assertion: z.string().min(1).max(16384).register(z.globalRegistry, {
-        description: 'A compact JWS grant assertion signed by the consumer, with `typ: relay-grant+jwt`.'
-    })
+    subject: z.string().regex(/^[\x21-\x7e]{1,256}$/).register(z.globalRegistry, {
+        description: 'Who the credentials are for, recorded for audit, such as `app:device:42`.'
+    }),
+    requested_capabilities: z.object({
+        moq: z.object({
+            root: z.string().max(256),
+            publish: z.array(z.union([z.literal(''), z.string().max(256)])).max(32),
+            subscribe: z.array(z.union([z.literal(''), z.string().max(256)])).max(32)
+        }).optional(),
+        iroh: z.object({
+            endpoint_id: z.string().regex(/^[0-9a-f]{64}$/),
+            action: z.literal('connect')
+        }).optional()
+    }),
+    expires_in: z.int().gte(1).lte(86400)
 });
 
 /**

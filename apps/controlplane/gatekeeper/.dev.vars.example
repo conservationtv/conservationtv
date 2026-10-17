@@ -1,17 +1,14 @@
-# Copy to .dev.vars for `pnpm dev`. Generate a MoQ signing key set with `pnpm keys:generate`.
+# Copy to .dev.vars for `pnpm dev`. The tokens below are the local environment's, shared with apps/controlplane/local's
+# relays and the studio API's .dev.vars.example; only the MoQ signing key set is generated:
+# node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(({kty,crv,x,y,d})=>console.log(JSON.stringify({active_kid:'local-1',keys:[{kty,crv,x,y,d,alg:'ES256',kid:'local-1'}]})))"
 MOQ_SIGNING_KEYS='{"active_kid":"…","keys":[…]}'
-IROH_RELAY_TOKEN=local-relay-token
-# Supplied by the controlplane stack's gatekeeperSecrets output. For local use generate 32 random bytes each:
-# node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-MOQ_RELAY_TOKEN=REPLACE_WITH_GENERATED_TOKEN
-MOQ_CLUSTER_TOKEN=REPLACE_WITH_GENERATED_TOKEN
 
-# Optional JSON overrides, replacing the complete checked-in lists. Paste registrations matching
-# src/config/registrations.ts into the array; [] explicitly registers no consumers.
+# The consumer token, which the studio API presents as GATEKEEPER_TOKEN.
+CONSUMER_TOKEN=local-consumer-token
+# The relays' callback credentials, and MoQ's peer credential (unused with one local relay).
+IROH_RELAY_TOKEN=local-iroh-relay-token
+MOQ_RELAY_TOKEN=local-moq-relay-token
+MOQ_CLUSTER_TOKEN=local-moq-cluster-token
+
+# Optional: endpoint IDs never admitted to the Iroh relay.
 # DENIED_IROH_ENDPOINTS='[]'
-
-# The studio API's dev server (apps/studio/api, http://localhost:5175) as a consumer, leasing its devices' endpoints:
-# give it GATEKEEPER_URL=http://localhost:5176 and GRANT_SIGNING_KEYS. Plain HTTP on localhost is never admitted
-# without ALLOW_INSECURE_CONSUMERS.
-ALLOW_INSECURE_CONSUMERS=true
-CONSUMER_REGISTRATIONS='[{"principal_id":"studio-local","authentication":{"method":"federated_jwt","issuer":"http://localhost:5175","jwks_uri":"http://localhost:5175/.well-known/jwks.json","audience":"http://localhost:5176/grants/exchange","subject":"studio-api","allowed_algorithms":["EdDSA"],"max_assertion_lifetime_seconds":60},"delegation":{"subject_prefixes":["studio"],"iroh":{"actions":["connect"]},"max_credential_lifetime_seconds":3600},"enabled":true}]'

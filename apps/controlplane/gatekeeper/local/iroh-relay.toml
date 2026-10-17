@@ -1,0 +1,9 @@
+# The local iroh-relay: plain HTTP in --dev mode, admitting endpoints through the gatekeeper dev server on the host.
+# Production's configuration is rendered by @moq-ha/vps-fleet (renderIrohRelayToml), as the end-to-end tests use it.
+enable_relay = true
+http_bind_addr = "0.0.0.0:3340"
+enable_quic_addr_discovery = false
+enable_metrics = false
+
+[access.http]
+url = "http://host.docker.internal:5176/relays/iroh/admission"

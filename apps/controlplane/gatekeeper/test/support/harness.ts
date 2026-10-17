@@ -2,15 +2,16 @@ import { readBuildOutput } from '@cloudflare/build-output-utils';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Miniflare, type Request as WorkerRequest, Response as WorkerResponse, WorkerOptionsSchema } from 'miniflare';
+import { Miniflare, WorkerOptionsSchema } from 'miniflare';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { exportJWK, generateKeyPair, type JWK } from 'jose';
+import { exportJWK, generateKeyPair } from 'jose';
 import pg from 'pg';
+import type { Json } from '@conservationtv/versioned-api/server';
 import type { Database } from '../../src/db/client.ts';
 import { LOCAL_DATABASE_URL } from '../../src/db/local.ts';
-import { JWKS_URI, registration } from './consumer.ts';
 
+export const CONSUMER_TOKEN = 'consumer-test-token';
 export const RELAY_TOKEN = 'relay-test-token';
 export const MOQ_RELAY_TOKEN = 'e'.repeat(64);
 export const MOQ_CLUSTER_TOKEN = 'c'.repeat(64);
@@ -29,7 +30,7 @@ export function connectTestDatabase(connectionString = process.env.DATABASE_URL 
   return {
     database,
     reset: async () => {
-      await database.execute(sql`truncate assertion_replays, iroh_leases, grants, jwks_cache`);
+      await database.execute(sql`truncate iroh_leases, grants`);
     },
     close: () => pool.end()
   };
@@ -56,43 +57,12 @@ const modules = Object.fromEntries(
 );
 const built = { ...settings, manifest: { mainModule: manifest.mainModule, modules } };
 
-export type JwksBehaviour = 'serve' | 'fail' | 'redirect' | 'oversized' | 'private';
-
-/** The consumer's hosted JWKS document, as the control plane's fetcher sees it. */
-export class JwksEndpoint {
-  keys: JWK[] = [];
-  behaviour: JwksBehaviour = 'serve';
-  maxAge = 300;
-  requests = 0;
-
-  /** Serve the registered URI with the selected response or failure mode. */
-  fetch = (request: WorkerRequest): WorkerResponse => {
-    if (request.url !== JWKS_URI) return new WorkerResponse('not found', { status: 404 });
-    this.requests++;
-    const headers = { 'content-type': 'application/jwk-set+json', 'cache-control': `max-age=${this.maxAge}` };
-    switch (this.behaviour) {
-      case 'fail':
-        return new WorkerResponse('unavailable', { status: 503 });
-      case 'redirect':
-        return new WorkerResponse(null, { status: 302, headers: { location: 'https://elsewhere.example/jwks.json' } });
-      case 'oversized':
-        return new WorkerResponse(JSON.stringify({ keys: this.keys, padding: 'x'.repeat(70_000) }), { headers });
-      case 'private':
-        return new WorkerResponse(JSON.stringify({ keys: this.keys.map(key => ({ ...key, d: 'secret' })) }), {
-          headers
-        });
-      default:
-        return new WorkerResponse(JSON.stringify({ keys: this.keys }), { headers });
-    }
-  };
-}
-
 export interface TestWorker {
-  jwks: JwksEndpoint;
   verificationKey: Awaited<ReturnType<typeof generateKeyPair>>['publicKey'];
   request(path: string, init?: RequestInit): Promise<Response>;
-  exchange(grantAssertion: string): Promise<Response>;
-  /** Restart with current bindings, or replace overrides ({} restores test defaults). JWKS state is retained. */
+  /** Exchange `grant` as the consumer, or with another bearer token (`undefined` sends none). */
+  exchange(grant: Json, token?: string | undefined): Promise<Response>;
+  /** Restart with current bindings, or replace overrides ({} restores test defaults). */
   restart(bindings?: WorkerOptions['bindings']): Promise<void>;
   close(): Promise<void>;
 }
@@ -103,9 +73,8 @@ export interface WorkerOptions {
   connectionString?: string;
 }
 
-/** Boot the unmodified production bundle. Only deployment inputs and the external JWKS server are controlled. */
+/** Boot the unmodified production bundle. Only deployment inputs are controlled. */
 export async function startWorker(options: WorkerOptions = {}): Promise<TestWorker> {
-  const jwks = new JwksEndpoint();
   // Apply deployment overrides to the build, connect local Postgres, and clean up if runtime startup fails.
   const start = async (overrides: WorkerOptions['bindings']) => {
     const env = { ...built.env };
@@ -116,7 +85,7 @@ export async function startWorker(options: WorkerOptions = {}): Promise<TestWork
       dev: { connectionString: options.connectionString ?? process.env.DATABASE_URL ?? LOCAL_DATABASE_URL }
     };
     const bindings = {
-      CONSUMER_REGISTRATIONS: JSON.stringify([registration()]),
+      CONSUMER_TOKEN,
       MOQ_SIGNING_KEYS: signingKeys,
       IROH_RELAY_TOKEN: RELAY_TOKEN,
       MOQ_RELAY_TOKEN,
@@ -129,17 +98,7 @@ export async function startWorker(options: WorkerOptions = {}): Promise<TestWork
     const runtime = new Miniflare({
       cf: false,
       telemetry: { enabled: false },
-      workers: [
-        WorkerOptionsSchema.parse({
-          config: { ...built, env },
-          dev: {
-            outboundService: {
-              type: 'fetcher',
-              handler: jwks.fetch
-            }
-          }
-        })
-      ]
+      workers: [WorkerOptionsSchema.parse({ config: { ...built, env } })]
     });
     try {
       await runtime.ready;
@@ -154,15 +113,14 @@ export async function startWorker(options: WorkerOptions = {}): Promise<TestWork
   const request = async (path: string, init?: RequestInit): Promise<Response> =>
     fetch(new URL(path, await runtime.ready), { redirect: 'manual', ...init });
   return {
-    jwks,
     verificationKey: publicKey,
     request,
-    exchange: grantAssertion =>
-      request('/grants/exchange', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ grant_assertion: grantAssertion })
-      }),
+    exchange: (grant, ...token) => {
+      const bearer = token.length ? token[0] : CONSUMER_TOKEN;
+      const headers = new Headers({ 'content-type': 'application/json' });
+      if (bearer !== undefined) headers.set('authorization', `Bearer ${bearer}`);
+      return request('/grants/exchange', { method: 'POST', headers, body: JSON.stringify(grant) });
+    },
     async restart(overrides = bindings) {
       await runtime.dispose();
       bindings = overrides;
