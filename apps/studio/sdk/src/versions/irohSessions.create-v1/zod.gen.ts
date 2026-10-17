@@ -14,7 +14,12 @@ export const RelaySchema = z.object({
 });
 
 export const IrohSessionSchema = z.object({
-    relay: RelaySchema
+    relay: RelaySchema,
+    lease: z.object({
+        id: z.string(),
+        grantId: z.string(),
+        expiresAt: z.string()
+    }).optional()
 });
 
 /**

@@ -9,21 +9,38 @@ export type AssertionAlgorithm = z.output<typeof AssertionAlgorithmSchema>;
 
 const PROHIBITED_HOST = /^(localhost|.*\.localhost|.*\.local|.*\.internal|\[.*\]|\d{1,3}(\.\d{1,3}){3})$/i;
 
-/**
- * Consumer JWKS locations are fixed by registration. They must be HTTPS on a public DNS name: IP literals and local
- * names are refused so a registration can't point the fetcher at internal infrastructure.
- */
-export const JwksUriSchema = z.url({ protocol: /^https$/, hostname: z.regexes.domain }).refine(value => {
+/** The URLs a registration names: HTTP or HTTPS, as `isSecureRegistration` decides for the deployment. */
+const ConsumerUrlSchema = z.url({ protocol: /^https?$/ });
+type ConsumerUrl = z.output<typeof ConsumerUrlSchema>;
+
+/** Consumer JWKS locations are fixed by registration, without credentials or fragments. */
+export const JwksUriSchema = ConsumerUrlSchema.refine(value => {
   const url = new URL(value);
-  return !url.username && !url.password && !url.hash && !PROHIBITED_HOST.test(url.hostname);
-}, 'JWKS URIs must be HTTPS URLs on a public DNS name without credentials or fragments');
+  return !url.username && !url.password && !url.hash;
+}, 'JWKS URIs must not carry credentials or fragments');
 export type JwksUri = z.output<typeof JwksUriSchema>;
+
+const isHttps = (value: ConsumerUrl) => new URL(value).protocol === 'https:';
+
+/**
+ * Whether every URL the registration names is HTTPS, and its JWKS is on a public DNS name: IP literals and local names
+ * are refused so a registration can't point the fetcher at internal infrastructure. Every deployment requires it but
+ * local development, which sets `ALLOW_INSECURE_CONSUMERS` for consumers on plain HTTP at localhost.
+ */
+export function isSecureRegistration({ authentication }: ConsumerRegistration): boolean {
+  const { hostname } = new URL(authentication.jwks_uri);
+  return (
+    [authentication.issuer, authentication.audience, authentication.jwks_uri].every(isHttps) &&
+    z.regexes.domain.test(hostname) &&
+    !PROHIBITED_HOST.test(hostname)
+  );
+}
 
 const AuthenticationSchema = z.strictObject({
   method: z.literal('federated_jwt'),
-  issuer: z.url({ protocol: /^https$/ }),
+  issuer: ConsumerUrlSchema,
   jwks_uri: JwksUriSchema,
-  audience: z.url({ protocol: /^https$/ }),
+  audience: ConsumerUrlSchema,
   subject: z.string().min(1).max(256),
   allowed_algorithms: z.array(AssertionAlgorithmSchema).nonempty(),
   max_assertion_lifetime_seconds: z.int().min(1).max(300),

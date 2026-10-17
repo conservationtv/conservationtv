@@ -51,7 +51,7 @@ export class IrohSessions extends HeyApiClient {
     /**
      * Start an iroh session
      *
-     * The relay the signing device's iroh endpoint uses, with any token it needs. Every device gets the same one, so a device is reached at its endpoint ID on that relay, with no address lookup. Asked for each time the device binds an endpoint, and not kept. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.
+     * The relay the signing device's iroh endpoint uses, with any token it needs, and the lease admitting the endpoint to it when the relay requires one. Every device gets the same relay, so a device is reached at its endpoint ID on that relay, with no address lookup. Asked for each time the device binds an endpoint, and again before its lease expires: the relay refuses new connections after that. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.
      */
     public create<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<PostIrohSessionsResponses, PostIrohSessionsErrors, ThrowOnError> {
         return (options?.client ?? this.client).post<PostIrohSessionsResponses, PostIrohSessionsErrors, ThrowOnError>({ url: '/iroh-sessions', ...options });

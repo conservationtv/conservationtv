@@ -27,4 +27,4 @@ cli.use(async (context, next) => {
     throw error;
   }
 });
-await buildCli(cli, () => new Client({ baseUrl: process.env.GATEKEEPER_URL ?? 'http://localhost:5173' })).serve();
+await buildCli(cli, () => new Client({ baseUrl: process.env.GATEKEEPER_URL ?? 'http://localhost:5176' })).serve();
