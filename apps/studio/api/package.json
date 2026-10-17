@@ -37,6 +37,7 @@
     "hono-openapi": "1.3.3",
     "http-message-sig": "0.3.0",
     "httpbis-digest-headers": "2.0.0",
+    "jose": "6.2.12",
     "pg": "catalog:",
     "zod": "catalog:"
   },

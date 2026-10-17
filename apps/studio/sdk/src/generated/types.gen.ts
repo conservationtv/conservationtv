@@ -280,6 +280,11 @@ export type Report = {
 
 export type IrohSession = {
     relay: Relay;
+    lease?: {
+        id: string;
+        grantId: string;
+        expiresAt: string;
+    };
 };
 
 export type GetHealthData = {
@@ -3797,11 +3802,15 @@ export type PostIrohSessionsErrors = {
      */
     401: Error;
     /**
+     * The relay will never admit the device's endpoint: it is denied, or leased to another service
+     */
+    403: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;
     /**
-     * The database is unavailable
+     * The database is unavailable, or the relay cannot lease the endpoint
      */
     503: Error;
 };

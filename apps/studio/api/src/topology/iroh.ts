@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { leaseEndpoint, type IrohLease } from '../gatekeeper/leases.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
 import { useServices } from '../services.ts';
 
 // How a device starts an iroh session: the relay its endpoint uses, whether it serves (an agent) or dials (the CLI, a
-// browser). Devices ask for it signed, each time they bind an endpoint, so this is where relay credentials and their
-// leases will be issued per device.
+// browser). Devices ask for it signed, each time they bind an endpoint, so this is where each device's endpoint is
+// leased on the relay, when the deployment's relay admits only leased endpoints (src/gatekeeper/leases.ts).
 //
 // Every device gets the same single relay. So an agent's address is always its endpoint ID at that relay: devices
 // bind without address lookup and dial by relay URL, and nothing has to be published or registered.
@@ -29,10 +30,16 @@ export type Relay = z.output<typeof RelaySchema>;
 export interface IrohSession {
   /** The only relay the device's endpoint uses, and where it finds every other device. */
   relay: Relay;
+  /** What admits the device's endpoint to the relay; absent when the relay admits every endpoint. */
+  lease?: IrohLease;
 }
 
-/** The iroh session the device starts now. */
-export function irohSession(_device: AuthenticatedDevice): IrohSession {
+/** The iroh session the device starts now, with its endpoint leased on the relay if the relay requires it. */
+export async function irohSession(device: AuthenticatedDevice): Promise<IrohSession> {
   const services = useServices();
-  return { relay: { url: services.config.IROH_RELAY_URL } };
+  const { IROH_RELAY_URL, GATEKEEPER_URL, GRANT_SIGNING_KEYS } = services.config;
+  const relay = { url: IROH_RELAY_URL };
+  if (GATEKEEPER_URL === undefined || GRANT_SIGNING_KEYS === undefined) return { relay };
+  const lease = await leaseEndpoint(device, { url: GATEKEEPER_URL, keys: GRANT_SIGNING_KEYS });
+  return { relay, lease };
 }
