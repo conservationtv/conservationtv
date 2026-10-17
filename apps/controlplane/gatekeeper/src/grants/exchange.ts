@@ -1,19 +1,16 @@
 import { useEnvironment } from '../env/env.ts';
-import { locateRegistration, parseAssertion, verifyAssertion } from './assertion.ts';
-import { authorizeGrant } from './delegation.ts';
-import { parseGrant } from './grant.ts';
+import { GrantError } from '../errors.ts';
+import type { Grant } from './grant.ts';
 import { type GrantExchangeResult, issueCredentials } from './issue.ts';
 
 /**
- * Exchange a consumer-signed grant assertion for relay credentials, in the documented order. The signed `grant` is
- * only read after the signature and registered claims have been verified.
+ * Exchange the consumer's grant for relay credentials. The consumer is trusted with the environment's relays, so the
+ * grant is issued as asked, within the environment's lifetime ceiling, unless it names a denied endpoint.
  */
-export async function exchangeGrant(grantAssertion: string): Promise<GrantExchangeResult> {
-  const { policy } = useEnvironment();
-  const envelope = parseAssertion(grantAssertion);
-  const registration = locateRegistration(policy.consumers, envelope.identity);
-  const assertion = await verifyAssertion(registration, envelope);
-  const grant = parseGrant(assertion.claims.grant);
-  authorizeGrant(registration, grant, policy);
-  return issueCredentials(registration, assertion, grant);
+export async function exchangeGrant(grant: Grant): Promise<GrantExchangeResult> {
+  const endpointId = grant.requested_capabilities.iroh?.endpoint_id;
+  if (endpointId !== undefined && useEnvironment().variables.DENIED_IROH_ENDPOINTS.includes(endpointId)) {
+    throw new GrantError('invalid_endpoint_id');
+  }
+  return issueCredentials(grant);
 }
