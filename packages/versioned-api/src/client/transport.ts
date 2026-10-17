@@ -3,11 +3,26 @@ import { asError, httpError, type ResponseBody, ResponseBodySchema } from './err
 /** Whatever `new Headers(...)` accepts, named without depending on the DOM lib. */
 export type HeaderSource = NonNullable<ConstructorParameters<typeof Headers>[0]>;
 
+/**
+ * How a Client authenticates: given each request as it is about to be sent, with every header and its body, return it
+ * with credentials added. `bearer` sends a token; an API's SDK may offer others, such as signing.
+ */
+export type Authenticate = (request: Request) => Request | Promise<Request>;
+
+/** Send `token` as `Authorization: Bearer …`. */
+export function bearer(token: string): Authenticate {
+  return request => {
+    request.headers.set('authorization', `Bearer ${token}`);
+    return request;
+  };
+}
+
 /** The options a Client accepts: the base URL and transport controls. Response and error handling are the facade's. */
 export interface ClientConfig {
   baseUrl?: string;
   fetch?: typeof fetch;
   headers?: HeaderSource;
+  auth?: Authenticate;
 }
 
 interface HttpRequest {
@@ -23,10 +38,17 @@ export interface RawResult {
 interface HttpSettings {
   fetch?: typeof fetch;
 }
+interface RequestInterceptors {
+  use(interceptor: Authenticate): number;
+}
+interface HttpInterceptors {
+  request: RequestInterceptors;
+}
 /** What the facade uses of a Hey API fetch client. */
 export interface HttpClient {
   get(options: HttpRequest): Promise<RawResult>;
   getConfig(): HttpSettings;
+  interceptors: HttpInterceptors;
 }
 interface FixedSettings {
   responseStyle: 'fields';
@@ -35,7 +57,7 @@ interface FixedSettings {
 }
 /** The generated fetch client's module, which each generated Client supplies as its `http` field. */
 export interface HttpRuntime {
-  createClient(config: ClientConfig & FixedSettings): HttpClient;
+  createClient(config: Omit<ClientConfig, 'auth'> & FixedSettings): HttpClient;
   mergeHeaders(...sources: Array<HeaderSource | undefined>): Headers;
 }
 
@@ -111,12 +133,16 @@ export abstract class ClientTransport {
 
   protected get transport(): HttpClient {
     if (!this.client) {
+      // Hey API's own `auth` resolves security-scheme tokens, so ours runs as a request interceptor instead: after the
+      // request is complete, and for the handshake too.
+      const { auth, ...config } = this.config ?? {};
       this.client = this.http.createClient({
-        ...this.config,
+        ...config,
         responseStyle: 'fields',
         throwOnError: false,
         parseAs: 'auto'
       });
+      if (auth !== undefined) this.client.interceptors.request.use(auth);
     }
     return this.client;
   }

@@ -45,6 +45,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete) | administrators | `organisations.streams.exposures.*`, `.recorders.*` v1 |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs` | members | `organisations.subjects.*` v1 |
 | `POST /reports` | devices, by signature | `reports.submit` v1: a batch of events, metrics and logs |
+| `POST /iroh-sessions` | devices, by signature | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
 | `GET /openapi.json` | SDK/CLI | the published capability bundle                        |
 | `/auth/*`        | accounts | Better Auth's routes, hidden from the contract           |
 
@@ -61,8 +62,8 @@ organisations are this API's own tables rather than Better Auth's (see [Organisa
 - **Sign-up and sign-in** by emailed one-time code (`emailOTP`): `POST /auth/email-otp/send-verification-otp` with
   `{ email, type: "sign-in" }`, then `POST /auth/sign-in/email-otp` with `{ email, otp }`. A new email creates the
   account.
-- **Devices** (the CLI) by the OAuth device flow (`deviceAuthorization`): the device asks `/auth/device/code` for a
-  code as client `studio-cli`, shows it, and polls `/auth/device/token`; the person approves it in the web app at
+- **Devices** (the `ctv` CLI, [`apps/cli`](../../cli)) by the OAuth device flow (`deviceAuthorization`): the device asks
+  `/auth/device/code` for a code as client `studio-cli`, shows it, and polls `/auth/device/token`; the person approves it in the web app at
   `<first WEB_ORIGINS entry>/device`, signing in there first if needed. The token is sent as
   `Authorization: Bearer …` (the `bearer` plugin), so `requirePrincipal` needs no cookie.
 - **Passkeys** as an alternative sign-in only: `/auth/passkey/generate-register-options` and `/auth/passkey/verify-registration`
@@ -100,6 +101,7 @@ bindings:
 | `APP_URL`             | text       | where the API is served; Better Auth's base URL and passkey relying party |
 | `WEB_ORIGINS`         | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
 | `OTP_DELIVERY`        | text       | `log` only, see above                                                   |
+| `IROH_RELAY_URL`      | text       | the iroh relay every device's session uses (`irohSessions.create`)      |
 
 The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
 every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access
@@ -119,11 +121,11 @@ pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 ```
 
 Sign in from the terminal with the CLI, which opens the device flow (the web app must be running for the approval
-page), or with curl: request a code, read it from the dev server's log (`"event":"email_otp"`), exchange it, and use
+page) and then registers the session's browser device in an organisation you pick, or with curl: request a code, read it from the dev server's log (`"event":"email_otp"`), exchange it, and use
 the returned session cookie:
 
 ```sh
-pnpm --filter @conservationtv/studio-cli cli login && pnpm --filter @conservationtv/studio-cli cli account get v1
+pnpm --filter @conservationtv/cli cli login && pnpm --filter @conservationtv/cli cli account get v1
 
 curl -X POST localhost:5175/auth/email-otp/send-verification-otp -H 'content-type: application/json' \
   -H 'origin: http://localhost:5173' -d '{"email":"you@example.com","type":"sign-in"}'
@@ -293,7 +295,7 @@ Rotating would also change every blind index, so those would need recomputing to
 ```sh
 pnpm --filter @conservationtv/studio-api generate             # contracts/openapi.json from routes + handler types
 pnpm --filter @conservationtv/studio-sdk generate
-pnpm --filter @conservationtv/studio-cli generate
+pnpm --filter @conservationtv/studio-cli generate           # the commands apps/cli mounts at its top level
 ```
 
 `pnpm snapshot studio-api-v1.0.0` freezes the current bundle under `contracts/snapshots/`, and `check:snapshot`,

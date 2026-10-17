@@ -11,7 +11,9 @@ export {
   type ResponseBody
 } from './errors.js';
 export {
+  bearer,
   ClientTransport,
+  type Authenticate,
   type ClientConfig,
   type HttpClient,
   type HttpRuntime,
