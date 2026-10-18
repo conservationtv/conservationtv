@@ -3,8 +3,13 @@ import { Observable } from 'rxjs';
 /** A task given a signal that aborts when its subscriber leaves before it settles. */
 export type Task = (signal: AbortSignal) => Promise<void>;
 
-/** Queues a task; the result emits once and completes when the task resolves, or errors when it throws. */
-export type Serial = (task: Task) => Observable<void>;
+/** Queues tasks to run one at a time. */
+export interface Serial {
+  /** Queues a task; the result emits once and completes when the task resolves, or errors when it throws. */
+  (task: Task): Observable<void>;
+  /** Resolves once every task queued so far has settled, or been skipped. */
+  idle(): Promise<void>;
+}
 
 /**
  * Runs tasks one at a time, in subscription order. A task unsubscribed before its turn never starts; one unsubscribed
@@ -12,7 +17,7 @@ export type Serial = (task: Task) => Observable<void>;
  */
 export function serial(): Serial {
   let tail = Promise.resolve();
-  return task =>
+  const queue = (task: Task) =>
     new Observable<void>(subscriber => {
       const controller = new AbortController();
       let settled = false;
@@ -33,4 +38,6 @@ export function serial(): Serial {
         if (!settled) controller.abort();
       };
     });
+  const idle = () => tail;
+  return Object.assign(queue, { idle });
 }

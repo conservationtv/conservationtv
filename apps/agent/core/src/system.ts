@@ -1,4 +1,4 @@
-import { controller, converge, staticMutator } from '@conservationtv/converge';
+import { controller, converge } from '@conservationtv/converge';
 import { createStore } from '@conservationtv/store';
 import { HeartbeatRuntime, HeartbeatSpecSchema } from './runtimes/heartbeat.ts';
 
@@ -19,7 +19,7 @@ export function startSystem() {
         dispose: () => heartbeat.dispose()
       })
     },
-    mutators: [staticMutator(DESIRED)]
+    restore: async () => DESIRED
   });
 }
 
