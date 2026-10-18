@@ -9,11 +9,4 @@ export {
   type SystemSpec,
   type SystemStatus
 } from './controller.ts';
-export {
-  converge,
-  staticMutator,
-  type Mutations,
-  type Mutator,
-  type Convergence,
-  type ConvergeOptions
-} from './converge.ts';
+export { converge, type Mutations, type Mutator, type Convergence, type ConvergeOptions } from './converge.ts';

@@ -15,14 +15,14 @@ export interface Controller<Spec extends z.ZodType, Status> {
   /**
    * Converge to `spec`. The system runs one call per key at a time, always with the latest spec, so resolve once the
    * runtime has accepted the spec and let long work carry on, reporting through `status`. `signal` aborts when a
-   * newer spec supersedes this one or the system stops.
+   * newer spec supersedes this one or the system stops; give up promptly, because both wait for the call to settle.
    */
   execute(spec: z.output<Spec>, signal: AbortSignal): Promise<void>;
   /** The key is absent: removed, or missing at boot. Called when there may be nothing to remove. */
   finalize?(signal: AbortSignal): Promise<void>;
   /**
-   * The system has stopped: release what the runtime holds, such as timers. Not a removal, so the runtime is left doing
-   * what it was doing. Called once nothing more will be applied.
+   * The system has stopped: release what the runtime holds, such as timers. Not a removal, so the runtime is left
+   * doing what it was doing. Called once every call has settled, and nothing more will be applied.
    */
   dispose?(): void;
 }

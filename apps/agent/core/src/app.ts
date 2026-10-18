@@ -69,8 +69,9 @@ export class Agent {
     const server = this.server;
     this.server = undefined;
     await server?.[Symbol.asyncDispose]();
-    this.system?.stop();
+    const system = this.system;
     this.system = undefined;
+    await system?.stop();
   }
 
   /** Bind the endpoint, stopping the runtimes again if that fails, so a failed start leaves nothing running. */
