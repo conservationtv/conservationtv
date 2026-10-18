@@ -1,6 +1,6 @@
 import { type Observable, catchError, concat, map, mergeMap, of, timer } from 'rxjs';
 import type { z } from 'zod';
-import type { Applied, Applying, Apply, ApplyFailed, Resolver, Revision } from './resolver.ts';
+import type { Applied, Applying, Apply, ApplyFailed, Controller, Revision } from './controller.ts';
 import { revisionOf } from './revision.ts';
 import type { Serial } from './serial.ts';
 
@@ -21,25 +21,25 @@ export function revisioned<Spec>(spec: Spec | undefined): Revisioned<Spec> {
 
 /** Announces `applying`, then runs the key's execute (or finalize) through `queue`, retrying with backoff. */
 export function apply<Spec extends z.ZodType, Status>(
-  resolver: Resolver<Spec, Status>,
+  controller: Controller<Spec, Status>,
   current: Revisioned<z.output<Spec>>,
   queue: Serial
 ): Observable<Apply> {
-  const run = () => queue(signal => converge(resolver, current.spec, signal));
+  const run = () => queue(signal => settle(controller, current.spec, signal));
   const applying: Applying = { state: 'applying', revision: current.revision };
   const announced = of(applying);
   const attempts = attempt(run, current.revision, 1);
   return concat(announced, attempts);
 }
 
-function converge<Spec extends z.ZodType, Status>(
-  resolver: Resolver<Spec, Status>,
+function settle<Spec extends z.ZodType, Status>(
+  controller: Controller<Spec, Status>,
   spec: z.output<Spec> | undefined,
   signal: AbortSignal
 ): Promise<void> {
-  if (spec !== undefined) return resolver.execute(spec, signal);
-  if (resolver.finalize === undefined) return Promise.resolve();
-  return resolver.finalize(signal);
+  if (spec !== undefined) return controller.execute(spec, signal);
+  if (controller.finalize === undefined) return Promise.resolve();
+  return controller.finalize(signal);
 }
 
 function attempt(run: () => Observable<void>, revision: Revision, count: number): Observable<Apply> {
