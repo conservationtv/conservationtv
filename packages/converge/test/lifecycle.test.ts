@@ -1,6 +1,6 @@
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Mutations, type Mutator, controller, staticMutator, type SystemSpec } from '../src/index.ts';
+import { type Mutations, type Mutator, controller, type SystemSpec } from '../src/index.ts';
 import { AppSpecSchema, FakeRuntime, app, flush, revisionFor, succeedAfter, until, started } from './harness.ts';
 
 /** A system of one `web` runtime. */
@@ -42,23 +42,19 @@ describe('starting', () => {
     system.stop();
   });
 
-  // This is how the agent starts. Storage is empty, so the system begins finalizing web, as above. A moment later the
-  // static mutator sets web to v1. The finalize is now out of date, so the system aborts it and asks the runtime to run
-  // v1 instead. When that succeeds, the status says v1 is applied.
-  it("boots the agent's way: a static spec supersedes the boot-time finalize, and the spec wins", async () => {
+  // This is how the agent starts. Its spec is fixed in code and handed over as the spec to start from, so the very
+  // first thing the runtime is asked to do is run it. There is no finalize to start and then abort, as there would
+  // be if the spec arrived as a change just after starting.
+  it("boots the agent's way: a spec fixed in code is the first thing the runtime runs", async () => {
     const web = new FakeRuntime();
-    const system = await started({ controllers: { web: web.controller }, mutators: [staticMutator({ web: app(1) })] });
-
-    const finalize = await web.next();
-    expect(finalize.kind).toBe('finalize');
-    // The static spec commits a moment after boot, superseding the finalize that boot started.
-    await flush();
-    expect(finalize.signal.aborted).toBe(true);
+    const system = await started({ controllers: { web: web.controller }, restore: async () => ({ web: app(1) }) });
 
     const execute = await web.next();
+    expect(execute.kind).toBe('execute');
     expect(execute.spec).toEqual(app(1));
     execute.succeed();
     await until(system, s => s.web.apply.state === 'applied' && s.web.apply.revision === revisionFor(app(1)));
+    expect(web.history).toEqual([1]);
     system.stop();
   });
 
@@ -253,45 +249,58 @@ describe('stopping', () => {
     expect(web.calls.at(-1)?.kind).toBe('execute');
   });
 
-  // The system is stopped, but a mutator ignores its cleanup and sets web to v7 anyway. The change is saved to
-  // storage, but nothing applies it, because the system is no longer running. The next convergence to start from
-  // this storage would pick v7 up.
-  it('still accepts and persists mutations after stopping, to be applied on the next start', async () => {
-    const stored: number[] = [];
+  // Someone sets web to v1, and the disk is slow, so the save is still under way when the system is told to stop. A
+  // mutator that ignores its cleanup then tries to set v7, and is turned away. The system doesn't finish stopping
+  // until the v1 save completes, so nothing is still writing to storage once stop() resolves. V1 is saved, ready for
+  // the next start, but this system never applies it.
+  it('turns changes away once stopping, and finishes the save already under way before it stops', async () => {
+    const stored: (number | undefined)[] = [];
+    const saving: (() => void)[] = [];
     const sink = async (spec: SystemSpec<WebOnly>) => {
-      if (spec.web !== undefined) stored.push(spec.web.version);
+      await new Promise<void>(resolve => saving.push(resolve));
+      stored.push(spec.web?.version);
     };
     const web = new FakeRuntime(true, succeedAfter(0));
     const system = await started({ controllers: { web: web.controller }, sink });
+    const first = system.set('web', app(1));
     await flush();
 
-    system.stop();
-    await system.set('web', app(7));
+    let stopped = false;
+    const stopping = system.stop().then(() => {
+      stopped = true;
+    });
+    await expect(system.set('web', app(7))).rejects.toThrow('stopping');
     await flush();
+    expect(stopped).toBe(false);
 
-    expect(stored).toEqual([7]);
-    expect(web.history).not.toContain(7);
+    saving[0]?.();
+    await first;
+    await stopping;
+    expect(stored).toEqual([1]);
+    expect(web.history).not.toContain(1);
   });
 
-  // Web is part-way through applying v1 when the system is stopped. The system aborts the apply first, and only
-  // then tells the runtime to dispose, so the runtime never has to release its timers while an apply is still
-  // using them. Disposing happens once, and the key is never finalized: the runtime is let go of, not torn down.
-  it('disposes each runtime once, after aborting what was in flight, and never finalizes', async () => {
-    const web = new FakeRuntime();
-    let abortedFirst = false;
-    const dispose = vi.fn(() => {
-      abortedFirst = web.calls.every(call => call.signal.aborted || call.kind === 'finalize');
-    });
+  // Web is part-way through applying v1 when the system is stopped. The system aborts the apply, but this runtime
+  // ignores the abort and keeps going, so the system waits. Only once the apply has finished does it tell the
+  // runtime to dispose, so the runtime never has to release its timers while an apply is still using them. Disposing
+  // happens once, and the key is never finalized: the runtime is let go of, not torn down.
+  it('disposes each runtime once, only after its calls have settled, and never finalizes', async () => {
+    const web = new FakeRuntime(false);
+    const dispose = vi.fn();
     const system = await started({ controllers: { web: { ...web.controller, dispose } } });
     const boot = await web.next();
     boot.succeed();
     await system.set('web', app(1));
-    await web.next();
+    const applying = await web.next();
 
-    system.stop();
+    const stopping = system.stop();
+    await flush();
+    expect(applying.signal.aborted).toBe(true);
+    expect(dispose).not.toHaveBeenCalled();
 
+    applying.succeed();
+    await stopping;
     expect(dispose).toHaveBeenCalledOnce();
-    expect(abortedFirst).toBe(true);
     expect(web.history).toEqual([undefined, 1]);
   });
 

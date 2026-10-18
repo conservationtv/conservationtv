@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type SystemSpec } from '../src/index.ts';
-import { type Driver, FakeRuntime, app, revisionFor, until, started } from './harness.ts';
+import { type Driver, FakeRuntime, app, revisionFor, seeded, until, started } from './harness.ts';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -9,17 +9,6 @@ afterEach(() => {
 const KEYS = ['web', 'db', 'cache'] as const;
 const SEEDS = Array.from({ length: 40 }, (_, index) => index + 1);
 const OPERATIONS = 30;
-
-/** mulberry32: a small seeded generator, so a failing seed replays exactly. */
-function random(seed: number): () => number {
-  let state = seed;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 /** Each call takes up to 50ms, and a third of them fail. */
 function unreliable(next: () => number): Driver {
@@ -43,7 +32,7 @@ describe('eventual consistency', () => {
     'seed %i: under random mutations, latencies and failures, every runtime ends up running the final spec',
     async seed => {
       vi.useFakeTimers();
-      const next = random(seed);
+      const next = seeded(seed);
       const pick = <T>(items: readonly T[]): T => items[Math.floor(next() * items.length)];
       // Some runtimes give up when superseded; others finish the stale work first.
       const runtimes = {
