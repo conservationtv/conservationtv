@@ -5,3 +5,7 @@ import * as z from 'zod';
 export const StatusGetParamsSchema = z.object({});
 
 export type StatusGetParams = z.infer<typeof StatusGetParamsSchema>;
+
+export const SystemGetParamsSchema = z.object({});
+
+export type SystemGetParams = z.infer<typeof SystemGetParamsSchema>;

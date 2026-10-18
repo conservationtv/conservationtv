@@ -11,7 +11,40 @@ export const StatusSchema = z.object({
     status: z.literal('ok')
 });
 
+export const SystemSchema = z.object({
+    heartbeat: z.object({
+        runtime: z.object({
+            running: z.boolean(),
+            intervalMs: z.number().nullable(),
+            message: z.string().nullable(),
+            beats: z.number(),
+            lastBeatAt: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    })
+});
+
 /**
  * The agent is serving requests
  */
 export const GetStatusResponseSchema = StatusSchema;
+
+/**
+ * Every runtime's status
+ */
+export const GetSystemResponseSchema = SystemSchema;
