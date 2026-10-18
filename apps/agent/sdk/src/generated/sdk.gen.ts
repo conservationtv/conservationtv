@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { GetStatusErrors, GetStatusResponses } from './types.gen.js';
+import type { GetStatusErrors, GetStatusResponses, GetSystemErrors, GetSystemResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -57,6 +57,17 @@ export class Status extends HeyApiClient {
     }
 }
 
+export class System extends HeyApiClient {
+    /**
+     * Read the agent's runtimes
+     *
+     * Each runtime's live status, and whether it has accepted its latest spec. Live, never stored: after a restart it is rebuilt from the runtimes.
+     */
+    public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetSystemResponses, GetSystemErrors, ThrowOnError> {
+        return (options?.client ?? this.client).get<GetSystemResponses, GetSystemErrors, ThrowOnError>({ url: '/system', ...options });
+    }
+}
+
 export class BaseClient extends HeyApiClient {
     public static readonly __registry: HeyApiRegistry<BaseClient> = new HeyApiRegistry<BaseClient>();
     
@@ -71,5 +82,10 @@ export class BaseClient extends HeyApiClient {
     private _status?: Status;
     get status(): Status {
         return this._status ??= new Status({ client: this.client });
+    }
+    
+    private _system?: System;
+    get system(): System {
+        return this._system ??= new System({ client: this.client });
     }
 }
