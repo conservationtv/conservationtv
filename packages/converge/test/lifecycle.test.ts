@@ -1,25 +1,25 @@
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Mutations, type Mutator, resolver, staticMutator, type SystemSpec } from '../src/index.ts';
+import { type Mutations, type Mutator, controller, staticMutator, type SystemSpec } from '../src/index.ts';
 import { AppSpecSchema, FakeRuntime, app, flush, revisionFor, succeedAfter, until, started } from './harness.ts';
 
 /** A system of one `web` runtime. */
-type WebOnly = Record<'web', FakeRuntime['resolver']>;
+type WebOnly = Record<'web', FakeRuntime['controller']>;
 
 /** A system of a `web` and a `db` runtime. */
-type Pair = Record<'web' | 'db', FakeRuntime['resolver']>;
+type Pair = Record<'web' | 'db', FakeRuntime['controller']>;
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
 describe('starting', () => {
-  // Splat starts with nothing stored, so the web key has no spec. Splat can't tell whether web was never configured
-  // or was removed while splat was down, so it asks the runtime to finalize. Once the runtime does, the status
-  // reports the removal as applied, with no revision.
-  it('finalizes a key that is absent at boot, so something removed while splat was down is still torn down', async () => {
+  // The system starts with nothing stored, so the web key has no spec. The system can't tell whether web was never
+  // configured or was removed while the system was down, so it asks the runtime to finalize. Once the runtime
+  // does, the status reports the removal as applied, with no revision.
+  it('finalizes a key that is absent at boot, so something removed while the system was down is still torn down', async () => {
     const web = new FakeRuntime();
-    const system = await started({ resolvers: { web: web.resolver } });
+    const system = await started({ controllers: { web: web.controller } });
 
     const call = await web.next();
     expect(call.kind).toBe('finalize');
@@ -30,11 +30,11 @@ describe('starting', () => {
     system.stop();
   });
 
-  // Splat restarts and finds web at v3 in storage. Before anything else happens, the runtime is asked to run v3:
+  // The system restarts and finds web at v3 in storage. Before anything else happens, the runtime is asked to run v3:
   // whatever was there before the restart is picked straight back up.
   it('resumes the restored spec before any mutation arrives', async () => {
     const web = new FakeRuntime();
-    const system = await started({ resolvers: { web: web.resolver }, restore: async () => ({ web: app(3) }) });
+    const system = await started({ controllers: { web: web.controller }, restore: async () => ({ web: app(3) }) });
 
     const call = await web.next();
     expect(call.kind).toBe('execute');
@@ -42,12 +42,12 @@ describe('starting', () => {
     system.stop();
   });
 
-  // This is how the agent starts. Storage is empty, so splat begins finalizing web, as above. A moment later the
-  // static mutator sets web to v1. The finalize is now out of date, so splat aborts it and asks the runtime to run
+  // This is how the agent starts. Storage is empty, so the system begins finalizing web, as above. A moment later the
+  // static mutator sets web to v1. The finalize is now out of date, so the system aborts it and asks the runtime to run
   // v1 instead. When that succeeds, the status says v1 is applied.
   it("boots the agent's way: a static spec supersedes the boot-time finalize, and the spec wins", async () => {
     const web = new FakeRuntime();
-    const system = await started({ resolvers: { web: web.resolver }, mutators: [staticMutator({ web: app(1) })] });
+    const system = await started({ controllers: { web: web.controller }, mutators: [staticMutator({ web: app(1) })] });
 
     const finalize = await web.next();
     expect(finalize.kind).toBe('finalize');
@@ -63,13 +63,13 @@ describe('starting', () => {
   });
 
   // Two runtimes: web reports a status straight away, but quiet says nothing. Someone asks for the system's status
-  // and is left waiting, because splat only reports once it can say something about every key. As soon as quiet
+  // and is left waiting, because the system only reports once it can say something about every key. As soon as quiet
   // reports that it is up, the waiting reader gets an answer that includes it.
   it('reports nothing at all until every runtime has reported a status of its own', async () => {
     const silent = new Subject<string>();
-    const quiet = resolver({ spec: AppSpecSchema, status: silent, execute: async () => undefined });
+    const quiet = controller({ spec: AppSpecSchema, status: silent, execute: async () => undefined });
     const web = new FakeRuntime(true, succeedAfter(0));
-    const system = await started({ resolvers: { web: web.resolver, quiet } });
+    const system = await started({ controllers: { web: web.controller, quiet } });
 
     const first = firstValueFrom(system.status$);
     let reported = false;
@@ -103,7 +103,7 @@ describe('mutators', () => {
       apis.push(changes);
       return () => undefined;
     };
-    const system = await started({ resolvers: { web: web.resolver, db: db.resolver }, mutators: [config, api] });
+    const system = await started({ controllers: { web: web.controller, db: db.controller }, mutators: [config, api] });
 
     const caller = apis[0];
     if (caller === undefined) throw new Error('The API mutator was never handed the changes');
@@ -125,7 +125,7 @@ describe('mutators', () => {
 });
 
 describe('persisting', () => {
-  // Someone sets web to v1. Splat writes it to storage first, and only then asks the runtime to run it. So if the
+  // Someone sets web to v1. The system writes it to storage first, and only then asks the runtime to run it. So if the
   // process dies between the two, storage already knows about v1 and the restart will apply it. The runtime is never
   // running something that storage has never heard of.
   it('persists a spec before applying it, so the runtime is never ahead of storage', async () => {
@@ -137,7 +137,7 @@ describe('persisting', () => {
     const sink = async (spec: SystemSpec<WebOnly>) => {
       events.push(`sink ${spec.web?.version}`);
     };
-    const system = await started({ resolvers: { web: web.resolver }, sink });
+    const system = await started({ controllers: { web: web.controller }, sink });
 
     await system.set('web', app(1));
     await until(system, s => s.web.apply.revision === revisionFor(app(1)) && s.web.apply.state === 'applied');
@@ -147,7 +147,7 @@ describe('persisting', () => {
   });
 
   // Someone sets web to v1, and it is saved and applied. Then they set v2, but the disk is full and saving fails.
-  // That set() call rejects, and splat behaves as if it never happened: the desired spec is still v1, and the
+  // That set() call rejects, and the system behaves as if it never happened: the desired spec is still v1, and the
   // runtime never sees v2. Then they set v3, which saves fine and is applied. One failed write doesn't jam the ones
   // after it.
   it('rejects a mutation whose sink fails, leaving the desired state as it was, and carries on', async () => {
@@ -155,7 +155,7 @@ describe('persisting', () => {
     const sink = async (spec: SystemSpec<WebOnly>) => {
       if (spec.web?.version === 2) throw new Error('disk full');
     };
-    const system = await started({ resolvers: { web: web.resolver }, sink });
+    const system = await started({ controllers: { web: web.controller }, sink });
 
     await system.set('web', app(1));
     await expect(system.set('web', app(2))).rejects.toThrow('disk full');
@@ -167,9 +167,10 @@ describe('persisting', () => {
     system.stop();
   });
 
-  // The first splat is told to run web at v5. It saves v5, applies it, and reports a revision. Then it stops, as if
-  // the process were restarting. A second splat starts with a brand-new runtime, reads v5 back from storage, and
-  // applies it without anyone asking. It reports exactly the same revision as before the restart.
+  // The first convergence is told to run web at v5. It saves v5, applies it, and reports a revision. Then it
+  // stops, as if the process were restarting. A second convergence starts with a brand-new runtime, reads v5 back
+  // from storage, and applies it without anyone asking. It reports exactly the same revision as before the
+  // restart.
   it('a restart resumes from storage and reports the same revision, without any mutation', async () => {
     let stored: SystemSpec<WebOnly> = {};
     const sink = async (spec: typeof stored) => {
@@ -178,7 +179,7 @@ describe('persisting', () => {
     const restore = async () => stored;
 
     const before = new FakeRuntime(true, succeedAfter(0));
-    const first = await started({ resolvers: { web: before.resolver }, sink, restore });
+    const first = await started({ controllers: { web: before.controller }, sink, restore });
     await first.set('web', app(5));
     const converged = await until(
       first,
@@ -187,7 +188,7 @@ describe('persisting', () => {
     first.stop();
 
     const after = new FakeRuntime(true, succeedAfter(0));
-    const second = await started({ resolvers: { web: after.resolver }, sink, restore });
+    const second = await started({ controllers: { web: after.controller }, sink, restore });
     const resumed = await until(second, s => s.web.apply.state === 'applied');
 
     expect(resumed.web.apply.revision).toBe(converged.web.apply.revision);
@@ -195,8 +196,8 @@ describe('persisting', () => {
     second.stop();
   });
 
-  // Someone sets web to v1, then tries v2, but saving v2 fails. Asked for its spec, splat answers v1: the last spec
-  // the sink actually saved, never one that only got as far as being asked for.
+  // Someone sets web to v1, then tries v2, but saving v2 fails. Asked for its spec, the system answers v1: the
+  // last spec the sink actually saved, never one that only got as far as being asked for.
   it('reports as its spec the last one the sink saved', async () => {
     const saved: SystemSpec<WebOnly>[] = [];
     const sink = async (spec: SystemSpec<WebOnly>) => {
@@ -204,7 +205,7 @@ describe('persisting', () => {
       saved.push(spec);
     };
     const web = new FakeRuntime(true, succeedAfter(0));
-    const system = await started({ resolvers: { web: web.resolver }, sink });
+    const system = await started({ controllers: { web: web.controller }, sink });
 
     await system.set('web', app(1));
     await expect(system.set('web', app(2))).rejects.toThrow('disk full');
@@ -216,13 +217,13 @@ describe('persisting', () => {
 });
 
 describe('stopping', () => {
-  // Web is told to run v1 and the runtime starts working on it. Before it finishes, splat is stopped. The runtime's
-  // abort signal fires, so it can give up. Then an hour passes. Nothing calls the runtime again: no retry or backoff
-  // timer survives stop().
+  // Web is told to run v1 and the runtime starts working on it. Before it finishes, the system is stopped. The
+  // runtime's abort signal fires, so it can give up. Then an hour passes. Nothing calls the runtime again: no
+  // retry or backoff timer survives stop().
   it('aborts the apply in flight, and nothing is retried afterwards', async () => {
     vi.useFakeTimers();
     const web = new FakeRuntime();
-    const system = await started({ resolvers: { web: web.resolver } });
+    const system = await started({ controllers: { web: web.controller } });
     const boot = await web.next();
     boot.succeed();
 
@@ -231,16 +232,17 @@ describe('stopping', () => {
     system.stop();
 
     expect(call.signal.aborted).toBe(true);
-    // Long past every backoff: a stopped splat must not wake up and try again.
+    // Long past every backoff: a stopped convergence must not wake up and try again.
     await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
     expect(web.calls).toHaveLength(2);
   });
 
-  // Web is running v1 when splat is stopped. The runtime keeps running v1, and splat never asks it to finalize.
-  // Stopping means splat stops managing things, as on a restart. Removing a key is what tears it down.
+  // Web is running v1 when the system is stopped. The runtime keeps running v1, and the system never asks it to
+  // finalize. Stopping means the system stops managing things, as on a restart. Removing a key is what tears it
+  // down.
   it('leaves the runtime running as it was: stopping is not removing', async () => {
     const web = new FakeRuntime(true, succeedAfter(0));
-    const system = await started({ resolvers: { web: web.resolver } });
+    const system = await started({ controllers: { web: web.controller } });
     await system.set('web', app(1));
     await until(system, s => s.web.apply.revision === revisionFor(app(1)) && s.web.apply.state === 'applied');
 
@@ -251,16 +253,16 @@ describe('stopping', () => {
     expect(web.calls.at(-1)?.kind).toBe('execute');
   });
 
-  // Splat is stopped, but a mutator ignores its cleanup and sets web to v7 anyway. The change is saved to storage,
-  // but nothing applies it, because splat is no longer running. The next splat to start from this storage would pick
-  // v7 up.
+  // The system is stopped, but a mutator ignores its cleanup and sets web to v7 anyway. The change is saved to
+  // storage, but nothing applies it, because the system is no longer running. The next convergence to start from
+  // this storage would pick v7 up.
   it('still accepts and persists mutations after stopping, to be applied on the next start', async () => {
     const stored: number[] = [];
     const sink = async (spec: SystemSpec<WebOnly>) => {
       if (spec.web !== undefined) stored.push(spec.web.version);
     };
     const web = new FakeRuntime(true, succeedAfter(0));
-    const system = await started({ resolvers: { web: web.resolver }, sink });
+    const system = await started({ controllers: { web: web.controller }, sink });
     await flush();
 
     system.stop();
@@ -271,16 +273,16 @@ describe('stopping', () => {
     expect(web.history).not.toContain(7);
   });
 
-  // Web is part-way through applying v1 when splat is stopped. Splat aborts the apply first, and only then tells the
-  // runtime to dispose, so the runtime never has to release its timers while an apply is still using them. Disposing
-  // happens once, and the key is never finalized: the runtime is let go of, not torn down.
+  // Web is part-way through applying v1 when the system is stopped. The system aborts the apply first, and only
+  // then tells the runtime to dispose, so the runtime never has to release its timers while an apply is still
+  // using them. Disposing happens once, and the key is never finalized: the runtime is let go of, not torn down.
   it('disposes each runtime once, after aborting what was in flight, and never finalizes', async () => {
     const web = new FakeRuntime();
     let abortedFirst = false;
     const dispose = vi.fn(() => {
       abortedFirst = web.calls.every(call => call.signal.aborted || call.kind === 'finalize');
     });
-    const system = await started({ resolvers: { web: { ...web.resolver, dispose } } });
+    const system = await started({ controllers: { web: { ...web.controller, dispose } } });
     const boot = await web.next();
     boot.succeed();
     await system.set('web', app(1));
@@ -293,13 +295,13 @@ describe('stopping', () => {
     expect(web.history).toEqual([undefined, 1]);
   });
 
-  // Mutators are whatever feed splat changes, such as an API or a file watcher. When splat stops, it calls the
-  // cleanup each mutator gave it, so the API stops taking changes and the watcher stops watching.
+  // Mutators are whatever feed the system changes, such as an API or a file watcher. When the system stops, it
+  // calls the cleanup each mutator gave it, so the API stops taking changes and the watcher stops watching.
   it('cleans up every mutator', async () => {
     const api = vi.fn();
     const watcher = vi.fn();
     const web = new FakeRuntime(true, succeedAfter(0));
-    const system = await started({ resolvers: { web: web.resolver }, mutators: [() => api, () => watcher] });
+    const system = await started({ controllers: { web: web.controller }, mutators: [() => api, () => watcher] });
 
     system.stop();
 
@@ -309,13 +311,13 @@ describe('stopping', () => {
 });
 
 describe('status', () => {
-  // A heartbeat is set to v1 and splat reports it applied. Then the heartbeat beats twice. Each beat shows up in the
-  // runtime half of the status. The apply half still says v1 is applied, because the spec hasn't changed. The
-  // runtime says what it is doing; splat says whether the runtime has accepted the latest spec.
-  it("pairs each runtime's own live status with how far splat has got applying its spec", async () => {
+  // A heartbeat is set to v1 and the system reports it applied. Then the heartbeat beats twice. Each beat shows up
+  // in the runtime half of the status. The apply half still says v1 is applied, because the spec hasn't changed.
+  // The runtime says what it is doing; the system says whether the runtime has accepted the latest spec.
+  it("pairs each runtime's own live status with how far the system has got applying its spec", async () => {
     const beats = new BehaviorSubject(0);
-    const heartbeat = resolver({ spec: AppSpecSchema, status: beats, execute: async () => undefined });
-    const system = await started({ resolvers: { heartbeat } });
+    const heartbeat = controller({ spec: AppSpecSchema, status: beats, execute: async () => undefined });
+    const system = await started({ controllers: { heartbeat } });
     await system.set('heartbeat', app(1));
     await until(system, s => s.heartbeat.apply.state === 'applied' && s.heartbeat.apply.revision !== null);
 
