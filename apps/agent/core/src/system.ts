@@ -1,4 +1,4 @@
-import { resolver, splat, staticMutator } from '@conservationtv/splat';
+import { controller, converge, staticMutator } from '@conservationtv/converge';
 import { createStore } from '@conservationtv/store';
 import { HeartbeatRuntime, HeartbeatSpecSchema } from './runtimes/heartbeat.ts';
 
@@ -9,9 +9,9 @@ const DESIRED = {
 
 export function startSystem() {
   const heartbeat = new HeartbeatRuntime();
-  return splat({
-    resolvers: {
-      heartbeat: resolver({
+  return converge({
+    controllers: {
+      heartbeat: controller({
         spec: HeartbeatSpecSchema,
         status: heartbeat.status$,
         execute: spec => heartbeat.apply(spec),

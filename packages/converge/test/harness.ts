@@ -4,12 +4,12 @@ import { z } from 'zod';
 import {
   type Mutations,
   type Mutator,
-  type Resolvers,
-  type Splat,
-  type SplatOptions,
+  type Controllers,
+  type Convergence,
+  type ConvergeOptions,
   type SystemStatus,
-  resolver,
-  splat
+  controller,
+  converge
 } from '../src/index.ts';
 import { revisionOf } from '../src/revision.ts';
 
@@ -26,7 +26,7 @@ export interface Running {
   spec: AppSpec | undefined;
 }
 
-/** One call splat made into a runtime, held open until the test (or a driver) settles it. */
+/** One call the system made into a runtime, held open until the test (or a driver) settles it. */
 export interface Call {
   kind: 'execute' | 'finalize';
   spec: AppSpec | undefined;
@@ -45,9 +45,9 @@ export type Driver = (call: Call) => void;
  */
 export class FakeRuntime {
   readonly running = new BehaviorSubject<Running>({ spec: undefined });
-  /** Every call splat made, in order. */
+  /** Every call the system made, in order. */
   readonly calls: Call[] = [];
-  /** The most calls that were ever in flight at once. Splat promises one. */
+  /** The most calls that were ever in flight at once. The system promises one. */
   maxInFlight = 0;
   private inFlight = 0;
   private unseen: Call[] = [];
@@ -62,14 +62,14 @@ export class FakeRuntime {
     private readonly driver: Driver | undefined = undefined
   ) {}
 
-  readonly resolver = resolver({
+  readonly controller = controller({
     spec: AppSpecSchema,
     status: this.running,
     execute: (spec, signal) => this.call('execute', spec, signal),
     finalize: signal => this.call('finalize', undefined, signal)
   });
 
-  /** The next call splat makes into this runtime, once it makes it. */
+  /** The next call the system makes into this runtime, once it makes it. */
   next(): Promise<Call> {
     const call = this.unseen.shift();
     if (call !== undefined) return Promise.resolve(call);
@@ -133,29 +133,29 @@ export function succeedAfter(latencyMs: number): Driver {
   };
 }
 
-/** A running splat, and the changes the test makes to it. */
-export type Controlled<R extends Resolvers> = Splat<R> & Mutations<R>;
+/** A running convergence, and the changes the test makes to it. */
+export type TestSystem<R extends Controllers> = Convergence<R> & Mutations<R>;
 
 /**
- * Starts splat with one more mutator: the test's own, holding on to the changes the way an API or a file watcher
+ * Starts converging with one more mutator: the test's own, holding on to the changes the way an API or a file watcher
  * would. Everything the test sets, removes or replaces goes through it.
  */
-export async function started<R extends Resolvers>(options: SplatOptions<R>): Promise<Controlled<R>> {
+export async function started<R extends Controllers>(options: ConvergeOptions<R>): Promise<TestSystem<R>> {
   const handed: Mutations<R>[] = [];
   const test: Mutator<R> = changes => {
     handed.push(changes);
     return () => undefined;
   };
   const mutators = [...(options.mutators ?? []), test];
-  const system = await splat({ ...options, mutators });
+  const system = await converge({ ...options, mutators });
   const changes = handed[0];
-  if (changes === undefined) throw new Error('Splat started without handing its mutators the changes');
+  if (changes === undefined) throw new Error('Converge started without handing its mutators the changes');
   return { ...system, ...changes };
 }
 
 /** Resolves with the first status that satisfies `predicate`, including the current one. */
-export function until<R extends Resolvers>(
-  system: Splat<R>,
+export function until<R extends Controllers>(
+  system: Convergence<R>,
   predicate: (status: SystemStatus<R>) => boolean
 ): Promise<SystemStatus<R>> {
   const matching = filter(predicate);
@@ -163,7 +163,7 @@ export function until<R extends Resolvers>(
   return firstValueFrom(status$.pipe(matching));
 }
 
-/** The revision splat reports for a spec, or `null` when the key is absent. */
+/** The revision the system reports for a spec, or `null` when the key is absent. */
 export function revisionFor(spec: AppSpec | undefined): string | null {
   if (spec === undefined) return null;
   return revisionOf(spec);

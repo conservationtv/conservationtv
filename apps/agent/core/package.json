@@ -17,7 +17,7 @@
     "ci:contracts": "api-contracts ci"
   },
   "dependencies": {
-    "@conservationtv/splat": "workspace:*",
+    "@conservationtv/converge": "workspace:*",
     "@conservationtv/store": "workspace:*",
     "@conservationtv/studio-sdk": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",

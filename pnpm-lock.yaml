@@ -267,9 +267,9 @@ importers:
 
   apps/agent/core:
     dependencies:
-      '@conservationtv/splat':
+      '@conservationtv/converge':
         specifier: workspace:*
-        version: link:../../../packages/splat
+        version: link:../../../packages/converge
       '@conservationtv/store':
         specifier: workspace:*
         version: link:../../../packages/store
@@ -847,6 +847,25 @@ importers:
         specifier: ^8
         version: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
 
+  packages/converge:
+    dependencies:
+      rxjs:
+        specifier: 7.8.2
+        version: 7.8.2
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 5.0.3
+        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+
   packages/fleet:
     dependencies:
       '@pulumi/command':
@@ -892,25 +911,6 @@ importers:
       vitest:
         specifier: 3.2.6
         version: 3.2.6(@types/node@24.0.6)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.0)
-
-  packages/splat:
-    dependencies:
-      rxjs:
-        specifier: 7.8.2
-        version: 7.8.2
-      zod:
-        specifier: 'catalog:'
-        version: 4.6.2
-    devDependencies:
-      '@types/node':
-        specifier: 24.10.1
-        version: 24.10.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 5.0.3
-        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
 
   packages/store:
     devDependencies:

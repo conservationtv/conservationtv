@@ -6,9 +6,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** A splat over one hand-driven `web` runtime, past its boot-time finalize. */
+/** A convergence over one hand-driven `web` runtime, past its boot-time finalize. */
 async function booted(web: FakeRuntime) {
-  const system = await started({ resolvers: { web: web.resolver } });
+  const system = await started({ controllers: { web: web.controller } });
   const boot = await web.next();
   boot.succeed();
   return system;
@@ -16,8 +16,8 @@ async function booted(web: FakeRuntime) {
 
 describe('specs arriving faster than they apply', () => {
   // Web is told to run v1. The runtime is slow, and it ignores aborts, so it keeps going. While it works, someone
-  // sets v2 and then v3. Splat aborts v1, but has to wait for it to finish. When it does, v2 is already out of date,
-  // so splat skips it and goes straight to v3. The runtime only ever sees v1 then v3, one at a time.
+  // sets v2 and then v3. The system aborts v1, but has to wait for it to finish. When it does, v2 is already out
+  // of date, so the system skips it and goes straight to v3. The runtime only ever sees v1 then v3, one at a time.
   it('skips the specs that arrive while an apply is busy: only the latest runs after it', async () => {
     const web = new FakeRuntime(false);
     const system = await booted(web);
@@ -39,8 +39,8 @@ describe('specs arriving faster than they apply', () => {
     system.stop();
   });
 
-  // Web is told to run v1, and while the runtime works on it, someone sets v2. Splat aborts v1, but this runtime
-  // ignores the abort and finishes v1 anyway. Splat doesn't start v2 until v1 is done, so v2 always lands last and
+  // Web is told to run v1, and while the runtime works on it, someone sets v2. The system aborts v1, but this runtime
+  // ignores the abort and finishes v1 anyway. The system doesn't start v2 until v1 is done, so v2 always lands last and
   // wins. And although the runtime did briefly run v1, the status never says v1 was applied: by the time it
   // finished, nobody wanted it any more.
   it('waits for a runtime that ignores the abort, so a superseded apply can never land after the latest', async () => {
@@ -64,14 +64,14 @@ describe('specs arriving faster than they apply', () => {
     latest.succeed();
     await until(system, s => s.web.apply.state === 'applied' && s.web.apply.revision === revisionFor(app(2)));
 
-    // Splat never claimed the stale spec was applied, even though the runtime briefly ran it.
+    // The system never claimed the stale spec was applied, even though the runtime briefly ran it.
     expect(applies).not.toContainEqual({ state: 'applied', revision: revisionFor(app(1)) });
     expect(web.maxInFlight).toBe(1);
     recording.unsubscribe();
     system.stop();
   });
 
-  // Web is told to run v1, and while the runtime is still working on it, someone removes web. Splat doesn't start
+  // Web is told to run v1, and while the runtime is still working on it, someone removes web. The system doesn't start
   // tearing web down until the v1 apply has finished, so the two never run at once. Then it finalizes web, and the
   // status reports the removal as applied.
   it('finalizes a key removed mid-apply only once the apply has settled', async () => {
@@ -113,7 +113,7 @@ describe('concurrent mutations', () => {
       persisted.push('write');
       writing--;
     };
-    const system = await started({ resolvers: { web: web.resolver, db: db.resolver }, sink });
+    const system = await started({ controllers: { web: web.controller, db: db.controller }, sink });
 
     // Each mutation reads the spec as the one before left it: none overwrites another with a stale copy.
     await Promise.all([
@@ -139,12 +139,12 @@ describe('concurrent mutations', () => {
     system.stop();
   });
 
-  // Web is running v1. Someone sets web to v1 again, writing the fields in a different order. Splat sees it is the
+  // Web is running v1. Someone sets web to v1 again, writing the fields in a different order. The system sees it is the
   // same spec and doesn't bother the runtime. Then someone changes db. That only touches db; web is left alone.
   it('does not re-apply a spec that is the same, however its fields are ordered', async () => {
     const web = new FakeRuntime(true, succeedAfter(0));
     const db = new FakeRuntime(true, succeedAfter(0));
-    const system = await started({ resolvers: { web: web.resolver, db: db.resolver } });
+    const system = await started({ controllers: { web: web.controller, db: db.controller } });
     await system.replace({ web: { image: 'app', version: 1 }, db: app(1) });
     await until(system, s => s.web.apply.state === 'applied' && s.db.apply.revision === revisionFor(app(1)));
     const before = web.calls.length;
@@ -165,7 +165,7 @@ describe('keys are independent', () => {
   it('a key stuck applying does not hold up the others', async () => {
     const slow = new FakeRuntime();
     const fast = new FakeRuntime(true, succeedAfter(0));
-    const system = await started({ resolvers: { slow: slow.resolver, fast: fast.resolver } });
+    const system = await started({ controllers: { slow: slow.controller, fast: fast.controller } });
 
     await system.replace({ slow: app(1), fast: app(1) });
     const status = await until(system, s => s.fast.apply.state === 'applied' && s.fast.apply.revision !== null);
@@ -178,8 +178,8 @@ describe('keys are independent', () => {
 });
 
 describe('failures', () => {
-  // Web is told to run v1, but the image pull fails. The status reports the failure as attempt 1. Splat waits one
-  // second and tries again. It fails again, so the status shows attempt 2, and splat waits two seconds this time.
+  // Web is told to run v1, but the image pull fails. The status reports the failure as attempt 1. The system waits one
+  // second and tries again. It fails again, so the status shows attempt 2, and the system waits two seconds this time.
   // The third try works, and the status says v1 is applied.
   it('retries with a growing backoff, reporting each failure, until the runtime accepts', async () => {
     vi.useFakeTimers();
@@ -210,8 +210,8 @@ describe('failures', () => {
     system.stop();
   });
 
-  // Web is told to run v1, but the config is bad and it fails. Splat schedules a retry for a second later. Before
-  // that, someone fixes the config and sets v2. Splat doesn't wait out the backoff: it runs v2 straight away. The
+  // Web is told to run v1, but the config is bad and it fails. The system schedules a retry for a second later. Before
+  // that, someone fixes the config and sets v2. The system doesn't wait out the backoff: it runs v2 straight away. The
   // retry of v1 is cancelled, so even an hour later the runtime has never been asked for v1 again.
   it('a newer spec cuts a backoff short instead of waiting it out', async () => {
     vi.useFakeTimers();
