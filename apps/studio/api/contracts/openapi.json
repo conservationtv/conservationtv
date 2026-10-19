@@ -992,65 +992,89 @@
       "Metric": {
         "type": "object",
         "properties": {
-          "samples": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "step": {
+            "type": "number"
+          },
+          "points": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "id": {
+                "at": {
                   "type": "string"
                 },
-                "reporterId": {
-                  "type": "string"
+                "min": {
+                  "type": "number"
                 },
-                "observedAt": {
-                  "type": "string"
+                "max": {
+                  "type": "number"
                 },
-                "receivedAt": {
-                  "type": "string"
+                "avg": {
+                  "type": "number"
                 },
-                "name": {
-                  "type": "string"
+                "last": {
+                  "type": "number"
                 },
-                "type": {
-                  "type": "string"
-                },
-                "unit": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "dimensions": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                "value": {
+                "count": {
                   "type": "number"
                 }
               },
               "required": [
-                "id",
-                "reporterId",
-                "observedAt",
-                "receivedAt",
-                "name",
-                "type",
-                "unit",
-                "dimensions",
-                "value"
+                "at",
+                "min",
+                "max",
+                "avg",
+                "last",
+                "count"
               ]
             }
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reporterId": {
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string"
           }
         },
         "required": [
-          "samples"
+          "from",
+          "to",
+          "step",
+          "points",
+          "id",
+          "name",
+          "reporterId",
+          "unit",
+          "dimensions",
+          "createdAt"
         ]
       },
       "Log": {
@@ -7883,15 +7907,64 @@
       "get": {
         "operationId": "organisations.subjects.metrics.list",
         "x-operation-version": 1,
-        "summary": "List the metric samples reported about a subject",
-        "description": "Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.",
+        "summary": "List the metric series reported about a subject",
+        "description": "Each series is one metric from one reporter, with one unit and set of dimensions, such as the bitrate of one MediaMTX path. Optionally of one metric, by name. Read a series’ points with `organisations.subjects.metrics.get`.",
         "responses": {
           "200": {
-            "description": "The samples",
+            "description": "The series, by name",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Metric"
+                  "type": "object",
+                  "properties": {
+                    "series": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "reporterId": {
+                            "type": "string"
+                          },
+                          "unit": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "dimensions": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "reporterId",
+                          "unit",
+                          "dimensions",
+                          "createdAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "series"
+                  ]
                 }
               }
             }
@@ -7961,34 +8034,151 @@
           },
           {
             "in": "query",
-            "name": "limit",
-            "schema": {
-              "default": 100,
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 1000
-            },
-            "description": "At most this many, newest first."
-          },
-          {
-            "in": "query",
-            "name": "before",
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-            },
-            "description": "Only those observed before this time, to page back."
-          },
-          {
-            "in": "query",
             "name": "name",
             "schema": {
               "type": "string",
               "minLength": 1,
               "maxLength": 200
             },
-            "description": "Only samples of this metric."
+            "description": "Only series of this metric."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/subjects/{subjectId}/metrics/{seriesId}": {
+      "get": {
+        "operationId": "organisations.subjects.metrics.get",
+        "x-operation-version": 1,
+        "summary": "Read a metric series over a time range",
+        "description": "The series, and its points from `from` until `to` in buckets of `step` seconds, oldest first: each bucket's least and greatest values, the mean weighted by samples, the last value and how many samples it summarises. A bucket with no points is absent, so a gap is a time the reporter reported nothing. The step is widened so the range has at most 1000 buckets, and returned.",
+        "responses": {
+          "200": {
+            "description": "The series and its points",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metric"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "subjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+            },
+            "required": true,
+            "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+          },
+          {
+            "in": "path",
+            "name": "seriesId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The series."
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "required": true,
+            "description": "Points observed at or after this time."
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "description": "Points observed before this time; now by default."
+          },
+          {
+            "in": "query",
+            "name": "step",
+            "schema": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 2678400
+            },
+            "description": "Seconds per bucket, at least; widened so the range has at most 1000 buckets."
           }
         ],
         "x-operation-versions": [
@@ -8700,56 +8890,123 @@
                               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                             },
                             "payload": {
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 200
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "enum": [
-                                    "gauge",
-                                    "counter"
-                                  ]
-                                },
-                                "value": {
-                                  "type": "number"
-                                },
-                                "unit": {
-                                  "default": null,
-                                  "anyOf": [
-                                    {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
                                       "type": "string",
                                       "minLength": 1,
-                                      "maxLength": 60
+                                      "maxLength": 200
                                     },
-                                    {
-                                      "type": "null"
+                                    "unit": {
+                                      "default": null,
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 60
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "dimensions": {
+                                      "default": {},
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 60
+                                      },
+                                      "additionalProperties": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "number"
                                     }
-                                  ]
-                                },
-                                "dimensions": {
-                                  "default": {},
-                                  "type": "object",
-                                  "propertyNames": {
-                                    "type": "string",
-                                    "minLength": 1,
-                                    "maxLength": 60
                                   },
-                                  "additionalProperties": {
-                                    "type": "string",
-                                    "maxLength": 200
-                                  }
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "unit": {
+                                      "default": null,
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 60
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "dimensions": {
+                                      "default": {},
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 60
+                                      },
+                                      "additionalProperties": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "summary": {
+                                      "type": "object",
+                                      "properties": {
+                                        "min": {
+                                          "type": "number"
+                                        },
+                                        "max": {
+                                          "type": "number"
+                                        },
+                                        "avg": {
+                                          "type": "number"
+                                        },
+                                        "last": {
+                                          "type": "number"
+                                        },
+                                        "count": {
+                                          "type": "integer",
+                                          "minimum": 1,
+                                          "maximum": 9007199254740991
+                                        }
+                                      },
+                                      "required": [
+                                        "min",
+                                        "max",
+                                        "avg",
+                                        "last",
+                                        "count"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "summary"
+                                  ],
+                                  "additionalProperties": false
                                 }
-                              },
-                              "required": [
-                                "name",
-                                "type",
-                                "value"
-                              ],
-                              "additionalProperties": false
+                              ]
                             }
                           },
                           "required": [
@@ -20252,7 +20509,7 @@
           "Metric": {
             "type": "object",
             "properties": {
-              "samples": {
+              "series": {
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -20260,19 +20517,10 @@
                     "id": {
                       "type": "string"
                     },
-                    "reporterId": {
-                      "type": "string"
-                    },
-                    "observedAt": {
-                      "type": "string"
-                    },
-                    "receivedAt": {
-                      "type": "string"
-                    },
                     "name": {
                       "type": "string"
                     },
-                    "type": {
+                    "reporterId": {
                       "type": "string"
                     },
                     "unit": {
@@ -20291,26 +20539,23 @@
                         "type": "string"
                       }
                     },
-                    "value": {
-                      "type": "number"
+                    "createdAt": {
+                      "type": "string"
                     }
                   },
                   "required": [
                     "id",
-                    "reporterId",
-                    "observedAt",
-                    "receivedAt",
                     "name",
-                    "type",
+                    "reporterId",
                     "unit",
                     "dimensions",
-                    "value"
+                    "createdAt"
                   ]
                 }
               }
             },
             "required": [
-              "samples"
+              "series"
             ]
           }
         }
@@ -20320,11 +20565,11 @@
           "get": {
             "operationId": "organisations.subjects.metrics.list",
             "x-operation-version": 1,
-            "summary": "List the metric samples reported about a subject",
-            "description": "Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.",
+            "summary": "List the metric series reported about a subject",
+            "description": "Each series is one metric from one reporter, with one unit and set of dimensions, such as the bitrate of one MediaMTX path. Optionally of one metric, by name. Read a series’ points with `organisations.subjects.metrics.get`.",
             "responses": {
               "200": {
-                "description": "The samples",
+                "description": "The series, by name",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -20398,34 +20643,287 @@
               },
               {
                 "in": "query",
-                "name": "limit",
-                "schema": {
-                  "default": 100,
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 1000
-                },
-                "description": "At most this many, newest first."
-              },
-              {
-                "in": "query",
-                "name": "before",
-                "schema": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "description": "Only those observed before this time, to page back."
-              },
-              {
-                "in": "query",
                 "name": "name",
                 "schema": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 200
                 },
-                "description": "Only samples of this metric."
+                "description": "Only series of this metric."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Metric": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "step": {
+                "type": "number"
+              },
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "at": {
+                      "type": "string"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    },
+                    "avg": {
+                      "type": "number"
+                    },
+                    "last": {
+                      "type": "number"
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "at",
+                    "min",
+                    "max",
+                    "avg",
+                    "last",
+                    "count"
+                  ]
+                }
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "reporterId": {
+                "type": "string"
+              },
+              "unit": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dimensions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "step",
+              "points",
+              "id",
+              "name",
+              "reporterId",
+              "unit",
+              "dimensions",
+              "createdAt"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/{subjectId}/metrics/{seriesId}": {
+          "get": {
+            "operationId": "organisations.subjects.metrics.get",
+            "x-operation-version": 1,
+            "summary": "Read a metric series over a time range",
+            "description": "The series, and its points from `from` until `to` in buckets of `step` seconds, oldest first: each bucket's least and greatest values, the mean weighted by samples, the last value and how many samples it summarises. A bucket with no points is absent, so a gap is a time the reporter reported nothing. The step is widened so the range has at most 1000 buckets, and returned.",
+            "responses": {
+              "200": {
+                "description": "The series and its points",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Metric"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "subjectId",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+                },
+                "required": true,
+                "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
+              },
+              {
+                "in": "path",
+                "name": "seriesId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The series."
+              },
+              {
+                "in": "query",
+                "name": "from",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "required": true,
+                "description": "Points observed at or after this time."
+              },
+              {
+                "in": "query",
+                "name": "to",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "description": "Points observed before this time; now by default."
+              },
+              {
+                "in": "query",
+                "name": "step",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "maximum": 2678400
+                },
+                "description": "Seconds per bucket, at least; widened so the range has at most 1000 buckets."
               },
               {
                 "in": "header",
@@ -21557,56 +22055,123 @@
                                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                                 },
                                 "payload": {
-                                  "type": "object",
-                                  "properties": {
-                                    "name": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 200
-                                    },
-                                    "type": {
-                                      "type": "string",
-                                      "enum": [
-                                        "gauge",
-                                        "counter"
-                                      ]
-                                    },
-                                    "value": {
-                                      "type": "number"
-                                    },
-                                    "unit": {
-                                      "default": null,
-                                      "anyOf": [
-                                        {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
                                           "type": "string",
                                           "minLength": 1,
-                                          "maxLength": 60
+                                          "maxLength": 200
                                         },
-                                        {
-                                          "type": "null"
+                                        "unit": {
+                                          "default": null,
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 60
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "dimensions": {
+                                          "default": {},
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 60
+                                          },
+                                          "additionalProperties": {
+                                            "type": "string",
+                                            "maxLength": 200
+                                          }
+                                        },
+                                        "value": {
+                                          "type": "number"
                                         }
-                                      ]
-                                    },
-                                    "dimensions": {
-                                      "default": {},
-                                      "type": "object",
-                                      "propertyNames": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "maxLength": 60
                                       },
-                                      "additionalProperties": {
-                                        "type": "string",
-                                        "maxLength": 200
-                                      }
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 200
+                                        },
+                                        "unit": {
+                                          "default": null,
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 60
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "dimensions": {
+                                          "default": {},
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 60
+                                          },
+                                          "additionalProperties": {
+                                            "type": "string",
+                                            "maxLength": 200
+                                          }
+                                        },
+                                        "summary": {
+                                          "type": "object",
+                                          "properties": {
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            },
+                                            "avg": {
+                                              "type": "number"
+                                            },
+                                            "last": {
+                                              "type": "number"
+                                            },
+                                            "count": {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 9007199254740991
+                                            }
+                                          },
+                                          "required": [
+                                            "min",
+                                            "max",
+                                            "avg",
+                                            "last",
+                                            "count"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      },
+                                      "required": [
+                                        "name",
+                                        "summary"
+                                      ],
+                                      "additionalProperties": false
                                     }
-                                  },
-                                  "required": [
-                                    "name",
-                                    "type",
-                                    "value"
-                                  ],
-                                  "additionalProperties": false
+                                  ]
                                 }
                               },
                               "required": [

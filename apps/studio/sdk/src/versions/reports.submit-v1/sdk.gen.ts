@@ -79,11 +79,23 @@ export class Reports extends HeyApiClient {
             observedAt: string;
             payload: {
                 name: string;
-                type: 'gauge' | 'counter';
-                value: number;
                 unit?: string | null;
                 dimensions?: {
                     [key: string]: string;
+                };
+                value: number;
+            } | {
+                name: string;
+                unit?: string | null;
+                dimensions?: {
+                    [key: string]: string;
+                };
+                summary: {
+                    min: number;
+                    max: number;
+                    avg: number;
+                    last: number;
+                    count: number;
                 };
             };
         } | {

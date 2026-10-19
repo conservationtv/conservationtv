@@ -2,11 +2,11 @@
 
 import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient60 } from '../versions/invitations.accept-v1/sdk.gen.js';
-import { BaseClient as BaseClient61 } from '../versions/invitations.decline-v1/sdk.gen.js';
-import { BaseClient as BaseClient59 } from '../versions/invitations.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient58 } from '../versions/invitations.listMine-v1/sdk.gen.js';
-import { BaseClient as BaseClient63 } from '../versions/irohSessions.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient61 } from '../versions/invitations.accept-v1/sdk.gen.js';
+import { BaseClient as BaseClient62 } from '../versions/invitations.decline-v1/sdk.gen.js';
+import { BaseClient as BaseClient60 } from '../versions/invitations.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient59 } from '../versions/invitations.listMine-v1/sdk.gen.js';
+import { BaseClient as BaseClient64 } from '../versions/irohSessions.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient35 } from '../versions/organisations.agents.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient38 } from '../versions/organisations.agents.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient36 } from '../versions/organisations.agents.get-v1/sdk.gen.js';
@@ -56,13 +56,14 @@ import { BaseClient as BaseClient51 } from '../versions/organisations.streams.re
 import { BaseClient as BaseClient53 } from '../versions/organisations.streams.recorders.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient52 } from '../versions/organisations.streams.recorders.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient46 } from '../versions/organisations.streams.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient57 } from '../versions/organisations.subjects.logs.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient58 } from '../versions/organisations.subjects.logs.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient57 } from '../versions/organisations.subjects.metrics.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient56 } from '../versions/organisations.subjects.metrics.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient55 } from '../versions/organisations.subjects.observations.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient54 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient62 } from '../versions/reports.submit-v1/sdk.gen.js';
-import { BaseClient as BaseClient64 } from '../versions/whoami.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient63 } from '../versions/reports.submit-v1/sdk.gen.js';
+import { BaseClient as BaseClient65 } from '../versions/whoami.get-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -159,26 +160,27 @@ export class Client extends ClientCore {
                 list: this.versioned('organisations.subjects.observations.list', { v1: BaseClient55 })
             },
             metrics: {
-                list: this.versioned('organisations.subjects.metrics.list', { v1: BaseClient56 })
+                list: this.versioned('organisations.subjects.metrics.list', { v1: BaseClient56 }),
+                get: this.versioned('organisations.subjects.metrics.get', { v1: BaseClient57 })
             },
             logs: {
-                list: this.versioned('organisations.subjects.logs.list', { v1: BaseClient57 })
+                list: this.versioned('organisations.subjects.logs.list', { v1: BaseClient58 })
             }
         }
     };
     readonly invitations = {
-        listMine: this.versioned('invitations.listMine', { v1: BaseClient58 }),
-        get: this.versioned('invitations.get', { v1: BaseClient59 }),
-        accept: this.versioned('invitations.accept', { v1: BaseClient60 }),
-        decline: this.versioned('invitations.decline', { v1: BaseClient61 })
+        listMine: this.versioned('invitations.listMine', { v1: BaseClient59 }),
+        get: this.versioned('invitations.get', { v1: BaseClient60 }),
+        accept: this.versioned('invitations.accept', { v1: BaseClient61 }),
+        decline: this.versioned('invitations.decline', { v1: BaseClient62 })
     };
     readonly reports = {
-        submit: this.versioned('reports.submit', { v1: BaseClient62 })
+        submit: this.versioned('reports.submit', { v1: BaseClient63 })
     };
     readonly irohSessions = {
-        create: this.versioned('irohSessions.create', { v1: BaseClient63 })
+        create: this.versioned('irohSessions.create', { v1: BaseClient64 })
     };
     readonly whoami = {
-        get: this.versioned('whoami.get', { v1: BaseClient64 })
+        get: this.versioned('whoami.get', { v1: BaseClient65 })
     };
 }

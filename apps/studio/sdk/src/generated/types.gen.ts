@@ -245,19 +245,25 @@ export type Observation = {
 };
 
 export type Metric = {
-    samples: Array<{
-        id: string;
-        reporterId: string;
-        observedAt: string;
-        receivedAt: string;
-        name: string;
-        type: string;
-        unit: string | null;
-        dimensions: {
-            [key: string]: string;
-        };
-        value: number;
+    from: string;
+    to: string;
+    step: number;
+    points: Array<{
+        at: string;
+        min: number;
+        max: number;
+        avg: number;
+        last: number;
+        count: number;
     }>;
+    id: string;
+    name: string;
+    reporterId: string;
+    unit: string | null;
+    dimensions: {
+        [key: string]: string;
+    };
+    createdAt: string;
 };
 
 export type Log = {
@@ -3448,15 +3454,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
     };
     query?: {
         /**
-         * At most this many, newest first.
-         */
-        limit?: number;
-        /**
-         * Only those observed before this time, to page back.
-         */
-        before?: string;
-        /**
-         * Only samples of this metric.
+         * Only series of this metric.
          */
         name?: string;
     };
@@ -3486,12 +3484,90 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsError = GetOrganisatio
 
 export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses = {
     /**
-     * The samples
+     * The series, by name
+     */
+    200: {
+        series: Array<{
+            id: string;
+            name: string;
+            reporterId: string;
+            unit: string | null;
+            dimensions: {
+                [key: string]: string;
+            };
+            createdAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+        /**
+         * The series.
+         */
+        seriesId: string;
+    };
+    query: {
+        /**
+         * Points observed at or after this time.
+         */
+        from: string;
+        /**
+         * Points observed before this time; now by default.
+         */
+        to?: string;
+        /**
+         * Seconds per bucket, at least; widened so the range has at most 1000 buckets.
+         */
+        step?: number;
+    };
+    url: '/organisations/{id}/subjects/{subjectId}/metrics/{seriesId}';
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdError = GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors];
+
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses = {
+    /**
+     * The series and its points
      */
     200: Metric;
 };
 
-export type GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses];
+export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponse = GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses];
 
 export type GetOrganisationsByIdSubjectsBySubjectIdLogsData = {
     body?: never;
@@ -3789,11 +3865,23 @@ export type PostReportsData = {
             observedAt: string;
             payload: {
                 name: string;
-                type: 'gauge' | 'counter';
-                value: number;
                 unit?: string | null;
                 dimensions?: {
                     [key: string]: string;
+                };
+                value: number;
+            } | {
+                name: string;
+                unit?: string | null;
+                dimensions?: {
+                    [key: string]: string;
+                };
+                summary: {
+                    min: number;
+                    max: number;
+                    avg: number;
+                    last: number;
+                    count: number;
                 };
             };
         } | {
