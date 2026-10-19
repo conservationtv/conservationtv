@@ -15,7 +15,8 @@
   "scripts": {
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "dev:staging": "pnpm --filter @conservationtv/studio-api db:up && pnpm --parallel --filter @conservationtv/studio-api --filter @conservationtv/web --filter @conservationtv/agent-runner run dev:staging"
   },
   "devDependencies": {
     "@oxlint/plugins": "^1.78.0",
