@@ -293,23 +293,84 @@
               "runtime": {
                 "type": "object",
                 "properties": {
-                  "state": {
-                    "type": "string",
-                    "enum": [
-                      "running",
-                      "stopped",
-                      "starting",
-                      "crashed"
-                    ]
-                  },
-                  "pid": {
-                    "anyOf": [
-                      {
+                  "process": {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "running",
+                          "stopped",
+                          "starting",
+                          "crashed"
+                        ]
+                      },
+                      "pid": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "restarts": {
                         "type": "number"
                       },
-                      {
-                        "type": "null"
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
+                    },
+                    "required": [
+                      "state",
+                      "pid",
+                      "restarts",
+                      "lastError"
+                    ]
+                  },
+                  "metrics": {
+                    "type": "object",
+                    "properties": {
+                      "pending": {
+                        "type": "number"
+                      },
+                      "submitted": {
+                        "type": "number"
+                      },
+                      "lastSubmittedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "pending",
+                      "submitted",
+                      "lastSubmittedAt",
+                      "lastError"
                     ]
                   },
                   "version": {
@@ -324,58 +385,13 @@
                   },
                   "installing": {
                     "type": "boolean"
-                  },
-                  "restarts": {
-                    "type": "number"
-                  },
-                  "lastError": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "pending": {
-                    "type": "number"
-                  },
-                  "submitted": {
-                    "type": "number"
-                  },
-                  "lastSubmittedAt": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "lastMetricsError": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
                   }
                 },
                 "required": [
-                  "state",
-                  "pid",
+                  "process",
+                  "metrics",
                   "version",
-                  "installing",
-                  "restarts",
-                  "lastError",
-                  "pending",
-                  "submitted",
-                  "lastSubmittedAt",
-                  "lastMetricsError"
+                  "installing"
                 ]
               },
               "apply": {
@@ -1019,23 +1035,84 @@
                   "runtime": {
                     "type": "object",
                     "properties": {
-                      "state": {
-                        "type": "string",
-                        "enum": [
-                          "running",
-                          "stopped",
-                          "starting",
-                          "crashed"
-                        ]
-                      },
-                      "pid": {
-                        "anyOf": [
-                          {
+                      "process": {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "running",
+                              "stopped",
+                              "starting",
+                              "crashed"
+                            ]
+                          },
+                          "pid": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "restarts": {
                             "type": "number"
                           },
-                          {
-                            "type": "null"
+                          "lastError": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
+                        },
+                        "required": [
+                          "state",
+                          "pid",
+                          "restarts",
+                          "lastError"
+                        ]
+                      },
+                      "metrics": {
+                        "type": "object",
+                        "properties": {
+                          "pending": {
+                            "type": "number"
+                          },
+                          "submitted": {
+                            "type": "number"
+                          },
+                          "lastSubmittedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastError": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "pending",
+                          "submitted",
+                          "lastSubmittedAt",
+                          "lastError"
                         ]
                       },
                       "version": {
@@ -1050,58 +1127,13 @@
                       },
                       "installing": {
                         "type": "boolean"
-                      },
-                      "restarts": {
-                        "type": "number"
-                      },
-                      "lastError": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "pending": {
-                        "type": "number"
-                      },
-                      "submitted": {
-                        "type": "number"
-                      },
-                      "lastSubmittedAt": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "lastMetricsError": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
                       }
                     },
                     "required": [
-                      "state",
-                      "pid",
+                      "process",
+                      "metrics",
                       "version",
-                      "installing",
-                      "restarts",
-                      "lastError",
-                      "pending",
-                      "submitted",
-                      "lastSubmittedAt",
-                      "lastMetricsError"
+                      "installing"
                     ]
                   },
                   "apply": {
