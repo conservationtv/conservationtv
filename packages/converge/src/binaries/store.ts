@@ -2,18 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
-import type { Check } from './checks.ts';
+import type { Binary } from './binary.ts';
 import { type Fetch, download } from './download.ts';
-import { type Format, type Manifest, ManifestSchema, artifactFor } from './manifest.ts';
-import { type Unpack, unpackers } from './unpack.ts';
+import { type Manifest, ManifestSchema, artifactFor } from './manifest.ts';
 
 export interface BinaryStoreOptions {
   /** A directory of the store's own. Each binary gets a folder in it, with each version installed beside the others. */
   directory: string;
-  /** Unpackers to use in place of the defaults, by format. */
-  unpackers?: Partial<Record<Format, Unpack>>;
-  /** Run against each unpacked binary, in order, before it's installed. Any that throws turns the binary away. */
-  checks?: Check[];
   /** How downloads are fetched. `globalThis.fetch` by default. */
   fetch?: Fetch;
 }
@@ -26,6 +21,11 @@ export interface Installed {
   id: string;
   /** The executable. */
   path: string;
+  /**
+   * Everything the download unpacked to. Some binaries need what came beside them: mediamtx reads the `mediamtx.yml`
+   * next to it only when run from here, and Node's `npm` needs Node's `bin/` on its `PATH`.
+   */
+  directory: string;
   /** When it was installed, as an ISO 8601 timestamp. */
   installedAt: string;
 }
@@ -55,32 +55,31 @@ const STAGING = '.staging-';
  *                                         files/…
  * ```
  *
- * Each install is downloaded and checked against its checksum, unpacked, made executable and put through the store's
- * checks, all in a staging folder. Only then is its record written and the folder renamed into place. So an install
+ * Each install is downloaded and checked against its checksum, then unpacked, made executable and put through its
+ * binary's checks, all in a staging folder. Only then is its record written and the folder renamed into place. So an install
  * interrupted at any point (an abort, a dropped connection, the process being killed) leaves nothing that looks
  * installed; the next install starts again, and the next prune clears up what was left.
  *
  * One store per directory: two processes installing into the same directory at once aren't guarded against.
  */
 export class BinaryStore {
-  private readonly unpackers: Record<Format, Unpack>;
-  private readonly checks: Check[];
   private readonly fetch: Fetch;
   /** Staging folders of installs still running in this process, which a prune must leave alone. */
   private readonly staging = new Set<string>();
 
   constructor(private readonly options: BinaryStoreOptions) {
-    this.unpackers = { ...unpackers, ...options.unpackers };
-    this.checks = options.checks ?? [];
     this.fetch = options.fetch ?? ((url, init) => globalThis.fetch(url, init));
   }
 
-  /** This platform's install of `manifest`, downloading it if it isn't installed yet. */
-  async install(manifest: Manifest, signal: AbortSignal): Promise<Installed> {
+  /** This platform's install of `binary` at `manifest`, downloading it if it isn't installed yet. */
+  async install(binary: Binary, manifest: Manifest, signal: AbortSignal): Promise<Installed> {
+    if (manifest.name !== binary.name) throw new Error(`A ${manifest.name} manifest can't install ${binary.name}`);
     const found = await this.find(manifest);
     if (found !== undefined) return found;
 
     const artifact = artifactFor(manifest);
+    const unpack = binary.unpackers[artifact.format];
+    if (unpack === undefined) throw new Error(`${binary.name} has no unpacker for the format "${artifact.format}"`);
     const folder = this.folder(manifest);
     const staging = join(this.options.directory, manifest.name, `${STAGING}${randomUUID()}`);
     this.staging.add(staging);
@@ -89,13 +88,13 @@ export class BinaryStore {
       await mkdir(files, { recursive: true });
       const downloaded = join(staging, 'download');
       await download(artifact, downloaded, this.fetch, signal);
-      await this.unpackers[artifact.format]({ download: downloaded, into: files, path: artifact.path, signal });
+      await unpack({ download: downloaded, into: files, path: artifact.path, signal });
       await rm(downloaded, { force: true });
 
       const executable = join(files, artifact.path);
       if (!(await exists(executable))) throw new Error(`${artifact.url} has no ${artifact.path} in it`);
       await chmod(executable, 0o755);
-      for (const check of this.checks) await check({ manifest, path: executable, signal });
+      for (const check of binary.checks) await check({ manifest, path: executable, signal });
 
       const record: InstallRecord = { manifest, path: artifact.path, installedAt: new Date().toISOString() };
       await writeFile(join(staging, RECORD), JSON.stringify(record, null, 2));
@@ -165,7 +164,8 @@ export class BinaryStore {
     if (record === undefined) return undefined;
     const path = join(folder, 'files', record.path);
     if (!(await exists(path))) return undefined;
-    return { name, version: record.manifest.version, id, path, installedAt: record.installedAt };
+    const directory = join(folder, 'files');
+    return { name, version: record.manifest.version, id, path, directory, installedAt: record.installedAt };
   }
 }
 

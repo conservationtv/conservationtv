@@ -1,15 +1,16 @@
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BehaviorSubject, type Subscription } from 'rxjs';
-import { BinaryStore, type Installed, ManifestSchema, reportsVersion } from '@conservationtv/converge/binaries';
+import { BinaryStore, type Installed, defineBinary, reportsVersion } from '@conservationtv/converge/binaries';
 import { z } from 'zod';
 import { AdoptedCaddyRuntime } from './adopted.ts';
 import { CaddyAdmin, type CaddyStatus, CaddySpecSchema, STOPPED, findCaddy, stopCaddy } from './caddy.ts';
 
+/** Caddy's releases: a tarball or zip per platform, and `caddy version` reports the version. */
+export const caddyBinary = defineBinary({ name: 'caddy', checks: [reportsVersion(['version'])] });
+
 /** What Caddy should serve, and which Caddy should serve it. */
-export const ManagedCaddySpecSchema = CaddySpecSchema.extend({
-  caddy: ManifestSchema.extend({ name: z.literal('caddy') })
-});
+export const ManagedCaddySpecSchema = CaddySpecSchema.extend({ caddy: caddyBinary.schema });
 export type ManagedCaddySpec = z.output<typeof ManagedCaddySpecSchema>;
 
 /** Where the runtime keeps Caddy, its vendored binaries, and the room to run them in. */
@@ -57,10 +58,7 @@ export class ManagedCaddyRuntime {
   private current: Current | undefined = undefined;
 
   constructor(private readonly options: ManagedCaddyOptions) {
-    this.binaries = new BinaryStore({
-      directory: join(options.directory, 'binaries'),
-      checks: [reportsVersion(['version'])]
-    });
+    this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
     this.admin = new CaddyAdmin(options.admin);
     this.record = join(options.directory, 'binary.json');
   }
@@ -68,7 +66,9 @@ export class ManagedCaddyRuntime {
   /** Installs the binary the spec names if need be, switches Caddy to it if it isn't running it, then serves the site. */
   async execute(spec: ManagedCaddySpec, signal: AbortSignal): Promise<void> {
     this.update({ installing: true });
-    const installed = await this.binaries.install(spec.caddy, signal).finally(() => this.update({ installing: false }));
+    const installed = await this.binaries
+      .install(caddyBinary, spec.caddy, signal)
+      .finally(() => this.update({ installing: false }));
     if (this.current?.installed.id !== installed.id) await this.switchTo(installed);
     const runtime = this.current?.runtime;
     if (runtime === undefined) throw new Error('No Caddy runtime to serve with');
