@@ -10,10 +10,13 @@ import { mediamtxBinary } from './binary.ts';
 import { type MediamtxAddresses, renderConfig } from './config.ts';
 import { MediamtxControl } from './control.ts';
 import { METRICS_STOPPED, MediamtxMetrics, type MediamtxMetricsStatus } from './metrics.ts';
+import { MediamtxPathsSchema, pathIndexOf } from './paths.ts';
 
-/** Which MediaMTX to run, and how often to ship its metrics. */
+/** Which MediaMTX to run, the paths it serves, and how often to ship its metrics. */
 export const MediamtxSpecSchema = z.object({
   binary: mediamtxBinary.schema,
+  /** The paths to serve, each delivering an exposure. None serves any path, about the agent's device. */
+  paths: MediamtxPathsSchema.default([]),
   /** How often to read MediaMTX's metrics page and submit what it says. */
   metricsIntervalMs: z.number().int().min(1_000)
 });
@@ -72,7 +75,9 @@ export class MediamtxRuntime {
   async execute(spec: MediamtxSpec, signal: AbortSignal): Promise<void> {
     const installed = (await this.binaries.find(spec.binary)) ?? (await this.install(spec, signal));
     this.update({ version: installed.version });
-    await this.writeConfig();
+    await this.writeConfig(spec);
+    // From the same spec as the config, so the metrics follow each path to the exposure it now delivers.
+    this.metrics.attribute(pathIndexOf(spec.paths));
     const { directory } = this.options;
     await this.process.ensure(
       { key: installed.id, binary: installed.path, args: [this.configFile], cwd: directory },
@@ -112,9 +117,9 @@ export class MediamtxRuntime {
    * Writes the config before MediaMTX reads it, or re-reads it: a running MediaMTX reloads its file whenever it is
    * written, so one already serving this config is left undisturbed.
    */
-  private async writeConfig(): Promise<void> {
+  private async writeConfig(spec: MediamtxSpec): Promise<void> {
     await mkdir(this.options.directory, { recursive: true });
-    const config = await renderConfig(this.options);
+    const config = await renderConfig({ ...this.options, paths: spec.paths });
     const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
     if (written !== config) await writeFile(this.configFile, config);
   }

@@ -10,12 +10,28 @@ export type Error = {
 };
 
 export type System = {
-    heartbeat?: {
-        intervalMs: number;
-        message: string;
-    };
     machine?: {
         intervalMs: number;
+    };
+    mediamtx?: {
+        binary: {
+            version: string;
+            name: 'mediamtx';
+            artifacts: {
+                [key: string]: {
+                    url: string;
+                    checksum: string;
+                    format: string;
+                    path?: string;
+                };
+            };
+        };
+        paths: Array<{
+            name: string;
+            exposureId: string;
+            rendition?: string;
+        }>;
+        metricsIntervalMs: number;
     };
 };
 
