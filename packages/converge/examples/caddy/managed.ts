@@ -57,10 +57,7 @@ export class ManagedCaddyRuntime {
 
   /** Installs the binary the spec names if need be, switches Caddy to it if it isn't running it, then serves the site. */
   async execute(spec: ManagedCaddySpec, signal: AbortSignal): Promise<void> {
-    this.update({ installing: true });
-    const installed = await this.binaries
-      .install(caddyBinary, spec.caddy, signal)
-      .finally(() => this.update({ installing: false }));
+    const installed = (await this.binaries.find(spec.caddy)) ?? (await this.install(spec, signal));
     const runtime = this.current?.installed.id === installed.id ? this.current.runtime : this.switchTo(installed);
     await runtime.execute({ port: spec.port, body: spec.body }, signal);
     await this.binaries.prune(installed, { spare: 1 });
@@ -87,6 +84,12 @@ export class ManagedCaddyRuntime {
     this.current?.watching.unsubscribe();
     this.current?.runtime.dispose();
     this.status$.complete();
+  }
+
+  /** Downloads and checks the binary the spec names, which the status reports while it lasts. */
+  private install(spec: ManagedCaddySpec, signal: AbortSignal): Promise<Installed> {
+    this.update({ installing: true });
+    return this.binaries.install(caddyBinary, spec.caddy, signal).finally(() => this.update({ installing: false }));
   }
 
   /**

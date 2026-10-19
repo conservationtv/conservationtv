@@ -347,10 +347,7 @@ controller({
   spec: z.object({ tool: tool.schema }),
   status: status$,
   async execute(spec, signal) {
-    status$.next({ ...status$.getValue(), installing: true });
-    const installed = await binaries
-      .install(tool, spec.tool, signal)
-      .finally(() => status$.next({ ...status$.getValue(), installing: false }));
+    const installed = (await binaries.find(spec.tool)) ?? (await install(spec.tool, signal));
     await switchTo(installed, signal); // restart, reload or swap: specific to the runtime
     status$.next({ version: installed.version, installing: false });
     await binaries.prune(installed, { spare: 1 });
@@ -360,13 +357,22 @@ controller({
     await binaries.remove(tool.name);
   }
 });
+
+/** Only a manifest the store hasn't got downloads, so `installing` is reported only then. */
+async function install(manifest, signal) {
+  status$.next({ ...status$.getValue(), installing: true });
+  return binaries
+    .install(tool, manifest, signal)
+    .finally(() => status$.next({ ...status$.getValue(), installing: false }));
+}
 ```
 
 - **Pass the signal through.** A newer spec aborts the install in progress, and the staging folder is cleaned up.
 - **Put the manifest in the spec**, using the binary's `schema`, so a bad manifest is rejected when the spec changes,
   not discovered on install.
-- **Report installing separately** from running. A large download can take a while, and it's useful to see that the
-  old version is still serving while the new one installs.
+- **Report installing separately** from running, and only while a download is really under way: `execute` runs on
+  every spec change, and `find` says whether the manifest is already installed. A large download can take a while,
+  and it's useful to see that the old version is still serving while the new one installs.
 - See [`examples/caddy/managed.ts`](../../examples/caddy/managed.ts) for a complete runtime that adopts a process
   left running and records which install it came from.
 
