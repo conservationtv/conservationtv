@@ -62,6 +62,7 @@ import { BaseClient as BaseClient55 } from '../versions/organisations.subjects.o
 import { BaseClient as BaseClient54 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient62 } from '../versions/reports.submit-v1/sdk.gen.js';
+import { BaseClient as BaseClient64 } from '../versions/whoami.get-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -176,5 +177,8 @@ export class Client extends ClientCore {
     };
     readonly irohSessions = {
         create: this.versioned('irohSessions.create', { v1: BaseClient63 })
+    };
+    readonly whoami = {
+        get: this.versioned('whoami.get', { v1: BaseClient64 })
     };
 }

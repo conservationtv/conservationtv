@@ -1,25 +1,25 @@
 import { controller, converge } from '@conservationtv/converge';
 import { createStore } from '@conservationtv/store';
-import { HeartbeatRuntime, HeartbeatSpecSchema } from './runtimes/heartbeat.ts';
+import type { AgentConfiguration } from './config.ts';
+import { MachineRuntime, MachineSpecSchema } from './runtimes/machine.ts';
 
-// The demo's spec is fixed in code: nothing persists it, and nothing changes it while the agent runs.
-const DESIRED = {
-  heartbeat: { intervalMs: 5_000, message: 'The agent is alive' }
-};
+function controllers(config: AgentConfiguration) {
+  const machine = new MachineRuntime(config);
+  return {
+    machine: controller({
+      spec: MachineSpecSchema,
+      status: machine.status$,
+      execute: spec => machine.apply(spec),
+      finalize: () => machine.teardown(),
+      dispose: () => machine.dispose()
+    })
+  };
+}
 
-export function startSystem() {
-  const heartbeat = new HeartbeatRuntime();
+export function startSystem(config: AgentConfiguration) {
   return converge({
-    controllers: {
-      heartbeat: controller({
-        spec: HeartbeatSpecSchema,
-        status: heartbeat.status$,
-        execute: spec => heartbeat.apply(spec),
-        finalize: () => heartbeat.teardown(),
-        dispose: () => heartbeat.dispose()
-      })
-    },
-    restore: async () => DESIRED
+    controllers: controllers(config),
+    restore: async () => ({ machine: { intervalMs: 60_000 } })
   });
 }
 

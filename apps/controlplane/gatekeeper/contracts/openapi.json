@@ -29,7 +29,10 @@
             "type": "string"
           }
         },
-        "required": ["error", "error_description"]
+        "required": [
+          "error",
+          "error_description"
+        ]
       },
       "Health": {
         "type": "object",
@@ -39,7 +42,9 @@
             "const": "ok"
           }
         },
-        "required": ["status"]
+        "required": [
+          "status"
+        ]
       },
       "Grant": {
         "type": "object",
@@ -72,7 +77,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["root", "token", "expires_at"]
+                "required": [
+                  "root",
+                  "token",
+                  "expires_at"
+                ]
               },
               "iroh": {
                 "type": "object",
@@ -87,12 +96,22 @@
                     "type": "string"
                   }
                 },
-                "required": ["endpoint_id", "lease_id", "expires_at"]
+                "required": [
+                  "endpoint_id",
+                  "lease_id",
+                  "expires_at"
+                ]
               }
             }
           }
         },
-        "required": ["grant_id", "subject", "issued_at", "expires_at", "credentials"]
+        "required": [
+          "grant_id",
+          "subject",
+          "issued_at",
+          "expires_at",
+          "credentials"
+        ]
       }
     }
   },
@@ -238,7 +257,11 @@
                             }
                           }
                         },
-                        "required": ["root", "publish", "subscribe"],
+                        "required": [
+                          "root",
+                          "publish",
+                          "subscribe"
+                        ],
                         "additionalProperties": false
                       },
                       "iroh": {
@@ -253,7 +276,10 @@
                             "const": "connect"
                           }
                         },
-                        "required": ["endpoint_id", "action"],
+                        "required": [
+                          "endpoint_id",
+                          "action"
+                        ],
                         "additionalProperties": false
                       }
                     },
@@ -265,13 +291,19 @@
                     "maximum": 86400
                   }
                 },
-                "required": ["subject", "requested_capabilities", "expires_in"],
+                "required": [
+                  "subject",
+                  "requested_capabilities",
+                  "expires_in"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     }
   },
@@ -307,7 +339,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Grant": {
             "type": "object",
@@ -340,7 +375,11 @@
                         "type": "string"
                       }
                     },
-                    "required": ["root", "token", "expires_at"]
+                    "required": [
+                      "root",
+                      "token",
+                      "expires_at"
+                    ]
                   },
                   "iroh": {
                     "type": "object",
@@ -355,12 +394,22 @@
                         "type": "string"
                       }
                     },
-                    "required": ["endpoint_id", "lease_id", "expires_at"]
+                    "required": [
+                      "endpoint_id",
+                      "lease_id",
+                      "expires_at"
+                    ]
                   }
                 }
               }
             },
-            "required": ["grant_id", "subject", "issued_at", "expires_at", "credentials"]
+            "required": [
+              "grant_id",
+              "subject",
+              "issued_at",
+              "expires_at",
+              "credentials"
+            ]
           }
         }
       },
@@ -488,7 +537,11 @@
                                 }
                               }
                             },
-                            "required": ["root", "publish", "subscribe"],
+                            "required": [
+                              "root",
+                              "publish",
+                              "subscribe"
+                            ],
                             "additionalProperties": false
                           },
                           "iroh": {
@@ -503,7 +556,10 @@
                                 "const": "connect"
                               }
                             },
-                            "required": ["endpoint_id", "action"],
+                            "required": [
+                              "endpoint_id",
+                              "action"
+                            ],
                             "additionalProperties": false
                           }
                         },
@@ -515,7 +571,11 @@
                         "maximum": 86400
                       }
                     },
-                    "required": ["subject", "requested_capabilities", "expires_in"],
+                    "required": [
+                      "subject",
+                      "requested_capabilities",
+                      "expires_in"
+                    ],
                     "additionalProperties": false
                   }
                 }

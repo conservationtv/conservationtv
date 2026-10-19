@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { GetStatusErrors, GetStatusResponses, GetSystemErrors, GetSystemResponses } from './types.gen.js';
+import type { GetStatusErrors, GetStatusResponses, GetSystemErrors, GetSystemResponses, GetSystemSpecErrors, GetSystemSpecResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -65,6 +65,13 @@ export class System extends HeyApiClient {
      */
     public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetSystemResponses, GetSystemErrors, ThrowOnError> {
         return (options?.client ?? this.client).get<GetSystemResponses, GetSystemErrors, ThrowOnError>({ url: '/system', ...options });
+    }
+    
+    /**
+     * Read the agent's currently defined spec
+     */
+    public spec<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetSystemSpecResponses, GetSystemSpecErrors, ThrowOnError> {
+        return (options?.client ?? this.client).get<GetSystemSpecResponses, GetSystemSpecErrors, ThrowOnError>({ url: '/system/spec', ...options });
     }
 }
 
