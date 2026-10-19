@@ -1,4 +1,15 @@
+import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import {
+  type ProcessDefinition,
+  answering,
+  describe,
+  exclusive,
+  findProcess,
+  ready,
+  restartDelay,
+  stopProcess
+} from '@conservationtv/converge/process';
 import { type ResultPromise, execa } from 'execa';
 import { BehaviorSubject } from 'rxjs';
 import {
@@ -7,12 +18,7 @@ import {
   type CaddySpec,
   type CaddyStatus,
   STOPPED,
-  describe,
-  exclusive,
-  findCaddy,
-  pidfile,
-  restartDelay,
-  stopCaddy,
+  caddyProcess,
   writeBootConfig
 } from './caddy.ts';
 
@@ -38,6 +44,8 @@ interface Child {
 export class AttachedCaddyRuntime {
   readonly status$ = new BehaviorSubject<CaddyStatus>(STOPPED);
   private readonly admin: CaddyAdmin;
+  private readonly process: ProcessDefinition;
+  private readonly pidfile: string;
   private readonly serially = exclusive();
   private child: Child | undefined = undefined;
   /** What Caddy should be serving; `undefined` once removed. */
@@ -48,6 +56,8 @@ export class AttachedCaddyRuntime {
 
   constructor(private readonly options: CaddyOptions) {
     this.admin = new CaddyAdmin(options.admin);
+    this.process = caddyProcess(this.admin);
+    this.pidfile = join(options.directory, 'caddy.pid');
   }
 
   /** Starts Caddy if it isn't running, then has it serve `spec`. Resolves once it is serving. */
@@ -88,18 +98,18 @@ export class AttachedCaddyRuntime {
     // An agent that died hard (SIGKILL, out of memory) never got to stop its Caddy, so stop that one first. If
     // something else still answers on the admin address, refuse to start, rather than quietly drive a process this
     // runtime doesn't own while its own Caddy fails to bind.
-    const stale = await findCaddy(this.options, this.admin);
-    if (stale !== undefined) await stopCaddy(stale, this.admin);
-    if (await this.admin.alive()) throw new Error(`Something else is answering on ${this.options.admin}`);
+    const stale = await findProcess(this.pidfile, this.process);
+    if (stale !== undefined) await stopProcess(stale, this.process);
+    if (await answering(this.process)) throw new Error(`Something else is answering on ${this.options.admin}`);
     const boot = await writeBootConfig(this.options);
-    const args = ['run', '--config', boot, '--pidfile', pidfile(this.options)];
+    const args = ['run', '--config', boot, '--pidfile', this.pidfile];
     // `reject: false`: an exit is reported through `exited`, never as an unhandled rejection.
     const subprocess = execa(this.options.binary, args, { cleanup: true, killDescendants: true, reject: false });
     const child: Child = { process: subprocess, exited: false };
     this.child = child;
     void subprocess.then(result => this.exited(child, result.exitCode, result.signal));
     try {
-      await this.admin.ready(signal, () => child.exited);
+      await ready(this.process, signal, () => child.exited);
       return child;
     } catch (error) {
       // Half started: don't leave it behind.
