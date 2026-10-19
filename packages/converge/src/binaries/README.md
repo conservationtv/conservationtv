@@ -98,21 +98,52 @@ the binary 30 seconds by default: yt-dlp's single-file build takes about 7 secon
 ## The store
 
 Each install happens in a staging folder: download and verify, unpack, make executable, run the binary's checks. Only
-then is its record written and the folder renamed into place:
+then is it moved into place, and its record saved:
 
 ```
-<directory>/<name>/<version>-<checksum>/install.json
-                                        files/…        the whole archive, so files beside the binary come too
+<directory>/<name>/<version>-<checksum>/…   the whole archive, so files beside the binary come too
+<directory>/.installs.json                  the records, by default
 ```
 
-- **All or nothing.** An install interrupted at any point (an abort, a dropped connection, the process killed, even
-  mid-extraction) leaves nothing that looks installed. The next install starts again, and the next prune clears the
-  leftovers.
+- **All or nothing.** An install counts only once its record is saved, and its record is saved only once its files
+  are in place. An install interrupted at any point (an abort, a dropped connection, the process killed, even
+  mid-extraction, or a save that fails) leaves at most a folder with no record. That's never taken for an install,
+  and the next prune removes it.
 - **Cached.** Installing what's already installed is a lookup, with no request.
 - **Keyed by version and checksum,** so a download re-published under the same version is a different install.
 - **Safe to race in one process.** Two installs of the same download both resolve to the one that lands first, and a
   prune leaves alone any install still staging. Two processes sharing a directory aren't guarded against.
+- **In order.** Changes to the records happen one at a time, in the order they're asked for, and a lookup sees every
+  change asked for before it. Downloads and unpacking run side by side.
 - **Fetching** is `globalThis.fetch` unless the store is given a `fetch`, to add credentials or go through a mirror.
+
+### Where the records are kept
+
+The files have to be on disk to run, but the records of what's installed can be kept anywhere, the way converge
+keeps its spec: give the store a `persistence`, a `restore` and a `sink`.
+
+```ts
+const binaries = new BinaryStore({
+  directory,
+  persistence: {
+    restore: async () => (await db.get('binaries')) ?? [], // the records as last saved
+    sink: async records => db.set('binaries', records) // every record, after every change
+  }
+});
+```
+
+- **`restore`** is called the first time the store is used. What it returns is parsed with `InstallRecordSchema`,
+  and the store refuses to work from records that don't parse. Records whose files have gone are dropped. If
+  `restore` throws, the next use tries again.
+- **`sink`** is called with every record after every change, one change at a time. If it throws, the change doesn't
+  happen: an install fails, with its files left for the next prune; a prune or a removal fails before deleting
+  anything.
+- A record is `{ name, id, manifest, path, installedAt }`: the manifest it was installed from, and the executable's
+  path inside its folder.
+
+Two are built in: `jsonFile(path)`, the default (`.installs.json` in the store's directory, written to a new file
+and renamed into place, so an interrupted save leaves the previous records whole), and `inMemory()`, which forgets
+every install when the process exits.
 
 Its methods:
 

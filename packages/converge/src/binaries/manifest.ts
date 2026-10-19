@@ -1,8 +1,10 @@
 import { posix } from 'node:path';
 import { z } from 'zod';
 
-/** A name or version safe to use as a single path segment. */
-const SegmentSchema = z.string().regex(/^[\w.+-]+$/, 'Letters, digits and . _ + - only');
+/** A name or version safe to use as a single path segment, and never one of the store's own dot-files. */
+const SegmentSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9][\w.+-]*$/, 'A letter or digit, then letters, digits and . _ + - only');
 export type Segment = z.output<typeof SegmentSchema>;
 
 /** A path inside an archive, relative and staying inside it. */

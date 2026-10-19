@@ -13,6 +13,7 @@ covers how to use it for the binaries you'll actually meet, which are packaged i
 - [Your own unpacker](#your-own-unpacker)
 - [Your own checks](#your-own-checks)
 - [Private, mirrored and proxied downloads](#private-mirrored-and-proxied-downloads)
+- [Keeping records elsewhere](#keeping-records-elsewhere)
 - [Upgrades, rollbacks and pruning](#upgrades-rollbacks-and-pruning)
 - [Inside a converge controller](#inside-a-converge-controller)
 - [Platforms](#platforms)
@@ -268,6 +269,47 @@ match, so a mirror can't serve anything else.
 
 Don't retry in `fetch`. A failed download fails the install, and under converge that's retried with backoff.
 
+## Keeping records elsewhere
+
+The store's files have to be on the machine that runs them, but its records (what's installed, from which manifest,
+and when) go wherever its `persistence` puts them. The default is a JSON file in the store's directory, which suits
+most agents. Reasons to change it:
+
+**Keep them with the rest of the agent's state.** If the agent already saves its converge spec to a database, keep
+the records there too, so backups and inspection cover both:
+
+```ts
+const binaries = new BinaryStore({
+  directory,
+  persistence: {
+    restore: async () => (await state.read('binaries')) ?? [],
+    sink: records => state.write('binaries', records)
+  }
+});
+```
+
+**Throwaway stores**, for a scratch directory, a test, or a CI job: `inMemory()`. Nothing is written beside the
+files, and every install is forgotten when the process exits. A later store on the same directory treats the files
+as leftovers and prunes them.
+
+**Records in a shared database.** Records describe files on one machine, so key them by machine (a host id in the
+key or the row). A store restoring another machine's records would drop them all, since their files aren't there,
+and its first save would overwrite them.
+
+Whatever it saves to, a `persistence` must:
+
+- **Save the whole list it's given, and replace what was there.** `sink` gets every record each time, not a change.
+- **Save atomically.** A save cut short must leave the previous list, not half of the new one. Write and rename for
+  files; one write or a transaction for databases.
+- **Throw if the save didn't happen.** The store only believes an install is installed once `sink` resolves. A
+  `sink` that swallows errors leaves the store believing in records that weren't saved, and on the next start those
+  installs are downloaded again.
+- **Return exactly what was saved from `restore`.** It's parsed with `InstallRecordSchema`; anything that doesn't
+  parse stops the store from working until it's fixed.
+
+`restore` is only called once, the first time the store is used, so records changed elsewhere while the store is
+running aren't seen. Give each store its own records, as with its own directory.
+
 ## Upgrades, rollbacks and pruning
 
 Installs are keyed by version and checksum, so changing either in the spec installs alongside, not over, what's
@@ -354,5 +396,6 @@ Artifacts are keyed by `${process.platform}-${process.arch}`: `darwin-arm64`, `d
 | `… has no unpacker for the format …`     | A format the binary's definition doesn't have. Add an unpacker, or fix the manifest.                                          |
 | The spec fails to parse at `format`      | Same, caught earlier: the binary's `schema` only accepts formats it can unpack.                                               |
 
-To see what the store has, look in its directory: each install's `install.json` records the manifest it came from,
-and `.staging-*` folders are installs that didn't finish, which the next prune removes.
+To see what the store has, look at its records: `.installs.json` in its directory by default, holding each install's
+manifest. Folders in the directory with no record, and `.staging-*` folders, are installs that didn't finish, which
+the next prune removes.
