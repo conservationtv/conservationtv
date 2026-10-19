@@ -58,20 +58,20 @@ each platform it runs on:
     name: 'caddy',
     version: '2.11.7',
     artifacts: {
-      'darwin-arm64': { url: 'https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.tar.gz', checksum: 'sha512:68f5…668e' },
-      'linux-x64': { url: '…/caddy_2.11.7_linux_amd64.tar.gz', checksum: 'sha512:…' },
-      'win32-x64': { url: '…/caddy_2.11.7_windows_amd64.zip', checksum: 'sha512:…' }
+      'darwin-arm64': { url: 'https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.tar.gz', checksum: 'sha512:68f5…668e', format: 'tar' },
+      'linux-x64': { url: '…/caddy_2.11.7_linux_amd64.tar.gz', checksum: 'sha512:…', format: 'tar' },
+      'win32-x64': { url: '…/caddy_2.11.7_windows_amd64.zip', checksum: 'sha512:…', format: 'zip' }
     }
   }
 }
 ```
 
-The spec's `caddy` is a manifest from [`@conservationtv/converge/binaries`](../src/binaries/README.md), which installs this
-platform's download into the runtime's own directory: verified against its checksum as it streams, unpacked and
-checked in a staging folder, and only then moved into place, so an install interrupted at any point leaves nothing that
-looks installed. Caddy's store also checks that `caddy version` reports the version the spec asked for, which catches a
-URL pointing at the wrong release. An agent restarting on the same spec reuses the install, and adopts the running
-Caddy with no download.
+The spec's `caddy` is a manifest from [`@conservationtv/converge/binaries`](../src/binaries/README.md), validated by
+`caddyBinary.schema`. The runtime's store installs it into the runtime's own directory: verified against its checksum
+as it streams, unpacked and checked in a staging folder, and only then moved into place, so an install interrupted at
+any point leaves nothing that looks installed. `caddyBinary` also checks that `caddy version` reports the version the
+spec asked for, which catches a URL pointing at the wrong release. An agent restarting on the same spec reuses the
+install, and adopts the running Caddy with no download.
 
 `ManagedCaddyRuntime` composes the adopting runtime rather than copying it, with one `AdoptedCaddyRuntime` per
 install:
