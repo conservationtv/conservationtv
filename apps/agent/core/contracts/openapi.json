@@ -49,144 +49,6 @@
       "System": {
         "type": "object",
         "properties": {
-          "heartbeat": {
-            "type": "object",
-            "properties": {
-              "runtime": {
-                "type": "object",
-                "properties": {
-                  "running": {
-                    "type": "boolean"
-                  },
-                  "intervalMs": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "message": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "beats": {
-                    "type": "number"
-                  },
-                  "lastBeatAt": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "running",
-                  "intervalMs",
-                  "message",
-                  "beats",
-                  "lastBeatAt"
-                ]
-              },
-              "apply": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "state": {
-                        "type": "string",
-                        "const": "applying"
-                      },
-                      "revision": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "state",
-                      "revision"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "state": {
-                        "type": "string",
-                        "const": "applied"
-                      },
-                      "revision": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "state",
-                      "revision"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "state": {
-                        "type": "string",
-                        "const": "failed"
-                      },
-                      "revision": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "error": {
-                        "type": "string"
-                      },
-                      "attempt": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "state",
-                      "revision",
-                      "error",
-                      "attempt"
-                    ]
-                  }
-                ]
-              }
-            },
-            "required": [
-              "runtime",
-              "apply"
-            ]
-          },
           "machine": {
             "type": "object",
             "properties": {
@@ -200,16 +62,6 @@
                     "anyOf": [
                       {
                         "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "subjectId": {
-                    "anyOf": [
-                      {
-                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -300,6 +152,16 @@
                       }
                     ]
                   },
+                  "subjectId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "pending": {
                     "type": "number"
                   },
@@ -330,8 +192,8 @@
                 "required": [
                   "running",
                   "intervalMs",
-                  "subjectId",
                   "latest",
+                  "subjectId",
                   "pending",
                   "submitted",
                   "lastSubmittedAt",
@@ -424,11 +286,316 @@
               "runtime",
               "apply"
             ]
+          },
+          "mediamtx": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "running",
+                      "stopped",
+                      "starting",
+                      "crashed"
+                    ]
+                  },
+                  "pid": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "installing": {
+                    "type": "boolean"
+                  },
+                  "restarts": {
+                    "type": "number"
+                  },
+                  "lastError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "diagnostics": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "severity": {
+                          "type": "string",
+                          "enum": [
+                            "error",
+                            "warning"
+                          ]
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string"
+                            },
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        },
+                        "recovery": {
+                          "type": "string",
+                          "enum": [
+                            "retryable",
+                            "change-required"
+                          ]
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "severity",
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "metrics": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "intervalMs": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastScrapedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastScrapeError": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "subjectId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "pending": {
+                            "type": "number"
+                          },
+                          "submitted": {
+                            "type": "number"
+                          },
+                          "lastSubmittedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastError": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "intervalMs",
+                          "lastScrapedAt",
+                          "lastScrapeError",
+                          "subjectId",
+                          "pending",
+                          "submitted",
+                          "lastSubmittedAt",
+                          "lastError"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "state",
+                  "pid",
+                  "version",
+                  "installing",
+                  "restarts",
+                  "lastError",
+                  "diagnostics",
+                  "metrics"
+                ]
+              },
+              "apply": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applying"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applied"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "failed"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "attempt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision",
+                      "error",
+                      "attempt"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "runtime",
+              "apply"
+            ]
           }
         },
         "required": [
-          "heartbeat",
-          "machine"
+          "machine",
+          "mediamtx"
         ]
       }
     }
@@ -513,21 +680,6 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "heartbeat": {
-                      "type": "object",
-                      "properties": {
-                        "intervalMs": {
-                          "type": "number"
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "intervalMs",
-                        "message"
-                      ]
-                    },
                     "machine": {
                       "type": "object",
                       "properties": {
@@ -537,6 +689,68 @@
                       },
                       "required": [
                         "intervalMs"
+                      ]
+                    },
+                    "mediamtx": {
+                      "type": "object",
+                      "properties": {
+                        "mediamtx": {
+                          "type": "object",
+                          "properties": {
+                            "version": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string",
+                              "const": "mediamtx"
+                            },
+                            "artifacts": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "checksum": {
+                                    "type": "string"
+                                  },
+                                  "format": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "checksum",
+                                  "format"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "version",
+                            "name",
+                            "artifacts"
+                          ]
+                        },
+                        "metrics": {
+                          "type": "object",
+                          "properties": {
+                            "intervalMs": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "intervalMs"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "mediamtx",
+                        "metrics"
                       ]
                     }
                   }
@@ -696,144 +910,6 @@
           "System": {
             "type": "object",
             "properties": {
-              "heartbeat": {
-                "type": "object",
-                "properties": {
-                  "runtime": {
-                    "type": "object",
-                    "properties": {
-                      "running": {
-                        "type": "boolean"
-                      },
-                      "intervalMs": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "message": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "beats": {
-                        "type": "number"
-                      },
-                      "lastBeatAt": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "running",
-                      "intervalMs",
-                      "message",
-                      "beats",
-                      "lastBeatAt"
-                    ]
-                  },
-                  "apply": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "state": {
-                            "type": "string",
-                            "const": "applying"
-                          },
-                          "revision": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "state",
-                          "revision"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "state": {
-                            "type": "string",
-                            "const": "applied"
-                          },
-                          "revision": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "state",
-                          "revision"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "state": {
-                            "type": "string",
-                            "const": "failed"
-                          },
-                          "revision": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "error": {
-                            "type": "string"
-                          },
-                          "attempt": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "state",
-                          "revision",
-                          "error",
-                          "attempt"
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "runtime",
-                  "apply"
-                ]
-              },
               "machine": {
                 "type": "object",
                 "properties": {
@@ -847,16 +923,6 @@
                         "anyOf": [
                           {
                             "type": "number"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "subjectId": {
-                        "anyOf": [
-                          {
-                            "type": "string"
                           },
                           {
                             "type": "null"
@@ -947,6 +1013,16 @@
                           }
                         ]
                       },
+                      "subjectId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "pending": {
                         "type": "number"
                       },
@@ -977,8 +1053,8 @@
                     "required": [
                       "running",
                       "intervalMs",
-                      "subjectId",
                       "latest",
+                      "subjectId",
                       "pending",
                       "submitted",
                       "lastSubmittedAt",
@@ -1071,11 +1147,316 @@
                   "runtime",
                   "apply"
                 ]
+              },
+              "mediamtx": {
+                "type": "object",
+                "properties": {
+                  "runtime": {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "running",
+                          "stopped",
+                          "starting",
+                          "crashed"
+                        ]
+                      },
+                      "pid": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "version": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "installing": {
+                        "type": "boolean"
+                      },
+                      "restarts": {
+                        "type": "number"
+                      },
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "diagnostics": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "severity": {
+                              "type": "string",
+                              "enum": [
+                                "error",
+                                "warning"
+                              ]
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "target": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string"
+                                },
+                                "id": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "id"
+                              ]
+                            },
+                            "recovery": {
+                              "type": "string",
+                              "enum": [
+                                "retryable",
+                                "change-required"
+                              ]
+                            },
+                            "details": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "severity",
+                            "code",
+                            "message"
+                          ]
+                        }
+                      },
+                      "metrics": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "intervalMs": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastScrapedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastScrapeError": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "subjectId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "pending": {
+                                "type": "number"
+                              },
+                              "submitted": {
+                                "type": "number"
+                              },
+                              "lastSubmittedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastError": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "intervalMs",
+                              "lastScrapedAt",
+                              "lastScrapeError",
+                              "subjectId",
+                              "pending",
+                              "submitted",
+                              "lastSubmittedAt",
+                              "lastError"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "pid",
+                      "version",
+                      "installing",
+                      "restarts",
+                      "lastError",
+                      "diagnostics",
+                      "metrics"
+                    ]
+                  },
+                  "apply": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applying"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applied"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "failed"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "attempt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision",
+                          "error",
+                          "attempt"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "apply"
+                ]
               }
             },
             "required": [
-              "heartbeat",
-              "machine"
+              "machine",
+              "mediamtx"
             ]
           }
         }
@@ -1164,21 +1545,6 @@
           "System": {
             "type": "object",
             "properties": {
-              "heartbeat": {
-                "type": "object",
-                "properties": {
-                  "intervalMs": {
-                    "type": "number"
-                  },
-                  "message": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "intervalMs",
-                  "message"
-                ]
-              },
               "machine": {
                 "type": "object",
                 "properties": {
@@ -1188,6 +1554,68 @@
                 },
                 "required": [
                   "intervalMs"
+                ]
+              },
+              "mediamtx": {
+                "type": "object",
+                "properties": {
+                  "mediamtx": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string",
+                        "const": "mediamtx"
+                      },
+                      "artifacts": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "checksum": {
+                              "type": "string"
+                            },
+                            "format": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url",
+                            "checksum",
+                            "format"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "name",
+                      "artifacts"
+                    ]
+                  },
+                  "metrics": {
+                    "type": "object",
+                    "properties": {
+                      "intervalMs": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "intervalMs"
+                    ]
+                  }
+                },
+                "required": [
+                  "mediamtx",
+                  "metrics"
                 ]
               }
             }

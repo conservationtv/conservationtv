@@ -270,6 +270,9 @@ importers:
       '@conservationtv/converge':
         specifier: workspace:*
         version: link:../../../packages/converge
+      '@conservationtv/mediamtx':
+        specifier: workspace:*
+        version: link:../../../packages/mediamtx
       '@conservationtv/store':
         specifier: workspace:*
         version: link:../../../packages/store
@@ -291,9 +294,15 @@ importers:
       hono-openapi:
         specifier: 1.3.3
         version: 1.3.3(hono@4.13.8)(valibot@1.5.0)(zod-to-json-schema@3.25.2(zod@4.6.2))(zod@4.6.2)
+      ps-list:
+        specifier: 9.0.0
+        version: 9.0.0
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
+      tree-kill:
+        specifier: 1.2.2
+        version: 1.2.2
       zod:
         specifier: 'catalog:'
         version: 4.6.2

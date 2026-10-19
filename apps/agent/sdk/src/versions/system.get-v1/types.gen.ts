@@ -10,32 +10,10 @@ export type Error = {
 };
 
 export type System = {
-    heartbeat: {
-        runtime: {
-            running: boolean;
-            intervalMs: number | null;
-            message: string | null;
-            beats: number;
-            lastBeatAt: string | null;
-        };
-        apply: {
-            state: 'applying';
-            revision: string | null;
-        } | {
-            state: 'applied';
-            revision: string | null;
-        } | {
-            state: 'failed';
-            revision: string | null;
-            error: string;
-            attempt: number;
-        };
-    };
     machine: {
         runtime: {
             running: boolean;
             intervalMs: number | null;
-            subjectId: string | null;
             latest: {
                 observedAt: string;
                 cpuUtilisation: number | null;
@@ -52,10 +30,56 @@ export type System = {
                 uptimeSeconds: number;
                 agentRss: number;
             } | null;
+            subjectId: string | null;
             pending: number;
             submitted: number;
             lastSubmittedAt: string | null;
             lastError: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    mediamtx: {
+        runtime: {
+            state: 'running' | 'stopped' | 'starting' | 'crashed';
+            pid: number | null;
+            version: string | null;
+            installing: boolean;
+            restarts: number;
+            lastError: string | null;
+            diagnostics: Array<{
+                severity: 'error' | 'warning';
+                code: string;
+                message: string;
+                target?: {
+                    kind: string;
+                    id: string;
+                };
+                recovery?: 'retryable' | 'change-required';
+                details?: {
+                    [key: string]: string | number | boolean | null;
+                };
+            }>;
+            metrics: {
+                intervalMs: number | null;
+                lastScrapedAt: string | null;
+                lastScrapeError: string | null;
+                subjectId: string | null;
+                pending: number;
+                submitted: number;
+                lastSubmittedAt: string | null;
+                lastError: string | null;
+            } | null;
         };
         apply: {
             state: 'applying';

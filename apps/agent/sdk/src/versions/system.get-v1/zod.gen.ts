@@ -8,13 +8,31 @@ export const ErrorSchema = z.object({
 });
 
 export const SystemSchema = z.object({
-    heartbeat: z.object({
+    machine: z.object({
         runtime: z.object({
             running: z.boolean(),
             intervalMs: z.number().nullable(),
-            message: z.string().nullable(),
-            beats: z.number(),
-            lastBeatAt: z.string().nullable()
+            latest: z.object({
+                observedAt: z.string(),
+                cpuUtilisation: z.number().nullable(),
+                cpuCount: z.number(),
+                load: z.number(),
+                memory: z.object({
+                    total: z.number(),
+                    free: z.number()
+                }),
+                disk: z.object({
+                    total: z.number(),
+                    free: z.number()
+                }).nullable(),
+                uptimeSeconds: z.number(),
+                agentRss: z.number()
+            }).nullable(),
+            subjectId: z.string().nullable(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastError: z.string().nullable()
         }),
         apply: z.union([
             z.object({
@@ -33,31 +51,44 @@ export const SystemSchema = z.object({
             })
         ])
     }),
-    machine: z.object({
+    mediamtx: z.object({
         runtime: z.object({
-            running: z.boolean(),
-            intervalMs: z.number().nullable(),
-            subjectId: z.string().nullable(),
-            latest: z.object({
-                observedAt: z.string(),
-                cpuUtilisation: z.number().nullable(),
-                cpuCount: z.number(),
-                load: z.number(),
-                memory: z.object({
-                    total: z.number(),
-                    free: z.number()
-                }),
-                disk: z.object({
-                    total: z.number(),
-                    free: z.number()
-                }).nullable(),
-                uptimeSeconds: z.number(),
-                agentRss: z.number()
-            }).nullable(),
-            pending: z.number(),
-            submitted: z.number(),
-            lastSubmittedAt: z.string().nullable(),
-            lastError: z.string().nullable()
+            state: z.enum([
+                'running',
+                'stopped',
+                'starting',
+                'crashed'
+            ]),
+            pid: z.number().nullable(),
+            version: z.string().nullable(),
+            installing: z.boolean(),
+            restarts: z.number(),
+            lastError: z.string().nullable(),
+            diagnostics: z.array(z.object({
+                severity: z.enum(['error', 'warning']),
+                code: z.string(),
+                message: z.string(),
+                target: z.object({
+                    kind: z.string(),
+                    id: z.string()
+                }).optional(),
+                recovery: z.enum(['retryable', 'change-required']).optional(),
+                details: z.record(z.string(), z.union([
+                    z.string(),
+                    z.number(),
+                    z.boolean()
+                ]).nullable()).optional()
+            })),
+            metrics: z.object({
+                intervalMs: z.number().nullable(),
+                lastScrapedAt: z.string().nullable(),
+                lastScrapeError: z.string().nullable(),
+                subjectId: z.string().nullable(),
+                pending: z.number(),
+                submitted: z.number(),
+                lastSubmittedAt: z.string().nullable(),
+                lastError: z.string().nullable()
+            }).nullable()
         }),
         apply: z.union([
             z.object({
