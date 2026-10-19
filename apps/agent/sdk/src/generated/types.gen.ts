@@ -13,6 +13,30 @@ export type Status = {
     status: 'ok';
 };
 
+export type System = {
+    heartbeat: {
+        runtime: {
+            running: boolean;
+            intervalMs: number | null;
+            message: string | null;
+            beats: number;
+            lastBeatAt: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+};
+
 export type GetStatusData = {
     body?: never;
     path?: never;
@@ -37,3 +61,28 @@ export type GetStatusResponses = {
 };
 
 export type GetStatusResponse = GetStatusResponses[keyof GetStatusResponses];
+
+export type GetSystemData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/system';
+};
+
+export type GetSystemErrors = {
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetSystemError = GetSystemErrors[keyof GetSystemErrors];
+
+export type GetSystemResponses = {
+    /**
+     * Every runtime's status
+     */
+    200: System;
+};
+
+export type GetSystemResponse = GetSystemResponses[keyof GetSystemResponses];

@@ -7,6 +7,8 @@ import { withConfig, type AgentConfiguration } from './config.ts';
 import { bindEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import status from './routes/status.ts';
+import system from './routes/system.ts';
+import { startSystem, withSystem, type AgentSystem } from './system.ts';
 
 export {
   useConfig,
@@ -28,6 +30,7 @@ export const operationRouter = new OperationRouter();
 
 const app = new Hono<AgentEnv>({ router: operationRouter })
   .route('/status', status)
+  .route('/system', system)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)
   .onError(handleError);
@@ -35,32 +38,50 @@ const app = new Hono<AgentEnv>({ router: operationRouter })
 /** The agent: the app, served as HTTP over iroh on an endpoint whose identity is the configured secret key. */
 export class Agent {
   private server: IrohHttpServer | undefined = undefined;
+  private system: AgentSystem | undefined = undefined;
 
   constructor(readonly config: AgentConfiguration) {}
 
-  /** Start an iroh session, and serve on its endpoint. Resolves once requests are being accepted. */
+  /** Start the runtimes and an iroh session, and serve on its endpoint. Resolves once requests are being accepted. */
   async start() {
-    if (this.server !== undefined) throw new Error('The agent is already started');
+    if (this.system !== undefined) throw new Error('The agent is already started');
     const config = this.config;
     console.log(JSON.stringify({ event: 'starting', name: config.name, type: config.type }));
 
-    const endpoint = await bindEndpoint(config);
+    const system = await startSystem();
+    this.system = system;
+    const endpoint = await this.bind();
 
     // The server owns the endpoint from here: disposing it closes the endpoint too. If accepting fails, `closed`
     // rejects unhandled, which the host's process lifecycle treats as fatal.
     this.server = serve(endpoint, (request, peer) =>
-      withConfig(config, () => app.fetch(request, { peer: peer.endpointId }))
+      withSystem(system, () => withConfig(config, () => app.fetch(request, { peer: peer.endpointId })))
     );
     const endpointId = endpoint.id();
     console.log(JSON.stringify({ event: 'started', name: config.name, endpointId: endpointId.toString() }));
   }
 
-  /** Stop accepting, close connections, wait for in-flight requests to settle, and close the endpoint. */
+  /**
+   * Stop accepting, close connections, wait for in-flight requests to settle, and close the endpoint. Then stop the
+   * runtimes.
+   */
   async stop() {
     const server = this.server;
-    if (server === undefined) return;
     this.server = undefined;
-    await server[Symbol.asyncDispose]();
+    await server?.[Symbol.asyncDispose]();
+    const system = this.system;
+    this.system = undefined;
+    await system?.stop();
+  }
+
+  /** Bind the endpoint, stopping the runtimes again if that fails, so a failed start leaves nothing running. */
+  private async bind() {
+    try {
+      return await bindEndpoint(this.config);
+    } catch (error) {
+      await this.stop();
+      throw error;
+    }
   }
 }
 
