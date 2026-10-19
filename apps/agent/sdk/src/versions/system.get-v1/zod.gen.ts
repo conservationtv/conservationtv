@@ -32,6 +32,49 @@ export const SystemSchema = z.object({
                 attempt: z.number()
             })
         ])
+    }),
+    machine: z.object({
+        runtime: z.object({
+            running: z.boolean(),
+            intervalMs: z.number().nullable(),
+            subjectId: z.string().nullable(),
+            latest: z.object({
+                observedAt: z.string(),
+                cpuUtilisation: z.number().nullable(),
+                cpuCount: z.number(),
+                load: z.number(),
+                memory: z.object({
+                    total: z.number(),
+                    free: z.number()
+                }),
+                disk: z.object({
+                    total: z.number(),
+                    free: z.number()
+                }).nullable(),
+                uptimeSeconds: z.number(),
+                agentRss: z.number()
+            }).nullable(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastError: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
     })
 });
 

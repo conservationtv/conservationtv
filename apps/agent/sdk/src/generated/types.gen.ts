@@ -35,6 +35,45 @@ export type System = {
             attempt: number;
         };
     };
+    machine: {
+        runtime: {
+            running: boolean;
+            intervalMs: number | null;
+            subjectId: string | null;
+            latest: {
+                observedAt: string;
+                cpuUtilisation: number | null;
+                cpuCount: number;
+                load: number;
+                memory: {
+                    total: number;
+                    free: number;
+                };
+                disk: {
+                    total: number;
+                    free: number;
+                } | null;
+                uptimeSeconds: number;
+                agentRss: number;
+            } | null;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastError: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
 };
 
 export type GetStatusData = {
@@ -86,3 +125,36 @@ export type GetSystemResponses = {
 };
 
 export type GetSystemResponse = GetSystemResponses[keyof GetSystemResponses];
+
+export type GetSystemSpecData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/system/spec';
+};
+
+export type GetSystemSpecErrors = {
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetSystemSpecError = GetSystemSpecErrors[keyof GetSystemSpecErrors];
+
+export type GetSystemSpecResponses = {
+    /**
+     * The current system specification
+     */
+    200: {
+        heartbeat?: {
+            intervalMs: number;
+            message: string;
+        };
+        machine?: {
+            intervalMs: number;
+        };
+    };
+};
+
+export type GetSystemSpecResponse = GetSystemSpecResponses[keyof GetSystemSpecResponses];
