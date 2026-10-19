@@ -327,7 +327,8 @@ them separate stores (separate directories), or prune from one place that knows 
 
 **Record what's running** if the process outlives the agent. An agent that restarts after the spec has changed
 needs to know whether the running process came from the version the spec now asks for. Write `installed.id` beside
-the process's pidfile before starting it, and compare it on the next start.
+the process's pidfile before starting it, and compare it on the next start. `AdoptedProcess` in
+[`converge/process`](../process/README.md) does exactly this with its run's key.
 
 **Removing everything**: `remove(name)` for one binary, `clear()` for the store. Stop processes first; deleting a
 running executable's file works on macOS and Linux, but not on Windows.

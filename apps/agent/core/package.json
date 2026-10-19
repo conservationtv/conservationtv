@@ -26,9 +26,7 @@
     "@strangecyan/iroh-http-node": "0.2.0",
     "hono": "4.13.8",
     "hono-openapi": "1.3.3",
-    "ps-list": "9.0.0",
     "rxjs": "7.8.2",
-    "tree-kill": "1.2.2",
     "zod": "catalog:"
   },
   "devDependencies": {
