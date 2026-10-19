@@ -30,6 +30,8 @@
     "apps/agent/sdk/src/generated/**",
     "apps/agent/sdk/src/versions/**",
     "apps/agent/cli/src/generated/**",
+    "packages/mediamtx/spec/**",
+    "packages/mediamtx/src/generated/**",
     "packages/ui/src/components/**",
     "packages/ui/src/hooks/**",
     "packages/ui/src/lib/**",
