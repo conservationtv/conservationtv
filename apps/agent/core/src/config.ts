@@ -2,6 +2,8 @@ import { createStore } from '@conservationtv/store';
 
 interface BaseConfiguration {
   name: string;
+  /** A directory of the agent's own, where its runtimes keep what they install and run. */
+  directory: string;
   /**
    * The agent's Ed25519 secret key: its 32-byte seed. Its public half is the agent's iroh endpoint id, so this key is
    * the agent's identity and must stay the same across restarts.
