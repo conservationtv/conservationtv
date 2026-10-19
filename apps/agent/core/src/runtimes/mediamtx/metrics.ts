@@ -2,12 +2,12 @@ import { type PrometheusSample, parseMetrics } from '@conservationtv/mediamtx';
 import { BehaviorSubject } from 'rxjs';
 import { type Metric, type MetricReporter, summary } from '../reports.ts';
 
-// MediaMTX's metrics, shipped to the studio API per path. Every few seconds, read its metrics page for each path's
-// state, readers, and how fast its byte and frame-error counters moved since the last read. Every interval, submit
-// each path's samples summarised (least, greatest, mean and last) as metrics about the agent's device, with the path
-// as the `path` dimension, so each path is a series of its own. A path missing from a read counts as not ready with
-// nothing flowing, so one that stops mid-interval shows in that interval's summary; one missing for a whole interval
-// is not reported. Per-session and per-protocol samples are not shipped.
+// MediaMTX's metrics, shipped to the studio API per path. On one timer, every few seconds, read its metrics page for
+// each path's state, readers, and how fast its byte and frame-error counters moved since the last read; the read that
+// ends an interval then submits each path's samples summarised (least, greatest, mean and last) as metrics about the
+// agent's device, with the path as the `path` dimension, so each path is a series of its own. A path missing from a
+// read counts as not ready with nothing flowing, so one that stops mid-interval shows in that interval's summary; one
+// missing for a whole interval is not reported. Per-session and per-protocol samples are not shipped.
 
 /** How often MediaMTX's metrics page is read, at most: the samples each interval's summaries are made from. */
 const SAMPLE_INTERVAL_MS = 10_000;
@@ -131,18 +131,21 @@ export const METRICS_STOPPED: MediamtxMetricsStatus = {
 
 const SCRAPE_TIMEOUT_MS = 5_000;
 
-/** Reads MediaMTX's metrics page every few seconds, and submits each path's summary through `reporter` on an interval. */
+/** Reads MediaMTX's metrics page every few seconds, and submits each path's summary through `reporter` per interval. */
 export class MediamtxMetrics {
   readonly status$ = new BehaviorSubject<MediamtxMetricsStatus>(METRICS_STOPPED);
   private readonly url: string;
-  private sampleTimer: ReturnType<typeof setInterval> | undefined = undefined;
-  private reportTimer: ReturnType<typeof setInterval> | undefined = undefined;
+  private timer: ReturnType<typeof setInterval> | undefined = undefined;
+  private sampleMs = SAMPLE_INTERVAL_MS;
+  private intervalMs = 0;
+  /** When the interval being sampled began, in milliseconds since the epoch. */
+  private intervalStartedAt = 0;
   /** The last read, for the rates the next one moves at. */
   private previous: Read | undefined = undefined;
   /** Each path's samples since the last report. */
   private interval = new Map<string, PathSamples>();
-  /** Whether a read or a report is under way: a slow one skips the ticks it overlaps rather than piling up. */
-  private reading = false;
+  /** Whether a tick's read, or a submission, is under way: a slow one skips the ticks it overlaps. */
+  private ticking = false;
   private reporting = false;
 
   /** @param address Where the metrics page listens, such as `127.0.0.1:9998`. */
@@ -157,9 +160,10 @@ export class MediamtxMetrics {
   start(intervalMs: number): void {
     this.clear();
     this.update({ running: true, intervalMs });
-    const sampleMs = Math.min(SAMPLE_INTERVAL_MS, intervalMs);
-    this.sampleTimer = setInterval(() => void this.sample(), sampleMs);
-    this.reportTimer = setInterval(() => void this.report(), intervalMs);
+    this.intervalMs = intervalMs;
+    this.sampleMs = Math.min(SAMPLE_INTERVAL_MS, intervalMs);
+    this.intervalStartedAt = Date.now();
+    this.timer = setInterval(() => void this.tick(), this.sampleMs);
   }
 
   /** Stop reading, and drop what was not submitted. Safe when it never started. */
@@ -169,16 +173,31 @@ export class MediamtxMetrics {
     this.update({ running: false, intervalMs: null });
   }
 
-  /** Stop the timers for good when the agent stops; not a removal, so the status is left as it was. */
+  /** Stop the timer for good when the agent stops; not a removal, so the status is left as it was. */
   dispose(): void {
     this.clear();
     this.status$.complete();
   }
 
+  /**
+   * Read the metrics page, then report if the interval has ended. A tick within half a sample of the end reports, so
+   * timer jitter never stretches an interval by a whole sample. The report is not waited for: a slow submission must
+   * not hold up the reads, and the next report sends what it could not.
+   */
+  private async tick(): Promise<void> {
+    if (this.ticking) return;
+    this.ticking = true;
+    try {
+      await this.sample();
+      const elapsed = Date.now() - this.intervalStartedAt;
+      if (elapsed + this.sampleMs / 2 >= this.intervalMs) void this.report();
+    } finally {
+      this.ticking = false;
+    }
+  }
+
+  /** Read the metrics page into each path's samples. A failed read is reported in the status, and skipped. */
   private async sample(): Promise<void> {
-    // One read at a time; a failed one is reported in the status, and the next tries again.
-    if (this.reading) return;
-    this.reading = true;
     try {
       const response = await fetch(this.url, { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
       if (!response.ok) throw new Error(`MediaMTX's metrics page answered ${response.status}`);
@@ -189,8 +208,6 @@ export class MediamtxMetrics {
       this.update({ lastScrapedAt: now.toISOString(), samples: samples.length });
     } catch (error) {
       this.update({ lastError: error instanceof Error ? error.message : String(error) });
-    } finally {
-      this.reading = false;
     }
   }
 
@@ -227,6 +244,7 @@ export class MediamtxMetrics {
     const paths = this.interval;
     this.interval = new Map();
     const now = new Date();
+    this.intervalStartedAt = now.getTime();
     this.reporter.queue(now.toISOString(), metricsOf(paths));
     if (this.reporting || this.reporter.queued === 0) return;
     this.reporting = true;
@@ -249,10 +267,8 @@ export class MediamtxMetrics {
   }
 
   private clear(): void {
-    clearInterval(this.sampleTimer);
-    clearInterval(this.reportTimer);
-    this.sampleTimer = undefined;
-    this.reportTimer = undefined;
+    clearInterval(this.timer);
+    this.timer = undefined;
     this.previous = undefined;
     this.interval = new Map();
   }
