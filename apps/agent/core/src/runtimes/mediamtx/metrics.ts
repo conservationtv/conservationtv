@@ -1,13 +1,16 @@
 import { type PrometheusSample, parseMetrics } from '@conservationtv/mediamtx';
 import { BehaviorSubject } from 'rxjs';
 import { type Metric, type MetricReporter, summary } from '../reports.ts';
+import type { PathIndex, PathTarget } from './paths.ts';
 
 // MediaMTX's metrics, shipped to the studio API per path. On one timer, every few seconds, read its metrics page for
 // each path's state, readers, and how fast its byte and frame-error counters moved since the last read; the read that
-// ends an interval then submits each path's samples summarised (least, greatest, mean and last) as metrics about the
-// agent's device, with the path as the `path` dimension, so each path is a series of its own. A path missing from a
-// read counts as not ready with nothing flowing, so one that stops mid-interval shows in that interval's summary; one
-// missing for a whole interval is not reported. Per-session and per-protocol samples are not shipped.
+// ends an interval then submits each path's samples summarised (least, greatest, mean and last), so each path is a
+// series of its own: about the exposure the spec says it delivers, with its rendition as a dimension, or, while the
+// spec names no paths, about the agent's device with the path as the `path` dimension. A path the spec does not name
+// is not reported. A path missing from a read counts as not ready with nothing flowing, so one that stops
+// mid-interval shows in that interval's summary; one missing for a whole interval is not reported. Per-session and
+// per-protocol samples are not shipped.
 
 /** How often MediaMTX's metrics page is read, at most: the samples each interval's summaries are made from. */
 const SAMPLE_INTERVAL_MS = 10_000;
@@ -78,22 +81,20 @@ function addStopped(samples: PathSamples): void {
 }
 
 /**
- * Each path's summaries of an interval, with the path as their `path` dimension. Every path read this interval has
- * its state and readers; its rates need two reads, so its first interval may have none.
+ * A path's summaries of an interval, with `dimensions`. Every path read this interval has its state and readers; its
+ * rates need two reads, so its first interval may have none.
  */
-function metricsOf(paths: Map<string, PathSamples>): Metric[] {
-  const metrics: Metric[] = [];
-  for (const [path, samples] of paths) {
-    const dimensions = { path };
-    metrics.push(summary('path.ready', samples.ready, 'boolean', dimensions));
-    metrics.push(summary('path.readers', samples.readers, 'readers', dimensions));
-    if (samples.ingestBitrate.length > 0)
-      metrics.push(summary('path.ingest.bitrate', samples.ingestBitrate, 'bits/s', dimensions));
-    if (samples.egressBitrate.length > 0)
-      metrics.push(summary('path.egress.bitrate', samples.egressBitrate, 'bits/s', dimensions));
-    if (samples.frameErrors.length > 0)
-      metrics.push(summary('path.ingest.frame_errors', samples.frameErrors, 'frames/s', dimensions));
-  }
+function metricsOf(samples: PathSamples, dimensions: Record<string, string>): Metric[] {
+  const metrics = [
+    summary('path.ready', samples.ready, 'boolean', dimensions),
+    summary('path.readers', samples.readers, 'readers', dimensions)
+  ];
+  if (samples.ingestBitrate.length > 0)
+    metrics.push(summary('path.ingest.bitrate', samples.ingestBitrate, 'bits/s', dimensions));
+  if (samples.egressBitrate.length > 0)
+    metrics.push(summary('path.egress.bitrate', samples.egressBitrate, 'bits/s', dimensions));
+  if (samples.frameErrors.length > 0)
+    metrics.push(summary('path.ingest.frame_errors', samples.frameErrors, 'frames/s', dimensions));
   return metrics;
 }
 
@@ -144,6 +145,8 @@ export class MediamtxMetrics {
   private previous: Read | undefined = undefined;
   /** Each path's samples since the last report. */
   private interval = new Map<string, PathSamples>();
+  /** What each path's metrics are about, from the spec. */
+  private index: PathIndex = null;
   /** Whether a tick's read, or a submission, is under way: a slow one skips the ticks it overlaps. */
   private ticking = false;
   private reporting = false;
@@ -164,6 +167,11 @@ export class MediamtxMetrics {
     this.sampleMs = Math.min(SAMPLE_INTERVAL_MS, intervalMs);
     this.intervalStartedAt = Date.now();
     this.timer = setInterval(() => void this.tick(), this.sampleMs);
+  }
+
+  /** Report each path's metrics about its target in `index` from the next report on, including this interval's. */
+  attribute(index: PathIndex): void {
+    this.index = index;
   }
 
   /** Stop reading, and drop what was not submitted. Safe when it never started. */
@@ -245,7 +253,14 @@ export class MediamtxMetrics {
     this.interval = new Map();
     const now = new Date();
     this.intervalStartedAt = now.getTime();
-    this.reporter.queue(now.toISOString(), metricsOf(paths));
+    const observedAt = now.toISOString();
+    for (const [path, samples] of paths) {
+      // A path the spec names is reported about its exposure; with no spec paths, any is about the device.
+      const target: PathTarget | undefined =
+        this.index === null ? { subjectId: undefined, dimensions: { path } } : this.index.get(path);
+      if (target === undefined) continue;
+      this.reporter.queue(observedAt, metricsOf(samples, target.dimensions), target.subjectId);
+    }
     if (this.reporting || this.reporter.queued === 0) return;
     this.reporting = true;
     try {

@@ -1,9 +1,9 @@
 import { Client, DeviceIdentity, deviceSignature, type PostReportsData } from '@conservationtv/studio-sdk';
 import type { AgentConfiguration } from '../config.ts';
 
-// Metric reports to the studio API (`reports.submit`), signed as the agent's device and about it, `device:<id>`. The
-// agent knows only its key, so it asks the studio API who it is (`whoami.get`) before its first submission, and again
-// until it gets an answer.
+// Metric reports to the studio API (`reports.submit`), signed as the agent's device, and about it, `device:<id>`,
+// unless queued about another subject, such as an exposure. The agent knows only its key, so it asks the studio API
+// who it is (`whoami.get`) before its first submission, and again until it gets an answer.
 //
 // A submission that fails is kept and retried with the next, oldest dropped first beyond one batch. The API does not
 // deduplicate, so a submission that failed after being stored may be stored twice: these are cheap operational
@@ -14,9 +14,10 @@ type MetricReport = Extract<Report, Record<'kind', 'metric'>>;
 /** One metric, as the studio API takes it. */
 export type Metric = MetricReport['payload'];
 
-/** A metric queued but not yet accepted. Its subject is added on submission, once the device is known. */
+/** A metric queued but not yet accepted. Without a subject it is about the device, known on submission. */
 interface PendingMetric {
   observedAt: string;
+  subjectId: string | undefined;
   payload: Metric;
 }
 
@@ -77,9 +78,12 @@ export class MetricReporter {
     return this.studio?.subjectId ?? null;
   }
 
-  /** Queue `metrics`, all observed at once, dropping the oldest beyond what one submission carries. */
-  queue(observedAt: string, metrics: Metric[]): void {
-    const queued = metrics.map(payload => ({ observedAt, payload }));
+  /**
+   * Queue `metrics`, all observed at once and about `subjectId`, or the device without one. Drops the oldest beyond
+   * what one submission carries.
+   */
+  queue(observedAt: string, metrics: Metric[], subjectId?: string): void {
+    const queued = metrics.map(payload => ({ observedAt, subjectId, payload }));
     this.pending = [...this.pending, ...queued].slice(-MAX_BATCH_REPORTS);
   }
 
@@ -87,9 +91,9 @@ export class MetricReporter {
   async submit(): Promise<Submission> {
     const sent = new Set(this.pending);
     const studio = await this.connect();
-    const reports = Array.from(sent, ({ observedAt, payload }): Report => ({
+    const reports = Array.from(sent, ({ observedAt, subjectId, payload }): Report => ({
       kind: 'metric',
-      subjectId: studio.subjectId,
+      subjectId: subjectId ?? studio.subjectId,
       observedAt,
       payload
     }));

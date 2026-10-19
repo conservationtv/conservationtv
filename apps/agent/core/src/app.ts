@@ -16,6 +16,7 @@ export {
   type ConservationTvConfiguration,
   type DirectConfiguration
 } from './config.ts';
+export { MediamtxPathsSchema, type MediamtxPath, type MediamtxPaths } from './runtimes/mediamtx/index.ts';
 
 /** Every request arrives over iroh, from a peer the QUIC handshake authenticated: `peer` is its endpoint id. */
 export interface AgentBindings {
