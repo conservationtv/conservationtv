@@ -9,8 +9,9 @@ import config from '../openapi-ts.config.js';
 // 1. Fetches MediaMTX's OpenAPI spec and sample config at that tag into spec/, so a version bump shows up as a diff.
 // 2. Derives spec/config.json: an OpenAPI document whose root schema, MediamtxConfig, is the shape of mediamtx.yml.
 //    The API describes the global settings (GlobalConf) and a path's settings (PathConf) apart; the file is the
-//    global settings, plus `pathDefaults` and the `paths` map, each a PathConf.
-// 3. Generates the types and Zod schemas from it with openapi-ts.config.ts.
+//    global settings, plus `pathDefaults` and the `paths` map, each a PathConf. And spec/api.json: the API itself,
+//    as JSON with its 64-bit integers made plain numbers, for the client.
+// 3. Generates the types, Zod schemas and API client from them with openapi-ts.config.ts.
 // 4. Parses the sample config with the generated schema, so a spec that has drifted from the config file fails here.
 
 interface Schema {
@@ -57,10 +58,12 @@ function referenced(root: Schema, schemas: Components['schemas']): Set<string> {
   return found;
 }
 
-// int64 and uint64 settings would be generated as bigints; in a config file they are plain numbers.
+// int64 and uint64 settings would be generated as bigints; in a config file and in the API's JSON they are plain
+// numbers.
 const api: Document = parse(await download('api/openapi.yaml'), (key, value) =>
   key === 'format' && (value === 'int64' || value === 'uint64') ? undefined : value
 );
+await writeFile(new URL('api.json', spec), `${JSON.stringify(api, null, 2)}\n`);
 const sample = await download('mediamtx.yml');
 
 const { GlobalConf, PathConf } = api.components.schemas;
