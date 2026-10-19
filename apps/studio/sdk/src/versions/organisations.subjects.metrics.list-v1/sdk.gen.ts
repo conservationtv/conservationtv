@@ -49,22 +49,18 @@ class HeyApiRegistry<T> {
 
 export class Metrics extends HeyApiClient {
     /**
-     * List the metric samples reported about a subject
+     * List the metric series reported about a subject
      *
-     * Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.
+     * Each series is one metric from one reporter, with one unit and set of dimensions, such as the bitrate of one MediaMTX path. Optionally of one metric, by name. Read a series’ points with `organisations.subjects.metrics.get`.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         subjectId: string;
-        limit?: number;
-        before?: string;
         name?: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'subjectId' },
-                    { in: 'query', key: 'limit' },
-                    { in: 'query', key: 'before' },
                     { in: 'query', key: 'name' }
                 ] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, ThrowOnError>({

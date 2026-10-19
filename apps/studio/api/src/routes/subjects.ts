@@ -1,13 +1,15 @@
-import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { logRecords, metricSamples, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
+import { ApiFailure } from '../errors.ts';
+import { logRecords, metricPoints, metricSeries, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { SubjectIdSchema } from '../reports/subjects.ts';
 import { useEnvironment } from '../env/env.ts';
 import {
   invalidRequest,
+  notFound,
   operationVersion,
   unauthenticated,
   unavailable,
@@ -25,6 +27,27 @@ const HistoryQuerySchema = z.object({
   before: z.iso.datetime({ offset: true }).optional().describe('Only those observed before this time, to page back.')
 });
 export type HistoryQuery = z.output<typeof HistoryQuerySchema>;
+
+const SeriesParamsSchema = SubjectParamsSchema.extend({ seriesId: z.uuid().describe('The series.') });
+export type SeriesParams = z.output<typeof SeriesParamsSchema>;
+
+/** The most buckets one read of a series returns. */
+const MAX_BUCKETS = 1000;
+
+const PointsQuerySchema = z
+  .object({
+    from: z.iso.datetime({ offset: true }).describe('Points observed at or after this time.'),
+    to: z.iso.datetime({ offset: true }).optional().describe('Points observed before this time; now by default.'),
+    step: z.coerce
+      .number()
+      .int()
+      .min(10)
+      .max(31 * 24 * 60 * 60)
+      .optional()
+      .describe(`Seconds per bucket, at least; widened so the range has at most ${MAX_BUCKETS} buckets.`)
+  })
+  .refine(({ from, to }) => to === undefined || Date.parse(from) < Date.parse(to), '`from` is before `to`.');
+export type PointsQuery = z.output<typeof PointsQuerySchema>;
 
 // What devices report about a subject, in the principal's request session: members read it all. A subject is a string
 // (src/reports/subjects.ts), so there is nothing to create or delete, and one nothing was reported about reads as empty.
@@ -148,11 +171,11 @@ export default new Hono()
     describeRoute({
       operationId: 'organisations.subjects.metrics.list',
       ...operationVersion(1),
-      summary: 'List the metric samples reported about a subject',
+      summary: 'List the metric series reported about a subject',
       description:
-        'Every reporter’s samples, optionally of one metric, newest observation first. Each keeps the type, unit and dimensions it was reported with; samples from different reporters are never summed.',
+        'Each series is one metric from one reporter, with one unit and set of dimensions, such as the bitrate of one MediaMTX path. Optionally of one metric, by name. Read a series’ points with `organisations.subjects.metrics.get`.',
       responses: {
-        200: { description: 'The samples' },
+        200: { description: 'The series, by name' },
         400: invalidRequest,
         401: unauthenticated,
         412: versionMismatch,
@@ -163,43 +186,112 @@ export default new Hono()
     validator('param', SubjectParamsSchema),
     validator(
       'query',
-      HistoryQuerySchema.extend({
-        name: z.string().min(1).max(200).optional().describe('Only samples of this metric.')
-      })
+      z.object({ name: z.string().min(1).max(200).optional().describe('Only series of this metric.') })
     ),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const { limit, before, name } = c.req.valid('query');
+      const { name } = c.req.valid('query');
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx
           .select({
-            id: metricSamples.id,
-            reporterId: metricSamples.reporterId,
-            observedAt: metricSamples.observedAt,
-            receivedAt: metricSamples.receivedAt,
-            name: metricSamples.name,
-            type: metricSamples.type,
-            unit: metricSamples.unit,
-            dimensions: metricSamples.dimensions,
-            value: metricSamples.value
+            id: metricSeries.id,
+            name: metricSeries.name,
+            reporterId: metricSeries.reporterId,
+            unit: metricSeries.unit,
+            dimensions: metricSeries.dimensions,
+            createdAt: metricSeries.createdAt
           })
-          .from(metricSamples)
+          .from(metricSeries)
           .where(
             and(
-              eq(metricSamples.organisationId, id),
-              eq(metricSamples.subjectId, subjectId),
-              name === undefined ? undefined : eq(metricSamples.name, name),
-              before === undefined ? undefined : lt(metricSamples.observedAt, new Date(before))
+              eq(metricSeries.organisationId, id),
+              eq(metricSeries.subjectId, subjectId),
+              name === undefined ? undefined : eq(metricSeries.name, name)
             )
           )
-          .orderBy(desc(metricSamples.observedAt))
-          .limit(limit)
+          .orderBy(asc(metricSeries.name), asc(metricSeries.createdAt))
       );
       c.header('Cache-Control', 'no-store');
-      return c.json({ samples: rows }, 200);
+      return c.json({ series: rows }, 200);
+    }
+  )
+  .get(
+    '/:subjectId/metrics/:seriesId',
+    describeRoute({
+      operationId: 'organisations.subjects.metrics.get',
+      ...operationVersion(1),
+      summary: 'Read a metric series over a time range',
+      description: `The series, and its points from \`from\` until \`to\` in buckets of \`step\` seconds, oldest first: each bucket's least and greatest values, the mean weighted by samples, the last value and how many samples it summarises. A bucket with no points is absent, so a gap is a time the reporter reported nothing. The step is widened so the range has at most ${MAX_BUCKETS} buckets, and returned.`,
+      responses: {
+        200: { description: 'The series and its points' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', SeriesParamsSchema),
+    validator('query', PointsQuerySchema),
+    async c => {
+      const { id, subjectId, seriesId } = c.req.valid('param');
+      const query = c.req.valid('query');
+      const environment = useEnvironment();
+      const principal = usePrincipal();
+      const from = new Date(query.from);
+      const to = query.to === undefined ? new Date(environment.clock()) : new Date(query.to);
+      const range = Math.ceil((to.getTime() - from.getTime()) / 1000);
+      const step = Math.max(query.step ?? 60, Math.ceil(range / MAX_BUCKETS));
+      // `step` is a validated integer, written into the query so GROUP BY can match the bucket expression.
+      const bucket = sql`time_bucket(make_interval(secs => ${sql.raw(String(step))}), ${metricPoints.observedAt})`;
+      const session = await environment.session(principal);
+      const result = await session.transaction(async tx => {
+        const [series] = await tx
+          .select({
+            id: metricSeries.id,
+            name: metricSeries.name,
+            reporterId: metricSeries.reporterId,
+            unit: metricSeries.unit,
+            dimensions: metricSeries.dimensions,
+            createdAt: metricSeries.createdAt
+          })
+          .from(metricSeries)
+          .where(
+            and(
+              eq(metricSeries.organisationId, id),
+              eq(metricSeries.subjectId, subjectId),
+              eq(metricSeries.id, seriesId)
+            )
+          );
+        if (!series) throw new ApiFailure('not_found');
+        const points = await tx
+          .select({
+            at: bucket.mapWith(metricPoints.observedAt),
+            min: sql<number>`min(${metricPoints.min})`,
+            max: sql<number>`max(${metricPoints.max})`,
+            avg: sql<number>`sum(${metricPoints.avg} * ${metricPoints.count}) / sum(${metricPoints.count})`,
+            last: sql<number>`last(${metricPoints.last}, ${metricPoints.observedAt})`,
+            count: sql<number>`sum(${metricPoints.count})::integer`
+          })
+          .from(metricPoints)
+          .where(
+            and(
+              eq(metricPoints.organisationId, id),
+              eq(metricPoints.seriesId, seriesId),
+              gte(metricPoints.observedAt, from),
+              lt(metricPoints.observedAt, to)
+            )
+          )
+          .groupBy(bucket)
+          .orderBy(bucket);
+        return { ...series, from, to, step, points };
+      });
+      c.header('Cache-Control', 'no-store');
+      return c.json(result, 200);
     }
   )
   .get(

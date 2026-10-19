@@ -135,8 +135,12 @@ export const relations = defineRelations(schema, r => ({
   observations: {
     organisation: r.one.organisations({ from: r.observations.organisationId, to: r.organisations.id })
   },
-  metricSamples: {
-    organisation: r.one.organisations({ from: r.metricSamples.organisationId, to: r.organisations.id })
+  metricSeries: {
+    organisation: r.one.organisations({ from: r.metricSeries.organisationId, to: r.organisations.id }),
+    points: r.many.metricPoints({ from: r.metricSeries.id, to: r.metricPoints.seriesId })
+  },
+  metricPoints: {
+    series: r.one.metricSeries({ from: r.metricPoints.seriesId, to: r.metricSeries.id })
   },
   logRecords: {
     organisation: r.one.organisations({ from: r.logRecords.organisationId, to: r.organisations.id })

@@ -37,7 +37,7 @@ export interface Submission {
 const MAX_BATCH_REPORTS = 1000;
 
 export function gauge(name: string, value: number, unit: string, dimensions: Record<string, string> = {}): Metric {
-  return { name, type: 'gauge', value, unit, dimensions };
+  return { name, value, unit, dimensions };
 }
 
 /** Queues metrics about the agent's device, and submits them to the studio API in batches. */
