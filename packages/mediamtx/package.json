@@ -1,0 +1,25 @@
+{
+  "name": "@conservationtv/mediamtx",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MediaMTX config as typed objects: types and Zod schemas generated from MediaMTX's OpenAPI spec, and YAML output.",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "generate": "tsx scripts/generate.ts"
+  },
+  "dependencies": {
+    "yaml": "2.9.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "24.10.1",
+    "tsx": "4.23.15",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,1283 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MediaMTX v1.21.2 config",
+    "version": "v1.21.2"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "MediamtxConfig": {
+        "type": "object",
+        "properties": {
+          "api": {
+            "type": "boolean",
+            "description": "Control API"
+          },
+          "apiAddress": {
+            "type": "string"
+          },
+          "apiAllowOrigin": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "apiAllowOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "apiEncryption": {
+            "type": "boolean"
+          },
+          "apiServerCert": {
+            "type": "string"
+          },
+          "apiServerKey": {
+            "type": "string"
+          },
+          "apiTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authHTTPAddress": {
+            "type": "string"
+          },
+          "authHTTPExclude": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthInternalUserPermission"
+            }
+          },
+          "authHTTPFingerprint": {
+            "type": "string"
+          },
+          "authInternalUsers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthInternalUser"
+            }
+          },
+          "authJWTAudience": {
+            "type": "string"
+          },
+          "authJWTClaimKey": {
+            "type": "string"
+          },
+          "authJWTExclude": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthInternalUserPermission"
+            }
+          },
+          "authJWTInHTTPQuery": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "authJWTIssuer": {
+            "type": "string"
+          },
+          "authJWTJWKS": {
+            "type": "string"
+          },
+          "authJWTJWKSFingerprint": {
+            "type": "string"
+          },
+          "authMethod": {
+            "$ref": "#/components/schemas/AuthMethod",
+            "description": "Authentication"
+          },
+          "authMethods": {
+            "type": "array",
+            "nullable": true,
+            "deprecated": true,
+            "items": {
+              "$ref": "#/components/schemas/RTSPAuthMethod"
+            }
+          },
+          "dumpPackets": {
+            "type": "boolean"
+          },
+          "encryption": {
+            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Encryption"
+              }
+            ],
+            "nullable": true,
+            "deprecated": true
+          },
+          "externalAuthenticationURL": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "hls": {
+            "type": "boolean",
+            "description": "HLS server"
+          },
+          "hlsAddress": {
+            "type": "string"
+          },
+          "hlsAllowOrigin": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "hlsAllowOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hlsAlwaysRemux": {
+            "type": "boolean"
+          },
+          "hlsCDNSecret": {
+            "type": "string"
+          },
+          "hlsDirectory": {
+            "type": "string"
+          },
+          "hlsDisable": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "hlsEncryption": {
+            "type": "boolean"
+          },
+          "hlsMuxerCloseAfter": {
+            "type": "string"
+          },
+          "hlsPartDuration": {
+            "type": "string"
+          },
+          "hlsSegmentCount": {
+            "type": "integer"
+          },
+          "hlsSegmentDuration": {
+            "type": "string"
+          },
+          "hlsSegmentMaxSize": {
+            "type": "string"
+          },
+          "hlsServerCert": {
+            "type": "string"
+          },
+          "hlsServerKey": {
+            "type": "string"
+          },
+          "hlsTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hlsVariant": {
+            "$ref": "#/components/schemas/HLSVariant"
+          },
+          "logDestinations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogDestination"
+            }
+          },
+          "logFile": {
+            "type": "string"
+          },
+          "logLevel": {
+            "$ref": "#/components/schemas/LogLevel",
+            "description": "General"
+          },
+          "logStructured": {
+            "type": "boolean"
+          },
+          "metrics": {
+            "type": "boolean",
+            "description": "Metrics"
+          },
+          "metricsAddress": {
+            "type": "string"
+          },
+          "metricsAllowOrigin": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "metricsAllowOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metricsEncryption": {
+            "type": "boolean"
+          },
+          "metricsServerCert": {
+            "type": "string"
+          },
+          "metricsServerKey": {
+            "type": "string"
+          },
+          "metricsTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moq": {
+            "type": "boolean",
+            "description": "MoQ server"
+          },
+          "moqAllowOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moqHTTP2Address": {
+            "type": "string"
+          },
+          "moqHTTP3Address": {
+            "type": "string"
+          },
+          "moqHTTPS2Address": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "moqHTTPS3Address": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "moqQUICAddress": {
+            "type": "string"
+          },
+          "moqServerCert": {
+            "type": "string"
+          },
+          "moqServerKey": {
+            "type": "string"
+          },
+          "moqTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "multicastIPRange": {
+            "type": "string"
+          },
+          "multicastRTCPPort": {
+            "type": "integer"
+          },
+          "multicastRTPPort": {
+            "type": "integer"
+          },
+          "multicastSRTCPPort": {
+            "type": "integer"
+          },
+          "multicastSRTPPort": {
+            "type": "integer"
+          },
+          "playback": {
+            "type": "boolean",
+            "description": "Playback"
+          },
+          "playbackAddress": {
+            "type": "string"
+          },
+          "playbackAllowOrigin": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "playbackAllowOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "playbackEncryption": {
+            "type": "boolean"
+          },
+          "playbackServerCert": {
+            "type": "string"
+          },
+          "playbackServerKey": {
+            "type": "string"
+          },
+          "playbackTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pprof": {
+            "type": "boolean",
+            "description": "PPROF"
+          },
+          "pprofAddress": {
+            "type": "string"
+          },
+          "pprofAllowOrigin": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "pprofAllowOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pprofEncryption": {
+            "type": "boolean"
+          },
+          "pprofServerCert": {
+            "type": "string"
+          },
+          "pprofServerKey": {
+            "type": "string"
+          },
+          "pprofTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "protocols": {
+            "type": "array",
+            "nullable": true,
+            "deprecated": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "udp",
+                "multicast",
+                "tcp"
+              ]
+            }
+          },
+          "readBufferCount": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true
+          },
+          "readTimeout": {
+            "type": "string"
+          },
+          "record": {
+            "type": "boolean",
+            "description": "Record (deprecated)",
+            "nullable": true,
+            "deprecated": true
+          },
+          "recordDeleteAfter": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "recordFormat": {
+            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordFormat"
+              }
+            ],
+            "nullable": true,
+            "deprecated": true
+          },
+          "recordPartDuration": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "recordPath": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "recordSegmentDuration": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rtcpAddress": {
+            "type": "string"
+          },
+          "rtmp": {
+            "type": "boolean",
+            "description": "RTMP server"
+          },
+          "rtmpAddress": {
+            "type": "string"
+          },
+          "rtmpDisable": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rtmpEncryption": {
+            "$ref": "#/components/schemas/Encryption"
+          },
+          "rtmpServerCert": {
+            "type": "string"
+          },
+          "rtmpServerKey": {
+            "type": "string"
+          },
+          "rtmpTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rtmpsAddress": {
+            "type": "string"
+          },
+          "rtpAddress": {
+            "type": "string"
+          },
+          "rtsp": {
+            "type": "boolean",
+            "description": "RTSP server"
+          },
+          "rtspAddress": {
+            "type": "string"
+          },
+          "rtspAuthMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RTSPAuthMethod"
+            }
+          },
+          "rtspDisable": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rtspEncryption": {
+            "$ref": "#/components/schemas/Encryption"
+          },
+          "rtspServerCert": {
+            "type": "string"
+          },
+          "rtspServerKey": {
+            "type": "string"
+          },
+          "rtspTransports": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "udp",
+                "multicast",
+                "tcp"
+              ]
+            }
+          },
+          "rtspTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rtspUDPReadBufferSize": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rtspsAddress": {
+            "type": "string"
+          },
+          "runOnConnect": {
+            "type": "string"
+          },
+          "runOnConnectRestart": {
+            "type": "boolean"
+          },
+          "runOnDisconnect": {
+            "type": "string"
+          },
+          "srt": {
+            "type": "boolean",
+            "description": "SRT server"
+          },
+          "srtAddress": {
+            "type": "string"
+          },
+          "srtcpAddress": {
+            "type": "string"
+          },
+          "srtpAddress": {
+            "type": "string"
+          },
+          "sysLogPrefix": {
+            "type": "string"
+          },
+          "udpMaxPayloadSize": {
+            "type": "integer"
+          },
+          "udpReadBufferSize": {
+            "type": "integer"
+          },
+          "webrtc": {
+            "type": "boolean",
+            "description": "WebRTC server"
+          },
+          "webrtcAdditionalHosts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "webrtcAddress": {
+            "type": "string"
+          },
+          "webrtcAllowOrigin": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "webrtcAllowOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "webrtcDisable": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "webrtcEncryption": {
+            "type": "boolean"
+          },
+          "webrtcHandshakeTimeout": {
+            "type": "string"
+          },
+          "webrtcICEHostNAT1To1IPs": {
+            "type": "array",
+            "nullable": true,
+            "deprecated": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "webrtcICEServers": {
+            "type": "array",
+            "nullable": true,
+            "deprecated": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "webrtcICEServers2": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebRTCICEServer"
+            }
+          },
+          "webrtcICETCPMuxAddress": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "webrtcICEUDPMuxAddress": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "webrtcIPsFromInterfaces": {
+            "type": "boolean"
+          },
+          "webrtcIPsFromInterfacesExcludeList": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "webrtcIPsFromInterfacesList": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "webrtcLocalTCPAddress": {
+            "type": "string"
+          },
+          "webrtcLocalUDPAddress": {
+            "type": "string"
+          },
+          "webrtcSTUNGatherTimeout": {
+            "type": "string"
+          },
+          "webrtcServerCert": {
+            "type": "string"
+          },
+          "webrtcServerKey": {
+            "type": "string"
+          },
+          "webrtcTrackGatherTimeout": {
+            "type": "string"
+          },
+          "webrtcTrustedProxies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "writeQueueSize": {
+            "type": "integer"
+          },
+          "writeTimeout": {
+            "type": "string"
+          },
+          "pathDefaults": {
+            "$ref": "#/components/schemas/PathConf"
+          },
+          "paths": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PathConf"
+            }
+          }
+        }
+      },
+      "AuthInternalUserPermission": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AuthAction"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthInternalUser": {
+        "type": "object",
+        "properties": {
+          "ips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pass": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthInternalUserPermission"
+            }
+          },
+          "user": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthMethod": {
+        "type": "string",
+        "enum": [
+          "internal",
+          "http",
+          "jwt"
+        ]
+      },
+      "RTSPAuthMethod": {
+        "type": "string",
+        "enum": [
+          "basic",
+          "digest"
+        ]
+      },
+      "Encryption": {
+        "type": "string",
+        "enum": [
+          "no",
+          "optional",
+          "strict"
+        ]
+      },
+      "HLSVariant": {
+        "type": "string",
+        "enum": [
+          "mpegts",
+          "fmp4",
+          "lowLatency"
+        ]
+      },
+      "LogDestination": {
+        "type": "string",
+        "enum": [
+          "stdout",
+          "file",
+          "syslog"
+        ]
+      },
+      "LogLevel": {
+        "type": "string",
+        "enum": [
+          "error",
+          "warn",
+          "info",
+          "debug"
+        ]
+      },
+      "RecordFormat": {
+        "type": "string",
+        "enum": [
+          "fmp4",
+          "mpegts"
+        ]
+      },
+      "WebRTCICEServer": {
+        "type": "object",
+        "properties": {
+          "clientOnly": {
+            "type": "boolean"
+          },
+          "password": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "PathConf": {
+        "type": "object",
+        "properties": {
+          "alwaysAvailable": {
+            "type": "boolean",
+            "description": "Always available"
+          },
+          "alwaysAvailableFile": {
+            "type": "string"
+          },
+          "alwaysAvailableRecorded": {
+            "type": "boolean"
+          },
+          "alwaysAvailableTracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlwaysAvailableTrack"
+            }
+          },
+          "disablePublisherOverride": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "fallback": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "forward": {
+            "type": "array",
+            "description": "Forward",
+            "items": {
+              "$ref": "#/components/schemas/PathConfForwardDest"
+            }
+          },
+          "maxReaders": {
+            "type": "integer"
+          },
+          "moqTransport": {
+            "type": "string",
+            "description": "MoQ source"
+          },
+          "mpegtsUDPReadBufferSize": {
+            "type": "integer",
+            "description": "MPEG-TS source",
+            "nullable": true,
+            "deprecated": true
+          },
+          "overridePublisher": {
+            "type": "boolean",
+            "description": "Publisher source"
+          },
+          "playback": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "publishIPs": {
+            "type": "array",
+            "nullable": true,
+            "deprecated": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "publishPass": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "publishUser": {
+            "type": "string",
+            "description": "Authentication (deprecated)",
+            "nullable": true,
+            "deprecated": true
+          },
+          "readIPs": {
+            "type": "array",
+            "nullable": true,
+            "deprecated": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "readPass": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "readUser": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "record": {
+            "type": "boolean",
+            "description": "Record"
+          },
+          "recordDeleteAfter": {
+            "type": "string"
+          },
+          "recordFormat": {
+            "$ref": "#/components/schemas/RecordFormat"
+          },
+          "recordMaxPartSize": {
+            "type": "string"
+          },
+          "recordPartDuration": {
+            "type": "string"
+          },
+          "recordPath": {
+            "type": "string"
+          },
+          "recordSegmentDuration": {
+            "type": "string"
+          },
+          "rpiCameraAWB": {
+            "type": "string"
+          },
+          "rpiCameraAWBGains": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "rpiCameraAfMode": {
+            "type": "string"
+          },
+          "rpiCameraAfRange": {
+            "type": "string"
+          },
+          "rpiCameraAfSpeed": {
+            "type": "string"
+          },
+          "rpiCameraAfWindow": {
+            "type": "string"
+          },
+          "rpiCameraBitrate": {
+            "type": "integer"
+          },
+          "rpiCameraBrightness": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraCamID": {
+            "type": "integer",
+            "description": "Raspberry Pi Camera source"
+          },
+          "rpiCameraCodec": {
+            "type": "string"
+          },
+          "rpiCameraContrast": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraDenoise": {
+            "type": "string"
+          },
+          "rpiCameraEV": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraExposure": {
+            "type": "string"
+          },
+          "rpiCameraFPS": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraFlickerPeriod": {
+            "type": "integer"
+          },
+          "rpiCameraGain": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraH264Level": {
+            "type": "string"
+          },
+          "rpiCameraH264Profile": {
+            "type": "string"
+          },
+          "rpiCameraHDR": {
+            "type": "boolean"
+          },
+          "rpiCameraHFlip": {
+            "type": "boolean"
+          },
+          "rpiCameraHardwareH264Level": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rpiCameraHardwareH264Profile": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rpiCameraHeight": {
+            "type": "integer"
+          },
+          "rpiCameraIDRPeriod": {
+            "type": "integer"
+          },
+          "rpiCameraJPEGQuality": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rpiCameraLensPosition": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraLevel": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rpiCameraMJPEGQuality": {
+            "type": "integer"
+          },
+          "rpiCameraMetering": {
+            "type": "string"
+          },
+          "rpiCameraMode": {
+            "type": "string"
+          },
+          "rpiCameraProfile": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rpiCameraROI": {
+            "type": "string"
+          },
+          "rpiCameraSaturation": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraSecondary": {
+            "type": "boolean"
+          },
+          "rpiCameraSharpness": {
+            "type": "number",
+            "format": "double"
+          },
+          "rpiCameraShutter": {
+            "type": "integer"
+          },
+          "rpiCameraSoftwareH264Level": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rpiCameraSoftwareH264Profile": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rpiCameraTextOverlay": {
+            "type": "string"
+          },
+          "rpiCameraTextOverlayEnable": {
+            "type": "boolean"
+          },
+          "rpiCameraTuningFile": {
+            "type": "string"
+          },
+          "rpiCameraVFlip": {
+            "type": "boolean"
+          },
+          "rpiCameraWidth": {
+            "type": "integer"
+          },
+          "rtpSDP": {
+            "type": "string",
+            "description": "RTP source"
+          },
+          "rtpUDPReadBufferSize": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rtspAnyPort": {
+            "type": "boolean"
+          },
+          "rtspDemuxMpegts": {
+            "type": "boolean"
+          },
+          "rtspRangeStart": {
+            "type": "string"
+          },
+          "rtspRangeType": {
+            "$ref": "#/components/schemas/RTSPRangeType"
+          },
+          "rtspScale": {
+            "type": "string"
+          },
+          "rtspTransport": {
+            "$ref": "#/components/schemas/RTSPTransport",
+            "description": "RTSP source"
+          },
+          "rtspUDPReadBufferSize": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true
+          },
+          "rtspUDPSourcePortRange": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "runOnAvailable": {
+            "type": "string"
+          },
+          "runOnAvailableRestart": {
+            "type": "boolean"
+          },
+          "runOnDemand": {
+            "type": "string"
+          },
+          "runOnDemandCloseAfter": {
+            "type": "string"
+          },
+          "runOnDemandRestart": {
+            "type": "boolean"
+          },
+          "runOnDemandStartTimeout": {
+            "type": "string"
+          },
+          "runOnInit": {
+            "type": "string",
+            "description": "Hooks"
+          },
+          "runOnInitRestart": {
+            "type": "boolean"
+          },
+          "runOnNotReady": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "runOnOffline": {
+            "type": "string"
+          },
+          "runOnOnline": {
+            "type": "string"
+          },
+          "runOnOnlineRestart": {
+            "type": "boolean"
+          },
+          "runOnRead": {
+            "type": "string"
+          },
+          "runOnReadRestart": {
+            "type": "boolean"
+          },
+          "runOnReady": {
+            "type": "string",
+            "nullable": true,
+            "deprecated": true
+          },
+          "runOnReadyRestart": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "runOnRecordSegmentComplete": {
+            "type": "string"
+          },
+          "runOnRecordSegmentCreate": {
+            "type": "string"
+          },
+          "runOnUnDemand": {
+            "type": "string"
+          },
+          "runOnUnavailable": {
+            "type": "string"
+          },
+          "runOnUnread": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "General"
+          },
+          "sourceAnyPortEnable": {
+            "type": "boolean",
+            "nullable": true,
+            "deprecated": true
+          },
+          "sourceFingerprint": {
+            "type": "string"
+          },
+          "sourceOnDemand": {
+            "type": "boolean"
+          },
+          "sourceOnDemandCloseAfter": {
+            "type": "string"
+          },
+          "sourceOnDemandStartTimeout": {
+            "type": "string"
+          },
+          "sourceProtocol": {
+            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RTSPTransport"
+              }
+            ],
+            "nullable": true,
+            "deprecated": true
+          },
+          "sourceRedirect": {
+            "type": "string",
+            "description": "Redirect source"
+          },
+          "srtPublishPassphrase": {
+            "type": "string"
+          },
+          "srtReadPassphrase": {
+            "type": "string"
+          },
+          "useAbsoluteTimestamp": {
+            "type": "boolean"
+          },
+          "whepBearerToken": {
+            "type": "string",
+            "description": "WHEP source"
+          },
+          "whepHandshakeTimeout": {
+            "type": "string"
+          },
+          "whepSTUNGatherTimeout": {
+            "type": "string"
+          },
+          "whepTrackGatherTimeout": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthAction": {
+        "type": "string",
+        "enum": [
+          "publish",
+          "read",
+          "playback",
+          "api",
+          "metrics",
+          "pprof"
+        ]
+      },
+      "AlwaysAvailableTrack": {
+        "type": "object",
+        "properties": {
+          "channelCount": {
+            "type": "integer"
+          },
+          "codec": {
+            "$ref": "#/components/schemas/AlwaysAvailableTrackCodec"
+          },
+          "muLaw": {
+            "type": "boolean"
+          },
+          "sampleRate": {
+            "type": "integer"
+          }
+        }
+      },
+      "PathConfForwardDest": {
+        "type": "object",
+        "properties": {
+          "dest": {
+            "type": "string"
+          },
+          "destFingerprint": {
+            "type": "string"
+          },
+          "moqTransport": {
+            "type": "string"
+          },
+          "whipBearerToken": {
+            "type": "string"
+          }
+        }
+      },
+      "RTSPRangeType": {
+        "type": "string",
+        "enum": [
+          "",
+          "clock",
+          "npt",
+          "smpte"
+        ]
+      },
+      "RTSPTransport": {
+        "type": "string",
+        "enum": [
+          "udp",
+          "multicast",
+          "tcp",
+          "automatic"
+        ]
+      },
+      "AlwaysAvailableTrackCodec": {
+        "type": "string",
+        "enum": [
+          "AV1",
+          "VP9",
+          "H265",
+          "H264",
+          "MPEG4Audio",
+          "Opus",
+          "G711",
+          "LPCM"
+        ]
+      }
+    }
+  }
+}

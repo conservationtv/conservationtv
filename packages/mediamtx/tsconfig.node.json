@@ -1,0 +1,14 @@
+{
+  // The version pin, generator config and scripts run under Node at generation time, outside the package build.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["mediamtx-version.ts", "openapi-ts.config.ts", "scripts/**/*.ts"]
+}
