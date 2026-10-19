@@ -55,6 +55,7 @@ export * from './organisations.streams.recorders.delete-v1/index.js';
 export * from './organisations.subjects.state-v1/index.js';
 export * from './organisations.subjects.observations.list-v1/index.js';
 export * from './organisations.subjects.metrics.list-v1/index.js';
+export * from './organisations.subjects.metrics.get-v1/index.js';
 export * from './organisations.subjects.logs.list-v1/index.js';
 export * from './invitations.listMine-v1/index.js';
 export * from './invitations.get-v1/index.js';

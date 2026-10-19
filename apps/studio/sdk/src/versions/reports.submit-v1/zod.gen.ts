@@ -40,13 +40,26 @@ export const PostReportsBodySchema = z.object({
                 description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
             }),
             observedAt: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/),
-            payload: z.object({
-                name: z.string().min(1).max(200),
-                type: z.enum(['gauge', 'counter']),
-                value: z.number(),
-                unit: z.string().min(1).max(60).nullish().default(null),
-                dimensions: z.record(z.string(), z.string().max(200)).optional().default({})
-            })
+            payload: z.union([
+                z.object({
+                    name: z.string().min(1).max(200),
+                    unit: z.string().min(1).max(60).nullish().default(null),
+                    dimensions: z.record(z.string(), z.string().max(200)).optional().default({}),
+                    value: z.number()
+                }),
+                z.object({
+                    name: z.string().min(1).max(200),
+                    unit: z.string().min(1).max(60).nullish().default(null),
+                    dimensions: z.record(z.string(), z.string().max(200)).optional().default({}),
+                    summary: z.object({
+                        min: z.number(),
+                        max: z.number(),
+                        avg: z.number(),
+                        last: z.number(),
+                        count: z.int().gte(1).lte(9007199254740991)
+                    })
+                })
+            ])
         }),
         z.object({
             kind: z.literal('log'),
