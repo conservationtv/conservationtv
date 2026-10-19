@@ -19,6 +19,21 @@ export async function download(artifact: Artifact, path: string, fetch: Fetch, s
       done(null, chunk);
     }
   });
-  await pipeline(Readable.fromWeb(response.body), hashing, createWriteStream(path), { signal });
+  // Read with the web API explicitly: consumers can load both DOM and Node stream declarations.
+  const body = response.body;
+  const chunks = async function* () {
+    const reader = body.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        yield value;
+      }
+    } finally {
+      await reader.cancel();
+      reader.releaseLock();
+    }
+  };
+  await pipeline(Readable.from(chunks()), hashing, createWriteStream(path), { signal });
   if (hash.digest('hex') !== expected) throw new Error(`${artifact.url} doesn't match its checksum`);
 }
