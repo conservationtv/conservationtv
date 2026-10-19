@@ -283,6 +283,17 @@ export const IrohSessionSchema = z.object({
     }).optional()
 });
 
+export const WhoamiSchema = z.object({
+    id: z.string(),
+    organisationId: z.string(),
+    kind: z.enum([
+        'agent',
+        'camera',
+        'browser'
+    ]),
+    publicId: z.string()
+});
+
 /**
  * The server is ready
  */
@@ -1547,3 +1558,8 @@ export const PostReportsResponseSchema = ReportSchema;
  * The relay to use
  */
 export const PostIrohSessionsResponseSchema = IrohSessionSchema;
+
+/**
+ * The signing device
+ */
+export const GetWhoamiResponseSchema = WhoamiSchema;

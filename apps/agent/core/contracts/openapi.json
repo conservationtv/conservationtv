@@ -186,10 +186,249 @@
               "runtime",
               "apply"
             ]
+          },
+          "machine": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "running": {
+                    "type": "boolean"
+                  },
+                  "intervalMs": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "subjectId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "latest": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "observedAt": {
+                            "type": "string"
+                          },
+                          "cpuUtilisation": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "cpuCount": {
+                            "type": "number"
+                          },
+                          "load": {
+                            "type": "number"
+                          },
+                          "memory": {
+                            "type": "object",
+                            "properties": {
+                              "total": {
+                                "type": "number"
+                              },
+                              "free": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "total",
+                              "free"
+                            ]
+                          },
+                          "disk": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "total": {
+                                    "type": "number"
+                                  },
+                                  "free": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "total",
+                                  "free"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "uptimeSeconds": {
+                            "type": "number"
+                          },
+                          "agentRss": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "observedAt",
+                          "cpuUtilisation",
+                          "cpuCount",
+                          "load",
+                          "memory",
+                          "disk",
+                          "uptimeSeconds",
+                          "agentRss"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pending": {
+                    "type": "number"
+                  },
+                  "submitted": {
+                    "type": "number"
+                  },
+                  "lastSubmittedAt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lastError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "running",
+                  "intervalMs",
+                  "subjectId",
+                  "latest",
+                  "pending",
+                  "submitted",
+                  "lastSubmittedAt",
+                  "lastError"
+                ]
+              },
+              "apply": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applying"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applied"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "failed"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "attempt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision",
+                      "error",
+                      "attempt"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "runtime",
+              "apply"
+            ]
           }
         },
         "required": [
-          "heartbeat"
+          "heartbeat",
+          "machine"
         ]
       }
     }
@@ -241,6 +480,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/System"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/system/spec": {
+      "get": {
+        "operationId": "system.spec",
+        "x-operation-version": 1,
+        "summary": "Read the agent's currently defined spec",
+        "responses": {
+          "200": {
+            "description": "The current system specification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "heartbeat": {
+                      "type": "object",
+                      "properties": {
+                        "intervalMs": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "intervalMs",
+                        "message"
+                      ]
+                    },
+                    "machine": {
+                      "type": "object",
+                      "properties": {
+                        "intervalMs": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "intervalMs"
+                      ]
+                    }
+                  }
                 }
               }
             }
@@ -534,10 +833,249 @@
                   "runtime",
                   "apply"
                 ]
+              },
+              "machine": {
+                "type": "object",
+                "properties": {
+                  "runtime": {
+                    "type": "object",
+                    "properties": {
+                      "running": {
+                        "type": "boolean"
+                      },
+                      "intervalMs": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "subjectId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "latest": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "observedAt": {
+                                "type": "string"
+                              },
+                              "cpuUtilisation": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "cpuCount": {
+                                "type": "number"
+                              },
+                              "load": {
+                                "type": "number"
+                              },
+                              "memory": {
+                                "type": "object",
+                                "properties": {
+                                  "total": {
+                                    "type": "number"
+                                  },
+                                  "free": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "total",
+                                  "free"
+                                ]
+                              },
+                              "disk": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "total": {
+                                        "type": "number"
+                                      },
+                                      "free": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "total",
+                                      "free"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "uptimeSeconds": {
+                                "type": "number"
+                              },
+                              "agentRss": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "observedAt",
+                              "cpuUtilisation",
+                              "cpuCount",
+                              "load",
+                              "memory",
+                              "disk",
+                              "uptimeSeconds",
+                              "agentRss"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "pending": {
+                        "type": "number"
+                      },
+                      "submitted": {
+                        "type": "number"
+                      },
+                      "lastSubmittedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "running",
+                      "intervalMs",
+                      "subjectId",
+                      "latest",
+                      "pending",
+                      "submitted",
+                      "lastSubmittedAt",
+                      "lastError"
+                    ]
+                  },
+                  "apply": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applying"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applied"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "failed"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "attempt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision",
+                          "error",
+                          "attempt"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "apply"
+                ]
               }
             },
             "required": [
-              "heartbeat"
+              "heartbeat",
+              "machine"
             ]
           }
         }
@@ -552,6 +1090,119 @@
             "responses": {
               "200": {
                 "description": "Every runtime's status",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/System"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Agent API",
+        "description": "The conservation.tv agent API, served by the agent itself.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "System": {
+            "type": "object",
+            "properties": {
+              "heartbeat": {
+                "type": "object",
+                "properties": {
+                  "intervalMs": {
+                    "type": "number"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "intervalMs",
+                  "message"
+                ]
+              },
+              "machine": {
+                "type": "object",
+                "properties": {
+                  "intervalMs": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "intervalMs"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "paths": {
+        "/system/spec": {
+          "get": {
+            "operationId": "system.spec",
+            "x-operation-version": 1,
+            "summary": "Read the agent's currently defined spec",
+            "responses": {
+              "200": {
+                "description": "The current system specification",
                 "content": {
                   "application/json": {
                     "schema": {

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "react-router dev",
+    "dev:staging": "react-router dev",
     "build": "react-router typegen && tsc -b && react-router build",
     "lint": "oxlint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",

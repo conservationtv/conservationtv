@@ -1140,6 +1140,34 @@
         "required": [
           "relay"
         ]
+      },
+      "Whoami": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organisationId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "camera",
+              "browser"
+            ]
+          },
+          "publicId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organisationId",
+          "kind",
+          "publicId"
+        ]
       }
     }
   },
@@ -8855,6 +8883,49 @@
           },
           "503": {
             "description": "The database is unavailable, or the relay cannot lease the endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/whoami": {
+      "get": {
+        "operationId": "whoami.get",
+        "x-operation-version": 1,
+        "summary": "Read the signing device",
+        "description": "The signing device's ID, organisation and kind: a device holds only its key, so it asks for the ID it reports about itself as. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+        "responses": {
+          "200": {
+            "description": "The signing device",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Whoami"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
             "content": {
               "application/json": {
                 "schema": {
@@ -21766,6 +21837,127 @@
               },
               "503": {
                 "description": "The database is unavailable, or the relay cannot lease the endpoint",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Whoami": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "organisationId": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "camera",
+                  "browser"
+                ]
+              },
+              "publicId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "organisationId",
+              "kind",
+              "publicId"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/whoami": {
+          "get": {
+            "operationId": "whoami.get",
+            "x-operation-version": 1,
+            "summary": "Read the signing device",
+            "description": "The signing device's ID, organisation and kind: a device holds only its key, so it asks for the ID it reports about itself as. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+            "responses": {
+              "200": {
+                "description": "The signing device",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Whoami"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
                 "content": {
                   "application/json": {
                     "schema": {

@@ -17,6 +17,7 @@ import organisations from './routes/organisations.ts';
 import reports from './routes/reports.ts';
 import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
+import whoami from './routes/whoami.ts';
 import { useEnvironment } from './env/env.ts';
 
 export const operationRouter = new OperationRouter();
@@ -55,6 +56,7 @@ const app = new Hono({ router: operationRouter })
   // Signed by agents rather than signed in: no session.
   .route('/reports', reports)
   .route('/iroh-sessions', irohSessions)
+  .route('/whoami', whoami)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)
   .onError(handleError);
