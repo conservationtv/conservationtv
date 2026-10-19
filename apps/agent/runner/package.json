@@ -7,6 +7,7 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
+    "dev:staging": "until curl -sf -o /dev/null http://localhost:5175/health; do sleep 1; done && AGENT_MODE=conservationtv STUDIO_API_URL=http://localhost:5175 tsx --env-file=.env src/index.ts",
     "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --external:@number0/iroh --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=dist/index.js",
     "keygen": "node -e \"console.log(require('node:crypto').randomBytes(32).toString('hex'))\"",
     "typecheck": "tsc -p tsconfig.json"
