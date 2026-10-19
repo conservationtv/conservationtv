@@ -19,6 +19,7 @@
   "dependencies": {
     "@conservationtv/converge": "workspace:*",
     "@conservationtv/mediamtx": "workspace:*",
+    "@conservationtv/reports": "workspace:*",
     "@conservationtv/store": "workspace:*",
     "@conservationtv/studio-sdk": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",

@@ -22,3 +22,6 @@ export type SubjectId = z.output<typeof SubjectIdSchema>;
 
 /** A device, as a subject or a reporter. */
 export const deviceSubject = (deviceId: string): SubjectId => `device:${deviceId}`;
+
+/** An exposure, as a subject: what the paths delivering it report about. */
+export const exposureSubject = (exposureId: string): SubjectId => `exposure:${exposureId}`;

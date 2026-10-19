@@ -273,6 +273,9 @@ importers:
       '@conservationtv/mediamtx':
         specifier: workspace:*
         version: link:../../../packages/mediamtx
+      '@conservationtv/reports':
+        specifier: workspace:*
+        version: link:../../../packages/reports
       '@conservationtv/store':
         specifier: workspace:*
         version: link:../../../packages/store
@@ -641,6 +644,9 @@ importers:
       '@conservationtv/controlplane-sdk':
         specifier: workspace:*
         version: link:../../controlplane/sdk
+      '@conservationtv/reports':
+        specifier: workspace:*
+        version: link:../../../packages/reports
       '@conservationtv/store':
         specifier: workspace:*
         version: link:../../../packages/store
@@ -942,6 +948,16 @@ importers:
       tsx:
         specifier: 4.23.15
         version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/reports:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

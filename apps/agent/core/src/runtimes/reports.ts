@@ -1,3 +1,4 @@
+import { deviceSubject, summarise, type MetricDefinition } from '@conservationtv/reports';
 import { Client, DeviceIdentity, deviceSignature, type PostReportsData } from '@conservationtv/studio-sdk';
 import type { AgentConfiguration } from '../config.ts';
 
@@ -37,28 +38,14 @@ export interface Submission {
 /** The most reports one submission carries, as the studio API accepts. */
 const MAX_BATCH_REPORTS = 1000;
 
-/** One sample of a metric. */
-export function gauge(name: string, value: number, unit: string, dimensions: Record<string, string> = {}): Metric {
-  return { name, value, unit, dimensions };
+/** One sample of a metric from the catalogue. */
+export function gauge(metric: MetricDefinition, value: number, dimensions: Record<string, string> = {}): Metric {
+  return { name: metric.name, value, unit: metric.unit, dimensions };
 }
 
-/** The samples of a metric taken over an interval, summarised as one point: their least, greatest, mean and last. */
-export function summary(
-  name: string,
-  samples: number[],
-  unit: string,
-  dimensions: Record<string, string> = {}
-): Metric {
-  const count = samples.length;
-  if (count === 0) throw new Error(`No samples of ${name} to summarise`);
-  const total = samples.reduce((sum, sample) => sum + sample, 0);
-  const avg = total / count;
-  const min = Math.min(...samples);
-  const max = Math.max(...samples);
-  const last = samples[count - 1]!;
-  // A mean can land a rounding error outside its samples, which the studio API refuses.
-  const bounded = Math.min(max, Math.max(min, avg));
-  return { name, summary: { min, max, avg: bounded, last, count }, unit, dimensions };
+/** The samples of a metric from the catalogue taken over an interval, summarised as one point. */
+export function summary(metric: MetricDefinition, samples: number[], dimensions: Record<string, string> = {}): Metric {
+  return { name: metric.name, summary: summarise(samples), unit: metric.unit, dimensions };
 }
 
 /** Queues metrics about the agent's device, and submits them to the studio API in batches. */
@@ -120,7 +107,7 @@ export class MetricReporter {
     await client.handshake();
     const device = await client.whoami.get.v1();
     if (device instanceof Error) throw device;
-    const subjectId = `device:${device.id}`;
+    const subjectId = deviceSubject(device.id);
     this.studio = { client, subjectId };
     return this.studio;
   }
