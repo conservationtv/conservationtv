@@ -23,16 +23,20 @@ RUN mkdir -p /out/app/node_modules/@number0 \
  && mkdir /out/app/node_modules/@number0/iroh /out/app/node_modules/@number0/"$(basename "$addon")" \
  && cp -L "$iroh"/package.json "$iroh"/index.js /out/app/node_modules/@number0/iroh/ \
  && cp -L "$addon"/package.json "$addon"/*.node /out/app/node_modules/@number0/"$(basename "$addon")"/ \
- && mkdir -p /out/usr/local/bin /out/usr/lib /out/lib /out/tmp \
+ && mkdir -p /out/usr/local/bin /out/usr/lib /out/lib /out/tmp /out/data \
  && strip -o /out/usr/local/bin/node /usr/local/bin/node \
+ && cp /bin/busybox /out/usr/local/bin/tar \
  && cp -L /lib/ld-musl-*.so.1 /out/lib/ \
  && cp -L /usr/lib/libstdc++.so.6 /usr/lib/libgcc_s.so.1 /out/usr/lib/ \
- && chmod 1777 /out/tmp
+ && chmod 1777 /out/tmp /out/data
 
-# Nothing but Node, the C and C++ runtimes it links against, and the agent: no shell, no package manager.
+# Nothing but Node, the C and C++ runtimes it links against, and the agent: no shell, no package manager. Busybox,
+# answering to `tar`, is there only to unpack the binaries the agent vendors (MediaMTX); it runs no other applet.
 FROM scratch
 COPY --from=build /out /
 ENV NODE_ENV=production
+# Where the agent keeps its runtimes' binaries and state. Mount a volume here to keep them across containers.
+ENV AGENT_DATA_DIR=/data
 WORKDIR /app
 # Node's own user in the official images, by number: there is no /etc/passwd to name it.
 USER 1000:1000

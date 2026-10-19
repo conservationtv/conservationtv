@@ -49,144 +49,6 @@
       "System": {
         "type": "object",
         "properties": {
-          "heartbeat": {
-            "type": "object",
-            "properties": {
-              "runtime": {
-                "type": "object",
-                "properties": {
-                  "running": {
-                    "type": "boolean"
-                  },
-                  "intervalMs": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "message": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "beats": {
-                    "type": "number"
-                  },
-                  "lastBeatAt": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "running",
-                  "intervalMs",
-                  "message",
-                  "beats",
-                  "lastBeatAt"
-                ]
-              },
-              "apply": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "state": {
-                        "type": "string",
-                        "const": "applying"
-                      },
-                      "revision": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "state",
-                      "revision"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "state": {
-                        "type": "string",
-                        "const": "applied"
-                      },
-                      "revision": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "state",
-                      "revision"
-                    ]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "state": {
-                        "type": "string",
-                        "const": "failed"
-                      },
-                      "revision": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "error": {
-                        "type": "string"
-                      },
-                      "attempt": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "state",
-                      "revision",
-                      "error",
-                      "attempt"
-                    ]
-                  }
-                ]
-              }
-            },
-            "required": [
-              "runtime",
-              "apply"
-            ]
-          },
           "machine": {
             "type": "object",
             "properties": {
@@ -424,11 +286,189 @@
               "runtime",
               "apply"
             ]
+          },
+          "mediamtx": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "running",
+                      "stopped",
+                      "starting",
+                      "crashed"
+                    ]
+                  },
+                  "pid": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "installing": {
+                    "type": "boolean"
+                  },
+                  "restarts": {
+                    "type": "number"
+                  },
+                  "lastError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pending": {
+                    "type": "number"
+                  },
+                  "submitted": {
+                    "type": "number"
+                  },
+                  "lastSubmittedAt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lastMetricsError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "state",
+                  "pid",
+                  "version",
+                  "installing",
+                  "restarts",
+                  "lastError",
+                  "pending",
+                  "submitted",
+                  "lastSubmittedAt",
+                  "lastMetricsError"
+                ]
+              },
+              "apply": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applying"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applied"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "failed"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "attempt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision",
+                      "error",
+                      "attempt"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "runtime",
+              "apply"
+            ]
           }
         },
         "required": [
-          "heartbeat",
-          "machine"
+          "machine",
+          "mediamtx"
         ]
       }
     }
@@ -513,21 +553,6 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "heartbeat": {
-                      "type": "object",
-                      "properties": {
-                        "intervalMs": {
-                          "type": "number"
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "intervalMs",
-                        "message"
-                      ]
-                    },
                     "machine": {
                       "type": "object",
                       "properties": {
@@ -537,6 +562,60 @@
                       },
                       "required": [
                         "intervalMs"
+                      ]
+                    },
+                    "mediamtx": {
+                      "type": "object",
+                      "properties": {
+                        "mediamtx": {
+                          "type": "object",
+                          "properties": {
+                            "version": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string",
+                              "const": "mediamtx"
+                            },
+                            "artifacts": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "checksum": {
+                                    "type": "string"
+                                  },
+                                  "format": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "checksum",
+                                  "format"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "version",
+                            "name",
+                            "artifacts"
+                          ]
+                        },
+                        "metricsIntervalMs": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "mediamtx",
+                        "metricsIntervalMs"
                       ]
                     }
                   }
@@ -696,144 +775,6 @@
           "System": {
             "type": "object",
             "properties": {
-              "heartbeat": {
-                "type": "object",
-                "properties": {
-                  "runtime": {
-                    "type": "object",
-                    "properties": {
-                      "running": {
-                        "type": "boolean"
-                      },
-                      "intervalMs": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "message": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "beats": {
-                        "type": "number"
-                      },
-                      "lastBeatAt": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "running",
-                      "intervalMs",
-                      "message",
-                      "beats",
-                      "lastBeatAt"
-                    ]
-                  },
-                  "apply": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "state": {
-                            "type": "string",
-                            "const": "applying"
-                          },
-                          "revision": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "state",
-                          "revision"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "state": {
-                            "type": "string",
-                            "const": "applied"
-                          },
-                          "revision": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "state",
-                          "revision"
-                        ]
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "state": {
-                            "type": "string",
-                            "const": "failed"
-                          },
-                          "revision": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "error": {
-                            "type": "string"
-                          },
-                          "attempt": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "state",
-                          "revision",
-                          "error",
-                          "attempt"
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "runtime",
-                  "apply"
-                ]
-              },
               "machine": {
                 "type": "object",
                 "properties": {
@@ -1071,11 +1012,189 @@
                   "runtime",
                   "apply"
                 ]
+              },
+              "mediamtx": {
+                "type": "object",
+                "properties": {
+                  "runtime": {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "running",
+                          "stopped",
+                          "starting",
+                          "crashed"
+                        ]
+                      },
+                      "pid": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "version": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "installing": {
+                        "type": "boolean"
+                      },
+                      "restarts": {
+                        "type": "number"
+                      },
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "pending": {
+                        "type": "number"
+                      },
+                      "submitted": {
+                        "type": "number"
+                      },
+                      "lastSubmittedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "lastMetricsError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "pid",
+                      "version",
+                      "installing",
+                      "restarts",
+                      "lastError",
+                      "pending",
+                      "submitted",
+                      "lastSubmittedAt",
+                      "lastMetricsError"
+                    ]
+                  },
+                  "apply": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applying"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applied"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "failed"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "attempt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision",
+                          "error",
+                          "attempt"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "apply"
+                ]
               }
             },
             "required": [
-              "heartbeat",
-              "machine"
+              "machine",
+              "mediamtx"
             ]
           }
         }
@@ -1164,21 +1283,6 @@
           "System": {
             "type": "object",
             "properties": {
-              "heartbeat": {
-                "type": "object",
-                "properties": {
-                  "intervalMs": {
-                    "type": "number"
-                  },
-                  "message": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "intervalMs",
-                  "message"
-                ]
-              },
               "machine": {
                 "type": "object",
                 "properties": {
@@ -1188,6 +1292,60 @@
                 },
                 "required": [
                   "intervalMs"
+                ]
+              },
+              "mediamtx": {
+                "type": "object",
+                "properties": {
+                  "mediamtx": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string",
+                        "const": "mediamtx"
+                      },
+                      "artifacts": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "checksum": {
+                              "type": "string"
+                            },
+                            "format": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url",
+                            "checksum",
+                            "format"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "name",
+                      "artifacts"
+                    ]
+                  },
+                  "metricsIntervalMs": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "mediamtx",
+                  "metricsIntervalMs"
                 ]
               }
             }

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import type { ReadableStream } from 'node:stream/web';
 import type { Artifact } from './manifest.ts';
 
 /** Fetches a URL. `globalThis.fetch` unless a store is given another, to add credentials or go through a mirror. */
@@ -19,6 +20,8 @@ export async function download(artifact: Artifact, path: string, fetch: Fetch, s
       done(null, chunk);
     }
   });
-  await pipeline(Readable.fromWeb(response.body), hashing, createWriteStream(path), { signal });
+  // SAFETY: Node's fetch returns Node's web stream; with the DOM lib in scope (as in the agent) it's typed as the DOM's.
+  const body = response.body as ReadableStream<Uint8Array>;
+  await pipeline(Readable.fromWeb(body), hashing, createWriteStream(path), { signal });
   if (hash.digest('hex') !== expected) throw new Error(`${artifact.url} doesn't match its checksum`);
 }

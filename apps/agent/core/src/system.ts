@@ -2,9 +2,11 @@ import { controller, converge } from '@conservationtv/converge';
 import { createStore } from '@conservationtv/store';
 import type { AgentConfiguration } from './config.ts';
 import { MachineRuntime, MachineSpecSchema } from './runtimes/machine.ts';
+import { DEFAULT_MEDIAMTX_SPEC, MediamtxRuntime, MediamtxSpecSchema } from './runtimes/mediamtx.ts';
 
 function controllers(config: AgentConfiguration) {
   const machine = new MachineRuntime(config);
+  const mediamtx = new MediamtxRuntime(config);
   return {
     machine: controller({
       spec: MachineSpecSchema,
@@ -12,6 +14,13 @@ function controllers(config: AgentConfiguration) {
       execute: spec => machine.apply(spec),
       finalize: () => machine.teardown(),
       dispose: () => machine.dispose()
+    }),
+    mediamtx: controller({
+      spec: MediamtxSpecSchema,
+      status: mediamtx.status$,
+      execute: (spec, signal) => mediamtx.execute(spec, signal),
+      finalize: () => mediamtx.finalize(),
+      dispose: () => mediamtx.dispose()
     })
   };
 }
@@ -19,7 +28,7 @@ function controllers(config: AgentConfiguration) {
 export function startSystem(config: AgentConfiguration) {
   return converge({
     controllers: controllers(config),
-    restore: async () => ({ machine: { intervalMs: 60_000 } })
+    restore: async () => ({ machine: { intervalMs: 60_000 }, mediamtx: DEFAULT_MEDIAMTX_SPEC })
   });
 }
 

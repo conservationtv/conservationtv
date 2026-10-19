@@ -7,6 +7,8 @@ interface BaseConfiguration {
    * the agent's identity and must stay the same across restarts.
    */
   secretKey: Uint8Array;
+  /** A directory of the agent's own, kept across restarts: each runtime keeps its binaries and state in it. */
+  directory: string;
 }
 
 /** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */

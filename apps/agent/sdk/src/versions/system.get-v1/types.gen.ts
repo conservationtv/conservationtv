@@ -10,27 +10,6 @@ export type Error = {
 };
 
 export type System = {
-    heartbeat: {
-        runtime: {
-            running: boolean;
-            intervalMs: number | null;
-            message: string | null;
-            beats: number;
-            lastBeatAt: string | null;
-        };
-        apply: {
-            state: 'applying';
-            revision: string | null;
-        } | {
-            state: 'applied';
-            revision: string | null;
-        } | {
-            state: 'failed';
-            revision: string | null;
-            error: string;
-            attempt: number;
-        };
-    };
     machine: {
         runtime: {
             running: boolean;
@@ -56,6 +35,32 @@ export type System = {
             submitted: number;
             lastSubmittedAt: string | null;
             lastError: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    mediamtx: {
+        runtime: {
+            state: 'running' | 'stopped' | 'starting' | 'crashed';
+            pid: number | null;
+            version: string | null;
+            installing: boolean;
+            restarts: number;
+            lastError: string | null;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastMetricsError: string | null;
         };
         apply: {
             state: 'applying';
