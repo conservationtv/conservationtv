@@ -5,6 +5,7 @@ import type { MediamtxConfig } from './generated/types.gen.js';
 export * from './generated/types.gen.js';
 export * from './generated/zod.gen.js';
 export * from './builder.js';
+export * from './metrics.js';
 
 /** Checks a config against the pinned MediaMTX release's schema, and returns it parsed. */
 export function defineConfig(config: MediamtxConfig): MediamtxConfig {

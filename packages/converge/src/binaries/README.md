@@ -157,7 +157,7 @@ Its methods:
 - `remove(name)` and `clear()`: everything of one binary, or of all of them.
 
 Which install a running process came from is the runtime's to record, not the store's. See
-[`examples/caddy/managed.ts`](../../examples/caddy/managed.ts), which records it beside Caddy's pidfile.
+[`examples/caddy/managed.ts`](../../examples/caddy/managed.ts), which starts Caddy for each install as its own key.
 
 ## Tried against
 

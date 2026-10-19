@@ -2,7 +2,7 @@
   // Consumed from source by Vite, vitest and tsx; this project only type-checks the generated and hand-written code.
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "preserve",
     "moduleResolution": "bundler",
     "strict": true,
