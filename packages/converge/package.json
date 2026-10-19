@@ -5,7 +5,8 @@
   "type": "module",
   "description": "A desired-state runtime: a spec per key, each key's runtime converging to it and reporting its own status.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./binaries": "./src/binaries/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

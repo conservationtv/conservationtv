@@ -1,13 +1,15 @@
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BehaviorSubject, type Subscription } from 'rxjs';
+import { BinaryStore, type Installed, ManifestSchema, reportsVersion } from '@conservationtv/converge/binaries';
 import { z } from 'zod';
 import { AdoptedCaddyRuntime } from './adopted.ts';
 import { CaddyAdmin, type CaddyStatus, CaddySpecSchema, STOPPED, findCaddy, stopCaddy } from './caddy.ts';
-import { BinarySchema, type Installed, Vendor } from './vendor.ts';
 
 /** What Caddy should serve, and which Caddy should serve it. */
-export const ManagedCaddySpecSchema = CaddySpecSchema.extend({ caddy: BinarySchema });
+export const ManagedCaddySpecSchema = CaddySpecSchema.extend({
+  caddy: ManifestSchema.extend({ name: z.literal('caddy') })
+});
 export type ManagedCaddySpec = z.output<typeof ManagedCaddySpecSchema>;
 
 /** Where the runtime keeps Caddy, its vendored binaries, and the room to run them in. */
@@ -49,13 +51,16 @@ interface Current {
  */
 export class ManagedCaddyRuntime {
   readonly status$ = new BehaviorSubject<ManagedCaddyStatus>(STOPPED_MANAGED);
-  private readonly vendor: Vendor;
+  private readonly binaries: BinaryStore;
   private readonly admin: CaddyAdmin;
   private readonly record: string;
   private current: Current | undefined = undefined;
 
   constructor(private readonly options: ManagedCaddyOptions) {
-    this.vendor = new Vendor(join(options.directory, 'binaries'), 'caddy');
+    this.binaries = new BinaryStore({
+      directory: join(options.directory, 'binaries'),
+      checks: [reportsVersion(['version'])]
+    });
     this.admin = new CaddyAdmin(options.admin);
     this.record = join(options.directory, 'binary.json');
   }
@@ -63,12 +68,12 @@ export class ManagedCaddyRuntime {
   /** Installs the binary the spec names if need be, switches Caddy to it if it isn't running it, then serves the site. */
   async execute(spec: ManagedCaddySpec, signal: AbortSignal): Promise<void> {
     this.update({ installing: true });
-    const installed = await this.vendor.install(spec.caddy, signal).finally(() => this.update({ installing: false }));
+    const installed = await this.binaries.install(spec.caddy, signal).finally(() => this.update({ installing: false }));
     if (this.current?.installed.id !== installed.id) await this.switchTo(installed);
     const runtime = this.current?.runtime;
     if (runtime === undefined) throw new Error('No Caddy runtime to serve with');
     await runtime.execute({ port: spec.port, body: spec.body }, signal);
-    await this.vendor.prune(installed);
+    await this.binaries.prune(installed, { spare: 1 });
   }
 
   /**
@@ -81,7 +86,7 @@ export class ManagedCaddyRuntime {
     current?.watching.unsubscribe();
     if (current !== undefined) await current.runtime.finalize();
     else await this.stopLeftover();
-    await this.vendor.clear();
+    await this.binaries.clear();
     await rm(this.record, { force: true });
     this.status$.next(STOPPED_MANAGED);
   }
