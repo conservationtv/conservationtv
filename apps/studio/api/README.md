@@ -45,6 +45,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}`    | members read, administrators write           | `organisations.streams.*` v1                                                                             |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete)                    | administrators                               | `organisations.streams.exposures.*`, `.recorders.*` v1                                                   |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs`   | members                                      | `organisations.subjects.*` v1                                                                            |
+| `GET /organisations/{id}/subjects/{subjectId}/metrics/{seriesId}`                           | members                                      | `organisations.subjects.metrics.get` v1: one series' points over a time range, in buckets                |
 | `POST /reports`                                                                             | devices, by signature                        | `reports.submit` v1: a batch of events, metrics and logs                                                 |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as        |
@@ -118,7 +119,7 @@ grants table. Umbrella refuses to run request sessions on a connection that coul
 
 ```sh
 pnpm install
-pnpm --filter @conservationtv/studio-api db:up       # docker-compose Postgres 18 on :5434, with both roles
+pnpm --filter @conservationtv/studio-api db:up       # docker-compose Postgres 18 with TimescaleDB on :5434, with both roles
 pnpm --filter @conservationtv/studio-api db:migrate
 cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECRET and FIELD_KEY
 pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
@@ -269,9 +270,9 @@ Devices report to `POST /reports` without a session: the request is signed by th
 the body is `{ reports: [...] }`, up to 1000 reports of any kind (`event`, `metric` or `log`) and subject, each with
 its own `observedAt`, and at most 1 MiB. Any device may report, and is the reporter of what it sends. Ingestion is
 trusted code (`src/reports/ingest.ts`): it refuses malformed reports and those observed more than five minutes ahead,
-and stores the batch in the device's organisation with one insert per kind. A batch is stored or refused whole, and
-only for trust or shape. The signature's nonce stops a request from being stored twice, but nothing else deduplicates:
-a retry is signed again, and may be stored twice. A report's reporter is named in the subject convention below, always
+and stores the batch in the device's organisation. A batch is stored or refused whole, and only for trust or shape.
+The signature's nonce stops a request from being stored twice, but nothing else deduplicates events and logs: a retry
+is signed again, and may store them twice. A metric point is keyed by its series and time, so a retried one is skipped. A report's reporter is named in the subject convention below, always
 `device:<id>` for the signing device, and like its subject is recorded as given rather than referenced, so reports
 stay when their device is deleted; they go with their organisation. Request sessions only
 read reports.
@@ -280,8 +281,32 @@ A report's `subjectId` names what it is about, and its `reporterId` who sent it,
 (`src/reports/subjects.ts`), not by reference: `<kind>:<id>` for a network, device, agent, stream or exposure, such as
 `device:0199e8b2-…`, or `external:<name>` for anything outside the topology, such as `external:https://example.org`.
 Nothing checks the entity exists, so reports by or about a deleted entity remain. Read them under `/organisations/{id}/subjects/{subjectId}/…`, with the subject
-URL-encoded. Metric samples keep the type, unit and dimensions they were reported with; they are not grouped into
-series, and samples from different reporters are never summed.
+URL-encoded.
+
+### Metrics
+
+A metric report is a point in a series: a metric's `name`, `unit` and `dimensions` about its subject, from the
+reporting device, such as `path.ingest.bitrate` in `bits/s` for `{ path: "cam1" }`. Its point is one sample's `value`,
+or a `summary` of the interval ending at `observedAt`: the `min`, `max`, `avg` and `last` of `count` samples, so a
+reporter that samples often and reports once a minute keeps the dips and spikes in between. Two tables, in
+`src/db/schemas/metrics.ts`:
+
+- `metric_series`: one row per series, made the first time a report names it. Two reporters measuring the same thing
+  are two series, never summed.
+- `metric_point`: the points, keyed by series and time, in a [TimescaleDB](https://docs.timescale.com) hypertable of
+  one-day chunks (the `metric_point_hypertable` migration).
+
+`…/metrics` lists a subject's series, so a client picks one by its dimensions, such as one MediaMTX path, and
+`…/metrics/{seriesId}?from&to&step` reads that series alone in buckets (`time_bucket`): each bucket's least and greatest
+values, the mean weighted by samples, the last value and the count, with the step widened to at most 1000 buckets. A
+bucket without points is absent, so gaps are times nothing was reported.
+
+Only TimescaleDB's Apache-licensed features are used, because PlanetScale ships no others: hypertables, `time_bucket`,
+`last` and `drop_chunks`, but no continuous aggregates, compression or retention policies. Local Postgres runs the
+`-oss` image, which has nothing else. Nothing rolls points up or drops old chunks yet: each series has a point a
+minute, so reading a month of one series stays small. When retention is needed, one scheduled
+`select drop_chunks('metric_point', older_than => interval '…')` is enough. On PlanetScale, enable the extension in the
+cluster's configuration before migrating.
 
 Not built yet: provisioning an agent or camera with its private key, rotating or revoking a device identity, the
 state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns

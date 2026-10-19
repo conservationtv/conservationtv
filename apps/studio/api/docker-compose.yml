@@ -1,9 +1,11 @@
 # Local stand-in for the Postgres database that production reaches through Hyperdrive. The init script creates the
 # application login role that request sessions use; the owning role is the one Postgres creates for the database.
-# Postgres 18 or newer: tables default their IDs with the built-in uuidv7().
+# Postgres 18 or newer: tables default their IDs with the built-in uuidv7(). TimescaleDB's Apache-licensed build, as
+# PlanetScale ships it, for metric points; preloaded on the command line so an existing volume gets it too.
 services:
   postgres:
-    image: postgres:18-alpine
+    image: timescale/timescaledb:2.30.2-pg18-oss
+    command: ['postgres', '-c', 'shared_preload_libraries=timescaledb', '-c', 'timescaledb.telemetry_level=off']
     environment:
       POSTGRES_USER: studio
       POSTGRES_PASSWORD: studio

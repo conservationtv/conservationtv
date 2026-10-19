@@ -1,5 +1,6 @@
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { logRecords, metricSamples, observations } from '../db/schema.ts';
+import { logRecords, metricPoints, metricSeries, observations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { trusted } from '../organisations/membership.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
@@ -12,10 +13,10 @@ import { deviceSubject, SubjectIdSchema } from './subjects.ts';
 // names (src/reports/subjects.ts): which subjects a device may report about is not restricted yet.
 //
 // A batch is accepted or refused whole, and only for trust or shape: an unsigned, tampered or replayed request, a
-// malformed report or one observed in the future. Everything else is stored as given. Reports are cheap operational
-// signals, so nothing deduplicates them beyond the signature's single-use nonce: a device that retries a batch signs it
-// again, and it may be stored twice. Ordering, late reports and their effect on state are the state consumer's
-// concern.
+// malformed report or one observed in the future. Everything else is stored as given. Events and logs are cheap
+// operational signals, so nothing deduplicates them beyond the signature's single-use nonce: a device that retries a
+// batch signs it again, and they may be stored twice. A metric point is keyed by its series and time, so a retried one
+// is skipped. Ordering, late reports and their effect on state are the state consumer's concern.
 
 /** How far ahead of the control plane's clock a report's observation time may be. */
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
@@ -37,17 +38,53 @@ export const EventReportSchema = reportOf(
 );
 export type EventReport = z.output<typeof EventReportSchema>;
 
+/** What a reporter saw of a metric over an interval: `count` samples, their least, greatest, mean and last values. */
+export const MetricSummarySchema = z
+  .strictObject({
+    min: z.number(),
+    max: z.number(),
+    avg: z.number(),
+    last: z.number(),
+    count: z.number().int().min(1)
+  })
+  .refine(
+    ({ min, max, avg, last }) => min <= avg && avg <= max && min <= last && last <= max,
+    'A summary’s mean and last value are between its least and greatest.'
+  );
+export type MetricSummary = z.output<typeof MetricSummarySchema>;
+
+/** What names a metric's series about the subject, from the reporting device. */
+const MetricSeriesSchema = z.strictObject({
+  name: z.string().min(1).max(200),
+  unit: z.string().min(1).max(60).nullable().default(null),
+  dimensions: MetricDimensionsSchema.default({})
+});
+type MetricSeries = z.output<typeof MetricSeriesSchema>;
+
+/**
+ * A point in a metric's series: one sample's `value`, or a `summary` of the interval that ends at the report's
+ * `observedAt`. The series is the metric's name, unit and dimensions about the subject, from the reporting device.
+ */
 export const MetricReportSchema = reportOf(
   'metric',
-  z.strictObject({
-    name: z.string().min(1).max(200),
-    type: z.enum(['gauge', 'counter']),
-    value: z.number(),
-    unit: z.string().min(1).max(60).nullable().default(null),
-    dimensions: MetricDimensionsSchema.default({})
-  })
+  z.union([
+    MetricSeriesSchema.extend({ value: z.number() }),
+    MetricSeriesSchema.extend({ summary: MetricSummarySchema })
+  ])
 );
 export type MetricReport = z.output<typeof MetricReportSchema>;
+
+/** A series' identity within one organisation and reporter, as a lookup key. jsonb keeps keys in its own order. */
+function seriesKey(subjectId: string, { name, unit, dimensions }: MetricSeries) {
+  const entries = Object.entries(dimensions).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return JSON.stringify([subjectId, name, unit, entries]);
+}
+
+function summaryOf(payload: MetricReport['payload']): MetricSummary {
+  if ('summary' in payload) return payload.summary;
+  const { value } = payload;
+  return { min: value, max: value, avg: value, last: value, count: 1 };
+}
 
 export const LogReportSchema = reportOf(
   'log',
@@ -90,8 +127,47 @@ export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
       await tx
         .insert(observations)
         .values(events.map(report => ({ ...reported(report), type: report.payload.type, data: report.payload.data })));
-    if (metrics.length > 0)
-      await tx.insert(metricSamples).values(metrics.map(report => ({ ...reported(report), ...report.payload })));
+    if (metrics.length > 0) {
+      // Make the series the batch names that do not exist yet, then look every one of them up: a series another
+      // batch made meanwhile is skipped by the first statement, and seen by the second.
+      const organisationId = device.organisationId;
+      const reporterId = deviceSubject(device.id);
+      const series = metrics.map(({ subjectId, payload: { name, unit, dimensions } }) => ({
+        organisationId,
+        reporterId,
+        subjectId,
+        name,
+        unit,
+        dimensions
+      }));
+      await tx.insert(metricSeries).values(series).onConflictDoNothing();
+      const subjectIds = [...new Set(series.map(({ subjectId }) => subjectId))];
+      const names = [...new Set(series.map(({ name }) => name))];
+      const known = await tx
+        .select({
+          id: metricSeries.id,
+          subjectId: metricSeries.subjectId,
+          name: metricSeries.name,
+          unit: metricSeries.unit,
+          dimensions: metricSeries.dimensions
+        })
+        .from(metricSeries)
+        .where(
+          and(
+            eq(metricSeries.organisationId, organisationId),
+            eq(metricSeries.reporterId, reporterId),
+            inArray(metricSeries.subjectId, subjectIds),
+            inArray(metricSeries.name, names)
+          )
+        );
+      const ids = new Map(known.map(row => [seriesKey(row.subjectId, row), row.id]));
+      const points = metrics.map(({ subjectId, observedAt, payload }) => {
+        const seriesId = ids.get(seriesKey(subjectId, payload));
+        if (seriesId === undefined) throw new Error(`No series for ${payload.name} about ${subjectId}`);
+        return { seriesId, organisationId, observedAt: new Date(observedAt), ...summaryOf(payload) };
+      });
+      await tx.insert(metricPoints).values(points).onConflictDoNothing();
+    }
     if (logs.length > 0)
       await tx.insert(logRecords).values(logs.map(report => ({ ...reported(report), ...report.payload })));
     return { accepted: batch.reports.length };
