@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { BinaryStore } from '@conservationtv/converge/binaries';
+import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AdoptedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
@@ -70,10 +70,7 @@ export class MediamtxRuntime {
    * Resolves once MediaMTX is serving.
    */
   async execute(spec: MediamtxSpec, signal: AbortSignal): Promise<void> {
-    this.update({ installing: true });
-    const installed = await this.binaries
-      .install(mediamtxBinary, spec.binary, signal)
-      .finally(() => this.update({ installing: false }));
+    const installed = (await this.binaries.find(spec.binary)) ?? (await this.install(spec, signal));
     this.update({ version: installed.version });
     await this.writeConfig();
     const { directory } = this.options;
@@ -103,6 +100,12 @@ export class MediamtxRuntime {
     this.metrics.dispose();
     this.process.dispose();
     this.status$.complete();
+  }
+
+  /** Downloads and checks the binary the spec names, which the status reports while it lasts. */
+  private install(spec: MediamtxSpec, signal: AbortSignal): Promise<Installed> {
+    this.update({ installing: true });
+    return this.binaries.install(mediamtxBinary, spec.binary, signal).finally(() => this.update({ installing: false }));
   }
 
   /**
