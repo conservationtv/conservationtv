@@ -1,5 +1,6 @@
 import { arkenv } from '@arkenv/standard';
 import { Agent } from '@conservationtv/agent-api';
+import { resolve } from 'node:path';
 import { z } from 'zod';
 
 /** The runner's settings, from the environment. */
@@ -21,6 +22,12 @@ export const config = {
     .string()
     .regex(/^[0-9a-f]{64}$/i, 'AGENT_SECRET_KEY must be 32 bytes of hex')
     .transform(text => new Uint8Array(Buffer.from(text, 'hex'))),
+  /** Where the agent keeps what its runtimes run, such as MediaMTX's binaries, config and log. Relative to the cwd. */
+  AGENT_DATA_DIR: z
+    .string()
+    .min(1)
+    .default('data')
+    .transform(path => resolve(path)),
   /** How long in-flight requests get to finish after a shutdown signal before the process exits anyway. */
   SHUTDOWN_DELAY_MS: z.coerce.number().int().positive().default(10_000)
 };
@@ -38,15 +45,22 @@ export const services = (variables: Variables) => {
   const agent = (() => {
     const name = variables.AGENT_NAME;
     const secretKey = variables.AGENT_SECRET_KEY;
+    const directory = variables.AGENT_DATA_DIR;
     if (variables.AGENT_MODE === 'direct') {
-      return new Agent({ type: 'direct', name, secretKey });
+      return new Agent({ type: 'direct', name, secretKey, directory });
     }
 
     if (variables.STUDIO_API_URL === undefined) {
       throw new Error('AGENT_MODE=conservationtv needs STUDIO_API_URL');
     }
 
-    return new Agent({ type: 'conservationtv', name, secretKey, studioUrl: variables.STUDIO_API_URL });
+    return new Agent({
+      type: 'conservationtv',
+      name,
+      secretKey,
+      directory,
+      studioUrl: variables.STUDIO_API_URL
+    });
   })();
 
   return {
