@@ -57,21 +57,25 @@ export const SystemSchema = z.object({
     }),
     mediamtx: z.object({
         runtime: z.object({
-            state: z.enum([
-                'running',
-                'stopped',
-                'starting',
-                'crashed'
-            ]),
-            pid: z.number().nullable(),
+            process: z.object({
+                state: z.enum([
+                    'running',
+                    'stopped',
+                    'starting',
+                    'crashed'
+                ]),
+                pid: z.number().nullable(),
+                restarts: z.number(),
+                lastError: z.string().nullable()
+            }),
+            metrics: z.object({
+                pending: z.number(),
+                submitted: z.number(),
+                lastSubmittedAt: z.string().nullable(),
+                lastError: z.string().nullable()
+            }),
             version: z.string().nullable(),
-            installing: z.boolean(),
-            restarts: z.number(),
-            lastError: z.string().nullable(),
-            pending: z.number(),
-            submitted: z.number(),
-            lastSubmittedAt: z.string().nullable(),
-            lastMetricsError: z.string().nullable()
+            installing: z.boolean()
         }),
         apply: z.union([
             z.object({

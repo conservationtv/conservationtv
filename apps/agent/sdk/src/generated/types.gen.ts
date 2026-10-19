@@ -55,16 +55,20 @@ export type System = {
     };
     mediamtx: {
         runtime: {
-            state: 'running' | 'stopped' | 'starting' | 'crashed';
-            pid: number | null;
+            process: {
+                state: 'running' | 'stopped' | 'starting' | 'crashed';
+                pid: number | null;
+                restarts: number;
+                lastError: string | null;
+            };
+            metrics: {
+                pending: number;
+                submitted: number;
+                lastSubmittedAt: string | null;
+                lastError: string | null;
+            };
             version: string | null;
             installing: boolean;
-            restarts: number;
-            lastError: string | null;
-            pending: number;
-            submitted: number;
-            lastSubmittedAt: string | null;
-            lastMetricsError: string | null;
         };
         apply: {
             state: 'applying';

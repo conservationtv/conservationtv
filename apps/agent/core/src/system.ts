@@ -2,7 +2,7 @@ import { controller, converge } from '@conservationtv/converge';
 import { createStore } from '@conservationtv/store';
 import type { AgentConfiguration } from './config.ts';
 import { MachineRuntime, MachineSpecSchema } from './runtimes/machine.ts';
-import { DEFAULT_MEDIAMTX_SPEC, MediamtxRuntime, MediamtxSpecSchema } from './runtimes/mediamtx.ts';
+import { DEFAULT_MEDIAMTX_SPEC, MediamtxRuntime, MediamtxSpecSchema } from './runtimes/mediamtx/index.ts';
 
 function controllers(config: AgentConfiguration) {
   const machine = new MachineRuntime(config);
