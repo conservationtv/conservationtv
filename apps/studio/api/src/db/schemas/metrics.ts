@@ -12,7 +12,7 @@ import {
   unique,
   uuid
 } from 'drizzle-orm/pg-core';
-import type { MetricDimensions } from '../../topology/settings.ts';
+import type { MetricDimensions } from '@conservationtv/reports';
 import { organisations } from './organisations.ts';
 import { observationAccess } from './report-access.ts';
 

@@ -1,0 +1,17 @@
+{
+  // Consumed from source: Workers and the web app bundle it with Vite, Node tools run it through tsx. This project only
+  // type-checks, without Node's types, so it stays usable in a browser.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*.ts"]
+}

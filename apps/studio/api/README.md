@@ -278,7 +278,7 @@ stay when their device is deleted; they go with their organisation. Request sess
 read reports.
 
 A report's `subjectId` names what it is about, and its `reporterId` who sent it, by one convention
-(`src/reports/subjects.ts`), not by reference: `<kind>:<id>` for a network, device, agent, stream or exposure, such as
+(`@conservationtv/reports`, shared with the agent and web app), not by reference: `<kind>:<id>` for a network, device, agent, stream or exposure, such as
 `device:0199e8b2-…`, or `external:<name>` for anything outside the topology, such as `external:https://example.org`.
 Nothing checks the entity exists, so reports by or about a deleted entity remain. Read them under `/organisations/{id}/subjects/{subjectId}/…`, with the subject
 URL-encoded.

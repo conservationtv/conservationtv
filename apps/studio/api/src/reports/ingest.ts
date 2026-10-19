@@ -1,3 +1,10 @@
+import {
+  deviceSubject,
+  MetricDimensionsSchema,
+  MetricSummarySchema,
+  SubjectIdSchema,
+  type MetricSummary
+} from '@conservationtv/reports';
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { logRecords, metricPoints, metricSeries, observations } from '../db/schema.ts';
@@ -5,12 +12,11 @@ import { ApiFailure } from '../errors.ts';
 import { trusted } from '../organisations/membership.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
 import { useEnvironment } from '../env/env.ts';
-import { MetricDimensionsSchema, SettingsSchema } from '../topology/settings.ts';
-import { deviceSubject, SubjectIdSchema } from './subjects.ts';
+import { SettingsSchema } from '../topology/settings.ts';
 
 // Report ingestion: trusted code on the owning connection, because the device's signature, not a session,
 // authenticates the reporter (src/middleware/device.ts). Any device reports, in batches, about whichever subjects it
-// names (src/reports/subjects.ts): which subjects a device may report about is not restricted yet.
+// names (`@conservationtv/reports`): which subjects a device may report about is not restricted yet.
 //
 // A batch is accepted or refused whole, and only for trust or shape: an unsigned, tampered or replayed request, a
 // malformed report or one observed in the future. Everything else is stored as given. Events and logs are cheap
@@ -37,21 +43,6 @@ export const EventReportSchema = reportOf(
   z.strictObject({ type: z.string().min(1).max(120), data: SettingsSchema.default({}) })
 );
 export type EventReport = z.output<typeof EventReportSchema>;
-
-/** What a reporter saw of a metric over an interval: `count` samples, their least, greatest, mean and last values. */
-export const MetricSummarySchema = z
-  .strictObject({
-    min: z.number(),
-    max: z.number(),
-    avg: z.number(),
-    last: z.number(),
-    count: z.number().int().min(1)
-  })
-  .refine(
-    ({ min, max, avg, last }) => min <= avg && avg <= max && min <= last && last <= max,
-    'A summary’s mean and last value are between its least and greatest.'
-  );
-export type MetricSummary = z.output<typeof MetricSummarySchema>;
 
 /** What names a metric's series about the subject, from the reporting device. */
 const MetricSeriesSchema = z.strictObject({

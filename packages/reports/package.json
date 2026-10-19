@@ -1,0 +1,19 @@
+{
+  "name": "@conservationtv/reports",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "What devices report to the studio API, shared by the API, the agent and the web app: subjects, metric schemas, the summary rule and the metrics the agent ships.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}
