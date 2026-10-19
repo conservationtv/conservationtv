@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "MediaMTX config as typed objects: types and Zod schemas generated from MediaMTX's OpenAPI spec, and YAML output.",
+  "description": "MediaMTX as typed objects: its config's types and Zod schemas and its API's client, generated from MediaMTX's OpenAPI spec; YAML output; and its metrics page parsed.",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./api": "./src/api.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
