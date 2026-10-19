@@ -1,0 +1,53 @@
+import { execFile } from 'node:child_process';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { mkdir, rename } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { pipeline } from 'node:stream/promises';
+import { promisify } from 'node:util';
+import { createGunzip } from 'node:zlib';
+import type { Format } from './manifest.ts';
+
+const run = promisify(execFile);
+
+/** What an unpacker is handed: a verified download, and an empty folder to unpack it into. */
+export interface Unpacking {
+  /** The download, already checked against its checksum. */
+  download: string;
+  /** An empty folder for the unpacked files. */
+  into: string;
+  /** Where in `into` the executable is expected, for formats that hold only the binary. */
+  path: string;
+  signal: AbortSignal;
+}
+
+/** Unpacks a download into a folder. */
+export type Unpack = (unpacking: Unpacking) => Promise<void>;
+
+/** The download is the binary itself. */
+export const file: Unpack = async ({ download, into, path }) => {
+  await mkdir(dirname(join(into, path)), { recursive: true });
+  await rename(download, join(into, path));
+};
+
+/** The download is the binary, gzipped. */
+export const gzip: Unpack = async ({ download, into, path, signal }) => {
+  await mkdir(dirname(join(into, path)), { recursive: true });
+  await pipeline(createReadStream(download), createGunzip(), createWriteStream(join(into, path)), { signal });
+};
+
+/**
+ * A tarball, with any compression the system's `tar` reads. That `tar` ships with macOS, Linux and Windows 10+, and
+ * works the compression out for itself when extracting.
+ */
+export const tar: Unpack = async ({ download, into, signal }) => {
+  await run('tar', ['-xf', download, '-C', into], { signal });
+};
+
+/** A zip. The system's `tar` reads these on macOS and Windows; Linux's usually doesn't, so `unzip` there. */
+export const zip: Unpack = async ({ download, into, signal }) => {
+  if (process.platform === 'linux') await run('unzip', ['-q', download, '-d', into], { signal });
+  else await run('tar', ['-xf', download, '-C', into], { signal });
+};
+
+/** The unpacker for each format, unless a store is given others. */
+export const unpackers = { file, gzip, tar, zip } satisfies Record<Format, Unpack>;
