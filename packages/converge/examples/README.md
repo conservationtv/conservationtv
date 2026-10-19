@@ -18,9 +18,9 @@ Caddy makes a good exercise because it covers the whole controller contract in o
 - **A graceful stop on every platform**: `POST /stop` works on Windows too, where there's no `SIGTERM` to send.
 - **A pidfile**: `caddy run --pidfile <path>`.
 
-They share `caddy.ts`: the spec, the status, the admin API client, and finding and stopping a Caddy by pid. The first
-two differ only in how Caddy's life relates to the agent's. The third adopts like the second, and also downloads and
-manages the Caddy binary itself.
+They share `caddy.ts`: the spec, the status, the admin API client, and Caddy as a process definition for
+[`@conservationtv/converge/process`](../src/process/README.md). The first two differ only in how Caddy's life relates
+to the agent's. The third adopts like the second, and also downloads and manages the Caddy binary itself.
 
 ### Matched lifecycle: `AttachedCaddyRuntime`
 
@@ -30,16 +30,22 @@ Caddy is the agent's child, and lives and dies with it.
   `killDescendants`.
 - Watched through its process: an unexpected exit is noticed at once and Caddy is started again after a backoff.
 - `dispose()` stops Caddy. On the next start, converge hands the spec back and Caddy starts afresh.
+- Owns its process, so it uses only the pieces of `converge/process`: finding and stopping an orphan by pidfile, and
+  waiting for Caddy to answer.
 
 ### Adopt existing: `AdoptedCaddyRuntime`
 
 Caddy is a process of its own, and outlives the agent.
 
-- Started detached and unreferenced, with `node:child_process`, writing its pid to a pidfile.
+Built on `AdoptedProcess`, which does the work:
+
+- Started detached and unreferenced, with `node:child_process`, its pid written to a pidfile and the binary it was
+  started from recorded beside it as the run's key.
 - `dispose()` only stops watching. Caddy carries on serving while the agent is away.
 - On the next start, `execute` finds Caddy through the pidfile and adopts it, after checking that the pid is alive,
-  that it really is Caddy (with [ps-list](https://github.com/sindresorhus/ps-list), since a pid can be reused), and
-  that it answers on its admin API. Reloading the same spec is a no-op, so adopting doesn't disturb it.
+  that it really is Caddy (with [ps-list](https://github.com/sindresorhus/ps-list), since a pid can be reused), that
+  it answers on its admin API, and that it was started for the same key. The site is loaded through `configure`,
+  which runs on every start, adoption and restart; reloading the same spec is a no-op, so adopting doesn't disturb it.
 - A process the agent didn't start can't be waited on, so Caddy is watched by checking its pid every second.
 - `finalize()` stops Caddy, including one left behind by an earlier agent when its key was removed while the agent
   was down. It uses [tree-kill](https://github.com/pkrulec/node-tree-kill) as a last resort, because there's no
@@ -80,10 +86,10 @@ install:
 - **Changing the version replaces the process.** The old Caddy is stopped and the new binary started, with a
   moment's downtime while the port changes hands. Afterwards, every install but the current one and the one before
   it is pruned, so going back a version needs no download.
-- **Across agent restarts**, which install the running Caddy came from is recorded beside its pidfile (`binary.json`).
-  An agent that finds the version changed while it was away replaces Caddy rather than adopting the old one. The
-  record is written before the new Caddy starts, so a kill in between still leaves the next agent doing the right
-  thing.
+- **Across agent restarts**, which install the running Caddy came from is known from the key `AdoptedProcess`
+  records beside its pidfile (`caddy.key`): each install's path is its own, and is the key Caddy is started for. An
+  agent that finds the version changed while it was away replaces Caddy rather than adopting the old one. The key is
+  written before the new Caddy starts, so a kill in between still leaves the next agent doing the right thing.
 - **A download that fails, or doesn't match its checksum,** fails the apply and is retried with converge's backoff,
   while the Caddy already running carries on serving untouched.
 - **Removing the key** stops Caddy, and removes the vendored binaries and the record too.

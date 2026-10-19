@@ -1,10 +1,9 @@
-import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { BinaryStore, type Installed, defineBinary, reportsVersion } from '@conservationtv/converge/binaries';
 import { z } from 'zod';
 import { AdoptedCaddyRuntime } from './adopted.ts';
-import { CaddyAdmin, type CaddyStatus, CaddySpecSchema, STOPPED, findCaddy, stopCaddy } from './caddy.ts';
+import { type CaddyStatus, CaddySpecSchema, STOPPED } from './caddy.ts';
 
 /** Caddy's releases: a tarball or zip per platform, and `caddy version` reports the version. */
 export const caddyBinary = defineBinary({ name: 'caddy', checks: [reportsVersion(['version'])] });
@@ -30,10 +29,6 @@ export interface ManagedCaddyStatus extends CaddyStatus {
 
 const STOPPED_MANAGED: ManagedCaddyStatus = { ...STOPPED, version: null, installing: false };
 
-/** Which install the Caddy left running was started from, recorded beside its pidfile. */
-const BinaryRecordSchema = z.object({ id: z.string() });
-type BinaryRecord = z.output<typeof BinaryRecordSchema>;
-
 /** The adopting runtime for the binary in use, the install it runs, and the forwarding of its status. */
 interface Current {
   runtime: AdoptedCaddyRuntime;
@@ -47,47 +42,40 @@ interface Current {
  *
  * Changing only what Caddy serves is still a reload in place. Changing the version replaces the process: the old
  * Caddy is stopped, then the new binary started, with a moment's downtime while the port changes hands. That holds
- * across agent restarts too: which install the running Caddy came from is recorded beside its pidfile, so an agent
- * that starts to find the version changed while it was away replaces Caddy rather than adopting the old one.
+ * across agent restarts too: each install's path is its own, and is the key the adopting runtime starts Caddy for,
+ * so an agent that starts to find the version changed while it was away replaces Caddy rather than adopting the
+ * old one.
  */
 export class ManagedCaddyRuntime {
   readonly status$ = new BehaviorSubject<ManagedCaddyStatus>(STOPPED_MANAGED);
   private readonly binaries: BinaryStore;
-  private readonly admin: CaddyAdmin;
-  private readonly record: string;
   private current: Current | undefined = undefined;
 
   constructor(private readonly options: ManagedCaddyOptions) {
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
-    this.admin = new CaddyAdmin(options.admin);
-    this.record = join(options.directory, 'binary.json');
   }
 
   /** Installs the binary the spec names if need be, switches Caddy to it if it isn't running it, then serves the site. */
   async execute(spec: ManagedCaddySpec, signal: AbortSignal): Promise<void> {
-    this.update({ installing: true });
-    const installed = await this.binaries
-      .install(caddyBinary, spec.caddy, signal)
-      .finally(() => this.update({ installing: false }));
-    if (this.current?.installed.id !== installed.id) await this.switchTo(installed);
-    const runtime = this.current?.runtime;
-    if (runtime === undefined) throw new Error('No Caddy runtime to serve with');
+    const installed = (await this.binaries.find(spec.caddy)) ?? (await this.install(spec, signal));
+    const runtime = this.current?.installed.id === installed.id ? this.current.runtime : this.switchTo(installed);
     await runtime.execute({ port: spec.port, body: spec.body }, signal);
     await this.binaries.prune(installed, { spare: 1 });
   }
 
   /**
-   * Stops Caddy, whichever binary it came from, including one left running by an earlier agent. Then removes the
-   * vendored binaries too: removing the key removes everything it put there.
+   * Stops Caddy, whichever binary it came from, including one left running by an earlier agent: a leftover is found
+   * through the pidfile whatever it was started for. Then removes the vendored binaries too: removing the key removes
+   * everything it put there.
    */
   async finalize(): Promise<void> {
     const current = this.current;
     this.current = undefined;
     current?.watching.unsubscribe();
-    if (current !== undefined) await current.runtime.finalize();
-    else await this.stopLeftover();
+    const runtime = current?.runtime ?? new AdoptedCaddyRuntime({ ...this.options, binary: 'caddy' });
+    await runtime.finalize();
+    runtime.dispose();
     await this.binaries.clear();
-    await rm(this.record, { force: true });
     this.status$.next(STOPPED_MANAGED);
   }
 
@@ -98,37 +86,25 @@ export class ManagedCaddyRuntime {
     this.status$.complete();
   }
 
+  /** Downloads and checks the binary the spec names, which the status reports while it lasts. */
+  private install(spec: ManagedCaddySpec, signal: AbortSignal): Promise<Installed> {
+    this.update({ installing: true });
+    return this.binaries.install(caddyBinary, spec.caddy, signal).finally(() => this.update({ installing: false }));
+  }
+
   /**
-   * Moves to `installed`. A Caddy left running by an earlier agent is adopted if it came from this very install;
-   * otherwise it, or the Caddy this runtime is running, is stopped, so the new binary can take the port.
+   * Moves to `installed`: an adopting runtime for its binary, in the same directory. The Caddy from the previous
+   * install is no longer watched; the new runtime finds it through the pidfile and, started for another key,
+   * replaces it. One left by an earlier agent from this very install is adopted.
    */
-  private async switchTo(installed: Installed): Promise<void> {
+  private switchTo(installed: Installed): AdoptedCaddyRuntime {
     const previous = this.current;
-    this.current = undefined;
     previous?.watching.unsubscribe();
-    if (previous !== undefined) await previous.runtime.finalize();
-    else if ((await this.recorded()) !== installed.id) await this.stopLeftover();
-    // Recorded before Caddy starts: if the agent is killed in between, the next one finds a Caddy that came from this
-    // install, or none at all. Either way it does the right thing.
-    const record: BinaryRecord = { id: installed.id };
-    await writeFile(this.record, JSON.stringify(record));
+    previous?.runtime.dispose();
     const runtime = new AdoptedCaddyRuntime({ ...this.options, binary: installed.path });
     const watching = runtime.status$.subscribe(status => this.update({ ...status, version: installed.version }));
     this.current = { runtime, installed, watching };
-  }
-
-  private async stopLeftover(): Promise<void> {
-    const pid = await findCaddy({ ...this.options, binary: 'caddy' }, this.admin);
-    if (pid !== undefined) await stopCaddy(pid, this.admin);
-  }
-
-  private async recorded(): Promise<string | undefined> {
-    const text = await readFile(this.record, 'utf8').catch(() => undefined);
-    if (text === undefined) return undefined;
-    const parsed = BinaryRecordSchema.safeParse(JSON.parse(text));
-    if (!parsed.success) return undefined;
-    const record: BinaryRecord = parsed.data;
-    return record.id;
+    return runtime;
   }
 
   private update(change: Partial<ManagedCaddyStatus>): void {

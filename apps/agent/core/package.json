@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@conservationtv/converge": "workspace:*",
+    "@conservationtv/mediamtx": "workspace:*",
     "@conservationtv/store": "workspace:*",
     "@conservationtv/studio-sdk": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",
