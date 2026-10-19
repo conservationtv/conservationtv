@@ -55,6 +55,7 @@ each platform it runs on:
   port: 8080,
   body: 'Hello',
   caddy: {
+    name: 'caddy',
     version: '2.11.7',
     artifacts: {
       'darwin-arm64': { url: 'https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.tar.gz', checksum: 'sha512:68f5…668e' },
@@ -65,26 +66,20 @@ each platform it runs on:
 }
 ```
 
-`vendor.ts` installs this platform's download into the runtime's own directory:
-
-- **Verified before anything runs.** The download is hashed as it streams and rejected if it doesn't match the
-  checksum. Then the unpacked binary has to report the version the spec asked for, which catches a URL pointing at the
-  wrong release.
-- **All or nothing.** Each install is downloaded and unpacked in a staging folder, and only renamed into place once
-  it has passed those checks. An install interrupted at any point (an abort, a dropped connection, the agent being
-  killed) leaves nothing that looks installed. The next install starts afresh, and clears up the leftovers once it
-  succeeds.
-- **Keyed by version and checksum,** so a re-published artifact under the same version counts as a different binary.
-- **Cached.** An agent restarting on the same spec reuses the install, and adopts the running Caddy with no download.
-- **Unpacked with the system's `tar`,** which ships with macOS, Linux and Windows 10+, and reads `.zip` as well on
-  Windows and macOS.
+The spec's `caddy` is a manifest from [`@conservationtv/converge/binaries`](../src/binaries/README.md), which installs this
+platform's download into the runtime's own directory: verified against its checksum as it streams, unpacked and
+checked in a staging folder, and only then moved into place, so an install interrupted at any point leaves nothing that
+looks installed. Caddy's store also checks that `caddy version` reports the version the spec asked for, which catches a
+URL pointing at the wrong release. An agent restarting on the same spec reuses the install, and adopts the running
+Caddy with no download.
 
 `ManagedCaddyRuntime` composes the adopting runtime rather than copying it, with one `AdoptedCaddyRuntime` per
 install:
 
 - **Changing what Caddy serves** is still a reload in place.
 - **Changing the version replaces the process.** The old Caddy is stopped and the new binary started, with a
-  moment's downtime while the port changes hands. Afterwards, every install but the current one is pruned.
+  moment's downtime while the port changes hands. Afterwards, every install but the current one and the one before
+  it is pruned, so going back a version needs no download.
 - **Across agent restarts**, which install the running Caddy came from is recorded beside its pidfile (`binary.json`).
   An agent that finds the version changed while it was away replaces Caddy rather than adopting the old one. The
   record is written before the new Caddy starts, so a kill in between still leaves the next agent doing the right
