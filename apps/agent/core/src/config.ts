@@ -1,4 +1,5 @@
 import { createStore } from '@conservationtv/store';
+import type { MediamtxPaths } from './runtimes/mediamtx/paths.ts';
 
 interface BaseConfiguration {
   name: string;
@@ -9,6 +10,11 @@ interface BaseConfiguration {
    * the agent's identity and must stay the same across restarts.
    */
   secretKey: Uint8Array;
+  /**
+   * The paths MediaMTX serves, each delivering an exposure, supplied by the host until exposures reach the agent
+   * through a mutator. Without any, MediaMTX serves any path.
+   */
+  mediamtxPaths?: MediamtxPaths;
 }
 
 /** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */

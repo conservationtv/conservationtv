@@ -35,7 +35,7 @@ export function startSystem(config: AgentConfiguration) {
     controllers: controllers(config),
     restore: async () => ({
       machine: { intervalMs: 60_000 },
-      mediamtx: { binary: MEDIAMTX_MANIFEST, metricsIntervalMs: 60_000 }
+      mediamtx: { binary: MEDIAMTX_MANIFEST, paths: config.mediamtxPaths ?? [], metricsIntervalMs: 60_000 }
     })
   });
 }

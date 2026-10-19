@@ -8,12 +8,26 @@ export const ErrorSchema = z.object({
 });
 
 export const SystemSchema = z.object({
-    heartbeat: z.object({
-        intervalMs: z.number(),
-        message: z.string()
-    }).optional(),
     machine: z.object({
         intervalMs: z.number()
+    }).optional(),
+    mediamtx: z.object({
+        binary: z.object({
+            version: z.string(),
+            name: z.literal('mediamtx'),
+            artifacts: z.record(z.string(), z.object({
+                url: z.string(),
+                checksum: z.string(),
+                format: z.string(),
+                path: z.string().optional()
+            }))
+        }),
+        paths: z.array(z.object({
+            name: z.string(),
+            exposureId: z.string(),
+            rendition: z.string().optional()
+        })),
+        metricsIntervalMs: z.number()
     }).optional()
 });
 
