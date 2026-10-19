@@ -2,7 +2,7 @@
 
 ## Managing a process: `caddy/`
 
-Two runtimes that run [Caddy](https://caddyserver.com) as a process and converge it to a spec: one site on a port,
+Runtimes that run [Caddy](https://caddyserver.com) as a process and converge it to a spec: one site on a port,
 answering every request with a body.
 
 ```ts
@@ -18,8 +18,9 @@ Caddy makes a good exercise because it covers the whole controller contract in o
 - **A graceful stop on every platform**: `POST /stop` works on Windows too, where there's no `SIGTERM` to send.
 - **A pidfile**: `caddy run --pidfile <path>`.
 
-Both runtimes share `caddy.ts` (the spec, the status, the admin API client, and finding and stopping a Caddy by pid),
-and differ only in how Caddy's life relates to the agent's.
+They share `caddy.ts`: the spec, the status, the admin API client, and finding and stopping a Caddy by pid. The first
+two differ only in how Caddy's life relates to the agent's. The third adopts like the second, and also downloads and
+manages the Caddy binary itself.
 
 ### Matched lifecycle: `AttachedCaddyRuntime`
 
@@ -43,6 +44,60 @@ Caddy is a process of its own, and outlives the agent.
 - `finalize()` stops Caddy, including one left behind by an earlier agent when its key was removed while the agent
   was down. It uses [tree-kill](https://github.com/pkrulec/node-tree-kill) as a last resort, because there's no
   execa handle to kill through.
+
+### Managing the binary too: `ManagedCaddyRuntime`
+
+The adopting runtime, also deciding which Caddy it runs. The spec names a version, with a download and checksum for
+each platform it runs on:
+
+```ts
+{
+  port: 8080,
+  body: 'Hello',
+  caddy: {
+    version: '2.11.7',
+    artifacts: {
+      'darwin-arm64': { url: 'https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_mac_arm64.tar.gz', checksum: 'sha512:68f5…668e' },
+      'linux-x64': { url: '…/caddy_2.11.7_linux_amd64.tar.gz', checksum: 'sha512:…' },
+      'win32-x64': { url: '…/caddy_2.11.7_windows_amd64.zip', checksum: 'sha512:…' }
+    }
+  }
+}
+```
+
+`vendor.ts` installs this platform's download into the runtime's own directory:
+
+- **Verified before anything runs.** The download is hashed as it streams and rejected if it doesn't match the
+  checksum. Then the unpacked binary has to report the version the spec asked for, which catches a URL pointing at the
+  wrong release.
+- **All or nothing.** Each install is downloaded and unpacked in a staging folder, and only renamed into place once
+  it has passed those checks. An install interrupted at any point (an abort, a dropped connection, the agent being
+  killed) leaves nothing that looks installed. The next install starts afresh, and clears up the leftovers once it
+  succeeds.
+- **Keyed by version and checksum,** so a re-published artifact under the same version counts as a different binary.
+- **Cached.** An agent restarting on the same spec reuses the install, and adopts the running Caddy with no download.
+- **Unpacked with the system's `tar`,** which ships with macOS, Linux and Windows 10+, and reads `.zip` as well on
+  Windows and macOS.
+
+`ManagedCaddyRuntime` composes the adopting runtime rather than copying it, with one `AdoptedCaddyRuntime` per
+install:
+
+- **Changing what Caddy serves** is still a reload in place.
+- **Changing the version replaces the process.** The old Caddy is stopped and the new binary started, with a
+  moment's downtime while the port changes hands. Afterwards, every install but the current one is pruned.
+- **Across agent restarts**, which install the running Caddy came from is recorded beside its pidfile (`binary.json`).
+  An agent that finds the version changed while it was away replaces Caddy rather than adopting the old one. The
+  record is written before the new Caddy starts, so a kill in between still leaves the next agent doing the right
+  thing.
+- **A download that fails, or doesn't match its checksum,** fails the apply and is retried with converge's backoff,
+  while the Caddy already running carries on serving untouched.
+- **Removing the key** stops Caddy, and removes the vendored binaries and the record too.
+
+What it costs: a version change means a moment's downtime. A zero-downtime upgrade would need two Caddys side by side
+on different ports with something switching traffic between them, which is beyond this example. The agent also needs
+outbound network access to wherever the downloads live, and a mistyped checksum in the spec blocks that key until it's
+fixed. That's the point of having a checksum, but it means the spec has to be produced carefully: ideally by tooling
+that reads the release's published checksums, rather than by hand.
 
 ### The trade-off
 
