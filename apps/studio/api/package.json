@@ -31,6 +31,7 @@
     "@better-auth/drizzle-adapter": "1.7.7",
     "@better-auth/passkey": "catalog:",
     "@conservationtv/controlplane-sdk": "workspace:*",
+    "@conservationtv/reports": "workspace:*",
     "@conservationtv/store": "workspace:*",
     "@conservationtv/umbrella": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",

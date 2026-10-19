@@ -1,5 +1,6 @@
 import { statfs } from 'node:fs/promises';
 import os from 'node:os';
+import { machineMetrics } from '@conservationtv/reports';
 import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../config.ts';
@@ -95,17 +96,17 @@ async function diskUsage(): Promise<Capacity | null> {
 /** The sample's metrics, as the studio API takes them. */
 function metricsOf(sample: MachineSample): Metric[] {
   const metrics = [
-    gauge('machine.cpu.count', sample.cpuCount, 'cores'),
-    gauge('machine.load', sample.load, 'processes', { window: '1m' }),
-    gauge('machine.memory.total', sample.memory.total, 'bytes'),
-    gauge('machine.memory.free', sample.memory.free, 'bytes'),
-    gauge('machine.uptime', sample.uptimeSeconds, 'seconds'),
-    gauge('agent.memory.rss', sample.agentRss, 'bytes')
+    gauge(machineMetrics.cpuCount, sample.cpuCount),
+    gauge(machineMetrics.load, sample.load, { window: '1m' }),
+    gauge(machineMetrics.memoryTotal, sample.memory.total),
+    gauge(machineMetrics.memoryFree, sample.memory.free),
+    gauge(machineMetrics.uptime, sample.uptimeSeconds),
+    gauge(machineMetrics.agentMemory, sample.agentRss)
   ];
-  if (sample.cpuUtilisation !== null) metrics.push(gauge('machine.cpu.utilisation', sample.cpuUtilisation, 'percent'));
+  if (sample.cpuUtilisation !== null) metrics.push(gauge(machineMetrics.cpuUtilisation, sample.cpuUtilisation));
   if (sample.disk !== null) {
-    metrics.push(gauge('machine.disk.total', sample.disk.total, 'bytes'));
-    metrics.push(gauge('machine.disk.free', sample.disk.free, 'bytes'));
+    metrics.push(gauge(machineMetrics.diskTotal, sample.disk.total));
+    metrics.push(gauge(machineMetrics.diskFree, sample.disk.free));
   }
   return metrics;
 }
