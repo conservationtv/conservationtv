@@ -36,8 +36,28 @@ export interface Submission {
 /** The most reports one submission carries, as the studio API accepts. */
 const MAX_BATCH_REPORTS = 1000;
 
+/** One sample of a metric. */
 export function gauge(name: string, value: number, unit: string, dimensions: Record<string, string> = {}): Metric {
   return { name, value, unit, dimensions };
+}
+
+/** The samples of a metric taken over an interval, summarised as one point: their least, greatest, mean and last. */
+export function summary(
+  name: string,
+  samples: number[],
+  unit: string,
+  dimensions: Record<string, string> = {}
+): Metric {
+  const count = samples.length;
+  if (count === 0) throw new Error(`No samples of ${name} to summarise`);
+  const total = samples.reduce((sum, sample) => sum + sample, 0);
+  const avg = total / count;
+  const min = Math.min(...samples);
+  const max = Math.max(...samples);
+  const last = samples[count - 1]!;
+  // A mean can land a rounding error outside its samples, which the studio API refuses.
+  const bounded = Math.min(max, Math.max(min, avg));
+  return { name, summary: { min, max, avg: bounded, last, count }, unit, dimensions };
 }
 
 /** Queues metrics about the agent's device, and submits them to the studio API in batches. */
