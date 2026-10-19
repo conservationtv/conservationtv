@@ -287,6 +287,13 @@ export type IrohSession = {
     };
 };
 
+export type Whoami = {
+    id: string;
+    organisationId: string;
+    kind: 'agent' | 'camera' | 'browser';
+    publicId: string;
+};
+
 export type GetHealthData = {
     body?: never;
     path?: never;
@@ -3883,3 +3890,32 @@ export type PostIrohSessionsResponses = {
 };
 
 export type PostIrohSessionsResponse = PostIrohSessionsResponses[keyof PostIrohSessionsResponses];
+
+export type GetWhoamiData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/whoami';
+};
+
+export type GetWhoamiErrors = {
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetWhoamiError = GetWhoamiErrors[keyof GetWhoamiErrors];
+
+export type GetWhoamiResponses = {
+    /**
+     * The signing device
+     */
+    200: Whoami;
+};
+
+export type GetWhoamiResponse = GetWhoamiResponses[keyof GetWhoamiResponses];

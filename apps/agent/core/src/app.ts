@@ -48,7 +48,7 @@ export class Agent {
     const config = this.config;
     console.log(JSON.stringify({ event: 'starting', name: config.name, type: config.type }));
 
-    const system = await startSystem();
+    const system = await startSystem(config);
     this.system = system;
     const endpoint = await this.bind();
 

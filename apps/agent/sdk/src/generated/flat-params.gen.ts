@@ -9,3 +9,7 @@ export type StatusGetParams = z.infer<typeof StatusGetParamsSchema>;
 export const SystemGetParamsSchema = z.object({});
 
 export type SystemGetParams = z.infer<typeof SystemGetParamsSchema>;
+
+export const SystemSpecParamsSchema = z.object({});
+
+export type SystemSpecParams = z.infer<typeof SystemSpecParamsSchema>;
