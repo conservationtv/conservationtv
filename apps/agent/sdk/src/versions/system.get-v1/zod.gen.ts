@@ -8,31 +8,6 @@ export const ErrorSchema = z.object({
 });
 
 export const SystemSchema = z.object({
-    heartbeat: z.object({
-        runtime: z.object({
-            running: z.boolean(),
-            intervalMs: z.number().nullable(),
-            message: z.string().nullable(),
-            beats: z.number(),
-            lastBeatAt: z.string().nullable()
-        }),
-        apply: z.union([
-            z.object({
-                state: z.literal('applying'),
-                revision: z.string().nullable()
-            }),
-            z.object({
-                state: z.literal('applied'),
-                revision: z.string().nullable()
-            }),
-            z.object({
-                state: z.literal('failed'),
-                revision: z.string().nullable(),
-                error: z.string(),
-                attempt: z.number()
-            })
-        ])
-    }),
     machine: z.object({
         runtime: z.object({
             running: z.boolean(),
@@ -58,6 +33,41 @@ export const SystemSchema = z.object({
             submitted: z.number(),
             lastSubmittedAt: z.string().nullable(),
             lastError: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
+    mediamtx: z.object({
+        runtime: z.object({
+            state: z.enum([
+                'running',
+                'stopped',
+                'starting',
+                'crashed'
+            ]),
+            pid: z.number().nullable(),
+            version: z.string().nullable(),
+            installing: z.boolean(),
+            restarts: z.number(),
+            lastError: z.string().nullable(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastMetricsError: z.string().nullable()
         }),
         apply: z.union([
             z.object({

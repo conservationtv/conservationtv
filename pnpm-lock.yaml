@@ -270,6 +270,9 @@ importers:
       '@conservationtv/converge':
         specifier: workspace:*
         version: link:../../../packages/converge
+      '@conservationtv/mediamtx':
+        specifier: workspace:*
+        version: link:../../../packages/mediamtx
       '@conservationtv/store':
         specifier: workspace:*
         version: link:../../../packages/store

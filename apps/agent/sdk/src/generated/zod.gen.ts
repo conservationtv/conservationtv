@@ -12,31 +12,6 @@ export const StatusSchema = z.object({
 });
 
 export const SystemSchema = z.object({
-    heartbeat: z.object({
-        runtime: z.object({
-            running: z.boolean(),
-            intervalMs: z.number().nullable(),
-            message: z.string().nullable(),
-            beats: z.number(),
-            lastBeatAt: z.string().nullable()
-        }),
-        apply: z.union([
-            z.object({
-                state: z.literal('applying'),
-                revision: z.string().nullable()
-            }),
-            z.object({
-                state: z.literal('applied'),
-                revision: z.string().nullable()
-            }),
-            z.object({
-                state: z.literal('failed'),
-                revision: z.string().nullable(),
-                error: z.string(),
-                attempt: z.number()
-            })
-        ])
-    }),
     machine: z.object({
         runtime: z.object({
             running: z.boolean(),
@@ -79,6 +54,41 @@ export const SystemSchema = z.object({
                 attempt: z.number()
             })
         ])
+    }),
+    mediamtx: z.object({
+        runtime: z.object({
+            state: z.enum([
+                'running',
+                'stopped',
+                'starting',
+                'crashed'
+            ]),
+            pid: z.number().nullable(),
+            version: z.string().nullable(),
+            installing: z.boolean(),
+            restarts: z.number(),
+            lastError: z.string().nullable(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastMetricsError: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
     })
 });
 
@@ -96,12 +106,21 @@ export const GetSystemResponseSchema = SystemSchema;
  * The current system specification
  */
 export const GetSystemSpecResponseSchema = z.object({
-    heartbeat: z.object({
-        intervalMs: z.number(),
-        message: z.string()
-    }).optional(),
     machine: z.object({
         intervalMs: z.number()
+    }).optional(),
+    mediamtx: z.object({
+        mediamtx: z.object({
+            version: z.string(),
+            name: z.literal('mediamtx'),
+            artifacts: z.record(z.string(), z.object({
+                url: z.string(),
+                checksum: z.string(),
+                format: z.string(),
+                path: z.string().optional()
+            }))
+        }),
+        metricsIntervalMs: z.number()
     }).optional()
 }).register(z.globalRegistry, {
     description: 'The current system specification'
