@@ -1,3 +1,4 @@
+import { exposureSubject } from '@conservationtv/reports';
 import { z } from 'zod';
 
 // The paths MediaMTX serves, each delivering one of the organisation's exposures. MediaMTX's config has nowhere to keep
@@ -46,7 +47,7 @@ export function pathIndexOf(paths: MediamtxPaths): PathIndex {
   for (const { name, exposureId, rendition } of paths) {
     const dimensions: Record<string, string> = {};
     if (rendition !== undefined) dimensions.rendition = rendition;
-    index.set(name, { subjectId: `exposure:${exposureId}`, dimensions });
+    index.set(name, { subjectId: exposureSubject(exposureId), dimensions });
   }
   return index;
 }

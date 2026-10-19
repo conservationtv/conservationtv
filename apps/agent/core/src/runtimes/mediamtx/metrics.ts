@@ -1,4 +1,5 @@
 import { type PrometheusSample, parseMetrics } from '@conservationtv/mediamtx';
+import { pathMetrics } from '@conservationtv/reports';
 import { BehaviorSubject } from 'rxjs';
 import { type Metric, type MetricReporter, summary } from '../reports.ts';
 import type { PathIndex, PathTarget } from './paths.ts';
@@ -86,15 +87,15 @@ function addStopped(samples: PathSamples): void {
  */
 function metricsOf(samples: PathSamples, dimensions: Record<string, string>): Metric[] {
   const metrics = [
-    summary('path.ready', samples.ready, 'boolean', dimensions),
-    summary('path.readers', samples.readers, 'readers', dimensions)
+    summary(pathMetrics.ready, samples.ready, dimensions),
+    summary(pathMetrics.readers, samples.readers, dimensions)
   ];
   if (samples.ingestBitrate.length > 0)
-    metrics.push(summary('path.ingest.bitrate', samples.ingestBitrate, 'bits/s', dimensions));
+    metrics.push(summary(pathMetrics.ingestBitrate, samples.ingestBitrate, dimensions));
   if (samples.egressBitrate.length > 0)
-    metrics.push(summary('path.egress.bitrate', samples.egressBitrate, 'bits/s', dimensions));
+    metrics.push(summary(pathMetrics.egressBitrate, samples.egressBitrate, dimensions));
   if (samples.frameErrors.length > 0)
-    metrics.push(summary('path.ingest.frame_errors', samples.frameErrors, 'frames/s', dimensions));
+    metrics.push(summary(pathMetrics.ingestFrameErrors, samples.frameErrors, dimensions));
   return metrics;
 }
 

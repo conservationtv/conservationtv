@@ -130,7 +130,7 @@ export const relations = defineRelations(schema, r => ({
     stream: r.one.streams({ from: r.recorders.streamId, to: r.streams.id }),
     exposure: r.one.exposures({ from: r.recorders.exposureId, to: r.exposures.id })
   },
-  // Reports name their reporter and subject by convention (src/reports/subjects.ts), recorded as given rather than
+  // Reports name their reporter and subject by convention (`@conservationtv/reports`), recorded as given rather than
   // referenced, so their only relation is their organisation.
   observations: {
     organisation: r.one.organisations({ from: r.observations.organisationId, to: r.organisations.id })
