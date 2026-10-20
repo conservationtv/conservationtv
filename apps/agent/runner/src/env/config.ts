@@ -24,6 +24,10 @@ export const config = {
     .transform(text => new Uint8Array(Buffer.from(text, 'hex'))),
   /** A directory of the agent's own, where its runtimes keep what they install and run. */
   AGENT_DATA_DIR: z.string().min(1).default('data'),
+  /** The agent's SQLite database. Unset, `agent.db` in `AGENT_DATA_DIR`. */
+  AGENT_DATABASE_PATH: z.string().min(1).optional(),
+  /** The agent's database migrations. Unset, the folder beside the agent's source, which a bundled runner lacks. */
+  AGENT_MIGRATIONS_DIR: z.string().min(1).optional(),
   /**
    * The paths MediaMTX serves, as JSON, each delivering an exposure: `[{ "name": "cam1", "exposureId": "…" }]`, with an
    * optional `rendition` ID. Until exposures reach the agent from the studio API. Unset, MediaMTX serves any path.
@@ -47,6 +51,12 @@ export const config = {
 
 export type Variables = ReturnType<typeof arkenv<typeof config>>;
 
+/** A path from the environment made absolute, or `undefined` when it is unset. */
+function resolveOptional(path: string | undefined): string | undefined {
+  if (path === undefined) return undefined;
+  return resolve(path);
+}
+
 export const services = (variables: Variables) => {
   /*
     This is where we initialise all clients that use some configuration from the environment.
@@ -59,9 +69,11 @@ export const services = (variables: Variables) => {
     const name = variables.AGENT_NAME;
     const secretKey = variables.AGENT_SECRET_KEY;
     const directory = resolve(variables.AGENT_DATA_DIR);
+    const databasePath = resolveOptional(variables.AGENT_DATABASE_PATH);
+    const migrationsFolder = resolveOptional(variables.AGENT_MIGRATIONS_DIR);
     const mediamtxPaths = variables.MEDIAMTX_PATHS;
     if (variables.AGENT_MODE === 'direct') {
-      return new Agent({ type: 'direct', name, secretKey, directory, mediamtxPaths });
+      return new Agent({ type: 'direct', name, secretKey, directory, databasePath, migrationsFolder, mediamtxPaths });
     }
 
     if (variables.STUDIO_API_URL === undefined) {
@@ -73,6 +85,8 @@ export const services = (variables: Variables) => {
       name,
       secretKey,
       directory,
+      databasePath,
+      migrationsFolder,
       mediamtxPaths,
       studioUrl: variables.STUDIO_API_URL
     });
