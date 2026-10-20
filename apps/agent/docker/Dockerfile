@@ -13,10 +13,11 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --store-dir /pnpm/store --filter @conservationtv/agent-runner... \
  && pnpm --filter @conservationtv/agent-runner build
-# The image's whole filesystem: the bundle, and iroh, the one dependency left external for its native addon, with
+# The image's whole filesystem: the bundle, the database migrations, and iroh, the one dependency left external for its native addon, with
 # only its loader and the addon itself. Node ships with debug symbols; stripping them saves a tenth of the image.
 RUN mkdir -p /out/app/node_modules/@number0 \
  && cp apps/agent/runner/dist/index.js /out/app/ \
+ && cp -r apps/agent/core/drizzle /out/app/drizzle \
  && echo '{"type":"module"}' > /out/app/package.json \
  && iroh=$(cd apps/agent/core && node -p "require('node:path').dirname(require.resolve('@number0/iroh/package.json'))") \
  && addon=$(echo "$iroh"-linux-*) \
@@ -33,6 +34,8 @@ RUN mkdir -p /out/app/node_modules/@number0 \
 FROM scratch
 COPY --from=build /out /
 ENV NODE_ENV=production
+# The agent's database migrations, shipped beside the bundle, which has no source to find them beside.
+ENV AGENT_MIGRATIONS_DIR=/app/drizzle
 WORKDIR /app
 # Node's own user in the official images, by number: there is no /etc/passwd to name it.
 USER 1000:1000
