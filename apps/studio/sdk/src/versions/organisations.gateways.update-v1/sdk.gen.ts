@@ -55,7 +55,7 @@ export class Gateways extends HeyApiClient {
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
         name?: string;
         kind?: string;
         networkId?: string | null;

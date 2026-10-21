@@ -59,7 +59,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -91,7 +91,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings
      */
     422: Error;
     /**

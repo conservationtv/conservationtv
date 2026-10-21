@@ -11,27 +11,16 @@ export type Error = {
 
 export type Gateway = {
     gateways: Array<{
-        networkId: null;
-        settings: {
-            [key: string]: unknown;
-        };
-        createdAt: null;
-        name: 'conservation.tv';
+        id: 'conservationtv';
+        builtin: boolean;
+        name: string;
         kind: 'moq-relay';
-        protocols: Array<'moq'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
-    } | {
+        protocols: Array<string>;
         networkId: null;
         settings: {
             [key: string]: unknown;
         };
         createdAt: null;
-        name: 'Cloudflare';
-        kind: 'cloudflare-realtime';
-        protocols: Array<'webrtc'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
     } | {
         id: string;
         builtin: boolean;

@@ -23,12 +23,19 @@ const categories = {
     description: 'A referenced resource does not exist, is not visible to you, or belongs to another organisation.'
   },
   unsupported_protocol: { status: 422, description: 'The gateway does not accept that protocol.' },
+  invalid_settings: {
+    status: 422,
+    description: 'The settings are not what a gateway of that kind is registered with.'
+  },
   exposure_cycle: { status: 409, description: 'The upstream exposure would lead back to this exposure.' },
   invalid_report: { status: 400, description: 'The report batch has a report observed in the future.' },
   invalid_signature: { status: 401, description: 'The request signature could not be verified.' },
   batch_too_large: { status: 413, description: 'The report batch is too large.' },
   database_unavailable: { status: 503, description: 'The database is unavailable.' },
-  relay_unavailable: { status: 503, description: 'The relay cannot admit the device right now.' }
+  relay_unavailable: { status: 503, description: 'The relay cannot admit the device right now.' },
+  unsupported_gateway: { status: 422, description: 'Connections to that gateway are not made through this API.' },
+  unsupported_action: { status: 422, description: 'The gateway cannot do that by the exposure’s protocol.' },
+  gateway_unavailable: { status: 503, description: 'The gateway cannot be connected to right now.' }
 } satisfies Record<string, ErrorCategory>;
 
 export type ApiFailureCode = keyof typeof categories;

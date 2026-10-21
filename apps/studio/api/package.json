@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "cf dev",
-    "dev:controlplane": "GATEKEEPER_URL=http://localhost:5176 IROH_RELAY_URL=http://localhost:3340 cf dev --mode controlplane",
-    "dev:staging": "GATEKEEPER_URL=https://gatekeeper.staging.conservation.tv IROH_RELAY_URL=https://iroh.ldn1.nodes.staging.conservation.tv/ cf dev --mode staging",
+    "dev:controlplane": "GATEKEEPER_URL=http://localhost:5176 cf dev --mode controlplane",
+    "dev:staging": "GATEKEEPER_URL=https://gatekeeper.staging.conservation.tv cf dev --mode staging",
     "build": "cf build",
     "upload": "cf workers versions create",
     "types": "cf workers types",

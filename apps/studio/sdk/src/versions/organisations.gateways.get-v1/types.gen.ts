@@ -19,7 +19,7 @@ export type GetOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -55,27 +55,16 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
      * The gateway
      */
     200: {
-        networkId: null;
-        settings: {
-            [key: string]: unknown;
-        };
-        createdAt: null;
-        name: 'conservation.tv';
+        id: 'conservationtv';
+        builtin: boolean;
+        name: string;
         kind: 'moq-relay';
-        protocols: Array<'moq'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
-    } | {
+        protocols: Array<string>;
         networkId: null;
         settings: {
             [key: string]: unknown;
         };
         createdAt: null;
-        name: 'Cloudflare';
-        kind: 'cloudflare-realtime';
-        protocols: Array<'webrtc'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
     } | {
         id: string;
         builtin: boolean;
