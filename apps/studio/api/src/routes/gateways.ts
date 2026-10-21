@@ -42,21 +42,6 @@ export type GatewayName = z.output<typeof GatewayNameSchema>;
 const GatewayKindSchema = z.enum(GATEWAY_KIND_IDS).describe('The gateway implementation, such as `mediamtx`.');
 export type GatewayKind = z.output<typeof GatewayKindSchema>;
 
-const GatewayChangesSchema = z
-  .strictObject({
-    name: GatewayNameSchema.optional(),
-    kind: GatewayKindSchema.optional(),
-    networkId: NetworkReferenceSchema.optional(),
-    settings: SettingsSchema.optional()
-  })
-  .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change');
-type GatewayChanges = z.output<typeof GatewayChangesSchema>;
-
-/** Whether a change touches what the gateway's kind reads: the kind itself, or its settings. */
-function changesProvision(changes: GatewayChanges) {
-  return changes.kind !== undefined || changes.settings !== undefined;
-}
-
 // An organisation's gateways, in the principal's request session: members read them, administrators manage them. A
 // gateway's network must belong to the same organisation, which the database's composite foreign key enforces. The
 // built-in gateways (src/gateways/index.ts) are listed and read beside them, but never changed.
@@ -239,7 +224,17 @@ export default new Hono()
     }),
     requirePrincipal,
     validator('param', GatewayParamsSchema),
-    validator('json', GatewayChangesSchema),
+    validator(
+      'json',
+      z
+        .strictObject({
+          name: GatewayNameSchema.optional(),
+          kind: GatewayKindSchema.optional(),
+          networkId: NetworkReferenceSchema.optional(),
+          settings: SettingsSchema.optional()
+        })
+        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
+    ),
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       const body = c.req.valid('json');
@@ -267,7 +262,9 @@ export default new Hono()
             createdAt: gateways.createdAt
           });
         if (!gateway) throw await unchanged(tx, gateways.id, gatewayId);
-        if (changesProvision(body)) checkGatewaySettings(gateway.kind, gateway.settings);
+        // Only a change to what its kind reads, the kind itself or its settings, can make them unfit.
+        if (body.kind !== undefined || body.settings !== undefined)
+          checkGatewaySettings(gateway.kind, gateway.settings);
         return gateway;
       });
       c.header('Cache-Control', 'no-store');

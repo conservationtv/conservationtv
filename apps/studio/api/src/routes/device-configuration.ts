@@ -13,7 +13,7 @@ export default new Hono().get(
     ...operationVersion(1),
     summary: "Read the signing device's configuration",
     description:
-      "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path of each rendition, and where to pull each stream's renditions from, credentials included. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+      "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path each rendition is served at and where to pull it from, credentials included, and each exposure it publishes by MoQ with the path each rendition is read from. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
     responses: {
       200: { description: 'The configuration' },
       401: invalidSignature,

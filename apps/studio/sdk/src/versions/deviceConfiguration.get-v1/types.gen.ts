@@ -19,41 +19,25 @@ export type DeviceConfiguration = {
             audience: string;
         };
     } | null;
-    streams: {
-        [key: string]: {
-            name: string;
-            renditions: {
-                default?: {
-                    url: string;
-                };
-                data_saver?: {
-                    url: string;
-                };
-                balanced?: {
-                    url: string;
-                };
-                quality?: {
-                    url: string;
-                };
-            };
-        };
-    };
     exposures: {
         [key: string]: {
+            ingest: 'pull';
             streamId: string;
             gatewayId: string;
-            ingest: string;
-            renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
-            paths: {
-                default?: string;
-                data_saver?: string;
-                balanced?: string;
-                quality?: string;
-            };
-            upstream: {
-                id: string;
-                streamId: string;
-            } | null;
+            renditions: Array<{
+                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+                path: string;
+                source: string;
+            }>;
+        } | {
+            ingest: 'moq';
+            streamId: string;
+            gatewayId: string;
+            upstreamExposureId: string;
+            renditions: Array<{
+                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+                source: string;
+            }>;
         };
     };
     diagnostics: Array<{

@@ -1,7 +1,7 @@
 import { MediamtxConfigBuilder, pipeline, toYaml } from '@conservationtv/mediamtx';
 import { z } from 'zod';
 import { MEDIAMTX_AUTH_PATH, type MediamtxAuth } from './auth.ts';
-import type { MediamtxPath, MediamtxPaths } from './paths.ts';
+import type { MediamtxPaths } from './paths.ts';
 
 // The config MediaMTX serves, assembled by steps from where its servers listen, the paths the spec names and who it
 // admits.
@@ -56,32 +56,32 @@ export const MoqPublisherSchema = z.strictObject({
 });
 export type MoqPublisher = z.output<typeof MoqPublisherSchema>;
 
+/** The exposures MediaMTX publishes, and the moq CLI, installed, that they run. */
+export interface MoqPublishing {
+  moq: string;
+  publishers: MoqPublisher[];
+}
+
 /** What MediaMTX serves, and who it admits. */
 export interface MediamtxServing {
   paths: MediamtxPaths;
   auth?: MediamtxAuth;
-  publishers?: MoqPublisher[];
-  /** The moq CLI, installed, when there are publishers. */
-  moqExecutable?: string;
+  /** Absent when it publishes nothing. */
+  publishing?: MoqPublishing;
 }
-
-/** The MediaMTX path a rendition's publisher runs on: nobody reads it, and its name says whose it is. */
-export const publisherPathName = (exposureId: string, rendition: string) => `_publish/${exposureId}/${rendition}`;
 
 /**
  * Each path the spec names, and no other. A path with a `source` pulls it only while someone reads it, so a camera
  * streams nothing nobody watches. With no paths and no auth, any path at all (`all_others`), for a direct agent.
  */
 const paths = new MediamtxConfigBuilder<MediamtxServing>((serving, config) => {
+  // Any path when the spec names none and admits anyone; otherwise each it names, pulled from its source while it is
+  // read, or (with none) pushed to by its publisher.
   if (serving.paths.length === 0 && serving.auth === undefined) config.paths.all_others = {};
-  for (const path of serving.paths) config.paths[path.name] = pathConfig(path);
+  for (const path of serving.paths) {
+    config.paths[path.name] = path.source === undefined ? {} : { source: path.source, sourceOnDemand: true };
+  }
 });
-
-/** A path pulled from its source while it is read, or (with none) pushed to by its publisher. */
-function pathConfig(path: MediamtxPath) {
-  if (path.source === undefined) return {};
-  return { source: path.source, sourceOnDemand: true };
-}
 
 /**
  * A rendition's publisher: the moq CLI pulling it from this MediaMTX over RTMP, as a reader on loopback, which needs no
@@ -92,25 +92,16 @@ function publisherCommand(publisher: MoqPublisher, rendition: MoqRendition, moq:
   return [...publish, 'rtmp', '--connect', `${RTMP_LOOPBACK}/${rendition.source}`].join(' ');
 }
 
-/** The moq CLI the publishers run, which must be installed when there are any. */
-function moqFor(serving: MediamtxServing) {
-  if (serving.moqExecutable === undefined) throw new Error('Publishers need the moq CLI installed');
-  return serving.moqExecutable;
-}
-
 /**
  * Each rendition of each publisher, on a path of its own that runs it while MediaMTX runs, restarting it whenever it
- * exits. There must be a moq CLI to run when there are any publishers, and none is needed otherwise: so none is looked
- * for without publishers, and each publisher's renditions get a path apiece.
+ * exits: each is a broadcast, and a CLI, of its own. Nobody reads the path, and its name says whose it is.
  */
 const publishers = new MediamtxConfigBuilder<MediamtxServing>((serving, config) => {
-  const list = serving.publishers ?? [];
-  if (list.length === 0) return;
-  const moq = moqFor(serving);
-  // A path per rendition, since each is a broadcast, and a CLI, of its own.
-  for (const publisher of list) {
+  if (serving.publishing === undefined) return;
+  const { moq } = serving.publishing;
+  for (const publisher of serving.publishing.publishers) {
     for (const rendition of publisher.renditions) {
-      config.paths[publisherPathName(publisher.exposureId, rendition.rendition)] = {
+      config.paths[`_publish/${publisher.exposureId}/${rendition.rendition}`] = {
         runOnInit: publisherCommand(publisher, rendition, moq),
         runOnInitRestart: true
       };

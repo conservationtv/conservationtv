@@ -58,31 +58,21 @@ const AXIS_TARGETS = {
   data_saver: { maxWidth: 640, maxBitrateKbps: 500 }
 } satisfies Record<Exclude<Rendition, 'default'>, AxisTarget>;
 
-interface Size {
-  width: number;
-  height: number;
-}
-
-function sizeOf(resolution: Resolution): Size {
-  const [width = 0, height = 0] = resolution.split('x').map(Number);
-  return { width, height };
-}
-
-/** Whether two resolutions have the same aspect ratio, so one stream's renditions are never letterboxed apart. */
-function sameAspect(a: Resolution, b: Resolution) {
-  const first = sizeOf(a);
-  const second = sizeOf(b);
-  return first.width * second.height === second.width * first.height;
-}
-
 /**
  * The largest of the camera's resolutions within the width, in the aspect ratio of its largest (Axis lists 4:3 and
  * 16:9 alike), or its smallest in that ratio when none is within it.
  */
 function axisResolution(resolutions: Resolution[], maxWidth: number) {
-  const bySize = resolutions.toSorted((a, b) => sizeOf(b).width - sizeOf(a).width);
-  const matching = bySize.filter(resolution => sameAspect(resolution, bySize[0]!));
-  return matching.find(resolution => sizeOf(resolution).width <= maxWidth) ?? matching.at(-1)!;
+  const sizes = resolutions.map(resolution => {
+    const [width = 0, height = 0] = resolution.split('x').map(Number);
+    return { width, height };
+  });
+  const bySize = sizes.toSorted((a, b) => b.width - a.width);
+  const largest = bySize[0]!;
+  // Only the largest's aspect ratio, so one stream's renditions are never letterboxed apart.
+  const matching = bySize.filter(size => size.width * largest.height === largest.width * size.height);
+  const chosen = matching.find(size => size.width <= maxWidth) ?? matching.at(-1)!;
+  return `${chosen.width}x${chosen.height}`;
 }
 
 /**

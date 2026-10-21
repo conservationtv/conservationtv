@@ -20,7 +20,7 @@ export default new Hono().get(
   }),
   async c => {
     const environment = useEnvironment();
-    const keyring = await environment.gatewayKeys?.();
+    const keyring = await environment.gatewayKeys?.keyring();
     c.header('Cache-Control', 'public, max-age=300');
     return c.json({ keys: keyring?.publicKeys ?? [] }, 200);
   }
