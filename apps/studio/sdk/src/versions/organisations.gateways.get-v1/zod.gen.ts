@@ -7,26 +7,50 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
-export const GatewaySchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    kind: z.string(),
-    networkId: z.string().nullable(),
-    protocols: z.array(z.string()),
-    settings: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
-});
-
 export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The gateway.'
-    })
+    gatewayId: z.union([
+        z.enum(['conservationtv', 'cloudflare']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ])
 });
 
 /**
  * The gateway
  */
-export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = GatewaySchema;
+export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
+    z.union([
+        z.object({
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null(),
+            name: z.literal('conservation.tv'),
+            kind: z.literal('moq-relay'),
+            protocols: z.array(z.literal('moq')),
+            id: z.enum(['cloudflare', 'conservationtv']),
+            builtin: z.boolean()
+        }),
+        z.object({
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null(),
+            name: z.literal('Cloudflare'),
+            kind: z.literal('cloudflare-realtime'),
+            protocols: z.array(z.literal('webrtc')),
+            id: z.enum(['cloudflare', 'conservationtv']),
+            builtin: z.boolean()
+        })
+    ]),
+    z.object({
+        id: z.string(),
+        builtin: z.boolean(),
+        name: z.string(),
+        kind: z.string(),
+        networkId: z.string().nullable(),
+        protocols: z.array(z.string()),
+        settings: z.record(z.string(), z.unknown()),
+        createdAt: z.string()
+    })
+]);

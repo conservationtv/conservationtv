@@ -51,11 +51,11 @@ export class Gateways extends HeyApiClient {
     /**
      * Update a gateway
      *
-     * Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.
+     * Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
         name?: string;
         kind?: string;
         networkId?: string | null;

@@ -3,7 +3,6 @@ import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import type { ExposureParams, Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
-import { gateways } from './gateways.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
@@ -46,8 +45,8 @@ export const streams = withAccess(
 );
 
 /**
- * How a stream is delivered: to a gateway, which decides where it can be read (its network, or the internet), by one
- * of the protocols the gateway accepts, with the renditions it should offer in `params`. Its publisher is the device
+ * How a stream is delivered: to a gateway, built in or the organisation's own, which decides where it can be read (its
+ * network, or the internet), by one of the protocols the gateway accepts, with the renditions it should offer in `params`. Its publisher is the device
  * that sends it there: the pinned `publisher_device_id`, or (null) whichever the configuration builders choose, the
  * source camera itself when it can or an agent on its network. What it publishes is the stream's source, or
  * `upstream_exposure_id`'s delivery of the same stream, so exposures chain: camera, MediaMTX on its network, then a
@@ -64,7 +63,8 @@ export const exposures = withAccess(
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
       streamId: uuid('stream_id').notNull(),
-      gatewayId: uuid('gateway_id').notNull(),
+      // A built-in gateway's slug or one of the organisation's gateways (src/topology/exposures.ts checks which).
+      gatewayId: text('gateway_id').notNull(),
       protocol: text('protocol').notNull(),
       publisherDeviceId: uuid('publisher_device_id'),
       upstreamExposureId: uuid('upstream_exposure_id'),
@@ -79,11 +79,6 @@ export const exposures = withAccess(
         columns: [t.organisationId, t.streamId],
         foreignColumns: [streams.organisationId, streams.id]
       }).onDelete('cascade'),
-      foreignKey({
-        name: 'exposure_gateway_fk',
-        columns: [t.organisationId, t.gatewayId],
-        foreignColumns: [gateways.organisationId, gateways.id]
-      }),
       foreignKey({
         name: 'exposure_publisher_device_fk',
         columns: [t.organisationId, t.publisherDeviceId],

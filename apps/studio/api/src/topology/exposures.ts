@@ -2,20 +2,40 @@ import { and, eq, notInArray, sql } from 'drizzle-orm';
 import { exposures, gateways } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import type { Transaction } from '../organisations/membership.ts';
+import { BUILTIN_GATEWAYS, isBuiltinGateway } from './gateways.ts';
 
-// What the database cannot check about exposures on its own: that the gateway accepts the exposure's protocol, and
-// that a chain of upstreams never loops. Each check runs after the write it guards, so a principal who may not write
-// has already been refused by row-level security, and takes the lock that serialises it with the writes it races.
+// What the database cannot check about exposures on its own. An exposure's gateway is a built-in gateway's slug or one
+// of its organisation's gateways, so no foreign key holds it: it must name a gateway that exists and accepts the
+// exposure's protocol, and a gateway cannot go while exposures use it. A chain of upstreams must never loop. Each check
+// runs after the write it guards, so a principal who may not write has already been refused by row-level security,
+// and takes the lock that serialises it with the writes it races.
 
-/** Refuses an exposure whose gateway does not accept its protocol. */
-export async function checkProtocol(tx: Transaction, gatewayId: string, protocol: string) {
-  // Shares the gateway's row lock, so a concurrent change to its protocols waits for this write, or this for it.
+/** Refuses an exposure whose gateway is not there for its organisation, or does not accept its protocol. */
+export async function checkGateway(tx: Transaction, organisationId: string, gatewayId: string, protocol: string) {
+  if (isBuiltinGateway(gatewayId)) {
+    const builtin: readonly string[] = BUILTIN_GATEWAYS[gatewayId].protocols;
+    if (!builtin.includes(protocol)) throw new ApiFailure('unsupported_protocol');
+    return;
+  }
+  // Shares the gateway's row lock, so a concurrent change to its protocols, or its removal, waits for this write, or
+  // this for it.
   const [gateway] = await tx
     .select({ protocols: gateways.protocols })
     .from(gateways)
-    .where(eq(gateways.id, gatewayId))
+    .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId)))
     .for('share');
-  if (!gateway?.protocols.includes(protocol)) throw new ApiFailure('unsupported_protocol');
+  if (!gateway) throw new ApiFailure('invalid_reference');
+  if (!gateway.protocols.includes(protocol)) throw new ApiFailure('unsupported_protocol');
+}
+
+/** Refuses removing a gateway, already deleted in this transaction, that exposures still use. */
+export async function checkGatewayUnused(tx: Transaction, gatewayId: string) {
+  const [used] = await tx
+    .select({ id: exposures.id })
+    .from(exposures)
+    .where(eq(exposures.gatewayId, gatewayId))
+    .limit(1);
+  if (used) throw new ApiFailure('in_use');
 }
 
 /** Refuses a change to a gateway's protocols that would leave one of its exposures on a protocol it no longer accepts. */

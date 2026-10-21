@@ -137,13 +137,38 @@ export const AgentSchema = z.object({
 });
 
 export const GatewaySchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    kind: z.string(),
-    networkId: z.string().nullable(),
-    protocols: z.array(z.string()),
-    settings: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
+    gateways: z.array(z.union([
+        z.object({
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null(),
+            name: z.literal('conservation.tv'),
+            kind: z.literal('moq-relay'),
+            protocols: z.array(z.literal('moq')),
+            id: z.enum(['cloudflare', 'conservationtv']),
+            builtin: z.boolean()
+        }),
+        z.object({
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null(),
+            name: z.literal('Cloudflare'),
+            kind: z.literal('cloudflare-realtime'),
+            protocols: z.array(z.literal('webrtc')),
+            id: z.enum(['cloudflare', 'conservationtv']),
+            builtin: z.boolean()
+        }),
+        z.object({
+            id: z.string(),
+            builtin: z.boolean(),
+            name: z.string(),
+            kind: z.string(),
+            networkId: z.string().nullable(),
+            protocols: z.array(z.string()),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.string()
+        })
+    ]))
 });
 
 export const StreamSchema = z.object({
@@ -984,21 +1009,9 @@ export const GetOrganisationsByIdGatewaysQuerySchema = z.object({
 });
 
 /**
- * The gateways, oldest first
+ * The built-in gateways, then the organisation’s own, oldest first
  */
-export const GetOrganisationsByIdGatewaysResponseSchema = z.object({
-    gateways: z.array(z.object({
-        name: z.string(),
-        id: z.string(),
-        createdAt: z.string(),
-        kind: z.string(),
-        networkId: z.string().nullable(),
-        settings: z.record(z.string(), z.unknown()),
-        protocols: z.array(z.string())
-    }))
-}).register(z.globalRegistry, {
-    description: 'The gateways, oldest first'
-});
+export const GetOrganisationsByIdGatewaysResponseSchema = GatewaySchema;
 
 export const PostOrganisationsByIdGatewaysBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
@@ -1027,15 +1040,27 @@ export const PostOrganisationsByIdGatewaysPathSchema = z.object({
 /**
  * The new gateway
  */
-export const PostOrganisationsByIdGatewaysResponseSchema = GatewaySchema;
+export const PostOrganisationsByIdGatewaysResponseSchema = z.object({
+    id: z.string(),
+    builtin: z.boolean(),
+    name: z.string(),
+    kind: z.string(),
+    networkId: z.string().nullable(),
+    protocols: z.array(z.string()),
+    settings: z.record(z.string(), z.unknown()),
+    createdAt: z.string()
+}).register(z.globalRegistry, {
+    description: 'The new gateway'
+});
 
 export const DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The gateway.'
-    })
+    gatewayId: z.union([
+        z.enum(['conservationtv', 'cloudflare']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ])
 });
 
 /**
@@ -1049,15 +1074,49 @@ export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The gateway.'
-    })
+    gatewayId: z.union([
+        z.enum(['conservationtv', 'cloudflare']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ])
 });
 
 /**
  * The gateway
  */
-export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = GatewaySchema;
+export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
+    z.union([
+        z.object({
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null(),
+            name: z.literal('conservation.tv'),
+            kind: z.literal('moq-relay'),
+            protocols: z.array(z.literal('moq')),
+            id: z.enum(['cloudflare', 'conservationtv']),
+            builtin: z.boolean()
+        }),
+        z.object({
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null(),
+            name: z.literal('Cloudflare'),
+            kind: z.literal('cloudflare-realtime'),
+            protocols: z.array(z.literal('webrtc')),
+            id: z.enum(['cloudflare', 'conservationtv']),
+            builtin: z.boolean()
+        })
+    ]),
+    z.object({
+        id: z.string(),
+        builtin: z.boolean(),
+        name: z.string(),
+        kind: z.string(),
+        networkId: z.string().nullable(),
+        protocols: z.array(z.string()),
+        settings: z.record(z.string(), z.unknown()),
+        createdAt: z.string()
+    })
+]);
 
 export const PatchOrganisationsByIdGatewaysByGatewayIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
@@ -1081,15 +1140,27 @@ export const PatchOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The gateway.'
-    })
+    gatewayId: z.union([
+        z.enum(['conservationtv', 'cloudflare']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ])
 });
 
 /**
  * The updated gateway
  */
-export const PatchOrganisationsByIdGatewaysByGatewayIdResponseSchema = GatewaySchema;
+export const PatchOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.object({
+    id: z.string(),
+    builtin: z.boolean(),
+    name: z.string(),
+    kind: z.string(),
+    networkId: z.string().nullable(),
+    protocols: z.array(z.string()),
+    settings: z.record(z.string(), z.unknown()),
+    createdAt: z.string()
+}).register(z.globalRegistry, {
+    description: 'The updated gateway'
+});
 
 export const GetOrganisationsByIdStreamsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -1195,9 +1266,10 @@ export const PatchOrganisationsByIdStreamsByStreamIdResponseSchema = z.object({
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.object({
-    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The gateway the stream is delivered to.'
-    }),
+    gatewayId: z.union([
+        z.enum(['conservationtv', 'cloudflare']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ]),
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'One of the protocols the gateway accepts.'
     }),
@@ -1249,9 +1321,10 @@ export const DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdRespon
 });
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema = z.object({
-    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The gateway the stream is delivered to.'
-    }).optional(),
+    gatewayId: z.union([
+        z.enum(['conservationtv', 'cloudflare']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ]).optional(),
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'One of the protocols the gateway accepts.'
     }).optional(),

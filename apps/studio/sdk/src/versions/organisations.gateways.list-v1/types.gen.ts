@@ -11,15 +11,38 @@ export type Error = {
 
 export type Gateway = {
     gateways: Array<{
-        name: string;
-        id: string;
-        createdAt: string;
-        kind: string;
-        networkId: string | null;
+        networkId: null;
         settings: {
             [key: string]: unknown;
         };
+        createdAt: null;
+        name: 'conservation.tv';
+        kind: 'moq-relay';
+        protocols: Array<'moq'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+        name: 'Cloudflare';
+        kind: 'cloudflare-realtime';
+        protocols: Array<'webrtc'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        id: string;
+        builtin: boolean;
+        name: string;
+        kind: string;
+        networkId: string | null;
         protocols: Array<string>;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
     }>;
 };
 
@@ -63,7 +86,7 @@ export type GetOrganisationsByIdGatewaysError = GetOrganisationsByIdGatewaysErro
 
 export type GetOrganisationsByIdGatewaysResponses = {
     /**
-     * The gateways, oldest first
+     * The built-in gateways, then the organisation’s own, oldest first
      */
     200: Gateway;
 };

@@ -34,9 +34,9 @@ export type Exposure = {
 export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
     body: {
         /**
-         * The gateway the stream is delivered to.
+         * The gateway the stream is delivered to: built in, or the organisation's own.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
         /**
          * One of the protocols the gateway accepts.
          */
