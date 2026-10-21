@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses } from './types.gen.js';
+import type { DeleteOrganisationsByIdGatewaysByGatewayIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -47,39 +47,29 @@ class HeyApiRegistry<T> {
     }
 }
 
-export class Agents extends HeyApiClient {
+export class Gateways extends HeyApiClient {
     /**
-     * Serve a configuration revision to an agent
+     * Remove a gateway
      *
-     * Administrators only. Activates one of the agent’s revisions, which must have no errors; the agent keeps its current revision otherwise. Serving the served revision again changes nothing.
+     * Administrators only. Refused while exposures use it.
      */
-    public serveRevision<ThrowOnError extends boolean = false>(parameters: {
+    public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        agentId: string;
-        revisionId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'path', key: 'agentId' },
-                    { in: 'body', key: 'revisionId' }
-                ] }]);
-        return (options?.client ?? this.client).put<PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses, PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors, ThrowOnError>({
-            url: '/organisations/{id}/agents/{agentId}/served-revision',
+        gatewayId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'gatewayId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/gateways/{gatewayId}',
             ...options,
-            ...params,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options?.headers,
-                ...params.headers
-            }
+            ...params
         });
     }
 }
 
 export class Organisations extends HeyApiClient {
-    private _agents?: Agents;
-    get agents(): Agents {
-        return this._agents ??= new Agents({ client: this.client });
+    private _gateways?: Gateways;
+    get gateways(): Gateways {
+        return this._gateways ??= new Gateways({ client: this.client });
     }
 }
 

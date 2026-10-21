@@ -12,6 +12,7 @@ export * from './schemas/devices.ts';
 export * from './schemas/cameras.ts';
 export * from './schemas/browsers.ts';
 export * from './schemas/agents.ts';
+export * from './schemas/gateways.ts';
 export * from './schemas/streams.ts';
 export * from './schemas/observations.ts';
 export * from './schemas/metrics.ts';

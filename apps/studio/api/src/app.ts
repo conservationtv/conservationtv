@@ -9,6 +9,7 @@ import agents from './routes/agents.ts';
 import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
 import devices from './routes/devices.ts';
+import gateways from './routes/gateways.ts';
 import health from './routes/health.ts';
 import invitations from './routes/invitations.ts';
 import irohSessions from './routes/iroh-sessions.ts';
@@ -50,6 +51,7 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/cameras', cameras)
   .route('/organisations/:id/browser', browsers)
   .route('/organisations/:id/agents', agents)
+  .route('/organisations/:id/gateways', gateways)
   .route('/organisations/:id/streams', streams)
   .route('/organisations/:id/subjects', subjects)
   .route('/invitations', invitations)

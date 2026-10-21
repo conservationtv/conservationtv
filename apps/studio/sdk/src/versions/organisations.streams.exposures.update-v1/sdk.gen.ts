@@ -51,14 +51,16 @@ export class Exposures extends HeyApiClient {
     /**
      * Update an exposure
      *
-     * Administrators only. Changes only the fields given; `params` is replaced whole.
+     * Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         exposureId: string;
-        networkId?: string | null;
+        gatewayId?: string;
         protocol?: string;
+        publisherDeviceId?: string | null;
+        upstreamExposureId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -84,8 +86,10 @@ export class Exposures extends HeyApiClient {
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
                     { in: 'path', key: 'exposureId' },
-                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'gatewayId' },
                     { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'publisherDeviceId' },
+                    { in: 'body', key: 'upstreamExposureId' },
                     { in: 'body', key: 'params' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError>({

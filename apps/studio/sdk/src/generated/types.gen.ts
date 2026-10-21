@@ -118,31 +118,17 @@ export type Agent = {
         networkId: string | null;
         publicId: string;
     } | null;
-    servedRevision: {
-        id: string;
-    } | null;
 };
 
-export type Revision = {
+export type Gateway = {
     id: string;
-    config: {
+    name: string;
+    kind: string;
+    networkId: string | null;
+    protocols: Array<string>;
+    settings: {
         [key: string]: unknown;
     };
-    diagnostics: Array<{
-        severity: 'error' | 'warning';
-        code: string;
-        message: string;
-        target?: {
-            kind: string;
-            id: string;
-        };
-        recovery?: 'retryable' | 'change-required';
-        details?: {
-            [key: string]: unknown;
-        };
-    }>;
-    hasErrors: boolean;
-    served: boolean;
     createdAt: string;
 };
 
@@ -163,8 +149,10 @@ export type Stream = {
         };
         id: string;
         createdAt: string;
-        networkId: string | null;
+        gatewayId: string;
         protocol: string;
+        publisherDeviceId: string | null;
+        upstreamExposureId: string | null;
     }>;
     recorders: Array<{
         params: {
@@ -179,8 +167,10 @@ export type Stream = {
 
 export type Exposure = {
     id: string;
-    networkId: string | null;
+    gatewayId: string;
     protocol: string;
+    publisherDeviceId: string | null;
+    upstreamExposureId: string | null;
     params: {
         renditions?: Array<{
             id: string;
@@ -2097,9 +2087,6 @@ export type GetOrganisationsByIdAgentsResponses = {
                 networkId: string | null;
                 publicId: string;
             } | null;
-            servedRevision: {
-                id: string;
-            } | null;
         }>;
     };
 };
@@ -2336,25 +2323,24 @@ export type PatchOrganisationsByIdAgentsByAgentIdResponses = {
 
 export type PatchOrganisationsByIdAgentsByAgentIdResponse = PatchOrganisationsByIdAgentsByAgentIdResponses[keyof PatchOrganisationsByIdAgentsByAgentIdResponses];
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsData = {
+export type GetOrganisationsByIdGatewaysData = {
     body?: never;
     path: {
         /**
          * The organisation.
          */
         id: string;
-        /**
-         * The agent.
-         */
-        agentId: string;
     };
     query?: {
-        limit?: number;
+        /**
+         * Only gateways on this network.
+         */
+        networkId?: string;
     };
-    url: '/organisations/{id}/agents/{agentId}/revisions';
+    url: '/organisations/{id}/gateways';
 };
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsErrors = {
+export type GetOrganisationsByIdGatewaysErrors = {
     /**
      * The request is malformed
      */
@@ -2373,77 +2359,65 @@ export type GetOrganisationsByIdAgentsByAgentIdRevisionsErrors = {
     503: Error;
 };
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsError = GetOrganisationsByIdAgentsByAgentIdRevisionsErrors[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsErrors];
+export type GetOrganisationsByIdGatewaysError = GetOrganisationsByIdGatewaysErrors[keyof GetOrganisationsByIdGatewaysErrors];
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsResponses = {
+export type GetOrganisationsByIdGatewaysResponses = {
     /**
-     * The revisions, newest first
+     * The gateways, oldest first
      */
     200: {
-        revisions: Array<{
+        gateways: Array<{
+            name: string;
             id: string;
-            diagnostics: Array<{
-                severity: 'error' | 'warning';
-                code: string;
-                message: string;
-                target?: {
-                    kind: string;
-                    id: string;
-                };
-                recovery?: 'retryable' | 'change-required';
-                details?: {
-                    [key: string]: unknown;
-                };
-            }>;
-            hasErrors: boolean;
-            served: boolean;
             createdAt: string;
+            kind: string;
+            networkId: string | null;
+            settings: {
+                [key: string]: unknown;
+            };
+            protocols: Array<string>;
         }>;
     };
 };
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsResponse = GetOrganisationsByIdAgentsByAgentIdRevisionsResponses[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsResponses];
+export type GetOrganisationsByIdGatewaysResponse = GetOrganisationsByIdGatewaysResponses[keyof GetOrganisationsByIdGatewaysResponses];
 
-export type PostOrganisationsByIdAgentsByAgentIdRevisionsData = {
+export type PostOrganisationsByIdGatewaysData = {
     body: {
         /**
-         * The rendered configuration.
+         * The gateway name.
          */
-        config: {
+        name: string;
+        /**
+         * The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.
+         */
+        kind: string;
+        /**
+         * A network of the organisation, or null for the internet.
+         */
+        networkId?: string | null;
+        /**
+         * The protocols the gateway accepts streams by.
+         */
+        protocols: Array<string>;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        settings?: {
             [key: string]: Schema0;
         };
-        diagnostics?: Array<{
-            severity: 'warning' | 'error';
-            code: string;
-            message: string;
-            target?: {
-                kind: string;
-                id: string;
-            };
-            recovery?: 'retryable' | 'change-required';
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            details?: {
-                [key: string]: Schema0;
-            };
-        }>;
     };
     path: {
         /**
          * The organisation.
          */
         id: string;
-        /**
-         * The agent.
-         */
-        agentId: string;
     };
     query?: never;
-    url: '/organisations/{id}/agents/{agentId}/revisions';
+    url: '/organisations/{id}/gateways';
 };
 
-export type PostOrganisationsByIdAgentsByAgentIdRevisionsErrors = {
+export type PostOrganisationsByIdGatewaysErrors = {
     /**
      * The request is malformed
      */
@@ -2457,31 +2431,31 @@ export type PostOrganisationsByIdAgentsByAgentIdRevisionsErrors = {
      */
     403: Error;
     /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
      * The selected operation version is not served
      */
     412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
     /**
      * The database is unavailable
      */
     503: Error;
 };
 
-export type PostOrganisationsByIdAgentsByAgentIdRevisionsError = PostOrganisationsByIdAgentsByAgentIdRevisionsErrors[keyof PostOrganisationsByIdAgentsByAgentIdRevisionsErrors];
+export type PostOrganisationsByIdGatewaysError = PostOrganisationsByIdGatewaysErrors[keyof PostOrganisationsByIdGatewaysErrors];
 
-export type PostOrganisationsByIdAgentsByAgentIdRevisionsResponses = {
+export type PostOrganisationsByIdGatewaysResponses = {
     /**
-     * The candidate revision
+     * The new gateway
      */
-    201: Revision;
+    201: Gateway;
 };
 
-export type PostOrganisationsByIdAgentsByAgentIdRevisionsResponse = PostOrganisationsByIdAgentsByAgentIdRevisionsResponses[keyof PostOrganisationsByIdAgentsByAgentIdRevisionsResponses];
+export type PostOrganisationsByIdGatewaysResponse = PostOrganisationsByIdGatewaysResponses[keyof PostOrganisationsByIdGatewaysResponses];
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdData = {
+export type DeleteOrganisationsByIdGatewaysByGatewayIdData = {
     body?: never;
     path: {
         /**
@@ -2489,19 +2463,73 @@ export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdData = {
          */
         id: string;
         /**
-         * The agent.
+         * The gateway.
          */
-        agentId: string;
-        /**
-         * The configuration revision.
-         */
-        revisionId: string;
+        gatewayId: string;
     };
     query?: never;
-    url: '/organisations/{id}/agents/{agentId}/revisions/{revisionId}';
+    url: '/organisations/{id}/gateways/{gatewayId}';
 };
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors = {
+export type DeleteOrganisationsByIdGatewaysByGatewayIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The resource is still used by another resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdGatewaysByGatewayIdError = DeleteOrganisationsByIdGatewaysByGatewayIdErrors[keyof DeleteOrganisationsByIdGatewaysByGatewayIdErrors];
+
+export type DeleteOrganisationsByIdGatewaysByGatewayIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdGatewaysByGatewayIdResponse = DeleteOrganisationsByIdGatewaysByGatewayIdResponses[keyof DeleteOrganisationsByIdGatewaysByGatewayIdResponses];
+
+export type GetOrganisationsByIdGatewaysByGatewayIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The gateway.
+         */
+        gatewayId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/gateways/{gatewayId}';
+};
+
+export type GetOrganisationsByIdGatewaysByGatewayIdErrors = {
     /**
      * The request is malformed
      */
@@ -2524,23 +2552,41 @@ export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors = {
     503: Error;
 };
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdError = GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors];
+export type GetOrganisationsByIdGatewaysByGatewayIdError = GetOrganisationsByIdGatewaysByGatewayIdErrors[keyof GetOrganisationsByIdGatewaysByGatewayIdErrors];
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses = {
+export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
     /**
-     * The revision
+     * The gateway
      */
-    200: Revision;
+    200: Gateway;
 };
 
-export type GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponse = GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses[keyof GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses];
+export type GetOrganisationsByIdGatewaysByGatewayIdResponse = GetOrganisationsByIdGatewaysByGatewayIdResponses[keyof GetOrganisationsByIdGatewaysByGatewayIdResponses];
 
-export type PutOrganisationsByIdAgentsByAgentIdServedRevisionData = {
+export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
     body: {
         /**
-         * A revision of this agent without errors.
+         * The gateway name.
          */
-        revisionId: string;
+        name?: string;
+        /**
+         * The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.
+         */
+        kind?: string;
+        /**
+         * A network of the organisation, or null for the internet.
+         */
+        networkId?: string | null;
+        /**
+         * The protocols the gateway accepts streams by.
+         */
+        protocols?: Array<string>;
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        settings?: {
+            [key: string]: Schema0;
+        };
     };
     path: {
         /**
@@ -2548,15 +2594,15 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionData = {
          */
         id: string;
         /**
-         * The agent.
+         * The gateway.
          */
-        agentId: string;
+        gatewayId: string;
     };
     query?: never;
-    url: '/organisations/{id}/agents/{agentId}/served-revision';
+    url: '/organisations/{id}/gateways/{gatewayId}';
 };
 
-export type PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors = {
+export type PatchOrganisationsByIdGatewaysByGatewayIdErrors = {
     /**
      * The request is malformed
      */
@@ -2574,7 +2620,7 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors = {
      */
     404: Error;
     /**
-     * The revision has errors, so it cannot be served
+     * The resource is still used by another resource
      */
     409: Error;
     /**
@@ -2591,16 +2637,16 @@ export type PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors = {
     503: Error;
 };
 
-export type PutOrganisationsByIdAgentsByAgentIdServedRevisionError = PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors[keyof PutOrganisationsByIdAgentsByAgentIdServedRevisionErrors];
+export type PatchOrganisationsByIdGatewaysByGatewayIdError = PatchOrganisationsByIdGatewaysByGatewayIdErrors[keyof PatchOrganisationsByIdGatewaysByGatewayIdErrors];
 
-export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses = {
+export type PatchOrganisationsByIdGatewaysByGatewayIdResponses = {
     /**
-     * The agent
+     * The updated gateway
      */
-    200: Agent;
+    200: Gateway;
 };
 
-export type PutOrganisationsByIdAgentsByAgentIdServedRevisionResponse = PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses[keyof PutOrganisationsByIdAgentsByAgentIdServedRevisionResponses];
+export type PatchOrganisationsByIdGatewaysByGatewayIdResponse = PatchOrganisationsByIdGatewaysByGatewayIdResponses[keyof PatchOrganisationsByIdGatewaysByGatewayIdResponses];
 
 export type GetOrganisationsByIdStreamsData = {
     body?: never;
@@ -2894,13 +2940,21 @@ export type PatchOrganisationsByIdStreamsByStreamIdResponse = PatchOrganisations
 export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
     body: {
         /**
-         * A network of the organisation, or null for the internet.
+         * The gateway the stream is delivered to.
          */
-        networkId?: string | null;
+        gatewayId: string;
         /**
-         * The delivery protocol, such as `moq` or `rtsp`.
+         * One of the protocols the gateway accepts.
          */
         protocol: string;
+        /**
+         * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
+         */
+        publisherDeviceId?: string | null;
+        /**
+         * An exposure of the same stream to publish from, or null for the stream's source device.
+         */
+        upstreamExposureId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -2958,7 +3012,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol
      */
     422: Error;
     /**
@@ -3043,13 +3097,21 @@ export type DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdRespons
 export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
     body: {
         /**
-         * A network of the organisation, or null for the internet.
+         * The gateway the stream is delivered to.
          */
-        networkId?: string | null;
+        gatewayId?: string;
         /**
-         * The delivery protocol, such as `moq` or `rtsp`.
+         * One of the protocols the gateway accepts.
          */
         protocol?: string;
+        /**
+         * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
+         */
+        publisherDeviceId?: string | null;
+        /**
+         * An exposure of the same stream to publish from, or null for the stream's source device.
+         */
+        upstreamExposureId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -3107,11 +3169,15 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors =
      */
     404: Error;
     /**
+     * The upstream exposure would lead back to this exposure
+     */
+    409: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol
      */
     422: Error;
     /**

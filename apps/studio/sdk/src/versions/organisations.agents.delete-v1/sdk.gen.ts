@@ -51,7 +51,7 @@ export class Agents extends HeyApiClient {
     /**
      * Remove an agent
      *
-     * Administrators only. Removes its device too, and its configuration revisions; its reports remain. Refused while a stream uses its device as its source.
+     * Administrators only. Removes its device too; its reports remain. Refused while a stream uses its device as its source.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;

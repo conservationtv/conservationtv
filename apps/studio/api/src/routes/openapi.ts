@@ -27,7 +27,10 @@ export const conflict = errorResponse('The change conflicts with the current sta
 export const invalidReference = errorResponse(
   'A referenced resource does not exist, is not visible to this account, or belongs to another organisation'
 );
-export const revisionHasErrors = errorResponse('The revision has errors, so it cannot be served');
+export const invalidExposureReference = errorResponse(
+  'A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol'
+);
+export const exposureCycle = errorResponse('The upstream exposure would lead back to this exposure');
 export const invalidSignature = errorResponse(
   'The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest'
 );
