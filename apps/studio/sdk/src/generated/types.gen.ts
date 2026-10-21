@@ -123,10 +123,9 @@ export type Agent = {
 export type Gateway = {
     gateways: Array<{
         id: 'conservationtv';
-        builtin: boolean;
+        builtin: true;
         name: string;
-        kind: 'moq-relay';
-        protocols: Array<string>;
+        kind: string;
         networkId: null;
         settings: {
             [key: string]: unknown;
@@ -138,7 +137,6 @@ export type Gateway = {
         name: string;
         kind: string;
         networkId: string | null;
-        protocols: Array<string>;
         settings: {
             [key: string]: unknown;
         };
@@ -153,18 +151,12 @@ export type Stream = {
     sourceDeviceId: string | null;
     exposures: Array<{
         params: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                bitrate?: number;
-            }>;
             [key: string]: unknown;
         };
         id: string;
         createdAt: string;
         gatewayId: string;
-        protocol: string;
+        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         publisherDeviceId: string | null;
         upstreamExposureId: string | null;
     }>;
@@ -176,22 +168,17 @@ export type Stream = {
         createdAt: string;
         kind: string;
         exposureId: string;
+        rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
     }>;
 };
 
 export type Exposure = {
     id: string;
     gatewayId: string;
-    protocol: string;
+    renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
     publisherDeviceId: string | null;
     upstreamExposureId: string | null;
     params: {
-        renditions?: Array<{
-            id: string;
-            width?: number;
-            height?: number;
-            bitrate?: number;
-        }>;
         [key: string]: unknown;
     };
     createdAt: string;
@@ -200,6 +187,7 @@ export type Exposure = {
 export type Recorder = {
     id: string;
     exposureId: string;
+    rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
     kind: string;
     params: {
         [key: string]: unknown;
@@ -2431,17 +2419,13 @@ export type PostOrganisationsByIdGatewaysData = {
          */
         name: string;
         /**
-         * The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.
+         * The gateway implementation, such as `mediamtx`.
          */
-        kind: string;
+        kind: 'mediamtx';
         /**
          * A network of the organisation, or null for the internet.
          */
         networkId?: string | null;
-        /**
-         * The protocols the gateway accepts streams by.
-         */
-        protocols: Array<string>;
         /**
          * Settings validated by the implementation that reads them.
          */
@@ -2477,7 +2461,7 @@ export type PostOrganisationsByIdGatewaysErrors = {
      */
     412: Error;
     /**
-     * The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings
+     * The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads
      */
     422: Error;
     /**
@@ -2498,7 +2482,6 @@ export type PostOrganisationsByIdGatewaysResponses = {
         name: string;
         kind: string;
         networkId: string | null;
-        protocols: Array<string>;
         settings: {
             [key: string]: unknown;
         };
@@ -2613,10 +2596,9 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
      */
     200: {
         id: 'conservationtv';
-        builtin: boolean;
+        builtin: true;
         name: string;
-        kind: 'moq-relay';
-        protocols: Array<string>;
+        kind: string;
         networkId: null;
         settings: {
             [key: string]: unknown;
@@ -2628,7 +2610,6 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
         name: string;
         kind: string;
         networkId: string | null;
-        protocols: Array<string>;
         settings: {
             [key: string]: unknown;
         };
@@ -2645,17 +2626,13 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
          */
         name?: string;
         /**
-         * The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.
+         * The gateway implementation, such as `mediamtx`.
          */
-        kind?: string;
+        kind?: 'mediamtx';
         /**
          * A network of the organisation, or null for the internet.
          */
         networkId?: string | null;
-        /**
-         * The protocols the gateway accepts streams by.
-         */
-        protocols?: Array<string>;
         /**
          * Settings validated by the implementation that reads them.
          */
@@ -2695,15 +2672,11 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdErrors = {
      */
     404: Error;
     /**
-     * The resource is still used by another resource
-     */
-    409: Error;
-    /**
      * The selected operation version is not served
      */
     412: Error;
     /**
-     * The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings
+     * The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads
      */
     422: Error;
     /**
@@ -2724,7 +2697,6 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdResponses = {
         name: string;
         kind: string;
         networkId: string | null;
-        protocols: Array<string>;
         settings: {
             [key: string]: unknown;
         };
@@ -3030,9 +3002,9 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
          */
         gatewayId: 'conservationtv' | string;
         /**
-         * One of the protocols the gateway accepts.
+         * The renditions the exposure offers.
          */
-        protocol: string;
+        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */
@@ -3042,24 +3014,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
          */
         upstreamExposureId?: string | null;
         params?: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }>;
-            [key: string]: Schema0 | Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }> | undefined;
+            [key: string]: Schema0;
         };
     };
     path: {
@@ -3098,7 +3053,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not
      */
     422: Error;
     /**
@@ -3187,9 +3142,9 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
          */
         gatewayId?: 'conservationtv' | string;
         /**
-         * One of the protocols the gateway accepts.
+         * The renditions the exposure offers.
          */
-        protocol?: string;
+        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */
@@ -3199,24 +3154,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
          */
         upstreamExposureId?: string | null;
         params?: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }>;
-            [key: string]: Schema0 | Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }> | undefined;
+            [key: string]: Schema0;
         };
     };
     path: {
@@ -3255,7 +3193,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors =
      */
     404: Error;
     /**
-     * The upstream exposure would lead back to this exposure
+     * The upstream exposure would lead back to this exposure, or it would stop offering a rendition an exposure downstream of it or a recorder uses
      */
     409: Error;
     /**
@@ -3263,7 +3201,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors =
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not
      */
     422: Error;
     /**
@@ -3289,6 +3227,14 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
          * Whether to read the exposure from its gateway, or publish it there.
          */
         action: 'read' | 'publish';
+        /**
+         * One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.
+         */
+        protocol: string;
+        /**
+         * The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.
+         */
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
     };
     path: {
         /**
@@ -3330,7 +3276,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
      */
     412: Error;
     /**
-     * Connections to the exposure's gateway are not made through this API, or it cannot do that by the exposure's protocol
+     * Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen
      */
     422: Error;
     /**
@@ -3351,11 +3297,13 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
         path: string;
         token?: string;
         expiresAt?: string;
+        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
     } | {
         protocol: string;
         url: string;
         token?: string;
         expiresAt?: string;
+        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
     };
 };
 
@@ -3367,6 +3315,10 @@ export type PostOrganisationsByIdStreamsByStreamIdRecordersData = {
          * The exposure of this stream to record.
          */
         exposureId: string;
+        /**
+         * The rendition of the exposure to record: one it offers.
+         */
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
         /**
          * The recording implementation.
          */
@@ -3414,7 +3366,7 @@ export type PostOrganisationsByIdStreamsByStreamIdRecordersErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition
      */
     422: Error;
     /**
@@ -3499,6 +3451,10 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdData = {
          */
         exposureId?: string;
         /**
+         * The rendition of the exposure to record: one it offers.
+         */
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
+        /**
          * The recording implementation.
          */
         kind?: string;
@@ -3549,7 +3505,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors =
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition
      */
     422: Error;
     /**

@@ -2,6 +2,7 @@ import { SignJWT } from 'jose';
 import { z } from 'zod';
 import { ApiFailure } from '../errors.ts';
 import { useEnvironment } from '../env/env.ts';
+import type { Rendition } from '../topology/settings.ts';
 import { CONNECTION_LIFETIME_SECONDS, provider, type ConnectionAction, type ConnectionRequest } from './provider.ts';
 import { GATEWAY_SIGNING_ALGORITHM } from './keys.ts';
 
@@ -19,21 +20,26 @@ import { GATEWAY_SIGNING_ALGORITHM } from './keys.ts';
 const MEDIAMTX_PROTOCOLS = ['webrtc', 'rtsp', 'rtsps', 'rtmp', 'rtmps', 'hls'] as const;
 type MediamtxProtocol = (typeof MEDIAMTX_PROTOCOLS)[number];
 
+// Every MediaMTX protocol carries one path per connection, so each rendition is a path of its own. HLS serves each
+// path's playlist on its own, with no master playlist across paths.
+const INGEST = { webrtc: 'paths', rtsp: 'paths', rtsps: 'paths', rtmp: 'paths', rtmps: 'paths' } as const;
+const EGRESS = { ...INGEST, hls: 'paths' } as const;
+
 /** Where each of the gateway's protocols' servers listens, as its network reaches them. */
 const MediamtxSettingsSchema = z.strictObject({ urls: z.partialRecord(z.enum(MEDIAMTX_PROTOCOLS), z.url()) });
 type MediamtxSettings = z.output<typeof MediamtxSettingsSchema>;
 
-/** The MediaMTX path an exposure is served at: the configuration builders name it the same. */
-export const mediamtxPath = (exposureId: string) => exposureId;
+/** The MediaMTX path an exposure's rendition is served at: the configuration builders name it the same. */
+export const mediamtxPath = (exposureId: string, rendition: Rendition) => `${exposureId}/${rendition}`;
 
-/** Where to read or publish the path by the protocol, under its server's URL; `undefined` where MediaMTX cannot. */
+/** Where to read or publish the path by the protocol, under its server's URL. */
 function endpoint(protocol: MediamtxProtocol, base: string, path: string, action: ConnectionAction) {
   const root = base.endsWith('/') ? base : `${base}/`;
   switch (protocol) {
     case 'webrtc':
       return new URL(`${path}/${action === 'read' ? 'whep' : 'whip'}`, root).href;
     case 'hls':
-      return action === 'read' ? new URL(`${path}/index.m3u8`, root).href : undefined;
+      return new URL(`${path}/index.m3u8`, root).href;
     case 'rtsp':
     case 'rtsps':
     case 'rtmp':
@@ -59,16 +65,17 @@ async function mediamtxToken(request: ConnectionRequest, path: string, issuedAt:
 
 export const mediamtx = provider.organisation({
   name: 'MediaMTX',
-  protocols: MEDIAMTX_PROTOCOLS,
+  ingest: INGEST,
+  egress: EGRESS,
   settings: MediamtxSettingsSchema,
   connect: async request => {
-    const { protocol } = request.exposure;
+    const { protocol } = request;
     const urls: MediamtxSettings['urls'] = request.settings.urls;
     const base = urls[protocol];
     if (base === undefined) throw new ApiFailure('gateway_unavailable', { cause: `No ${protocol} URL is configured` });
-    const path = mediamtxPath(request.exposure.id);
+    // Every MediaMTX protocol carries `paths`, so the request always names its rendition.
+    const path = mediamtxPath(request.exposure.id, request.rendition!);
     const url = endpoint(protocol, base, path, request.action);
-    if (url === undefined) throw new ApiFailure('unsupported_action');
     const environment = useEnvironment();
     const issuedAt = Math.floor(environment.clock() / 1000);
     const expiresAt = issuedAt + CONNECTION_LIFETIME_SECONDS;

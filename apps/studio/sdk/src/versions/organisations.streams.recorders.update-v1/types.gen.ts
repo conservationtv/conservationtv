@@ -16,6 +16,7 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 export type Recorder = {
     id: string;
     exposureId: string;
+    rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
     kind: string;
     params: {
         [key: string]: unknown;
@@ -29,6 +30,10 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdData = {
          * The exposure of this stream to record.
          */
         exposureId?: string;
+        /**
+         * The rendition of the exposure to record: one it offers.
+         */
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
         /**
          * The recording implementation.
          */
@@ -80,7 +85,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors =
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition
      */
     422: Error;
     /**

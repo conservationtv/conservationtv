@@ -51,12 +51,13 @@ export class Recorders extends HeyApiClient {
     /**
      * Record a stream
      *
-     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.
+     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway, and records one of the renditions it offers.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         exposureId: string;
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
         kind: string;
         params?: {
             [key: string]: Schema0;
@@ -66,6 +67,7 @@ export class Recorders extends HeyApiClient {
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
                     { in: 'body', key: 'exposureId' },
+                    { in: 'body', key: 'rendition' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'params' }
                 ] }]);

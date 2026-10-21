@@ -139,10 +139,9 @@ export const AgentSchema = z.object({
 export const GatewaySchema = z.object({
     gateways: z.array(z.union([z.object({
             id: z.literal('conservationtv'),
-            builtin: z.boolean(),
+            builtin: z.literal(true),
             name: z.string(),
-            kind: z.literal('moq-relay'),
-            protocols: z.array(z.string()),
+            kind: z.string(),
             networkId: z.null(),
             settings: z.record(z.string(), z.unknown()),
             createdAt: z.null()
@@ -152,7 +151,6 @@ export const GatewaySchema = z.object({
             name: z.string(),
             kind: z.string(),
             networkId: z.string().nullable(),
-            protocols: z.array(z.string()),
             settings: z.record(z.string(), z.unknown()),
             createdAt: z.string()
         })]))
@@ -164,18 +162,16 @@ export const StreamSchema = z.object({
     createdAt: z.string(),
     sourceDeviceId: z.string().nullable(),
     exposures: z.array(z.object({
-        params: z.object({
-            renditions: z.array(z.object({
-                id: z.string(),
-                width: z.number().optional(),
-                height: z.number().optional(),
-                bitrate: z.number().optional()
-            })).optional()
-        }),
+        params: z.record(z.string(), z.unknown()),
         id: z.string(),
         createdAt: z.string(),
         gatewayId: z.string(),
-        protocol: z.string(),
+        renditions: z.array(z.enum([
+            'default',
+            'data_saver',
+            'balanced',
+            'quality'
+        ])),
         publisherDeviceId: z.string().nullable(),
         upstreamExposureId: z.string().nullable()
     })),
@@ -184,30 +180,40 @@ export const StreamSchema = z.object({
         id: z.string(),
         createdAt: z.string(),
         kind: z.string(),
-        exposureId: z.string()
+        exposureId: z.string(),
+        rendition: z.enum([
+            'default',
+            'data_saver',
+            'balanced',
+            'quality'
+        ])
     }))
 });
 
 export const ExposureSchema = z.object({
     id: z.string(),
     gatewayId: z.string(),
-    protocol: z.string(),
+    renditions: z.array(z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ])),
     publisherDeviceId: z.string().nullable(),
     upstreamExposureId: z.string().nullable(),
-    params: z.object({
-        renditions: z.array(z.object({
-            id: z.string(),
-            width: z.number().optional(),
-            height: z.number().optional(),
-            bitrate: z.number().optional()
-        })).optional()
-    }),
+    params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
 });
 
 export const RecorderSchema = z.object({
     id: z.string(),
     exposureId: z.string(),
+    rendition: z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]),
     kind: z.string(),
     params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
@@ -1101,15 +1107,10 @@ export const PostOrganisationsByIdGatewaysBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The gateway name.'
     }),
-    kind: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'
+    kind: z.enum(['mediamtx']).register(z.globalRegistry, {
+        description: 'The gateway implementation, such as `mediamtx`.'
     }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    protocols: z.array(z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'A delivery protocol, such as `moq` or `rtsp`.'
-    })).min(1).max(16).register(z.globalRegistry, {
-        description: 'The protocols the gateway accepts streams by.'
-    }),
     settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
         description: 'Settings validated by the implementation that reads them.'
     }).optional().default({})
@@ -1130,7 +1131,6 @@ export const PostOrganisationsByIdGatewaysResponseSchema = z.object({
     name: z.string(),
     kind: z.string(),
     networkId: z.string().nullable(),
-    protocols: z.array(z.string()),
     settings: z.record(z.string(), z.unknown()),
     createdAt: z.string()
 }).register(z.globalRegistry, {
@@ -1170,10 +1170,9 @@ export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
 export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
     z.object({
         id: z.literal('conservationtv'),
-        builtin: z.boolean(),
+        builtin: z.literal(true),
         name: z.string(),
-        kind: z.literal('moq-relay'),
-        protocols: z.array(z.string()),
+        kind: z.string(),
         networkId: z.null(),
         settings: z.record(z.string(), z.unknown()),
         createdAt: z.null()
@@ -1184,7 +1183,6 @@ export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
         name: z.string(),
         kind: z.string(),
         networkId: z.string().nullable(),
-        protocols: z.array(z.string()),
         settings: z.record(z.string(), z.unknown()),
         createdAt: z.string()
     })
@@ -1194,15 +1192,10 @@ export const PatchOrganisationsByIdGatewaysByGatewayIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The gateway name.'
     }).optional(),
-    kind: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'
+    kind: z.enum(['mediamtx']).register(z.globalRegistry, {
+        description: 'The gateway implementation, such as `mediamtx`.'
     }).optional(),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    protocols: z.array(z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'A delivery protocol, such as `moq` or `rtsp`.'
-    })).min(1).max(16).register(z.globalRegistry, {
-        description: 'The protocols the gateway accepts streams by.'
-    }).optional(),
     settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
         description: 'Settings validated by the implementation that reads them.'
     }).optional()
@@ -1227,7 +1220,6 @@ export const PatchOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.object(
     name: z.string(),
     kind: z.string(),
     networkId: z.string().nullable(),
-    protocols: z.array(z.string()),
     settings: z.record(z.string(), z.unknown()),
     createdAt: z.string()
 }).register(z.globalRegistry, {
@@ -1342,21 +1334,19 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.objec
         z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]),
-    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'One of the protocols the gateway accepts.'
-    }),
+    renditions: z.array(z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]).register(z.globalRegistry, {
+        description: 'A quality the stream is delivered at.'
+    })).min(1).register(z.globalRegistry, {
+        description: 'The renditions the exposure offers.'
+    }).optional().default(['default']),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
     upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    params: z.object({
-        renditions: z.array(z.object({
-            id: z.string().min(1).max(60),
-            width: z.int().gt(0).lte(16384).optional(),
-            height: z.int().gt(0).lte(16384).optional(),
-            bitrate: z.int().gt(0).lte(9007199254740991).register(z.globalRegistry, {
-                description: 'Bits per second.'
-            }).optional()
-        })).max(16).optional()
-    }).optional().default({})
+    params: z.record(z.string(), Schema0Schema).optional().default({})
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema = z.object({
@@ -1397,21 +1387,19 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySch
         z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]).optional(),
-    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'One of the protocols the gateway accepts.'
+    renditions: z.array(z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]).register(z.globalRegistry, {
+        description: 'A quality the stream is delivered at.'
+    })).min(1).register(z.globalRegistry, {
+        description: 'The renditions the exposure offers.'
     }).optional(),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    params: z.object({
-        renditions: z.array(z.object({
-            id: z.string().min(1).max(60),
-            width: z.int().gt(0).lte(16384).optional(),
-            height: z.int().gt(0).lte(16384).optional(),
-            bitrate: z.int().gt(0).lte(9007199254740991).register(z.globalRegistry, {
-                description: 'Bits per second.'
-            }).optional()
-        })).max(16).optional()
-    }).optional()
+    params: z.record(z.string(), Schema0Schema).optional()
 });
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema = z.object({
@@ -1434,7 +1422,18 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdRespons
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema = z.object({
     action: z.enum(['read', 'publish']).register(z.globalRegistry, {
         description: 'Whether to read the exposure from its gateway, or publish it there.'
-    })
+    }),
+    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'
+    }),
+    rendition: z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]).register(z.globalRegistry, {
+        description: 'The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.'
+    }).optional()
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema = z.object({
@@ -1458,13 +1457,25 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
         relay: z.string(),
         path: z.string(),
         token: z.string().optional(),
-        expiresAt: z.string().optional()
+        expiresAt: z.string().optional(),
+        renditions: z.array(z.enum([
+            'default',
+            'data_saver',
+            'balanced',
+            'quality'
+        ]))
     }),
     z.object({
         protocol: z.string(),
         url: z.string(),
         token: z.string().optional(),
-        expiresAt: z.string().optional()
+        expiresAt: z.string().optional(),
+        renditions: z.array(z.enum([
+            'default',
+            'data_saver',
+            'balanced',
+            'quality'
+        ]))
     })
 ]);
 
@@ -1472,6 +1483,14 @@ export const PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema = z.objec
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The exposure of this stream to record.'
     }),
+    rendition: z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]).register(z.globalRegistry, {
+        description: 'The rendition of the exposure to record: one it offers.'
+    }).optional().default('default'),
     kind: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The recording implementation.'
     }),
@@ -1516,6 +1535,14 @@ export const DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdRespon
 export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema = z.object({
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The exposure of this stream to record.'
+    }).optional(),
+    rendition: z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]).register(z.globalRegistry, {
+        description: 'The rendition of the exposure to record: one it offers.'
     }).optional(),
     kind: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The recording implementation.'

@@ -6,8 +6,14 @@ import { gateways } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
-import { checkGatewayUnused, checkProtocolsInUse } from '../topology/exposures.ts';
-import { BUILTIN_GATEWAY_IDS, builtinGateways, checkGatewayKind, isBuiltinGateway } from '../gateways/index.ts';
+import { checkGatewayUnused } from '../topology/exposures.ts';
+import {
+  BUILTIN_GATEWAY_IDS,
+  builtinGateways,
+  checkGatewaySettings,
+  GATEWAY_KIND_IDS,
+  isBuiltinGateway
+} from '../gateways/index.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
@@ -33,42 +39,22 @@ export type GatewayParams = z.output<typeof GatewayParamsSchema>;
 
 const GatewayNameSchema = z.string().trim().min(1).max(120).describe('The gateway name.');
 export type GatewayName = z.output<typeof GatewayNameSchema>;
-const GatewayKindSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(60)
-  .describe('The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.');
+const GatewayKindSchema = z.enum(GATEWAY_KIND_IDS).describe('The gateway implementation, such as `mediamtx`.');
 export type GatewayKind = z.output<typeof GatewayKindSchema>;
-export const ProtocolSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(60)
-  .describe('A delivery protocol, such as `moq` or `rtsp`.');
-export type Protocol = z.output<typeof ProtocolSchema>;
-const ProtocolsSchema = z
-  .array(ProtocolSchema)
-  .min(1)
-  .max(16)
-  .refine(protocols => new Set(protocols).size === protocols.length, 'Protocols must be unique')
-  .describe('The protocols the gateway accepts streams by.');
-export type Protocols = z.output<typeof ProtocolsSchema>;
 
 const GatewayChangesSchema = z
   .strictObject({
     name: GatewayNameSchema.optional(),
     kind: GatewayKindSchema.optional(),
     networkId: NetworkReferenceSchema.optional(),
-    protocols: ProtocolsSchema.optional(),
     settings: SettingsSchema.optional()
   })
   .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change');
 type GatewayChanges = z.output<typeof GatewayChangesSchema>;
 
-/** Whether a change touches what the gateway's kind serves it by: the kind itself, its protocols or its settings. */
+/** Whether a change touches what the gateway's kind reads: the kind itself, or its settings. */
 function changesProvision(changes: GatewayChanges) {
-  return changes.kind !== undefined || changes.protocols !== undefined || changes.settings !== undefined;
+  return changes.kind !== undefined || changes.settings !== undefined;
 }
 
 const gatewayColumns = {
@@ -77,7 +63,6 @@ const gatewayColumns = {
   name: gateways.name,
   kind: gateways.kind,
   networkId: gateways.networkId,
-  protocols: gateways.protocols,
   settings: gateways.settings,
   createdAt: gateways.createdAt
 };
@@ -130,7 +115,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Add a gateway',
       description:
-        'Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.',
+        'Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.',
       responses: {
         201: { description: 'The new gateway' },
         400: invalidRequest,
@@ -149,7 +134,6 @@ export default new Hono()
         name: GatewayNameSchema,
         kind: GatewayKindSchema,
         networkId: NetworkReferenceSchema.default(null),
-        protocols: ProtocolsSchema,
         settings: SettingsSchema.default({})
       })
     ),
@@ -167,11 +151,10 @@ export default new Hono()
             name: body.name,
             kind: body.kind,
             networkId: body.networkId,
-            protocols: body.protocols,
             settings: body.settings
           })
           .returning(gatewayColumns);
-        checkGatewayKind(gateway!.kind, gateway!.protocols, gateway!.settings);
+        checkGatewaySettings(gateway!.kind, gateway!.settings);
         return gateway!;
       });
       c.header('Cache-Control', 'no-store');
@@ -224,14 +207,13 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a gateway',
       description:
-        'Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.',
+        'Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.',
       responses: {
         200: { description: 'The updated gateway' },
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
         404: notFound,
-        409: inUse,
         412: versionMismatch,
         422: invalidGateway,
         503: unavailable
@@ -254,14 +236,12 @@ export default new Hono()
             name: body.name,
             kind: body.kind,
             networkId: body.networkId,
-            protocols: body.protocols,
             settings: body.settings
           })
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
           .returning(gatewayColumns);
         if (!gateway) throw await unchanged(tx, gateways.id, gatewayId);
-        if (body.protocols !== undefined) await checkProtocolsInUse(tx, gatewayId, body.protocols);
-        if (changesProvision(body)) checkGatewayKind(gateway.kind, gateway.protocols, gateway.settings);
+        if (changesProvision(body)) checkGatewaySettings(gateway.kind, gateway.settings);
         return gateway;
       });
       c.header('Cache-Control', 'no-store');

@@ -51,19 +51,23 @@ export class Exposures extends HeyApiClient {
     /**
      * Connect to an exposure
      *
-     * Where to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.
+     * Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.
      */
     public connect<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         exposureId: string;
         action: 'read' | 'publish';
+        protocol: string;
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
                     { in: 'path', key: 'exposureId' },
-                    { in: 'body', key: 'action' }
+                    { in: 'body', key: 'action' },
+                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'rendition' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, ThrowOnError>({
             url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections',

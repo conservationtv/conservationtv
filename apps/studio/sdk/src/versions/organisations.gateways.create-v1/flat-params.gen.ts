@@ -7,9 +7,8 @@ import { PostOrganisationsByIdGatewaysBodySchema, PostOrganisationsByIdGatewaysP
 export const GatewayCreateV1ParamsSchema = z.object({
     id: PostOrganisationsByIdGatewaysPathSchema.shape.id.nonoptional().describe('The organisation.'),
     name: PostOrganisationsByIdGatewaysBodySchema.shape.name.nonoptional().describe('The gateway name.'),
-    kind: PostOrganisationsByIdGatewaysBodySchema.shape.kind.nonoptional().describe('The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'),
+    kind: PostOrganisationsByIdGatewaysBodySchema.shape.kind.nonoptional().describe('The gateway implementation, such as `mediamtx`.'),
     networkId: PostOrganisationsByIdGatewaysBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    protocols: PostOrganisationsByIdGatewaysBodySchema.shape.protocols.nonoptional().describe('The protocols the gateway accepts streams by.'),
     settings: PostOrganisationsByIdGatewaysBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
 });
 

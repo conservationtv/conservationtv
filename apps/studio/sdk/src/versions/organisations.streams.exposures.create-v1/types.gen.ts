@@ -16,16 +16,10 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 export type Exposure = {
     id: string;
     gatewayId: string;
-    protocol: string;
+    renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
     publisherDeviceId: string | null;
     upstreamExposureId: string | null;
     params: {
-        renditions?: Array<{
-            id: string;
-            width?: number;
-            height?: number;
-            bitrate?: number;
-        }>;
         [key: string]: unknown;
     };
     createdAt: string;
@@ -38,9 +32,9 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
          */
         gatewayId: 'conservationtv' | string;
         /**
-         * One of the protocols the gateway accepts.
+         * The renditions the exposure offers.
          */
-        protocol: string;
+        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */
@@ -50,24 +44,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
          */
         upstreamExposureId?: string | null;
         params?: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }>;
-            [key: string]: Schema0 | Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }> | undefined;
+            [key: string]: Schema0;
         };
     };
     path: {
@@ -106,7 +83,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not
      */
     422: Error;
     /**

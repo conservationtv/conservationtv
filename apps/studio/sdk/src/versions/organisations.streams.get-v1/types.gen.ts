@@ -16,18 +16,12 @@ export type Stream = {
     sourceDeviceId: string | null;
     exposures: Array<{
         params: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                bitrate?: number;
-            }>;
             [key: string]: unknown;
         };
         id: string;
         createdAt: string;
         gatewayId: string;
-        protocol: string;
+        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         publisherDeviceId: string | null;
         upstreamExposureId: string | null;
     }>;
@@ -39,6 +33,7 @@ export type Stream = {
         createdAt: string;
         kind: string;
         exposureId: string;
+        rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
     }>;
 };
 

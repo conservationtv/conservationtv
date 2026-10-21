@@ -8,9 +8,8 @@ export const GatewayUpdateV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdGatewaysByGatewayIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     gatewayId: PatchOrganisationsByIdGatewaysByGatewayIdPathSchema.shape.gatewayId.nonoptional().describe('The gateway.'),
     name: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.name.optional().describe('The gateway name.'),
-    kind: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.kind.optional().describe('The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'),
+    kind: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.kind.optional().describe('The gateway implementation, such as `mediamtx`.'),
     networkId: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    protocols: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.protocols.optional().describe('The protocols the gateway accepts streams by.'),
     settings: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
 });
 

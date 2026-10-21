@@ -481,8 +481,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('create', { description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.' }).command('v1', {
-        description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.',
+    })).command(Cli.create('create', { description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.' }).command('v1', {
+        description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.',
         options: cliOptions(GatewayCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -517,8 +517,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.' }).command('v1', {
-        description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.',
+    })).command(Cli.create('update', { description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.' }).command('v1', {
+        description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.',
         options: cliOptions(GatewayUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -589,8 +589,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('exposures').command(Cli.create('create', { description: 'Expose a stream\n\nAdministrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.' }).command('v1', {
-        description: 'Expose a stream\n\nAdministrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.',
+    })).command(Cli.create('exposures').command(Cli.create('create', { description: 'Expose a stream\n\nAdministrators only. Declares how the stream is delivered: to which gateway, by which publisher from which upstream, offering which renditions (at most those its upstream offers). The gateway decides the protocols it is read by.' }).command('v1', {
+        description: 'Expose a stream\n\nAdministrators only. Declares how the stream is delivered: to which gateway, by which publisher from which upstream, offering which renditions (at most those its upstream offers). The gateway decides the protocols it is read by.',
         options: cliOptions(ExposureCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -613,8 +613,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update an exposure\n\nAdministrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.' }).command('v1', {
-        description: 'Update an exposure\n\nAdministrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.',
+    })).command(Cli.create('update', { description: 'Update an exposure\n\nAdministrators only. Changes only the fields given; `renditions` and `params` are replaced whole. Refused if its upstream would lead back to it, if it would offer a rendition its upstream does not, or stop offering one an exposure downstream of it or a recorder uses.' }).command('v1', {
+        description: 'Update an exposure\n\nAdministrators only. Changes only the fields given; `renditions` and `params` are replaced whole. Refused if its upstream would lead back to it, if it would offer a rendition its upstream does not, or stop offering one an exposure downstream of it or a recorder uses.',
         options: cliOptions(ExposureUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -625,8 +625,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('connect', { description: 'Connect to an exposure\n\nWhere to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures\' upstreams.' }).command('v1', {
-        description: 'Connect to an exposure\n\nWhere to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures\' upstreams.',
+    })).command(Cli.create('connect', { description: 'Connect to an exposure\n\nWhere to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures\' upstreams.' }).command('v1', {
+        description: 'Connect to an exposure\n\nWhere to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures\' upstreams.',
         options: cliOptions(ExposureConnectV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -637,8 +637,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    }))).command(Cli.create('recorders').command(Cli.create('create', { description: 'Record a stream\n\nAdministrators only. Recording is always backed by one of the stream\'s exposures, which supplies its gateway and protocol.' }).command('v1', {
-        description: 'Record a stream\n\nAdministrators only. Recording is always backed by one of the stream\'s exposures, which supplies its gateway and protocol.',
+    }))).command(Cli.create('recorders').command(Cli.create('create', { description: 'Record a stream\n\nAdministrators only. Recording is always backed by one of the stream\'s exposures, which supplies its gateway, and records one of the renditions it offers.' }).command('v1', {
+        description: 'Record a stream\n\nAdministrators only. Recording is always backed by one of the stream\'s exposures, which supplies its gateway, and records one of the renditions it offers.',
         options: cliOptions(RecorderCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

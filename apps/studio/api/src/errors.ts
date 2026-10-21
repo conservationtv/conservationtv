@@ -22,7 +22,12 @@ const categories = {
     status: 422,
     description: 'A referenced resource does not exist, is not visible to you, or belongs to another organisation.'
   },
-  unsupported_protocol: { status: 422, description: 'The gateway does not accept that protocol.' },
+  unsupported_protocol: { status: 422, description: 'The gateway is not read or published by that protocol.' },
+  rendition_not_offered: { status: 422, description: 'The exposure does not offer that rendition.' },
+  rendition_required: {
+    status: 422,
+    description: 'The exposure offers several renditions, and the protocol carries one: choose which.'
+  },
   invalid_settings: {
     status: 422,
     description: 'The settings are not what a gateway of that kind is registered with.'
@@ -34,7 +39,6 @@ const categories = {
   database_unavailable: { status: 503, description: 'The database is unavailable.' },
   relay_unavailable: { status: 503, description: 'The relay cannot admit the device right now.' },
   unsupported_gateway: { status: 422, description: 'Connections to that gateway are not made through this API.' },
-  unsupported_action: { status: 422, description: 'The gateway cannot do that by the exposure’s protocol.' },
   gateway_unavailable: { status: 503, description: 'The gateway cannot be connected to right now.' }
 } satisfies Record<string, ErrorCategory>;
 

@@ -43,7 +43,9 @@ async function moqToken(request: ConnectionRequest, path: string) {
 export const conservationtv = provider.builtin({
   name: 'conservation.tv',
   kind: 'moq-relay',
-  protocols: ['moq'],
+  // One broadcast carries every rendition of the exposure, as tracks.
+  ingest: { moq: 'tracks' },
+  egress: { moq: 'tracks' },
   connect: async request => {
     const environment = useEnvironment();
     const path = moqPath(request.organisationId, request.exposure.id);
