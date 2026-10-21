@@ -97,8 +97,7 @@ export const relations = defineRelations(schema, r => ({
   },
   gateways: {
     organisation: r.one.organisations({ from: r.gateways.organisationId, to: r.organisations.id }),
-    network: r.one.networks({ from: r.gateways.networkId, to: r.networks.id }),
-    exposures: r.many.exposures({ from: r.gateways.id, to: r.exposures.gatewayId })
+    network: r.one.networks({ from: r.gateways.networkId, to: r.networks.id })
   },
   browsers: {
     organisation: r.one.organisations({ from: r.browsers.organisationId, to: r.organisations.id }),
@@ -119,7 +118,6 @@ export const relations = defineRelations(schema, r => ({
   exposures: {
     organisation: r.one.organisations({ from: r.exposures.organisationId, to: r.organisations.id }),
     stream: r.one.streams({ from: r.exposures.streamId, to: r.streams.id }),
-    gateway: r.one.gateways({ from: r.exposures.gatewayId, to: r.gateways.id }),
     publisherDevice: r.one.devices({ from: r.exposures.publisherDeviceId, to: r.devices.id }),
     upstream: r.one.exposures({
       from: r.exposures.upstreamExposureId,

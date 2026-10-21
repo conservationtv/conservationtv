@@ -15,6 +15,7 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 
 export type Gateway = {
     id: string;
+    builtin: boolean;
     name: string;
     kind: string;
     networkId: string | null;
@@ -58,7 +59,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';

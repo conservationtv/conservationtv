@@ -1,10 +1,10 @@
 {
+  "id": "d7e9d960-9f87-4738-9eaf-1116367183e3",
+  "prevIds": [
+    "540eda90-49b6-4f93-a10f-60481b335fac"
+  ],
   "version": "8",
   "dialect": "postgres",
-  "id": "ea01a176-a87a-4fdb-b6c9-45d69b6a2e71",
-  "prevIds": [
-    "da7c0109-9f96-48da-adda-19d9a6efc698"
-  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -1745,7 +1745,7 @@
       "table": "exposure"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -3693,25 +3693,6 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "exposure_stream_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "exposure"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
-        "gateway_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "gateway",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "exposure_gateway_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "exposure"

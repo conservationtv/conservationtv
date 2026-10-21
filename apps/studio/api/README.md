@@ -41,7 +41,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}`    | members read, administrators write           | `organisations.cameras.*` v1                                                                             |
 | `PUT /organisations/{id}/browser`                                                           | members                                      | `organisations.browser.ensure` v1: this session's browser device, with its private key                   |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}`       | members read, administrators write           | `organisations.agents.*` v1                                                                              |
-| `GET`, `POST /organisations/{id}/gateways`; `GET`, `PATCH`, `DELETE …/gateways/{gatewayId}` | members read, administrators write           | `organisations.gateways.*` v1                                                                            |
+| `GET`, `POST /organisations/{id}/gateways`; `GET`, `PATCH`, `DELETE …/gateways/{gatewayId}` | members read, administrators write           | `organisations.gateways.*` v1: with the built-in gateways, read-only                                     |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}`    | members read, administrators write           | `organisations.streams.*` v1                                                                             |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete)                    | administrators                               | `organisations.streams.exposures.*`, `.recorders.*` v1                                                   |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs`   | members                                      | `organisations.subjects.*` v1                                                                            |
@@ -249,16 +249,24 @@ A `gateway` is somewhere streams are delivered to: on a network, or (`networkId`
 RTMP ingest on the internet at a URL, or `mediamtx` on a network, which that network's active agent runs, so it fails
 over with the agent.
 
-An `exposure` delivers a stream to one gateway by one of the protocols the gateway accepts (422
-`unsupported_protocol` otherwise; a gateway cannot stop accepting a protocol an exposure uses, 409 `in_use`). Its
+Every organisation also has the built-in gateways (`src/topology/gateways.ts`), such as `conservationtv`, a MoQ relay:
+defined in code rather than stored, always on the internet, and identified by their slug. Where each one is belongs to
+the deployment, so they show no `settings`. `…/gateways` lists them first, then the organisation's own (`builtin`
+tells them apart), and reads either; changing or removing a built-in gateway is 403 `forbidden`.
+
+An `exposure` delivers a stream to one gateway, built in or the organisation's own, by one of the protocols the
+gateway accepts (422 `unsupported_protocol` otherwise; a gateway cannot stop accepting a protocol an exposure uses, 409
+`in_use`). Its `gatewayId` is therefore a slug or a UUID, and no foreign key: the code checks that it names a gateway
+of the organisation (422 `invalid_reference`), and refuses removing a gateway an exposure uses (409 `in_use`). Its
 publisher, the device that sends it there, is `publisherDeviceId` when pinned, or (null) whichever the configuration
 builders choose: the source camera itself when its capabilities allow, or an agent on its network. What it publishes
 is the stream's source, or `upstreamExposureId`, another exposure of the same stream, so exposures chain: a camera
 into MediaMTX on its network, then an agent from there to a relay on the internet. A chain cannot loop (409
 `exposure_cycle`: checked under a per-stream advisory lock, so two concurrent changes cannot each close half a loop),
-and an exposure another uses as its upstream cannot be deleted (409 `in_use`). The database checks the references;
-`src/topology/exposures.ts` checks the protocol and the chain, after the write, so row-level security has already
-refused a principal who may not make it.
+and an exposure another uses as its upstream cannot be deleted (409 `in_use`). The database checks the other references;
+`src/topology/exposures.ts` checks the gateway, its protocol and the chain, after the write, so row-level security
+has already refused a principal who may not make it, sharing the gateway's row lock so a concurrent change to it or
+its removal is serialised with the write.
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
 for it.

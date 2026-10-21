@@ -469,8 +469,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    }))).command(Cli.create('gateways').command(Cli.create('list', { description: 'List an organisation\'s gateways\n\nOptionally only those on one network. Empty for organisations you are not a member of.' }).command('v1', {
-        description: 'List an organisation\'s gateways\n\nOptionally only those on one network. Empty for organisations you are not a member of.',
+    }))).command(Cli.create('gateways').command(Cli.create('list', { description: 'List an organisation\'s gateways\n\nThe built-in gateways, then the organisation\'s own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.' }).command('v1', {
+        description: 'List an organisation\'s gateways\n\nThe built-in gateways, then the organisation\'s own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.',
         options: cliOptions(GatewayListV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -493,8 +493,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('delete', { description: 'Remove a gateway\n\nAdministrators only. Refused while exposures use it.' }).command('v1', {
-        description: 'Remove a gateway\n\nAdministrators only. Refused while exposures use it.',
+    })).command(Cli.create('delete', { description: 'Remove a gateway\n\nAdministrators only, and never a built-in gateway. Refused while exposures use it.' }).command('v1', {
+        description: 'Remove a gateway\n\nAdministrators only, and never a built-in gateway. Refused while exposures use it.',
         options: cliOptions(GatewayDeleteV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -505,8 +505,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('get', { description: 'Read a gateway' }).command('v1', {
-        description: 'Read a gateway',
+    })).command(Cli.create('get', { description: 'Read a gateway\n\nA built-in gateway, or one of the organisation\'s own.' }).command('v1', {
+        description: 'Read a gateway\n\nA built-in gateway, or one of the organisation\'s own.',
         options: cliOptions(GatewayGetV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -517,8 +517,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update a gateway\n\nAdministrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.' }).command('v1', {
-        description: 'Update a gateway\n\nAdministrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.',
+    })).command(Cli.create('update', { description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.' }).command('v1', {
+        description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.',
         options: cliOptions(GatewayUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

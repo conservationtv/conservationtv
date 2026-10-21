@@ -51,7 +51,7 @@ export class Gateways extends HeyApiClient {
     /**
      * List an organisation's gateways
      *
-     * Optionally only those on one network. Empty for organisations you are not a member of.
+     * The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;

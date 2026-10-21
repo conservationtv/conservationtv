@@ -51,11 +51,11 @@ export class Gateways extends HeyApiClient {
     /**
      * Remove a gateway
      *
-     * Administrators only. Refused while exposures use it.
+     * Administrators only, and never a built-in gateway. Refused while exposures use it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'gatewayId' }] }]);
         return (options?.client ?? this.client).delete<DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
