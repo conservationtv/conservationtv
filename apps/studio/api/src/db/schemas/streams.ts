@@ -1,9 +1,9 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
-import { foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { check, foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import type { ExposureParams, Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
-import { networks } from './networks.ts';
+import { gateways } from './gateways.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
@@ -46,9 +46,12 @@ export const streams = withAccess(
 );
 
 /**
- * How a stream is delivered: on a managed network or (`network_id` null) the internet, by a protocol, with the
- * renditions it should offer in `params`. Paths and processes that realise it are derived by the configuration
- * builders.
+ * How a stream is delivered: to a gateway, which decides where it can be read (its network, or the internet), by one
+ * of the protocols the gateway accepts, with the renditions it should offer in `params`. Its publisher is the device
+ * that sends it there: the pinned `publisher_device_id`, or (null) whichever the configuration builders choose, the
+ * source camera itself when it can or an agent on its network. What it publishes is the stream's source, or
+ * `upstream_exposure_id`'s delivery of the same stream, so exposures chain: camera, MediaMTX on its network, then a
+ * relay on the internet. An exposure another uses as its upstream cannot be deleted from under it.
  */
 export const exposures = withAccess(
   pgTable(
@@ -61,24 +64,40 @@ export const exposures = withAccess(
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
       streamId: uuid('stream_id').notNull(),
-      networkId: uuid('network_id'),
+      gatewayId: uuid('gateway_id').notNull(),
       protocol: text('protocol').notNull(),
+      publisherDeviceId: uuid('publisher_device_id'),
+      upstreamExposureId: uuid('upstream_exposure_id'),
       params: jsonb('params').$type<ExposureParams>().default({}).notNull(),
       createdAt: timestamp('created_at').defaultNow().notNull()
     },
     t => [
       unique('exposure_stream_id').on(t.streamId, t.id),
+      check('exposure_upstream_other', sql`${t.upstreamExposureId} <> ${t.id}`),
       foreignKey({
         name: 'exposure_stream_fk',
         columns: [t.organisationId, t.streamId],
         foreignColumns: [streams.organisationId, streams.id]
       }).onDelete('cascade'),
       foreignKey({
-        name: 'exposure_network_fk',
-        columns: [t.organisationId, t.networkId],
-        foreignColumns: [networks.organisationId, networks.id]
+        name: 'exposure_gateway_fk',
+        columns: [t.organisationId, t.gatewayId],
+        foreignColumns: [gateways.organisationId, gateways.id]
       }),
-      index('exposure_network_idx').on(t.networkId)
+      foreignKey({
+        name: 'exposure_publisher_device_fk',
+        columns: [t.organisationId, t.publisherDeviceId],
+        foreignColumns: [devices.organisationId, devices.id]
+      }),
+      // An upstream of the same stream; the routes refuse a chain that loops back on itself.
+      foreignKey({
+        name: 'exposure_upstream_fk',
+        columns: [t.streamId, t.upstreamExposureId],
+        foreignColumns: [t.streamId, t.id]
+      }),
+      index('exposure_gateway_idx').on(t.gatewayId),
+      index('exposure_publisher_device_idx').on(t.publisherDeviceId),
+      index('exposure_upstream_idx').on(t.upstreamExposureId)
     ]
   ),
   t => ({
@@ -91,7 +110,7 @@ export const exposures = withAccess(
 );
 
 /**
- * A recording responsibility, always backed by an exposure of its own stream: that exposure supplies the network and
+ * A recording responsibility, always backed by an exposure of its own stream: that exposure supplies the gateway and
  * protocol. An exposure a recorder uses cannot be deleted from under it.
  */
 export const recorders = withAccess(

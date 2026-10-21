@@ -22,9 +22,6 @@ export type Agent = {
         networkId: string | null;
         publicId: string;
     } | null;
-    servedRevision: {
-        id: string;
-    } | null;
 };
 
 export type GetOrganisationsByIdAgentsByAgentIdData = {

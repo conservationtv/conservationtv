@@ -6,11 +6,15 @@ import { exposures, recorders, streams } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
-import { ExposureParamsSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
+import { checkChain, checkProtocol } from '../topology/exposures.ts';
+import { ExposureParamsSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
+import { ProtocolSchema } from './gateways.ts';
 import {
+  exposureCycle,
   forbidden,
   inUse,
+  invalidExposureReference,
   invalidReference,
   invalidRequest,
   notFound,
@@ -37,15 +41,39 @@ const SourceDeviceSchema = z
   .nullable()
   .describe('The device the stream comes from, such as its camera, or null for none yet.');
 export type SourceDevice = z.output<typeof SourceDeviceSchema>;
-const ProtocolSchema = z.string().trim().min(1).max(60).describe('The delivery protocol, such as `moq` or `rtsp`.');
-export type Protocol = z.output<typeof ProtocolSchema>;
+const GatewaySchema = z.uuid().describe('The gateway the stream is delivered to.');
+export type Gateway = z.output<typeof GatewaySchema>;
+const ExposureProtocolSchema = ProtocolSchema.describe('One of the protocols the gateway accepts.');
+export type ExposureProtocol = z.output<typeof ExposureProtocolSchema>;
+const PublisherDeviceSchema = z
+  .uuid()
+  .nullable()
+  .describe('The device that publishes the exposure to its gateway, or null for whichever the system chooses.');
+export type PublisherDevice = z.output<typeof PublisherDeviceSchema>;
+const UpstreamExposureSchema = z
+  .uuid()
+  .nullable()
+  .describe("An exposure of the same stream to publish from, or null for the stream's source device.");
+export type UpstreamExposure = z.output<typeof UpstreamExposureSchema>;
 const RecorderKindSchema = z.string().trim().min(1).max(60).describe('The recording implementation.');
 export type RecorderKind = z.output<typeof RecorderKindSchema>;
 
 // An organisation's streams, with their exposures and recorders, in the principal's request session: members read
-// them, administrators manage them. A stream's source device, an exposure's network, and a recorder's
-// exposure must belong to the same organisation (and a recorder's exposure to the same stream); the database's
-// composite foreign keys refuse anything else.
+// them, administrators manage them. A stream's source device, an exposure's gateway and publisher, and a recorder's
+// exposure must belong to the same organisation (and an exposure's upstream and a recorder's exposure to the same
+// stream); the database's composite foreign keys refuse anything else. What they cannot check, an exposure's protocol
+// and its upstream chain, src/topology/exposures.ts does.
+
+const exposureColumns = {
+  id: exposures.id,
+  gatewayId: exposures.gatewayId,
+  protocol: exposures.protocol,
+  publisherDeviceId: exposures.publisherDeviceId,
+  upstreamExposureId: exposures.upstreamExposureId,
+  params: exposures.params,
+  createdAt: exposures.createdAt
+};
+
 export default new Hono()
   .get(
     '/',
@@ -159,7 +187,15 @@ export default new Hono()
           where: { organisationId: id, id: streamId },
           with: {
             exposures: {
-              columns: { id: true, networkId: true, protocol: true, params: true, createdAt: true },
+              columns: {
+                id: true,
+                gatewayId: true,
+                protocol: true,
+                publisherDeviceId: true,
+                upstreamExposureId: true,
+                params: true,
+                createdAt: true
+              },
               orderBy: { id: 'asc' }
             },
             recorders: {
@@ -266,7 +302,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Expose a stream',
       description:
-        'Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.',
+        'Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.',
       responses: {
         201: { description: 'The new exposure' },
         400: invalidRequest,
@@ -274,7 +310,7 @@ export default new Hono()
         403: forbidden,
         404: notFound,
         412: versionMismatch,
-        422: invalidReference,
+        422: invalidExposureReference,
         503: unavailable
       }
     }),
@@ -283,8 +319,10 @@ export default new Hono()
     validator(
       'json',
       z.strictObject({
-        networkId: NetworkReferenceSchema.default(null),
-        protocol: ProtocolSchema,
+        gatewayId: GatewaySchema,
+        protocol: ExposureProtocolSchema,
+        publisherDeviceId: PublisherDeviceSchema.default(null),
+        upstreamExposureId: UpstreamExposureSchema.default(null),
         params: ExposureParamsSchema.default({})
       })
     ),
@@ -305,17 +343,15 @@ export default new Hono()
           .values({
             organisationId: id,
             streamId,
-            networkId: body.networkId,
+            gatewayId: body.gatewayId,
             protocol: body.protocol,
+            publisherDeviceId: body.publisherDeviceId,
+            upstreamExposureId: body.upstreamExposureId,
             params: body.params
           })
-          .returning({
-            id: exposures.id,
-            networkId: exposures.networkId,
-            protocol: exposures.protocol,
-            params: exposures.params,
-            createdAt: exposures.createdAt
-          });
+          .returning(exposureColumns);
+        // A new exposure is no one's upstream yet, so its chain cannot loop.
+        await checkProtocol(tx, body.gatewayId, body.protocol);
         return exposure!;
       });
       c.header('Cache-Control', 'no-store');
@@ -328,15 +364,17 @@ export default new Hono()
       operationId: 'organisations.streams.exposures.update',
       ...operationVersion(1),
       summary: 'Update an exposure',
-      description: 'Administrators only. Changes only the fields given; `params` is replaced whole.',
+      description:
+        'Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.',
       responses: {
         200: { description: 'The updated exposure' },
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
         404: notFound,
+        409: exposureCycle,
         412: versionMismatch,
-        422: invalidReference,
+        422: invalidExposureReference,
         503: unavailable
       }
     }),
@@ -346,8 +384,10 @@ export default new Hono()
       'json',
       z
         .strictObject({
-          networkId: NetworkReferenceSchema.optional(),
-          protocol: ProtocolSchema.optional(),
+          gatewayId: GatewaySchema.optional(),
+          protocol: ExposureProtocolSchema.optional(),
+          publisherDeviceId: PublisherDeviceSchema.optional(),
+          upstreamExposureId: UpstreamExposureSchema.optional(),
           params: ExposureParamsSchema.optional()
         })
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
@@ -358,19 +398,25 @@ export default new Hono()
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
+      if (body.upstreamExposureId === exposureId) throw new ApiFailure('exposure_cycle');
       const row = await session.transaction(async tx => {
+        // Write first, so row-level security refuses a principal who may not; then check only what the change could
+        // break: the protocol when the gateway or protocol changed, and the chain when it gained an upstream.
         const [exposure] = await tx
           .update(exposures)
-          .set({ networkId: body.networkId, protocol: body.protocol, params: body.params })
+          .set({
+            gatewayId: body.gatewayId,
+            protocol: body.protocol,
+            publisherDeviceId: body.publisherDeviceId,
+            upstreamExposureId: body.upstreamExposureId,
+            params: body.params
+          })
           .where(and(eq(exposures.organisationId, id), eq(exposures.streamId, streamId), eq(exposures.id, exposureId)))
-          .returning({
-            id: exposures.id,
-            networkId: exposures.networkId,
-            protocol: exposures.protocol,
-            params: exposures.params,
-            createdAt: exposures.createdAt
-          });
+          .returning(exposureColumns);
         if (!exposure) throw await unchanged(tx, exposures.id, exposureId);
+        if (body.gatewayId !== undefined || body.protocol !== undefined)
+          await checkProtocol(tx, exposure.gatewayId, exposure.protocol);
+        if (body.upstreamExposureId) await checkChain(tx, streamId, exposureId);
         return exposure;
       });
       c.header('Cache-Control', 'no-store');
@@ -383,7 +429,7 @@ export default new Hono()
       operationId: 'organisations.streams.exposures.delete',
       ...operationVersion(1),
       summary: 'Remove an exposure',
-      description: 'Administrators only. Refused while a recorder uses it.',
+      description: 'Administrators only. Refused while a recorder uses it, or another exposure as its upstream.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,
@@ -419,7 +465,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Record a stream',
       description:
-        "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and protocol.",
+        "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.",
       responses: {
         201: { description: 'The new recorder' },
         400: invalidRequest,

@@ -22,7 +22,8 @@ const categories = {
     status: 422,
     description: 'A referenced resource does not exist, is not visible to you, or belongs to another organisation.'
   },
-  revision_has_errors: { status: 409, description: 'The revision has errors, so it cannot be served.' },
+  unsupported_protocol: { status: 422, description: 'The gateway does not accept that protocol.' },
+  exposure_cycle: { status: 409, description: 'The upstream exposure would lead back to this exposure.' },
   invalid_report: { status: 400, description: 'The report batch has a report observed in the future.' },
   invalid_signature: { status: 401, description: 'The request signature could not be verified.' },
   batch_too_large: { status: 413, description: 'The report batch is too large.' },

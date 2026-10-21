@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, Schema0 } from './types.gen.js';
+import type { PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -47,43 +47,32 @@ class HeyApiRegistry<T> {
     }
 }
 
-export class Revisions extends HeyApiClient {
+export class Gateways extends HeyApiClient {
     /**
-     * Record a candidate configuration
+     * Add a gateway
      *
-     * Administrators only. A rendered configuration and every diagnostic its builders reported. Recording it changes nothing the agent is served: serving is a separate step, refused for a candidate with any error.
+     * Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        agentId: string;
-        config: {
+        name: string;
+        kind: string;
+        networkId?: string | null;
+        protocols: Array<string>;
+        settings?: {
             [key: string]: Schema0;
         };
-        diagnostics?: Array<{
-            severity: 'warning' | 'error';
-            code: string;
-            message: string;
-            target?: {
-                kind: string;
-                id: string;
-            };
-            recovery?: 'retryable' | 'change-required';
-            /**
-             * Settings validated by the implementation that reads them.
-             */
-            details?: {
-                [key: string]: Schema0;
-            };
-        }>;
-    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError> {
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdGatewaysErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
-                    { in: 'path', key: 'agentId' },
-                    { in: 'body', key: 'config' },
-                    { in: 'body', key: 'diagnostics' }
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'kind' },
+                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'protocols' },
+                    { in: 'body', key: 'settings' }
                 ] }]);
-        return (options?.client ?? this.client).post<PostOrganisationsByIdAgentsByAgentIdRevisionsResponses, PostOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError>({
-            url: '/organisations/{id}/agents/{agentId}/revisions',
+        return (options?.client ?? this.client).post<PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdGatewaysErrors, ThrowOnError>({
+            url: '/organisations/{id}/gateways',
             ...options,
             ...params,
             headers: {
@@ -95,17 +84,10 @@ export class Revisions extends HeyApiClient {
     }
 }
 
-export class Agents extends HeyApiClient {
-    private _revisions?: Revisions;
-    get revisions(): Revisions {
-        return this._revisions ??= new Revisions({ client: this.client });
-    }
-}
-
 export class Organisations extends HeyApiClient {
-    private _agents?: Agents;
-    get agents(): Agents {
-        return this._agents ??= new Agents({ client: this.client });
+    private _gateways?: Gateways;
+    get gateways(): Gateways {
+        return this._gateways ??= new Gateways({ client: this.client });
     }
 }
 

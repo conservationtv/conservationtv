@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsResponses } from './types.gen.js';
+import type { PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -47,41 +47,49 @@ class HeyApiRegistry<T> {
     }
 }
 
-export class Revisions extends HeyApiClient {
+export class Gateways extends HeyApiClient {
     /**
-     * List an agent's configuration revisions
+     * Update a gateway
      *
-     * Newest first, with their diagnostics but not their configuration, which is read one revision at a time.
+     * Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.
      */
-    public list<ThrowOnError extends boolean = false>(parameters: {
+    public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        agentId: string;
-        limit?: number;
-    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError> {
+        gatewayId: string;
+        name?: string;
+        kind?: string;
+        networkId?: string | null;
+        protocols?: Array<string>;
+        settings?: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
-                    { in: 'path', key: 'agentId' },
-                    { in: 'query', key: 'limit' }
+                    { in: 'path', key: 'gatewayId' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'kind' },
+                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'protocols' },
+                    { in: 'body', key: 'settings' }
                 ] }]);
-        return (options?.client ?? this.client).get<GetOrganisationsByIdAgentsByAgentIdRevisionsResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsErrors, ThrowOnError>({
-            url: '/organisations/{id}/agents/{agentId}/revisions',
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/gateways/{gatewayId}',
             ...options,
-            ...params
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
         });
     }
 }
 
-export class Agents extends HeyApiClient {
-    private _revisions?: Revisions;
-    get revisions(): Revisions {
-        return this._revisions ??= new Revisions({ client: this.client });
-    }
-}
-
 export class Organisations extends HeyApiClient {
-    private _agents?: Agents;
-    get agents(): Agents {
-        return this._agents ??= new Agents({ client: this.client });
+    private _gateways?: Gateways;
+    get gateways(): Gateways {
+        return this._gateways ??= new Gateways({ client: this.client });
     }
 }
 
