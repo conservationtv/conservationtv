@@ -37,8 +37,6 @@ const METRICS_INTERVAL_MS = 60_000;
 /** How long before a credential expires it is renewed. Longer than `INTERVAL_MS`, so one ask always catches it. */
 const RENEW_BEFORE_MS = 10 * 60_000;
 
-type PlannedExposure = DeviceConfiguration['exposures'][string];
-
 /** What converge is told: the `mediamtx` key's spec, or that the key is absent. */
 export type ApplyMediamtx = (spec: MediamtxSpec | undefined) => Promise<void>;
 
@@ -92,103 +90,66 @@ function diagnosticsLogger() {
 /** The MediaMTX spec the configuration asks for, or none when the agent runs no MediaMTX gateway. */
 async function mediamtxSpec(configuration: DeviceConfiguration, credentials: Credentials) {
   if (configuration.mediamtx === null) return undefined;
+  const paths: MediamtxPath[] = [];
+  const publishers: MoqPublisher[] = [];
+  for (const [exposureId, exposure] of Object.entries(configuration.exposures)) {
+    if (exposure.ingest === 'pull') {
+      for (const { rendition, path, source } of exposure.renditions)
+        paths.push({ name: path, exposureId, rendition, source });
+      continue;
+    }
+    // One whose credentials cannot be had is left out, and tried again next time.
+    try {
+      const connect = await credentials.publish(configuration.organisationId, exposure.streamId, exposureId);
+      publishers.push({ exposureId, ...connect, renditions: exposure.renditions });
+    } catch (error) {
+      console.error(JSON.stringify({ event: 'publisher_unavailable', exposureId, error: String(error) }));
+    }
+  }
   const spec: MediamtxSpec = {
     binary: MEDIAMTX_MANIFEST,
-    paths: servedPaths(configuration),
+    paths,
     auth: configuration.mediamtx.auth,
-    publishers: await publishers(configuration, credentials),
+    publishers,
     moq: MOQ_MANIFEST,
     metricsIntervalMs: METRICS_INTERVAL_MS
   };
   return spec;
 }
 
-/** A path for each rendition of each exposure the agent serves, pulled from its stream's origin. */
-function servedPaths(configuration: DeviceConfiguration): MediamtxPath[] {
-  return Object.entries(configuration.exposures).flatMap(([exposureId, exposure]) => {
-    if (exposure.ingest !== 'pull') return [];
-    const stream = configuration.streams[exposure.streamId];
-    return exposure.renditions.flatMap(rendition => {
-      const name = exposure.paths[rendition];
-      const origin = stream?.renditions[rendition];
-      if (name === undefined || origin === undefined) return [];
-      return [{ name, exposureId, rendition, source: origin.url }];
-    });
-  });
-}
-
-/**
- * A publisher for each exposure the agent publishes by MoQ. One whose credentials cannot be had is left out, and
- * tried again next time.
- */
-async function publishers(configuration: DeviceConfiguration, credentials: Credentials) {
-  const found: MoqPublisher[] = [];
-  for (const [exposureId, exposure] of Object.entries(configuration.exposures)) {
-    if (exposure.ingest !== 'moq' || exposure.upstream === null) continue;
-    try {
-      found.push(await publisher(configuration, exposureId, exposure, credentials));
-    } catch (error) {
-      console.error(JSON.stringify({ event: 'publisher_unavailable', exposureId, error: String(error) }));
-    }
-  }
-  return found;
-}
-
-/**
- * One exposure's publisher: each rendition read from the path its upstream is served at here, and published under the
- * exposure's path on the relay.
- */
-async function publisher(
-  configuration: DeviceConfiguration,
-  exposureId: string,
-  exposure: PlannedExposure,
-  credentials: Credentials
-): Promise<MoqPublisher> {
-  const paths = configuration.exposures[exposure.upstream!.id]?.paths ?? {};
-  const renditions = exposure.renditions.flatMap(rendition => {
-    const source = paths[rendition];
-    return source === undefined ? [] : [{ rendition, source }];
-  });
-  const publish = { action: 'publish', protocol: 'moq' } as const;
-  const relay = await credentials.get(configuration.organisationId, exposure.streamId, exposureId, publish);
-  if (!('relay' in relay)) throw new Error(`Exposure ${exposureId} is not published by MoQ`);
-  const connect = withToken(new URL(relay.path, relay.relay).href, relay.token);
-  return { exposureId, connect, broadcast: relay.broadcast, renditions };
-}
-
-/** A URL carrying its token as `?jwt=`, which the relay reads. */
-function withToken(url: string, token: string | undefined) {
-  const withQuery = new URL(url);
-  if (token !== undefined) withQuery.searchParams.set('jwt', token);
-  return withQuery.href;
-}
-
 /** The connection details `connect` returns, whichever protocol. */
 type Connection = Exclude<Awaited<ReturnType<Client['organisations']['streams']['exposures']['connect']['v1']>>, Error>;
 
-/** What to connect to an exposure for: an action, by a protocol. */
-type ConnectionAsk = Omit<ExposureConnectParams, 'id' | 'streamId' | 'exposureId'>;
-
-/** Connections from `connect`, kept until shortly before they expire. */
+/** Credentials from `connect` to publish exposures by MoQ, kept until shortly before they expire. */
 class Credentials {
   private readonly kept = new Map<string, Connection>();
 
   constructor(private readonly studio: Client) {}
 
-  /** The connection, renewed if what is kept expires within `RENEW_BEFORE_MS`; throws if `connect` refuses. */
-  async get(organisationId: string, streamId: string, exposureId: string, ask: ConnectionAsk) {
-    const key = JSON.stringify([organisationId, exposureId, ask]);
-    const kept = this.kept.get(key);
-    if (kept !== undefined && !expiresSoon(kept)) return kept;
-    const params = { id: organisationId, streamId, exposureId, ...ask };
-    const connection = await this.studio.organisations.streams.exposures.connect.v1(params);
-    if (connection instanceof Error) throw connection;
-    this.kept.set(key, connection);
-    return connection;
+  /**
+   * Where to publish the exposure: the relay URL to dial at its path, carrying its token as `?jwt=`, which the relay
+   * reads, and the broadcast under it. Renewed if what is kept expires within `RENEW_BEFORE_MS`; throws if `connect`
+   * refuses, or the exposure is not published by MoQ.
+   */
+  async publish(organisationId: string, streamId: string, exposureId: string) {
+    let connection = this.kept.get(exposureId);
+    const expiresAt = connection?.expiresAt === undefined ? Infinity : Date.parse(connection.expiresAt);
+    if (connection === undefined || expiresAt - Date.now() < RENEW_BEFORE_MS) {
+      const params: ExposureConnectParams = {
+        id: organisationId,
+        streamId,
+        exposureId,
+        action: 'publish',
+        protocol: 'moq'
+      };
+      const renewed = await this.studio.organisations.streams.exposures.connect.v1(params);
+      if (renewed instanceof Error) throw renewed;
+      this.kept.set(exposureId, renewed);
+      connection = renewed;
+    }
+    if (!('relay' in connection)) throw new Error(`Exposure ${exposureId} is not published by MoQ`);
+    const url = new URL(connection.path, connection.relay);
+    if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
+    return { connect: url.href, broadcast: connection.broadcast };
   }
-}
-
-function expiresSoon(connection: Connection) {
-  if (connection.expiresAt === undefined) return false;
-  return Date.parse(connection.expiresAt) - Date.now() < RENEW_BEFORE_MS;
 }

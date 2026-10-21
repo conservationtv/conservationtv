@@ -93,7 +93,7 @@ export class MediamtxRuntime {
     const moq = await this.installMoq(spec, signal);
     if (spec.auth === undefined) await this.authServer.close();
     else await this.authServer.serve(spec.auth);
-    await this.writeConfig(spec, moq?.path);
+    await this.writeConfig(spec, moq);
     // From the same spec as the config, so the metrics follow each path to the exposure it now delivers.
     this.metrics.attribute(pathIndexOf(spec.paths));
     const { directory } = this.options;
@@ -151,10 +151,11 @@ export class MediamtxRuntime {
    * Writes the config before MediaMTX reads it, or re-reads it: a running MediaMTX reloads its file whenever it is
    * written, so one already serving this config is left undisturbed.
    */
-  private async writeConfig(spec: MediamtxSpec, moqExecutable: string | undefined): Promise<void> {
+  private async writeConfig(spec: MediamtxSpec, moq: Installed | undefined): Promise<void> {
     await mkdir(this.options.directory, { recursive: true });
     const { paths, auth, publishers } = spec;
-    const config = await renderConfig({ ...this.options, paths, auth, publishers, moqExecutable });
+    const publishing = moq === undefined ? undefined : { moq: moq.path, publishers };
+    const config = await renderConfig({ ...this.options, paths, auth, publishing });
     const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
     if (written !== config) await writeFile(this.configFile, config);
   }

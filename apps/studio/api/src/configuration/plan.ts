@@ -15,8 +15,52 @@ import type { Rendition } from '../topology/settings.ts';
 //           says; and
 //   publishes each exposure pinned to it on another gateway, by MoQ, from an exposure it serves.
 //
-// Planning reads the agent's part of the topology, then decides from it alone. What it cannot plan yet (transcoding,
-// upstream chains, publishing by other protocols) is left out, with a diagnostic saying why.
+// Each exposure says exactly what the agent runs for it, so the agent decides nothing itself. Planning reads the
+// agent's part of the topology, then decides from it alone. What it cannot plan yet (transcoding, upstream chains,
+// publishing by other protocols) is left out, with a diagnostic saying why.
+
+/** A rendition the agent's MediaMTX serves: at `path`, pulled from `source` while it is read. */
+export interface ServedRendition {
+  rendition: Rendition;
+  path: string;
+  /** Where to pull it from, such as the camera's RTSP URL, credentials included. */
+  source: string;
+}
+
+/** A rendition the agent publishes: read from `source`, a path its own MediaMTX serves. */
+export interface PublishedRendition {
+  rendition: Rendition;
+  source: string;
+}
+
+/** An exposure the agent's MediaMTX serves, each rendition pulled from the stream's origin. */
+export interface ServedExposure {
+  ingest: 'pull';
+  streamId: string;
+  gatewayId: string;
+  renditions: ServedRendition[];
+}
+
+/**
+ * An exposure the agent publishes to its gateway by MoQ, reading each rendition from what its MediaMTX serves of
+ * `upstreamExposureId`, and connecting (`organisations.streams.exposures.connect`) for credentials.
+ */
+export interface PublishedExposure {
+  ingest: 'moq';
+  streamId: string;
+  gatewayId: string;
+  upstreamExposureId: string;
+  renditions: PublishedRendition[];
+}
+
+export type ExposureConfiguration = ServedExposure | PublishedExposure;
+
+/** Something the topology asks for that the device's configuration leaves out, and why. */
+export interface Diagnostic {
+  /** What it is about, as reports name subjects: `exposure:<id>` or `gateway:<id>`. */
+  subject: string;
+  message: string;
+}
 
 /** How a MediaMTX checks a token: against this API's published keys, issued by this API, for its gateway. */
 export interface MediamtxAuth {
@@ -25,56 +69,16 @@ export interface MediamtxAuth {
   audience: string;
 }
 
-/** How the device's MediaMTX admits readers and publishers: tokens this API signs, for its gateway. */
+/** The MediaMTX gateway the device runs, and how it admits readers and publishers: by tokens this API signs for it. */
 export interface MediamtxConfiguration {
   gatewayId: string;
   auth: MediamtxAuth;
-}
-
-/** Where to pull one rendition of a stream from, credentials included. */
-export interface RenditionOrigin {
-  url: string;
-}
-
-export interface StreamConfiguration {
-  name: string;
-  renditions: Partial<Record<Rendition, RenditionOrigin>>;
-}
-
-/** An exposure, by where its connections are made: `organisations/{organisationId}/streams/{streamId}/exposures/{id}`. */
-export interface ExposureReference {
-  id: string;
-  streamId: string;
-}
-
-/**
- * An exposure the device delivers. `pull`: the device's own MediaMTX serves each rendition at its path, pulled from
- * the stream's origin. `moq`: the device publishes it to its gateway, reading each rendition from `upstream`, an
- * exposure its own MediaMTX serves, and connects (`organisations.streams.exposures.connect`) to both for credentials.
- */
-export interface ExposureConfiguration {
-  streamId: string;
-  gatewayId: string;
-  ingest: string;
-  renditions: Rendition[];
-  /** For `pull`: the MediaMTX path each rendition is served at. */
-  paths: Partial<Record<Rendition, string>>;
-  /** For `moq`: the exposure it publishes from. */
-  upstream: ExposureReference | null;
-}
-
-/** Something the topology asks for that the device's configuration leaves out, and why. */
-export interface Diagnostic {
-  /** What it is about, as reports name subjects: `exposure:<id>`, `stream:<id>` or `gateway:<id>`. */
-  subject: string;
-  message: string;
 }
 
 export interface PlannedConfiguration {
   /** The device's organisation, which its connections are made under. */
   organisationId: string;
   mediamtx: MediamtxConfiguration | null;
-  streams: Record<string, StreamConfiguration>;
   exposures: Record<string, ExposureConfiguration>;
   diagnostics: Diagnostic[];
 }
@@ -131,7 +135,6 @@ function selectExposures(tx: Transaction, agentId: string, localGatewayId: strin
         gatewayKind: gateways.kind,
         upstreamExposureId: exposures.upstreamExposureId,
         renditions: exposures.renditions,
-        streamName: streams.name,
         cameraSettings: cameras.settings,
         cameraCredentials: cameras.credentials
       })
@@ -148,91 +151,73 @@ type ExposureRow = Awaited<ReturnType<typeof selectExposures>>[number];
 
 // Planning, from what was read alone.
 
-/** Records why the exposure is left out of the configuration, or only partly in it. */
-type Diagnose = (exposure: ExposureRow, message: string) => void;
-
 /** The agent's configuration: its MediaMTX, if it runs one, the exposures that serves, then those it publishes. */
 function planAgent(organisationId: string, gatewayId: string | undefined, rows: ExposureRow[]): PlannedConfiguration {
-  const diagnostics: Diagnostic[] = [];
-  const diagnose: Diagnose = (exposure, message) => diagnostics.push({ subject: `exposure:${exposure.id}`, message });
-  const mediamtx = gatewayId === undefined ? null : planMediamtx(gatewayId, diagnostics);
-  const planned: PlannedConfiguration = { organisationId, mediamtx, streams: {}, exposures: {}, diagnostics };
+  const planned: PlannedConfiguration = { organisationId, mediamtx: null, exposures: {}, diagnostics: [] };
+  const diagnose = (subject: string, message: string) => planned.diagnostics.push({ subject, message });
+  if (gatewayId !== undefined) {
+    const environment = useEnvironment();
+    if (environment.gatewayKeys === undefined)
+      diagnose(`gateway:${gatewayId}`, 'GATEWAY_SIGNING_KEYS is unset, so no reader or publisher can be admitted');
+    // How src/gateways/mediamtx.ts signs its tokens.
+    const issuer = environment.variables.APP_URL;
+    const auth = { jwks: new URL('/gateway-keys', issuer).href, issuer, audience: gatewayId };
+    planned.mediamtx = { gatewayId, auth };
+  }
   // Served first, so the exposures published from them find them planned.
   for (const row of rows.filter(row => row.gatewayId === gatewayId)) {
-    const served = planServed(row, diagnose);
-    if (served === undefined) continue;
-    planned.exposures[row.id] = served.exposure;
-    const stream = planned.streams[row.streamId] ?? { name: row.streamName, renditions: {} };
-    stream.renditions = { ...stream.renditions, ...served.origins };
-    planned.streams[row.streamId] = stream;
+    const served = planServed(row, message => diagnose(`exposure:${row.id}`, message));
+    if (served !== undefined) planned.exposures[row.id] = served;
   }
   for (const row of rows.filter(row => row.gatewayId !== gatewayId)) {
-    const published = planPublished(row, planned.exposures, diagnose);
+    const published = planPublished(row, planned.exposures, message => diagnose(`exposure:${row.id}`, message));
     if (published !== undefined) planned.exposures[row.id] = published;
   }
   return planned;
 }
 
-/** How the agent's MediaMTX checks the tokens this API signs for its gateway (src/gateways/mediamtx.ts). */
-function planMediamtx(gatewayId: string, diagnostics: Diagnostic[]): MediamtxConfiguration {
-  const environment = useEnvironment();
-  if (environment.gatewayKeys === undefined) {
-    const message = 'GATEWAY_SIGNING_KEYS is unset, so no reader or publisher can be admitted';
-    diagnostics.push({ subject: `gateway:${gatewayId}`, message });
-  }
-  const issuer = environment.variables.APP_URL;
-  return { gatewayId, auth: { jwks: new URL('/gateway-keys', issuer).href, issuer, audience: gatewayId } };
-}
+/** Records why the exposure is left out of the configuration, or only partly in it. */
+type Diagnose = (message: string) => void;
 
 /** An exposure the agent's MediaMTX serves: each rendition its stream's camera can produce, and where to pull it. */
-function planServed(row: ExposureRow, diagnose: Diagnose) {
+function planServed(row: ExposureRow, diagnose: Diagnose): ServedExposure | undefined {
   if (row.cameraSettings === null) {
-    diagnose(row, "Its stream's source is not a camera, so nothing can be pulled");
+    diagnose("Its stream's source is not a camera, so nothing can be pulled");
     return undefined;
   }
-  if (row.upstreamExposureId !== null) diagnose(row, 'Its upstream is ignored: the camera is pulled directly');
+  if (row.upstreamExposureId !== null) diagnose('Its upstream is ignored: the camera is pulled directly');
   const credentials = row.cameraCredentials ?? undefined;
-  const origins: Partial<Record<Rendition, RenditionOrigin>> = {};
-  const paths: Partial<Record<Rendition, string>> = {};
+  const renditions: ServedRendition[] = [];
   for (const rendition of row.renditions) {
-    const url = cameraOrigin(row.cameraSettings, credentials, rendition);
-    if (url === undefined) {
-      diagnose(row, `The camera cannot produce ${rendition}, and nothing transcodes yet`);
-      continue;
-    }
-    origins[rendition] = { url };
-    paths[rendition] = mediamtxPath(row.id, rendition);
+    const source = cameraOrigin(row.cameraSettings, credentials, rendition);
+    if (source === undefined) diagnose(`The camera cannot produce ${rendition}, and nothing transcodes yet`);
+    else renditions.push({ rendition, path: mediamtxPath(row.id, rendition), source });
   }
-  const renditions = row.renditions.filter(rendition => origins[rendition] !== undefined);
   if (renditions.length === 0) return undefined;
-  const { streamId, gatewayId } = row;
-  const exposure: ExposureConfiguration = { streamId, gatewayId, ingest: 'pull', renditions, paths, upstream: null };
-  return { exposure, origins };
+  return { ingest: 'pull', streamId: row.streamId, gatewayId: row.gatewayId, renditions };
 }
 
 /** An exposure the agent publishes by MoQ, from an upstream its MediaMTX serves: the renditions that upstream does. */
-function planPublished(row: ExposureRow, served: Record<string, ExposureConfiguration>, diagnose: Diagnose) {
+function planPublished(
+  row: ExposureRow,
+  planned: Record<string, ExposureConfiguration>,
+  diagnose: Diagnose
+): PublishedExposure | undefined {
   const provider = gatewayProvider(row.gatewayId, row.gatewayKind ?? '');
   if (!('moq' in provider.ingest)) {
-    diagnose(row, `Agents publish only by moq, which ${provider.name} does not take`);
+    diagnose(`Agents publish only by moq, which ${provider.name} does not take`);
     return undefined;
   }
-  const upstream = row.upstreamExposureId === null ? undefined : served[row.upstreamExposureId];
+  const upstream = row.upstreamExposureId === null ? undefined : planned[row.upstreamExposureId];
   if (row.upstreamExposureId === null || upstream?.ingest !== 'pull') {
-    diagnose(row, "It must publish from an upstream exposure this agent's MediaMTX serves");
+    diagnose("It must publish from an upstream exposure this agent's MediaMTX serves");
     return undefined;
   }
-  const renditions = row.renditions.filter(rendition => upstream.renditions.includes(rendition));
+  const renditions = row.renditions.flatMap(rendition => {
+    const served = upstream.renditions.find(candidate => candidate.rendition === rendition);
+    return served === undefined ? [] : [{ rendition, source: served.path }];
+  });
   if (renditions.length === 0) return undefined;
-  const { streamId, gatewayId } = row;
-  const reference = { id: row.upstreamExposureId, streamId: upstream.streamId };
-  const exposure: ExposureConfiguration = {
-    streamId,
-    gatewayId,
-    ingest: 'moq',
-    renditions,
-    paths: {},
-    upstream: reference
-  };
-  return exposure;
+  const { streamId, gatewayId, upstreamExposureId } = row;
+  return { ingest: 'moq', streamId, gatewayId, upstreamExposureId, renditions };
 }

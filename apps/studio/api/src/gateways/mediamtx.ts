@@ -47,7 +47,7 @@ function endpoint(protocol: MediamtxProtocol, base: string, path: string, action
 /** A token admitting the action on the path at this gateway only. */
 async function mediamtxToken(request: ConnectionRequest, path: string, issuedAt: number, expiresAt: number) {
   const environment = useEnvironment();
-  const keyring = await environment.gatewayKeys?.();
+  const keyring = await environment.gatewayKeys?.keyring();
   if (keyring === undefined) throw new ApiFailure('gateway_unavailable', { cause: 'GATEWAY_SIGNING_KEYS is unset' });
   return new SignJWT({ mediamtx_permissions: [{ action: request.action, path }] })
     .setProtectedHeader({ alg: GATEWAY_SIGNING_ALGORITHM, kid: keyring.activeKeyId, typ: 'JWT' })

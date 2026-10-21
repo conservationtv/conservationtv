@@ -15,37 +15,35 @@ export const BUILTIN_GATEWAYS = { conservationtv };
 /** The kinds of gateway organisations register, by kind: the only kinds there are. */
 export const GATEWAY_KINDS = { mediamtx } satisfies Record<string, OrganisationProvider>;
 
+/** An object's keys, as the non-empty tuple `z.enum` takes. */
+function keysOf<Registry extends Record<string, GatewayProvider>>(registry: Registry) {
+  // SAFETY: each registry lists at least one provider.
+  return Object.keys(registry) as [keyof Registry & string, ...(keyof Registry & string)[]];
+}
+
 export type BuiltinGatewayId = keyof typeof BUILTIN_GATEWAYS;
-// SAFETY: the keys of BUILTIN_GATEWAYS, of which there is at least one.
-const builtinGatewayIds = Object.keys(BUILTIN_GATEWAYS) as [BuiltinGatewayId, ...BuiltinGatewayId[]];
 /** The built-in gateways' slugs, for the schemas that accept them. */
-export const BUILTIN_GATEWAY_IDS = builtinGatewayIds;
+export const BUILTIN_GATEWAY_IDS = keysOf(BUILTIN_GATEWAYS);
 
 export type GatewayKind = keyof typeof GATEWAY_KINDS;
-// SAFETY: the keys of GATEWAY_KINDS, of which there is at least one.
-const gatewayKindIds = Object.keys(GATEWAY_KINDS) as [GatewayKind, ...GatewayKind[]];
 /** The kinds organisations register gateways of, for the schemas that accept them. */
-export const GATEWAY_KIND_IDS = gatewayKindIds;
+export const GATEWAY_KIND_IDS = keysOf(GATEWAY_KINDS);
 
 export function isBuiltinGateway(gatewayId: string): gatewayId is BuiltinGatewayId {
   return Object.hasOwn(BUILTIN_GATEWAYS, gatewayId);
 }
 
-function isGatewayKind(kind: string): kind is keyof typeof GATEWAY_KINDS {
-  return Object.hasOwn(GATEWAY_KINDS, kind);
-}
-
-/** The provider of an organisation's gateways of this kind, if there is one. */
-export function gatewayKind(kind: string): OrganisationProvider | undefined {
-  return isGatewayKind(kind) ? GATEWAY_KINDS[kind] : undefined;
+/** The provider of an organisation's gateways of this kind; `unsupported_gateway` if there is none. */
+function gatewayKind(kind: string): OrganisationProvider {
+  if (!Object.hasOwn(GATEWAY_KINDS, kind)) throw new ApiFailure('unsupported_gateway');
+  // SAFETY: `kind` is one of GATEWAY_KINDS' own keys.
+  return GATEWAY_KINDS[kind as GatewayKind];
 }
 
 /** A gateway's provider: its own if it is built in, otherwise its kind's; `unsupported_gateway` if it has none. */
 export function gatewayProvider(gatewayId: string, kind: string): GatewayProvider {
   if (isBuiltinGateway(gatewayId)) return BUILTIN_GATEWAYS[gatewayId];
-  const provider = gatewayKind(kind);
-  if (provider === undefined) throw new ApiFailure('unsupported_gateway');
-  return provider;
+  return gatewayKind(kind);
 }
 
 /**
@@ -54,7 +52,6 @@ export function gatewayProvider(gatewayId: string, kind: string): GatewayProvide
  */
 export function checkGatewaySettings(kind: string, settings: Settings) {
   const provider = gatewayKind(kind);
-  if (provider === undefined) throw new ApiFailure('unsupported_gateway');
   provider.checkSettings(settings);
 }
 

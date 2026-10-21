@@ -319,44 +319,38 @@ export const DeviceConfigurationSchema = z.object({
             audience: z.string()
         })
     }).nullable(),
-    streams: z.record(z.string(), z.object({
-        name: z.string(),
-        renditions: z.object({
-            default: z.object({
-                url: z.string()
-            }).optional(),
-            data_saver: z.object({
-                url: z.string()
-            }).optional(),
-            balanced: z.object({
-                url: z.string()
-            }).optional(),
-            quality: z.object({
-                url: z.string()
-            }).optional()
-        })
-    })),
-    exposures: z.record(z.string(), z.object({
-        streamId: z.string(),
-        gatewayId: z.string(),
-        ingest: z.string(),
-        renditions: z.array(z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ])),
-        paths: z.object({
-            default: z.string().optional(),
-            data_saver: z.string().optional(),
-            balanced: z.string().optional(),
-            quality: z.string().optional()
+    exposures: z.record(z.string(), z.union([
+        z.object({
+            ingest: z.literal('pull'),
+            streamId: z.string(),
+            gatewayId: z.string(),
+            renditions: z.array(z.object({
+                rendition: z.enum([
+                    'default',
+                    'data_saver',
+                    'balanced',
+                    'quality'
+                ]),
+                path: z.string(),
+                source: z.string()
+            }))
         }),
-        upstream: z.object({
-            id: z.string(),
-            streamId: z.string()
-        }).nullable()
-    })),
+        z.object({
+            ingest: z.literal('moq'),
+            streamId: z.string(),
+            gatewayId: z.string(),
+            upstreamExposureId: z.string(),
+            renditions: z.array(z.object({
+                rendition: z.enum([
+                    'default',
+                    'data_saver',
+                    'balanced',
+                    'quality'
+                ]),
+                source: z.string()
+            }))
+        })
+    ])),
     diagnostics: z.array(z.object({
         subject: z.string(),
         message: z.string()

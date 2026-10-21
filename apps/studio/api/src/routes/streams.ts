@@ -2,11 +2,11 @@ import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { connect, deviceRequest, memberRequest, type ExposureReference } from '../gateways/connect.ts';
-import { ConnectionActionSchema, type ConnectionAction } from '../gateways/provider.ts';
+import { connectExposure } from '../gateways/connect.ts';
+import { ConnectionActionSchema } from '../gateways/provider.ts';
 import { exposures, recorders, streams } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
-import { requireCaller, useCaller, useDevice } from '../middleware/device.ts';
+import { requireCaller } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import { checkChain, checkGateway, checkRecorderRendition, checkRenditions } from '../topology/exposures.ts';
@@ -76,16 +76,6 @@ const ConnectionRenditionSchema = RenditionSchema.optional().describe(
   'The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.'
 );
 export type ConnectionRendition = z.output<typeof ConnectionRenditionSchema>;
-const ExposureChangesSchema = z
-  .strictObject({
-    gatewayId: GatewaySchema.optional(),
-    renditions: RenditionsSchema.optional(),
-    publisherDeviceId: PublisherDeviceSchema.optional(),
-    upstreamExposureId: UpstreamExposureSchema.optional(),
-    params: ExposureParamsSchema.optional()
-  })
-  .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change');
-type ExposureChanges = z.output<typeof ExposureChangesSchema>;
 const RecorderKindSchema = z.string().trim().min(1).max(60).describe('The recording implementation.');
 export type RecorderKind = z.output<typeof RecorderKindSchema>;
 
@@ -94,23 +84,6 @@ export type RecorderKind = z.output<typeof RecorderKindSchema>;
 // exposure must belong to the same organisation (and an exposure's upstream and a recorder's exposure to the same
 // stream); the database's composite foreign keys refuse anything else. What they cannot check, an exposure's gateway
 // (which may be built in), its upstream chain and the renditions along it, src/topology/exposures.ts does.
-
-/** Whether a change to an exposure touches the renditions along its chain: its own, or its upstream. */
-function changesRenditions(changes: ExposureChanges) {
-  return changes.renditions !== undefined || changes.upstreamExposureId !== undefined;
-}
-
-/** A signing device's connection request. */
-function asDevice(reference: ExposureReference, action: ConnectionAction) {
-  const device = useDevice();
-  return deviceRequest(device, reference, action);
-}
-
-/** A signed-in member's connection request. */
-function asMember(reference: ExposureReference, action: ConnectionAction) {
-  const principal = usePrincipal();
-  return memberRequest(principal, reference, action);
-}
 
 export default new Hono()
   .get(
@@ -427,7 +400,18 @@ export default new Hono()
     }),
     requirePrincipal,
     validator('param', ExposurePathParamsSchema),
-    validator('json', ExposureChangesSchema),
+    validator(
+      'json',
+      z
+        .strictObject({
+          gatewayId: GatewaySchema.optional(),
+          renditions: RenditionsSchema.optional(),
+          publisherDeviceId: PublisherDeviceSchema.optional(),
+          upstreamExposureId: UpstreamExposureSchema.optional(),
+          params: ExposureParamsSchema.optional()
+        })
+        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
+    ),
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
       const body = c.req.valid('json');
@@ -461,7 +445,8 @@ export default new Hono()
         if (!exposure) throw await unchanged(tx, exposures.id, exposureId);
         if (body.gatewayId !== undefined) await checkGateway(tx, id, exposure.gatewayId);
         if (body.upstreamExposureId) await checkChain(tx, streamId, exposureId);
-        if (changesRenditions(body)) await checkRenditions(tx, exposureId);
+        if (body.renditions !== undefined || body.upstreamExposureId !== undefined)
+          await checkRenditions(tx, exposureId);
         return exposure;
       });
       c.header('Cache-Control', 'no-store');
@@ -535,11 +520,7 @@ export default new Hono()
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
       const ask = c.req.valid('json');
-      const reference = { organisationId: id, streamId, exposureId };
-      const caller = useCaller();
-      const pending =
-        caller.kind === 'device' ? await asDevice(reference, ask.action) : await asMember(reference, ask.action);
-      const connection = await connect(pending, ask);
+      const connection = await connectExposure({ organisationId: id, streamId, exposureId }, ask);
       c.header('Cache-Control', 'no-store');
       return c.json(connection, 200);
     }

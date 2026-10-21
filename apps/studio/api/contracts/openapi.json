@@ -1263,143 +1263,108 @@
               }
             ]
           },
-          "streams": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "renditions": {
-                  "type": "object",
-                  "properties": {
-                    "default": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "url"
-                      ]
-                    },
-                    "data_saver": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "url"
-                      ]
-                    },
-                    "balanced": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "url"
-                      ]
-                    },
-                    "quality": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "url"
-                      ]
-                    }
-                  }
-                }
-              },
-              "required": [
-                "name",
-                "renditions"
-              ]
-            }
-          },
           "exposures": {
             "type": "object",
             "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "streamId": {
-                  "type": "string"
-                },
-                "gatewayId": {
-                  "type": "string"
-                },
-                "ingest": {
-                  "type": "string"
-                },
-                "renditions": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "enum": [
-                      "default",
-                      "data_saver",
-                      "balanced",
-                      "quality"
-                    ]
-                  }
-                },
-                "paths": {
+              "anyOf": [
+                {
                   "type": "object",
                   "properties": {
-                    "default": {
+                    "ingest": {
+                      "type": "string",
+                      "const": "pull"
+                    },
+                    "streamId": {
                       "type": "string"
                     },
-                    "data_saver": {
+                    "gatewayId": {
                       "type": "string"
                     },
-                    "balanced": {
-                      "type": "string"
-                    },
-                    "quality": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "upstream": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
+                    "renditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rendition": {
+                            "type": "string",
+                            "enum": [
+                              "default",
+                              "data_saver",
+                              "balanced",
+                              "quality"
+                            ]
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          }
                         },
-                        "streamId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "streamId"
-                      ]
-                    },
-                    {
-                      "type": "null"
+                        "required": [
+                          "rendition",
+                          "path",
+                          "source"
+                        ]
+                      }
                     }
+                  },
+                  "required": [
+                    "ingest",
+                    "streamId",
+                    "gatewayId",
+                    "renditions"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "ingest": {
+                      "type": "string",
+                      "const": "moq"
+                    },
+                    "streamId": {
+                      "type": "string"
+                    },
+                    "gatewayId": {
+                      "type": "string"
+                    },
+                    "upstreamExposureId": {
+                      "type": "string"
+                    },
+                    "renditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rendition": {
+                            "type": "string",
+                            "enum": [
+                              "default",
+                              "data_saver",
+                              "balanced",
+                              "quality"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "rendition",
+                          "source"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "ingest",
+                    "streamId",
+                    "gatewayId",
+                    "upstreamExposureId",
+                    "renditions"
                   ]
                 }
-              },
-              "required": [
-                "streamId",
-                "gatewayId",
-                "ingest",
-                "renditions",
-                "paths",
-                "upstream"
               ]
             }
           },
@@ -1425,7 +1390,6 @@
         "required": [
           "organisationId",
           "mediamtx",
-          "streams",
           "exposures",
           "diagnostics"
         ]
@@ -10228,7 +10192,7 @@
         "operationId": "deviceConfiguration.get",
         "x-operation-version": 1,
         "summary": "Read the signing device's configuration",
-        "description": "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path of each rendition, and where to pull each stream's renditions from, credentials included. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+        "description": "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path each rendition is served at and where to pull it from, credentials included, and each exposure it publishes by MoQ with the path each rendition is read from. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
         "responses": {
           "200": {
             "description": "The configuration",
@@ -24257,143 +24221,108 @@
                   }
                 ]
               },
-              "streams": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string"
-                    },
-                    "renditions": {
-                      "type": "object",
-                      "properties": {
-                        "default": {
-                          "type": "object",
-                          "properties": {
-                            "url": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "url"
-                          ]
-                        },
-                        "data_saver": {
-                          "type": "object",
-                          "properties": {
-                            "url": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "url"
-                          ]
-                        },
-                        "balanced": {
-                          "type": "object",
-                          "properties": {
-                            "url": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "url"
-                          ]
-                        },
-                        "quality": {
-                          "type": "object",
-                          "properties": {
-                            "url": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "url"
-                          ]
-                        }
-                      }
-                    }
-                  },
-                  "required": [
-                    "name",
-                    "renditions"
-                  ]
-                }
-              },
               "exposures": {
                 "type": "object",
                 "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "streamId": {
-                      "type": "string"
-                    },
-                    "gatewayId": {
-                      "type": "string"
-                    },
-                    "ingest": {
-                      "type": "string"
-                    },
-                    "renditions": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "default",
-                          "data_saver",
-                          "balanced",
-                          "quality"
-                        ]
-                      }
-                    },
-                    "paths": {
+                  "anyOf": [
+                    {
                       "type": "object",
                       "properties": {
-                        "default": {
+                        "ingest": {
+                          "type": "string",
+                          "const": "pull"
+                        },
+                        "streamId": {
                           "type": "string"
                         },
-                        "data_saver": {
+                        "gatewayId": {
                           "type": "string"
                         },
-                        "balanced": {
-                          "type": "string"
-                        },
-                        "quality": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "upstream": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
+                        "renditions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "rendition": {
+                                "type": "string",
+                                "enum": [
+                                  "default",
+                                  "data_saver",
+                                  "balanced",
+                                  "quality"
+                                ]
+                              },
+                              "path": {
+                                "type": "string"
+                              },
+                              "source": {
+                                "type": "string"
+                              }
                             },
-                            "streamId": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "streamId"
-                          ]
-                        },
-                        {
-                          "type": "null"
+                            "required": [
+                              "rendition",
+                              "path",
+                              "source"
+                            ]
+                          }
                         }
+                      },
+                      "required": [
+                        "ingest",
+                        "streamId",
+                        "gatewayId",
+                        "renditions"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ingest": {
+                          "type": "string",
+                          "const": "moq"
+                        },
+                        "streamId": {
+                          "type": "string"
+                        },
+                        "gatewayId": {
+                          "type": "string"
+                        },
+                        "upstreamExposureId": {
+                          "type": "string"
+                        },
+                        "renditions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "rendition": {
+                                "type": "string",
+                                "enum": [
+                                  "default",
+                                  "data_saver",
+                                  "balanced",
+                                  "quality"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "rendition",
+                              "source"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "ingest",
+                        "streamId",
+                        "gatewayId",
+                        "upstreamExposureId",
+                        "renditions"
                       ]
                     }
-                  },
-                  "required": [
-                    "streamId",
-                    "gatewayId",
-                    "ingest",
-                    "renditions",
-                    "paths",
-                    "upstream"
                   ]
                 }
               },
@@ -24419,7 +24348,6 @@
             "required": [
               "organisationId",
               "mediamtx",
-              "streams",
               "exposures",
               "diagnostics"
             ]
@@ -24432,7 +24360,7 @@
             "operationId": "deviceConfiguration.get",
             "x-operation-version": 1,
             "summary": "Read the signing device's configuration",
-            "description": "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path of each rendition, and where to pull each stream's renditions from, credentials included. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+            "description": "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path each rendition is served at and where to pull it from, credentials included, and each exposure it publishes by MoQ with the path each rendition is read from. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
             "responses": {
               "200": {
                 "description": "The configuration",

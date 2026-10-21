@@ -24,7 +24,7 @@ export const config = {
   WEB_ORIGINS: z.array(z.url()).nonempty(),
   /**
    * The control plane that names the relays and admits devices to them: it leases each device's endpoint on its iroh
-   * relay (src/gatekeeper/leases.ts) and issues tokens for its MoQ relay (src/gateways/conservationtv.ts), each with
+   * relay (src/gatekeeper/grants.ts) and issues tokens for its MoQ relay (src/gateways/conservationtv.ts), each with
    * that relay's URL.
    */
   GATEKEEPER_URL: z.url(),
@@ -69,13 +69,15 @@ export const services = (variables: Variables, bindings: Bindings) => {
 
   // Optional clients
   const gatewayKeys = (() => {
-    if (variables.GATEWAY_SIGNING_KEYS === undefined) return;
     const secret = variables.GATEWAY_SIGNING_KEYS;
+    if (secret === undefined) return;
     let keyring: Promise<GatewayKeyring> | undefined = undefined;
-    /** The gateway signing keys, loaded; rejects if the secret is malformed. */
-    return () => {
-      if (keyring === undefined) keyring = loadGatewayKeyring(secret);
-      return keyring;
+    return {
+      /** The gateway signing keys, loaded; rejects if the secret is malformed. */
+      keyring: () => {
+        if (keyring === undefined) keyring = loadGatewayKeyring(secret);
+        return keyring;
+      }
     };
   })();
 

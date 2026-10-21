@@ -48,13 +48,14 @@ export interface UrlConnection<Protocol extends string = string> {
 
 /** The connection details for each of a provider's protocols: discriminated by `protocol`. */
 export type ConnectionFor<Protocol extends string> = Protocol extends 'moq' ? MoqConnection : UrlConnection<Protocol>;
-export type Connection = MoqConnection | UrlConnection;
 
 /** What a connection carries: the one rendition chosen, or every rendition of the exposure. */
-export interface CarriedRenditions {
+interface CarriedRenditions {
   renditions: Rendition[];
 }
-export type ConnectionDetails = Connection & CarriedRenditions;
+
+/** The connection details a caller is given, with what the connection carries. */
+export type ConnectionDetails = (MoqConnection | UrlConnection) & CarriedRenditions;
 
 /** The exposure being connected to. */
 export interface ConnectionExposure {
@@ -63,96 +64,87 @@ export interface ConnectionExposure {
   params: ExposureParams;
 }
 
-/** What every connection is to, whichever gateway it is: one exposure, for one caller. */
-export interface ConnectionTarget {
+/**
+ * A connection as a caller asks for it: to one exposure, for one caller, by an action, a protocol and a rendition,
+ * unchecked against the gateway and the exposure.
+ */
+export interface RequestedConnection {
   organisationId: string;
   gatewayId: string;
   exposure: ConnectionExposure;
   /** Who the credentials are for, recorded by gateways that audit them: `user:<id>` or `device:<id>`. */
   subject: string;
-}
-
-/** What a caller asks for: an action, by a protocol, at a rendition; unchecked against the gateway and exposure. */
-export interface ConnectionAsk {
   action: ConnectionAction;
   protocol: string;
   rendition?: Rendition;
 }
 
-/** What every provider is asked, once the protocol and rendition are checked. */
-interface ConnectionBase extends ConnectionTarget {
-  /** The rendition the connection carries when its protocol carries one per connection; absent when it carries all. */
-  rendition?: Rendition;
-}
+/**
+ * What a provider is asked, once the protocol is one it speaks for the action (an ingest protocol to publish, an egress
+ * one to read), and `rendition` is the one the connection carries: absent when its protocol carries them all.
+ */
+export type ConnectionRequest<Ingest extends string = string, Egress extends string = string> = Omit<
+  RequestedConnection,
+  'action' | 'protocol'
+> &
+  (Publishing<Ingest> | Reading<Egress>);
 
-/** Publishing, by one of the gateway's ingest protocols. */
-export interface PublishRequest<Protocol extends string> extends ConnectionBase {
+interface Publishing<Protocol extends string> {
   action: 'publish';
   protocol: Protocol;
 }
 
-/** Reading, by one of the gateway's egress protocols. */
-export interface ReadRequest<Protocol extends string> extends ConnectionBase {
+interface Reading<Protocol extends string> {
   action: 'read';
   protocol: Protocol;
 }
 
-export type ConnectionRequest<Ingest extends string = string, Egress extends string = string> =
-  | PublishRequest<Ingest>
-  | ReadRequest<Egress>;
-
-/** An organisation's gateway is also asked with the settings it was registered with, already validated. */
-export type OrganisationConnectionRequest<
-  Ingest extends string,
-  Egress extends string,
-  GatewaySettings
-> = ConnectionRequest<Ingest, Egress> & RegisteredSettings<GatewaySettings>;
-
+/** A provider is asked with the settings its gateway was registered with, already validated: none for a built-in one. */
 interface RegisteredSettings<GatewaySettings> {
   settings: GatewaySettings;
 }
+type ProviderRequest<Ingest extends string, Egress extends string, GatewaySettings> = ConnectionRequest<
+  Ingest,
+  Egress
+> &
+  RegisteredSettings<GatewaySettings>;
 
 /** How long a connection's credentials admit it. Callers ask again before they expire. */
 export const CONNECTION_LIFETIME_SECONDS = 3_600;
 
-/** The protocols a provider speaks, each side with how it carries renditions. */
-export interface ProviderProtocols<Ingest extends string, Egress extends string> {
+/** What every provider is defined with: its protocols, each side with how it carries renditions, and how to connect. */
+interface ProviderDefinition<Ingest extends string, Egress extends string, GatewaySettings> {
+  name: string;
   /** How a publisher delivers an exposure to the gateway. */
   ingest: Carriages<Ingest>;
   /** How readers read it. */
   egress: Carriages<Egress>;
+  connect: (request: ProviderRequest<Ingest, Egress, GatewaySettings>) => Promise<ConnectionFor<Ingest | Egress>>;
 }
 
-export interface OrganisationProviderDefinition<
+interface OrganisationProviderDefinition<
   Ingest extends string,
   Egress extends string,
   SettingsSchema extends z.ZodType
-> extends ProviderProtocols<Ingest, Egress> {
-  name: string;
+> extends ProviderDefinition<Ingest, Egress, z.output<SettingsSchema>> {
   /** What an organisation registers a gateway of this kind with, checked whenever its settings change. */
   settings: SettingsSchema;
-  connect: (
-    request: OrganisationConnectionRequest<Ingest, Egress, z.output<SettingsSchema>>
-  ) => Promise<ConnectionFor<Ingest | Egress>>;
 }
 
-export interface BuiltinProviderDefinition<
+interface BuiltinProviderDefinition<
   Kind extends string,
   Ingest extends string,
   Egress extends string
-> extends ProviderProtocols<Ingest, Egress> {
-  name: string;
+> extends ProviderDefinition<Ingest, Egress, Settings> {
   /** The implementation, as the gateway routes list it beside organisations' gateways. */
   kind: Kind;
-  connect: (request: ConnectionRequest<Ingest, Egress>) => Promise<ConnectionFor<Ingest | Egress>>;
 }
 
-/** A connection as a caller asks for it, to its target. */
-export interface RequestedConnection extends ConnectionTarget, ConnectionAsk {}
-
 /** A provider as the registry uses it: whichever gateway, it checks what the caller asked for itself. */
-export interface GatewayProvider extends ProviderProtocols<string, string> {
+export interface GatewayProvider {
   name: string;
+  ingest: Carriages<string>;
+  egress: Carriages<string>;
   connect: (request: RequestedConnection, settings: Settings) => Promise<ConnectionDetails>;
 }
 
@@ -178,18 +170,24 @@ function carriedRendition(carriage: Carriage, exposure: ConnectionExposure, requ
   throw new ApiFailure('rendition_required');
 }
 
-/** The request narrowed to the provider's protocols, refusing a protocol it does not speak for the action. */
-function narrowed<Ingest extends string, Egress extends string>(
-  protocols: ProviderProtocols<Ingest, Egress>,
-  request: RequestedConnection
-) {
-  const carriages: Readonly<Record<string, Carriage>> = request.action === 'read' ? protocols.egress : protocols.ingest;
-  if (!Object.hasOwn(carriages, request.protocol)) throw new ApiFailure('unsupported_protocol');
-  const rendition = carriedRendition(carriages[request.protocol]!, request.exposure, request.rendition);
-  // SAFETY: `protocol` is a key of the carriages for the action: an ingest protocol to publish, an egress one to read.
-  const resolved = { ...request, rendition } as ConnectionRequest<Ingest, Egress>;
-  const renditions = rendition === undefined ? request.exposure.renditions : [rendition];
-  return { resolved, renditions };
+/**
+ * The registry's `connect` for a definition: the settings parsed, the request narrowed to the provider's protocols
+ * (refusing one it does not speak for the action) and its rendition settled, and what the connection carries added.
+ */
+function connector<Ingest extends string, Egress extends string, GatewaySettings>(
+  definition: ProviderDefinition<Ingest, Egress, GatewaySettings>,
+  parseSettings: (settings: Settings) => GatewaySettings
+): GatewayProvider['connect'] {
+  return async (request, settings) => {
+    const parsed = parseSettings(settings);
+    const carriages: Carriages<string> = request.action === 'read' ? definition.egress : definition.ingest;
+    if (!Object.hasOwn(carriages, request.protocol)) throw new ApiFailure('unsupported_protocol');
+    const rendition = carriedRendition(carriages[request.protocol]!, request.exposure, request.rendition);
+    // SAFETY: `protocol` is a key of the carriages for the action: an ingest protocol to publish, an egress one to read.
+    const narrowed = { ...request, rendition, settings: parsed } as ProviderRequest<Ingest, Egress, GatewaySettings>;
+    const connection = await definition.connect(narrowed);
+    return { ...connection, renditions: rendition === undefined ? request.exposure.renditions : [rendition] };
+  };
 }
 
 export const provider = {
@@ -197,38 +195,28 @@ export const provider = {
   organisation<const Ingest extends string, const Egress extends string, SettingsSchema extends z.ZodType>(
     definition: OrganisationProviderDefinition<Ingest, Egress, SettingsSchema>
   ): OrganisationProvider {
+    const { name, ingest, egress, settings: schema } = definition;
     return {
-      name: definition.name,
-      ingest: definition.ingest,
-      egress: definition.egress,
+      name,
+      ingest,
+      egress,
       checkSettings: settings => {
-        const parsed = definition.settings.safeParse(settings);
+        const parsed = schema.safeParse(settings);
         if (!parsed.success) throw new ApiFailure('invalid_settings', { cause: parsed.error });
       },
-      connect: async (request, settings) => {
+      connect: connector(definition, settings => {
         // Settings were checked when they were written; a gateway that fails now predates a change to its kind.
-        const parsed = definition.settings.safeParse(settings);
+        const parsed = schema.safeParse(settings);
         if (!parsed.success) throw new ApiFailure('gateway_unavailable', { cause: parsed.error });
-        const { resolved, renditions } = narrowed(definition, request);
-        const connection = await definition.connect({ ...resolved, settings: parsed.data });
-        return { ...connection, renditions };
-      }
+        return parsed.data;
+      })
     };
   },
   /** A gateway every organisation can deliver to, configured by the deployment. */
   builtin<const Kind extends string, const Ingest extends string, const Egress extends string>(
     definition: BuiltinProviderDefinition<Kind, Ingest, Egress>
   ): BuiltinProvider<Kind> {
-    return {
-      name: definition.name,
-      kind: definition.kind,
-      ingest: definition.ingest,
-      egress: definition.egress,
-      connect: async request => {
-        const { resolved, renditions } = narrowed(definition, request);
-        const connection = await definition.connect(resolved);
-        return { ...connection, renditions };
-      }
-    };
+    const { name, kind, ingest, egress } = definition;
+    return { name, kind, ingest, egress, connect: connector(definition, settings => settings) };
   }
 };
