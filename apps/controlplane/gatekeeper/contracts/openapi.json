@@ -67,6 +67,9 @@
               "moq": {
                 "type": "object",
                 "properties": {
+                  "relay": {
+                    "type": "string"
+                  },
                   "root": {
                     "type": "string"
                   },
@@ -78,6 +81,7 @@
                   }
                 },
                 "required": [
+                  "relay",
                   "root",
                   "token",
                   "expires_at"
@@ -86,6 +90,9 @@
               "iroh": {
                 "type": "object",
                 "properties": {
+                  "relay": {
+                    "type": "string"
+                  },
                   "endpoint_id": {
                     "type": "string"
                   },
@@ -97,6 +104,7 @@
                   }
                 },
                 "required": [
+                  "relay",
                   "endpoint_id",
                   "lease_id",
                   "expires_at"
@@ -365,6 +373,9 @@
                   "moq": {
                     "type": "object",
                     "properties": {
+                      "relay": {
+                        "type": "string"
+                      },
                       "root": {
                         "type": "string"
                       },
@@ -376,6 +387,7 @@
                       }
                     },
                     "required": [
+                      "relay",
                       "root",
                       "token",
                       "expires_at"
@@ -384,6 +396,9 @@
                   "iroh": {
                     "type": "object",
                     "properties": {
+                      "relay": {
+                        "type": "string"
+                      },
                       "endpoint_id": {
                         "type": "string"
                       },
@@ -395,6 +410,7 @@
                       }
                     },
                     "required": [
+                      "relay",
                       "endpoint_id",
                       "lease_id",
                       "expires_at"

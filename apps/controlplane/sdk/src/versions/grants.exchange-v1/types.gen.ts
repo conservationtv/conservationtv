@@ -16,11 +16,13 @@ export type Grant = {
     expires_at: string;
     credentials: {
         moq?: {
+            relay: string;
             root: string;
             token: string;
             expires_at: string;
         };
         iroh?: {
+            relay: string;
             endpoint_id: string;
             lease_id: string;
             expires_at: string;
