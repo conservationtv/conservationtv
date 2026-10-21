@@ -6,14 +6,20 @@ import { gateways } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
-import { checkGatewayUnused, checkProtocolsInUse } from '../topology/exposures.ts';
-import { BUILTIN_GATEWAY_IDS, builtinGateways, isBuiltinGateway } from '../topology/gateways.ts';
+import { checkGatewayUnused } from '../topology/exposures.ts';
+import {
+  BUILTIN_GATEWAY_IDS,
+  builtinGateways,
+  checkGatewaySettings,
+  GATEWAY_KIND_IDS,
+  isBuiltinGateway
+} from '../gateways/index.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   inUse,
-  invalidReference,
+  invalidGateway,
   invalidRequest,
   notFound,
   operationVersion,
@@ -33,42 +39,12 @@ export type GatewayParams = z.output<typeof GatewayParamsSchema>;
 
 const GatewayNameSchema = z.string().trim().min(1).max(120).describe('The gateway name.');
 export type GatewayName = z.output<typeof GatewayNameSchema>;
-const GatewayKindSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(60)
-  .describe('The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.');
+const GatewayKindSchema = z.enum(GATEWAY_KIND_IDS).describe('The gateway implementation, such as `mediamtx`.');
 export type GatewayKind = z.output<typeof GatewayKindSchema>;
-export const ProtocolSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(60)
-  .describe('A delivery protocol, such as `moq` or `rtsp`.');
-export type Protocol = z.output<typeof ProtocolSchema>;
-const ProtocolsSchema = z
-  .array(ProtocolSchema)
-  .min(1)
-  .max(16)
-  .refine(protocols => new Set(protocols).size === protocols.length, 'Protocols must be unique')
-  .describe('The protocols the gateway accepts streams by.');
-export type Protocols = z.output<typeof ProtocolsSchema>;
-
-const gatewayColumns = {
-  id: gateways.id,
-  builtin: sql<boolean>`false`,
-  name: gateways.name,
-  kind: gateways.kind,
-  networkId: gateways.networkId,
-  protocols: gateways.protocols,
-  settings: gateways.settings,
-  createdAt: gateways.createdAt
-};
 
 // An organisation's gateways, in the principal's request session: members read them, administrators manage them. A
 // gateway's network must belong to the same organisation, which the database's composite foreign key enforces. The
-// built-in gateways (src/topology/gateways.ts) are listed and read beside them, but never changed.
+// built-in gateways (src/gateways/index.ts) are listed and read beside them, but never changed.
 export default new Hono()
   .get(
     '/',
@@ -100,7 +76,19 @@ export default new Hono()
           ? eq(gateways.organisationId, id)
           : and(eq(gateways.organisationId, id), eq(gateways.networkId, networkId));
       const rows = await session.transaction(tx =>
-        tx.select(gatewayColumns).from(gateways).where(filter).orderBy(gateways.id)
+        tx
+          .select({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          })
+          .from(gateways)
+          .where(filter)
+          .orderBy(gateways.id)
       );
       const builtin = networkId === undefined ? builtinGateways : [];
       c.header('Cache-Control', 'no-store');
@@ -114,14 +102,14 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Add a gateway',
       description:
-        'Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.',
+        'Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.',
       responses: {
         201: { description: 'The new gateway' },
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
         412: versionMismatch,
-        422: invalidReference,
+        422: invalidGateway,
         503: unavailable
       }
     }),
@@ -133,7 +121,6 @@ export default new Hono()
         name: GatewayNameSchema,
         kind: GatewayKindSchema,
         networkId: NetworkReferenceSchema.default(null),
-        protocols: ProtocolsSchema,
         settings: SettingsSchema.default({})
       })
     ),
@@ -143,21 +130,30 @@ export default new Hono()
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const row = await session.transaction(async tx => {
+        const [gateway] = await tx
           .insert(gateways)
           .values({
             organisationId: id,
             name: body.name,
             kind: body.kind,
             networkId: body.networkId,
-            protocols: body.protocols,
             settings: body.settings
           })
-          .returning(gatewayColumns)
-      );
+          .returning({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          });
+        checkGatewaySettings(gateway!.kind, gateway!.settings);
+        return gateway!;
+      });
       c.header('Cache-Control', 'no-store');
-      return c.json(row!, 201);
+      return c.json(row, 201);
     }
   )
   .get(
@@ -191,7 +187,15 @@ export default new Hono()
       const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
-          .select(gatewayColumns)
+          .select({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          })
           .from(gateways)
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
       );
@@ -206,16 +210,15 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a gateway',
       description:
-        'Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.',
+        'Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.',
       responses: {
         200: { description: 'The updated gateway' },
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
         404: notFound,
-        409: inUse,
         412: versionMismatch,
-        422: invalidReference,
+        422: invalidGateway,
         503: unavailable
       }
     }),
@@ -228,7 +231,6 @@ export default new Hono()
           name: GatewayNameSchema.optional(),
           kind: GatewayKindSchema.optional(),
           networkId: NetworkReferenceSchema.optional(),
-          protocols: ProtocolsSchema.optional(),
           settings: SettingsSchema.optional()
         })
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
@@ -247,13 +249,22 @@ export default new Hono()
             name: body.name,
             kind: body.kind,
             networkId: body.networkId,
-            protocols: body.protocols,
             settings: body.settings
           })
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
-          .returning(gatewayColumns);
+          .returning({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          });
         if (!gateway) throw await unchanged(tx, gateways.id, gatewayId);
-        if (body.protocols !== undefined) await checkProtocolsInUse(tx, gatewayId, body.protocols);
+        // Only a change to what its kind reads, the kind itself or its settings, can make them unfit.
+        if (body.kind !== undefined || body.settings !== undefined)
+          checkGatewaySettings(gateway.kind, gateway.settings);
         return gateway;
       });
       c.header('Cache-Control', 'no-store');

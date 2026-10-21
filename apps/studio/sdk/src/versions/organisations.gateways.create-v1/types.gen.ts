@@ -19,7 +19,6 @@ export type Gateway = {
     name: string;
     kind: string;
     networkId: string | null;
-    protocols: Array<string>;
     settings: {
         [key: string]: unknown;
     };
@@ -33,17 +32,13 @@ export type PostOrganisationsByIdGatewaysData = {
          */
         name: string;
         /**
-         * The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.
+         * The gateway implementation, such as `mediamtx`.
          */
-        kind: string;
+        kind: 'mediamtx';
         /**
          * A network of the organisation, or null for the internet.
          */
         networkId?: string | null;
-        /**
-         * The protocols the gateway accepts streams by.
-         */
-        protocols: Array<string>;
         /**
          * Settings validated by the implementation that reads them.
          */
@@ -79,7 +74,7 @@ export type PostOrganisationsByIdGatewaysErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads
      */
     422: Error;
     /**

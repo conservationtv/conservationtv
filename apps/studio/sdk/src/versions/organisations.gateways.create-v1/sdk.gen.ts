@@ -51,14 +51,13 @@ export class Gateways extends HeyApiClient {
     /**
      * Add a gateway
      *
-     * Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.
+     * Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         name: string;
-        kind: string;
+        kind: 'mediamtx';
         networkId?: string | null;
-        protocols: Array<string>;
         settings?: {
             [key: string]: Schema0;
         };
@@ -68,7 +67,6 @@ export class Gateways extends HeyApiClient {
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'protocols' },
                     { in: 'body', key: 'settings' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdGatewaysErrors, ThrowOnError>({

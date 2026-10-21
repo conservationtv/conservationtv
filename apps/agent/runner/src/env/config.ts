@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { arkenv } from '@arkenv/standard';
-import { Agent, MediamtxPathsSchema } from '@conservationtv/agent-api';
+import { Agent } from '@conservationtv/agent-api';
 import { z } from 'zod';
 
 /** The runner's settings, from the environment. */
@@ -24,23 +24,6 @@ export const config = {
     .transform(text => new Uint8Array(Buffer.from(text, 'hex'))),
   /** A directory of the agent's own, where its runtimes keep what they install and run. */
   AGENT_DATA_DIR: z.string().min(1).default('data'),
-  /**
-   * The paths MediaMTX serves, as JSON, each delivering an exposure: `[{ "name": "cam1", "exposureId": "…" }]`, with an
-   * optional `rendition` ID. Until exposures reach the agent from the studio API. Unset, MediaMTX serves any path.
-   */
-  MEDIAMTX_PATHS: z
-    .string()
-    .transform((text, context) => {
-      try {
-        const parsed: unknown = JSON.parse(text);
-        return parsed;
-      } catch {
-        context.addIssue({ code: 'custom', message: 'MEDIAMTX_PATHS must be JSON' });
-        return z.NEVER;
-      }
-    })
-    .pipe(MediamtxPathsSchema)
-    .optional(),
   /** How long in-flight requests get to finish after a shutdown signal before the process exits anyway. */
   SHUTDOWN_DELAY_MS: z.coerce.number().int().positive().default(10_000)
 };
@@ -59,9 +42,8 @@ export const services = (variables: Variables) => {
     const name = variables.AGENT_NAME;
     const secretKey = variables.AGENT_SECRET_KEY;
     const directory = resolve(variables.AGENT_DATA_DIR);
-    const mediamtxPaths = variables.MEDIAMTX_PATHS;
     if (variables.AGENT_MODE === 'direct') {
-      return new Agent({ type: 'direct', name, secretKey, directory, mediamtxPaths });
+      return new Agent({ type: 'direct', name, secretKey, directory });
     }
 
     if (variables.STUDIO_API_URL === undefined) {
@@ -73,7 +55,6 @@ export const services = (variables: Variables) => {
       name,
       secretKey,
       directory,
-      mediamtxPaths,
       studioUrl: variables.STUDIO_API_URL
     });
   })();

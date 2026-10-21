@@ -9,7 +9,7 @@ export const ExposureUpdateV1ParamsSchema = z.object({
     streamId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     exposureId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
     gatewayId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.gatewayId.optional().describe('The gateway the stream is delivered to: built in, or the organisation\'s own.'),
-    protocol: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.protocol.optional().describe('One of the protocols the gateway accepts.'),
+    renditions: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.renditions.optional().describe('The renditions the exposure offers.'),
     publisherDeviceId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.publisherDeviceId.optional().describe('The device that publishes the exposure to its gateway, or null for whichever the system chooses.'),
     upstreamExposureId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.upstreamExposureId.optional().describe('An exposure of the same stream to publish from, or null for the stream\'s source device.'),
     params: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.params.optional()

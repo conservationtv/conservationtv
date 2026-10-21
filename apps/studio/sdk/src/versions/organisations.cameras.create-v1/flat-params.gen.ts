@@ -8,7 +8,8 @@ export const CameraCreateV1ParamsSchema = z.object({
     id: PostOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.'),
     name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
     networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.nonoptional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
+    credentials: PostOrganisationsByIdCamerasBodySchema.shape.credentials.optional().describe('How to authenticate to the camera. Write-only: never returned.')
 });
 
 export type CameraCreateV1Params = z.infer<typeof CameraCreateV1ParamsSchema>;

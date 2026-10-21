@@ -13,7 +13,12 @@ export type Camera = {
     cameras: Array<{
         id: string;
         settings: {
-            [key: string]: unknown;
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
         };
         device: {
             name: string;

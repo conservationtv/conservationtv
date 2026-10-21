@@ -5,16 +5,20 @@ BETTER_AUTH_SECRET=REPLACE_WITH_GENERATED_SECRET
 # The master key for encrypted columns and blind indexes: 32 random bytes, generated the same way.
 FIELD_KEY=REPLACE_WITH_GENERATED_KEY
 
-# Optional: lease devices' endpoints from a controlplane gatekeeper. `pnpm dev:controlplane` uses the local one
-# (apps/controlplane/gatekeeper: `pnpm local:up` and `pnpm dev`) and `pnpm dev:staging` staging's; each sets
-# GATEKEEPER_URL and IROH_RELAY_URL itself, and reads secrets from .dev.vars.<mode> instead of this file. Copy this
-# file to .dev.vars.controlplane or .dev.vars.staging, then add that environment's consumer token:
-# GATEKEEPER_TOKEN=local-consumer-token                  (.dev.vars.controlplane)
-# GATEKEEPER_TOKEN=…                                     (.dev.vars.staging, from 1Password: gatekeeper_staging_consumer_token)
+# The consumer token of the controlplane gatekeeper, which names the relays and admits devices to them. `pnpm dev` uses
+# the local one (apps/controlplane/gatekeeper: `pnpm local:up` and `pnpm dev`). `pnpm dev:staging` uses staging's, and
+# reads secrets from .dev.vars.staging instead of this file: copy this file there, with staging's token from
+# 1Password (gatekeeper_staging_consumer_token).
+GATEKEEPER_TOKEN=local-consumer-token
+
+# Optional: sign tokens for MediaMTX gateways, which verify them against `GET /gateway-keys`. A keyring of ES256 JWKs,
+# with the private `d`, on one line; generate one key with:
+# node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(({kty,crv,x,y,d})=>console.log(JSON.stringify({active_kid:'1',keys:[{kty,crv,x,y,d,alg:'ES256',kid:'1'}]})))"
+# GATEWAY_SIGNING_KEYS={"active_kid":"1","keys":[…]}
 
 # Text bindings are not read from this file: override the checked-in development defaults from the environment,
 # e.g. `APP_URL=… pnpm dev`.
 # APP_URL=http://localhost:5175
 # WEB_ORIGINS=http://localhost:5173
-# IROH_RELAY_URL=https://euc1-1.relay.n0.iroh.link./
+# GATEKEEPER_URL=http://localhost:5176
 # OTP_DELIVERY=log

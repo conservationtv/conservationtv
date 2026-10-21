@@ -51,15 +51,14 @@ export class Gateways extends HeyApiClient {
     /**
      * Update a gateway
      *
-     * Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.
+     * Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
         name?: string;
-        kind?: string;
+        kind?: 'mediamtx';
         networkId?: string | null;
-        protocols?: Array<string>;
         settings?: {
             [key: string]: Schema0;
         };
@@ -70,7 +69,6 @@ export class Gateways extends HeyApiClient {
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'protocols' },
                     { in: 'body', key: 'settings' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({

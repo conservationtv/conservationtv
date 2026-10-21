@@ -9,14 +9,15 @@ export type Error = {
     error_description: string;
 };
 
-export type Schema0 = string | number | boolean | null | Array<Schema0> | {
-    [key: string]: Schema0;
-};
-
 export type Camera = {
     id: string;
     settings: {
-        [key: string]: unknown;
+        driver: 'axis';
+        host: string;
+        resolutions: Array<string>;
+    } | {
+        driver: 'rtsp';
+        url: string;
     };
     device: {
         name: string;
@@ -31,11 +32,20 @@ export type Camera = {
 export type PatchOrganisationsByIdCamerasByCameraIdData = {
     body: {
         /**
-         * Settings validated by the implementation that reads them.
+         * What the camera is registered with: its `driver`, and what that driver reads.
          */
-        settings: {
-            [key: string]: Schema0;
+        settings?: {
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
         };
+        credentials?: {
+            username: string;
+            password: string;
+        } | null;
     };
     path: {
         /**

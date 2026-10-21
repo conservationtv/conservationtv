@@ -1,7 +1,7 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
-import type { ExposureParams, Settings } from '../../topology/settings.ts';
+import { type ExposureParams, type Rendition, type Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
@@ -46,11 +46,12 @@ export const streams = withAccess(
 
 /**
  * How a stream is delivered: to a gateway, built in or the organisation's own, which decides where it can be read (its
- * network, or the internet), by one of the protocols the gateway accepts, with the renditions it should offer in `params`. Its publisher is the device
+ * network, or the internet) and by which protocols, offering the `renditions` it lists. Its publisher is the device
  * that sends it there: the pinned `publisher_device_id`, or (null) whichever the configuration builders choose, the
  * source camera itself when it can or an agent on its network. What it publishes is the stream's source, or
- * `upstream_exposure_id`'s delivery of the same stream, so exposures chain: camera, MediaMTX on its network, then a
- * relay on the internet. An exposure another uses as its upstream cannot be deleted from under it.
+ * `upstream_exposure_id`'s delivery of the same stream, offering at most the renditions that offers, so exposures
+ * chain: camera, MediaMTX on its network, then a relay on the internet. An exposure another uses as its upstream
+ * cannot be deleted from under it.
  */
 export const exposures = withAccess(
   pgTable(
@@ -65,7 +66,11 @@ export const exposures = withAccess(
       streamId: uuid('stream_id').notNull(),
       // A built-in gateway's slug or one of the organisation's gateways (src/topology/exposures.ts checks which).
       gatewayId: text('gateway_id').notNull(),
-      protocol: text('protocol').notNull(),
+      renditions: text('renditions')
+        .$type<Rendition>()
+        .array()
+        .default(sql`'{default}'`)
+        .notNull(),
       publisherDeviceId: uuid('publisher_device_id'),
       upstreamExposureId: uuid('upstream_exposure_id'),
       params: jsonb('params').$type<ExposureParams>().default({}).notNull(),
@@ -105,8 +110,9 @@ export const exposures = withAccess(
 );
 
 /**
- * A recording responsibility, always backed by an exposure of its own stream: that exposure supplies the gateway and
- * protocol. An exposure a recorder uses cannot be deleted from under it.
+ * A recording responsibility, always backed by an exposure of its own stream, recording one of the renditions it
+ * offers: that exposure supplies the gateway. An exposure a recorder uses cannot be deleted from under it, nor stop
+ * offering the rendition it records.
  */
 export const recorders = withAccess(
   pgTable(
@@ -120,6 +126,7 @@ export const recorders = withAccess(
         .references(() => organisations.id, { onDelete: 'cascade' }),
       streamId: uuid('stream_id').notNull(),
       exposureId: uuid('exposure_id').notNull(),
+      rendition: text('rendition').$type<Rendition>().default('default').notNull(),
       kind: text('kind').notNull(),
       params: jsonb('params').$type<Settings>().default({}).notNull(),
       createdAt: timestamp('created_at').defaultNow().notNull()

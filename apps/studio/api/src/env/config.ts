@@ -6,6 +6,7 @@ import { authorization } from '../access.ts';
 import { createAuth, type Auth } from '../auth/auth.ts';
 import { otpDelivery } from '../auth/otp.ts';
 import type { Cache } from '../cache/cache.ts';
+import { loadGatewayKeyring, type GatewayKeyring } from '../gateways/keys.ts';
 import { connectLazily } from '../db/client.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
@@ -21,15 +22,19 @@ export const config = {
   APP_URL: z.url(),
   /** Comma-separated. The first is the studio web app, which hosts the device-flow approval page. */
   WEB_ORIGINS: z.array(z.url()).nonempty(),
-  /** The iroh relay every device's session uses; see src/topology/iroh.ts. */
-  IROH_RELAY_URL: z.url(),
   /**
-   * The control plane that leases each device's endpoint on that relay; see src/gatekeeper/leases.ts. Unset for a
-   * relay that admits every endpoint, such as n0's, when sessions carry no lease.
+   * The control plane that names the relays and admits devices to them: it leases each device's endpoint on its iroh
+   * relay (src/gatekeeper/grants.ts) and issues tokens for its MoQ relay (src/gateways/conservationtv.ts), each with
+   * that relay's URL.
    */
-  GATEKEEPER_URL: z.url().optional(),
+  GATEKEEPER_URL: z.url(),
   /** The consumer token of the gatekeeper's environment, which trusts whoever holds it with its relays. */
-  GATEKEEPER_TOKEN: z.string().min(1).optional(),
+  GATEKEEPER_TOKEN: z.string().min(1),
+  /**
+   * The keys gateway tokens are signed with, as JSON; see src/gateways/keys.ts. Unset, gateways that verify them
+   * (MediaMTX) cannot be connected to.
+   */
+  GATEWAY_SIGNING_KEYS: z.string().min(1).optional(),
   /** Only logging exists; see src/auth/otp.ts. */
   OTP_DELIVERY: z.literal('log'),
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -63,16 +68,22 @@ export const services = (variables: Variables, bindings: Bindings) => {
   */
 
   // Optional clients
+  const gatewayKeys = (() => {
+    const secret = variables.GATEWAY_SIGNING_KEYS;
+    if (secret === undefined) return;
+    let keyring: Promise<GatewayKeyring> | undefined = undefined;
+    return {
+      /** The gateway signing keys, loaded; rejects if the secret is malformed. */
+      keyring: () => {
+        if (keyring === undefined) keyring = loadGatewayKeyring(secret);
+        return keyring;
+      }
+    };
+  })();
+
+  // Required clients
+  /** The control plane that names the relays and admits devices to them. */
   const gatekeeper = (() => {
-    if (variables.GATEKEEPER_URL === undefined && variables.GATEKEEPER_TOKEN === undefined) {
-      return;
-    }
-
-    // Leasing needs both; either alone is a half-configured deployment.
-    if (variables.GATEKEEPER_URL === undefined || variables.GATEKEEPER_TOKEN === undefined) {
-      throw new Error('Set GATEKEEPER_URL and GATEKEEPER_TOKEN together, or neither');
-    }
-
     const url = variables.GATEKEEPER_URL;
     const token = variables.GATEKEEPER_TOKEN;
     let client: Promise<GatekeeperClient> | undefined = undefined;
@@ -85,7 +96,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
     };
   })();
 
-  // Required clients
   /** The owning role's connection. Request handlers use `session()` instead. */
   const admin = connectLazily(bindings.admin);
   /** The application role's connection, enforced by row-level security. */
@@ -121,6 +131,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
     auth,
     cache: bindings.cache,
     gatekeeper,
+    gatewayKeys,
     close: () => Promise.all([admin.close(), app.close()])
   };
 };

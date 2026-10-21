@@ -19,7 +19,6 @@ export type Gateway = {
     name: string;
     kind: string;
     networkId: string | null;
-    protocols: Array<string>;
     settings: {
         [key: string]: unknown;
     };
@@ -33,17 +32,13 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
          */
         name?: string;
         /**
-         * The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.
+         * The gateway implementation, such as `mediamtx`.
          */
-        kind?: string;
+        kind?: 'mediamtx';
         /**
          * A network of the organisation, or null for the internet.
          */
         networkId?: string | null;
-        /**
-         * The protocols the gateway accepts streams by.
-         */
-        protocols?: Array<string>;
         /**
          * Settings validated by the implementation that reads them.
          */
@@ -59,7 +54,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -83,15 +78,11 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdErrors = {
      */
     404: Error;
     /**
-     * The resource is still used by another resource
-     */
-    409: Error;
-    /**
      * The selected operation version is not served
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads
      */
     422: Error;
     /**
