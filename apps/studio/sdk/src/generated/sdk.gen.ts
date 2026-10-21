@@ -719,14 +719,13 @@ export class Gateways extends HeyApiClient {
     /**
      * Add a gateway
      *
-     * Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.
+     * Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         name: string;
-        kind: string;
+        kind: 'mediamtx';
         networkId?: string | null;
-        protocols: Array<string>;
         settings?: {
             [key: string]: Schema0;
         };
@@ -736,7 +735,6 @@ export class Gateways extends HeyApiClient {
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'protocols' },
                     { in: 'body', key: 'settings' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdGatewaysErrors, ThrowOnError>({
@@ -788,15 +786,14 @@ export class Gateways extends HeyApiClient {
     /**
      * Update a gateway
      *
-     * Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.
+     * Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         gatewayId: 'conservationtv' | string;
         name?: string;
-        kind?: string;
+        kind?: 'mediamtx';
         networkId?: string | null;
-        protocols?: Array<string>;
         settings?: {
             [key: string]: Schema0;
         };
@@ -807,7 +804,6 @@ export class Gateways extends HeyApiClient {
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'protocols' },
                     { in: 'body', key: 'settings' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
@@ -827,41 +823,24 @@ export class Exposures extends HeyApiClient {
     /**
      * Expose a stream
      *
-     * Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.
+     * Administrators only. Declares how the stream is delivered: to which gateway, by which publisher from which upstream, offering which renditions (at most those its upstream offers). The gateway decides the protocols it is read by.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         gatewayId: 'conservationtv' | string;
-        protocol: string;
+        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;
         params?: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }>;
-            [key: string]: Schema0 | Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }> | undefined;
+            [key: string]: Schema0;
         };
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
                     { in: 'body', key: 'gatewayId' },
-                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'renditions' },
                     { in: 'body', key: 'publisherDeviceId' },
                     { in: 'body', key: 'upstreamExposureId' },
                     { in: 'body', key: 'params' }
@@ -903,35 +882,18 @@ export class Exposures extends HeyApiClient {
     /**
      * Update an exposure
      *
-     * Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.
+     * Administrators only. Changes only the fields given; `renditions` and `params` are replaced whole. Refused if its upstream would lead back to it, if it would offer a rendition its upstream does not, or stop offering one an exposure downstream of it or a recorder uses.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         exposureId: string;
         gatewayId?: 'conservationtv' | string;
-        protocol?: string;
+        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;
         params?: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }>;
-            [key: string]: Schema0 | Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }> | undefined;
+            [key: string]: Schema0;
         };
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
@@ -939,7 +901,7 @@ export class Exposures extends HeyApiClient {
                     { in: 'path', key: 'streamId' },
                     { in: 'path', key: 'exposureId' },
                     { in: 'body', key: 'gatewayId' },
-                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'renditions' },
                     { in: 'body', key: 'publisherDeviceId' },
                     { in: 'body', key: 'upstreamExposureId' },
                     { in: 'body', key: 'params' }
@@ -959,19 +921,23 @@ export class Exposures extends HeyApiClient {
     /**
      * Connect to an exposure
      *
-     * Where to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.
+     * Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.
      */
     public connect<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         exposureId: string;
         action: 'read' | 'publish';
+        protocol: string;
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
                     { in: 'path', key: 'exposureId' },
-                    { in: 'body', key: 'action' }
+                    { in: 'body', key: 'action' },
+                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'rendition' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, ThrowOnError>({
             url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections',
@@ -990,12 +956,13 @@ export class Recorders extends HeyApiClient {
     /**
      * Record a stream
      *
-     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.
+     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway, and records one of the renditions it offers.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         exposureId: string;
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
         kind: string;
         params?: {
             [key: string]: Schema0;
@@ -1005,6 +972,7 @@ export class Recorders extends HeyApiClient {
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
                     { in: 'body', key: 'exposureId' },
+                    { in: 'body', key: 'rendition' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'params' }
                 ] }]);
@@ -1052,6 +1020,7 @@ export class Recorders extends HeyApiClient {
         streamId: string;
         recorderId: string;
         exposureId?: string;
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
         kind?: string;
         params?: {
             [key: string]: Schema0;
@@ -1062,6 +1031,7 @@ export class Recorders extends HeyApiClient {
                     { in: 'path', key: 'streamId' },
                     { in: 'path', key: 'recorderId' },
                     { in: 'body', key: 'exposureId' },
+                    { in: 'body', key: 'rendition' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'params' }
                 ] }]);

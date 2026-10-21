@@ -204,8 +204,8 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 
 What each organisation runs, in `src/db/schemas/`: networks, devices of three kinds, cameras, agents (which serve the
 network they are on, one active at a time) and signed-in browsers, gateways, streams with a source device, their
-exposures (gateway, protocol, publisher, upstream, desired renditions) and recorders (always backed by an exposure of
-the same stream).
+exposures (gateway, renditions, publisher, upstream) and recorders (always backed by an exposure of the same stream,
+recording one of its renditions).
 
 Every row binds to its organisation's scope through `organisation_id`: `organisationMember` reads it all and
 `organisationAdmin` manages it, in the request session. References between rows are composite foreign keys that
@@ -248,29 +248,38 @@ organisation revokes every grant at it. Device routes run their queries with
 
 ### Gateways and exposures
 
-A `gateway` is somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the
-`protocols` it lists. Its `kind` is the implementation and its `settings` whatever that reads: a `moq-relay` or an
-RTMP ingest on the internet at a URL, or `mediamtx` on a network, which that network's active agent runs, so it fails
-over with the agent.
+A `gateway` is somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` is one
+of the gateway providers (`src/gateways/`): only `mediamtx` so far, on a network, which that network's active agent
+runs, so it fails over with the agent. The provider decides how a publisher delivers to it (its ingest protocols) and
+how readers read it (its egress protocols), and the `settings` it is registered with, such as where its servers
+listen (422 `invalid_settings` otherwise).
 
 Every organisation also has the built-in gateways (`src/gateways/index.ts`), such as `conservationtv`, a MoQ relay:
 defined in code rather than stored, always on the internet, and identified by their slug. Where each one is belongs to
 the deployment, so they show no `settings`. `…/gateways` lists them first, then the organisation's own (`builtin`
 tells them apart), and reads either; changing or removing a built-in gateway is 403 `forbidden`.
 
-An `exposure` delivers a stream to one gateway, built in or the organisation's own, by one of the protocols the
-gateway accepts (422 `unsupported_protocol` otherwise; a gateway cannot stop accepting a protocol an exposure uses, 409
-`in_use`). Its `gatewayId` is therefore a slug or a UUID, and no foreign key: the code checks that it names a gateway
-of the organisation (422 `invalid_reference`), and refuses removing a gateway an exposure uses (409 `in_use`). Its
-publisher, the device that sends it there, is `publisherDeviceId` when pinned, or (null) whichever the configuration
-builders choose: the source camera itself when its capabilities allow, or an agent on its network. What it publishes
-is the stream's source, or `upstreamExposureId`, another exposure of the same stream, so exposures chain: a camera
-into MediaMTX on its network, then an agent from there to a relay on the internet. A chain cannot loop (409
-`exposure_cycle`: checked under a per-stream advisory lock, so two concurrent changes cannot each close half a loop),
-and an exposure another uses as its upstream cannot be deleted (409 `in_use`). The database checks the other references;
-`src/topology/exposures.ts` checks the gateway, its protocol and the chain, after the write, so row-level security
-has already refused a principal who may not make it, sharing the gateway's row lock so a concurrent change to it or
-its removal is serialised with the write.
+An `exposure` delivers a stream to one gateway, built in or the organisation's own, offering the `renditions` it lists:
+qualities from a fixed vocabulary, `default` (the source as it comes), `data_saver`, `balanced` and `quality`, so a
+reader chooses the same way on every stream. Whether a source or publisher can produce anything but `default` is the
+configuration builders' to decide. Its `gatewayId` is a slug or a UUID, and no foreign key: the code checks that it
+names a gateway of the organisation (422 `invalid_reference`), and refuses removing a gateway an exposure uses (409
+`in_use`). Its publisher, the device that sends it there, is `publisherDeviceId` when pinned, or (null) whichever the
+configuration builders choose: the source camera itself when its capabilities allow, or an agent on its network. What
+it publishes is the stream's source, or `upstreamExposureId`, another exposure of the same stream, so exposures chain:
+a camera into MediaMTX on its network, then an agent from there to a relay on the internet. Along a chain, an exposure
+offers at most its upstream's renditions (422 `rendition_not_offered`), and cannot stop offering one an exposure
+downstream of it, or a recorder of it, uses (409 `in_use`). A chain cannot loop (409 `exposure_cycle`), and an
+exposure another uses as its upstream cannot be deleted (409 `in_use`). The database checks the other references;
+`src/topology/exposures.ts` checks the gateway, the chain and the renditions along it, after the write, so row-level
+security has already refused a principal who may not make it, under a per-stream advisory lock so two concurrent
+changes cannot each leave half an inconsistency, and sharing the gateway's row lock so its removal is serialised with
+the write.
+
+Readers choose a protocol when they connect (`…/exposures/{exposureId}/connections`), among the gateway's egress
+protocols. One that carries a rendition per connection (RTSP, WebRTC, HLS: each a MediaMTX path of its own,
+`{exposureId}/{rendition}`) needs one chosen when the exposure offers several (422 `rendition_required`); MoQ carries
+every rendition as a track of one broadcast. Publishers connect the same way, by an ingest protocol.
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
 for it.

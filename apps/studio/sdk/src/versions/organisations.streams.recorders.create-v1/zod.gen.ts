@@ -18,6 +18,12 @@ export const Schema0Schema = z.union([
 export const RecorderSchema = z.object({
     id: z.string(),
     exposureId: z.string(),
+    rendition: z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]),
     kind: z.string(),
     params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
@@ -27,6 +33,14 @@ export const PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema = z.objec
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The exposure of this stream to record.'
     }),
+    rendition: z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]).register(z.globalRegistry, {
+        description: 'The rendition of the exposure to record: one it offers.'
+    }).optional().default('default'),
     kind: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The recording implementation.'
     }),

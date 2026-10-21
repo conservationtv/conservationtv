@@ -15,6 +15,14 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
          * Whether to read the exposure from its gateway, or publish it there.
          */
         action: 'read' | 'publish';
+        /**
+         * One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.
+         */
+        protocol: string;
+        /**
+         * The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.
+         */
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
     };
     path: {
         /**
@@ -56,7 +64,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
      */
     412: Error;
     /**
-     * Connections to the exposure's gateway are not made through this API, or it cannot do that by the exposure's protocol
+     * Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen
      */
     422: Error;
     /**
@@ -77,11 +85,13 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
         path: string;
         token?: string;
         expiresAt?: string;
+        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
     } | {
         protocol: string;
         url: string;
         token?: string;
         expiresAt?: string;
+        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
     };
 };
 

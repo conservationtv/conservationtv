@@ -23,10 +23,9 @@ export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
 export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
     z.object({
         id: z.literal('conservationtv'),
-        builtin: z.boolean(),
+        builtin: z.literal(true),
         name: z.string(),
-        kind: z.literal('moq-relay'),
-        protocols: z.array(z.string()),
+        kind: z.string(),
         networkId: z.null(),
         settings: z.record(z.string(), z.unknown()),
         createdAt: z.null()
@@ -37,7 +36,6 @@ export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
         name: z.string(),
         kind: z.string(),
         networkId: z.string().nullable(),
-        protocols: z.array(z.string()),
         settings: z.record(z.string(), z.unknown()),
         createdAt: z.string()
     })

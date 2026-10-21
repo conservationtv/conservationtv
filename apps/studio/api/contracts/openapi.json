@@ -534,26 +534,21 @@
                       "const": "conservationtv"
                     },
                     "builtin": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "const": true
                     },
                     "name": {
                       "type": "string"
                     },
                     "kind": {
-                      "type": "string",
-                      "const": "moq-relay"
-                    },
-                    "protocols": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
+                      "type": "string"
                     },
                     "networkId": {
                       "type": "null"
                     },
                     "settings": {
-                      "type": "object"
+                      "type": "object",
+                      "additionalProperties": {}
                     },
                     "createdAt": {
                       "type": "null"
@@ -564,7 +559,6 @@
                     "builtin",
                     "name",
                     "kind",
-                    "protocols",
                     "networkId",
                     "settings",
                     "createdAt"
@@ -595,12 +589,6 @@
                         }
                       ]
                     },
-                    "protocols": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
                     "settings": {
                       "type": "object",
                       "additionalProperties": {}
@@ -615,7 +603,6 @@
                     "name",
                     "kind",
                     "networkId",
-                    "protocols",
                     "settings",
                     "createdAt"
                   ]
@@ -657,31 +644,6 @@
               "properties": {
                 "params": {
                   "type": "object",
-                  "properties": {
-                    "renditions": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "width": {
-                            "type": "number"
-                          },
-                          "height": {
-                            "type": "number"
-                          },
-                          "bitrate": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "id"
-                        ]
-                      }
-                    }
-                  },
                   "additionalProperties": {}
                 },
                 "id": {
@@ -693,8 +655,17 @@
                 "gatewayId": {
                   "type": "string"
                 },
-                "protocol": {
-                  "type": "string"
+                "renditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "data_saver",
+                      "balanced",
+                      "quality"
+                    ]
+                  }
                 },
                 "publisherDeviceId": {
                   "anyOf": [
@@ -722,7 +693,7 @@
                 "id",
                 "createdAt",
                 "gatewayId",
-                "protocol",
+                "renditions",
                 "publisherDeviceId",
                 "upstreamExposureId"
               ]
@@ -748,6 +719,15 @@
                 },
                 "exposureId": {
                   "type": "string"
+                },
+                "rendition": {
+                  "type": "string",
+                  "enum": [
+                    "default",
+                    "data_saver",
+                    "balanced",
+                    "quality"
+                  ]
                 }
               },
               "required": [
@@ -755,7 +735,8 @@
                 "id",
                 "createdAt",
                 "kind",
-                "exposureId"
+                "exposureId",
+                "rendition"
               ]
             }
           }
@@ -778,8 +759,17 @@
           "gatewayId": {
             "type": "string"
           },
-          "protocol": {
-            "type": "string"
+          "renditions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "default",
+                "data_saver",
+                "balanced",
+                "quality"
+              ]
+            }
           },
           "publisherDeviceId": {
             "anyOf": [
@@ -803,31 +793,6 @@
           },
           "params": {
             "type": "object",
-            "properties": {
-              "renditions": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "width": {
-                      "type": "number"
-                    },
-                    "height": {
-                      "type": "number"
-                    },
-                    "bitrate": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "id"
-                  ]
-                }
-              }
-            },
             "additionalProperties": {}
           },
           "createdAt": {
@@ -837,7 +802,7 @@
         "required": [
           "id",
           "gatewayId",
-          "protocol",
+          "renditions",
           "publisherDeviceId",
           "upstreamExposureId",
           "params",
@@ -853,6 +818,15 @@
           "exposureId": {
             "type": "string"
           },
+          "rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
           "kind": {
             "type": "string"
           },
@@ -867,6 +841,7 @@
         "required": [
           "id",
           "exposureId",
+          "rendition",
           "kind",
           "params",
           "createdAt"
@@ -5801,7 +5776,7 @@
         "operationId": "organisations.gateways.create",
         "x-operation-version": 1,
         "summary": "Add a gateway",
-        "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.",
+        "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.",
         "responses": {
           "201": {
             "description": "The new gateway",
@@ -5832,12 +5807,6 @@
                         }
                       ]
                     },
-                    "protocols": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
                     "settings": {
                       "type": "object",
                       "additionalProperties": {}
@@ -5852,7 +5821,6 @@
                     "name",
                     "kind",
                     "networkId",
-                    "protocols",
                     "settings",
                     "createdAt"
                   ]
@@ -5901,7 +5869,7 @@
             }
           },
           "422": {
-            "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
+            "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
             "content": {
               "application/json": {
                 "schema": {
@@ -5949,9 +5917,10 @@
                   },
                   "kind": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                    "enum": [
+                      "mediamtx"
+                    ],
+                    "description": "The gateway implementation, such as `mediamtx`."
                   },
                   "networkId": {
                     "default": null,
@@ -5966,18 +5935,6 @@
                       }
                     ],
                     "description": "A network of the organisation, or null for the internet."
-                  },
-                  "protocols": {
-                    "minItems": 1,
-                    "maxItems": 16,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 60,
-                      "description": "A delivery protocol, such as `moq` or `rtsp`."
-                    },
-                    "description": "The protocols the gateway accepts streams by."
                   },
                   "settings": {
                     "default": {},
@@ -5994,8 +5951,7 @@
                 },
                 "required": [
                   "name",
-                  "kind",
-                  "protocols"
+                  "kind"
                 ],
                 "additionalProperties": false
               }
@@ -6028,26 +5984,21 @@
                           "const": "conservationtv"
                         },
                         "builtin": {
-                          "type": "boolean"
+                          "type": "boolean",
+                          "const": true
                         },
                         "name": {
                           "type": "string"
                         },
                         "kind": {
-                          "type": "string",
-                          "const": "moq-relay"
-                        },
-                        "protocols": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
+                          "type": "string"
                         },
                         "networkId": {
                           "type": "null"
                         },
                         "settings": {
-                          "type": "object"
+                          "type": "object",
+                          "additionalProperties": {}
                         },
                         "createdAt": {
                           "type": "null"
@@ -6058,7 +6009,6 @@
                         "builtin",
                         "name",
                         "kind",
-                        "protocols",
                         "networkId",
                         "settings",
                         "createdAt"
@@ -6089,12 +6039,6 @@
                             }
                           ]
                         },
-                        "protocols": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
                         "settings": {
                           "type": "object",
                           "additionalProperties": {}
@@ -6109,7 +6053,6 @@
                         "name",
                         "kind",
                         "networkId",
-                        "protocols",
                         "settings",
                         "createdAt"
                       ]
@@ -6212,7 +6155,7 @@
         "operationId": "organisations.gateways.update",
         "x-operation-version": 1,
         "summary": "Update a gateway",
-        "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
+        "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.",
         "responses": {
           "200": {
             "description": "The updated gateway",
@@ -6243,12 +6186,6 @@
                         }
                       ]
                     },
-                    "protocols": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
                     "settings": {
                       "type": "object",
                       "additionalProperties": {}
@@ -6263,7 +6200,6 @@
                     "name",
                     "kind",
                     "networkId",
-                    "protocols",
                     "settings",
                     "createdAt"
                   ]
@@ -6311,16 +6247,6 @@
               }
             }
           },
-          "409": {
-            "description": "The resource is still used by another resource",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "412": {
             "description": "The selected operation version is not served",
             "content": {
@@ -6332,7 +6258,7 @@
             }
           },
           "422": {
-            "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
+            "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
             "content": {
               "application/json": {
                 "schema": {
@@ -6401,9 +6327,10 @@
                   },
                   "kind": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                    "enum": [
+                      "mediamtx"
+                    ],
+                    "description": "The gateway implementation, such as `mediamtx`."
                   },
                   "networkId": {
                     "anyOf": [
@@ -6417,18 +6344,6 @@
                       }
                     ],
                     "description": "A network of the organisation, or null for the internet."
-                  },
-                  "protocols": {
-                    "minItems": 1,
-                    "maxItems": 16,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 60,
-                      "description": "A delivery protocol, such as `moq` or `rtsp`."
-                    },
-                    "description": "The protocols the gateway accepts streams by."
                   },
                   "settings": {
                     "type": "object",
@@ -7215,7 +7130,7 @@
         "operationId": "organisations.streams.exposures.create",
         "x-operation-version": 1,
         "summary": "Expose a stream",
-        "description": "Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.",
+        "description": "Administrators only. Declares how the stream is delivered: to which gateway, by which publisher from which upstream, offering which renditions (at most those its upstream offers). The gateway decides the protocols it is read by.",
         "responses": {
           "201": {
             "description": "The new exposure",
@@ -7278,7 +7193,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not",
             "content": {
               "application/json": {
                 "schema": {
@@ -7345,11 +7260,23 @@
                     ],
                     "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                   },
-                  "protocol": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "One of the protocols the gateway accepts."
+                  "renditions": {
+                    "default": [
+                      "default"
+                    ],
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "default",
+                        "data_saver",
+                        "balanced",
+                        "quality"
+                      ],
+                      "description": "A quality the stream is delivered at."
+                    },
+                    "description": "The renditions the exposure offers."
                   },
                   "publisherDeviceId": {
                     "default": null,
@@ -7382,41 +7309,9 @@
                   "params": {
                     "default": {},
                     "type": "object",
-                    "properties": {
-                      "renditions": {
-                        "maxItems": 16,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 60
-                            },
-                            "width": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 16384
-                            },
-                            "height": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 16384
-                            },
-                            "bitrate": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 9007199254740991,
-                              "description": "Bits per second."
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      }
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 120
                     },
                     "additionalProperties": {
                       "$ref": "#/components/schemas/__schema0"
@@ -7424,8 +7319,7 @@
                   }
                 },
                 "required": [
-                  "gatewayId",
-                  "protocol"
+                  "gatewayId"
                 ],
                 "additionalProperties": false
               }
@@ -7442,7 +7336,7 @@
         "operationId": "organisations.streams.exposures.update",
         "x-operation-version": 1,
         "summary": "Update an exposure",
-        "description": "Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.",
+        "description": "Administrators only. Changes only the fields given; `renditions` and `params` are replaced whole. Refused if its upstream would lead back to it, if it would offer a rendition its upstream does not, or stop offering one an exposure downstream of it or a recorder uses.",
         "responses": {
           "200": {
             "description": "The updated exposure",
@@ -7495,7 +7389,7 @@
             }
           },
           "409": {
-            "description": "The upstream exposure would lead back to this exposure",
+            "description": "The upstream exposure would lead back to this exposure, or it would stop offering a rendition an exposure downstream of it or a recorder uses",
             "content": {
               "application/json": {
                 "schema": {
@@ -7515,7 +7409,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not",
             "content": {
               "application/json": {
                 "schema": {
@@ -7593,11 +7487,20 @@
                     ],
                     "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                   },
-                  "protocol": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "One of the protocols the gateway accepts."
+                  "renditions": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "default",
+                        "data_saver",
+                        "balanced",
+                        "quality"
+                      ],
+                      "description": "A quality the stream is delivered at."
+                    },
+                    "description": "The renditions the exposure offers."
                   },
                   "publisherDeviceId": {
                     "anyOf": [
@@ -7627,41 +7530,9 @@
                   },
                   "params": {
                     "type": "object",
-                    "properties": {
-                      "renditions": {
-                        "maxItems": 16,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 60
-                            },
-                            "width": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 16384
-                            },
-                            "height": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 16384
-                            },
-                            "bitrate": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0,
-                              "maximum": 9007199254740991,
-                              "description": "Bits per second."
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      }
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 120
                     },
                     "additionalProperties": {
                       "$ref": "#/components/schemas/__schema0"
@@ -7802,7 +7673,7 @@
         "operationId": "organisations.streams.exposures.connect",
         "x-operation-version": 1,
         "summary": "Connect to an exposure",
-        "description": "Where to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+        "description": "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
         "responses": {
           "200": {
             "description": "The connection details",
@@ -7828,12 +7699,25 @@
                         },
                         "expiresAt": {
                           "type": "string"
+                        },
+                        "renditions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "default",
+                              "data_saver",
+                              "balanced",
+                              "quality"
+                            ]
+                          }
                         }
                       },
                       "required": [
                         "protocol",
                         "relay",
-                        "path"
+                        "path",
+                        "renditions"
                       ]
                     },
                     {
@@ -7850,11 +7734,24 @@
                         },
                         "expiresAt": {
                           "type": "string"
+                        },
+                        "renditions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "default",
+                              "data_saver",
+                              "balanced",
+                              "quality"
+                            ]
+                          }
                         }
                       },
                       "required": [
                         "protocol",
-                        "url"
+                        "url",
+                        "renditions"
                       ]
                     }
                   ]
@@ -7913,7 +7810,7 @@
             }
           },
           "422": {
-            "description": "Connections to the exposure's gateway are not made through this API, or it cannot do that by the exposure's protocol",
+            "description": "Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen",
             "content": {
               "application/json": {
                 "schema": {
@@ -7982,10 +7879,27 @@
                       "publish"
                     ],
                     "description": "Whether to read the exposure from its gateway, or publish it there."
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`."
+                  },
+                  "rendition": {
+                    "description": "The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.",
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "data_saver",
+                      "balanced",
+                      "quality"
+                    ]
                   }
                 },
                 "required": [
-                  "action"
+                  "action",
+                  "protocol"
                 ],
                 "additionalProperties": false
               }
@@ -8002,7 +7916,7 @@
         "operationId": "organisations.streams.recorders.create",
         "x-operation-version": 1,
         "summary": "Record a stream",
-        "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.",
+        "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway, and records one of the renditions it offers.",
         "responses": {
           "201": {
             "description": "The new recorder",
@@ -8065,7 +7979,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "description": "The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition",
             "content": {
               "application/json": {
                 "schema": {
@@ -8121,6 +8035,17 @@
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                     "description": "The exposure of this stream to record."
+                  },
+                  "rendition": {
+                    "default": "default",
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "data_saver",
+                      "balanced",
+                      "quality"
+                    ],
+                    "description": "The rendition of the exposure to record: one it offers."
                   },
                   "kind": {
                     "type": "string",
@@ -8223,7 +8148,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "description": "The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition",
             "content": {
               "application/json": {
                 "schema": {
@@ -8290,6 +8215,16 @@
                     "type": "string",
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "rendition": {
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "data_saver",
+                      "balanced",
+                      "quality"
+                    ],
+                    "description": "The rendition of the exposure to record: one it offers."
                   },
                   "kind": {
                     "type": "string",
@@ -17067,26 +17002,21 @@
                           "const": "conservationtv"
                         },
                         "builtin": {
-                          "type": "boolean"
+                          "type": "boolean",
+                          "const": true
                         },
                         "name": {
                           "type": "string"
                         },
                         "kind": {
-                          "type": "string",
-                          "const": "moq-relay"
-                        },
-                        "protocols": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
+                          "type": "string"
                         },
                         "networkId": {
                           "type": "null"
                         },
                         "settings": {
-                          "type": "object"
+                          "type": "object",
+                          "additionalProperties": {}
                         },
                         "createdAt": {
                           "type": "null"
@@ -17097,7 +17027,6 @@
                         "builtin",
                         "name",
                         "kind",
-                        "protocols",
                         "networkId",
                         "settings",
                         "createdAt"
@@ -17128,12 +17057,6 @@
                             }
                           ]
                         },
-                        "protocols": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
                         "settings": {
                           "type": "object",
                           "additionalProperties": {}
@@ -17148,7 +17071,6 @@
                         "name",
                         "kind",
                         "networkId",
-                        "protocols",
                         "settings",
                         "createdAt"
                       ]
@@ -17351,12 +17273,6 @@
                   }
                 ]
               },
-              "protocols": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
               "settings": {
                 "type": "object",
                 "additionalProperties": {}
@@ -17371,7 +17287,6 @@
               "name",
               "kind",
               "networkId",
-              "protocols",
               "settings",
               "createdAt"
             ]
@@ -17384,7 +17299,7 @@
             "operationId": "organisations.gateways.create",
             "x-operation-version": 1,
             "summary": "Add a gateway",
-            "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.",
+            "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.",
             "responses": {
               "201": {
                 "description": "The new gateway",
@@ -17437,7 +17352,7 @@
                 }
               },
               "422": {
-                "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
+                "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -17495,9 +17410,10 @@
                       },
                       "kind": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                        "enum": [
+                          "mediamtx"
+                        ],
+                        "description": "The gateway implementation, such as `mediamtx`."
                       },
                       "networkId": {
                         "default": null,
@@ -17512,18 +17428,6 @@
                           }
                         ],
                         "description": "A network of the organisation, or null for the internet."
-                      },
-                      "protocols": {
-                        "minItems": 1,
-                        "maxItems": 16,
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 60,
-                          "description": "A delivery protocol, such as `moq` or `rtsp`."
-                        },
-                        "description": "The protocols the gateway accepts streams by."
                       },
                       "settings": {
                         "default": {},
@@ -17540,8 +17444,7 @@
                     },
                     "required": [
                       "name",
-                      "kind",
-                      "protocols"
+                      "kind"
                     ],
                     "additionalProperties": false
                   }
@@ -17612,26 +17515,21 @@
                               "const": "conservationtv"
                             },
                             "builtin": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "const": true
                             },
                             "name": {
                               "type": "string"
                             },
                             "kind": {
-                              "type": "string",
-                              "const": "moq-relay"
-                            },
-                            "protocols": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                              "type": "string"
                             },
                             "networkId": {
                               "type": "null"
                             },
                             "settings": {
-                              "type": "object"
+                              "type": "object",
+                              "additionalProperties": {}
                             },
                             "createdAt": {
                               "type": "null"
@@ -17642,7 +17540,6 @@
                             "builtin",
                             "name",
                             "kind",
-                            "protocols",
                             "networkId",
                             "settings",
                             "createdAt"
@@ -17673,12 +17570,6 @@
                                 }
                               ]
                             },
-                            "protocols": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
                             "settings": {
                               "type": "object",
                               "additionalProperties": {}
@@ -17693,7 +17584,6 @@
                             "name",
                             "kind",
                             "networkId",
-                            "protocols",
                             "settings",
                             "createdAt"
                           ]
@@ -17894,12 +17784,6 @@
                   }
                 ]
               },
-              "protocols": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
               "settings": {
                 "type": "object",
                 "additionalProperties": {}
@@ -17914,7 +17798,6 @@
               "name",
               "kind",
               "networkId",
-              "protocols",
               "settings",
               "createdAt"
             ]
@@ -17927,7 +17810,7 @@
             "operationId": "organisations.gateways.update",
             "x-operation-version": 1,
             "summary": "Update a gateway",
-            "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
+            "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.",
             "responses": {
               "200": {
                 "description": "The updated gateway",
@@ -17979,16 +17862,6 @@
                   }
                 }
               },
-              "409": {
-                "description": "The resource is still used by another resource",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
               "412": {
                 "description": "The selected operation version is not served",
                 "content": {
@@ -18000,7 +17873,7 @@
                 }
               },
               "422": {
-                "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
+                "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -18079,9 +17952,10 @@
                       },
                       "kind": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                        "enum": [
+                          "mediamtx"
+                        ],
+                        "description": "The gateway implementation, such as `mediamtx`."
                       },
                       "networkId": {
                         "anyOf": [
@@ -18095,18 +17969,6 @@
                           }
                         ],
                         "description": "A network of the organisation, or null for the internet."
-                      },
-                      "protocols": {
-                        "minItems": 1,
-                        "maxItems": 16,
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 60,
-                          "description": "A delivery protocol, such as `moq` or `rtsp`."
-                        },
-                        "description": "The protocols the gateway accepts streams by."
                       },
                       "settings": {
                         "type": "object",
@@ -18737,31 +18599,6 @@
                   "properties": {
                     "params": {
                       "type": "object",
-                      "properties": {
-                        "renditions": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "width": {
-                                "type": "number"
-                              },
-                              "height": {
-                                "type": "number"
-                              },
-                              "bitrate": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "id"
-                            ]
-                          }
-                        }
-                      },
                       "additionalProperties": {}
                     },
                     "id": {
@@ -18773,8 +18610,17 @@
                     "gatewayId": {
                       "type": "string"
                     },
-                    "protocol": {
-                      "type": "string"
+                    "renditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "default",
+                          "data_saver",
+                          "balanced",
+                          "quality"
+                        ]
+                      }
                     },
                     "publisherDeviceId": {
                       "anyOf": [
@@ -18802,7 +18648,7 @@
                     "id",
                     "createdAt",
                     "gatewayId",
-                    "protocol",
+                    "renditions",
                     "publisherDeviceId",
                     "upstreamExposureId"
                   ]
@@ -18828,6 +18674,15 @@
                     },
                     "exposureId": {
                       "type": "string"
+                    },
+                    "rendition": {
+                      "type": "string",
+                      "enum": [
+                        "default",
+                        "data_saver",
+                        "balanced",
+                        "quality"
+                      ]
                     }
                   },
                   "required": [
@@ -18835,7 +18690,8 @@
                     "id",
                     "createdAt",
                     "kind",
-                    "exposureId"
+                    "exposureId",
+                    "rendition"
                   ]
                 }
               }
@@ -19409,8 +19265,17 @@
               "gatewayId": {
                 "type": "string"
               },
-              "protocol": {
-                "type": "string"
+              "renditions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "default",
+                    "data_saver",
+                    "balanced",
+                    "quality"
+                  ]
+                }
               },
               "publisherDeviceId": {
                 "anyOf": [
@@ -19434,31 +19299,6 @@
               },
               "params": {
                 "type": "object",
-                "properties": {
-                  "renditions": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "width": {
-                          "type": "number"
-                        },
-                        "height": {
-                          "type": "number"
-                        },
-                        "bitrate": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "id"
-                      ]
-                    }
-                  }
-                },
                 "additionalProperties": {}
               },
               "createdAt": {
@@ -19468,7 +19308,7 @@
             "required": [
               "id",
               "gatewayId",
-              "protocol",
+              "renditions",
               "publisherDeviceId",
               "upstreamExposureId",
               "params",
@@ -19483,7 +19323,7 @@
             "operationId": "organisations.streams.exposures.create",
             "x-operation-version": 1,
             "summary": "Expose a stream",
-            "description": "Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.",
+            "description": "Administrators only. Declares how the stream is delivered: to which gateway, by which publisher from which upstream, offering which renditions (at most those its upstream offers). The gateway decides the protocols it is read by.",
             "responses": {
               "201": {
                 "description": "The new exposure",
@@ -19546,7 +19386,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -19623,11 +19463,23 @@
                         ],
                         "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                       },
-                      "protocol": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "One of the protocols the gateway accepts."
+                      "renditions": {
+                        "default": [
+                          "default"
+                        ],
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "default",
+                            "data_saver",
+                            "balanced",
+                            "quality"
+                          ],
+                          "description": "A quality the stream is delivered at."
+                        },
+                        "description": "The renditions the exposure offers."
                       },
                       "publisherDeviceId": {
                         "default": null,
@@ -19660,41 +19512,9 @@
                       "params": {
                         "default": {},
                         "type": "object",
-                        "properties": {
-                          "renditions": {
-                            "maxItems": 16,
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 60
-                                },
-                                "width": {
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 16384
-                                },
-                                "height": {
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 16384
-                                },
-                                "bitrate": {
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991,
-                                  "description": "Bits per second."
-                                }
-                              },
-                              "required": [
-                                "id"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
+                        "propertyNames": {
+                          "type": "string",
+                          "maxLength": 120
                         },
                         "additionalProperties": {
                           "$ref": "#/components/schemas/__schema0"
@@ -19702,8 +19522,7 @@
                       }
                     },
                     "required": [
-                      "gatewayId",
-                      "protocol"
+                      "gatewayId"
                     ],
                     "additionalProperties": false
                   }
@@ -19790,8 +19609,17 @@
               "gatewayId": {
                 "type": "string"
               },
-              "protocol": {
-                "type": "string"
+              "renditions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "default",
+                    "data_saver",
+                    "balanced",
+                    "quality"
+                  ]
+                }
               },
               "publisherDeviceId": {
                 "anyOf": [
@@ -19815,31 +19643,6 @@
               },
               "params": {
                 "type": "object",
-                "properties": {
-                  "renditions": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "width": {
-                          "type": "number"
-                        },
-                        "height": {
-                          "type": "number"
-                        },
-                        "bitrate": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "id"
-                      ]
-                    }
-                  }
-                },
                 "additionalProperties": {}
               },
               "createdAt": {
@@ -19849,7 +19652,7 @@
             "required": [
               "id",
               "gatewayId",
-              "protocol",
+              "renditions",
               "publisherDeviceId",
               "upstreamExposureId",
               "params",
@@ -19864,7 +19667,7 @@
             "operationId": "organisations.streams.exposures.update",
             "x-operation-version": 1,
             "summary": "Update an exposure",
-            "description": "Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.",
+            "description": "Administrators only. Changes only the fields given; `renditions` and `params` are replaced whole. Refused if its upstream would lead back to it, if it would offer a rendition its upstream does not, or stop offering one an exposure downstream of it or a recorder uses.",
             "responses": {
               "200": {
                 "description": "The updated exposure",
@@ -19917,7 +19720,7 @@
                 }
               },
               "409": {
-                "description": "The upstream exposure would lead back to this exposure",
+                "description": "The upstream exposure would lead back to this exposure, or it would stop offering a rendition an exposure downstream of it or a recorder uses",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -19937,7 +19740,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -20025,11 +19828,20 @@
                         ],
                         "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                       },
-                      "protocol": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "One of the protocols the gateway accepts."
+                      "renditions": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "default",
+                            "data_saver",
+                            "balanced",
+                            "quality"
+                          ],
+                          "description": "A quality the stream is delivered at."
+                        },
+                        "description": "The renditions the exposure offers."
                       },
                       "publisherDeviceId": {
                         "anyOf": [
@@ -20059,41 +19871,9 @@
                       },
                       "params": {
                         "type": "object",
-                        "properties": {
-                          "renditions": {
-                            "maxItems": 16,
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 60
-                                },
-                                "width": {
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 16384
-                                },
-                                "height": {
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 16384
-                                },
-                                "bitrate": {
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991,
-                                  "description": "Bits per second."
-                                }
-                              },
-                              "required": [
-                                "id"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
+                        "propertyNames": {
+                          "type": "string",
+                          "maxLength": 120
                         },
                         "additionalProperties": {
                           "$ref": "#/components/schemas/__schema0"
@@ -20322,7 +20102,7 @@
             "operationId": "organisations.streams.exposures.connect",
             "x-operation-version": 1,
             "summary": "Connect to an exposure",
-            "description": "Where to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+            "description": "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
             "responses": {
               "200": {
                 "description": "The connection details",
@@ -20348,12 +20128,25 @@
                             },
                             "expiresAt": {
                               "type": "string"
+                            },
+                            "renditions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "default",
+                                  "data_saver",
+                                  "balanced",
+                                  "quality"
+                                ]
+                              }
                             }
                           },
                           "required": [
                             "protocol",
                             "relay",
-                            "path"
+                            "path",
+                            "renditions"
                           ]
                         },
                         {
@@ -20370,11 +20163,24 @@
                             },
                             "expiresAt": {
                               "type": "string"
+                            },
+                            "renditions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "default",
+                                  "data_saver",
+                                  "balanced",
+                                  "quality"
+                                ]
+                              }
                             }
                           },
                           "required": [
                             "protocol",
-                            "url"
+                            "url",
+                            "renditions"
                           ]
                         }
                       ]
@@ -20433,7 +20239,7 @@
                 }
               },
               "422": {
-                "description": "Connections to the exposure's gateway are not made through this API, or it cannot do that by the exposure's protocol",
+                "description": "Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -20512,10 +20318,27 @@
                           "publish"
                         ],
                         "description": "Whether to read the exposure from its gateway, or publish it there."
+                      },
+                      "protocol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60,
+                        "description": "One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`."
+                      },
+                      "rendition": {
+                        "description": "The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.",
+                        "type": "string",
+                        "enum": [
+                          "default",
+                          "data_saver",
+                          "balanced",
+                          "quality"
+                        ]
                       }
                     },
                     "required": [
-                      "action"
+                      "action",
+                      "protocol"
                     ],
                     "additionalProperties": false
                   }
@@ -20602,6 +20425,15 @@
               "exposureId": {
                 "type": "string"
               },
+              "rendition": {
+                "type": "string",
+                "enum": [
+                  "default",
+                  "data_saver",
+                  "balanced",
+                  "quality"
+                ]
+              },
               "kind": {
                 "type": "string"
               },
@@ -20616,6 +20448,7 @@
             "required": [
               "id",
               "exposureId",
+              "rendition",
               "kind",
               "params",
               "createdAt"
@@ -20629,7 +20462,7 @@
             "operationId": "organisations.streams.recorders.create",
             "x-operation-version": 1,
             "summary": "Record a stream",
-            "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.",
+            "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway, and records one of the renditions it offers.",
             "responses": {
               "201": {
                 "description": "The new recorder",
@@ -20692,7 +20525,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "description": "The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -20758,6 +20591,17 @@
                         "format": "uuid",
                         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                         "description": "The exposure of this stream to record."
+                      },
+                      "rendition": {
+                        "default": "default",
+                        "type": "string",
+                        "enum": [
+                          "default",
+                          "data_saver",
+                          "balanced",
+                          "quality"
+                        ],
+                        "description": "The rendition of the exposure to record: one it offers."
                       },
                       "kind": {
                         "type": "string",
@@ -20867,6 +20711,15 @@
               "exposureId": {
                 "type": "string"
               },
+              "rendition": {
+                "type": "string",
+                "enum": [
+                  "default",
+                  "data_saver",
+                  "balanced",
+                  "quality"
+                ]
+              },
               "kind": {
                 "type": "string"
               },
@@ -20881,6 +20734,7 @@
             "required": [
               "id",
               "exposureId",
+              "rendition",
               "kind",
               "params",
               "createdAt"
@@ -20957,7 +20811,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "description": "The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -21034,6 +20888,16 @@
                         "type": "string",
                         "format": "uuid",
                         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "rendition": {
+                        "type": "string",
+                        "enum": [
+                          "default",
+                          "data_saver",
+                          "balanced",
+                          "quality"
+                        ],
+                        "description": "The rendition of the exposure to record: one it offers."
                       },
                       "kind": {
                         "type": "string",

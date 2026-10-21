@@ -12,7 +12,7 @@ import type { GatewayProvider, OrganisationProvider } from './provider.ts';
  */
 export const BUILTIN_GATEWAYS = { conservationtv };
 
-/** The kinds of gateway organisations register, by kind. A gateway of any other kind cannot be connected to here. */
+/** The kinds of gateway organisations register, by kind: the only kinds there are. */
 export const GATEWAY_KINDS = { mediamtx } satisfies Record<string, OrganisationProvider>;
 
 export type BuiltinGatewayId = keyof typeof BUILTIN_GATEWAYS;
@@ -20,6 +20,12 @@ export type BuiltinGatewayId = keyof typeof BUILTIN_GATEWAYS;
 const builtinGatewayIds = Object.keys(BUILTIN_GATEWAYS) as [BuiltinGatewayId, ...BuiltinGatewayId[]];
 /** The built-in gateways' slugs, for the schemas that accept them. */
 export const BUILTIN_GATEWAY_IDS = builtinGatewayIds;
+
+export type GatewayKind = keyof typeof GATEWAY_KINDS;
+// SAFETY: the keys of GATEWAY_KINDS, of which there is at least one.
+const gatewayKindIds = Object.keys(GATEWAY_KINDS) as [GatewayKind, ...GatewayKind[]];
+/** The kinds organisations register gateways of, for the schemas that accept them. */
+export const GATEWAY_KIND_IDS = gatewayKindIds;
 
 export function isBuiltinGateway(gatewayId: string): gatewayId is BuiltinGatewayId {
   return Object.hasOwn(BUILTIN_GATEWAYS, gatewayId);
@@ -43,23 +49,32 @@ export function gatewayProvider(gatewayId: string, kind: string): GatewayProvide
 }
 
 /**
- * Refuses an organisation's gateway its kind's provider cannot serve: settings it does not read (`invalid_settings`),
- * or a protocol it does not accept (`unsupported_protocol`). A kind with no provider is registered as it is.
+ * Refuses settings an organisation's gateway of this kind cannot be registered with (`invalid_settings`), or a kind
+ * there is no provider for (`unsupported_gateway`), which only a gateway older than its kind's removal can have.
  */
-export function checkGatewayKind(kind: string, protocols: readonly string[], settings: Settings) {
+export function checkGatewaySettings(kind: string, settings: Settings) {
   const provider = gatewayKind(kind);
-  if (provider === undefined) return;
-  if (!protocols.every(protocol => provider.protocols.includes(protocol))) throw new ApiFailure('unsupported_protocol');
+  if (provider === undefined) throw new ApiFailure('unsupported_gateway');
   provider.checkSettings(settings);
 }
 
+/** A built-in gateway as the gateway routes return it, in the shape of an organisation's own. */
+export interface BuiltinGatewayListing {
+  id: BuiltinGatewayId;
+  builtin: true;
+  name: string;
+  kind: string;
+  networkId: null;
+  settings: Settings;
+  createdAt: null;
+}
+
 /** The built-in gateways as the gateway routes return them, beside an organisation's own. */
-export const builtinGateways = BUILTIN_GATEWAY_IDS.map(id => ({
+export const builtinGateways = BUILTIN_GATEWAY_IDS.map((id): BuiltinGatewayListing => ({
   id,
   builtin: true,
   name: BUILTIN_GATEWAYS[id].name,
   kind: BUILTIN_GATEWAYS[id].kind,
-  protocols: BUILTIN_GATEWAYS[id].protocols,
   networkId: null,
   settings: {},
   createdAt: null

@@ -21,7 +21,6 @@ export const GatewaySchema = z.object({
     name: z.string(),
     kind: z.string(),
     networkId: z.string().nullable(),
-    protocols: z.array(z.string()),
     settings: z.record(z.string(), z.unknown()),
     createdAt: z.string()
 });
@@ -30,15 +29,10 @@ export const PatchOrganisationsByIdGatewaysByGatewayIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The gateway name.'
     }).optional(),
-    kind: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'
+    kind: z.enum(['mediamtx']).register(z.globalRegistry, {
+        description: 'The gateway implementation, such as `mediamtx`.'
     }).optional(),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    protocols: z.array(z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'A delivery protocol, such as `moq` or `rtsp`.'
-    })).min(1).max(16).register(z.globalRegistry, {
-        description: 'The protocols the gateway accepts streams by.'
-    }).optional(),
     settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
         description: 'Settings validated by the implementation that reads them.'
     }).optional()

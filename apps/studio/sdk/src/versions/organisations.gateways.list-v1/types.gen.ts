@@ -12,10 +12,9 @@ export type Error = {
 export type Gateway = {
     gateways: Array<{
         id: 'conservationtv';
-        builtin: boolean;
+        builtin: true;
         name: string;
-        kind: 'moq-relay';
-        protocols: Array<string>;
+        kind: string;
         networkId: null;
         settings: {
             [key: string]: unknown;
@@ -27,7 +26,6 @@ export type Gateway = {
         name: string;
         kind: string;
         networkId: string | null;
-        protocols: Array<string>;
         settings: {
             [key: string]: unknown;
         };

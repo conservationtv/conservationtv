@@ -56,10 +56,9 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
      */
     200: {
         id: 'conservationtv';
-        builtin: boolean;
+        builtin: true;
         name: string;
-        kind: 'moq-relay';
-        protocols: Array<string>;
+        kind: string;
         networkId: null;
         settings: {
             [key: string]: unknown;
@@ -71,7 +70,6 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
         name: string;
         kind: string;
         networkId: string | null;
-        protocols: Array<string>;
         settings: {
             [key: string]: unknown;
         };

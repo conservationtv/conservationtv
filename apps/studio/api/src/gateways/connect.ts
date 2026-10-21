@@ -7,16 +7,16 @@ import { useEnvironment } from '../env/env.ts';
 import { trusted, type Transaction } from '../organisations/membership.ts';
 import type { Settings } from '../topology/settings.ts';
 import { BUILTIN_GATEWAYS, gatewayProvider, isBuiltinGateway } from './index.ts';
-import type { Connection, ConnectionAction, ConnectionRequest } from './provider.ts';
+import type { ConnectionAction, ConnectionAsk, ConnectionDetails, ConnectionTarget } from './provider.ts';
 
 // Who may connect to an exposure, and which provider gives them its connection details. Members read, signed in.
 // Devices connect for what they publish: a device publishes the exposures it is the pinned publisher of (a browser
 // publishing directly is one), and reads the upstreams of those. Nothing else is published: exposures without a
 // pinned publisher wait for the configuration builders to choose one.
 
-/** A connection request, and the gateway its provider is chosen by. */
+/** What a caller may connect to, and the gateway its provider is chosen by. */
 export interface PendingConnection {
-  request: ConnectionRequest;
+  target: ConnectionTarget;
   gateway: ConnectionGateway;
 }
 
@@ -36,7 +36,7 @@ export interface ExposureReference {
 const exposureColumns = {
   id: exposures.id,
   gatewayId: exposures.gatewayId,
-  protocol: exposures.protocol,
+  renditions: exposures.renditions,
   publisherDeviceId: exposures.publisherDeviceId,
   params: exposures.params
 };
@@ -96,10 +96,7 @@ export async function memberRequest(
     if (action === 'publish') throw new ApiFailure('forbidden');
     const gateway = await selectGateway(tx, reference.organisationId, exposure.gatewayId);
     const subject = `user:${principal.id}`;
-    return {
-      request: { organisationId: reference.organisationId, gatewayId: gateway.id, exposure, action, subject },
-      gateway
-    };
+    return { target: { organisationId: reference.organisationId, gatewayId: gateway.id, exposure, subject }, gateway };
   });
 }
 
@@ -118,15 +115,15 @@ export function deviceRequest(
     if (!allowed) throw new ApiFailure('forbidden');
     const gateway = await selectGateway(tx, reference.organisationId, exposure.gatewayId);
     const subject = `device:${device.id}`;
-    return {
-      request: { organisationId: reference.organisationId, gatewayId: gateway.id, exposure, action, subject },
-      gateway
-    };
+    return { target: { organisationId: reference.organisationId, gatewayId: gateway.id, exposure, subject }, gateway };
   });
 }
 
-/** The connection details from the gateway's provider; `unsupported_gateway` for a kind without one. */
-export function connect({ request, gateway }: PendingConnection): Promise<Connection> {
+/**
+ * The connection details from the gateway's provider, for what the caller asked: `unsupported_gateway` for a kind
+ * without one, and the provider's refusals of a protocol or rendition it cannot connect by.
+ */
+export function connect({ target, gateway }: PendingConnection, ask: ConnectionAsk): Promise<ConnectionDetails> {
   const provider = gatewayProvider(gateway.id, gateway.kind);
-  return provider.connect(request, gateway.settings);
+  return provider.connect({ ...target, ...ask }, gateway.settings);
 }

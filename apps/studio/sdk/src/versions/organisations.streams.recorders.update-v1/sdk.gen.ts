@@ -58,6 +58,7 @@ export class Recorders extends HeyApiClient {
         streamId: string;
         recorderId: string;
         exposureId?: string;
+        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
         kind?: string;
         params?: {
             [key: string]: Schema0;
@@ -68,6 +69,7 @@ export class Recorders extends HeyApiClient {
                     { in: 'path', key: 'streamId' },
                     { in: 'path', key: 'recorderId' },
                     { in: 'body', key: 'exposureId' },
+                    { in: 'body', key: 'rendition' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'params' }
                 ] }]);
