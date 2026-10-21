@@ -15,8 +15,10 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 
 export type Exposure = {
     id: string;
-    networkId: string | null;
+    gatewayId: string;
     protocol: string;
+    publisherDeviceId: string | null;
+    upstreamExposureId: string | null;
     params: {
         renditions?: Array<{
             id: string;
@@ -32,13 +34,21 @@ export type Exposure = {
 export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
     body: {
         /**
-         * A network of the organisation, or null for the internet.
+         * The gateway the stream is delivered to.
          */
-        networkId?: string | null;
+        gatewayId?: string;
         /**
-         * The delivery protocol, such as `moq` or `rtsp`.
+         * One of the protocols the gateway accepts.
          */
         protocol?: string;
+        /**
+         * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
+         */
+        publisherDeviceId?: string | null;
+        /**
+         * An exposure of the same stream to publish from, or null for the stream's source device.
+         */
+        upstreamExposureId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -96,11 +106,15 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors =
      */
     404: Error;
     /**
+     * The upstream exposure would lead back to this exposure
+     */
+    409: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol
      */
     422: Error;
     /**

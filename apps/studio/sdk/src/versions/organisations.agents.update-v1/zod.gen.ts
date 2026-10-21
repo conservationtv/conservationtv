@@ -23,9 +23,6 @@ export const AgentSchema = z.object({
         ]),
         networkId: z.string().nullable(),
         publicId: z.string()
-    }).nullable(),
-    servedRevision: z.object({
-        id: z.string()
     }).nullable()
 });
 

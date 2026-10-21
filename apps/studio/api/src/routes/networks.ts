@@ -179,7 +179,7 @@ export default new Hono()
       operationId: 'organisations.networks.delete',
       ...operationVersion(1),
       summary: 'Delete a network',
-      description: 'Administrators only. Refused while agents, devices or exposures use it.',
+      description: 'Administrators only. Refused while agents, devices or gateways use it.',
       responses: {
         204: { description: 'Deleted' },
         400: invalidRequest,

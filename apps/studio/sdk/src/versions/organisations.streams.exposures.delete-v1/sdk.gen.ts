@@ -51,7 +51,7 @@ export class Exposures extends HeyApiClient {
     /**
      * Remove an exposure
      *
-     * Administrators only. Refused while a recorder uses it.
+     * Administrators only. Refused while a recorder uses it, or another exposure as its upstream.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;

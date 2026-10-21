@@ -133,28 +133,16 @@ export const AgentSchema = z.object({
         ]),
         networkId: z.string().nullable(),
         publicId: z.string()
-    }).nullable(),
-    servedRevision: z.object({
-        id: z.string()
     }).nullable()
 });
 
-export const RevisionSchema = z.object({
+export const GatewaySchema = z.object({
     id: z.string(),
-    config: z.record(z.string(), z.unknown()),
-    diagnostics: z.array(z.object({
-        severity: z.enum(['error', 'warning']),
-        code: z.string(),
-        message: z.string(),
-        target: z.object({
-            kind: z.string(),
-            id: z.string()
-        }).optional(),
-        recovery: z.enum(['retryable', 'change-required']).optional(),
-        details: z.record(z.string(), z.unknown()).optional()
-    })),
-    hasErrors: z.boolean(),
-    served: z.boolean(),
+    name: z.string(),
+    kind: z.string(),
+    networkId: z.string().nullable(),
+    protocols: z.array(z.string()),
+    settings: z.record(z.string(), z.unknown()),
     createdAt: z.string()
 });
 
@@ -174,8 +162,10 @@ export const StreamSchema = z.object({
         }),
         id: z.string(),
         createdAt: z.string(),
-        networkId: z.string().nullable(),
-        protocol: z.string()
+        gatewayId: z.string(),
+        protocol: z.string(),
+        publisherDeviceId: z.string().nullable(),
+        upstreamExposureId: z.string().nullable()
     })),
     recorders: z.array(z.object({
         params: z.record(z.string(), z.unknown()),
@@ -188,8 +178,10 @@ export const StreamSchema = z.object({
 
 export const ExposureSchema = z.object({
     id: z.string(),
-    networkId: z.string().nullable(),
+    gatewayId: z.string(),
     protocol: z.string(),
+    publisherDeviceId: z.string().nullable(),
+    upstreamExposureId: z.string().nullable(),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string(),
@@ -900,9 +892,6 @@ export const GetOrganisationsByIdAgentsResponseSchema = z.object({
             ]),
             networkId: z.string().nullable(),
             publicId: z.string()
-        }).nullable(),
-        servedRevision: z.object({
-            id: z.string()
         }).nullable()
     }))
 }).register(z.globalRegistry, {
@@ -982,113 +971,125 @@ export const PatchOrganisationsByIdAgentsByAgentIdPathSchema = z.object({
  */
 export const PatchOrganisationsByIdAgentsByAgentIdResponseSchema = AgentSchema;
 
-export const GetOrganisationsByIdAgentsByAgentIdRevisionsPathSchema = z.object({
+export const GetOrganisationsByIdGatewaysPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
-    }),
-    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The agent.'
     })
 });
 
-export const GetOrganisationsByIdAgentsByAgentIdRevisionsQuerySchema = z.object({
-    limit: z.int().gte(1).lte(200).optional().default(50)
+export const GetOrganisationsByIdGatewaysQuerySchema = z.object({
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'Only gateways on this network.'
+    }).optional()
 });
 
 /**
- * The revisions, newest first
+ * The gateways, oldest first
  */
-export const GetOrganisationsByIdAgentsByAgentIdRevisionsResponseSchema = z.object({
-    revisions: z.array(z.object({
+export const GetOrganisationsByIdGatewaysResponseSchema = z.object({
+    gateways: z.array(z.object({
+        name: z.string(),
         id: z.string(),
-        diagnostics: z.array(z.object({
-            severity: z.enum(['error', 'warning']),
-            code: z.string(),
-            message: z.string(),
-            target: z.object({
-                kind: z.string(),
-                id: z.string()
-            }).optional(),
-            recovery: z.enum(['retryable', 'change-required']).optional(),
-            details: z.record(z.string(), z.unknown()).optional()
-        })),
-        hasErrors: z.boolean(),
-        served: z.boolean(),
-        createdAt: z.string()
+        createdAt: z.string(),
+        kind: z.string(),
+        networkId: z.string().nullable(),
+        settings: z.record(z.string(), z.unknown()),
+        protocols: z.array(z.string())
     }))
 }).register(z.globalRegistry, {
-    description: 'The revisions, newest first'
+    description: 'The gateways, oldest first'
 });
 
-export const PostOrganisationsByIdAgentsByAgentIdRevisionsBodySchema = z.object({
-    config: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'The rendered configuration.'
+export const PostOrganisationsByIdGatewaysBodySchema = z.object({
+    name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The gateway name.'
     }),
-    diagnostics: z.array(z.object({
-        severity: z.enum(['warning', 'error']),
-        code: z.string().min(1).max(120),
-        message: z.string().max(2000),
-        target: z.object({
-            kind: z.string().min(1).max(60),
-            id: z.string().min(1).max(120)
-        }).optional(),
-        recovery: z.enum(['retryable', 'change-required']).optional(),
-        details: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-            description: 'Settings validated by the implementation that reads them.'
-        }).optional()
-    })).max(1000).optional().default([])
+    kind: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'
+    }),
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
+    protocols: z.array(z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'A delivery protocol, such as `moq` or `rtsp`.'
+    })).min(1).max(16).register(z.globalRegistry, {
+        description: 'The protocols the gateway accepts streams by.'
+    }),
+    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+        description: 'Settings validated by the implementation that reads them.'
+    }).optional().default({})
 });
 
-export const PostOrganisationsByIdAgentsByAgentIdRevisionsPathSchema = z.object({
+export const PostOrganisationsByIdGatewaysPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
-    }),
-    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The agent.'
     })
 });
 
 /**
- * The candidate revision
+ * The new gateway
  */
-export const PostOrganisationsByIdAgentsByAgentIdRevisionsResponseSchema = RevisionSchema;
+export const PostOrganisationsByIdGatewaysResponseSchema = GatewaySchema;
 
-export const GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdPathSchema = z.object({
+export const DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The agent.'
-    }),
-    revisionId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The configuration revision.'
+    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The gateway.'
     })
 });
 
 /**
- * The revision
+ * Removed
  */
-export const GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponseSchema = RevisionSchema;
-
-export const PutOrganisationsByIdAgentsByAgentIdServedRevisionBodySchema = z.object({
-    revisionId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'A revision of this agent without errors.'
-    })
+export const DeleteOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
 });
 
-export const PutOrganisationsByIdAgentsByAgentIdServedRevisionPathSchema = z.object({
+export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    agentId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The agent.'
+    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The gateway.'
     })
 });
 
 /**
- * The agent
+ * The gateway
  */
-export const PutOrganisationsByIdAgentsByAgentIdServedRevisionResponseSchema = AgentSchema;
+export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = GatewaySchema;
+
+export const PatchOrganisationsByIdGatewaysByGatewayIdBodySchema = z.object({
+    name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The gateway name.'
+    }).optional(),
+    kind: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'
+    }).optional(),
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
+    protocols: z.array(z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'A delivery protocol, such as `moq` or `rtsp`.'
+    })).min(1).max(16).register(z.globalRegistry, {
+        description: 'The protocols the gateway accepts streams by.'
+    }).optional(),
+    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
+        description: 'Settings validated by the implementation that reads them.'
+    }).optional()
+});
+
+export const PatchOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The gateway.'
+    })
+});
+
+/**
+ * The updated gateway
+ */
+export const PatchOrganisationsByIdGatewaysByGatewayIdResponseSchema = GatewaySchema;
 
 export const GetOrganisationsByIdStreamsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -1194,10 +1195,14 @@ export const PatchOrganisationsByIdStreamsByStreamIdResponseSchema = z.object({
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.object({
-    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The delivery protocol, such as `moq` or `rtsp`.'
+    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The gateway the stream is delivered to.'
     }),
+    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'One of the protocols the gateway accepts.'
+    }),
+    publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
+    upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string().min(1).max(60),
@@ -1244,10 +1249,14 @@ export const DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdRespon
 });
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema = z.object({
-    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The delivery protocol, such as `moq` or `rtsp`.'
+    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The gateway the stream is delivered to.'
     }).optional(),
+    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'One of the protocols the gateway accepts.'
+    }).optional(),
+    publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
+    upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string().min(1).max(60),

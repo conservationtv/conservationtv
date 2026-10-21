@@ -23,8 +23,10 @@ export const StreamSchema = z.object({
         }),
         id: z.string(),
         createdAt: z.string(),
-        networkId: z.string().nullable(),
-        protocol: z.string()
+        gatewayId: z.string(),
+        protocol: z.string(),
+        publisherDeviceId: z.string().nullable(),
+        upstreamExposureId: z.string().nullable()
     })),
     recorders: z.array(z.object({
         params: z.record(z.string(), z.unknown()),

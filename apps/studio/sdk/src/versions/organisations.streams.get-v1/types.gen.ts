@@ -26,8 +26,10 @@ export type Stream = {
         };
         id: string;
         createdAt: string;
-        networkId: string | null;
+        gatewayId: string;
         protocol: string;
+        publisherDeviceId: string | null;
+        upstreamExposureId: string | null;
     }>;
     recorders: Array<{
         params: {

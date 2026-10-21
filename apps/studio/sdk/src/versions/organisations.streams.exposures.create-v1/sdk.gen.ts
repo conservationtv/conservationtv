@@ -51,13 +51,15 @@ export class Exposures extends HeyApiClient {
     /**
      * Expose a stream
      *
-     * Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.
+     * Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
-        networkId?: string | null;
+        gatewayId: string;
         protocol: string;
+        publisherDeviceId?: string | null;
+        upstreamExposureId?: string | null;
         params?: {
             renditions?: Array<{
                 id: string;
@@ -82,8 +84,10 @@ export class Exposures extends HeyApiClient {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
-                    { in: 'body', key: 'networkId' },
+                    { in: 'body', key: 'gatewayId' },
                     { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'publisherDeviceId' },
+                    { in: 'body', key: 'upstreamExposureId' },
                     { in: 'body', key: 'params' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, ThrowOnError>({

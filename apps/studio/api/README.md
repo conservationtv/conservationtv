@@ -41,7 +41,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}`    | members read, administrators write           | `organisations.cameras.*` v1                                                                             |
 | `PUT /organisations/{id}/browser`                                                           | members                                      | `organisations.browser.ensure` v1: this session's browser device, with its private key                   |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}`       | members read, administrators write           | `organisations.agents.*` v1                                                                              |
-| `…/agents/{agentId}/revisions` (list, create, get), `PUT …/served-revision`                 | members read, administrators write           | `organisations.agents.revisions.*`, `serveRevision` v1                                                   |
+| `GET`, `POST /organisations/{id}/gateways`; `GET`, `PATCH`, `DELETE …/gateways/{gatewayId}` | members read, administrators write           | `organisations.gateways.*` v1                                                                            |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}`    | members read, administrators write           | `organisations.streams.*` v1                                                                             |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete)                    | administrators                               | `organisations.streams.exposures.*`, `.recorders.*` v1                                                   |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs`   | members                                      | `organisations.subjects.*` v1                                                                            |
@@ -199,15 +199,14 @@ lists the roles it checks itself (`requireAdmin`, `keepAnotherAdmin`) in its own
 ## Stream topology
 
 What each organisation runs, in `src/db/schemas/`: networks, devices of three kinds, cameras, agents (which serve the
-network they are on, one active at a time) and signed-in browsers, streams with a source device, their exposures (network, protocol, desired
-renditions) and recorders (always backed by an exposure of the same stream).
+network they are on, one active at a time) and signed-in browsers, gateways, streams with a source device, their
+exposures (gateway, protocol, publisher, upstream, desired renditions) and recorders (always backed by an exposure of
+the same stream).
 
 Every row binds to its organisation's scope through `organisation_id`: `organisationMember` reads it all and
 `organisationAdmin` manages it, in the request session. References between rows are composite foreign keys that
 include `organisation_id`, so the database refuses a reference into another organisation (422 `invalid_reference`)
-and a delete of something still used (409 `in_use`). A partial unique index allows one active agent per network, and
-one served configuration revision per agent; a check constraint refuses serving a revision whose diagnostics include
-an error, so a rejected candidate never replaces the served one.
+and a delete of something still used (409 `in_use`). A partial unique index allows one active agent per network.
 
 A device is minimal: a name, a network (or the internet), a `kind` and an Ed25519 identity, generated when it is
 created (`src/topology/identity.ts`): `publicKey` (unpadded base64url) and `publicId`, derived as iroh derives an
@@ -220,8 +219,7 @@ Everything else belongs to the device's kind, a table whose row shares the devic
 its standby priority and whether it is active. Each kind's table carries its kind as a generated column in a composite
 foreign key to the device, so a device is only ever the kind it was created as. `POST …/cameras` and `POST …/agents`
 create the device, with its identity, and its kind's row together, and their `DELETE` removes both. Their routes
-nest the device's fields under `device`, and an agent its served revision under `servedRevision` (a network its
-active agent under `activeAgent`), each read with one relational query (`src/db/relations.ts`). `/devices` lists
+nest the device's fields under `device` (a network its active agent under `activeAgent`), each read with one relational query (`src/db/relations.ts`). `/devices` lists
 every device and renames or moves one, but never creates or deletes: an agent's device cannot change network (409 `in_use`), and a device a stream uses as its source cannot be removed.
 
 A `browser` is one auth session's device in one organisation, for iroh connections from the web app through a relay.
@@ -243,6 +241,27 @@ cannot write grants, so creating and deleting agents, cameras and browsers is tr
 checks the principal's own permissions on devices, giving the same 404 or 403 row-level security would. Deleting an
 organisation revokes every grant at it. Device routes run their queries with
 `authorization.as(app, useDevice().principal)`.
+
+### Gateways and exposures
+
+A `gateway` is somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the
+`protocols` it lists. Its `kind` is the implementation and its `settings` whatever that reads: a `moq-relay` or an
+RTMP ingest on the internet at a URL, or `mediamtx` on a network, which that network's active agent runs, so it fails
+over with the agent.
+
+An `exposure` delivers a stream to one gateway by one of the protocols the gateway accepts (422
+`unsupported_protocol` otherwise; a gateway cannot stop accepting a protocol an exposure uses, 409 `in_use`). Its
+publisher, the device that sends it there, is `publisherDeviceId` when pinned, or (null) whichever the configuration
+builders choose: the source camera itself when its capabilities allow, or an agent on its network. What it publishes
+is the stream's source, or `upstreamExposureId`, another exposure of the same stream, so exposures chain: a camera
+into MediaMTX on its network, then an agent from there to a relay on the internet. A chain cannot loop (409
+`exposure_cycle`: checked under a per-stream advisory lock, so two concurrent changes cannot each close half a loop),
+and an exposure another uses as its upstream cannot be deleted (409 `in_use`). The database checks the references;
+`src/topology/exposures.ts` checks the protocol and the chain, after the write, so row-level security has already
+refused a principal who may not make it.
+
+There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
+for it.
 
 ### Device authentication
 
@@ -310,8 +329,8 @@ cluster's configuration before migrating.
 
 Not built yet: provisioning an agent or camera with its private key, rotating or revoking a device identity, the
 state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns
-`state: null`, stale, until it exists), failover from expired agent state, the configuration builders that produce
-revisions, how an agent fetches its served revision, and sharing across organisations.
+`state: null`, stale, until it exists), failover from expired agent state, deriving a device's configuration
+when it asks for it (with publisher resolution and the builders' diagnostics), and sharing across organisations.
 
 ## Encrypted columns
 

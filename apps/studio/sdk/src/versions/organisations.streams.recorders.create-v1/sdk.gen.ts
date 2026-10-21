@@ -51,7 +51,7 @@ export class Recorders extends HeyApiClient {
     /**
      * Record a stream
      *
-     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and protocol.
+     * Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
