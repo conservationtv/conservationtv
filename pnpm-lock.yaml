@@ -291,6 +291,9 @@ importers:
       '@strangecyan/iroh-http-node':
         specifier: 0.2.0
         version: 0.2.0
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2)
       hono:
         specifier: 4.13.8
         version: 4.13.8
@@ -307,6 +310,9 @@ importers:
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
+      drizzle-kit:
+        specifier: 'catalog:'
+        version: 1.0.0-rc.4
       tsx:
         specifier: 4.23.15
         version: 4.23.15

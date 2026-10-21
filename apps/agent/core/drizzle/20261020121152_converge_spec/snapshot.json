@@ -1,0 +1,56 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "1cf25eba-83e1-4446-97ca-723d49b6a6cc",
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
+  "ddl": [
+    {
+      "name": "converge_spec",
+      "entityType": "tables"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "converge_spec"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "spec",
+      "entityType": "columns",
+      "table": "converge_spec"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "saved_at",
+      "entityType": "columns",
+      "table": "converge_spec"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "converge_spec_pk",
+      "table": "converge_spec",
+      "entityType": "pks"
+    },
+    {
+      "value": "\"id\" = 1",
+      "name": "converge_spec_single_row",
+      "entityType": "checks",
+      "table": "converge_spec"
+    }
+  ],
+  "renames": []
+}
