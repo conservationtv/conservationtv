@@ -11,6 +11,8 @@ default = []
 axis = ["dep:vdo", "dep:axparameter"]
 
 [dependencies]
+libc = "0.2"
+ring = "0.17"
 studio-sdk = { path = "../studio-sdk" }
 anyhow = "1"
 axum = { version = "0.8", default-features = false, features = ["json"] }
@@ -22,7 +24,8 @@ iroh = { version = "=1.0.2", default-features = false, features = ["tls-ring"] }
 iroh-http = { git = "https://github.com/changesbyjames/iroh-http", branch = "main" }
 moq-mux = "0.10"
 moq-net = "0.3"
-moq-tokio = { version = "0.19", default-features = false, features = ["noq", "ring", "websocket"] }
+# QUIC only: no WebSocket fallback, so a session that cannot reach the relay over QUIC fails rather than degrading.
+moq-tokio = { version = "0.19", default-features = false, features = ["noq", "ring"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

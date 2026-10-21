@@ -6,6 +6,7 @@
 
 #[cfg(all(feature = "axis", target_os = "linux"))]
 mod acap;
+mod bench;
 mod config;
 mod machine;
 mod publish;
@@ -43,9 +44,12 @@ async fn start() -> anyhow::Result<()> {
 
     let config = Config::from_env()?;
     let reporter = config.studio_url.clone().map(|url| Reporter::new(url, config.identity.clone()));
-    let publisher = config.publish.clone().map(|config| Publisher { config, counters: Default::default() });
+    let publisher = config.publish.clone().map(Publisher::new);
     let agent = Arc::new(Agent { config, reporter, publisher });
     tracing::info!(name = %agent.config.name, public_id = %agent.config.identity.public_id(), "starting");
+    if std::env::var("CRYPTO_BENCH").is_ok_and(|value| !value.is_empty() && value != "0") {
+        bench::run();
+    }
 
     match std::env::args().nth(1).as_deref() {
         Some("report") => report_once(&agent).await,
@@ -110,15 +114,25 @@ async fn metrics_loop(agent: Arc<Agent>) -> anyhow::Result<()> {
     let mut machine = machine::Machine::new();
     let mut ticker = tokio::time::interval(Duration::from_secs(SAMPLE_SECS));
     let per_interval = (agent.config.metrics_interval_secs / SAMPLE_SECS).max(1);
-    let (mut ready, mut bitrate) = (Vec::new(), Vec::new());
-    let mut last_bytes = 0u64;
+    // Each track's samples this interval, and its running totals at the last sample.
+    let tracks = agent.publisher.as_ref().map_or(0, |publisher| publisher.counters.tracks.len());
+    let mut samples = vec![TrackSamples::default(); tracks];
+    let mut last = vec![(0u64, 0u64); tracks];
     for tick in 1u64.. {
         ticker.tick().await;
         if let Some(publisher) = &agent.publisher {
-            let bytes = publisher.counters.bytes.load(Ordering::Relaxed);
-            ready.push(if publisher.counters.connected.load(Ordering::Relaxed) { 1.0 } else { 0.0 });
-            bitrate.push((bytes.saturating_sub(last_bytes) * 8) as f64 / SAMPLE_SECS as f64);
-            last_bytes = bytes;
+            let connected = publisher.counters.connected.load(Ordering::Relaxed);
+            for (index, track) in publisher.counters.tracks.iter().enumerate() {
+                let (bytes, frames) = (track.bytes.load(Ordering::Relaxed), track.frames.load(Ordering::Relaxed));
+                let (last_bytes, last_frames) = last[index];
+                let moved = bytes > last_bytes;
+                let sample = &mut samples[index];
+                // Ready while connected and carrying video.
+                sample.ready.push(if connected && moved { 1.0 } else { 0.0 });
+                sample.bitrate.push((bytes.saturating_sub(last_bytes) * 8) as f64 / SAMPLE_SECS as f64);
+                sample.framerate.push(frames.saturating_sub(last_frames) as f64 / SAMPLE_SECS as f64);
+                last[index] = (bytes, frames);
+            }
         }
         if tick % per_interval != 0 {
             continue;
@@ -126,11 +140,23 @@ async fn metrics_loop(agent: Arc<Agent>) -> anyhow::Result<()> {
         let now = Utc::now();
         reporter.queue(now, machine.sample(&directory()), None);
         if let Some(publisher) = &agent.publisher {
-            let metrics = [Metric::summary(publish::READY, &ready), Metric::summary(publish::INGEST_BITRATE, &bitrate)];
             let subject = publisher.config.exposure_id.as_ref().map(|id| format!("exposure:{id}"));
-            reporter.queue(now, metrics.into_iter().flatten().collect(), subject);
-            ready.clear();
-            bitrate.clear();
+            let several = publisher.counters.tracks.len() > 1;
+            for (track, sample) in publisher.counters.tracks.iter().zip(&mut samples) {
+                let metrics = [
+                    Metric::summary(publish::READY, &sample.ready),
+                    Metric::summary(publish::INGEST_BITRATE, &sample.bitrate),
+                    Metric::summary(publish::INGEST_FRAMERATE, &sample.framerate),
+                ];
+                // The rendition is a dimension when the exposure has several, as for MediaMTX's paths.
+                let metrics = metrics
+                    .into_iter()
+                    .flatten()
+                    .map(|metric| if several { metric.with("rendition", track.name.clone()) } else { metric })
+                    .collect();
+                reporter.queue(now, metrics, subject.clone());
+                *sample = TrackSamples::default();
+            }
         }
         match reporter.submit().await {
             Ok(accepted) => tracing::info!(accepted, "reports submitted"),
@@ -138,4 +164,12 @@ async fn metrics_loop(agent: Arc<Agent>) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+/// A track's samples over an interval.
+#[derive(Clone, Default)]
+struct TrackSamples {
+    ready: Vec<f64>,
+    bitrate: Vec<f64>,
+    framerate: Vec<f64>,
 }

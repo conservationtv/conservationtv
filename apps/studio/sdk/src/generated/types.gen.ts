@@ -293,6 +293,15 @@ export type IrohSession = {
     };
 };
 
+export type MoqSession = {
+    url: string;
+    root: string;
+    broadcast: string;
+    token: string;
+    grantId: string;
+    expiresAt: string;
+};
+
 export type Whoami = {
     id: string;
     organisationId: string;
@@ -3978,6 +3987,52 @@ export type PostIrohSessionsResponses = {
 };
 
 export type PostIrohSessionsResponse = PostIrohSessionsResponses[keyof PostIrohSessionsResponses];
+
+export type PostMoqSessionsData = {
+    body: {
+        /**
+         * The exposure to publish.
+         */
+        exposureId: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/moq-sessions';
+};
+
+export type PostMoqSessionsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable, or the relay cannot issue a token
+     */
+    503: Error;
+};
+
+export type PostMoqSessionsError = PostMoqSessionsErrors[keyof PostMoqSessionsErrors];
+
+export type PostMoqSessionsResponses = {
+    /**
+     * The relay, broadcast and token
+     */
+    200: MoqSession;
+};
+
+export type PostMoqSessionsResponse = PostMoqSessionsResponses[keyof PostMoqSessionsResponses];
 
 export type GetWhoamiData = {
     body?: never;

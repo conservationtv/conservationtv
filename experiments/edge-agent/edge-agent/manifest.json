@@ -11,15 +11,61 @@
     },
     "configuration": {
       "paramConfig": [
-        { "name": "DeviceSecretKey", "default": "", "type": "string" },
-        { "name": "StudioApiUrl", "default": "", "type": "string" },
-        { "name": "MetricsIntervalSecs", "default": "60", "type": "string" },
-        { "name": "Iroh", "default": "0", "type": "string" },
-        { "name": "MoqUrl", "default": "", "type": "string" },
-        { "name": "MoqBroadcast", "default": "", "type": "string" },
-        { "name": "ExposureId", "default": "", "type": "string" },
-        { "name": "VideoSource", "default": "vdo", "type": "string" },
-        { "name": "VdoChannel", "default": "1", "type": "string" }
+        {
+          "name": "DeviceSecretKey",
+          "default": "",
+          "type": "string"
+        },
+        {
+          "name": "StudioApiUrl",
+          "default": "",
+          "type": "string"
+        },
+        {
+          "name": "MetricsIntervalSecs",
+          "default": "60",
+          "type": "string"
+        },
+        {
+          "name": "Iroh",
+          "default": "0",
+          "type": "string"
+        },
+        {
+          "name": "MoqUrl",
+          "default": "",
+          "type": "string"
+        },
+        {
+          "name": "MoqBroadcast",
+          "default": "",
+          "type": "string"
+        },
+        {
+          "name": "ExposureId",
+          "default": "",
+          "type": "string"
+        },
+        {
+          "name": "VideoSource",
+          "default": "vdo",
+          "type": "string"
+        },
+        {
+          "name": "VdoChannel",
+          "default": "1",
+          "type": "string"
+        },
+        {
+          "name": "Renditions",
+          "default": "",
+          "type": "string"
+        },
+        {
+          "name": "CryptoBench",
+          "type": "string",
+          "default": "0"
+        }
       ]
     }
   }

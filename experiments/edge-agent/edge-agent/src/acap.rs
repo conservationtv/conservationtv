@@ -19,6 +19,8 @@ const PARAMETERS: &[(&str, &str)] = &[
     ("ExposureId", "EXPOSURE_ID"),
     ("VideoSource", "VIDEO_SOURCE"),
     ("VdoChannel", "VDO_CHANNEL"),
+    ("Renditions", "RENDITIONS"),
+    ("CryptoBench", "CRYPTO_BENCH"),
 ];
 
 /// Read every parameter into the environment. Only sound while the process has one thread.

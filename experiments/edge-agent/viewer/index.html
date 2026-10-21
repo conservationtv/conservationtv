@@ -1,0 +1,130 @@
+<!doctype html>
+<!--
+  Experiment: a browser's view of a camera's broadcast, every rendition side by side, each pinned to its own track,
+  with what the player measures of it. moq's own player (@moq/watch) over WebTransport, decoded with WebCodecs.
+
+    python3 -m http.server 8000 -d viewer
+    open "http://localhost:8000/?relay=http://localhost:4443/anon&name=m5074"
+
+  An http:// relay URL makes the player fetch the relay's self-signed certificate hash from /certificate.sha256 and
+  pin it, so a local relay works without a trusted certificate. Use https:// for anything real.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Edge agent viewer</title>
+    <style>
+      :root { color-scheme: dark; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      body { margin: 0; padding: 16px; background: #0d0f12; color: #d8dde3; }
+      header { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 16px; }
+      h1 { font-size: 15px; margin: 0; }
+      input { background: #181c21; color: inherit; border: 1px solid #2b3139; border-radius: 4px; padding: 4px 6px; font: inherit; }
+      button { background: #2b3139; color: inherit; border: 0; border-radius: 4px; padding: 5px 10px; font: inherit; cursor: pointer; }
+      #status { color: #8b95a1; }
+      main { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+      figure { margin: 0; background: #14171b; border: 1px solid #22272e; border-radius: 6px; overflow: hidden; }
+      canvas { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; object-fit: contain; }
+      figcaption { padding: 8px 10px; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
+      figcaption b { grid-column: 1 / -1; font-size: 14px; display: flex; justify-content: space-between; }
+      .k { color: #8b95a1; }
+      .ok { color: #5fd38d; } .warn { color: #e8b04b; } .bad { color: #f06a6a; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Edge agent viewer</h1>
+      <label>relay <input id="relay" size="34" /></label>
+      <label>broadcast <input id="name" size="12" /></label>
+      <button id="go">Watch</button>
+      <span id="status"></span>
+    </header>
+    <main id="tiles"></main>
+
+    <script type="module">
+      import "https://esm.sh/@moq/watch@0.6.3/element";
+
+      const params = new URLSearchParams(location.search);
+      const relay = params.get("relay") ?? "http://localhost:4443/anon";
+      const name = params.get("name") ?? "m5074";
+      document.querySelector("#relay").value = relay;
+      document.querySelector("#name").value = name;
+      document.querySelector("#go").onclick = () => {
+        const next = new URLSearchParams({
+          relay: document.querySelector("#relay").value,
+          name: document.querySelector("#name").value,
+        });
+        location.search = next.toString();
+      };
+      const status = (text) => (document.querySelector("#status").textContent = text);
+
+      // The renditions, from the catalog the relay serves over HTTP; `tracks=` overrides it.
+      async function renditions() {
+        if (params.get("tracks")) return params.get("tracks").split(",").map((track) => [track, {}]);
+        const url = new URL(relay);
+        url.pathname = `/fetch${url.pathname.replace(/\/$/, "")}/${name}/catalog.json`;
+        const catalog = await (await fetch(url)).json();
+        return Object.entries(catalog.video?.renditions ?? {});
+      }
+
+      function tile(track, config) {
+        const figure = document.createElement("figure");
+        figure.innerHTML = `
+          <moq-watch url="${relay}" name="${name}" catalog-format="hang" muted visible="always"><canvas></canvas></moq-watch>
+          <figcaption>
+            <b><span>${track}</span><span class="state">connecting</span></b>
+            <span class="k">codec</span><span class="codec">${config.codec ?? "?"}</span>
+            <span class="k">size</span><span class="size">${config.codedWidth ? `${config.codedWidth}×${config.codedHeight}` : "?"}</span>
+            <span class="k">fps</span><span class="fps">–</span>
+            <span class="k">bitrate</span><span class="kbps">–</span>
+            <span class="k">jitter</span><span class="jitter">–</span>
+            <span class="k">frames</span><span class="frames">–</span>
+          </figcaption>`;
+        document.querySelector("#tiles").append(figure);
+        const watch = figure.querySelector("moq-watch");
+        // Pin the player to this rendition, rather than letting it pick by the canvas's size.
+        watch.controls.target.set({ name: track });
+
+        const field = (selector, text, className) => {
+          const element = figure.querySelector(selector);
+          element.textContent = text;
+          if (className !== undefined) element.className = `${selector.slice(1)} ${className}`;
+        };
+        let last;
+        setInterval(() => {
+          const stats = watch.video.out.stats.peek();
+          const playing = watch.video.source.out.track.peek();
+          const stalled = watch.video.out.stalled.peek();
+          const error = watch.video.source.out.error.peek();
+          const now = performance.now();
+          if (error) field(".state", error, "bad");
+          else if (!stats) field(".state", "waiting", "warn");
+          else if (stalled) field(".state", "stalled", "warn");
+          else field(".state", playing === track ? "live" : `showing ${playing}`, playing === track ? "ok" : "warn");
+          if (stats && last) {
+            const seconds = (now - last.now) / 1000;
+            field(".fps", ((stats.frameCount - last.stats.frameCount) / seconds).toFixed(1));
+            field(".kbps", `${(((stats.bytesReceived - last.stats.bytesReceived) * 8) / seconds / 1000).toFixed(0)} kb/s`);
+            field(".frames", stats.frameCount.toLocaleString());
+          }
+          const jitter = watch.video.out.jitter.peek();
+          if (jitter !== undefined) field(".jitter", `${Math.round(jitter)} ms`);
+          const config = watch.video.source.out.config.peek();
+          if (config) field(".codec", config.codec);
+          const display = watch.video.out.display.peek();
+          if (display) field(".size", `${display.width}×${display.height}`);
+          if (stats) last = { now, stats };
+        }, 1000);
+      }
+
+      try {
+        status("reading the catalog…");
+        const list = await renditions();
+        if (list.length === 0) throw new Error("the catalog lists no video");
+        for (const [track, config] of list) tile(track, config);
+        status(`${list.length} renditions`);
+      } catch (error) {
+        status(`${error.message}: is the broadcast online?`);
+      }
+    </script>
+  </body>
+</html>

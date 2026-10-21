@@ -1,0 +1,16 @@
+# acap-rs's `vdo` crate at 5eed2e27fcb2, MIT (LICENSE), with one addition: `StreamBuilder::setting_u32`, for the
+# encoder settings its builder does not name (`bitrate`, `rc.mode`). Its workspace dependencies are spelled out here.
+[package]
+name = "vdo"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+description = "Safe Rust bindings for the VDO (Video Capture) API"
+
+[dependencies]
+vdo-sys = { git = "https://github.com/AxisCommunications/acap-rs" }
+log = "0.4.22"
+glib = "0.20.9"
+glib-sys = "0.20.9"
+gobject-sys = "0.20.9"
+thiserror = "1.0.61"
