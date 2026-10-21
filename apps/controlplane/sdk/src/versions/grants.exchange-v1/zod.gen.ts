@@ -14,11 +14,13 @@ export const GrantSchema = z.object({
     expires_at: z.string(),
     credentials: z.object({
         moq: z.object({
+            relay: z.string(),
             root: z.string(),
             token: z.string(),
             expires_at: z.string()
         }).optional(),
         iroh: z.object({
+            relay: z.string(),
             endpoint_id: z.string(),
             lease_id: z.string(),
             expires_at: z.string()

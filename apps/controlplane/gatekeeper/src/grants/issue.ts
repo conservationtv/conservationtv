@@ -6,6 +6,8 @@ import { signMoqToken } from '../moq/tokens.ts';
 import { type Grant, type IrohRequest, type MoqRequest, PROTOCOL_MAX_LIFETIME_SECONDS } from './grant.ts';
 
 export interface MoqCredential {
+  /** The relay to dial. Any relay in the cluster admits the token, since each asks gatekeeper. */
+  relay: string;
   root: string;
   /** A control-plane-signed moq-relay token. Treat it as a secret. */
   token: string;
@@ -13,6 +15,8 @@ export interface MoqCredential {
 }
 
 export interface IrohCredential {
+  /** The relay the lease admits the endpoint to. Every endpoint gets the same one, so each finds the others there. */
+  relay: string;
   endpoint_id: string;
   lease_id: string;
   expires_at: string;
@@ -56,7 +60,8 @@ async function leaseEndpoint(tx: Transaction, issuance: Issuance, iroh: IrohRequ
     expiresAt: issuance.expiresAt,
     createdAt: issuance.issuedAt
   });
-  return { endpoint_id: iroh.endpoint_id, lease_id: leaseId, expires_at: timestamp(issuance.expiresAt) };
+  const relay = useEnvironment().variables.IROH_RELAY_URL;
+  return { relay, endpoint_id: iroh.endpoint_id, lease_id: leaseId, expires_at: timestamp(issuance.expiresAt) };
 }
 
 async function moqCredential(issuance: Issuance, moq: MoqRequest): Promise<MoqCredential> {
@@ -68,7 +73,8 @@ async function moqCredential(issuance: Issuance, moq: MoqRequest): Promise<MoqCr
     issuedAt: issuance.issuedAt.getTime() / 1000,
     expiresAt: issuance.expiresAt.getTime() / 1000
   });
-  return { root: moq.root, token, expires_at: timestamp(issuance.expiresAt) };
+  const relay = useEnvironment().variables.MOQ_RELAY_URL;
+  return { relay, root: moq.root, token, expires_at: timestamp(issuance.expiresAt) };
 }
 
 /** The grant audit record, the MoQ token and the Iroh lease succeed or fail together. */

@@ -34,11 +34,13 @@ describe('successful exchange', () => {
     expect(result.subject).toBe(grant.subject);
     expect(Date.parse(result.expires_at) - Date.parse(result.issued_at)).toBe(300_000);
     expect(result.credentials.iroh).toEqual({
+      relay: 'http://localhost:3340/',
       endpoint_id: grant.requested_capabilities.iroh.endpoint_id,
       lease_id: expect.stringMatching(/^irl_/),
       expires_at: result.expires_at
     });
     expect(result.credentials.moq?.root).toBe('app-a/t_92/room_71');
+    expect(result.credentials.moq?.relay).toBe('https://localhost:4433/');
   });
 
   it('signs a moq-relay token with the active control-plane key', async () => {
