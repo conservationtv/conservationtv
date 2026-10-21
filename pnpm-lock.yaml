@@ -285,6 +285,9 @@ importers:
       '@conservationtv/versioned-api':
         specifier: workspace:*
         version: link:../../../packages/versioned-api
+      '@hono/node-server':
+        specifier: 2.1.4
+        version: 2.1.4(hono@4.13.8)
       '@moq/net':
         specifier: 0.4.4
         version: 0.4.4(@types/react@19.3.0)(@zod/mini@4.6.7(zod@4.6.2))(react@19.3.0)(solid-js@1.9.17)(zod@4.6.2)
