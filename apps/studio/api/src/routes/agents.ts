@@ -7,7 +7,7 @@ import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
-import { DeviceNameSchema, deviceQuery } from './devices.ts';
+import { DeviceNameSchema } from './devices.ts';
 import { deviceIdentity } from '../topology/identity.ts';
 import type { Transaction } from '../organisations/membership.ts';
 import { unchanged } from '../topology/transaction.ts';
@@ -32,15 +32,17 @@ export type AgentParams = z.output<typeof AgentParamsSchema>;
 const PrioritySchema = z.int().min(-1000).max(1000).describe('Standby preference; higher is preferred.');
 export type Priority = z.output<typeof PrioritySchema>;
 
-/** An agent as every agent route returns it: its own fields and its device's. */
-const agentQuery = {
-  columns: { id: true, networkId: true, priority: true, active: true },
-  with: { device: deviceQuery }
-} as const;
-
 /** The agent, as its routes return it. */
 function readAgent(tx: Transaction, organisationId: string, agentId: string) {
-  return tx.query.agents.findFirst({ ...agentQuery, where: { organisationId, id: agentId } });
+  return tx.query.agents.findFirst({
+    columns: { id: true, networkId: true, priority: true, active: true },
+    with: {
+      device: {
+        columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
+      }
+    },
+    where: { organisationId, id: agentId }
+  });
 }
 
 // An organisation's agents, in the principal's request session: members read them,
@@ -73,7 +75,12 @@ export default new Hono()
       const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx.query.agents.findMany({
-          ...agentQuery,
+          columns: { id: true, networkId: true, priority: true, active: true },
+          with: {
+            device: {
+              columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
+            }
+          },
           where: { organisationId: id, networkId },
           orderBy: { id: 'asc' }
         })

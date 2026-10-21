@@ -51,41 +51,24 @@ export class Exposures extends HeyApiClient {
     /**
      * Expose a stream
      *
-     * Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.
+     * Administrators only. Declares how the stream is delivered: to which gateway, by which publisher from which upstream, offering which renditions (at most those its upstream offers). The gateway decides the protocols it is read by.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
-        protocol: string;
+        gatewayId: 'conservationtv' | string;
+        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;
         params?: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }>;
-            [key: string]: Schema0 | Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }> | undefined;
+            [key: string]: Schema0;
         };
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'streamId' },
                     { in: 'body', key: 'gatewayId' },
-                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'renditions' },
                     { in: 'body', key: 'publisherDeviceId' },
                     { in: 'body', key: 'upstreamExposureId' },
                     { in: 'body', key: 'params' }

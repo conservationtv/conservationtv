@@ -41,17 +41,14 @@ export default defineConfig({
        */
       WEB_ORIGINS: bindings.text(process.env.WEB_ORIGINS ?? 'http://localhost:5173'),
       /**
-       * The iroh relay every device's session uses: until there is one per organisation, n0's public relay in Europe.
-       * Overridable from the environment, as APP_URL is.
+       * The control plane that names the relays and admits devices to them: the local controlplane's gatekeeper
+       * (apps/controlplane/gatekeeper) unless the environment overrides it, as `pnpm dev:staging` does.
        */
-      IROH_RELAY_URL: bindings.text(process.env.IROH_RELAY_URL ?? 'https://euc1-1.relay.n0.iroh.link./'),
-      /**
-       * The control plane that leases devices' endpoints on a relay that requires it, as the controlplane's does. Set
-       * from the environment, with GATEKEEPER_TOKEN; unset, as for n0's relay, sessions carry no lease.
-       */
-      ...(process.env.GATEKEEPER_URL ? { GATEKEEPER_URL: bindings.text(process.env.GATEKEEPER_URL) } : {}),
+      GATEKEEPER_URL: bindings.text(process.env.GATEKEEPER_URL ?? 'http://localhost:5176'),
       /** The control plane environment's consumer token; see .dev.vars.example. */
       GATEKEEPER_TOKEN: bindings.secret(),
+      /** The keys gateway tokens are signed with; see .dev.vars.example. */
+      GATEWAY_SIGNING_KEYS: bindings.secret(),
       /** How sign-in codes reach people. Only `log` exists; a deployment needs an email provider first. */
       OTP_DELIVERY: bindings.text('log')
     }

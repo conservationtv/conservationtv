@@ -192,7 +192,7 @@ pnpm --filter @conservationtv/gatekeeper test        # builds Worker, then tests
 ```
 
 The local tokens are fixed in `.dev.vars.example`, the compose file and the studio API's `.dev.vars.example`, so the
-studio API leases endpoints on the local iroh-relay with `pnpm dev:controlplane` (see its README). iroh-relay runs in `--dev` mode over plain HTTP. moq-relay generates a
+studio API leases endpoints on the local iroh-relay with `pnpm dev` (see its README). iroh-relay runs in `--dev` mode over plain HTTP. moq-relay generates a
 certificate for `localhost` and publishes its hash at `http://localhost:4443/certificate.sha256`, for WebTransport's
 `serverCertificateHashes`. `pnpm db:up` starts Postgres alone; `pnpm local:down` stops everything.
 

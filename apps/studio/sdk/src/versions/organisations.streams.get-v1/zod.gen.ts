@@ -13,18 +13,16 @@ export const StreamSchema = z.object({
     createdAt: z.string(),
     sourceDeviceId: z.string().nullable(),
     exposures: z.array(z.object({
-        params: z.object({
-            renditions: z.array(z.object({
-                id: z.string(),
-                width: z.number().optional(),
-                height: z.number().optional(),
-                bitrate: z.number().optional()
-            })).optional()
-        }),
+        params: z.record(z.string(), z.unknown()),
         id: z.string(),
         createdAt: z.string(),
         gatewayId: z.string(),
-        protocol: z.string(),
+        renditions: z.array(z.enum([
+            'default',
+            'data_saver',
+            'balanced',
+            'quality'
+        ])),
         publisherDeviceId: z.string().nullable(),
         upstreamExposureId: z.string().nullable()
     })),
@@ -33,7 +31,13 @@ export const StreamSchema = z.object({
         id: z.string(),
         createdAt: z.string(),
         kind: z.string(),
-        exposureId: z.string()
+        exposureId: z.string(),
+        rendition: z.enum([
+            'default',
+            'data_saver',
+            'balanced',
+            'quality'
+        ])
     }))
 });
 

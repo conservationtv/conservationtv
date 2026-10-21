@@ -16,21 +16,23 @@ export const NetworkReferenceSchema = z
   .describe('A network of the organisation, or null for the internet.');
 export type NetworkReference = z.output<typeof NetworkReferenceSchema>;
 
-/** A quality an exposure should deliver, identified within the exposure. */
-export const RenditionSchema = z.strictObject({
-  id: z.string().trim().min(1).max(60),
-  width: z.int().positive().max(16_384).optional(),
-  height: z.int().positive().max(16_384).optional(),
-  bitrate: z.int().positive().describe('Bits per second.').optional()
-});
+/**
+ * The qualities a stream can be delivered at, the same whatever produces them: `default` is the source as it comes,
+ * which always exists; the others need a source or publisher that can produce them, which the configuration builders
+ * decide. A fixed vocabulary, so readers choose a quality the same way across every stream.
+ */
+export const RENDITIONS = ['default', 'data_saver', 'balanced', 'quality'] as const;
+export const RenditionSchema = z.enum(RENDITIONS).describe('A quality the stream is delivered at.');
 export type Rendition = z.output<typeof RenditionSchema>;
 
-/** An exposure's settings: its desired renditions, and whatever else its protocol reads. */
-export const ExposureParamsSchema = z
-  .object({ renditions: z.array(RenditionSchema).max(16).optional() })
-  .catchall(z.json())
-  .refine(
-    params => new Set(params.renditions?.map(rendition => rendition.id)).size === (params.renditions?.length ?? 0),
-    'Rendition IDs must be unique within the exposure'
-  );
+/** The renditions an exposure offers: at least one, each once. */
+export const RenditionsSchema = z
+  .array(RenditionSchema)
+  .min(1)
+  .refine(renditions => new Set(renditions).size === renditions.length, 'Renditions must be unique')
+  .describe('The renditions the exposure offers.');
+export type Renditions = z.output<typeof RenditionsSchema>;
+
+/** An exposure's settings: whatever its gateway reads, beside what the exposure itself declares. */
+export const ExposureParamsSchema = z.record(z.string().max(120), z.json());
 export type ExposureParams = z.output<typeof ExposureParamsSchema>;

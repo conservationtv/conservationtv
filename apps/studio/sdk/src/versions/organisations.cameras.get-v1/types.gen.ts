@@ -12,7 +12,12 @@ export type Error = {
 export type Camera = {
     id: string;
     settings: {
-        [key: string]: unknown;
+        driver: 'axis';
+        host: string;
+        resolutions: Array<string>;
+    } | {
+        driver: 'rtsp';
+        url: string;
     };
     device: {
         name: string;

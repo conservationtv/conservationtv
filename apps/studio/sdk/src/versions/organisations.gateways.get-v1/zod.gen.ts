@@ -12,7 +12,7 @@ export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
         description: 'The organisation.'
     }),
     gatewayId: z.union([
-        z.enum(['conservationtv', 'cloudflare']),
+        z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ])
 });
@@ -21,35 +21,21 @@ export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
  * The gateway
  */
 export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
-    z.union([
-        z.object({
-            networkId: z.null(),
-            settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('conservation.tv'),
-            kind: z.literal('moq-relay'),
-            protocols: z.array(z.literal('moq')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        }),
-        z.object({
-            networkId: z.null(),
-            settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('Cloudflare'),
-            kind: z.literal('cloudflare-realtime'),
-            protocols: z.array(z.literal('webrtc')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        })
-    ]),
+    z.object({
+        id: z.literal('conservationtv'),
+        builtin: z.literal(true),
+        name: z.string(),
+        kind: z.string(),
+        networkId: z.null(),
+        settings: z.record(z.string(), z.unknown()),
+        createdAt: z.null()
+    }),
     z.object({
         id: z.string(),
         builtin: z.boolean(),
         name: z.string(),
         kind: z.string(),
         networkId: z.string().nullable(),
-        protocols: z.array(z.string()),
         settings: z.record(z.string(), z.unknown()),
         createdAt: z.string()
     })

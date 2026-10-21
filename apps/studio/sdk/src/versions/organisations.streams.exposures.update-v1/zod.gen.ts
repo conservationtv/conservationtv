@@ -18,40 +18,36 @@ export const Schema0Schema = z.union([
 export const ExposureSchema = z.object({
     id: z.string(),
     gatewayId: z.string(),
-    protocol: z.string(),
+    renditions: z.array(z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ])),
     publisherDeviceId: z.string().nullable(),
     upstreamExposureId: z.string().nullable(),
-    params: z.object({
-        renditions: z.array(z.object({
-            id: z.string(),
-            width: z.number().optional(),
-            height: z.number().optional(),
-            bitrate: z.number().optional()
-        })).optional()
-    }),
+    params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
 });
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema = z.object({
     gatewayId: z.union([
-        z.enum(['conservationtv', 'cloudflare']),
+        z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]).optional(),
-    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'One of the protocols the gateway accepts.'
+    renditions: z.array(z.enum([
+        'default',
+        'data_saver',
+        'balanced',
+        'quality'
+    ]).register(z.globalRegistry, {
+        description: 'A quality the stream is delivered at.'
+    })).min(1).register(z.globalRegistry, {
+        description: 'The renditions the exposure offers.'
     }).optional(),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    params: z.object({
-        renditions: z.array(z.object({
-            id: z.string().min(1).max(60),
-            width: z.int().gt(0).lte(16384).optional(),
-            height: z.int().gt(0).lte(16384).optional(),
-            bitrate: z.int().gt(0).lte(9007199254740991).register(z.globalRegistry, {
-                description: 'Bits per second.'
-            }).optional()
-        })).max(16).optional()
-    }).optional()
+    params: z.record(z.string(), Schema0Schema).optional()
 });
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema = z.object({

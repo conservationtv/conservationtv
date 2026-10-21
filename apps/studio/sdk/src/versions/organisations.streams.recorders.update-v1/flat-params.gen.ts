@@ -9,6 +9,7 @@ export const RecorderUpdateV1ParamsSchema = z.object({
     streamId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     recorderId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.'),
     exposureId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.exposureId.optional().describe('The exposure of this stream to record.'),
+    rendition: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.rendition.optional().describe('The rendition of the exposure to record: one it offers.'),
     kind: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.kind.optional().describe('The recording implementation.'),
     params: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });

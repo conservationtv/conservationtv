@@ -10,7 +10,17 @@ export const ErrorSchema = z.object({
 export const CameraSchema = z.object({
     cameras: z.array(z.object({
         id: z.string(),
-        settings: z.record(z.string(), z.unknown()),
+        settings: z.union([
+            z.object({
+                driver: z.literal('axis'),
+                host: z.string(),
+                resolutions: z.array(z.string())
+            }),
+            z.object({
+                driver: z.literal('rtsp'),
+                url: z.string()
+            })
+        ]),
         device: z.object({
             name: z.string(),
             createdAt: z.string(),

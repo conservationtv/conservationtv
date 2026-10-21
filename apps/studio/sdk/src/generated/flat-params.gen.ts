@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 
-import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdCamerasByCameraIdPathSchema, DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdCamerasByCameraIdPathSchema, GetOrganisationsByIdCamerasPathSchema, GetOrganisationsByIdDevicesAllowlistPathSchema, GetOrganisationsByIdDevicesByDeviceIdKeyPairPathSchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdDevicesQuerySchema, GetOrganisationsByIdGatewaysByGatewayIdPathSchema, GetOrganisationsByIdGatewaysPathSchema, GetOrganisationsByIdGatewaysQuerySchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdPathSchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdGatewaysByGatewayIdBodySchema, PatchOrganisationsByIdGatewaysByGatewayIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdCamerasBodySchema, PostOrganisationsByIdCamerasPathSchema, PostOrganisationsByIdGatewaysBodySchema, PostOrganisationsByIdGatewaysPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PostReportsBodySchema, PutOrganisationsByIdBrowserPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
+import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdCamerasByCameraIdPathSchema, DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdCamerasByCameraIdPathSchema, GetOrganisationsByIdCamerasPathSchema, GetOrganisationsByIdDevicesAllowlistPathSchema, GetOrganisationsByIdDevicesByDeviceIdKeyPairPathSchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdDevicesQuerySchema, GetOrganisationsByIdGatewaysByGatewayIdPathSchema, GetOrganisationsByIdGatewaysPathSchema, GetOrganisationsByIdGatewaysQuerySchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdPathSchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdGatewaysByGatewayIdBodySchema, PatchOrganisationsByIdGatewaysByGatewayIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdCamerasBodySchema, PostOrganisationsByIdCamerasPathSchema, PostOrganisationsByIdGatewaysBodySchema, PostOrganisationsByIdGatewaysPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PostReportsBodySchema, PutOrganisationsByIdBrowserPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
@@ -193,7 +193,8 @@ export const CameraCreateParamsSchema = z.object({
     id: PostOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.'),
     name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
     networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.nonoptional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
+    credentials: PostOrganisationsByIdCamerasBodySchema.shape.credentials.optional().describe('How to authenticate to the camera. Write-only: never returned.')
 });
 
 export type CameraCreateParams = z.infer<typeof CameraCreateParamsSchema>;
@@ -215,7 +216,8 @@ export type CameraGetParams = z.infer<typeof CameraGetParamsSchema>;
 export const CameraUpdateParamsSchema = z.object({
     id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
-    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.nonoptional().describe('Settings validated by the implementation that reads them.')
+    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
+    credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional()
 });
 
 export type CameraUpdateParams = z.infer<typeof CameraUpdateParamsSchema>;
@@ -274,9 +276,8 @@ export type GatewayListParams = z.infer<typeof GatewayListParamsSchema>;
 export const GatewayCreateParamsSchema = z.object({
     id: PostOrganisationsByIdGatewaysPathSchema.shape.id.nonoptional().describe('The organisation.'),
     name: PostOrganisationsByIdGatewaysBodySchema.shape.name.nonoptional().describe('The gateway name.'),
-    kind: PostOrganisationsByIdGatewaysBodySchema.shape.kind.nonoptional().describe('The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'),
+    kind: PostOrganisationsByIdGatewaysBodySchema.shape.kind.nonoptional().describe('The gateway implementation, such as `mediamtx`.'),
     networkId: PostOrganisationsByIdGatewaysBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    protocols: PostOrganisationsByIdGatewaysBodySchema.shape.protocols.nonoptional().describe('The protocols the gateway accepts streams by.'),
     settings: PostOrganisationsByIdGatewaysBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
 });
 
@@ -300,9 +301,8 @@ export const GatewayUpdateParamsSchema = z.object({
     id: PatchOrganisationsByIdGatewaysByGatewayIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     gatewayId: PatchOrganisationsByIdGatewaysByGatewayIdPathSchema.shape.gatewayId.nonoptional().describe('The gateway.'),
     name: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.name.optional().describe('The gateway name.'),
-    kind: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.kind.optional().describe('The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`.'),
+    kind: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.kind.optional().describe('The gateway implementation, such as `mediamtx`.'),
     networkId: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    protocols: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.protocols.optional().describe('The protocols the gateway accepts streams by.'),
     settings: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
 });
 
@@ -349,7 +349,7 @@ export const ExposureCreateParamsSchema = z.object({
     id: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.id.nonoptional().describe('The organisation.'),
     streamId: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     gatewayId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.gatewayId.nonoptional().describe('The gateway the stream is delivered to: built in, or the organisation\'s own.'),
-    protocol: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway accepts.'),
+    renditions: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.renditions.optional().describe('The renditions the exposure offers.'),
     publisherDeviceId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.publisherDeviceId.optional().describe('The device that publishes the exposure to its gateway, or null for whichever the system chooses.'),
     upstreamExposureId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.upstreamExposureId.optional().describe('An exposure of the same stream to publish from, or null for the stream\'s source device.'),
     params: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.params.optional()
@@ -370,7 +370,7 @@ export const ExposureUpdateParamsSchema = z.object({
     streamId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     exposureId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
     gatewayId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.gatewayId.optional().describe('The gateway the stream is delivered to: built in, or the organisation\'s own.'),
-    protocol: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.protocol.optional().describe('One of the protocols the gateway accepts.'),
+    renditions: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.renditions.optional().describe('The renditions the exposure offers.'),
     publisherDeviceId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.publisherDeviceId.optional().describe('The device that publishes the exposure to its gateway, or null for whichever the system chooses.'),
     upstreamExposureId: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.upstreamExposureId.optional().describe('An exposure of the same stream to publish from, or null for the stream\'s source device.'),
     params: PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema.shape.params.optional()
@@ -378,10 +378,22 @@ export const ExposureUpdateParamsSchema = z.object({
 
 export type ExposureUpdateParams = z.infer<typeof ExposureUpdateParamsSchema>;
 
+export const ExposureConnectParamsSchema = z.object({
+    id: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    exposureId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
+    action: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.action.nonoptional().describe('Whether to read the exposure from its gateway, or publish it there.'),
+    protocol: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'),
+    rendition: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.rendition.optional().describe('The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.')
+});
+
+export type ExposureConnectParams = z.infer<typeof ExposureConnectParamsSchema>;
+
 export const RecorderCreateParamsSchema = z.object({
     id: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.id.nonoptional().describe('The organisation.'),
     streamId: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     exposureId: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.exposureId.nonoptional().describe('The exposure of this stream to record.'),
+    rendition: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.rendition.optional().describe('The rendition of the exposure to record: one it offers.'),
     kind: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.kind.nonoptional().describe('The recording implementation.'),
     params: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });
@@ -401,6 +413,7 @@ export const RecorderUpdateParamsSchema = z.object({
     streamId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     recorderId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.'),
     exposureId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.exposureId.optional().describe('The exposure of this stream to record.'),
+    rendition: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.rendition.optional().describe('The rendition of the exposure to record: one it offers.'),
     kind: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.kind.optional().describe('The recording implementation.'),
     params: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });
@@ -485,6 +498,14 @@ export type ReportSubmitParams = z.infer<typeof ReportSubmitParamsSchema>;
 export const IrohSessionCreateParamsSchema = z.object({});
 
 export type IrohSessionCreateParams = z.infer<typeof IrohSessionCreateParamsSchema>;
+
+export const DeviceConfigurationGetParamsSchema = z.object({});
+
+export type DeviceConfigurationGetParams = z.infer<typeof DeviceConfigurationGetParamsSchema>;
+
+export const GatewayKeyGetParamsSchema = z.object({});
+
+export type GatewayKeyGetParams = z.infer<typeof GatewayKeyGetParamsSchema>;
 
 export const WhoamiGetParamsSchema = z.object({});
 

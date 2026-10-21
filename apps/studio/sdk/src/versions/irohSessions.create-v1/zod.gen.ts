@@ -19,7 +19,7 @@ export const IrohSessionSchema = z.object({
         id: z.string(),
         grantId: z.string(),
         expiresAt: z.string()
-    }).optional()
+    })
 });
 
 /**

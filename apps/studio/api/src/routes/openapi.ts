@@ -27,15 +27,33 @@ export const conflict = errorResponse('The change conflicts with the current sta
 export const invalidReference = errorResponse(
   'A referenced resource does not exist, is not visible to this account, or belongs to another organisation'
 );
-export const invalidExposureReference = errorResponse(
-  'A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol'
+export const invalidGateway = errorResponse(
+  "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads"
 );
-export const exposureCycle = errorResponse('The upstream exposure would lead back to this exposure');
+export const invalidExposureReference = errorResponse(
+  'A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not'
+);
+export const exposureInUse = errorResponse(
+  'The upstream exposure would lead back to this exposure, or it would stop offering a rendition an exposure downstream of it or a recorder uses'
+);
+export const invalidRecorderReference = errorResponse(
+  'The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition'
+);
 export const invalidSignature = errorResponse(
   'The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest'
 );
 export const noCaller = errorResponse(
   'No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest'
+);
+
+export const connectionRefused = errorResponse(
+  'The caller may see the exposure but not connect to it like this: members only read, and devices publish what they are the pinned publisher of and read its upstreams'
+);
+export const unsupportedConnection = errorResponse(
+  "Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen"
+);
+export const gatewayUnavailable = errorResponse(
+  'The database is unavailable, or the gateway is not configured or cannot issue credentials right now'
 );
 
 export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');

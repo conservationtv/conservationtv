@@ -51,35 +51,18 @@ export class Exposures extends HeyApiClient {
     /**
      * Update an exposure
      *
-     * Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.
+     * Administrators only. Changes only the fields given; `renditions` and `params` are replaced whole. Refused if its upstream would lead back to it, if it would offer a rendition its upstream does not, or stop offering one an exposure downstream of it or a recorder uses.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
         exposureId: string;
-        gatewayId?: 'conservationtv' | 'cloudflare' | string;
-        protocol?: string;
+        gatewayId?: 'conservationtv' | string;
+        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;
         params?: {
-            renditions?: Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }>;
-            [key: string]: Schema0 | Array<{
-                id: string;
-                width?: number;
-                height?: number;
-                /**
-                 * Bits per second.
-                 */
-                bitrate?: number;
-            }> | undefined;
+            [key: string]: Schema0;
         };
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
@@ -87,7 +70,7 @@ export class Exposures extends HeyApiClient {
                     { in: 'path', key: 'streamId' },
                     { in: 'path', key: 'exposureId' },
                     { in: 'body', key: 'gatewayId' },
-                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'renditions' },
                     { in: 'body', key: 'publisherDeviceId' },
                     { in: 'body', key: 'upstreamExposureId' },
                     { in: 'body', key: 'params' }
