@@ -50,6 +50,8 @@ export default defineConfig({
        * from the environment, with GATEKEEPER_TOKEN; unset, as for n0's relay, sessions carry no lease.
        */
       ...(process.env.GATEKEEPER_URL ? { GATEKEEPER_URL: bindings.text(process.env.GATEKEEPER_URL) } : {}),
+      /** The MoQ relay devices delivering their own exposures publish to, with tokens from the same control plane. */
+      ...(process.env.MOQ_RELAY_URL ? { MOQ_RELAY_URL: bindings.text(process.env.MOQ_RELAY_URL) } : {}),
       /** The control plane environment's consumer token; see .dev.vars.example. */
       GATEKEEPER_TOKEN: bindings.secret(),
       /** How sign-in codes reach people. Only `log` exists; a deployment needs an email provider first. */

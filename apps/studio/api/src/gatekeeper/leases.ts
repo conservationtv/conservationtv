@@ -1,4 +1,4 @@
-import { HttpError, type Grant } from '@conservationtv/controlplane-sdk';
+import { HttpError, type Grant, type PostGrantsExchangeData } from '@conservationtv/controlplane-sdk';
 import { ApiFailure } from '../errors.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
 import type { Environment } from '../env/env.ts';
@@ -14,7 +14,7 @@ import type { Environment } from '../env/env.ts';
 const LEASE_LIFETIME_SECONDS = 3_600;
 
 /** The deployment's gatekeeper client. */
-type Gatekeeper = NonNullable<Environment['gatekeeper']>;
+export type Gatekeeper = NonNullable<Environment['gatekeeper']>;
 
 /** The lease admitting a device's endpoint to the relay. */
 export interface IrohLease {
@@ -25,18 +25,22 @@ export interface IrohLease {
   expiresAt: string;
 }
 
+/** What a grant asks gatekeeper for. */
+export type RequestedCapabilities = PostGrantsExchangeData['body']['requested_capabilities'];
+
 /**
- * Exchange the grant. `forbidden` if gatekeeper will not admit the endpoint (it is denied); `relay_unavailable` for
- * any other failure, which is gatekeeper's or this API's.
+ * Exchange a grant for the device. `forbidden` if gatekeeper will not admit the endpoint (it is denied);
+ * `relay_unavailable` for any other failure, which is gatekeeper's or this API's.
  */
-async function exchange(device: AuthenticatedDevice, gatekeeper: Gatekeeper): Promise<Grant> {
+export async function exchange(
+  device: AuthenticatedDevice,
+  gatekeeper: Gatekeeper,
+  requested_capabilities: RequestedCapabilities,
+  expires_in: number
+): Promise<Grant> {
   try {
     const client = await gatekeeper.client();
-    const result = await client.grants.exchange.v1({
-      subject: `device:${device.id}`,
-      requested_capabilities: { iroh: { endpoint_id: device.publicId, action: 'connect' } },
-      expires_in: LEASE_LIFETIME_SECONDS
-    });
+    const result = await client.grants.exchange.v1({ subject: `device:${device.id}`, requested_capabilities, expires_in });
     if (!(result instanceof Error)) return result;
     const refused = result instanceof HttpError && result.code === 'invalid_endpoint_id';
     throw new ApiFailure(refused ? 'forbidden' : 'relay_unavailable', { cause: result });
@@ -49,7 +53,8 @@ async function exchange(device: AuthenticatedDevice, gatekeeper: Gatekeeper): Pr
 
 /** Lease the device's endpoint from gatekeeper, failing as `exchange` does. */
 export async function leaseEndpoint(device: AuthenticatedDevice, gatekeeper: Gatekeeper): Promise<IrohLease> {
-  const result = await exchange(device, gatekeeper);
+  const capabilities = { iroh: { endpoint_id: device.publicId, action: 'connect' as const } };
+  const result = await exchange(device, gatekeeper, capabilities, LEASE_LIFETIME_SECONDS);
   const lease = result.credentials.iroh;
   if (lease === undefined) throw new ApiFailure('relay_unavailable', { cause: 'Gatekeeper issued no Iroh lease' });
   return { id: lease.lease_id, grantId: result.grant_id, expiresAt: lease.expires_at };

@@ -1,0 +1,17 @@
+[package]
+name = "watch"
+version = "0.0.0"
+description = "Experiment: a viewer's side of a broadcast, subscribed to its tracks for as long as it runs, measuring delivery."
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow = "1"
+moq-net = "0.3"
+moq-tokio = { version = "0.19", default-features = false, features = ["noq", "ring"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
+url = "2"

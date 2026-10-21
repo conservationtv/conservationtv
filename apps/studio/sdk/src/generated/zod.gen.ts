@@ -289,6 +289,15 @@ export const IrohSessionSchema = z.object({
     }).optional()
 });
 
+export const MoqSessionSchema = z.object({
+    url: z.string(),
+    root: z.string(),
+    broadcast: z.string(),
+    token: z.string(),
+    grantId: z.string(),
+    expiresAt: z.string()
+});
+
 export const WhoamiSchema = z.object({
     id: z.string(),
     organisationId: z.string(),
@@ -1611,6 +1620,17 @@ export const PostReportsResponseSchema = ReportSchema;
  * The relay to use
  */
 export const PostIrohSessionsResponseSchema = IrohSessionSchema;
+
+export const PostMoqSessionsBodySchema = z.object({
+    exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The exposure to publish.'
+    })
+});
+
+/**
+ * The relay, broadcast and token
+ */
+export const PostMoqSessionsResponseSchema = MoqSessionSchema;
 
 /**
  * The signing device
