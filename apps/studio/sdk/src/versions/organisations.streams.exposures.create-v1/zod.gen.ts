@@ -17,8 +17,10 @@ export const Schema0Schema = z.union([
 
 export const ExposureSchema = z.object({
     id: z.string(),
-    networkId: z.string().nullable(),
+    gatewayId: z.string(),
     protocol: z.string(),
+    publisherDeviceId: z.string().nullable(),
+    upstreamExposureId: z.string().nullable(),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string(),
@@ -31,10 +33,14 @@ export const ExposureSchema = z.object({
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.object({
-    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'The delivery protocol, such as `moq` or `rtsp`.'
+    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The gateway the stream is delivered to.'
     }),
+    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'One of the protocols the gateway accepts.'
+    }),
+    publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
+    upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
     params: z.object({
         renditions: z.array(z.object({
             id: z.string().min(1).max(60),

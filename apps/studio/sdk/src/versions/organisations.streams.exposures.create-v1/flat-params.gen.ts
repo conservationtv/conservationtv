@@ -7,8 +7,10 @@ import { PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisa
 export const ExposureCreateV1ParamsSchema = z.object({
     id: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.id.nonoptional().describe('The organisation.'),
     streamId: PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema.shape.streamId.nonoptional().describe('The stream.'),
-    networkId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    protocol: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.protocol.nonoptional().describe('The delivery protocol, such as `moq` or `rtsp`.'),
+    gatewayId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.gatewayId.nonoptional().describe('The gateway the stream is delivered to.'),
+    protocol: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway accepts.'),
+    publisherDeviceId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.publisherDeviceId.optional().describe('The device that publishes the exposure to its gateway, or null for whichever the system chooses.'),
+    upstreamExposureId: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.upstreamExposureId.optional().describe('An exposure of the same stream to publish from, or null for the stream\'s source device.'),
     params: PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema.shape.params.optional()
 });
 

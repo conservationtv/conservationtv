@@ -44,6 +44,7 @@ export const relations = defineRelations(schema, r => ({
     cameras: r.many.cameras({ from: r.organisations.id, to: r.cameras.organisationId }),
     agents: r.many.agents({ from: r.organisations.id, to: r.agents.organisationId }),
     browsers: r.many.browsers({ from: r.organisations.id, to: r.browsers.organisationId }),
+    gateways: r.many.gateways({ from: r.organisations.id, to: r.gateways.organisationId }),
     streams: r.many.streams({ from: r.organisations.id, to: r.streams.organisationId })
   },
   organisationMemberships: {
@@ -74,7 +75,7 @@ export const relations = defineRelations(schema, r => ({
     devices: r.many.devices({ from: r.networks.id, to: r.devices.networkId }),
     agents: r.many.agents({ from: r.networks.id, to: r.agents.networkId }),
     activeAgent: r.one.agents({ from: r.networks.id, to: r.agents.networkId, where: { active: true } }),
-    exposures: r.many.exposures({ from: r.networks.id, to: r.exposures.networkId })
+    gateways: r.many.gateways({ from: r.networks.id, to: r.gateways.networkId })
   },
   devices: {
     organisation: r.one.organisations({ from: r.devices.organisationId, to: r.organisations.id }),
@@ -82,7 +83,8 @@ export const relations = defineRelations(schema, r => ({
     camera: r.one.cameras({ from: r.devices.id, to: r.cameras.id }),
     agent: r.one.agents({ from: r.devices.id, to: r.agents.id }),
     browser: r.one.browsers({ from: r.devices.id, to: r.browsers.id }),
-    sourcedStreams: r.many.streams({ from: r.devices.id, to: r.streams.sourceDeviceId })
+    sourcedStreams: r.many.streams({ from: r.devices.id, to: r.streams.sourceDeviceId }),
+    publishedExposures: r.many.exposures({ from: r.devices.id, to: r.exposures.publisherDeviceId })
   },
   cameras: {
     organisation: r.one.organisations({ from: r.cameras.organisationId, to: r.organisations.id }),
@@ -91,17 +93,12 @@ export const relations = defineRelations(schema, r => ({
   agents: {
     organisation: r.one.organisations({ from: r.agents.organisationId, to: r.organisations.id }),
     device: r.one.devices({ from: r.agents.id, to: r.devices.id }),
-    network: r.one.networks({ from: r.agents.networkId, to: r.networks.id }),
-    revisions: r.many.configurationRevisions({ from: r.agents.id, to: r.configurationRevisions.agentId }),
-    servedRevision: r.one.configurationRevisions({
-      from: r.agents.id,
-      to: r.configurationRevisions.agentId,
-      where: { served: true }
-    })
+    network: r.one.networks({ from: r.agents.networkId, to: r.networks.id })
   },
-  configurationRevisions: {
-    organisation: r.one.organisations({ from: r.configurationRevisions.organisationId, to: r.organisations.id }),
-    agent: r.one.agents({ from: r.configurationRevisions.agentId, to: r.agents.id })
+  gateways: {
+    organisation: r.one.organisations({ from: r.gateways.organisationId, to: r.organisations.id }),
+    network: r.one.networks({ from: r.gateways.networkId, to: r.networks.id }),
+    exposures: r.many.exposures({ from: r.gateways.id, to: r.exposures.gatewayId })
   },
   browsers: {
     organisation: r.one.organisations({ from: r.browsers.organisationId, to: r.organisations.id }),
@@ -122,7 +119,18 @@ export const relations = defineRelations(schema, r => ({
   exposures: {
     organisation: r.one.organisations({ from: r.exposures.organisationId, to: r.organisations.id }),
     stream: r.one.streams({ from: r.exposures.streamId, to: r.streams.id }),
-    network: r.one.networks({ from: r.exposures.networkId, to: r.networks.id }),
+    gateway: r.one.gateways({ from: r.exposures.gatewayId, to: r.gateways.id }),
+    publisherDevice: r.one.devices({ from: r.exposures.publisherDeviceId, to: r.devices.id }),
+    upstream: r.one.exposures({
+      from: r.exposures.upstreamExposureId,
+      to: r.exposures.id,
+      alias: 'exposure_upstream'
+    }),
+    downstreams: r.many.exposures({
+      from: r.exposures.id,
+      to: r.exposures.upstreamExposureId,
+      alias: 'exposure_upstream'
+    }),
     recorders: r.many.recorders({ from: r.exposures.id, to: r.recorders.exposureId })
   },
   recorders: {

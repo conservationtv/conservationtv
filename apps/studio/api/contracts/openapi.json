@@ -509,24 +509,6 @@
                 "type": "null"
               }
             ]
-          },
-          "servedRevision": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ]
           }
         },
         "required": [
@@ -534,77 +516,40 @@
           "active",
           "networkId",
           "priority",
-          "device",
-          "servedRevision"
+          "device"
         ]
       },
-      "Revision": {
+      "Gateway": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
-          "config": {
-            "type": "object",
-            "additionalProperties": {}
+          "name": {
+            "type": "string"
           },
-          "diagnostics": {
+          "kind": {
+            "type": "string"
+          },
+          "networkId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "protocols": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "severity": {
-                  "type": "string",
-                  "enum": [
-                    "error",
-                    "warning"
-                  ]
-                },
-                "code": {
-                  "type": "string"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "target": {
-                  "type": "object",
-                  "properties": {
-                    "kind": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "kind",
-                    "id"
-                  ]
-                },
-                "recovery": {
-                  "type": "string",
-                  "enum": [
-                    "retryable",
-                    "change-required"
-                  ]
-                },
-                "details": {
-                  "type": "object",
-                  "additionalProperties": {}
-                }
-              },
-              "required": [
-                "severity",
-                "code",
-                "message"
-              ]
+              "type": "string"
             }
           },
-          "hasErrors": {
-            "type": "boolean"
-          },
-          "served": {
-            "type": "boolean"
+          "settings": {
+            "type": "object",
+            "additionalProperties": {}
           },
           "createdAt": {
             "type": "string"
@@ -612,10 +557,11 @@
         },
         "required": [
           "id",
-          "config",
-          "diagnostics",
-          "hasErrors",
-          "served",
+          "name",
+          "kind",
+          "networkId",
+          "protocols",
+          "settings",
           "createdAt"
         ]
       },
@@ -681,7 +627,13 @@
                 "createdAt": {
                   "type": "string"
                 },
-                "networkId": {
+                "gatewayId": {
+                  "type": "string"
+                },
+                "protocol": {
+                  "type": "string"
+                },
+                "publisherDeviceId": {
                   "anyOf": [
                     {
                       "type": "string"
@@ -691,16 +643,25 @@
                     }
                   ]
                 },
-                "protocol": {
-                  "type": "string"
+                "upstreamExposureId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "required": [
                 "params",
                 "id",
                 "createdAt",
-                "networkId",
-                "protocol"
+                "gatewayId",
+                "protocol",
+                "publisherDeviceId",
+                "upstreamExposureId"
               ]
             }
           },
@@ -751,7 +712,13 @@
           "id": {
             "type": "string"
           },
-          "networkId": {
+          "gatewayId": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "publisherDeviceId": {
             "anyOf": [
               {
                 "type": "string"
@@ -761,8 +728,15 @@
               }
             ]
           },
-          "protocol": {
-            "type": "string"
+          "upstreamExposureId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "params": {
             "type": "object",
@@ -799,8 +773,10 @@
         },
         "required": [
           "id",
-          "networkId",
+          "gatewayId",
           "protocol",
+          "publisherDeviceId",
+          "upstreamExposureId",
           "params",
           "createdAt"
         ]
@@ -3251,7 +3227,7 @@
         "operationId": "organisations.networks.delete",
         "x-operation-version": 1,
         "summary": "Delete a network",
-        "description": "Administrators only. Refused while agents, devices or exposures use it.",
+        "description": "Administrators only. Refused while agents, devices or gateways use it.",
         "responses": {
           "204": {
             "description": "Deleted"
@@ -4914,24 +4890,6 @@
                                 "type": "null"
                               }
                             ]
-                          },
-                          "servedRevision": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
                           }
                         },
                         "required": [
@@ -4939,8 +4897,7 @@
                           "active",
                           "networkId",
                           "priority",
-                          "device",
-                          "servedRevision"
+                          "device"
                         ]
                       }
                     }
@@ -5377,7 +5334,7 @@
         "operationId": "organisations.agents.delete",
         "x-operation-version": 1,
         "summary": "Remove an agent",
-        "description": "Administrators only. Removes its device too, and its configuration revisions; its reports remain. Refused while a stream uses its device as its source.",
+        "description": "Administrators only. Removes its device too; its reports remain. Refused while a stream uses its device as its source.",
         "responses": {
           "204": {
             "description": "Removed"
@@ -5482,102 +5439,72 @@
         ]
       }
     },
-    "/organisations/{id}/agents/{agentId}/revisions": {
+    "/organisations/{id}/gateways": {
       "get": {
-        "operationId": "organisations.agents.revisions.list",
+        "operationId": "organisations.gateways.list",
         "x-operation-version": 1,
-        "summary": "List an agent's configuration revisions",
-        "description": "Newest first, with their diagnostics but not their configuration, which is read one revision at a time.",
+        "summary": "List an organisation's gateways",
+        "description": "Optionally only those on one network. Empty for organisations you are not a member of.",
         "responses": {
           "200": {
-            "description": "The revisions, newest first",
+            "description": "The gateways, oldest first",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "revisions": {
+                    "gateways": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
+                          "name": {
+                            "type": "string"
+                          },
                           "id": {
                             "type": "string"
                           },
-                          "diagnostics": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "severity": {
-                                  "type": "string",
-                                  "enum": [
-                                    "error",
-                                    "warning"
-                                  ]
-                                },
-                                "code": {
-                                  "type": "string"
-                                },
-                                "message": {
-                                  "type": "string"
-                                },
-                                "target": {
-                                  "type": "object",
-                                  "properties": {
-                                    "kind": {
-                                      "type": "string"
-                                    },
-                                    "id": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "kind",
-                                    "id"
-                                  ]
-                                },
-                                "recovery": {
-                                  "type": "string",
-                                  "enum": [
-                                    "retryable",
-                                    "change-required"
-                                  ]
-                                },
-                                "details": {
-                                  "type": "object",
-                                  "additionalProperties": {}
-                                }
-                              },
-                              "required": [
-                                "severity",
-                                "code",
-                                "message"
-                              ]
-                            }
-                          },
-                          "hasErrors": {
-                            "type": "boolean"
-                          },
-                          "served": {
-                            "type": "boolean"
-                          },
                           "createdAt": {
                             "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "networkId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "settings": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "protocols": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         },
                         "required": [
+                          "name",
                           "id",
-                          "diagnostics",
-                          "hasErrors",
-                          "served",
-                          "createdAt"
+                          "createdAt",
+                          "kind",
+                          "networkId",
+                          "settings",
+                          "protocols"
                         ]
                       }
                     }
                   },
                   "required": [
-                    "revisions"
+                    "gateways"
                   ]
                 }
               }
@@ -5637,25 +5564,14 @@
             "description": "The organisation."
           },
           {
-            "in": "path",
-            "name": "agentId",
+            "in": "query",
+            "name": "networkId",
             "schema": {
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             },
-            "required": true,
-            "description": "The agent."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "default": 50,
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 200
-            }
+            "description": "Only gateways on this network."
           }
         ],
         "x-operation-versions": [
@@ -5663,17 +5579,17 @@
         ]
       },
       "post": {
-        "operationId": "organisations.agents.revisions.create",
+        "operationId": "organisations.gateways.create",
         "x-operation-version": 1,
-        "summary": "Record a candidate configuration",
-        "description": "Administrators only. A rendered configuration and every diagnostic its builders reported. Recording it changes nothing the agent is served: serving is a separate step, refused for a candidate with any error.",
+        "summary": "Add a gateway",
+        "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.",
         "responses": {
           "201": {
-            "description": "The candidate revision",
+            "description": "The new gateway",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Revision"
+                  "$ref": "#/components/schemas/Gateway"
                 }
               }
             }
@@ -5708,8 +5624,8 @@
               }
             }
           },
-          "404": {
-            "description": "The resource does not exist or is not visible to this account",
+          "412": {
+            "description": "The selected operation version is not served",
             "content": {
               "application/json": {
                 "schema": {
@@ -5718,8 +5634,8 @@
               }
             }
           },
-          "412": {
-            "description": "The selected operation version is not served",
+          "422": {
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
             "content": {
               "application/json": {
                 "schema": {
@@ -5750,17 +5666,6 @@
             },
             "required": true,
             "description": "The organisation."
-          },
-          {
-            "in": "path",
-            "name": "agentId",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            },
-            "required": true,
-            "description": "The agent."
           }
         ],
         "requestBody": {
@@ -5770,7 +5675,46 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "config": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "The gateway name."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                  },
+                  "networkId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "A network of the organisation, or null for the internet."
+                  },
+                  "protocols": {
+                    "minItems": 1,
+                    "maxItems": 16,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60,
+                      "description": "A delivery protocol, such as `moq` or `rtsp`."
+                    },
+                    "description": "The protocols the gateway accepts streams by."
+                  },
+                  "settings": {
+                    "default": {},
                     "type": "object",
                     "propertyNames": {
                       "type": "string",
@@ -5779,81 +5723,13 @@
                     "additionalProperties": {
                       "$ref": "#/components/schemas/__schema0"
                     },
-                    "description": "The rendered configuration."
-                  },
-                  "diagnostics": {
-                    "default": [],
-                    "maxItems": 1000,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "severity": {
-                          "type": "string",
-                          "enum": [
-                            "warning",
-                            "error"
-                          ]
-                        },
-                        "code": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 120
-                        },
-                        "message": {
-                          "type": "string",
-                          "maxLength": 2000
-                        },
-                        "target": {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 60
-                            },
-                            "id": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 120
-                            }
-                          },
-                          "required": [
-                            "kind",
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "recovery": {
-                          "type": "string",
-                          "enum": [
-                            "retryable",
-                            "change-required"
-                          ]
-                        },
-                        "details": {
-                          "type": "object",
-                          "propertyNames": {
-                            "type": "string",
-                            "maxLength": 120
-                          },
-                          "additionalProperties": {
-                            "$ref": "#/components/schemas/__schema0"
-                          },
-                          "description": "Settings validated by the implementation that reads them."
-                        }
-                      },
-                      "required": [
-                        "severity",
-                        "code",
-                        "message"
-                      ],
-                      "additionalProperties": false
-                    }
+                    "description": "Settings validated by the implementation that reads them."
                   }
                 },
                 "required": [
-                  "config"
+                  "name",
+                  "kind",
+                  "protocols"
                 ],
                 "additionalProperties": false
               }
@@ -5865,19 +5741,18 @@
         ]
       }
     },
-    "/organisations/{id}/agents/{agentId}/revisions/{revisionId}": {
+    "/organisations/{id}/gateways/{gatewayId}": {
       "get": {
-        "operationId": "organisations.agents.revisions.get",
+        "operationId": "organisations.gateways.get",
         "x-operation-version": 1,
-        "summary": "Read a configuration revision",
-        "description": "With its configuration.",
+        "summary": "Read a gateway",
         "responses": {
           "200": {
-            "description": "The revision",
+            "description": "The gateway",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Revision"
+                  "$ref": "#/components/schemas/Gateway"
                 }
               }
             }
@@ -5947,45 +5822,32 @@
           },
           {
             "in": "path",
-            "name": "agentId",
+            "name": "gatewayId",
             "schema": {
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             },
             "required": true,
-            "description": "The agent."
-          },
-          {
-            "in": "path",
-            "name": "revisionId",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            },
-            "required": true,
-            "description": "The configuration revision."
+            "description": "The gateway."
           }
         ],
         "x-operation-versions": [
           1
         ]
-      }
-    },
-    "/organisations/{id}/agents/{agentId}/served-revision": {
-      "put": {
-        "operationId": "organisations.agents.serveRevision",
+      },
+      "patch": {
+        "operationId": "organisations.gateways.update",
         "x-operation-version": 1,
-        "summary": "Serve a configuration revision to an agent",
-        "description": "Administrators only. Activates one of the agent’s revisions, which must have no errors; the agent keeps its current revision otherwise. Serving the served revision again changes nothing.",
+        "summary": "Update a gateway",
+        "description": "Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
         "responses": {
           "200": {
-            "description": "The agent",
+            "description": "The updated gateway",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Agent"
+                  "$ref": "#/components/schemas/Gateway"
                 }
               }
             }
@@ -6031,7 +5893,7 @@
             }
           },
           "409": {
-            "description": "The revision has errors, so it cannot be served",
+            "description": "The resource is still used by another resource",
             "content": {
               "application/json": {
                 "schema": {
@@ -6085,14 +5947,14 @@
           },
           {
             "in": "path",
-            "name": "agentId",
+            "name": "gatewayId",
             "schema": {
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             },
             "required": true,
-            "description": "The agent."
+            "description": "The gateway."
           }
         ],
         "requestBody": {
@@ -6102,21 +5964,168 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "revisionId": {
+                  "name": {
                     "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "A revision of this agent without errors."
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "The gateway name."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                  },
+                  "networkId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "A network of the organisation, or null for the internet."
+                  },
+                  "protocols": {
+                    "minItems": 1,
+                    "maxItems": 16,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60,
+                      "description": "A delivery protocol, such as `moq` or `rtsp`."
+                    },
+                    "description": "The protocols the gateway accepts streams by."
+                  },
+                  "settings": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/__schema0"
+                    },
+                    "description": "Settings validated by the implementation that reads them."
                   }
                 },
-                "required": [
-                  "revisionId"
-                ],
                 "additionalProperties": false
               }
             }
           }
         },
+        "x-operation-versions": [
+          1
+        ]
+      },
+      "delete": {
+        "operationId": "organisations.gateways.delete",
+        "x-operation-version": 1,
+        "summary": "Remove a gateway",
+        "description": "Administrators only. Refused while exposures use it.",
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The resource is visible, but this account may not do this to it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The resource is still used by another resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "gatewayId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The gateway."
+          }
+        ],
         "x-operation-versions": [
           1
         ]
@@ -6767,7 +6776,7 @@
         "operationId": "organisations.streams.exposures.create",
         "x-operation-version": 1,
         "summary": "Expose a stream",
-        "description": "Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.",
+        "description": "Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.",
         "responses": {
           "201": {
             "description": "The new exposure",
@@ -6830,7 +6839,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
             "content": {
               "application/json": {
                 "schema": {
@@ -6881,7 +6890,19 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "networkId": {
+                  "gatewayId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "The gateway the stream is delivered to."
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "One of the protocols the gateway accepts."
+                  },
+                  "publisherDeviceId": {
                     "default": null,
                     "anyOf": [
                       {
@@ -6893,13 +6914,21 @@
                         "type": "null"
                       }
                     ],
-                    "description": "A network of the organisation, or null for the internet."
+                    "description": "The device that publishes the exposure to its gateway, or null for whichever the system chooses."
                   },
-                  "protocol": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "The delivery protocol, such as `moq` or `rtsp`."
+                  "upstreamExposureId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "An exposure of the same stream to publish from, or null for the stream's source device."
                   },
                   "params": {
                     "default": {},
@@ -6946,6 +6975,7 @@
                   }
                 },
                 "required": [
+                  "gatewayId",
                   "protocol"
                 ],
                 "additionalProperties": false
@@ -6963,7 +6993,7 @@
         "operationId": "organisations.streams.exposures.update",
         "x-operation-version": 1,
         "summary": "Update an exposure",
-        "description": "Administrators only. Changes only the fields given; `params` is replaced whole.",
+        "description": "Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.",
         "responses": {
           "200": {
             "description": "The updated exposure",
@@ -7015,6 +7045,16 @@
               }
             }
           },
+          "409": {
+            "description": "The upstream exposure would lead back to this exposure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "412": {
             "description": "The selected operation version is not served",
             "content": {
@@ -7026,7 +7066,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
             "content": {
               "application/json": {
                 "schema": {
@@ -7088,7 +7128,19 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "networkId": {
+                  "gatewayId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "The gateway the stream is delivered to."
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "One of the protocols the gateway accepts."
+                  },
+                  "publisherDeviceId": {
                     "anyOf": [
                       {
                         "type": "string",
@@ -7099,13 +7151,20 @@
                         "type": "null"
                       }
                     ],
-                    "description": "A network of the organisation, or null for the internet."
+                    "description": "The device that publishes the exposure to its gateway, or null for whichever the system chooses."
                   },
-                  "protocol": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60,
-                    "description": "The delivery protocol, such as `moq` or `rtsp`."
+                  "upstreamExposureId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "An exposure of the same stream to publish from, or null for the stream's source device."
                   },
                   "params": {
                     "type": "object",
@@ -7163,7 +7222,7 @@
         "operationId": "organisations.streams.exposures.delete",
         "x-operation-version": 1,
         "summary": "Remove an exposure",
-        "description": "Administrators only. Refused while a recorder uses it.",
+        "description": "Administrators only. Refused while a recorder uses it, or another exposure as its upstream.",
         "responses": {
           "204": {
             "description": "Removed"
@@ -7284,7 +7343,7 @@
         "operationId": "organisations.streams.recorders.create",
         "x-operation-version": 1,
         "summary": "Record a stream",
-        "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and protocol.",
+        "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.",
         "responses": {
           "201": {
             "description": "The new recorder",
@@ -12531,7 +12590,7 @@
             "operationId": "organisations.networks.delete",
             "x-operation-version": 1,
             "summary": "Delete a network",
-            "description": "Administrators only. Refused while agents, devices or exposures use it.",
+            "description": "Administrators only. Refused while agents, devices or gateways use it.",
             "responses": {
               "204": {
                 "description": "Deleted"
@@ -15270,24 +15329,6 @@
                           "type": "null"
                         }
                       ]
-                    },
-                    "servedRevision": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
                     }
                   },
                   "required": [
@@ -15295,8 +15336,7 @@
                     "active",
                     "networkId",
                     "priority",
-                    "device",
-                    "servedRevision"
+                    "device"
                   ]
                 }
               }
@@ -15503,24 +15543,6 @@
                     "type": "null"
                   }
                 ]
-              },
-              "servedRevision": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id"
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
               }
             },
             "required": [
@@ -15528,8 +15550,7 @@
               "active",
               "networkId",
               "priority",
-              "device",
-              "servedRevision"
+              "device"
             ]
           }
         }
@@ -15776,24 +15797,6 @@
                     "type": "null"
                   }
                 ]
-              },
-              "servedRevision": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id"
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
               }
             },
             "required": [
@@ -15801,8 +15804,7 @@
               "active",
               "networkId",
               "priority",
-              "device",
-              "servedRevision"
+              "device"
             ]
           }
         }
@@ -16013,24 +16015,6 @@
                     "type": "null"
                   }
                 ]
-              },
-              "servedRevision": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id"
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
               }
             },
             "required": [
@@ -16038,8 +16022,7 @@
               "active",
               "networkId",
               "priority",
-              "device",
-              "servedRevision"
+              "device"
             ]
           }
         }
@@ -16227,7 +16210,7 @@
             "operationId": "organisations.agents.delete",
             "x-operation-version": 1,
             "summary": "Remove an agent",
-            "description": "Administrators only. Removes its device too, and its configuration revisions; its reports remain. Refused while a stream uses its device as its source.",
+            "description": "Administrators only. Removes its device too; its reports remain. Refused while a stream uses its device as its source.",
             "responses": {
               "204": {
                 "description": "Removed"
@@ -16377,109 +16360,79 @@
               "error_description"
             ]
           },
-          "Revision": {
+          "Gateway": {
             "type": "object",
             "properties": {
-              "revisions": {
+              "gateways": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
+                    "name": {
+                      "type": "string"
+                    },
                     "id": {
                       "type": "string"
                     },
-                    "diagnostics": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "severity": {
-                            "type": "string",
-                            "enum": [
-                              "error",
-                              "warning"
-                            ]
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          },
-                          "target": {
-                            "type": "object",
-                            "properties": {
-                              "kind": {
-                                "type": "string"
-                              },
-                              "id": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "kind",
-                              "id"
-                            ]
-                          },
-                          "recovery": {
-                            "type": "string",
-                            "enum": [
-                              "retryable",
-                              "change-required"
-                            ]
-                          },
-                          "details": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          }
-                        },
-                        "required": [
-                          "severity",
-                          "code",
-                          "message"
-                        ]
-                      }
-                    },
-                    "hasErrors": {
-                      "type": "boolean"
-                    },
-                    "served": {
-                      "type": "boolean"
-                    },
                     "createdAt": {
                       "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "protocols": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
+                    "name",
                     "id",
-                    "diagnostics",
-                    "hasErrors",
-                    "served",
-                    "createdAt"
+                    "createdAt",
+                    "kind",
+                    "networkId",
+                    "settings",
+                    "protocols"
                   ]
                 }
               }
             },
             "required": [
-              "revisions"
+              "gateways"
             ]
           }
         }
       },
       "paths": {
-        "/organisations/{id}/agents/{agentId}/revisions": {
+        "/organisations/{id}/gateways": {
           "get": {
-            "operationId": "organisations.agents.revisions.list",
+            "operationId": "organisations.gateways.list",
             "x-operation-version": 1,
-            "summary": "List an agent's configuration revisions",
-            "description": "Newest first, with their diagnostics but not their configuration, which is read one revision at a time.",
+            "summary": "List an organisation's gateways",
+            "description": "Optionally only those on one network. Empty for organisations you are not a member of.",
             "responses": {
               "200": {
-                "description": "The revisions, newest first",
+                "description": "The gateways, oldest first",
                 "content": {
                   "application/json": {
                     "schema": {
-                      "$ref": "#/components/schemas/Revision"
+                      "$ref": "#/components/schemas/Gateway"
                     }
                   }
                 }
@@ -16538,25 +16491,14 @@
                 "description": "The organisation."
               },
               {
-                "in": "path",
-                "name": "agentId",
+                "in": "query",
+                "name": "networkId",
                 "schema": {
                   "type": "string",
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
-                "required": true,
-                "description": "The agent."
-              },
-              {
-                "in": "query",
-                "name": "limit",
-                "schema": {
-                  "default": 50,
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 200
-                }
+                "description": "Only gateways on this network."
               },
               {
                 "in": "header",
@@ -16640,73 +16582,37 @@
               }
             ]
           },
-          "Revision": {
+          "Gateway": {
             "type": "object",
             "properties": {
               "id": {
                 "type": "string"
               },
-              "config": {
-                "type": "object",
-                "additionalProperties": {}
+              "name": {
+                "type": "string"
               },
-              "diagnostics": {
+              "kind": {
+                "type": "string"
+              },
+              "networkId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "protocols": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "severity": {
-                      "type": "string",
-                      "enum": [
-                        "error",
-                        "warning"
-                      ]
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "target": {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "kind",
-                        "id"
-                      ]
-                    },
-                    "recovery": {
-                      "type": "string",
-                      "enum": [
-                        "retryable",
-                        "change-required"
-                      ]
-                    },
-                    "details": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "severity",
-                    "code",
-                    "message"
-                  ]
+                  "type": "string"
                 }
               },
-              "hasErrors": {
-                "type": "boolean"
-              },
-              "served": {
-                "type": "boolean"
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
               },
               "createdAt": {
                 "type": "string"
@@ -16714,29 +16620,30 @@
             },
             "required": [
               "id",
-              "config",
-              "diagnostics",
-              "hasErrors",
-              "served",
+              "name",
+              "kind",
+              "networkId",
+              "protocols",
+              "settings",
               "createdAt"
             ]
           }
         }
       },
       "paths": {
-        "/organisations/{id}/agents/{agentId}/revisions": {
+        "/organisations/{id}/gateways": {
           "post": {
-            "operationId": "organisations.agents.revisions.create",
+            "operationId": "organisations.gateways.create",
             "x-operation-version": 1,
-            "summary": "Record a candidate configuration",
-            "description": "Administrators only. A rendered configuration and every diagnostic its builders reported. Recording it changes nothing the agent is served: serving is a separate step, refused for a candidate with any error.",
+            "summary": "Add a gateway",
+            "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.",
             "responses": {
               "201": {
-                "description": "The candidate revision",
+                "description": "The new gateway",
                 "content": {
                   "application/json": {
                     "schema": {
-                      "$ref": "#/components/schemas/Revision"
+                      "$ref": "#/components/schemas/Gateway"
                     }
                   }
                 }
@@ -16771,8 +16678,8 @@
                   }
                 }
               },
-              "404": {
-                "description": "The resource does not exist or is not visible to this account",
+              "412": {
+                "description": "The selected operation version is not served",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -16781,8 +16688,8 @@
                   }
                 }
               },
-              "412": {
-                "description": "The selected operation version is not served",
+              "422": {
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -16815,17 +16722,6 @@
                 "description": "The organisation."
               },
               {
-                "in": "path",
-                "name": "agentId",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "required": true,
-                "description": "The agent."
-              },
-              {
                 "in": "header",
                 "name": "Operation-Version",
                 "required": true,
@@ -16843,7 +16739,46 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "config": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "description": "The gateway name."
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60,
+                        "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                      },
+                      "networkId": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "A network of the organisation, or null for the internet."
+                      },
+                      "protocols": {
+                        "minItems": 1,
+                        "maxItems": 16,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60,
+                          "description": "A delivery protocol, such as `moq` or `rtsp`."
+                        },
+                        "description": "The protocols the gateway accepts streams by."
+                      },
+                      "settings": {
+                        "default": {},
                         "type": "object",
                         "propertyNames": {
                           "type": "string",
@@ -16852,81 +16787,13 @@
                         "additionalProperties": {
                           "$ref": "#/components/schemas/__schema0"
                         },
-                        "description": "The rendered configuration."
-                      },
-                      "diagnostics": {
-                        "default": [],
-                        "maxItems": 1000,
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "severity": {
-                              "type": "string",
-                              "enum": [
-                                "warning",
-                                "error"
-                              ]
-                            },
-                            "code": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 120
-                            },
-                            "message": {
-                              "type": "string",
-                              "maxLength": 2000
-                            },
-                            "target": {
-                              "type": "object",
-                              "properties": {
-                                "kind": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 60
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 120
-                                }
-                              },
-                              "required": [
-                                "kind",
-                                "id"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "recovery": {
-                              "type": "string",
-                              "enum": [
-                                "retryable",
-                                "change-required"
-                              ]
-                            },
-                            "details": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string",
-                                "maxLength": 120
-                              },
-                              "additionalProperties": {
-                                "$ref": "#/components/schemas/__schema0"
-                              },
-                              "description": "Settings validated by the implementation that reads them."
-                            }
-                          },
-                          "required": [
-                            "severity",
-                            "code",
-                            "message"
-                          ],
-                          "additionalProperties": false
-                        }
+                        "description": "Settings validated by the implementation that reads them."
                       }
                     },
                     "required": [
-                      "config"
+                      "name",
+                      "kind",
+                      "protocols"
                     ],
                     "additionalProperties": false
                   }
@@ -16973,73 +16840,37 @@
               "error_description"
             ]
           },
-          "Revision": {
+          "Gateway": {
             "type": "object",
             "properties": {
               "id": {
                 "type": "string"
               },
-              "config": {
-                "type": "object",
-                "additionalProperties": {}
+              "name": {
+                "type": "string"
               },
-              "diagnostics": {
+              "kind": {
+                "type": "string"
+              },
+              "networkId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "protocols": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "severity": {
-                      "type": "string",
-                      "enum": [
-                        "error",
-                        "warning"
-                      ]
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "target": {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "kind",
-                        "id"
-                      ]
-                    },
-                    "recovery": {
-                      "type": "string",
-                      "enum": [
-                        "retryable",
-                        "change-required"
-                      ]
-                    },
-                    "details": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "severity",
-                    "code",
-                    "message"
-                  ]
+                  "type": "string"
                 }
               },
-              "hasErrors": {
-                "type": "boolean"
-              },
-              "served": {
-                "type": "boolean"
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
               },
               "createdAt": {
                 "type": "string"
@@ -17047,29 +16878,29 @@
             },
             "required": [
               "id",
-              "config",
-              "diagnostics",
-              "hasErrors",
-              "served",
+              "name",
+              "kind",
+              "networkId",
+              "protocols",
+              "settings",
               "createdAt"
             ]
           }
         }
       },
       "paths": {
-        "/organisations/{id}/agents/{agentId}/revisions/{revisionId}": {
+        "/organisations/{id}/gateways/{gatewayId}": {
           "get": {
-            "operationId": "organisations.agents.revisions.get",
+            "operationId": "organisations.gateways.get",
             "x-operation-version": 1,
-            "summary": "Read a configuration revision",
-            "description": "With its configuration.",
+            "summary": "Read a gateway",
             "responses": {
               "200": {
-                "description": "The revision",
+                "description": "The gateway",
                 "content": {
                   "application/json": {
                     "schema": {
-                      "$ref": "#/components/schemas/Revision"
+                      "$ref": "#/components/schemas/Gateway"
                     }
                   }
                 }
@@ -17139,25 +16970,14 @@
               },
               {
                 "in": "path",
-                "name": "agentId",
+                "name": "gatewayId",
                 "schema": {
                   "type": "string",
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
                 "required": true,
-                "description": "The agent."
-              },
-              {
-                "in": "path",
-                "name": "revisionId",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "required": true,
-                "description": "The configuration revision."
+                "description": "The gateway."
               },
               {
                 "in": "header",
@@ -17210,115 +17030,99 @@
               "error_description"
             ]
           },
-          "Agent": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/__schema0"
+                }
+              }
+            ]
+          },
+          "Gateway": {
             "type": "object",
             "properties": {
               "id": {
                 "type": "string"
               },
-              "active": {
-                "type": "boolean"
-              },
-              "networkId": {
+              "name": {
                 "type": "string"
               },
-              "priority": {
-                "type": "number"
+              "kind": {
+                "type": "string"
               },
-              "device": {
+              "networkId": {
                 "anyOf": [
                   {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "createdAt": {
-                        "type": "string"
-                      },
-                      "publicKey": {
-                        "type": "string"
-                      },
-                      "kind": {
-                        "type": "string",
-                        "enum": [
-                          "agent",
-                          "camera",
-                          "browser"
-                        ]
-                      },
-                      "networkId": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "publicId": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "createdAt",
-                      "publicKey",
-                      "kind",
-                      "networkId",
-                      "publicId"
-                    ]
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ]
               },
-              "servedRevision": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id"
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+              "protocols": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "createdAt": {
+                "type": "string"
               }
             },
             "required": [
               "id",
-              "active",
+              "name",
+              "kind",
               "networkId",
-              "priority",
-              "device",
-              "servedRevision"
+              "protocols",
+              "settings",
+              "createdAt"
             ]
           }
         }
       },
       "paths": {
-        "/organisations/{id}/agents/{agentId}/served-revision": {
-          "put": {
-            "operationId": "organisations.agents.serveRevision",
+        "/organisations/{id}/gateways/{gatewayId}": {
+          "patch": {
+            "operationId": "organisations.gateways.update",
             "x-operation-version": 1,
-            "summary": "Serve a configuration revision to an agent",
-            "description": "Administrators only. Activates one of the agent’s revisions, which must have no errors; the agent keeps its current revision otherwise. Serving the served revision again changes nothing.",
+            "summary": "Update a gateway",
+            "description": "Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
             "responses": {
               "200": {
-                "description": "The agent",
+                "description": "The updated gateway",
                 "content": {
                   "application/json": {
                     "schema": {
-                      "$ref": "#/components/schemas/Agent"
+                      "$ref": "#/components/schemas/Gateway"
                     }
                   }
                 }
@@ -17364,7 +17168,7 @@
                 }
               },
               "409": {
-                "description": "The revision has errors, so it cannot be served",
+                "description": "The resource is still used by another resource",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -17418,14 +17222,14 @@
               },
               {
                 "in": "path",
-                "name": "agentId",
+                "name": "gatewayId",
                 "schema": {
                   "type": "string",
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
                 "required": true,
-                "description": "The agent."
+                "description": "The gateway."
               },
               {
                 "in": "header",
@@ -17445,21 +17249,218 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "revisionId": {
+                      "name": {
                         "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "description": "A revision of this agent without errors."
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "description": "The gateway name."
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60,
+                        "description": "The gateway implementation, such as `moq-relay`, `rtmp` or `mediamtx`."
+                      },
+                      "networkId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "A network of the organisation, or null for the internet."
+                      },
+                      "protocols": {
+                        "minItems": 1,
+                        "maxItems": 16,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60,
+                          "description": "A delivery protocol, such as `moq` or `rtsp`."
+                        },
+                        "description": "The protocols the gateway accepts streams by."
+                      },
+                      "settings": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/components/schemas/__schema0"
+                        },
+                        "description": "Settings validated by the implementation that reads them."
                       }
                     },
-                    "required": [
-                      "revisionId"
-                    ],
                     "additionalProperties": false
                   }
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/gateways/{gatewayId}": {
+          "delete": {
+            "operationId": "organisations.gateways.delete",
+            "x-operation-version": 1,
+            "summary": "Remove a gateway",
+            "description": "Administrators only. Refused while exposures use it.",
+            "responses": {
+              "204": {
+                "description": "Removed"
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The resource is visible, but this account may not do this to it",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "409": {
+                "description": "The resource is still used by another resource",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "gatewayId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The gateway."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
           }
         }
       }
@@ -17937,7 +17938,13 @@
                     "createdAt": {
                       "type": "string"
                     },
-                    "networkId": {
+                    "gatewayId": {
+                      "type": "string"
+                    },
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "publisherDeviceId": {
                       "anyOf": [
                         {
                           "type": "string"
@@ -17947,16 +17954,25 @@
                         }
                       ]
                     },
-                    "protocol": {
-                      "type": "string"
+                    "upstreamExposureId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "params",
                     "id",
                     "createdAt",
-                    "networkId",
-                    "protocol"
+                    "gatewayId",
+                    "protocol",
+                    "publisherDeviceId",
+                    "upstreamExposureId"
                   ]
                 }
               },
@@ -18558,7 +18574,13 @@
               "id": {
                 "type": "string"
               },
-              "networkId": {
+              "gatewayId": {
+                "type": "string"
+              },
+              "protocol": {
+                "type": "string"
+              },
+              "publisherDeviceId": {
                 "anyOf": [
                   {
                     "type": "string"
@@ -18568,8 +18590,15 @@
                   }
                 ]
               },
-              "protocol": {
-                "type": "string"
+              "upstreamExposureId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "params": {
                 "type": "object",
@@ -18606,8 +18635,10 @@
             },
             "required": [
               "id",
-              "networkId",
+              "gatewayId",
               "protocol",
+              "publisherDeviceId",
+              "upstreamExposureId",
               "params",
               "createdAt"
             ]
@@ -18620,7 +18651,7 @@
             "operationId": "organisations.streams.exposures.create",
             "x-operation-version": 1,
             "summary": "Expose a stream",
-            "description": "Administrators only. Declares how the stream is delivered: where, by which protocol, and the renditions it should offer.",
+            "description": "Administrators only. Declares how the stream is delivered: to which gateway, by which of its protocols, by which publisher from which upstream, and the renditions it should offer.",
             "responses": {
               "201": {
                 "description": "The new exposure",
@@ -18683,7 +18714,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -18744,7 +18775,19 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "networkId": {
+                      "gatewayId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "The gateway the stream is delivered to."
+                      },
+                      "protocol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60,
+                        "description": "One of the protocols the gateway accepts."
+                      },
+                      "publisherDeviceId": {
                         "default": null,
                         "anyOf": [
                           {
@@ -18756,13 +18799,21 @@
                             "type": "null"
                           }
                         ],
-                        "description": "A network of the organisation, or null for the internet."
+                        "description": "The device that publishes the exposure to its gateway, or null for whichever the system chooses."
                       },
-                      "protocol": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "The delivery protocol, such as `moq` or `rtsp`."
+                      "upstreamExposureId": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "An exposure of the same stream to publish from, or null for the stream's source device."
                       },
                       "params": {
                         "default": {},
@@ -18809,6 +18860,7 @@
                       }
                     },
                     "required": [
+                      "gatewayId",
                       "protocol"
                     ],
                     "additionalProperties": false
@@ -18893,7 +18945,13 @@
               "id": {
                 "type": "string"
               },
-              "networkId": {
+              "gatewayId": {
+                "type": "string"
+              },
+              "protocol": {
+                "type": "string"
+              },
+              "publisherDeviceId": {
                 "anyOf": [
                   {
                     "type": "string"
@@ -18903,8 +18961,15 @@
                   }
                 ]
               },
-              "protocol": {
-                "type": "string"
+              "upstreamExposureId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "params": {
                 "type": "object",
@@ -18941,8 +19006,10 @@
             },
             "required": [
               "id",
-              "networkId",
+              "gatewayId",
               "protocol",
+              "publisherDeviceId",
+              "upstreamExposureId",
               "params",
               "createdAt"
             ]
@@ -18955,7 +19022,7 @@
             "operationId": "organisations.streams.exposures.update",
             "x-operation-version": 1,
             "summary": "Update an exposure",
-            "description": "Administrators only. Changes only the fields given; `params` is replaced whole.",
+            "description": "Administrators only. Changes only the fields given; `params` is replaced whole. Refused if its upstream would lead back to it.",
             "responses": {
               "200": {
                 "description": "The updated exposure",
@@ -19007,6 +19074,16 @@
                   }
                 }
               },
+              "409": {
+                "description": "The upstream exposure would lead back to this exposure",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
               "412": {
                 "description": "The selected operation version is not served",
                 "content": {
@@ -19018,7 +19095,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the gateway does not accept the protocol",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -19090,7 +19167,19 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "networkId": {
+                      "gatewayId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "The gateway the stream is delivered to."
+                      },
+                      "protocol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60,
+                        "description": "One of the protocols the gateway accepts."
+                      },
+                      "publisherDeviceId": {
                         "anyOf": [
                           {
                             "type": "string",
@@ -19101,13 +19190,20 @@
                             "type": "null"
                           }
                         ],
-                        "description": "A network of the organisation, or null for the internet."
+                        "description": "The device that publishes the exposure to its gateway, or null for whichever the system chooses."
                       },
-                      "protocol": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 60,
-                        "description": "The delivery protocol, such as `moq` or `rtsp`."
+                      "upstreamExposureId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "An exposure of the same stream to publish from, or null for the stream's source device."
                       },
                       "params": {
                         "type": "object",
@@ -19205,7 +19301,7 @@
             "operationId": "organisations.streams.exposures.delete",
             "x-operation-version": 1,
             "summary": "Remove an exposure",
-            "description": "Administrators only. Refused while a recorder uses it.",
+            "description": "Administrators only. Refused while a recorder uses it, or another exposure as its upstream.",
             "responses": {
               "204": {
                 "description": "Removed"
@@ -19433,7 +19529,7 @@
             "operationId": "organisations.streams.recorders.create",
             "x-operation-version": 1,
             "summary": "Record a stream",
-            "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its network and protocol.",
+            "description": "Administrators only. Recording is always backed by one of the stream's exposures, which supplies its gateway and protocol.",
             "responses": {
               "201": {
                 "description": "The new recorder",

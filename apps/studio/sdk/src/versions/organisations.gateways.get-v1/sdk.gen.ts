@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses } from './types.gen.js';
+import type { GetOrganisationsByIdGatewaysByGatewayIdErrors, GetOrganisationsByIdGatewaysByGatewayIdResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -47,41 +47,27 @@ class HeyApiRegistry<T> {
     }
 }
 
-export class Revisions extends HeyApiClient {
+export class Gateways extends HeyApiClient {
     /**
-     * Read a configuration revision
-     *
-     * With its configuration.
+     * Read a gateway
      */
     public get<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        agentId: string;
-        revisionId: string;
-    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, ThrowOnError> {
-        const params = buildClientParams([parameters], [{ args: [
-                    { in: 'path', key: 'id' },
-                    { in: 'path', key: 'agentId' },
-                    { in: 'path', key: 'revisionId' }
-                ] }]);
-        return (options?.client ?? this.client).get<GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdResponses, GetOrganisationsByIdAgentsByAgentIdRevisionsByRevisionIdErrors, ThrowOnError>({
-            url: '/organisations/{id}/agents/{agentId}/revisions/{revisionId}',
+        gatewayId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'gatewayId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/gateways/{gatewayId}',
             ...options,
             ...params
         });
     }
 }
 
-export class Agents extends HeyApiClient {
-    private _revisions?: Revisions;
-    get revisions(): Revisions {
-        return this._revisions ??= new Revisions({ client: this.client });
-    }
-}
-
 export class Organisations extends HeyApiClient {
-    private _agents?: Agents;
-    get agents(): Agents {
-        return this._agents ??= new Agents({ client: this.client });
+    private _gateways?: Gateways;
+    get gateways(): Gateways {
+        return this._gateways ??= new Gateways({ client: this.client });
     }
 }
 

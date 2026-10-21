@@ -34,14 +34,3 @@ export const ExposureParamsSchema = z
     'Rendition IDs must be unique within the exposure'
   );
 export type ExposureParams = z.output<typeof ExposureParamsSchema>;
-
-/** A builder's warning or error about a candidate configuration. Any error makes the candidate unusable. */
-export const BuildDiagnosticSchema = z.strictObject({
-  severity: z.enum(['warning', 'error']),
-  code: z.string().min(1).max(120),
-  message: z.string().max(2000),
-  target: z.strictObject({ kind: z.string().min(1).max(60), id: z.string().min(1).max(120) }).optional(),
-  recovery: z.enum(['retryable', 'change-required']).optional(),
-  details: SettingsSchema.optional()
-});
-export type BuildDiagnostic = z.output<typeof BuildDiagnosticSchema>;
