@@ -1,4 +1,5 @@
-import { createServer, type IncomingMessage, type Server } from 'node:http';
+import { serve, type ServerType } from '@hono/node-server';
+import { Hono } from 'hono';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 
@@ -54,9 +55,18 @@ function permits(permissions: Permissions, request: AuthRequest) {
 
 /** Answers MediaMTX's authentication requests on `address`, by the tokens `auth` says how to check. */
 export class MediamtxAuthServer {
-  private server: Server | undefined;
+  private server: ServerType | undefined;
   private auth: MediamtxAuth | undefined;
   private keys: ReturnType<typeof createRemoteJWKSet> | undefined;
+
+  // Anything malformed is refused, as is anything asked elsewhere, which Hono answers 404.
+  private readonly app = new Hono().post(MEDIAMTX_AUTH_PATH, async c => {
+    const admitted = await c.req
+      .json()
+      .then(body => this.admits(AuthRequestSchema.parse(body)))
+      .catch(() => false);
+    return c.body(null, admitted ? 200 : 401);
+  });
 
   /** @param address Where to listen, such as `127.0.0.1:9996`: loopback, since only MediaMTX asks. */
   constructor(private readonly address: string) {}
@@ -66,17 +76,11 @@ export class MediamtxAuthServer {
     if (auth.jwks !== this.auth?.jwks) this.keys = createRemoteJWKSet(new URL(auth.jwks));
     this.auth = auth;
     if (this.server !== undefined) return;
-    const server = createServer((request, response) => {
-      void this.answer(request)
-        .catch(() => false)
-        .then(admitted => response.writeHead(admitted ? 200 : 401).end());
-    });
     const { hostname, port } = new URL(`http://${this.address}`);
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(Number(port), hostname.replace(/^\[|\]$/gu, ''), resolve);
+    this.server = await new Promise<ServerType>((resolve, reject) => {
+      const options = { fetch: this.app.fetch, hostname: hostname.replace(/^\[|\]$/gu, ''), port: Number(port) };
+      const server = serve(options, () => resolve(server)).once('error', reject);
     });
-    this.server = server;
   }
 
   /** Stops answering, so MediaMTX admits no one. */
@@ -87,20 +91,9 @@ export class MediamtxAuthServer {
     if (server !== undefined) await new Promise(resolve => server.close(resolve));
   }
 
-  /** Whether MediaMTX should admit what it asked about; anything malformed is refused. */
-  private async answer(message: IncomingMessage): Promise<boolean> {
-    if (message.method !== 'POST' || message.url !== MEDIAMTX_AUTH_PATH) return false;
-    const chunks: Buffer[] = [];
-    for await (const chunk of message) chunks.push(Buffer.from(chunk));
-    const parsed = AuthRequestSchema.safeParse(JSON.parse(Buffer.concat(chunks).toString() || 'null'));
-    if (!parsed.success) return false;
-    const request = parsed.data;
+  /** Whether MediaMTX should admit what it asked about: anything from this machine, or what a token admits. */
+  private async admits(request: AuthRequest): Promise<boolean> {
     if (LOOPBACK.has(request.ip)) return true;
-    return this.verify(request).catch(() => false);
-  }
-
-  /** Whether the request offers a token, signed for this gateway, admitting its action on its path. */
-  private async verify(request: AuthRequest): Promise<boolean> {
     const { auth, keys } = this;
     const token = offeredToken(request);
     if (auth === undefined || keys === undefined || token === '') return false;

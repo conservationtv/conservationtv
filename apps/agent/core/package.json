@@ -23,6 +23,7 @@
     "@conservationtv/store": "workspace:*",
     "@conservationtv/studio-sdk": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",
+    "@hono/node-server": "2.1.4",
     "@moq/net": "0.4.4",
     "@number0/iroh": "1.0.0",
     "@strangecyan/iroh-http-node": "0.2.0",
