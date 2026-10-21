@@ -3,9 +3,9 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { gateways } from '../db/schema.ts';
+import { transaction, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
 import { checkGatewayUnused } from '../topology/exposures.ts';
 import {
   BUILTIN_GATEWAY_IDS,
@@ -68,15 +68,13 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { networkId } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
       const filter =
         networkId === undefined
           ? eq(gateways.organisationId, id)
           : and(eq(gateways.organisationId, id), eq(gateways.networkId, networkId));
-      const rows = await session.transaction(tx =>
-        tx
+      const rows = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: gateways.id,
             builtin: sql<boolean>`false`,
@@ -88,8 +86,8 @@ export default new Hono()
           })
           .from(gateways)
           .where(filter)
-          .orderBy(gateways.id)
-      );
+          .orderBy(gateways.id);
+      });
       const builtin = networkId === undefined ? builtinGateways : [];
       c.header('Cache-Control', 'no-store');
       return c.json({ gateways: [...builtin, ...rows] }, 200);
@@ -127,11 +125,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [gateway] = await tx
+      const row = await transaction(async () => {
+        const db = useDB();
+        const [gateway] = await db
           .insert(gateways)
           .values({
             organisationId: id,
@@ -182,11 +178,9 @@ export default new Hono()
           builtinGateways.find(gateway => gateway.id === gatewayId)!,
           200
         );
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: gateways.id,
             builtin: sql<boolean>`false`,
@@ -197,8 +191,8 @@ export default new Hono()
             createdAt: gateways.createdAt
           })
           .from(gateways)
-          .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
-      );
+          .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)));
+      });
       if (!row) throw new ApiFailure('not_found');
       return c.json(row, 200);
     }
@@ -239,11 +233,9 @@ export default new Hono()
       const { id, gatewayId } = c.req.valid('param');
       const body = c.req.valid('json');
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [gateway] = await tx
+      const row = await transaction(async () => {
+        const db = useDB();
+        const [gateway] = await db
           .update(gateways)
           .set({
             name: body.name,
@@ -261,7 +253,7 @@ export default new Hono()
             settings: gateways.settings,
             createdAt: gateways.createdAt
           });
-        if (!gateway) throw await unchanged(tx, gateways.id, gatewayId);
+        if (!gateway) throw await unchanged(gateways.id, gatewayId);
         // Only a change to what its kind reads, the kind itself or its settings, can make them unfit.
         if (body.kind !== undefined || body.settings !== undefined)
           checkGatewaySettings(gateway.kind, gateway.settings);
@@ -294,16 +286,14 @@ export default new Hono()
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      await session.transaction(async tx => {
-        const deleted = await tx
+      await transaction(async () => {
+        const db = useDB();
+        const deleted = await db
           .delete(gateways)
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
           .returning({ id: gateways.id });
-        if (deleted.length === 0) throw await unchanged(tx, gateways.id, gatewayId);
-        await checkGatewayUnused(tx, gatewayId);
+        if (deleted.length === 0) throw await unchanged(gateways.id, gatewayId);
+        await checkGatewayUnused(gatewayId);
       });
       return c.body(null, 204);
     }

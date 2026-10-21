@@ -3,10 +3,9 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { devices } from '../db/schema.ts';
+import { transaction, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requireCaller, useCaller } from '../middleware/device.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
 import { DEVICE_KINDS } from '../topology/device-kinds.ts';
 import { deviceKeyPair } from '../topology/identity.ts';
 import { NetworkReferenceSchema } from '../topology/settings.ts';
@@ -54,21 +53,19 @@ export default new Hono()
         503: unavailable
       }
     }),
-    requireCaller,
+    requirePrincipal,
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const caller = useCaller();
-      const session = await environment.session(caller);
-      const [row] = await session.transaction(tx =>
-        tx
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             publicIds: sql<string[]>`coalesce(array_agg(${devices.publicId} order by ${devices.id}), '{}')`
           })
           .from(devices)
-          .where(eq(devices.organisationId, id))
-      );
+          .where(eq(devices.organisationId, id));
+      });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -94,11 +91,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const { kind } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
+      const rows = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: devices.id,
             kind: devices.kind,
@@ -110,8 +105,8 @@ export default new Hono()
           })
           .from(devices)
           .where(and(eq(devices.organisationId, id), kind === undefined ? undefined : eq(devices.kind, kind)))
-          .orderBy(devices.id)
-      );
+          .orderBy(devices.id);
+      });
       c.header('Cache-Control', 'no-store');
       return c.json({ devices: rows }, 200);
     }
@@ -135,11 +130,9 @@ export default new Hono()
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: devices.id,
             kind: devices.kind,
@@ -150,8 +143,8 @@ export default new Hono()
             createdAt: devices.createdAt
           })
           .from(devices)
-          .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
-      );
+          .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)));
+      });
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -179,8 +172,7 @@ export default new Hono()
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
-      const principal = usePrincipal();
-      const keyPair = await deviceKeyPair(principal, id, deviceId);
+      const keyPair = await deviceKeyPair(id, deviceId);
       const privateKey = Buffer.from(keyPair.privateKey).toString('base64url');
       c.header('Cache-Control', 'no-store');
       return c.json({ ...keyPair, privateKey }, 200);
@@ -217,11 +209,9 @@ export default new Hono()
     async c => {
       const { id, deviceId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [device] = await tx
+      const row = await transaction(async () => {
+        const db = useDB();
+        const [device] = await db
           .update(devices)
           .set({ name: body.name, networkId: body.networkId })
           .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
@@ -234,7 +224,7 @@ export default new Hono()
             publicId: devices.publicId,
             createdAt: devices.createdAt
           });
-        if (!device) throw await unchanged(tx, devices.id, deviceId);
+        if (!device) throw await unchanged(devices.id, deviceId);
         return device;
       });
       c.header('Cache-Control', 'no-store');

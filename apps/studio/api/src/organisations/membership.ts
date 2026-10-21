@@ -1,19 +1,16 @@
-import { user, type Access } from '@conservationtv/umbrella';
+import { user } from '@conservationtv/umbrella';
 import { and, eq, sql } from 'drizzle-orm';
 import { authorization } from '../access.ts';
-import type { Database } from '../db/client.ts';
 import { organisationAdmin, organisationMember } from '../db/roles.ts';
 import { browsers, organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
-import type { UserPrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
+import { transaction, trustedTransaction, useAccess, useDB } from '../db/transaction.ts';
+import { useUser } from '../middleware/principal.ts';
 import { deleteBrowsers } from '../topology/browsers.ts';
 
 // Joining and leaving change rows and grants together, so every write here is trusted code on the admin connection,
 // in one transaction. Who may make each change is still the access definitions' decision: `inspect` asks them before
 // the write, and the application role has no privilege to make these writes itself.
-
-export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export interface NewOrganisation {
   name: string;
@@ -28,15 +25,12 @@ export interface NewMember {
 
 export const organisationScope = (organisationId: string) => organisations.$access.scope.at(organisationId);
 
-export async function trusted<Result>(run: (tx: Transaction, access: Access) => Promise<Result>) {
-  const environment = useEnvironment();
-  const admin = await environment.admin();
-  return admin.transaction(tx => run(tx, authorization.access(tx)));
-}
-
-/** Make the principal a member: the membership, its profile and the member grant. Inside a trusted transaction. */
-export async function addMember(tx: Transaction, access: Access, principal: UserPrincipal, input: NewMember) {
-  const [membership] = await tx
+/** Make the user a member: the membership, its profile and the member grant. Inside a trusted transaction. */
+export async function addMember(input: NewMember) {
+  const db = useDB({ trusted: true });
+  const access = useAccess();
+  const principal = useUser();
+  const [membership] = await db
     .insert(organisationMemberships)
     .values({ organisationId: input.organisationId, userId: principal.id })
     .onConflictDoNothing()
@@ -46,7 +40,7 @@ export async function addMember(tx: Transaction, access: Access, principal: User
       joinedAt: organisationMemberships.createdAt
     });
   if (!membership) throw new ApiFailure('already_member');
-  await tx
+  await db
     .insert(organisationProfiles)
     .values({ organisationId: input.organisationId, userId: principal.id, displayName: input.displayName });
   await access.at(organisationScope(input.organisationId)).grant({ principal, role: organisationMember });
@@ -57,13 +51,11 @@ export async function addMember(tx: Transaction, access: Access, principal: User
  * Lock the organisation for the rest of the transaction, so concurrent changes to its administrators are serialised,
  * and fail as `notFound` unless the principal can see it.
  */
-async function lockVisibleOrganisation(
-  tx: Transaction,
-  access: Access,
-  principal: UserPrincipal,
-  organisationId: string
-) {
-  const [row] = await tx
+async function lockVisibleOrganisation(organisationId: string) {
+  const db = useDB({ trusted: true });
+  const access = useAccess();
+  const principal = useUser();
+  const [row] = await db
     .select({ id: organisations.id })
     .from(organisations)
     .where(eq(organisations.id, organisationId))
@@ -76,7 +68,9 @@ async function lockVisibleOrganisation(
   if (!row || !decision.permissions.read?.allowed) throw new ApiFailure('not_found');
 }
 
-async function mayRemoveMembers(access: Access, principal: UserPrincipal, organisationId: string) {
+async function mayRemoveMembers(organisationId: string) {
+  const access = useAccess();
+  const principal = useUser();
   const decision = await access.inspect({
     principal,
     resource: organisationMemberships,
@@ -85,21 +79,26 @@ async function mayRemoveMembers(access: Access, principal: UserPrincipal, organi
   return decision.permissions.remove?.allowed ?? false;
 }
 
-/** Create an organisation with the principal as its first member and administrator. */
-export function createOrganisation(principal: UserPrincipal, input: NewOrganisation) {
-  return trusted(async (tx, access) => {
-    const [organisation] = await tx
+/** Create an organisation with the user as its first member and administrator. */
+export function createOrganisation(input: NewOrganisation) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const access = useAccess();
+    const principal = useUser();
+    const [organisation] = await db
       .insert(organisations)
       .values({ name: input.name })
       .returning({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt });
-    await addMember(tx, access, principal, { organisationId: organisation!.id, displayName: input.displayName });
+    await addMember({ organisationId: organisation!.id, displayName: input.displayName });
     await access.at(organisationScope(organisation!.id)).grant({ principal, role: organisationAdmin });
     return organisation!;
   });
 }
 
 /** Organisation administrators only: the caller must hold an active `organisationAdmin` grant there. */
-async function requireAdmin(access: Access, principal: UserPrincipal, organisationId: string) {
+async function requireAdmin(organisationId: string) {
+  const access = useAccess();
+  const principal = useUser();
   const held = await access.grantsQuery({
     principal,
     role: organisationAdmin,
@@ -110,7 +109,8 @@ async function requireAdmin(access: Access, principal: UserPrincipal, organisati
 }
 
 /** Refuse to take the last active administrator away: the member may hold it only if someone else does too. */
-async function keepAnotherAdmin(access: Access, organisationId: string, memberId: string) {
+async function keepAnotherAdmin(organisationId: string, memberId: string) {
+  const access = useAccess();
   const member = user(memberId);
   const admins = await access.grantsQuery({
     role: organisationAdmin,
@@ -123,15 +123,18 @@ async function keepAnotherAdmin(access: Access, organisationId: string, memberId
 }
 
 /**
- * End a membership: an administrator removing someone, or the principal leaving. Its grants go with it, and its
+ * End a membership: an administrator removing someone, or the user leaving. Its grants go with it, and its
  * profile by cascade. The last administrator cannot be removed.
  */
-export function endMembership(principal: UserPrincipal, organisationId: string, memberId: string) {
-  return trusted(async (tx, access) => {
+export function endMembership(organisationId: string, memberId: string) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const access = useAccess();
+    const principal = useUser();
     // Anyone may end their own membership; ending someone else's needs the remove permission. Either way the
     // organisation must keep an administrator other than the member leaving, counting only active grants.
-    await lockVisibleOrganisation(tx, access, principal, organisationId);
-    const [membership] = await tx
+    await lockVisibleOrganisation(organisationId);
+    const [membership] = await db
       .select()
       .from(organisationMemberships)
       .where(
@@ -139,19 +142,15 @@ export function endMembership(principal: UserPrincipal, organisationId: string, 
       );
     if (!membership) throw new ApiFailure('not_found');
     const leaving = membership.userId === principal.id;
-    if (!leaving && !(await mayRemoveMembers(access, principal, organisationId))) throw new ApiFailure('forbidden');
+    if (!leaving && !(await mayRemoveMembers(organisationId))) throw new ApiFailure('forbidden');
 
-    await keepAnotherAdmin(access, organisationId, membership.userId);
+    await keepAnotherAdmin(organisationId, membership.userId);
 
     // Every role they hold here, not just the ones membership grants, and their browsers here, which refer to the
     // membership.
     await access.at(organisationScope(organisationId)).revoke({ principal: user(membership.userId) });
-    await deleteBrowsers(
-      tx,
-      access,
-      and(eq(browsers.organisationId, organisationId), eq(browsers.userId, membership.userId))
-    );
-    await tx.delete(organisationMemberships).where(eq(organisationMemberships.id, membership.id));
+    await deleteBrowsers(and(eq(browsers.organisationId, organisationId), eq(browsers.userId, membership.userId)));
+    await db.delete(organisationMemberships).where(eq(organisationMemberships.id, membership.id));
   });
 }
 
@@ -159,9 +158,12 @@ export function endMembership(principal: UserPrincipal, organisationId: string, 
  * Delete an organisation, every grant at it (its devices' too), and by cascade its memberships, profiles, invitations
  * and topology, browsers included.
  */
-export function deleteOrganisation(principal: UserPrincipal, organisationId: string) {
-  return trusted(async (tx, access) => {
-    await lockVisibleOrganisation(tx, access, principal, organisationId);
+export function deleteOrganisation(organisationId: string) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const access = useAccess();
+    const principal = useUser();
+    await lockVisibleOrganisation(organisationId);
     const decision = await access.inspect({
       principal,
       resource: organisations,
@@ -169,7 +171,7 @@ export function deleteOrganisation(principal: UserPrincipal, organisationId: str
     });
     if (!decision.permissions.remove?.allowed) throw new ApiFailure('forbidden');
     await access.at(organisationScope(organisationId)).all.revoke();
-    await tx.delete(organisations).where(eq(organisations.id, organisationId));
+    await db.delete(organisations).where(eq(organisations.id, organisationId));
   });
 }
 
@@ -177,11 +179,13 @@ export function deleteOrganisation(principal: UserPrincipal, organisationId: str
  * Make a member an administrator of the organisation: organisation administrators only. Granting the role again is
  * harmless. Locks the organisation, as every change to its administrators does.
  */
-export function grantAdmin(principal: UserPrincipal, organisationId: string, memberId: string) {
-  return trusted(async (tx, access) => {
-    await lockVisibleOrganisation(tx, access, principal, organisationId);
-    await requireAdmin(access, principal, organisationId);
-    const [membership] = await tx
+export function grantAdmin(organisationId: string, memberId: string) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const access = useAccess();
+    await lockVisibleOrganisation(organisationId);
+    await requireAdmin(organisationId);
+    const [membership] = await db
       .select({ userId: organisationMemberships.userId })
       .from(organisationMemberships)
       .where(
@@ -198,18 +202,20 @@ export function grantAdmin(principal: UserPrincipal, organisationId: string, mem
  * Take a member's administrator role away, leaving their membership: organisation administrators only, themselves
  * included. The last administrator keeps it. Revoking it from someone who doesn't hold it changes nothing.
  */
-export function revokeAdmin(principal: UserPrincipal, organisationId: string, memberId: string) {
-  return trusted(async (tx, access) => {
-    await lockVisibleOrganisation(tx, access, principal, organisationId);
-    await requireAdmin(access, principal, organisationId);
-    const [membership] = await tx
+export function revokeAdmin(organisationId: string, memberId: string) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const access = useAccess();
+    await lockVisibleOrganisation(organisationId);
+    await requireAdmin(organisationId);
+    const [membership] = await db
       .select({ userId: organisationMemberships.userId })
       .from(organisationMemberships)
       .where(
         and(eq(organisationMemberships.organisationId, organisationId), eq(organisationMemberships.userId, memberId))
       );
     if (!membership) throw new ApiFailure('not_found');
-    await keepAnotherAdmin(access, organisationId, membership.userId);
+    await keepAnotherAdmin(organisationId, membership.userId);
     await access
       .at(organisationScope(organisationId))
       .revoke({ principal: user(membership.userId), role: organisationAdmin });
@@ -228,15 +234,14 @@ export interface MemberRole {
  * request session: row-level security decides which members appear, and the grants table, readable by request
  * sessions (see the `grantsReadable` migration), only adds their roles.
  */
-export async function listMembers(principal: UserPrincipal, organisationId: string) {
-  const environment = useEnvironment();
-  const session = await environment.session(principal);
-  return session.transaction(tx => {
+export function listMembers(organisationId: string) {
+  return transaction(async () => {
+    const db = useDB();
     const roles = authorization
-      .access(tx)
+      .access(db)
       .grantsQuery({ scope: organisationScope(organisationId), active: true })
       .as('member_roles');
-    return tx
+    return db
       .select({
         userId: organisationMemberships.userId,
         displayName: organisationProfiles.displayName,
@@ -263,12 +268,12 @@ export async function listMembers(principal: UserPrincipal, organisationId: stri
 }
 
 /** The principal's organisations, each with the roles they hold there, aggregated as `listMembers` is, in their session. */
-export async function listOwnOrganisations(principal: UserPrincipal) {
-  const environment = useEnvironment();
-  const session = await environment.session(principal);
-  return session.transaction(tx => {
-    const roles = authorization.access(tx).grantsQuery({ principal, active: true }).as('own_roles');
-    return tx
+export function listOwnOrganisations() {
+  return transaction(async () => {
+    const db = useDB();
+    const principal = useUser();
+    const roles = authorization.access(db).grantsQuery({ principal, active: true }).as('own_roles');
+    return db
       .select({
         id: organisations.id,
         name: organisations.name,

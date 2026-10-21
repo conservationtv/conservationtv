@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
-import { planConfiguration } from '../configuration/plan.ts';
+import { planConfiguration } from '../configuration/plan/index.ts';
 import { requireDevice, useDevice } from '../middleware/device.ts';
 import { invalidSignature, operationVersion, unavailable, versionMismatch } from './openapi.ts';
 
-// What the signing device should be doing, derived from the topology now (src/configuration/plan.ts). Devices ask for
-// it signed, as they do for `iroh-sessions`, and again whenever they want to notice a change.
+// What the signing device should be doing, derived from the topology now (src/configuration/plan/index.ts). Devices ask
+// for it signed, as they do for `iroh-sessions`, and again whenever they want to notice a change.
 export default new Hono().get(
   '/',
   describeRoute({

@@ -92,8 +92,8 @@ Auth creates an account, a `databaseHooks.user.create.after` hook grants `self` 
 verification and creation time are immutable through request sessions.
 
 `src/access.ts` compiles the definitions once with `defineAuthorization`. Handlers run queries inside
-`useEnvironment().session(principal)`, a session over the application connection only, so an account can only ever read or
-update its own row; a different account's row is simply absent. Only Better Auth's provisioning hooks and the membership operations (see [Organisations](#organisations)) hold
+`transaction()` (`src/db/transaction.ts`), a session as the request's principal over the application connection only, so an account can only ever read or
+update its own row; a different account's row is simply absent. Only Better Auth's provisioning hooks and trusted code in `trustedTransaction()` (see [Organisations](#organisations)) hold
 `authorization.access(admin)`, and a request that never grants opens no admin connection. Umbrella needs two database roles, so there are two Hyperdrive
 bindings:
 
