@@ -66,107 +66,69 @@ export function joinCatalogs(catalogs: RenditionCatalog[]): Catalog {
   return joined;
 }
 
-/** Whether two publishers join the same renditions into the same broadcast, whatever their credentials. */
-function sameJoin(a: MoqPublisher, b: MoqPublisher) {
-  return a.broadcast === b.broadcast && JSON.stringify(a.renditions) === JSON.stringify(b.renditions);
-}
+/**
+ * Joins one exposure's renditions into its broadcast, on a connection of its own to the relay, reconnecting if it
+ * drops, until the returned function closes it. Its joined catalog follows each rendition's whenever it is published,
+ * across its publisher's restarts. New credentials are a new join, as they restart the renditions' publishers too.
+ */
+export function joinBroadcast(publisher: MoqPublisher): () => void {
+  const effect = new Moq.Signals.Effect();
+  const published = new Moq.Origin.Producer();
+  const consumed = new Moq.Origin.Producer();
+  const url = new URL(publisher.connect);
+  const connection = new Moq.Connection({ url, publish: published.consume(), consume: consumed });
+  const broadcast = published.createBroadcast(Moq.Path.from(publisher.broadcast));
+  broadcast.announce();
+  const catalogTrack = broadcast.createTrack(CATALOG_TRACK);
+  effect.cleanup(() => {
+    broadcast.close();
+    connection.close();
+    published.close();
+    consumed.close();
+  });
+  effect.run(watching => {
+    const error = watching.get(connection.error);
+    if (error === undefined) return;
+    console.error(JSON.stringify({ event: 'moq_join_failed', exposureId: publisher.exposureId, error: String(error) }));
+  });
 
-/** One exposure's joined broadcast, on a connection of its own to the relay, reconnecting if it drops. */
-class JoinedBroadcast {
-  private readonly published = new Moq.Origin.Producer();
-  private readonly consumed = new Moq.Origin.Producer();
-  private readonly connection: Moq.Connection;
-  private readonly effect = new Moq.Signals.Effect();
-  private readonly catalogs = new Map<string, Catalog>();
-  private readonly catalogTrack: Moq.Track.Producer;
-  private written = '';
-
-  constructor(public publisher: MoqPublisher) {
-    const url = new URL(publisher.connect);
-    this.connection = new Moq.Connection({ url, publish: this.published.consume(), consume: this.consumed });
-    const broadcast = this.published.createBroadcast(Moq.Path.from(publisher.broadcast));
-    broadcast.announce();
-    this.catalogTrack = broadcast.createTrack(CATALOG_TRACK);
-    this.effect.cleanup(() => broadcast.close());
-    this.effect.run(effect => {
-      const error = effect.get(this.connection.error);
-      if (error === undefined) return;
-      const event = { event: 'moq_join_failed', exposureId: publisher.exposureId, error: String(error) };
-      console.error(JSON.stringify(event));
+  // Each rendition's latest catalog, and the joined catalog last written: a new group only when it changes.
+  const catalogs = new Map<string, Catalog>();
+  let written = '';
+  const update = (rendition: string, catalog: Catalog) => {
+    catalogs.set(rendition, catalog);
+    const known = publisher.renditions.flatMap(({ rendition: name }) => {
+      const latest = catalogs.get(name);
+      return latest === undefined ? [] : [{ rendition: name, catalog: latest }];
     });
-    for (const { rendition } of publisher.renditions) this.follow(rendition);
-  }
+    const text = JSON.stringify(joinCatalogs(known));
+    if (text === written) return;
+    written = text;
+    const group = catalogTrack.appendGroup();
+    group.writeString(text);
+    group.close();
+  };
 
-  /** Reconnects with the publisher's new credentials. */
-  renew(publisher: MoqPublisher) {
-    if (publisher.connect !== this.publisher.connect) this.connection.url.set(new URL(publisher.connect));
-    this.publisher = publisher;
-  }
-
-  close() {
-    this.effect.close();
-    this.connection.close();
-    this.published.close();
-    this.consumed.close();
-  }
-
-  /** Reads the rendition broadcast's catalog whenever it is published, across its publisher's restarts. */
-  private follow(rendition: string) {
-    const request = this.consumed.request(Moq.Path.from(rendition), { announced: true });
-    this.effect.cleanup(() => request.close());
-    this.effect.run(effect => {
-      const active = effect.get(request.active);
+  for (const { rendition } of publisher.renditions) {
+    const request = consumed.request(Moq.Path.from(rendition), { announced: true });
+    effect.cleanup(() => request.close());
+    effect.run(following => {
+      const active = following.get(request.active);
       if (active === undefined) return;
       const track = active.track(CATALOG_TRACK).subscribe({ priority: 0 });
-      effect.cleanup(() => track.close());
-      effect.spawn(async () => {
+      following.cleanup(() => track.close());
+      following.spawn(async () => {
         // Each group is one version of the catalog.
-        for (let group = await effect.race(track.recvGroup()); group; group = await effect.race(track.recvGroup())) {
-          const catalog = CatalogSchema.safeParse(await effect.race(group.readJson()));
-          if (catalog.success) this.update(rendition, catalog.data);
+        for (
+          let group = await following.race(track.recvGroup());
+          group;
+          group = await following.race(track.recvGroup())
+        ) {
+          const catalog = CatalogSchema.safeParse(await following.race(group.readJson()));
+          if (catalog.success) update(rendition, catalog.data);
         }
       });
     });
   }
-
-  /** Publishes the joined catalog as a new group, if the rendition's catalog changed it. */
-  private update(rendition: string, catalog: Catalog) {
-    this.catalogs.set(rendition, catalog);
-    const catalogs = this.publisher.renditions.flatMap(({ rendition: name }) => {
-      const known = this.catalogs.get(name);
-      return known === undefined ? [] : [{ rendition: name, catalog: known }];
-    });
-    const text = JSON.stringify(joinCatalogs(catalogs));
-    if (text === this.written) return;
-    this.written = text;
-    const group = this.catalogTrack.appendGroup();
-    group.writeString(text);
-    group.close();
-  }
-}
-
-/** The joined broadcast of each exposure the spec publishes, and no other. */
-export class BroadcastJoiner {
-  private readonly joined = new Map<string, JoinedBroadcast>();
-
-  /** Joins what the publishers name: new ones are started, gone or changed ones closed, renewed ones reconnected. */
-  apply(publishers: MoqPublisher[]) {
-    const wanted = new Map(publishers.map(publisher => [publisher.exposureId, publisher]));
-    for (const [exposureId, joined] of this.joined) {
-      const publisher = wanted.get(exposureId);
-      if (publisher !== undefined && sameJoin(joined.publisher, publisher)) continue;
-      joined.close();
-      this.joined.delete(exposureId);
-    }
-    for (const publisher of publishers) {
-      const joined = this.joined.get(publisher.exposureId);
-      if (joined === undefined) this.joined.set(publisher.exposureId, new JoinedBroadcast(publisher));
-      else joined.renew(publisher);
-    }
-  }
-
-  close() {
-    for (const joined of this.joined.values()) joined.close();
-    this.joined.clear();
-  }
+  return () => effect.close();
 }

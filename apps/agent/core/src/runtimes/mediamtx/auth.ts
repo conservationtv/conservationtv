@@ -1,4 +1,5 @@
 import { serve, type ServerType } from '@hono/node-server';
+import { sValidator } from '@hono/standard-validator';
 import { Hono } from 'hono';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
@@ -53,52 +54,41 @@ function permits(permissions: Permissions, request: AuthRequest) {
   return permissions.some(({ action, path }) => action === request.action && (path === '' || path === request.path));
 }
 
-/** Answers MediaMTX's authentication requests on `address`, by the tokens `auth` says how to check. */
-export class MediamtxAuthServer {
-  private server: ServerType | undefined;
-  private auth: MediamtxAuth | undefined;
-  private keys: ReturnType<typeof createRemoteJWKSet> | undefined;
+type JwksKeys = ReturnType<typeof createRemoteJWKSet>;
 
-  // Anything malformed is refused, as is anything asked elsewhere, which Hono answers 404.
-  private readonly app = new Hono().post(MEDIAMTX_AUTH_PATH, async c => {
-    const admitted = await c.req
-      .json()
-      .then(body => this.admits(AuthRequestSchema.parse(body)))
-      .catch(() => false);
-    return c.body(null, admitted ? 200 : 401);
+/** Whether MediaMTX should admit what it asked about: anything from this machine, or what a token admits. */
+async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys): Promise<boolean> {
+  if (LOOPBACK.has(request.ip)) return true;
+  const token = offeredToken(request);
+  if (token === '') return false;
+  const { payload } = await jwtVerify(token, keys, { issuer: auth.issuer, audience: auth.audience });
+  const permissions = PermissionsSchema.safeParse(payload.mediamtx_permissions);
+  return permissions.success && permits(permissions.data, request);
+}
+
+/**
+ * Answers MediaMTX's authentication requests on `address` (such as `127.0.0.1:9996`: loopback, since only MediaMTX
+ * asks) by the tokens `auth` says how to check, until the returned function closes it, after which MediaMTX admits no
+ * one. Anything malformed or failing is refused, as is anything asked elsewhere, which Hono answers 404.
+ */
+export async function serveMediamtxAuth(address: string, auth: MediamtxAuth): Promise<() => Promise<void>> {
+  const keys = createRemoteJWKSet(new URL(auth.jwks));
+  const app = new Hono()
+    .post(
+      MEDIAMTX_AUTH_PATH,
+      sValidator('json', AuthRequestSchema, (result, c) => {
+        if (!result.success) return c.body(null, 401);
+      }),
+      async c => {
+        const admitted = await admits(c.req.valid('json'), auth, keys);
+        return c.body(null, admitted ? 200 : 401);
+      }
+    )
+    .onError((_error, c) => c.body(null, 401));
+  const { hostname, port } = new URL(`http://${address}`);
+  const server = await new Promise<ServerType>((resolve, reject) => {
+    const options = { fetch: app.fetch, hostname: hostname.replace(/^\[|\]$/gu, ''), port: Number(port) };
+    const listening = serve(options, () => resolve(listening)).once('error', reject);
   });
-
-  /** @param address Where to listen, such as `127.0.0.1:9996`: loopback, since only MediaMTX asks. */
-  constructor(private readonly address: string) {}
-
-  /** Answers by `auth` from now on, listening first if it is not already. */
-  async serve(auth: MediamtxAuth): Promise<void> {
-    if (auth.jwks !== this.auth?.jwks) this.keys = createRemoteJWKSet(new URL(auth.jwks));
-    this.auth = auth;
-    if (this.server !== undefined) return;
-    const { hostname, port } = new URL(`http://${this.address}`);
-    this.server = await new Promise<ServerType>((resolve, reject) => {
-      const options = { fetch: this.app.fetch, hostname: hostname.replace(/^\[|\]$/gu, ''), port: Number(port) };
-      const server = serve(options, () => resolve(server)).once('error', reject);
-    });
-  }
-
-  /** Stops answering, so MediaMTX admits no one. */
-  async close(): Promise<void> {
-    const { server } = this;
-    this.server = undefined;
-    this.auth = undefined;
-    if (server !== undefined) await new Promise(resolve => server.close(resolve));
-  }
-
-  /** Whether MediaMTX should admit what it asked about: anything from this machine, or what a token admits. */
-  private async admits(request: AuthRequest): Promise<boolean> {
-    if (LOOPBACK.has(request.ip)) return true;
-    const { auth, keys } = this;
-    const token = offeredToken(request);
-    if (auth === undefined || keys === undefined || token === '') return false;
-    const { payload } = await jwtVerify(token, keys, { issuer: auth.issuer, audience: auth.audience });
-    const permissions = PermissionsSchema.safeParse(payload.mediamtx_permissions);
-    return permissions.success && permits(permissions.data, request);
-  }
+  return () => new Promise(resolve => server.close(() => resolve()));
 }
