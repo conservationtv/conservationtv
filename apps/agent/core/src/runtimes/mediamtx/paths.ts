@@ -15,7 +15,9 @@ export const MediamtxPathSchema = z.strictObject({
   /** The exposure it delivers: its metrics are about `exposure:<id>`. */
   exposureId: z.uuid(),
   /** Which of the exposure's renditions it delivers, by ID, when the exposure has several paths. */
-  rendition: z.string().min(1).max(60).optional()
+  rendition: z.string().min(1).max(60).optional(),
+  /** Where MediaMTX pulls it from while it is read, such as a camera's RTSP URL; none, and publishers push to it. */
+  source: z.string().min(1).optional()
 });
 export type MediamtxPath = z.output<typeof MediamtxPathSchema>;
 

@@ -6,15 +6,11 @@ import type { Rendition } from '../topology/settings.ts';
 import { CONNECTION_LIFETIME_SECONDS, provider, type ConnectionAction, type ConnectionRequest } from './provider.ts';
 import { GATEWAY_SIGNING_ALGORITHM } from './keys.ts';
 
-// MediaMTX gateways admit connections by JWTs this API signs (src/gateways/keys.ts), which MediaMTX verifies itself
-// against the published JWKS. Each MediaMTX gateway is configured with:
-//
-//   authMethod: jwt
-//   authJWTJWKS: <APP_URL>/gateway-keys
-//   authJWTIssuer: <APP_URL>
-//   authJWTAudience: <the gateway's ID>
-//
-// so a token admits one action on one path, at only the gateway it was issued for. The gateway's settings say where
+// MediaMTX gateways admit connections by JWTs this API signs (src/gateways/keys.ts), verified against the published
+// JWKS (`<APP_URL>/gateway-keys`), issued by `<APP_URL>`, for the gateway's ID as their audience: a token admits one
+// action on one path, at only the gateway it was issued for. An agent running the gateway checks them for its MediaMTX
+// (apps/agent/core/src/runtimes/mediamtx/auth.ts), which also admits readers on the agent's own machine without one.
+// A MediaMTX run any other way can check them itself (`authMethod: jwt`). The gateway's settings say where
 // each of its protocols' servers listens, as its network reaches them.
 
 const MEDIAMTX_PROTOCOLS = ['webrtc', 'rtsp', 'rtsps', 'rtmp', 'rtmps', 'hls'] as const;
@@ -27,7 +23,7 @@ const EGRESS = { ...INGEST, hls: 'paths' } as const;
 
 /** Where each of the gateway's protocols' servers listens, as its network reaches them. */
 const MediamtxSettingsSchema = z.strictObject({ urls: z.partialRecord(z.enum(MEDIAMTX_PROTOCOLS), z.url()) });
-type MediamtxSettings = z.output<typeof MediamtxSettingsSchema>;
+export type MediamtxSettings = z.output<typeof MediamtxSettingsSchema>;
 
 /** The MediaMTX path an exposure's rendition is served at: the configuration builders name it the same. */
 export const mediamtxPath = (exposureId: string, rendition: Rendition) => `${exposureId}/${rendition}`;
@@ -70,7 +66,7 @@ export const mediamtx = provider.organisation({
   settings: MediamtxSettingsSchema,
   connect: async request => {
     const { protocol } = request;
-    const urls: MediamtxSettings['urls'] = request.settings.urls;
+    const { urls } = request.settings;
     const base = urls[protocol];
     if (base === undefined) throw new ApiFailure('gateway_unavailable', { cause: `No ${protocol} URL is configured` });
     // Every MediaMTX protocol carries `paths`, so the request always names its rendition.

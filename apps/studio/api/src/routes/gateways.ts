@@ -57,16 +57,6 @@ function changesProvision(changes: GatewayChanges) {
   return changes.kind !== undefined || changes.settings !== undefined;
 }
 
-const gatewayColumns = {
-  id: gateways.id,
-  builtin: sql<boolean>`false`,
-  name: gateways.name,
-  kind: gateways.kind,
-  networkId: gateways.networkId,
-  settings: gateways.settings,
-  createdAt: gateways.createdAt
-};
-
 // An organisation's gateways, in the principal's request session: members read them, administrators manage them. A
 // gateway's network must belong to the same organisation, which the database's composite foreign key enforces. The
 // built-in gateways (src/gateways/index.ts) are listed and read beside them, but never changed.
@@ -101,7 +91,19 @@ export default new Hono()
           ? eq(gateways.organisationId, id)
           : and(eq(gateways.organisationId, id), eq(gateways.networkId, networkId));
       const rows = await session.transaction(tx =>
-        tx.select(gatewayColumns).from(gateways).where(filter).orderBy(gateways.id)
+        tx
+          .select({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          })
+          .from(gateways)
+          .where(filter)
+          .orderBy(gateways.id)
       );
       const builtin = networkId === undefined ? builtinGateways : [];
       c.header('Cache-Control', 'no-store');
@@ -153,7 +155,15 @@ export default new Hono()
             networkId: body.networkId,
             settings: body.settings
           })
-          .returning(gatewayColumns);
+          .returning({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          });
         checkGatewaySettings(gateway!.kind, gateway!.settings);
         return gateway!;
       });
@@ -192,7 +202,15 @@ export default new Hono()
       const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
-          .select(gatewayColumns)
+          .select({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          })
           .from(gateways)
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
       );
@@ -239,7 +257,15 @@ export default new Hono()
             settings: body.settings
           })
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
-          .returning(gatewayColumns);
+          .returning({
+            id: gateways.id,
+            builtin: sql<boolean>`false`,
+            name: gateways.name,
+            kind: gateways.kind,
+            networkId: gateways.networkId,
+            settings: gateways.settings,
+            createdAt: gateways.createdAt
+          });
         if (!gateway) throw await unchanged(tx, gateways.id, gatewayId);
         if (changesProvision(body)) checkGatewaySettings(gateway.kind, gateway.settings);
         return gateway;

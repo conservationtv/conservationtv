@@ -2,7 +2,8 @@
 
 import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient67 } from '../versions/gatewayKeys.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient67 } from '../versions/deviceConfiguration.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient68 } from '../versions/gatewayKeys.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient63 } from '../versions/invitations.accept-v1/sdk.gen.js';
 import { BaseClient as BaseClient64 } from '../versions/invitations.decline-v1/sdk.gen.js';
 import { BaseClient as BaseClient62 } from '../versions/invitations.get-v1/sdk.gen.js';
@@ -66,7 +67,7 @@ import { BaseClient as BaseClient57 } from '../versions/organisations.subjects.o
 import { BaseClient as BaseClient56 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient65 } from '../versions/reports.submit-v1/sdk.gen.js';
-import { BaseClient as BaseClient68 } from '../versions/whoami.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient69 } from '../versions/whoami.get-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -185,10 +186,13 @@ export class Client extends ClientCore {
     readonly irohSessions = {
         create: this.versioned('irohSessions.create', { v1: BaseClient66 })
     };
+    readonly deviceConfiguration = {
+        get: this.versioned('deviceConfiguration.get', { v1: BaseClient67 })
+    };
     readonly gatewayKeys = {
-        get: this.versioned('gatewayKeys.get', { v1: BaseClient67 })
+        get: this.versioned('gatewayKeys.get', { v1: BaseClient68 })
     };
     readonly whoami = {
-        get: this.versioned('whoami.get', { v1: BaseClient68 })
+        get: this.versioned('whoami.get', { v1: BaseClient69 })
     };
 }

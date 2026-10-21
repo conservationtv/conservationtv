@@ -87,7 +87,17 @@ export const DeviceSchema = z.object({
 
 export const CameraSchema = z.object({
     id: z.string(),
-    settings: z.record(z.string(), z.unknown()),
+    settings: z.union([
+        z.object({
+            driver: z.literal('axis'),
+            host: z.string(),
+            resolutions: z.array(z.string())
+        }),
+        z.object({
+            driver: z.literal('rtsp'),
+            url: z.string()
+        })
+    ]),
     device: z.object({
         name: z.string(),
         createdAt: z.string(),
@@ -296,7 +306,61 @@ export const IrohSessionSchema = z.object({
         id: z.string(),
         grantId: z.string(),
         expiresAt: z.string()
-    }).optional()
+    })
+});
+
+export const DeviceConfigurationSchema = z.object({
+    organisationId: z.string(),
+    mediamtx: z.object({
+        gatewayId: z.string(),
+        auth: z.object({
+            jwks: z.string(),
+            issuer: z.string(),
+            audience: z.string()
+        })
+    }).nullable(),
+    streams: z.record(z.string(), z.object({
+        name: z.string(),
+        renditions: z.object({
+            default: z.object({
+                url: z.string()
+            }).optional(),
+            data_saver: z.object({
+                url: z.string()
+            }).optional(),
+            balanced: z.object({
+                url: z.string()
+            }).optional(),
+            quality: z.object({
+                url: z.string()
+            }).optional()
+        })
+    })),
+    exposures: z.record(z.string(), z.object({
+        streamId: z.string(),
+        gatewayId: z.string(),
+        ingest: z.string(),
+        renditions: z.array(z.enum([
+            'default',
+            'data_saver',
+            'balanced',
+            'quality'
+        ])),
+        paths: z.object({
+            default: z.string().optional(),
+            data_saver: z.string().optional(),
+            balanced: z.string().optional(),
+            quality: z.string().optional()
+        }),
+        upstream: z.object({
+            id: z.string(),
+            streamId: z.string()
+        }).nullable()
+    })),
+    diagnostics: z.array(z.object({
+        subject: z.string(),
+        message: z.string()
+    }))
 });
 
 export const GatewayKeySchema = z.object({
@@ -875,7 +939,17 @@ export const GetOrganisationsByIdCamerasPathSchema = z.object({
 export const GetOrganisationsByIdCamerasResponseSchema = z.object({
     cameras: z.array(z.object({
         id: z.string(),
-        settings: z.record(z.string(), z.unknown()),
+        settings: z.union([
+            z.object({
+                driver: z.literal('axis'),
+                host: z.string(),
+                resolutions: z.array(z.string())
+            }),
+            z.object({
+                driver: z.literal('rtsp'),
+                url: z.string()
+            })
+        ]),
         device: z.object({
             name: z.string(),
             createdAt: z.string(),
@@ -898,9 +972,23 @@ export const PostOrganisationsByIdCamerasBodySchema = z.object({
         description: 'The device name.'
     }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({})
+    settings: z.union([
+        z.object({
+            driver: z.literal('axis'),
+            host: z.url(),
+            resolutions: z.array(z.string().regex(/^\d{2,5}x\d{2,5}$/)).min(1)
+        }),
+        z.object({
+            driver: z.literal('rtsp'),
+            url: z.url()
+        })
+    ]),
+    credentials: z.object({
+        username: z.string().min(1).max(120),
+        password: z.string().max(256)
+    }).register(z.globalRegistry, {
+        description: 'How to authenticate to the camera. Write-only: never returned.'
+    }).optional()
 });
 
 export const PostOrganisationsByIdCamerasPathSchema = z.object({
@@ -945,9 +1033,23 @@ export const GetOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
 export const GetOrganisationsByIdCamerasByCameraIdResponseSchema = CameraSchema;
 
 export const PatchOrganisationsByIdCamerasByCameraIdBodySchema = z.object({
-    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    })
+    settings: z.union([
+        z.object({
+            driver: z.literal('axis'),
+            host: z.url(),
+            resolutions: z.array(z.string().regex(/^\d{2,5}x\d{2,5}$/)).min(1)
+        }),
+        z.object({
+            driver: z.literal('rtsp'),
+            url: z.url()
+        })
+    ]).optional(),
+    credentials: z.object({
+        username: z.string().min(1).max(120),
+        password: z.string().max(256)
+    }).register(z.globalRegistry, {
+        description: 'How to authenticate to the camera. Write-only: never returned.'
+    }).nullish()
 });
 
 export const PatchOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
@@ -1456,6 +1558,7 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
         protocol: z.literal('moq'),
         relay: z.string(),
         path: z.string(),
+        broadcast: z.string(),
         token: z.string().optional(),
         expiresAt: z.string().optional(),
         renditions: z.array(z.enum([
@@ -1829,6 +1932,11 @@ export const PostReportsResponseSchema = ReportSchema;
  * The relay to use
  */
 export const PostIrohSessionsResponseSchema = IrohSessionSchema;
+
+/**
+ * The configuration
+ */
+export const GetDeviceConfigurationResponseSchema = DeviceConfigurationSchema;
 
 /**
  * The key set

@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, arrayContained, eq, not, notInArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { exposures, gateways, recorders } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
@@ -34,17 +34,10 @@ export async function checkGatewayUnused(tx: Transaction, gatewayId: string) {
   if (used) throw new ApiFailure('in_use');
 }
 
-/**
- * Serialises changes to one stream's exposures and recorders for the rest of the transaction: the checks below read
- * several of them, which two concurrent changes could each leave consistent alone and inconsistent together.
- */
-async function lockStream(tx: Transaction, streamId: string) {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`stream-exposures:${streamId}`}, 0))`);
-}
-
 /** Refuses an exposure whose upstream chain, already written, leads back to it. */
 export async function checkChain(tx: Transaction, streamId: string, exposureId: string) {
-  await lockStream(tx, streamId);
+  // Upstreams change one stream's chain at a time: two concurrent changes could otherwise each close half a loop.
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`exposure-chain:${streamId}`}, 0))`);
   const { rows } = await tx.execute(sql`
     with recursive chain(id) as (
       select ${exposures.upstreamExposureId} from ${exposures} where ${exposures.id} = ${exposureId}
@@ -56,44 +49,65 @@ export async function checkChain(tx: Transaction, streamId: string, exposureId: 
   if (rows.length > 0) throw new ApiFailure('exposure_cycle');
 }
 
-const upstream = alias(exposures, 'upstream');
+/**
+ * The renditions an exposure offers, sharing its row lock: a concurrent change to them waits for this transaction, or
+ * this read for that change, and then sees it.
+ */
+async function offeredRenditions(tx: Transaction, exposureId: string) {
+  const [exposure] = await tx
+    .select({ renditions: exposures.renditions })
+    .from(exposures)
+    .where(eq(exposures.id, exposureId))
+    .for('share');
+  return exposure?.renditions ?? [];
+}
+
 const downstream = alias(exposures, 'downstream');
 
 /**
  * Refuses an exposure, already written, offering a rendition its upstream does not (`rendition_not_offered`), or no
- * longer offering one an exposure downstream of it or a recorder of it uses (`in_use`).
+ * longer offering one an exposure downstream of it or a recorder of it uses (`in_use`). Writing the exposure locked its
+ * row, which a downstream exposure or recorder shares to check it: one checked first has committed before that write,
+ * so is read here, and one checked after waits for this transaction, and then sees what it leaves.
  */
-export async function checkRenditions(tx: Transaction, streamId: string, exposureId: string) {
-  await lockStream(tx, streamId);
-  const [beyondUpstream] = await tx
-    .select({ id: exposures.id })
+export async function checkRenditions(tx: Transaction, exposureId: string) {
+  const [exposure] = await tx
+    .select({ renditions: exposures.renditions, upstreamExposureId: exposures.upstreamExposureId })
     .from(exposures)
-    .innerJoin(upstream, eq(upstream.id, exposures.upstreamExposureId))
-    .where(and(eq(exposures.id, exposureId), sql`not (${exposures.renditions} <@ ${upstream.renditions})`));
-  if (beyondUpstream) throw new ApiFailure('rendition_not_offered');
+    .where(eq(exposures.id, exposureId));
+  if (!exposure) return;
+  if (exposure.upstreamExposureId !== null) {
+    const offered = await offeredRenditions(tx, exposure.upstreamExposureId);
+    if (exposure.renditions.some(rendition => !offered.includes(rendition))) {
+      throw new ApiFailure('rendition_not_offered');
+    }
+  }
   const [stranded] = await tx
     .select({ id: downstream.id })
     .from(downstream)
-    .innerJoin(exposures, eq(exposures.id, downstream.upstreamExposureId))
-    .where(and(eq(exposures.id, exposureId), sql`not (${downstream.renditions} <@ ${exposures.renditions})`))
+    .where(
+      and(
+        eq(downstream.upstreamExposureId, exposureId),
+        not(arrayContained(downstream.renditions, exposure.renditions))
+      )
+    )
     .limit(1);
   if (stranded) throw new ApiFailure('in_use');
   const [unrecorded] = await tx
     .select({ id: recorders.id })
     .from(recorders)
-    .innerJoin(exposures, eq(exposures.id, recorders.exposureId))
-    .where(and(eq(exposures.id, exposureId), sql`not (${recorders.rendition} = any(${exposures.renditions}))`))
+    .where(and(eq(recorders.exposureId, exposureId), notInArray(recorders.rendition, exposure.renditions)))
     .limit(1);
   if (unrecorded) throw new ApiFailure('in_use');
 }
 
 /** Refuses a recorder, already written, of a rendition its exposure does not offer. */
-export async function checkRecorderRendition(tx: Transaction, streamId: string, recorderId: string) {
-  await lockStream(tx, streamId);
-  const [unoffered] = await tx
-    .select({ id: recorders.id })
+export async function checkRecorderRendition(tx: Transaction, recorderId: string) {
+  const [recorder] = await tx
+    .select({ exposureId: recorders.exposureId, rendition: recorders.rendition })
     .from(recorders)
-    .innerJoin(exposures, eq(exposures.id, recorders.exposureId))
-    .where(and(eq(recorders.id, recorderId), sql`not (${recorders.rendition} = any(${exposures.renditions}))`));
-  if (unoffered) throw new ApiFailure('rendition_not_offered');
+    .where(eq(recorders.id, recorderId));
+  if (!recorder) return;
+  const offered = await offeredRenditions(tx, recorder.exposureId);
+  if (!offered.includes(recorder.rendition)) throw new ApiFailure('rendition_not_offered');
 }

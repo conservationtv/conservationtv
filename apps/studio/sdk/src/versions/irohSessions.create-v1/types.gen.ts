@@ -17,7 +17,7 @@ export type Relay = {
 
 export type IrohSession = {
     relay: Relay;
-    lease?: {
+    lease: {
         id: string;
         grantId: string;
         expiresAt: string;

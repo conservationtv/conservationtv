@@ -24,8 +24,10 @@ type Carriages<Protocol extends string> = Readonly<Record<Protocol, Carriage>>;
 export interface MoqConnection {
   protocol: 'moq';
   relay: string;
-  /** The broadcast's path on the relay, which the token is scoped to. */
+  /** Where on the relay the exposure's broadcasts are, which the token is scoped to: dial `relay` at it. */
   path: string;
+  /** The exposure's broadcast under `path`, whose catalogue lists every rendition as a track. */
+  broadcast: string;
   /** Absent when the relay admits every connection. */
   token?: string;
   /** When the token stops admitting connections; ask again before then. */
@@ -34,7 +36,8 @@ export interface MoqConnection {
 
 /**
  * Connecting by URL, such as a WHEP or WHIP endpoint for WebRTC, or an RTSP URL. Present `token` as a bearer token,
- * or as the password where the protocol has no headers.
+ * or where the protocol has no headers (RTSP, RTMP) as its `jwt` query parameter: as a password it is too long for
+ * some clients, FFmpeg's among them.
  */
 export interface UrlConnection<Protocol extends string = string> {
   protocol: Protocol;

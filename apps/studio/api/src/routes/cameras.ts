@@ -8,10 +8,11 @@ import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { deviceIdentity } from '../topology/identity.ts';
-import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
+import { CameraCredentialsSchema, CameraSettingsSchema } from '../cameras/drivers.ts';
 import type { Transaction } from '../organisations/membership.ts';
+import { NetworkReferenceSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
-import { DeviceNameSchema, deviceQuery } from './devices.ts';
+import { DeviceNameSchema } from './devices.ts';
 import {
   forbidden,
   inUse,
@@ -30,15 +31,17 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const CameraParamsSchema = OrganisationParamsSchema.extend({ cameraId: z.uuid().describe('The camera.') });
 export type CameraParams = z.output<typeof CameraParamsSchema>;
 
-/** A camera as every camera route returns it: its own fields and its device's. */
-const cameraQuery = {
-  columns: { id: true, settings: true },
-  with: { device: deviceQuery }
-} as const;
-
 /** The camera, as its routes return it. */
 function readCamera(tx: Transaction, organisationId: string, cameraId: string) {
-  return tx.query.cameras.findFirst({ ...cameraQuery, where: { organisationId, id: cameraId } });
+  return tx.query.cameras.findFirst({
+    columns: { id: true, settings: true },
+    with: {
+      device: {
+        columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
+      }
+    },
+    where: { organisationId, id: cameraId }
+  });
 }
 
 // An organisation's cameras, in the principal's request session: members read them, administrators manage them. A
@@ -68,7 +71,16 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
-        tx.query.cameras.findMany({ ...cameraQuery, where: { organisationId: id }, orderBy: { id: 'asc' } })
+        tx.query.cameras.findMany({
+          columns: { id: true, settings: true },
+          with: {
+            device: {
+              columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
+            }
+          },
+          where: { organisationId: id },
+          orderBy: { id: 'asc' }
+        })
       );
       c.header('Cache-Control', 'no-store');
       return c.json({ cameras: rows }, 200);
@@ -80,7 +92,8 @@ export default new Hono()
       operationId: 'organisations.cameras.create',
       ...operationVersion(1),
       summary: 'Add a camera',
-      description: 'Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.',
+      description:
+        'Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.',
       responses: {
         201: { description: 'The new camera' },
         400: invalidRequest,
@@ -98,7 +111,8 @@ export default new Hono()
       z.strictObject({
         name: DeviceNameSchema,
         networkId: NetworkReferenceSchema.default(null),
-        settings: SettingsSchema.default({})
+        settings: CameraSettingsSchema,
+        credentials: CameraCredentialsSchema.optional()
       })
     ),
     async c => {
@@ -112,7 +126,9 @@ export default new Hono()
           .insert(devices)
           .values({ ...identity, organisationId: id, kind: 'camera', name: body.name, networkId: body.networkId })
           .returning({ id: devices.id });
-        await tx.insert(cameras).values({ id: device!.id, organisationId: id, settings: body.settings });
+        await tx
+          .insert(cameras)
+          .values({ id: device!.id, organisationId: id, settings: body.settings, credentials: body.credentials });
         await grantDevice(access, id, device!.id);
         const camera = await readCamera(tx, id, device!.id);
         return camera!;
@@ -156,7 +172,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a camera',
       description:
-        'Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.',
+        'Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.',
       responses: {
         200: { description: 'The updated camera' },
         400: invalidRequest,
@@ -169,7 +185,15 @@ export default new Hono()
     }),
     requirePrincipal,
     validator('param', CameraParamsSchema),
-    validator('json', z.strictObject({ settings: SettingsSchema })),
+    validator(
+      'json',
+      z
+        .strictObject({
+          settings: CameraSettingsSchema.optional(),
+          credentials: CameraCredentialsSchema.nullable().optional()
+        })
+        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
+    ),
     async c => {
       const { id, cameraId } = c.req.valid('param');
       const body = c.req.valid('json');
@@ -177,9 +201,10 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await environment.session(principal);
       const row = await session.transaction(async tx => {
+        // Credentials are written but never read back: request sessions cannot select them.
         const updated = await tx
           .update(cameras)
-          .set({ settings: body.settings })
+          .set({ settings: body.settings, credentials: body.credentials })
           .where(and(eq(cameras.organisationId, id), eq(cameras.id, cameraId)))
           .returning({ id: cameras.id });
         if (updated.length === 0) throw await unchanged(tx, cameras.id, cameraId);

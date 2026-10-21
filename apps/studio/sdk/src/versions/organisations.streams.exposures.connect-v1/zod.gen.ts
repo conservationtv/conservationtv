@@ -44,6 +44,7 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
         protocol: z.literal('moq'),
         relay: z.string(),
         path: z.string(),
+        broadcast: z.string(),
         token: z.string().optional(),
         expiresAt: z.string().optional(),
         renditions: z.array(z.enum([

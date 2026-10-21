@@ -7,17 +7,19 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
-export const Schema0Schema = z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.array(z.lazy((): any => Schema0Schema)),
-    z.record(z.string(), z.lazy((): any => Schema0Schema))
-]).nullable();
-
 export const CameraSchema = z.object({
     id: z.string(),
-    settings: z.record(z.string(), z.unknown()),
+    settings: z.union([
+        z.object({
+            driver: z.literal('axis'),
+            host: z.string(),
+            resolutions: z.array(z.string())
+        }),
+        z.object({
+            driver: z.literal('rtsp'),
+            url: z.string()
+        })
+    ]),
     device: z.object({
         name: z.string(),
         createdAt: z.string(),
@@ -37,9 +39,23 @@ export const PostOrganisationsByIdCamerasBodySchema = z.object({
         description: 'The device name.'
     }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
-    settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
-        description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({})
+    settings: z.union([
+        z.object({
+            driver: z.literal('axis'),
+            host: z.url(),
+            resolutions: z.array(z.string().regex(/^\d{2,5}x\d{2,5}$/)).min(1)
+        }),
+        z.object({
+            driver: z.literal('rtsp'),
+            url: z.url()
+        })
+    ]),
+    credentials: z.object({
+        username: z.string().min(1).max(120),
+        password: z.string().max(256)
+    }).register(z.globalRegistry, {
+        description: 'How to authenticate to the camera. Write-only: never returned.'
+    }).optional()
 });
 
 export const PostOrganisationsByIdCamerasPathSchema = z.object({

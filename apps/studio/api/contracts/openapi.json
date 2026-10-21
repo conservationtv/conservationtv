@@ -334,8 +334,47 @@
             "type": "string"
           },
           "settings": {
-            "type": "object",
-            "additionalProperties": {}
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "driver": {
+                    "type": "string",
+                    "const": "axis"
+                  },
+                  "host": {
+                    "type": "string"
+                  },
+                  "resolutions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "driver",
+                  "host",
+                  "resolutions"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "driver": {
+                    "type": "string",
+                    "const": "rtsp"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "driver",
+                  "url"
+                ]
+              }
+            ]
           },
           "device": {
             "anyOf": [
@@ -1176,7 +1215,219 @@
           }
         },
         "required": [
-          "relay"
+          "relay",
+          "lease"
+        ]
+      },
+      "DeviceConfiguration": {
+        "type": "object",
+        "properties": {
+          "organisationId": {
+            "type": "string"
+          },
+          "mediamtx": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "gatewayId": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "properties": {
+                      "jwks": {
+                        "type": "string"
+                      },
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "audience": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "jwks",
+                      "issuer",
+                      "audience"
+                    ]
+                  }
+                },
+                "required": [
+                  "gatewayId",
+                  "auth"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streams": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "renditions": {
+                  "type": "object",
+                  "properties": {
+                    "default": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url"
+                      ]
+                    },
+                    "data_saver": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url"
+                      ]
+                    },
+                    "balanced": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url"
+                      ]
+                    },
+                    "quality": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url"
+                      ]
+                    }
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "renditions"
+              ]
+            }
+          },
+          "exposures": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "streamId": {
+                  "type": "string"
+                },
+                "gatewayId": {
+                  "type": "string"
+                },
+                "ingest": {
+                  "type": "string"
+                },
+                "renditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "data_saver",
+                      "balanced",
+                      "quality"
+                    ]
+                  }
+                },
+                "paths": {
+                  "type": "object",
+                  "properties": {
+                    "default": {
+                      "type": "string"
+                    },
+                    "data_saver": {
+                      "type": "string"
+                    },
+                    "balanced": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "upstream": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "streamId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "streamId"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "streamId",
+                "gatewayId",
+                "ingest",
+                "renditions",
+                "paths",
+                "upstream"
+              ]
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "subject",
+                "message"
+              ]
+            }
+          }
+        },
+        "required": [
+          "organisationId",
+          "mediamtx",
+          "streams",
+          "exposures",
+          "diagnostics"
         ]
       },
       "GatewayKey": {
@@ -4366,8 +4617,47 @@
                             "type": "string"
                           },
                           "settings": {
-                            "type": "object",
-                            "additionalProperties": {}
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "driver": {
+                                    "type": "string",
+                                    "const": "axis"
+                                  },
+                                  "host": {
+                                    "type": "string"
+                                  },
+                                  "resolutions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "driver",
+                                  "host",
+                                  "resolutions"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "driver": {
+                                    "type": "string",
+                                    "const": "rtsp"
+                                  },
+                                  "url": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "driver",
+                                  "url"
+                                ]
+                              }
+                            ]
                           },
                           "device": {
                             "anyOf": [
@@ -4497,7 +4787,7 @@
         "operationId": "organisations.cameras.create",
         "x-operation-version": 1,
         "summary": "Add a camera",
-        "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.",
+        "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.",
         "responses": {
           "201": {
             "description": "The new camera",
@@ -4611,20 +4901,79 @@
                     "description": "A network of the organisation, or null for the internet."
                   },
                   "settings": {
-                    "default": {},
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "driver": {
+                            "type": "string",
+                            "const": "axis"
+                          },
+                          "host": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "resolutions": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^\\d{2,5}x\\d{2,5}$"
+                            }
+                          }
+                        },
+                        "required": [
+                          "driver",
+                          "host",
+                          "resolutions"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "driver": {
+                            "type": "string",
+                            "const": "rtsp"
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          }
+                        },
+                        "required": [
+                          "driver",
+                          "url"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "description": "What the camera is registered with: its `driver`, and what that driver reads."
+                  },
+                  "credentials": {
                     "type": "object",
-                    "propertyNames": {
-                      "type": "string",
-                      "maxLength": 120
+                    "properties": {
+                      "username": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "password": {
+                        "type": "string",
+                        "maxLength": 256
+                      }
                     },
-                    "additionalProperties": {
-                      "$ref": "#/components/schemas/__schema0"
-                    },
-                    "description": "Settings validated by the implementation that reads them."
+                    "required": [
+                      "username",
+                      "password"
+                    ],
+                    "additionalProperties": false,
+                    "description": "How to authenticate to the camera. Write-only: never returned."
                   }
                 },
                 "required": [
-                  "name"
+                  "name",
+                  "settings"
                 ],
                 "additionalProperties": false
               }
@@ -4735,7 +5084,7 @@
         "operationId": "organisations.cameras.update",
         "x-operation-version": 1,
         "summary": "Update a camera",
-        "description": "Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.",
+        "description": "Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.",
         "responses": {
           "200": {
             "description": "The updated camera",
@@ -4840,20 +5189,83 @@
                 "type": "object",
                 "properties": {
                   "settings": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string",
-                      "maxLength": 120
-                    },
-                    "additionalProperties": {
-                      "$ref": "#/components/schemas/__schema0"
-                    },
-                    "description": "Settings validated by the implementation that reads them."
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "driver": {
+                            "type": "string",
+                            "const": "axis"
+                          },
+                          "host": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "resolutions": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^\\d{2,5}x\\d{2,5}$"
+                            }
+                          }
+                        },
+                        "required": [
+                          "driver",
+                          "host",
+                          "resolutions"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "driver": {
+                            "type": "string",
+                            "const": "rtsp"
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          }
+                        },
+                        "required": [
+                          "driver",
+                          "url"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "description": "What the camera is registered with: its `driver`, and what that driver reads."
+                  },
+                  "credentials": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "password": {
+                            "type": "string",
+                            "maxLength": 256
+                          }
+                        },
+                        "required": [
+                          "username",
+                          "password"
+                        ],
+                        "additionalProperties": false,
+                        "description": "How to authenticate to the camera. Write-only: never returned."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
-                "required": [
-                  "settings"
-                ],
                 "additionalProperties": false
               }
             }
@@ -7673,7 +8085,7 @@
         "operationId": "organisations.streams.exposures.connect",
         "x-operation-version": 1,
         "summary": "Connect to an exposure",
-        "description": "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+        "description": "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token, or as the URL's `jwt` query parameter where the protocol has no headers (RTSP, RTMP). `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
         "responses": {
           "200": {
             "description": "The connection details",
@@ -7692,6 +8104,9 @@
                           "type": "string"
                         },
                         "path": {
+                          "type": "string"
+                        },
+                        "broadcast": {
                           "type": "string"
                         },
                         "token": {
@@ -7717,6 +8132,7 @@
                         "protocol",
                         "relay",
                         "path",
+                        "broadcast",
                         "renditions"
                       ]
                     },
@@ -9793,6 +10209,59 @@
           },
           "503": {
             "description": "The database is unavailable, or the relay cannot lease the endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/device-configuration": {
+      "get": {
+        "operationId": "deviceConfiguration.get",
+        "x-operation-version": 1,
+        "summary": "Read the signing device's configuration",
+        "description": "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path of each rendition, and where to pull each stream's renditions from, credentials included. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+        "responses": {
+          "200": {
+            "description": "The configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceConfiguration"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -14573,8 +15042,47 @@
                       "type": "string"
                     },
                     "settings": {
-                      "type": "object",
-                      "additionalProperties": {}
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "driver": {
+                              "type": "string",
+                              "const": "axis"
+                            },
+                            "host": {
+                              "type": "string"
+                            },
+                            "resolutions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "driver",
+                            "host",
+                            "resolutions"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "driver": {
+                              "type": "string",
+                              "const": "rtsp"
+                            },
+                            "url": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "driver",
+                            "url"
+                          ]
+                        }
+                      ]
                     },
                     "device": {
                       "anyOf": [
@@ -14763,37 +15271,6 @@
               "error_description"
             ]
           },
-          "__schema0": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              },
-              {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              }
-            ]
-          },
           "Camera": {
             "type": "object",
             "properties": {
@@ -14801,8 +15278,47 @@
                 "type": "string"
               },
               "settings": {
-                "type": "object",
-                "additionalProperties": {}
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "driver": {
+                        "type": "string",
+                        "const": "axis"
+                      },
+                      "host": {
+                        "type": "string"
+                      },
+                      "resolutions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "driver",
+                      "host",
+                      "resolutions"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "driver": {
+                        "type": "string",
+                        "const": "rtsp"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "driver",
+                      "url"
+                    ]
+                  }
+                ]
               },
               "device": {
                 "anyOf": [
@@ -14869,7 +15385,7 @@
             "operationId": "organisations.cameras.create",
             "x-operation-version": 1,
             "summary": "Add a camera",
-            "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.",
+            "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.",
             "responses": {
               "201": {
                 "description": "The new camera",
@@ -14993,20 +15509,79 @@
                         "description": "A network of the organisation, or null for the internet."
                       },
                       "settings": {
-                        "default": {},
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "driver": {
+                                "type": "string",
+                                "const": "axis"
+                              },
+                              "host": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "resolutions": {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^\\d{2,5}x\\d{2,5}$"
+                                }
+                              }
+                            },
+                            "required": [
+                              "driver",
+                              "host",
+                              "resolutions"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "driver": {
+                                "type": "string",
+                                "const": "rtsp"
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              }
+                            },
+                            "required": [
+                              "driver",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ],
+                        "description": "What the camera is registered with: its `driver`, and what that driver reads."
+                      },
+                      "credentials": {
                         "type": "object",
-                        "propertyNames": {
-                          "type": "string",
-                          "maxLength": 120
+                        "properties": {
+                          "username": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "password": {
+                            "type": "string",
+                            "maxLength": 256
+                          }
                         },
-                        "additionalProperties": {
-                          "$ref": "#/components/schemas/__schema0"
-                        },
-                        "description": "Settings validated by the implementation that reads them."
+                        "required": [
+                          "username",
+                          "password"
+                        ],
+                        "additionalProperties": false,
+                        "description": "How to authenticate to the camera. Write-only: never returned."
                       }
                     },
                     "required": [
-                      "name"
+                      "name",
+                      "settings"
                     ],
                     "additionalProperties": false
                   }
@@ -15060,8 +15635,47 @@
                 "type": "string"
               },
               "settings": {
-                "type": "object",
-                "additionalProperties": {}
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "driver": {
+                        "type": "string",
+                        "const": "axis"
+                      },
+                      "host": {
+                        "type": "string"
+                      },
+                      "resolutions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "driver",
+                      "host",
+                      "resolutions"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "driver": {
+                        "type": "string",
+                        "const": "rtsp"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "driver",
+                      "url"
+                    ]
+                  }
+                ]
               },
               "device": {
                 "anyOf": [
@@ -15264,37 +15878,6 @@
               "error_description"
             ]
           },
-          "__schema0": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              },
-              {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/__schema0"
-                }
-              }
-            ]
-          },
           "Camera": {
             "type": "object",
             "properties": {
@@ -15302,8 +15885,47 @@
                 "type": "string"
               },
               "settings": {
-                "type": "object",
-                "additionalProperties": {}
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "driver": {
+                        "type": "string",
+                        "const": "axis"
+                      },
+                      "host": {
+                        "type": "string"
+                      },
+                      "resolutions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "driver",
+                      "host",
+                      "resolutions"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "driver": {
+                        "type": "string",
+                        "const": "rtsp"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "driver",
+                      "url"
+                    ]
+                  }
+                ]
               },
               "device": {
                 "anyOf": [
@@ -15370,7 +15992,7 @@
             "operationId": "organisations.cameras.update",
             "x-operation-version": 1,
             "summary": "Update a camera",
-            "description": "Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.",
+            "description": "Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.",
             "responses": {
               "200": {
                 "description": "The updated camera",
@@ -15485,20 +16107,83 @@
                     "type": "object",
                     "properties": {
                       "settings": {
-                        "type": "object",
-                        "propertyNames": {
-                          "type": "string",
-                          "maxLength": 120
-                        },
-                        "additionalProperties": {
-                          "$ref": "#/components/schemas/__schema0"
-                        },
-                        "description": "Settings validated by the implementation that reads them."
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "driver": {
+                                "type": "string",
+                                "const": "axis"
+                              },
+                              "host": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "resolutions": {
+                                "minItems": 1,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^\\d{2,5}x\\d{2,5}$"
+                                }
+                              }
+                            },
+                            "required": [
+                              "driver",
+                              "host",
+                              "resolutions"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "driver": {
+                                "type": "string",
+                                "const": "rtsp"
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              }
+                            },
+                            "required": [
+                              "driver",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ],
+                        "description": "What the camera is registered with: its `driver`, and what that driver reads."
+                      },
+                      "credentials": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "username": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120
+                              },
+                              "password": {
+                                "type": "string",
+                                "maxLength": 256
+                              }
+                            },
+                            "required": [
+                              "username",
+                              "password"
+                            ],
+                            "additionalProperties": false,
+                            "description": "How to authenticate to the camera. Write-only: never returned."
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     },
-                    "required": [
-                      "settings"
-                    ],
                     "additionalProperties": false
                   }
                 }
@@ -20102,7 +20787,7 @@
             "operationId": "organisations.streams.exposures.connect",
             "x-operation-version": 1,
             "summary": "Connect to an exposure",
-            "description": "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+            "description": "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token, or as the URL's `jwt` query parameter where the protocol has no headers (RTSP, RTMP). `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
             "responses": {
               "200": {
                 "description": "The connection details",
@@ -20121,6 +20806,9 @@
                               "type": "string"
                             },
                             "path": {
+                              "type": "string"
+                            },
+                            "broadcast": {
                               "type": "string"
                             },
                             "token": {
@@ -20146,6 +20834,7 @@
                             "protocol",
                             "relay",
                             "path",
+                            "broadcast",
                             "renditions"
                           ]
                         },
@@ -23407,7 +24096,8 @@
               }
             },
             "required": [
-              "relay"
+              "relay",
+              "lease"
             ]
           }
         }
@@ -23462,6 +24152,320 @@
               },
               "503": {
                 "description": "The database is unavailable, or the relay cannot lease the endpoint",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "DeviceConfiguration": {
+            "type": "object",
+            "properties": {
+              "organisationId": {
+                "type": "string"
+              },
+              "mediamtx": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "gatewayId": {
+                        "type": "string"
+                      },
+                      "auth": {
+                        "type": "object",
+                        "properties": {
+                          "jwks": {
+                            "type": "string"
+                          },
+                          "issuer": {
+                            "type": "string"
+                          },
+                          "audience": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "jwks",
+                          "issuer",
+                          "audience"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "gatewayId",
+                      "auth"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "streams": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "renditions": {
+                      "type": "object",
+                      "properties": {
+                        "default": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url"
+                          ]
+                        },
+                        "data_saver": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url"
+                          ]
+                        },
+                        "balanced": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url"
+                          ]
+                        },
+                        "quality": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "renditions"
+                  ]
+                }
+              },
+              "exposures": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "streamId": {
+                      "type": "string"
+                    },
+                    "gatewayId": {
+                      "type": "string"
+                    },
+                    "ingest": {
+                      "type": "string"
+                    },
+                    "renditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "default",
+                          "data_saver",
+                          "balanced",
+                          "quality"
+                        ]
+                      }
+                    },
+                    "paths": {
+                      "type": "object",
+                      "properties": {
+                        "default": {
+                          "type": "string"
+                        },
+                        "data_saver": {
+                          "type": "string"
+                        },
+                        "balanced": {
+                          "type": "string"
+                        },
+                        "quality": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "upstream": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "streamId": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "streamId"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "streamId",
+                    "gatewayId",
+                    "ingest",
+                    "renditions",
+                    "paths",
+                    "upstream"
+                  ]
+                }
+              },
+              "diagnostics": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subject": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "subject",
+                    "message"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "organisationId",
+              "mediamtx",
+              "streams",
+              "exposures",
+              "diagnostics"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/device-configuration": {
+          "get": {
+            "operationId": "deviceConfiguration.get",
+            "x-operation-version": 1,
+            "summary": "Read the signing device's configuration",
+            "description": "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path of each rendition, and where to pull each stream's renditions from, credentials included. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+            "responses": {
+              "200": {
+                "description": "The configuration",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/DeviceConfiguration"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
                 "content": {
                   "application/json": {
                     "schema": {

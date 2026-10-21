@@ -1,7 +1,7 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, jsonb, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
-import { RENDITIONS, type ExposureParams, type Rendition, type Settings } from '../../topology/settings.ts';
+import { type ExposureParams, type Rendition, type Settings } from '../../topology/settings.ts';
 import { devices } from './devices.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
@@ -44,9 +44,6 @@ export const streams = withAccess(
   })
 );
 
-/** The rendition vocabulary, as a Postgres array literal for checks. */
-const renditionArray = sql.raw(`array[${RENDITIONS.map(rendition => `'${rendition}'`).join(', ')}]::text[]`);
-
 /**
  * How a stream is delivered: to a gateway, built in or the organisation's own, which decides where it can be read (its
  * network, or the internet) and by which protocols, offering the `renditions` it lists. Its publisher is the device
@@ -82,7 +79,6 @@ export const exposures = withAccess(
     t => [
       unique('exposure_stream_id').on(t.streamId, t.id),
       check('exposure_upstream_other', sql`${t.upstreamExposureId} <> ${t.id}`),
-      check('exposure_renditions', sql`cardinality(${t.renditions}) > 0 and ${t.renditions} <@ ${renditionArray}`),
       foreignKey({
         name: 'exposure_stream_fk',
         columns: [t.organisationId, t.streamId],
@@ -136,7 +132,6 @@ export const recorders = withAccess(
       createdAt: timestamp('created_at').defaultNow().notNull()
     },
     t => [
-      check('recorder_rendition', sql`${t.rendition} = any(${renditionArray})`),
       foreignKey({
         name: 'recorder_stream_fk',
         columns: [t.organisationId, t.streamId],

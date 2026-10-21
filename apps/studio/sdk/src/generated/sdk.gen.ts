@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetGatewayKeysErrors, GetGatewayKeysResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdDevicesAllowlistErrors, GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdGatewaysByGatewayIdErrors, GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysErrors, GetOrganisationsByIdGatewaysResponses, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsErrors, GetOrganisationsResponses, GetWhoamiErrors, GetWhoamiResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostIrohSessionsErrors, PostIrohSessionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostReportsErrors, PostReportsResponses, PutOrganisationsByIdBrowserErrors, PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetDeviceConfigurationErrors, GetDeviceConfigurationResponses, GetGatewayKeysErrors, GetGatewayKeysResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdDevicesAllowlistErrors, GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdGatewaysByGatewayIdErrors, GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysErrors, GetOrganisationsByIdGatewaysResponses, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsErrors, GetOrganisationsResponses, GetWhoamiErrors, GetWhoamiResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostIrohSessionsErrors, PostIrohSessionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostReportsErrors, PostReportsResponses, PutOrganisationsByIdBrowserErrors, PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -483,21 +483,31 @@ export class Cameras extends HeyApiClient {
     /**
      * Add a camera
      *
-     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.
+     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         name: string;
         networkId?: string | null;
-        settings?: {
-            [key: string]: Schema0;
+        settings: {
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
+        };
+        credentials?: {
+            username: string;
+            password: string;
         };
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'settings' }
+                    { in: 'body', key: 'settings' },
+                    { in: 'body', key: 'credentials' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError>({
             url: '/organisations/{id}/cameras',
@@ -546,19 +556,29 @@ export class Cameras extends HeyApiClient {
     /**
      * Update a camera
      *
-     * Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.
+     * Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         cameraId: string;
-        settings: {
-            [key: string]: Schema0;
+        settings?: {
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
         };
+        credentials?: {
+            username: string;
+            password: string;
+        } | null;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'cameraId' },
-                    { in: 'body', key: 'settings' }
+                    { in: 'body', key: 'settings' },
+                    { in: 'body', key: 'credentials' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
             url: '/organisations/{id}/cameras/{cameraId}',
@@ -921,7 +941,7 @@ export class Exposures extends HeyApiClient {
     /**
      * Connect to an exposure
      *
-     * Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.
+     * Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token, or as the URL's `jwt` query parameter where the protocol has no headers (RTSP, RTMP). `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.
      */
     public connect<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -1612,6 +1632,17 @@ export class IrohSessions extends HeyApiClient {
     }
 }
 
+export class DeviceConfiguration extends HeyApiClient {
+    /**
+     * Read the signing device's configuration
+     *
+     * What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path of each rendition, and where to pull each stream's renditions from, credentials included. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.
+     */
+    public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetDeviceConfigurationResponses, GetDeviceConfigurationErrors, ThrowOnError> {
+        return (options?.client ?? this.client).get<GetDeviceConfigurationResponses, GetDeviceConfigurationErrors, ThrowOnError>({ url: '/device-configuration', ...options });
+    }
+}
+
 export class GatewayKeys extends HeyApiClient {
     /**
      * Read the gateway signing keys
@@ -1673,6 +1704,11 @@ export class BaseClient extends HeyApiClient {
     private _irohSessions?: IrohSessions;
     get irohSessions(): IrohSessions {
         return this._irohSessions ??= new IrohSessions({ client: this.client });
+    }
+    
+    private _deviceConfiguration?: DeviceConfiguration;
+    get deviceConfiguration(): DeviceConfiguration {
+        return this._deviceConfiguration ??= new DeviceConfiguration({ client: this.client });
     }
     
     private _gatewayKeys?: GatewayKeys;
