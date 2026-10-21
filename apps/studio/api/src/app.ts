@@ -9,6 +9,7 @@ import agents from './routes/agents.ts';
 import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
 import devices from './routes/devices.ts';
+import gatewayKeys from './routes/gateway-keys.ts';
 import gateways from './routes/gateways.ts';
 import health from './routes/health.ts';
 import invitations from './routes/invitations.ts';
@@ -58,6 +59,8 @@ const app = new Hono({ router: operationRouter })
   // Signed by agents rather than signed in: no session.
   .route('/reports', reports)
   .route('/iroh-sessions', irohSessions)
+  // Fetched by gateways, with no session.
+  .route('/gateway-keys', gatewayKeys)
   .route('/whoami', whoami)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)

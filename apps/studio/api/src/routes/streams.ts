@@ -2,8 +2,11 @@ import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
+import { connect, deviceRequest, memberRequest, type ExposureReference } from '../gateways/connect.ts';
+import { ConnectionActionSchema, type ConnectionAction } from '../gateways/provider.ts';
 import { exposures, recorders, streams } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
+import { requireCaller, useCaller, useDevice } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import { checkChain, checkGateway } from '../topology/exposures.ts';
@@ -11,16 +14,20 @@ import { ExposureParamsSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import { GatewayIdSchema, ProtocolSchema } from './gateways.ts';
 import {
+  connectionRefused,
   exposureCycle,
   forbidden,
+  gatewayUnavailable,
   inUse,
   invalidExposureReference,
   invalidReference,
   invalidRequest,
+  noCaller,
   notFound,
   operationVersion,
   unauthenticated,
   unavailable,
+  unsupportedConnection,
   validator,
   versionMismatch
 } from './openapi.ts';
@@ -75,6 +82,18 @@ const exposureColumns = {
   params: exposures.params,
   createdAt: exposures.createdAt
 };
+
+/** A signing device's connection request. */
+function asDevice(reference: ExposureReference, action: ConnectionAction) {
+  const device = useDevice();
+  return deviceRequest(device, reference, action);
+}
+
+/** A signed-in member's connection request. */
+function asMember(reference: ExposureReference, action: ConnectionAction) {
+  const principal = usePrincipal();
+  return memberRequest(principal, reference, action);
+}
 
 export default new Hono()
   .get(
@@ -458,6 +477,39 @@ export default new Hono()
         if (deleted.length === 0) throw await unchanged(tx, exposures.id, exposureId);
       });
       return c.body(null, 204);
+    }
+  )
+  .post(
+    '/:streamId/exposures/:exposureId/connections',
+    describeRoute({
+      operationId: 'organisations.streams.exposures.connect',
+      ...operationVersion(1),
+      summary: 'Connect to an exposure',
+      description:
+        "Where to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+      responses: {
+        200: { description: 'The connection details' },
+        400: invalidRequest,
+        401: noCaller,
+        403: connectionRefused,
+        404: notFound,
+        412: versionMismatch,
+        422: unsupportedConnection,
+        503: gatewayUnavailable
+      }
+    }),
+    requireCaller,
+    validator('param', ExposurePathParamsSchema),
+    validator('json', z.strictObject({ action: ConnectionActionSchema })),
+    async c => {
+      const { id, streamId, exposureId } = c.req.valid('param');
+      const { action } = c.req.valid('json');
+      const reference = { organisationId: id, streamId, exposureId };
+      const caller = useCaller();
+      const request = caller.kind === 'device' ? await asDevice(reference, action) : await asMember(reference, action);
+      const connection = await connect(request);
+      c.header('Cache-Control', 'no-store');
+      return c.json(connection, 200);
     }
   )
   .post(

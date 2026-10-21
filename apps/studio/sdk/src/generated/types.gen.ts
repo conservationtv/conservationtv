@@ -122,27 +122,16 @@ export type Agent = {
 
 export type Gateway = {
     gateways: Array<{
-        networkId: null;
-        settings: {
-            [key: string]: unknown;
-        };
-        createdAt: null;
-        name: 'conservation.tv';
+        id: 'conservationtv';
+        builtin: boolean;
+        name: string;
         kind: 'moq-relay';
-        protocols: Array<'moq'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
-    } | {
+        protocols: Array<string>;
         networkId: null;
         settings: {
             [key: string]: unknown;
         };
         createdAt: null;
-        name: 'Cloudflare';
-        kind: 'cloudflare-realtime';
-        protocols: Array<'webrtc'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
     } | {
         id: string;
         builtin: boolean;
@@ -306,6 +295,46 @@ export type IrohSession = {
         grantId: string;
         expiresAt: string;
     };
+};
+
+export type GatewayKey = {
+    keys: Array<{
+        kty?: 'EC' | 'oct' | 'RSA' | 'OKP' | 'AKP' | {
+            length: number;
+        };
+        alg?: 'Ed25519' | 'ES256' | 'HS256' | 'HS384' | 'HS512' | 'RS256' | 'RS384' | 'RS512' | 'PS256' | 'PS384' | 'PS512' | 'ES384' | 'ES512' | 'EdDSA' | 'ML-DSA-44' | 'ML-DSA-65' | 'ML-DSA-87' | 'dir' | 'A128KW' | 'A192KW' | 'A256KW' | 'A128GCMKW' | 'A192GCMKW' | 'A256GCMKW' | 'ECDH-ES' | 'ECDH-ES+A128KW' | 'ECDH-ES+A192KW' | 'ECDH-ES+A256KW' | 'RSA-OAEP' | 'RSA-OAEP-256' | 'RSA-OAEP-384' | 'RSA-OAEP-512' | 'PBES2-HS256+A128KW' | 'PBES2-HS384+A192KW' | 'PBES2-HS512+A256KW' | 'A128CBC-HS256' | 'A192CBC-HS384' | 'A256CBC-HS512' | 'A128GCM' | 'A192GCM' | 'A256GCM' | {
+            length: number;
+        };
+        key_ops?: Array<string>;
+        ext?: boolean;
+        use?: 'sig' | 'enc' | {
+            length: number;
+        };
+        x5c?: Array<string>;
+        x5t?: string;
+        'x5t#S256'?: string;
+        x5u?: string;
+        kid?: string;
+        crv?: string;
+        d?: string;
+        dp?: string;
+        dq?: string;
+        e?: string;
+        k?: string;
+        n?: string;
+        p?: string;
+        q?: string;
+        qi?: string;
+        x?: string;
+        y?: string;
+        pub?: string;
+        priv?: string;
+        oth?: Array<{
+            d?: string;
+            r?: string;
+            t?: string;
+        }>;
+    }>;
 };
 
 export type Whoami = {
@@ -2448,7 +2477,7 @@ export type PostOrganisationsByIdGatewaysErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings
      */
     422: Error;
     /**
@@ -2489,7 +2518,7 @@ export type DeleteOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -2547,7 +2576,7 @@ export type GetOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -2583,27 +2612,16 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
      * The gateway
      */
     200: {
-        networkId: null;
-        settings: {
-            [key: string]: unknown;
-        };
-        createdAt: null;
-        name: 'conservation.tv';
+        id: 'conservationtv';
+        builtin: boolean;
+        name: string;
         kind: 'moq-relay';
-        protocols: Array<'moq'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
-    } | {
+        protocols: Array<string>;
         networkId: null;
         settings: {
             [key: string]: unknown;
         };
         createdAt: null;
-        name: 'Cloudflare';
-        kind: 'cloudflare-realtime';
-        protocols: Array<'webrtc'>;
-        id: 'cloudflare' | 'conservationtv';
-        builtin: boolean;
     } | {
         id: string;
         builtin: boolean;
@@ -2653,7 +2671,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -2685,7 +2703,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     * The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings
      */
     422: Error;
     /**
@@ -3010,7 +3028,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
         /**
          * The gateway the stream is delivered to: built in, or the organisation's own.
          */
-        gatewayId: 'conservationtv' | 'cloudflare' | string;
+        gatewayId: 'conservationtv' | string;
         /**
          * One of the protocols the gateway accepts.
          */
@@ -3167,7 +3185,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
         /**
          * The gateway the stream is delivered to: built in, or the organisation's own.
          */
-        gatewayId?: 'conservationtv' | 'cloudflare' | string;
+        gatewayId?: 'conservationtv' | string;
         /**
          * One of the protocols the gateway accepts.
          */
@@ -3264,6 +3282,84 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse
 };
 
 export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse = PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses];
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsData = {
+    body: {
+        /**
+         * Whether to read the exposure from its gateway, or publish it there.
+         */
+        action: 'read' | 'publish';
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+        /**
+         * The exposure.
+         */
+        exposureId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections';
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The caller may see the exposure but not connect to it like this: members only read, and devices publish what they are the pinned publisher of and read its upstreams
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * Connections to the exposure's gateway are not made through this API, or it cannot do that by the exposure's protocol
+     */
+    422: Error;
+    /**
+     * The database is unavailable, or the gateway is not configured or cannot issue credentials right now
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsError = PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors[keyof PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors];
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses = {
+    /**
+     * The connection details
+     */
+    200: {
+        protocol: 'moq';
+        relay: string;
+        path: string;
+        token?: string;
+        expiresAt?: string;
+    } | {
+        protocol: string;
+        url: string;
+        token?: string;
+        expiresAt?: string;
+    };
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponse = PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses[keyof PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses];
 
 export type PostOrganisationsByIdStreamsByStreamIdRecordersData = {
     body: {
@@ -4112,6 +4208,31 @@ export type PostIrohSessionsResponses = {
 };
 
 export type PostIrohSessionsResponse = PostIrohSessionsResponses[keyof PostIrohSessionsResponses];
+
+export type GetGatewayKeysData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/gateway-keys';
+};
+
+export type GetGatewayKeysErrors = {
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetGatewayKeysError = GetGatewayKeysErrors[keyof GetGatewayKeysErrors];
+
+export type GetGatewayKeysResponses = {
+    /**
+     * The key set
+     */
+    200: GatewayKey;
+};
+
+export type GetGatewayKeysResponse = GetGatewayKeysResponses[keyof GetGatewayKeysResponses];
 
 export type GetWhoamiData = {
     body?: never;

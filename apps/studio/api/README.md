@@ -44,10 +44,12 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET`, `POST /organisations/{id}/gateways`; `GET`, `PATCH`, `DELETE …/gateways/{gatewayId}` | members read, administrators write           | `organisations.gateways.*` v1: with the built-in gateways, read-only                                     |
 | `GET`, `POST /organisations/{id}/streams`; `GET`, `PATCH`, `DELETE …/streams/{streamId}`    | members read, administrators write           | `organisations.streams.*` v1                                                                             |
 | `…/streams/{streamId}/exposures`, `…/recorders` (create, update, delete)                    | administrators                               | `organisations.streams.exposures.*`, `.recorders.*` v1                                                   |
+| `POST /organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections`            | members read, devices by signature           | `organisations.streams.exposures.connect` v1: where to read or publish it, with a short-lived credential |
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs`   | members                                      | `organisations.subjects.*` v1                                                                            |
 | `GET /organisations/{id}/subjects/{subjectId}/metrics/{seriesId}`                           | members                                      | `organisations.subjects.metrics.get` v1: one series' points over a time range, in buckets                |
 | `POST /reports`                                                                             | devices, by signature                        | `reports.submit` v1: a batch of events, metrics and logs                                                 |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
+| `GET /gateway-keys`                                                                         | anyone                                       | `gatewayKeys.get` v1: the JWKS gateways (MediaMTX) verify connection tokens with                         |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as        |
 | `GET /openapi.json`                                                                         | SDK/CLI                                      | the published capability bundle                                                                          |
 | `/auth/*`                                                                                   | accounts                                     | Better Auth's routes, hidden from the contract                                                           |
@@ -94,19 +96,21 @@ update its own row; a different account's row is simply absent. Only Better Auth
 `authorization.access(admin)`, and a request that never grants opens no admin connection. Umbrella needs two database roles, so there are two Hyperdrive
 bindings:
 
-| Binding              | Kind       | Purpose                                                                             |
-| -------------------- | ---------- | ----------------------------------------------------------------------------------- |
-| `HYPERDRIVE_ADMIN`   | Hyperdrive | the owning role: migrations, Better Auth, grants                                    |
-| `HYPERDRIVE_APP`     | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                    |
-| `CACHE`              | KV         | the key-value cache: device request nonces                                          |
-| `BETTER_AUTH_SECRET` | secret     | Better Auth's signing secret                                                        |
-| `FIELD_KEY`          | secret     | base64 32-byte master key for encrypted columns and blind indexes                   |
-| `APP_URL`            | text       | where the API is served; Better Auth's base URL and passkey relying party           |
-| `WEB_ORIGINS`        | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
-| `OTP_DELIVERY`       | text       | `log` only, see above                                                               |
-| `IROH_RELAY_URL`     | text       | the iroh relay every device's session uses (`irohSessions.create`)                  |
-| `GATEKEEPER_URL`     | text       | optional: the control plane leasing each session's endpoint on that relay           |
-| `GATEKEEPER_TOKEN`   | secret     | optional, with `GATEKEEPER_URL`: that control plane environment's consumer token    |
+| Binding                | Kind       | Purpose                                                                             |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| `HYPERDRIVE_ADMIN`     | Hyperdrive | the owning role: migrations, Better Auth, grants                                    |
+| `HYPERDRIVE_APP`       | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                    |
+| `CACHE`                | KV         | the key-value cache: device request nonces                                          |
+| `BETTER_AUTH_SECRET`   | secret     | Better Auth's signing secret                                                        |
+| `FIELD_KEY`            | secret     | base64 32-byte master key for encrypted columns and blind indexes                   |
+| `APP_URL`              | text       | where the API is served; Better Auth's base URL and passkey relying party           |
+| `WEB_ORIGINS`          | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
+| `OTP_DELIVERY`         | text       | `log` only, see above                                                               |
+| `GATEKEEPER_URL`       | text       | optional: the control plane naming the iroh and MoQ relays, and admitting devices   |
+| `GATEKEEPER_TOKEN`     | secret     | optional, with `GATEKEEPER_URL`: that control plane environment's consumer token    |
+| `IROH_RELAY_URL`       | text       | without a gatekeeper: the iroh relay every device's session uses, admitting all     |
+| `MOQ_RELAY_URL`        | text       | optional, without a gatekeeper: the built-in `conservationtv` gateway's MoQ relay   |
+| `GATEWAY_SIGNING_KEYS` | secret     | optional: the keys MediaMTX gateway tokens are signed with (`GET /gateway-keys`)    |
 
 The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
 every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access
@@ -127,7 +131,7 @@ pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 
 `pnpm dev` uses n0's public relay and no gatekeeper. To lease devices' endpoints from a controlplane gatekeeper, run
 `pnpm dev:controlplane` (the local controlplane; see [gatekeeper's README](../../controlplane/gatekeeper/README.md#develop))
-or `pnpm dev:staging` (staging's relays) instead. Each sets `GATEKEEPER_URL` and `IROH_RELAY_URL`, and reads its
+or `pnpm dev:staging` (staging's relays) instead. Each sets only `GATEKEEPER_URL`, since gatekeeper names its relays, and reads its
 secrets from `.dev.vars.controlplane` or `.dev.vars.staging`, which replace `.dev.vars`: copy `.dev.vars` and add that
 environment's `GATEKEEPER_TOKEN` (`local-consumer-token`, or staging's from 1Password,
 `gatekeeper_staging_consumer_token`). Text bindings are never read from `.dev.vars` files, only from the environment.
@@ -249,7 +253,7 @@ A `gateway` is somewhere streams are delivered to: on a network, or (`networkId`
 RTMP ingest on the internet at a URL, or `mediamtx` on a network, which that network's active agent runs, so it fails
 over with the agent.
 
-Every organisation also has the built-in gateways (`src/topology/gateways.ts`), such as `conservationtv`, a MoQ relay:
+Every organisation also has the built-in gateways (`src/gateways/index.ts`), such as `conservationtv`, a MoQ relay:
 defined in code rather than stored, always on the internet, and identified by their slug. Where each one is belongs to
 the deployment, so they show no `settings`. `…/gateways` lists them first, then the organisation's own (`builtin`
 tells them apart), and reads either; changing or removing a built-in gateway is 403 `forbidden`.

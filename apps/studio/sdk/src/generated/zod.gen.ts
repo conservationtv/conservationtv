@@ -137,28 +137,16 @@ export const AgentSchema = z.object({
 });
 
 export const GatewaySchema = z.object({
-    gateways: z.array(z.union([
-        z.object({
-            networkId: z.null(),
-            settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('conservation.tv'),
+    gateways: z.array(z.union([z.object({
+            id: z.literal('conservationtv'),
+            builtin: z.boolean(),
+            name: z.string(),
             kind: z.literal('moq-relay'),
-            protocols: z.array(z.literal('moq')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        }),
-        z.object({
+            protocols: z.array(z.string()),
             networkId: z.null(),
             settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('Cloudflare'),
-            kind: z.literal('cloudflare-realtime'),
-            protocols: z.array(z.literal('webrtc')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        }),
-        z.object({
+            createdAt: z.null()
+        }), z.object({
             id: z.string(),
             builtin: z.boolean(),
             name: z.string(),
@@ -167,8 +155,7 @@ export const GatewaySchema = z.object({
             protocols: z.array(z.string()),
             settings: z.record(z.string(), z.unknown()),
             createdAt: z.string()
-        })
-    ]))
+        })]))
 });
 
 export const StreamSchema = z.object({
@@ -304,6 +291,103 @@ export const IrohSessionSchema = z.object({
         grantId: z.string(),
         expiresAt: z.string()
     }).optional()
+});
+
+export const GatewayKeySchema = z.object({
+    keys: z.array(z.object({
+        kty: z.union([
+            z.enum([
+                'EC',
+                'oct',
+                'RSA',
+                'OKP',
+                'AKP'
+            ]),
+            z.object({
+                length: z.number()
+            })
+        ]).optional(),
+        alg: z.union([
+            z.enum([
+                'Ed25519',
+                'ES256',
+                'HS256',
+                'HS384',
+                'HS512',
+                'RS256',
+                'RS384',
+                'RS512',
+                'PS256',
+                'PS384',
+                'PS512',
+                'ES384',
+                'ES512',
+                'EdDSA',
+                'ML-DSA-44',
+                'ML-DSA-65',
+                'ML-DSA-87',
+                'dir',
+                'A128KW',
+                'A192KW',
+                'A256KW',
+                'A128GCMKW',
+                'A192GCMKW',
+                'A256GCMKW',
+                'ECDH-ES',
+                'ECDH-ES+A128KW',
+                'ECDH-ES+A192KW',
+                'ECDH-ES+A256KW',
+                'RSA-OAEP',
+                'RSA-OAEP-256',
+                'RSA-OAEP-384',
+                'RSA-OAEP-512',
+                'PBES2-HS256+A128KW',
+                'PBES2-HS384+A192KW',
+                'PBES2-HS512+A256KW',
+                'A128CBC-HS256',
+                'A192CBC-HS384',
+                'A256CBC-HS512',
+                'A128GCM',
+                'A192GCM',
+                'A256GCM'
+            ]),
+            z.object({
+                length: z.number()
+            })
+        ]).optional(),
+        key_ops: z.array(z.string()).optional(),
+        ext: z.boolean().optional(),
+        use: z.union([
+            z.enum(['sig', 'enc']),
+            z.object({
+                length: z.number()
+            })
+        ]).optional(),
+        x5c: z.array(z.string()).optional(),
+        x5t: z.string().optional(),
+        'x5t#S256': z.string().optional(),
+        x5u: z.string().optional(),
+        kid: z.string().optional(),
+        crv: z.string().optional(),
+        d: z.string().optional(),
+        dp: z.string().optional(),
+        dq: z.string().optional(),
+        e: z.string().optional(),
+        k: z.string().optional(),
+        n: z.string().optional(),
+        p: z.string().optional(),
+        q: z.string().optional(),
+        qi: z.string().optional(),
+        x: z.string().optional(),
+        y: z.string().optional(),
+        pub: z.string().optional(),
+        priv: z.string().optional(),
+        oth: z.array(z.object({
+            d: z.string().optional(),
+            r: z.string().optional(),
+            t: z.string().optional()
+        })).optional()
+    }))
 });
 
 export const WhoamiSchema = z.object({
@@ -1058,7 +1142,7 @@ export const DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
         description: 'The organisation.'
     }),
     gatewayId: z.union([
-        z.enum(['conservationtv', 'cloudflare']),
+        z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ])
 });
@@ -1075,7 +1159,7 @@ export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
         description: 'The organisation.'
     }),
     gatewayId: z.union([
-        z.enum(['conservationtv', 'cloudflare']),
+        z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ])
 });
@@ -1084,28 +1168,16 @@ export const GetOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
  * The gateway
  */
 export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
-    z.union([
-        z.object({
-            networkId: z.null(),
-            settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('conservation.tv'),
-            kind: z.literal('moq-relay'),
-            protocols: z.array(z.literal('moq')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        }),
-        z.object({
-            networkId: z.null(),
-            settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('Cloudflare'),
-            kind: z.literal('cloudflare-realtime'),
-            protocols: z.array(z.literal('webrtc')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        })
-    ]),
+    z.object({
+        id: z.literal('conservationtv'),
+        builtin: z.boolean(),
+        name: z.string(),
+        kind: z.literal('moq-relay'),
+        protocols: z.array(z.string()),
+        networkId: z.null(),
+        settings: z.record(z.string(), z.unknown()),
+        createdAt: z.null()
+    }),
     z.object({
         id: z.string(),
         builtin: z.boolean(),
@@ -1141,7 +1213,7 @@ export const PatchOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({
         description: 'The organisation.'
     }),
     gatewayId: z.union([
-        z.enum(['conservationtv', 'cloudflare']),
+        z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ])
 });
@@ -1267,7 +1339,7 @@ export const PatchOrganisationsByIdStreamsByStreamIdResponseSchema = z.object({
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.object({
     gatewayId: z.union([
-        z.enum(['conservationtv', 'cloudflare']),
+        z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]),
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
@@ -1322,7 +1394,7 @@ export const DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdRespon
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema = z.object({
     gatewayId: z.union([
-        z.enum(['conservationtv', 'cloudflare']),
+        z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]).optional(),
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
@@ -1358,6 +1430,43 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSch
  * The updated exposure
  */
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponseSchema = ExposureSchema;
+
+export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema = z.object({
+    action: z.enum(['read', 'publish']).register(z.globalRegistry, {
+        description: 'Whether to read the exposure from its gateway, or publish it there.'
+    })
+});
+
+export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream.'
+    }),
+    exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The exposure.'
+    })
+});
+
+/**
+ * The connection details
+ */
+export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponseSchema = z.union([
+    z.object({
+        protocol: z.literal('moq'),
+        relay: z.string(),
+        path: z.string(),
+        token: z.string().optional(),
+        expiresAt: z.string().optional()
+    }),
+    z.object({
+        protocol: z.string(),
+        url: z.string(),
+        token: z.string().optional(),
+        expiresAt: z.string().optional()
+    })
+]);
 
 export const PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema = z.object({
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -1693,6 +1802,11 @@ export const PostReportsResponseSchema = ReportSchema;
  * The relay to use
  */
 export const PostIrohSessionsResponseSchema = IrohSessionSchema;
+
+/**
+ * The key set
+ */
+export const GetGatewayKeysResponseSchema = GatewayKeySchema;
 
 /**
  * The signing device

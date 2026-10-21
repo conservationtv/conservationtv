@@ -7,13 +7,13 @@ import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import { checkGatewayUnused, checkProtocolsInUse } from '../topology/exposures.ts';
-import { BUILTIN_GATEWAY_IDS, builtinGateways, isBuiltinGateway } from '../topology/gateways.ts';
+import { BUILTIN_GATEWAY_IDS, builtinGateways, checkGatewayKind, isBuiltinGateway } from '../gateways/index.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   inUse,
-  invalidReference,
+  invalidGateway,
   invalidRequest,
   notFound,
   operationVersion,
@@ -55,6 +55,22 @@ const ProtocolsSchema = z
   .describe('The protocols the gateway accepts streams by.');
 export type Protocols = z.output<typeof ProtocolsSchema>;
 
+const GatewayChangesSchema = z
+  .strictObject({
+    name: GatewayNameSchema.optional(),
+    kind: GatewayKindSchema.optional(),
+    networkId: NetworkReferenceSchema.optional(),
+    protocols: ProtocolsSchema.optional(),
+    settings: SettingsSchema.optional()
+  })
+  .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change');
+type GatewayChanges = z.output<typeof GatewayChangesSchema>;
+
+/** Whether a change touches what the gateway's kind serves it by: the kind itself, its protocols or its settings. */
+function changesProvision(changes: GatewayChanges) {
+  return changes.kind !== undefined || changes.protocols !== undefined || changes.settings !== undefined;
+}
+
 const gatewayColumns = {
   id: gateways.id,
   builtin: sql<boolean>`false`,
@@ -68,7 +84,7 @@ const gatewayColumns = {
 
 // An organisation's gateways, in the principal's request session: members read them, administrators manage them. A
 // gateway's network must belong to the same organisation, which the database's composite foreign key enforces. The
-// built-in gateways (src/topology/gateways.ts) are listed and read beside them, but never changed.
+// built-in gateways (src/gateways/index.ts) are listed and read beside them, but never changed.
 export default new Hono()
   .get(
     '/',
@@ -114,14 +130,14 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Add a gateway',
       description:
-        'Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.',
+        'Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.',
       responses: {
         201: { description: 'The new gateway' },
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
         412: versionMismatch,
-        422: invalidReference,
+        422: invalidGateway,
         503: unavailable
       }
     }),
@@ -143,8 +159,8 @@ export default new Hono()
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const row = await session.transaction(async tx => {
+        const [gateway] = await tx
           .insert(gateways)
           .values({
             organisationId: id,
@@ -154,10 +170,12 @@ export default new Hono()
             protocols: body.protocols,
             settings: body.settings
           })
-          .returning(gatewayColumns)
-      );
+          .returning(gatewayColumns);
+        checkGatewayKind(gateway!.kind, gateway!.protocols, gateway!.settings);
+        return gateway!;
+      });
       c.header('Cache-Control', 'no-store');
-      return c.json(row!, 201);
+      return c.json(row, 201);
     }
   )
   .get(
@@ -215,24 +233,13 @@ export default new Hono()
         404: notFound,
         409: inUse,
         412: versionMismatch,
-        422: invalidReference,
+        422: invalidGateway,
         503: unavailable
       }
     }),
     requirePrincipal,
     validator('param', GatewayParamsSchema),
-    validator(
-      'json',
-      z
-        .strictObject({
-          name: GatewayNameSchema.optional(),
-          kind: GatewayKindSchema.optional(),
-          networkId: NetworkReferenceSchema.optional(),
-          protocols: ProtocolsSchema.optional(),
-          settings: SettingsSchema.optional()
-        })
-        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
-    ),
+    validator('json', GatewayChangesSchema),
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       const body = c.req.valid('json');
@@ -254,6 +261,7 @@ export default new Hono()
           .returning(gatewayColumns);
         if (!gateway) throw await unchanged(tx, gateways.id, gatewayId);
         if (body.protocols !== undefined) await checkProtocolsInUse(tx, gatewayId, body.protocols);
+        if (changesProvision(body)) checkGatewayKind(gateway.kind, gateway.protocols, gateway.settings);
         return gateway;
       });
       c.header('Cache-Control', 'no-store');

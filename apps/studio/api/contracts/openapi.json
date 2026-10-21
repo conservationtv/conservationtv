@@ -529,18 +529,15 @@
                 {
                   "type": "object",
                   "properties": {
-                    "networkId": {
-                      "type": "null"
+                    "id": {
+                      "type": "string",
+                      "const": "conservationtv"
                     },
-                    "settings": {
-                      "type": "object"
-                    },
-                    "createdAt": {
-                      "type": "null"
+                    "builtin": {
+                      "type": "boolean"
                     },
                     "name": {
-                      "type": "string",
-                      "const": "conservation.tv"
+                      "type": "string"
                     },
                     "kind": {
                       "type": "string",
@@ -549,35 +546,9 @@
                     "protocols": {
                       "type": "array",
                       "items": {
-                        "type": "string",
-                        "const": "moq"
+                        "type": "string"
                       }
                     },
-                    "id": {
-                      "type": "string",
-                      "enum": [
-                        "cloudflare",
-                        "conservationtv"
-                      ]
-                    },
-                    "builtin": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "networkId",
-                    "settings",
-                    "createdAt",
-                    "name",
-                    "kind",
-                    "protocols",
-                    "id",
-                    "builtin"
-                  ]
-                },
-                {
-                  "type": "object",
-                  "properties": {
                     "networkId": {
                       "type": "null"
                     },
@@ -586,42 +557,17 @@
                     },
                     "createdAt": {
                       "type": "null"
-                    },
-                    "name": {
-                      "type": "string",
-                      "const": "Cloudflare"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "const": "cloudflare-realtime"
-                    },
-                    "protocols": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "const": "webrtc"
-                      }
-                    },
-                    "id": {
-                      "type": "string",
-                      "enum": [
-                        "cloudflare",
-                        "conservationtv"
-                      ]
-                    },
-                    "builtin": {
-                      "type": "boolean"
                     }
                   },
                   "required": [
-                    "networkId",
-                    "settings",
-                    "createdAt",
+                    "id",
+                    "builtin",
                     "name",
                     "kind",
                     "protocols",
-                    "id",
-                    "builtin"
+                    "networkId",
+                    "settings",
+                    "createdAt"
                   ]
                 },
                 {
@@ -1256,6 +1202,216 @@
         },
         "required": [
           "relay"
+        ]
+      },
+      "GatewayKey": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kty": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "EC",
+                        "oct",
+                        "RSA",
+                        "OKP",
+                        "AKP"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "length": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "length"
+                      ]
+                    }
+                  ]
+                },
+                "alg": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "Ed25519",
+                        "ES256",
+                        "HS256",
+                        "HS384",
+                        "HS512",
+                        "RS256",
+                        "RS384",
+                        "RS512",
+                        "PS256",
+                        "PS384",
+                        "PS512",
+                        "ES384",
+                        "ES512",
+                        "EdDSA",
+                        "ML-DSA-44",
+                        "ML-DSA-65",
+                        "ML-DSA-87",
+                        "dir",
+                        "A128KW",
+                        "A192KW",
+                        "A256KW",
+                        "A128GCMKW",
+                        "A192GCMKW",
+                        "A256GCMKW",
+                        "ECDH-ES",
+                        "ECDH-ES+A128KW",
+                        "ECDH-ES+A192KW",
+                        "ECDH-ES+A256KW",
+                        "RSA-OAEP",
+                        "RSA-OAEP-256",
+                        "RSA-OAEP-384",
+                        "RSA-OAEP-512",
+                        "PBES2-HS256+A128KW",
+                        "PBES2-HS384+A192KW",
+                        "PBES2-HS512+A256KW",
+                        "A128CBC-HS256",
+                        "A192CBC-HS384",
+                        "A256CBC-HS512",
+                        "A128GCM",
+                        "A192GCM",
+                        "A256GCM"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "length": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "length"
+                      ]
+                    }
+                  ]
+                },
+                "key_ops": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "ext": {
+                  "type": "boolean"
+                },
+                "use": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "sig",
+                        "enc"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "length": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "length"
+                      ]
+                    }
+                  ]
+                },
+                "x5c": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "x5t": {
+                  "type": "string"
+                },
+                "x5t#S256": {
+                  "type": "string"
+                },
+                "x5u": {
+                  "type": "string"
+                },
+                "kid": {
+                  "type": "string"
+                },
+                "crv": {
+                  "type": "string"
+                },
+                "d": {
+                  "type": "string"
+                },
+                "dp": {
+                  "type": "string"
+                },
+                "dq": {
+                  "type": "string"
+                },
+                "e": {
+                  "type": "string"
+                },
+                "k": {
+                  "type": "string"
+                },
+                "n": {
+                  "type": "string"
+                },
+                "p": {
+                  "type": "string"
+                },
+                "q": {
+                  "type": "string"
+                },
+                "qi": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "string"
+                },
+                "y": {
+                  "type": "string"
+                },
+                "pub": {
+                  "type": "string"
+                },
+                "priv": {
+                  "type": "string"
+                },
+                "oth": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "d": {
+                        "type": "string"
+                      },
+                      "r": {
+                        "type": "string"
+                      },
+                      "t": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "keys"
         ]
       },
       "Whoami": {
@@ -5645,7 +5801,7 @@
         "operationId": "organisations.gateways.create",
         "x-operation-version": 1,
         "summary": "Add a gateway",
-        "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.",
+        "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.",
         "responses": {
           "201": {
             "description": "The new gateway",
@@ -5745,7 +5901,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
             "content": {
               "application/json": {
                 "schema": {
@@ -5865,105 +6021,47 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "networkId": {
-                              "type": "null"
-                            },
-                            "settings": {
-                              "type": "object"
-                            },
-                            "createdAt": {
-                              "type": "null"
-                            },
-                            "name": {
-                              "type": "string",
-                              "const": "conservation.tv"
-                            },
-                            "kind": {
-                              "type": "string",
-                              "const": "moq-relay"
-                            },
-                            "protocols": {
-                              "type": "array",
-                              "items": {
-                                "type": "string",
-                                "const": "moq"
-                              }
-                            },
-                            "id": {
-                              "type": "string",
-                              "enum": [
-                                "cloudflare",
-                                "conservationtv"
-                              ]
-                            },
-                            "builtin": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "networkId",
-                            "settings",
-                            "createdAt",
-                            "name",
-                            "kind",
-                            "protocols",
-                            "id",
-                            "builtin"
-                          ]
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "const": "conservationtv"
                         },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "networkId": {
-                              "type": "null"
-                            },
-                            "settings": {
-                              "type": "object"
-                            },
-                            "createdAt": {
-                              "type": "null"
-                            },
-                            "name": {
-                              "type": "string",
-                              "const": "Cloudflare"
-                            },
-                            "kind": {
-                              "type": "string",
-                              "const": "cloudflare-realtime"
-                            },
-                            "protocols": {
-                              "type": "array",
-                              "items": {
-                                "type": "string",
-                                "const": "webrtc"
-                              }
-                            },
-                            "id": {
-                              "type": "string",
-                              "enum": [
-                                "cloudflare",
-                                "conservationtv"
-                              ]
-                            },
-                            "builtin": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "networkId",
-                            "settings",
-                            "createdAt",
-                            "name",
-                            "kind",
-                            "protocols",
-                            "id",
-                            "builtin"
-                          ]
+                        "builtin": {
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "moq-relay"
+                        },
+                        "protocols": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "networkId": {
+                          "type": "null"
+                        },
+                        "settings": {
+                          "type": "object"
+                        },
+                        "createdAt": {
+                          "type": "null"
                         }
+                      },
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "protocols",
+                        "networkId",
+                        "settings",
+                        "createdAt"
                       ]
                     },
                     {
@@ -6092,8 +6190,7 @@
                 {
                   "type": "string",
                   "enum": [
-                    "conservationtv",
-                    "cloudflare"
+                    "conservationtv"
                   ]
                 },
                 {
@@ -6235,7 +6332,7 @@
             }
           },
           "422": {
-            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
             "content": {
               "application/json": {
                 "schema": {
@@ -6275,8 +6372,7 @@
                 {
                   "type": "string",
                   "enum": [
-                    "conservationtv",
-                    "cloudflare"
+                    "conservationtv"
                   ]
                 },
                 {
@@ -6455,8 +6551,7 @@
                 {
                   "type": "string",
                   "enum": [
-                    "conservationtv",
-                    "cloudflare"
+                    "conservationtv"
                   ]
                 },
                 {
@@ -7239,8 +7334,7 @@
                       {
                         "type": "string",
                         "enum": [
-                          "conservationtv",
-                          "cloudflare"
+                          "conservationtv"
                         ]
                       },
                       {
@@ -7488,8 +7582,7 @@
                       {
                         "type": "string",
                         "enum": [
-                          "conservationtv",
-                          "cloudflare"
+                          "conservationtv"
                         ]
                       },
                       {
@@ -7699,6 +7792,206 @@
             "description": "The exposure."
           }
         ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections": {
+      "post": {
+        "operationId": "organisations.streams.exposures.connect",
+        "x-operation-version": 1,
+        "summary": "Connect to an exposure",
+        "description": "Where to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+        "responses": {
+          "200": {
+            "description": "The connection details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "type": "string",
+                          "const": "moq"
+                        },
+                        "relay": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "token": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "protocol",
+                        "relay",
+                        "path"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        },
+                        "token": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "protocol",
+                        "url"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller may see the exposure but not connect to it like this: members only read, and devices publish what they are the pinned publisher of and read its upstreams",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Connections to the exposure's gateway are not made through this API, or it cannot do that by the exposure's protocol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable, or the gateway is not configured or cannot issue credentials right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "streamId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The stream."
+          },
+          {
+            "in": "path",
+            "name": "exposureId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The exposure."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "read",
+                      "publish"
+                    ],
+                    "description": "Whether to read the exposure from its gateway, or publish it there."
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "x-operation-versions": [
           1
         ]
@@ -9565,6 +9858,39 @@
           },
           "503": {
             "description": "The database is unavailable, or the relay cannot lease the endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/gateway-keys": {
+      "get": {
+        "operationId": "gatewayKeys.get",
+        "x-operation-version": 1,
+        "summary": "Read the gateway signing keys",
+        "description": "A JSON Web Key Set of every key gateway tokens may be signed with: a gateway verifies a token by the key its `kid` names, with issuer the API and audience the gateway’s ID. Empty when no gateway tokens are signed. Anyone.",
+        "responses": {
+          "200": {
+            "description": "The key set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayKey"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
             "content": {
               "application/json": {
                 "schema": {
@@ -16736,18 +17062,15 @@
                     {
                       "type": "object",
                       "properties": {
-                        "networkId": {
-                          "type": "null"
+                        "id": {
+                          "type": "string",
+                          "const": "conservationtv"
                         },
-                        "settings": {
-                          "type": "object"
-                        },
-                        "createdAt": {
-                          "type": "null"
+                        "builtin": {
+                          "type": "boolean"
                         },
                         "name": {
-                          "type": "string",
-                          "const": "conservation.tv"
+                          "type": "string"
                         },
                         "kind": {
                           "type": "string",
@@ -16756,35 +17079,9 @@
                         "protocols": {
                           "type": "array",
                           "items": {
-                            "type": "string",
-                            "const": "moq"
+                            "type": "string"
                           }
                         },
-                        "id": {
-                          "type": "string",
-                          "enum": [
-                            "cloudflare",
-                            "conservationtv"
-                          ]
-                        },
-                        "builtin": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "networkId",
-                        "settings",
-                        "createdAt",
-                        "name",
-                        "kind",
-                        "protocols",
-                        "id",
-                        "builtin"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
                         "networkId": {
                           "type": "null"
                         },
@@ -16793,42 +17090,17 @@
                         },
                         "createdAt": {
                           "type": "null"
-                        },
-                        "name": {
-                          "type": "string",
-                          "const": "Cloudflare"
-                        },
-                        "kind": {
-                          "type": "string",
-                          "const": "cloudflare-realtime"
-                        },
-                        "protocols": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "const": "webrtc"
-                          }
-                        },
-                        "id": {
-                          "type": "string",
-                          "enum": [
-                            "cloudflare",
-                            "conservationtv"
-                          ]
-                        },
-                        "builtin": {
-                          "type": "boolean"
                         }
                       },
                       "required": [
-                        "networkId",
-                        "settings",
-                        "createdAt",
+                        "id",
+                        "builtin",
                         "name",
                         "kind",
                         "protocols",
-                        "id",
-                        "builtin"
+                        "networkId",
+                        "settings",
+                        "createdAt"
                       ]
                     },
                     {
@@ -17112,7 +17384,7 @@
             "operationId": "organisations.gateways.create",
             "x-operation-version": 1,
             "summary": "Add a gateway",
-            "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists.",
+            "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet, accepting the protocols it lists. A kind this API connects callers to (`mediamtx`) accepts only its own protocols, and the settings it reads.",
             "responses": {
               "201": {
                 "description": "The new gateway",
@@ -17165,7 +17437,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -17333,105 +17605,47 @@
                     "schema": {
                       "anyOf": [
                         {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "networkId": {
-                                  "type": "null"
-                                },
-                                "settings": {
-                                  "type": "object"
-                                },
-                                "createdAt": {
-                                  "type": "null"
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "const": "conservation.tv"
-                                },
-                                "kind": {
-                                  "type": "string",
-                                  "const": "moq-relay"
-                                },
-                                "protocols": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string",
-                                    "const": "moq"
-                                  }
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "enum": [
-                                    "cloudflare",
-                                    "conservationtv"
-                                  ]
-                                },
-                                "builtin": {
-                                  "type": "boolean"
-                                }
-                              },
-                              "required": [
-                                "networkId",
-                                "settings",
-                                "createdAt",
-                                "name",
-                                "kind",
-                                "protocols",
-                                "id",
-                                "builtin"
-                              ]
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "const": "conservationtv"
                             },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "networkId": {
-                                  "type": "null"
-                                },
-                                "settings": {
-                                  "type": "object"
-                                },
-                                "createdAt": {
-                                  "type": "null"
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "const": "Cloudflare"
-                                },
-                                "kind": {
-                                  "type": "string",
-                                  "const": "cloudflare-realtime"
-                                },
-                                "protocols": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string",
-                                    "const": "webrtc"
-                                  }
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "enum": [
-                                    "cloudflare",
-                                    "conservationtv"
-                                  ]
-                                },
-                                "builtin": {
-                                  "type": "boolean"
-                                }
-                              },
-                              "required": [
-                                "networkId",
-                                "settings",
-                                "createdAt",
-                                "name",
-                                "kind",
-                                "protocols",
-                                "id",
-                                "builtin"
-                              ]
+                            "builtin": {
+                              "type": "boolean"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "const": "moq-relay"
+                            },
+                            "protocols": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "networkId": {
+                              "type": "null"
+                            },
+                            "settings": {
+                              "type": "object"
+                            },
+                            "createdAt": {
+                              "type": "null"
                             }
+                          },
+                          "required": [
+                            "id",
+                            "builtin",
+                            "name",
+                            "kind",
+                            "protocols",
+                            "networkId",
+                            "settings",
+                            "createdAt"
                           ]
                         },
                         {
@@ -17560,8 +17774,7 @@
                     {
                       "type": "string",
                       "enum": [
-                        "conservationtv",
-                        "cloudflare"
+                        "conservationtv"
                       ]
                     },
                     {
@@ -17787,7 +18000,7 @@
                 }
               },
               "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "description": "The network does not exist or belongs to another organisation, or the gateway's kind does not accept those protocols or settings",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -17827,8 +18040,7 @@
                     {
                       "type": "string",
                       "enum": [
-                        "conservationtv",
-                        "cloudflare"
+                        "conservationtv"
                       ]
                     },
                     {
@@ -18057,8 +18269,7 @@
                     {
                       "type": "string",
                       "enum": [
-                        "conservationtv",
-                        "cloudflare"
+                        "conservationtv"
                       ]
                     },
                     {
@@ -19401,8 +19612,7 @@
                           {
                             "type": "string",
                             "enum": [
-                              "conservationtv",
-                              "cloudflare"
+                              "conservationtv"
                             ]
                           },
                           {
@@ -19804,8 +20014,7 @@
                           {
                             "type": "string",
                             "enum": [
-                              "conservationtv",
-                              "cloudflare"
+                              "conservationtv"
                             ]
                           },
                           {
@@ -20065,6 +20274,254 @@
                 }
               }
             ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections": {
+          "post": {
+            "operationId": "organisations.streams.exposures.connect",
+            "x-operation-version": 1,
+            "summary": "Connect to an exposure",
+            "description": "Where to read or publish the exposure at its gateway, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+            "responses": {
+              "200": {
+                "description": "The connection details",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "protocol": {
+                              "type": "string",
+                              "const": "moq"
+                            },
+                            "relay": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            },
+                            "token": {
+                              "type": "string"
+                            },
+                            "expiresAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "protocol",
+                            "relay",
+                            "path"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "protocol": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "token": {
+                              "type": "string"
+                            },
+                            "expiresAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "protocol",
+                            "url"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The caller may see the exposure but not connect to it like this: members only read, and devices publish what they are the pinned publisher of and read its upstreams",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "422": {
+                "description": "Connections to the exposure's gateway are not made through this API, or it cannot do that by the exposure's protocol",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable, or the gateway is not configured or cannot issue credentials right now",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "streamId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The stream."
+              },
+              {
+                "in": "path",
+                "name": "exposureId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The exposure."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "read",
+                          "publish"
+                        ],
+                        "description": "Whether to read the exposure from its gateway, or publish it there."
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -23141,6 +23598,299 @@
               },
               "503": {
                 "description": "The database is unavailable, or the relay cannot lease the endpoint",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "GatewayKey": {
+            "type": "object",
+            "properties": {
+              "keys": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kty": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "EC",
+                            "oct",
+                            "RSA",
+                            "OKP",
+                            "AKP"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "length": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "length"
+                          ]
+                        }
+                      ]
+                    },
+                    "alg": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Ed25519",
+                            "ES256",
+                            "HS256",
+                            "HS384",
+                            "HS512",
+                            "RS256",
+                            "RS384",
+                            "RS512",
+                            "PS256",
+                            "PS384",
+                            "PS512",
+                            "ES384",
+                            "ES512",
+                            "EdDSA",
+                            "ML-DSA-44",
+                            "ML-DSA-65",
+                            "ML-DSA-87",
+                            "dir",
+                            "A128KW",
+                            "A192KW",
+                            "A256KW",
+                            "A128GCMKW",
+                            "A192GCMKW",
+                            "A256GCMKW",
+                            "ECDH-ES",
+                            "ECDH-ES+A128KW",
+                            "ECDH-ES+A192KW",
+                            "ECDH-ES+A256KW",
+                            "RSA-OAEP",
+                            "RSA-OAEP-256",
+                            "RSA-OAEP-384",
+                            "RSA-OAEP-512",
+                            "PBES2-HS256+A128KW",
+                            "PBES2-HS384+A192KW",
+                            "PBES2-HS512+A256KW",
+                            "A128CBC-HS256",
+                            "A192CBC-HS384",
+                            "A256CBC-HS512",
+                            "A128GCM",
+                            "A192GCM",
+                            "A256GCM"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "length": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "length"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_ops": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "ext": {
+                      "type": "boolean"
+                    },
+                    "use": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "sig",
+                            "enc"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "length": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "length"
+                          ]
+                        }
+                      ]
+                    },
+                    "x5c": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "x5t": {
+                      "type": "string"
+                    },
+                    "x5t#S256": {
+                      "type": "string"
+                    },
+                    "x5u": {
+                      "type": "string"
+                    },
+                    "kid": {
+                      "type": "string"
+                    },
+                    "crv": {
+                      "type": "string"
+                    },
+                    "d": {
+                      "type": "string"
+                    },
+                    "dp": {
+                      "type": "string"
+                    },
+                    "dq": {
+                      "type": "string"
+                    },
+                    "e": {
+                      "type": "string"
+                    },
+                    "k": {
+                      "type": "string"
+                    },
+                    "n": {
+                      "type": "string"
+                    },
+                    "p": {
+                      "type": "string"
+                    },
+                    "q": {
+                      "type": "string"
+                    },
+                    "qi": {
+                      "type": "string"
+                    },
+                    "x": {
+                      "type": "string"
+                    },
+                    "y": {
+                      "type": "string"
+                    },
+                    "pub": {
+                      "type": "string"
+                    },
+                    "priv": {
+                      "type": "string"
+                    },
+                    "oth": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "d": {
+                            "type": "string"
+                          },
+                          "r": {
+                            "type": "string"
+                          },
+                          "t": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "keys"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/gateway-keys": {
+          "get": {
+            "operationId": "gatewayKeys.get",
+            "x-operation-version": 1,
+            "summary": "Read the gateway signing keys",
+            "description": "A JSON Web Key Set of every key gateway tokens may be signed with: a gateway verifies a token by the key its `kid` names, with issuer the API and audience the gateway’s ID. Empty when no gateway tokens are signed. Anyone.",
+            "responses": {
+              "200": {
+                "description": "The key set",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/GatewayKey"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
                 "content": {
                   "application/json": {
                     "schema": {

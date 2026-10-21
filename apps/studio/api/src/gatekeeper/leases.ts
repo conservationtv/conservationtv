@@ -47,10 +47,16 @@ async function exchange(device: AuthenticatedDevice, gatekeeper: Gatekeeper): Pr
   }
 }
 
+/** A lease, and the relay gatekeeper leased the endpoint on. */
+export interface LeasedEndpoint {
+  relay: string;
+  lease: IrohLease;
+}
+
 /** Lease the device's endpoint from gatekeeper, failing as `exchange` does. */
-export async function leaseEndpoint(device: AuthenticatedDevice, gatekeeper: Gatekeeper): Promise<IrohLease> {
+export async function leaseEndpoint(device: AuthenticatedDevice, gatekeeper: Gatekeeper): Promise<LeasedEndpoint> {
   const result = await exchange(device, gatekeeper);
   const lease = result.credentials.iroh;
   if (lease === undefined) throw new ApiFailure('relay_unavailable', { cause: 'Gatekeeper issued no Iroh lease' });
-  return { id: lease.lease_id, grantId: result.grant_id, expiresAt: lease.expires_at };
+  return { relay: lease.relay, lease: { id: lease.lease_id, grantId: result.grant_id, expiresAt: lease.expires_at } };
 }

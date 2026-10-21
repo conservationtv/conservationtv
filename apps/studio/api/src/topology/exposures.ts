@@ -2,7 +2,7 @@ import { and, eq, notInArray, sql } from 'drizzle-orm';
 import { exposures, gateways } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import type { Transaction } from '../organisations/membership.ts';
-import { BUILTIN_GATEWAYS, isBuiltinGateway } from './gateways.ts';
+import { BUILTIN_GATEWAYS, isBuiltinGateway } from '../gateways/index.ts';
 
 // What the database cannot check about exposures on its own. An exposure's gateway is a built-in gateway's slug or one
 // of its organisation's gateways, so no foreign key holds it: it must name a gateway that exists and accepts the

@@ -36,7 +36,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
         /**
          * The gateway the stream is delivered to: built in, or the organisation's own.
          */
-        gatewayId?: 'conservationtv' | 'cloudflare' | string;
+        gatewayId?: 'conservationtv' | string;
         /**
          * One of the protocols the gateway accepts.
          */

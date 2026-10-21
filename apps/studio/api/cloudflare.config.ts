@@ -7,6 +7,30 @@ import * as entrypoint from './src/index.ts' with { type: 'cf-worker' };
 const placeholderHyperdriveIds = { admin: '00000000000000000000000000000001', app: '00000000000000000000000000000002' };
 const placeholderCacheId = '00000000000000000000000000000003';
 
+type TextBinding = ReturnType<typeof bindings.text>;
+
+/** The relay bindings: gatekeeper's URL, or the relays it would otherwise name. */
+interface RelayBindings {
+  GATEKEEPER_URL?: TextBinding;
+  IROH_RELAY_URL?: TextBinding;
+  MOQ_RELAY_URL?: TextBinding;
+}
+
+/**
+ * The control plane that names the relays and admits devices to them, as the controlplane's does: set from the
+ * environment, with GATEKEEPER_TOKEN, by `pnpm dev:controlplane` and `pnpm dev:staging`. Without one, the relays the
+ * deployment names itself, which admit everyone: n0's public iroh relay in Europe, and no MoQ relay unless the
+ * environment sets one. Both are overridable from the environment, as APP_URL is.
+ */
+const relays: RelayBindings = {};
+const { GATEKEEPER_URL, IROH_RELAY_URL, MOQ_RELAY_URL } = process.env;
+if (GATEKEEPER_URL) {
+  relays.GATEKEEPER_URL = bindings.text(GATEKEEPER_URL);
+} else {
+  relays.IROH_RELAY_URL = bindings.text(IROH_RELAY_URL ?? 'https://euc1-1.relay.n0.iroh.link./');
+  if (MOQ_RELAY_URL) relays.MOQ_RELAY_URL = bindings.text(MOQ_RELAY_URL);
+}
+
 export default defineConfig({
   worker: {
     name: 'studio-api',
@@ -40,18 +64,11 @@ export default defineConfig({
        * Overridable from the environment, as APP_URL is.
        */
       WEB_ORIGINS: bindings.text(process.env.WEB_ORIGINS ?? 'http://localhost:5173'),
-      /**
-       * The iroh relay every device's session uses: until there is one per organisation, n0's public relay in Europe.
-       * Overridable from the environment, as APP_URL is.
-       */
-      IROH_RELAY_URL: bindings.text(process.env.IROH_RELAY_URL ?? 'https://euc1-1.relay.n0.iroh.link./'),
-      /**
-       * The control plane that leases devices' endpoints on a relay that requires it, as the controlplane's does. Set
-       * from the environment, with GATEKEEPER_TOKEN; unset, as for n0's relay, sessions carry no lease.
-       */
-      ...(process.env.GATEKEEPER_URL ? { GATEKEEPER_URL: bindings.text(process.env.GATEKEEPER_URL) } : {}),
+      ...relays,
       /** The control plane environment's consumer token; see .dev.vars.example. */
       GATEKEEPER_TOKEN: bindings.secret(),
+      /** The keys gateway tokens are signed with; see .dev.vars.example. */
+      GATEWAY_SIGNING_KEYS: bindings.secret(),
       /** How sign-in codes reach people. Only `log` exists; a deployment needs an email provider first. */
       OTP_DELIVERY: bindings.text('log')
     }

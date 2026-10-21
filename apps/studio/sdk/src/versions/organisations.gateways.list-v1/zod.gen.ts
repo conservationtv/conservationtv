@@ -8,28 +8,16 @@ export const ErrorSchema = z.object({
 });
 
 export const GatewaySchema = z.object({
-    gateways: z.array(z.union([
-        z.object({
-            networkId: z.null(),
-            settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('conservation.tv'),
+    gateways: z.array(z.union([z.object({
+            id: z.literal('conservationtv'),
+            builtin: z.boolean(),
+            name: z.string(),
             kind: z.literal('moq-relay'),
-            protocols: z.array(z.literal('moq')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        }),
-        z.object({
+            protocols: z.array(z.string()),
             networkId: z.null(),
             settings: z.record(z.string(), z.unknown()),
-            createdAt: z.null(),
-            name: z.literal('Cloudflare'),
-            kind: z.literal('cloudflare-realtime'),
-            protocols: z.array(z.literal('webrtc')),
-            id: z.enum(['cloudflare', 'conservationtv']),
-            builtin: z.boolean()
-        }),
-        z.object({
+            createdAt: z.null()
+        }), z.object({
             id: z.string(),
             builtin: z.boolean(),
             name: z.string(),
@@ -38,8 +26,7 @@ export const GatewaySchema = z.object({
             protocols: z.array(z.string()),
             settings: z.record(z.string(), z.unknown()),
             createdAt: z.string()
-        })
-    ]))
+        })]))
 });
 
 export const GetOrganisationsByIdGatewaysPathSchema = z.object({
