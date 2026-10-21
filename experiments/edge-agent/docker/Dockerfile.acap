@@ -1,0 +1,54 @@
+# syntax=docker/dockerfile:1
+
+# Experiment: a toolchain for building the edge agent for Axis cameras. Only the ACAP Native SDK's sysroots are taken
+# from its images, which are amd64-only, as acap-rs's dev container does, so the builder itself runs natively on an
+# arm64 host as well as on amd64, with no emulation. The source is mounted, not copied:
+#
+#   docker build -f docker/Dockerfile.acap -t edge-agent-acap docker
+#   docker run --rm -v "$PWD":/src -v edge-agent-cargo:/usr/local/cargo/registry edge-agent-acap \
+#     cargo build --release -p edge-agent --target aarch64-unknown-linux-gnu --features axis
+
+ARG SDK_VERSION=12.11.0
+FROM --platform=linux/amd64 axisecp/acap-native-sdk:${SDK_VERSION}-aarch64-ubuntu24.04 AS sdk-aarch64
+FROM --platform=linux/amd64 axisecp/acap-native-sdk:${SDK_VERSION}-armv7hf-ubuntu24.04 AS sdk-armv7hf
+
+FROM debian:trixie-20260223
+# Both architectures' GCC: on an arm64 host the aarch64 one is the native compiler under its target-prefixed name.
+# Clang is for bindgen, which acap-rs's `*-sys` crates run against the sysroots' headers.
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y \
+      ca-certificates curl git pkg-config file binutils-multiarch \
+      gcc g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+      clang libclang-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY --from=sdk-aarch64 /opt/axis/acapsdk/sysroots/aarch64 /opt/axis/acapsdk/sysroots/aarch64
+COPY --from=sdk-armv7hf /opt/axis/acapsdk/sysroots/armv7hf /opt/axis/acapsdk/sysroots/armv7hf
+
+ENV SYSROOT_AARCH64=/opt/axis/acapsdk/sysroots/aarch64 \
+    SYSROOT_ARMV7HF=/opt/axis/acapsdk/sysroots/armv7hf
+# Link against the camera's own glibc and libraries, not the builder's, and point cc, pkg-config and bindgen at them.
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-args=--sysroot=${SYSROOT_AARCH64}" \
+    CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
+    CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
+    CFLAGS_aarch64_unknown_linux_gnu="--sysroot=${SYSROOT_AARCH64}" \
+    BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="--sysroot=${SYSROOT_AARCH64}" \
+    PKG_CONFIG_LIBDIR_aarch64_unknown_linux_gnu="${SYSROOT_AARCH64}/usr/lib/pkgconfig:${SYSROOT_AARCH64}/usr/share/pkgconfig" \
+    PKG_CONFIG_SYSROOT_DIR_aarch64_unknown_linux_gnu="${SYSROOT_AARCH64}" \
+    CARGO_TARGET_THUMBV7NEON_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc \
+    CARGO_TARGET_THUMBV7NEON_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS="-C link-args=--sysroot=${SYSROOT_ARMV7HF}" \
+    CC_thumbv7neon_unknown_linux_gnueabihf=arm-linux-gnueabihf-gcc \
+    CXX_thumbv7neon_unknown_linux_gnueabihf=arm-linux-gnueabihf-g++ \
+    CFLAGS_thumbv7neon_unknown_linux_gnueabihf="--sysroot=${SYSROOT_ARMV7HF}" \
+    BINDGEN_EXTRA_CLANG_ARGS_thumbv7neon_unknown_linux_gnueabihf="--sysroot=${SYSROOT_ARMV7HF}" \
+    PKG_CONFIG_LIBDIR_thumbv7neon_unknown_linux_gnueabihf="${SYSROOT_ARMV7HF}/usr/lib/pkgconfig:${SYSROOT_ARMV7HF}/usr/share/pkgconfig" \
+    PKG_CONFIG_SYSROOT_DIR_thumbv7neon_unknown_linux_gnueabihf="${SYSROOT_ARMV7HF}"
+
+ENV CARGO_HOME=/usr/local/cargo RUSTUP_HOME=/usr/local/rustup PATH=/usr/local/cargo/bin:$PATH
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.94.0 \
+      --target aarch64-unknown-linux-gnu --target thumbv7neon-unknown-linux-gnueabihf
+
+WORKDIR /src
+# Build output stays in the container's own directory, apart from the host's macOS build.
+ENV CARGO_TARGET_DIR=/target

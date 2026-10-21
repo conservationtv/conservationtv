@@ -1,0 +1,37 @@
+[package]
+name = "edge-agent"
+version = "0.0.0"
+description = "Experiment: the agent runtime as one Rust binary a camera can run, reporting metrics and publishing to MoQ."
+edition.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+# The camera's own encoder through Axis's VDO API: only builds against the ACAP Native SDK's sysroot.
+axis = ["dep:vdo", "dep:axparameter"]
+
+[dependencies]
+studio-sdk = { path = "../studio-sdk" }
+anyhow = "1"
+axum = { version = "0.8", default-features = false, features = ["json"] }
+bytes = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+hang = "0.21"
+hex = "0.4"
+iroh = { version = "=1.0.2", default-features = false, features = ["tls-ring"] }
+iroh-http = { git = "https://github.com/changesbyjames/iroh-http", branch = "main" }
+moq-mux = "0.10"
+moq-net = "0.3"
+moq-tokio = { version = "0.19", default-features = false, features = ["noq", "ring", "websocket"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sysinfo = { version = "0.38", default-features = false, features = ["system", "disk"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util", "signal", "time", "sync"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "ansi"] }
+url = "2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+vdo = { git = "https://github.com/AxisCommunications/acap-rs", optional = true }
+axparameter = { git = "https://github.com/AxisCommunications/acap-rs", optional = true }
