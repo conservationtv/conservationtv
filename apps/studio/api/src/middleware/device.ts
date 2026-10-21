@@ -6,10 +6,10 @@ import { verifySignature, webcrypto, isSignatureError, type Verifier } from 'htt
 import { verifyContentDigest } from 'httpbis-digest-headers';
 import { devices } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
-import { trusted } from '../organisations/membership.ts';
+import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
-import { requirePrincipal, usePrincipal } from './principal.ts';
+import { withPrincipal } from './principal.ts';
 
 // Devices authenticate with their own identity (src/topology/identity.ts): each request carries an RFC 9421 HTTP
 // Message Signature by the device's Ed25519 key, named by its public ID as `keyid`. The signature must cover the
@@ -41,8 +41,9 @@ interface DeviceVerifier extends Verifier {
 /** The device with this public ID, and a verifier for its key; `invalid_signature` if there is none. */
 async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerifier> {
   if (publicId === undefined) throw new ApiFailure('invalid_signature');
-  const [row] = await trusted(tx =>
-    tx
+  const [row] = await trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    return db
       .select({
         id: devices.id,
         organisationId: devices.organisationId,
@@ -51,8 +52,8 @@ async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerif
         publicKey: devices.publicKey
       })
       .from(devices)
-      .where(eq(devices.publicId, publicId))
-  );
+      .where(eq(devices.publicId, publicId));
+  });
   if (!row) throw new ApiFailure('invalid_signature');
   const key = await crypto.subtle.importKey('raw', Buffer.from(row.publicKey, 'base64url'), 'Ed25519', false, [
     'verify'
@@ -103,7 +104,10 @@ async function bodyMatchesDigest(body: ArrayBuffer, digest: string) {
   }
 }
 
-/** Require a device's signature on the request (see above). Downstream, `useDevice()` is the device. */
+/**
+ * Require a device's signature on the request (see above). Downstream, `useDevice()` is the device, and
+ * `usePrincipal()` its principal.
+ */
 export const requireDevice = createMiddleware(async (c, next) => {
   const signature = await verifiedSignature(c.req.raw);
   const { device } = signature.verifier;
@@ -118,25 +122,5 @@ export const requireDevice = createMiddleware(async (c, next) => {
     MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
   );
   if (!fresh) throw new ApiFailure('invalid_signature');
-  await withDevice(device, next);
-});
-
-/** Who a request either a member or a device may make runs as. */
-export const [withCaller, useCaller] = createStore<Principal<string, 'user' | 'device'>>('caller');
-
-/**
- * Require a device's signature when the request carries one (`requireDevice`), and a signed-in session otherwise
- * (`requirePrincipal`). Downstream, `useCaller()` is the device's principal or the account's.
- */
-export const requireCaller = createMiddleware(async (c, next) => {
-  if (c.req.header('signature') !== undefined) {
-    return requireDevice(c, () => {
-      const device = useDevice();
-      return withCaller(device.principal, next);
-    });
-  }
-  return requirePrincipal(c, () => {
-    const principal = usePrincipal();
-    return withCaller(principal, next);
-  });
+  await withDevice(device, () => withPrincipal(device.principal, next));
 });

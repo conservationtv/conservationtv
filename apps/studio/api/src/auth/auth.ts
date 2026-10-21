@@ -58,7 +58,7 @@ export function createAuth({ database, access, variables, deliverOtp, background
         create: { after: session => ensureSelfGrant(session.userId) },
         // A session's browser devices end with it (src/topology/browsers.ts). Before, because the browser rows refer
         // to the session; Better Auth runs this for every session it deletes, one at a time or in bulk.
-        delete: { before: ended => endSessionBrowsers(database, ended.id) }
+        delete: { before: ended => endSessionBrowsers(ended.id) }
       }
     },
     plugins: [

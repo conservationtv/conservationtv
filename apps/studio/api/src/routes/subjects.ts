@@ -5,7 +5,8 @@ import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { ApiFailure } from '../errors.ts';
 import { logRecords, metricPoints, metricSeries, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { transaction, useDB } from '../db/transaction.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import {
   invalidRequest,
@@ -75,11 +76,9 @@ export default new Hono()
     validator('param', SubjectParamsSchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const { state, opinions } = await session.transaction(async tx => {
-        const [combined] = await tx
+      const { state, opinions } = await transaction(async () => {
+        const db = useDB();
+        const [combined] = await db
           .select({
             health: subjectStates.health,
             state: subjectStates.state,
@@ -96,7 +95,7 @@ export default new Hono()
           .where(and(eq(subjectStates.organisationId, id), eq(subjectStates.subjectId, subjectId)));
         return {
           state: combined ?? null,
-          opinions: await tx
+          opinions: await db
             .select({
               reporterId: reporterOpinions.reporterId,
               health: reporterOpinions.health,
@@ -138,11 +137,9 @@ export default new Hono()
     async c => {
       const { id, subjectId } = c.req.valid('param');
       const { limit, before } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
+      const rows = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: observations.id,
             reporterId: observations.reporterId,
@@ -160,8 +157,8 @@ export default new Hono()
             )
           )
           .orderBy(desc(observations.observedAt))
-          .limit(limit)
-      );
+          .limit(limit);
+      });
       c.header('Cache-Control', 'no-store');
       return c.json({ observations: rows }, 200);
     }
@@ -191,11 +188,9 @@ export default new Hono()
     async c => {
       const { id, subjectId } = c.req.valid('param');
       const { name } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
+      const rows = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: metricSeries.id,
             name: metricSeries.name,
@@ -212,8 +207,8 @@ export default new Hono()
               name === undefined ? undefined : eq(metricSeries.name, name)
             )
           )
-          .orderBy(asc(metricSeries.name), asc(metricSeries.createdAt))
-      );
+          .orderBy(asc(metricSeries.name), asc(metricSeries.createdAt));
+      });
       c.header('Cache-Control', 'no-store');
       return c.json({ series: rows }, 200);
     }
@@ -241,16 +236,15 @@ export default new Hono()
       const { id, subjectId, seriesId } = c.req.valid('param');
       const query = c.req.valid('query');
       const environment = useEnvironment();
-      const principal = usePrincipal();
       const from = new Date(query.from);
       const to = query.to === undefined ? new Date(environment.clock()) : new Date(query.to);
       const range = Math.ceil((to.getTime() - from.getTime()) / 1000);
       const step = Math.max(query.step ?? 60, Math.ceil(range / MAX_BUCKETS));
       // `step` is a validated integer, written into the query so GROUP BY can match the bucket expression.
       const bucket = sql`time_bucket(make_interval(secs => ${sql.raw(String(step))}), ${metricPoints.observedAt})`;
-      const session = await environment.session(principal);
-      const result = await session.transaction(async tx => {
-        const [series] = await tx
+      const result = await transaction(async () => {
+        const db = useDB();
+        const [series] = await db
           .select({
             id: metricSeries.id,
             name: metricSeries.name,
@@ -268,7 +262,7 @@ export default new Hono()
             )
           );
         if (!series) throw new ApiFailure('not_found');
-        const points = await tx
+        const points = await db
           .select({
             at: bucket.mapWith(metricPoints.observedAt),
             min: sql<number>`min(${metricPoints.min})`,
@@ -315,11 +309,9 @@ export default new Hono()
     async c => {
       const { id, subjectId } = c.req.valid('param');
       const { limit, before } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
+      const rows = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: logRecords.id,
             reporterId: logRecords.reporterId,
@@ -338,8 +330,8 @@ export default new Hono()
             )
           )
           .orderBy(desc(logRecords.observedAt))
-          .limit(limit)
-      );
+          .limit(limit);
+      });
       c.header('Cache-Control', 'no-store');
       return c.json({ logs: rows }, 200);
     }

@@ -3,9 +3,9 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { users } from '../db/schema.ts';
+import { transaction, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
+import { requirePrincipal, useUser } from '../middleware/principal.ts';
 import {
   invalidRequest,
   notFound,
@@ -36,11 +36,10 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const principal = usePrincipal();
-      const environment = useEnvironment();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const principal = useUser();
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({
             id: users.id,
             name: users.name,
@@ -50,8 +49,8 @@ export default new Hono()
             createdAt: users.createdAt
           })
           .from(users)
-          .where(eq(users.id, principal.id))
-      );
+          .where(eq(users.id, principal.id));
+      });
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -85,20 +84,19 @@ export default new Hono()
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
     ),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const changes = c.req.valid('json');
-      const environment = useEnvironment();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx.update(users).set(changes).where(eq(users.id, principal.id)).returning({
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db.update(users).set(changes).where(eq(users.id, principal.id)).returning({
           id: users.id,
           name: users.name,
           email: users.email,
           emailVerified: users.emailVerified,
           image: users.image,
           createdAt: users.createdAt
-        })
-      );
+        });
+      });
       // An update that reaches no row means the account is not visible to this session.
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');

@@ -2,10 +2,11 @@ import { DrizzleQueryError, and, eq, lte, sql } from 'drizzle-orm';
 import pg from 'pg';
 import { organisationInvitations, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
-import type { UserPrincipal } from '../middleware/principal.ts';
+import { transaction, trustedTransaction, useDB } from '../db/transaction.ts';
+import { useUser } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
 import { invitationDelivery } from './delivery.ts';
-import { addMember, trusted, type Transaction } from './membership.ts';
+import { addMember } from './membership.ts';
 
 // Administrators' side of invitations runs in their request session: creating and cancelling one changes no grants,
 // so row-level security alone decides who may. The invitee's side is trusted code, because an emailed invitation
@@ -48,10 +49,11 @@ const open = sql`${organisationInvitations.expiresAt} > now()`;
 type NewInvitation = typeof organisationInvitations.$inferInsert;
 
 /** Insert through the request session, reporting which rule refused the row, if one did. */
-async function insertInvitation(tx: Transaction, values: NewInvitation) {
+async function insertInvitation(values: NewInvitation) {
+  const db = useDB();
   try {
     // Never `codeHash`: the application role cannot read it back.
-    const [row] = await tx.insert(organisationInvitations).values(values).returning({
+    const [row] = await db.insert(organisationInvitations).values(values).returning({
       id: organisationInvitations.id,
       email: organisationInvitations.email,
       userId: organisationInvitations.userId,
@@ -72,12 +74,13 @@ async function insertInvitation(tx: Transaction, values: NewInvitation) {
 }
 
 /**
- * Invite someone to an organisation the principal administers. An emailed invitation is sent a link with a one-time
+ * Invite someone to an organisation the user administers. An emailed invitation is sent a link with a one-time
  * code; an invitation to an account is found by that account under `/invitations`. An expired invitation to the same
  * recipient is replaced.
  */
-export async function createInvitation(principal: UserPrincipal, organisationId: string, recipient: Recipient) {
+export async function createInvitation(organisationId: string, recipient: Recipient) {
   const environment = useEnvironment();
+  const principal = useUser();
   const code = 'email' in recipient ? newCode() : null;
   const values = {
     organisationId,
@@ -86,23 +89,23 @@ export async function createInvitation(principal: UserPrincipal, organisationId:
     invitedBy: principal.id,
     expiresAt: new Date(environment.clock() + INVITATION_LIFETIME_MS)
   };
-  const session = await environment.session(principal);
-  const { invitation, organisationName } = await session.transaction(async tx => {
+  const { invitation, organisationName } = await transaction(async () => {
+    const db = useDB();
     // Hidden organisations are not found. Row-level security refuses the insert to anyone but an administrator, and
     // the unique indexes refuse a second open invitation to the same recipient.
-    const [organisation] = await tx
+    const [organisation] = await db
       .select({ name: organisations.name })
       .from(organisations)
       .where(eq(organisations.id, organisationId));
     if (!organisation) throw new ApiFailure('not_found');
     if ('userId' in recipient) {
-      const member = await tx.query.organisationMemberships.findFirst({
+      const member = await db.query.organisationMemberships.findFirst({
         columns: { id: true },
         where: { organisationId, userId: recipient.userId }
       });
       if (member) throw new ApiFailure('already_member');
     }
-    await tx
+    await db
       .delete(organisationInvitations)
       .where(
         and(
@@ -113,7 +116,7 @@ export async function createInvitation(principal: UserPrincipal, organisationId:
           lte(organisationInvitations.expiresAt, sql`now()`)
         )
       );
-    const row = await insertInvitation(tx, values);
+    const row = await insertInvitation(values);
     return { invitation: row, organisationName: organisation.name };
   });
   if (code !== null && invitation.email !== null) {
@@ -130,8 +133,9 @@ export async function createInvitation(principal: UserPrincipal, organisationId:
 
 /** An open invitation by its ID, for the page its link opens: readable by anyone who has the link. */
 export function readInvitation(invitationId: string) {
-  return trusted(async tx => {
-    const [row] = await tx
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const [row] = await db
       .select({
         id: organisationInvitations.id,
         organisation: { id: organisations.id, name: organisations.name },
@@ -146,10 +150,12 @@ export function readInvitation(invitationId: string) {
   });
 }
 
-/** The principal's open invitations to their account. Emailed invitations are reached through their links instead. */
-export function listOwnInvitations(principal: UserPrincipal) {
-  return trusted(tx =>
-    tx
+/** The user's open invitations to their account. Emailed invitations are reached through their links instead. */
+export function listOwnInvitations() {
+  const principal = useUser();
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    return db
       .select({
         id: organisationInvitations.id,
         organisation: { id: organisations.id, name: organisations.name },
@@ -158,16 +164,18 @@ export function listOwnInvitations(principal: UserPrincipal) {
       .from(organisationInvitations)
       .innerJoin(organisations, eq(organisations.id, organisationInvitations.organisationId))
       .where(and(eq(organisationInvitations.userId, principal.id), open))
-      .orderBy(organisationInvitations.id)
-  );
+      .orderBy(organisationInvitations.id);
+  });
 }
 
 /**
- * Lock an open invitation the principal may redeem: theirs by account, or any emailed one whose code they present.
+ * Lock an open invitation the user may redeem: theirs by account, or any emailed one whose code they present.
  * Anything else is `notFound`, so a wrong guess learns nothing; a wrong code is reported as such.
  */
-async function redeemable(tx: Transaction, principal: UserPrincipal, invitationId: string, proof: InvitationProof) {
-  const [invitation] = await tx
+async function redeemable(invitationId: string, proof: InvitationProof) {
+  const db = useDB({ trusted: true });
+  const principal = useUser();
+  const [invitation] = await db
     .select({
       id: organisationInvitations.id,
       organisationId: organisationInvitations.organisationId,
@@ -188,53 +196,53 @@ async function redeemable(tx: Transaction, principal: UserPrincipal, invitationI
   return invitation;
 }
 
-/** Join the organisation as the principal, using up the invitation. */
-export function acceptInvitation(principal: UserPrincipal, invitationId: string, acceptance: Acceptance) {
-  return trusted(async (tx, access) => {
-    const invitation = await redeemable(tx, principal, invitationId, acceptance);
-    const membership = await addMember(tx, access, principal, {
+/** Join the organisation as the user, using up the invitation. */
+export function acceptInvitation(invitationId: string, acceptance: Acceptance) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const invitation = await redeemable(invitationId, acceptance);
+    const membership = await addMember({
       organisationId: invitation.organisationId,
       displayName: acceptance.displayName
     });
-    await tx.delete(organisationInvitations).where(eq(organisationInvitations.id, invitation.id));
+    await db.delete(organisationInvitations).where(eq(organisationInvitations.id, invitation.id));
     return membership;
   });
 }
 
 /** Turn the invitation down, which deletes it. Needs the same proof as accepting. */
-export function declineInvitation(principal: UserPrincipal, invitationId: string, proof: InvitationProof) {
-  return trusted(async tx => {
-    const invitation = await redeemable(tx, principal, invitationId, proof);
-    await tx.delete(organisationInvitations).where(eq(organisationInvitations.id, invitation.id));
+export function declineInvitation(invitationId: string, proof: InvitationProof) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const invitation = await redeemable(invitationId, proof);
+    await db.delete(organisationInvitations).where(eq(organisationInvitations.id, invitation.id));
   });
 }
 
 /** Cancel one of an organisation's invitations: administrators only, by row-level security. */
-export async function cancelInvitation(principal: UserPrincipal, organisationId: string, invitationId: string) {
-  const environment = useEnvironment();
-  const session = await environment.session(principal);
-  const deleted = await session.transaction(tx =>
-    tx
+export async function cancelInvitation(organisationId: string, invitationId: string) {
+  const deleted = await transaction(async () => {
+    const db = useDB();
+    return db
       .delete(organisationInvitations)
       .where(
         and(eq(organisationInvitations.id, invitationId), eq(organisationInvitations.organisationId, organisationId))
       )
-      .returning({ id: organisationInvitations.id })
-  );
+      .returning({ id: organisationInvitations.id });
+  });
   if (deleted.length === 0) throw new ApiFailure('not_found');
 }
 
 /** An organisation's open and expired invitations, for its administrators; others see none. */
-export async function listOrganisationInvitations(principal: UserPrincipal, organisationId: string) {
-  const environment = useEnvironment();
-  const session = await environment.session(principal);
-  return session.transaction(async tx => {
-    const [organisation] = await tx
+export function listOrganisationInvitations(organisationId: string) {
+  return transaction(async () => {
+    const db = useDB();
+    const [organisation] = await db
       .select({ id: organisations.id })
       .from(organisations)
       .where(eq(organisations.id, organisationId));
     if (!organisation) throw new ApiFailure('not_found');
-    return tx
+    return db
       .select({
         id: organisationInvitations.id,
         email: organisationInvitations.email,

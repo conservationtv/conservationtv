@@ -1,11 +1,8 @@
 import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import type { Access } from '@conservationtv/umbrella';
-import { authorization } from '../access.ts';
-import type { Database } from '../db/client.ts';
 import { browsers, devices, organisationMemberships, session } from '../db/schema.ts';
+import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import type { UserPrincipal } from '../middleware/principal.ts';
-import { trusted, type Transaction } from '../organisations/membership.ts';
+import { useAuthSession, useUser } from '../middleware/principal.ts';
 import { grantDevice, revokeDevice } from './device-principals.ts';
 import { deviceIdentity } from './identity.ts';
 
@@ -17,8 +14,9 @@ import { deviceIdentity } from './identity.ts';
 const MAX_NAME_LENGTH = 120;
 
 /** The device of the session's browser in the organisation, if it has one. */
-function existingBrowser(tx: Transaction, sessionId: string, organisationId: string) {
-  return tx.query.devices.findFirst({
+function existingBrowser(sessionId: string, organisationId: string) {
+  const db = useDB({ trusted: true });
+  return db.query.devices.findFirst({
     columns: {
       id: true,
       kind: true,
@@ -33,9 +31,11 @@ function existingBrowser(tx: Transaction, sessionId: string, organisationId: str
   });
 }
 
-/** Whether the principal belongs to the organisation. */
-async function isMember(tx: Transaction, principal: UserPrincipal, organisationId: string) {
-  const [membership] = await tx
+/** Whether the user belongs to the organisation. */
+async function isMember(organisationId: string) {
+  const db = useDB({ trusted: true });
+  const principal = useUser();
+  const [membership] = await db
     .select({ id: organisationMemberships.id })
     .from(organisationMemberships)
     .where(
@@ -45,52 +45,57 @@ async function isMember(tx: Transaction, principal: UserPrincipal, organisationI
 }
 
 /** A name for the session's browser: its user agent, as Better Auth recorded it. */
-async function browserName(tx: Transaction, sessionId: string) {
-  const [row] = await tx.select({ userAgent: session.userAgent }).from(session).where(eq(session.id, sessionId));
+async function browserName(sessionId: string) {
+  const db = useDB({ trusted: true });
+  const [row] = await db.select({ userAgent: session.userAgent }).from(session).where(eq(session.id, sessionId));
   const userAgent = row?.userAgent?.trim() ?? '';
   return userAgent === '' ? 'Browser' : userAgent.slice(0, MAX_NAME_LENGTH);
 }
 
-/** Get or create the session's browser device in an organisation the principal belongs to, with its private key. */
-export function ensureBrowser(principal: UserPrincipal, sessionId: string, organisationId: string) {
-  return trusted(async (tx, access) => {
+/** Get or create the request session's browser device in an organisation the user belongs to, with its private key. */
+export function ensureBrowser(organisationId: string) {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
+    const principal = useUser();
+    const sessionId = useAuthSession();
     // One at a time per session and organisation, so concurrent first requests make one browser between them.
-    await tx.execute(
+    await db.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${`browser:${sessionId}:${organisationId}`}, 0))`
     );
-    if (!(await isMember(tx, principal, organisationId))) throw new ApiFailure('not_found');
-    const existing = await existingBrowser(tx, sessionId, organisationId);
+    if (!(await isMember(organisationId))) throw new ApiFailure('not_found');
+    const existing = await existingBrowser(sessionId, organisationId);
     if (existing) return existing;
     const identity = await deviceIdentity();
-    const name = await browserName(tx, sessionId);
-    const [device] = await tx
+    const name = await browserName(sessionId);
+    const [device] = await db
       .insert(devices)
       .values({ ...identity, organisationId, kind: 'browser', name, networkId: null })
       .returning({ id: devices.id });
-    await tx.insert(browsers).values({ id: device!.id, organisationId, userId: principal.id, sessionId });
-    await grantDevice(access, organisationId, device!.id);
-    const created = await existingBrowser(tx, sessionId, organisationId);
+    await db.insert(browsers).values({ id: device!.id, organisationId, userId: principal.id, sessionId });
+    await grantDevice(organisationId, device!.id);
+    const created = await existingBrowser(sessionId, organisationId);
     return created!;
   });
 }
 
 /** Delete the browsers matching `where`, their devices and their devices' grants. */
-export async function deleteBrowsers(tx: Transaction, access: Access, where: SQL | undefined) {
-  const gone = await tx
+export async function deleteBrowsers(where: SQL | undefined) {
+  const db = useDB({ trusted: true });
+  const gone = await db
     .delete(browsers)
     .where(where)
     .returning({ id: browsers.id, organisationId: browsers.organisationId });
   if (gone.length === 0) return;
-  await tx.delete(devices).where(
+  await db.delete(devices).where(
     inArray(
       devices.id,
       gone.map(browser => browser.id)
     )
   );
-  for (const browser of gone) await revokeDevice(access, browser.organisationId, browser.id);
+  for (const browser of gone) await revokeDevice(browser.organisationId, browser.id);
 }
 
 /** Delete an auth session's browsers, before Better Auth deletes the session: on the owning connection it uses. */
-export function endSessionBrowsers(database: Database, sessionId: string) {
-  return database.transaction(tx => deleteBrowsers(tx, authorization.access(tx), eq(browsers.sessionId, sessionId)));
+export function endSessionBrowsers(sessionId: string) {
+  return trustedTransaction(() => deleteBrowsers(eq(browsers.sessionId, sessionId)));
 }

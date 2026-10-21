@@ -9,7 +9,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { logRecords, metricPoints, metricSeries, observations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
-import { trusted } from '../organisations/membership.ts';
+import { trustedTransaction, useDB } from '../db/transaction.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
 import { useEnvironment } from '../env/env.ts';
 import { SettingsSchema } from '../topology/settings.ts';
@@ -98,7 +98,8 @@ export type Batch = z.output<typeof BatchSchema>;
 
 /** Store every report in the batch, as the device that signed it. */
 export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
-  return trusted(async tx => {
+  return trustedTransaction(async () => {
+    const db = useDB({ trusted: true });
     // Refuse the whole batch if any report is from the future, then store each kind with one insert.
     const environment = useEnvironment();
     const now = environment.clock();
@@ -115,7 +116,7 @@ export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
     const metrics = batch.reports.filter(report => report.kind === 'metric');
     const logs = batch.reports.filter(report => report.kind === 'log');
     if (events.length > 0)
-      await tx
+      await db
         .insert(observations)
         .values(events.map(report => ({ ...reported(report), type: report.payload.type, data: report.payload.data })));
     if (metrics.length > 0) {
@@ -131,10 +132,10 @@ export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
         unit,
         dimensions
       }));
-      await tx.insert(metricSeries).values(series).onConflictDoNothing();
+      await db.insert(metricSeries).values(series).onConflictDoNothing();
       const subjectIds = [...new Set(series.map(({ subjectId }) => subjectId))];
       const names = [...new Set(series.map(({ name }) => name))];
-      const known = await tx
+      const known = await db
         .select({
           id: metricSeries.id,
           subjectId: metricSeries.subjectId,
@@ -157,10 +158,10 @@ export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
         if (seriesId === undefined) throw new Error(`No series for ${payload.name} about ${subjectId}`);
         return { seriesId, organisationId, observedAt: new Date(observedAt), ...summaryOf(payload) };
       });
-      await tx.insert(metricPoints).values(points).onConflictDoNothing();
+      await db.insert(metricPoints).values(points).onConflictDoNothing();
     }
     if (logs.length > 0)
-      await tx.insert(logRecords).values(logs.map(report => ({ ...reported(report), ...report.payload })));
+      await db.insert(logRecords).values(logs.map(report => ({ ...reported(report), ...report.payload })));
     return { accepted: batch.reports.length };
   });
 }

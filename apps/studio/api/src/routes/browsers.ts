@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { requirePrincipal, useAuthSession, usePrincipal } from '../middleware/principal.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
 import { ensureBrowser } from '../topology/browsers.ts';
 import {
   invalidRequest,
@@ -38,9 +38,7 @@ export default new Hono().put(
   validator('param', OrganisationParamsSchema),
   async c => {
     const { id } = c.req.valid('param');
-    const principal = usePrincipal();
-    const sessionId = useAuthSession();
-    const browser = await ensureBrowser(principal, sessionId, id);
+    const browser = await ensureBrowser(id);
     const privateKey = Buffer.from(browser.privateKey).toString('base64url');
     c.header('Cache-Control', 'no-store');
     return c.json({ ...browser, privateKey }, 200);

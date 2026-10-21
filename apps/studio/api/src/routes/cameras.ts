@@ -3,13 +3,12 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { cameras, devices } from '../db/schema.ts';
+import { transaction, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
 import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
 import { deviceIdentity } from '../topology/identity.ts';
 import { CameraCredentialsSchema, CameraSettingsSchema } from '../cameras/drivers.ts';
-import type { Transaction } from '../organisations/membership.ts';
 import { NetworkReferenceSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import { DeviceNameSchema } from './devices.ts';
@@ -32,8 +31,9 @@ const CameraParamsSchema = OrganisationParamsSchema.extend({ cameraId: z.uuid().
 export type CameraParams = z.output<typeof CameraParamsSchema>;
 
 /** The camera, as its routes return it. */
-function readCamera(tx: Transaction, organisationId: string, cameraId: string) {
-  return tx.query.cameras.findFirst({
+function readCamera(organisationId: string, cameraId: string) {
+  const db = useDB();
+  return db.query.cameras.findFirst({
     columns: { id: true, settings: true },
     with: {
       device: {
@@ -67,11 +67,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx.query.cameras.findMany({
+      const rows = await transaction(async () => {
+        const db = useDB();
+        return db.query.cameras.findMany({
           columns: { id: true, settings: true },
           with: {
             device: {
@@ -80,8 +78,8 @@ export default new Hono()
           },
           where: { organisationId: id },
           orderBy: { id: 'asc' }
-        })
-      );
+        });
+      });
       c.header('Cache-Control', 'no-store');
       return c.json({ cameras: rows }, 200);
     }
@@ -118,19 +116,19 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const principal = usePrincipal();
       const identity = await deviceIdentity();
       // Trusted, so the device's principal grant is made with it (src/topology/device-principals.ts).
-      const row = await changeDevices(principal, id, 'create', async (tx, access) => {
-        const [device] = await tx
+      const row = await changeDevices(id, 'create', async () => {
+        const db = useDB({ trusted: true });
+        const [device] = await db
           .insert(devices)
           .values({ ...identity, organisationId: id, kind: 'camera', name: body.name, networkId: body.networkId })
           .returning({ id: devices.id });
-        await tx
+        await db
           .insert(cameras)
           .values({ id: device!.id, organisationId: id, settings: body.settings, credentials: body.credentials });
-        await grantDevice(access, id, device!.id);
-        const camera = await readCamera(tx, id, device!.id);
+        await grantDevice(id, device!.id);
+        const camera = await readCamera(id, device!.id);
         return camera!;
       });
       c.header('Cache-Control', 'no-store');
@@ -156,10 +154,7 @@ export default new Hono()
     validator('param', CameraParamsSchema),
     async c => {
       const { id, cameraId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(tx => readCamera(tx, id, cameraId));
+      const row = await transaction(() => readCamera(id, cameraId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -197,18 +192,16 @@ export default new Hono()
     async c => {
       const { id, cameraId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
+      const row = await transaction(async () => {
+        const db = useDB();
         // Credentials are written but never read back: request sessions cannot select them.
-        const updated = await tx
+        const updated = await db
           .update(cameras)
           .set({ settings: body.settings, credentials: body.credentials })
           .where(and(eq(cameras.organisationId, id), eq(cameras.id, cameraId)))
           .returning({ id: cameras.id });
-        if (updated.length === 0) throw await unchanged(tx, cameras.id, cameraId);
-        const camera = await readCamera(tx, id, cameraId);
+        if (updated.length === 0) throw await unchanged(cameras.id, cameraId);
+        const camera = await readCamera(id, cameraId);
         return camera!;
       });
       c.header('Cache-Control', 'no-store');
@@ -237,16 +230,16 @@ export default new Hono()
     validator('param', CameraParamsSchema),
     async c => {
       const { id, cameraId } = c.req.valid('param');
-      const principal = usePrincipal();
       // Trusted, so the device's principal grant is revoked with it (src/topology/device-principals.ts).
-      await changeDevices(principal, id, 'remove', async (tx, access) => {
-        const deleted = await tx
+      await changeDevices(id, 'remove', async () => {
+        const db = useDB({ trusted: true });
+        const deleted = await db
           .delete(cameras)
           .where(and(eq(cameras.organisationId, id), eq(cameras.id, cameraId)))
           .returning({ id: cameras.id });
         if (deleted.length === 0) throw new ApiFailure('not_found');
-        await tx.delete(devices).where(and(eq(devices.organisationId, id), eq(devices.id, cameraId)));
-        await revokeDevice(access, id, cameraId);
+        await db.delete(devices).where(and(eq(devices.organisationId, id), eq(devices.id, cameraId)));
+        await revokeDevice(id, cameraId);
       });
       return c.body(null, 204);
     }

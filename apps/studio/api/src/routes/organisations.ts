@@ -2,10 +2,10 @@ import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import type { Session } from '@conservationtv/umbrella';
 import { organisationProfiles, organisations } from '../db/schema.ts';
+import { transaction, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { requirePrincipal, useUser } from '../middleware/principal.ts';
 import { cancelInvitation, createInvitation, listOrganisationInvitations } from '../organisations/invitations.ts';
 import {
   createOrganisation,
@@ -16,7 +16,6 @@ import {
   listOwnOrganisations,
   revokeAdmin
 } from '../organisations/membership.ts';
-import { useEnvironment } from '../env/env.ts';
 import {
   accountNotFound,
   alreadyInvited,
@@ -38,11 +37,12 @@ const MemberParamsSchema = OrganisationParamsSchema.extend({
 });
 export type MemberParams = z.output<typeof MemberParamsSchema>;
 
-/** Whether the organisation is visible to the session: distinguishes "not yours" from "not allowed". */
-async function visible(session: Session, organisationId: string) {
-  const rows = await session.transaction(tx =>
-    tx.select({ id: organisations.id }).from(organisations).where(eq(organisations.id, organisationId))
-  );
+/** Whether the organisation is visible to the principal: distinguishes "not yours" from "not allowed". */
+async function visible(organisationId: string) {
+  const rows = await transaction(async () => {
+    const db = useDB();
+    return db.select({ id: organisations.id }).from(organisations).where(eq(organisations.id, organisationId));
+  });
   return rows.length > 0;
 }
 
@@ -67,8 +67,7 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const principal = usePrincipal();
-      const rows = await listOwnOrganisations(principal);
+      const rows = await listOwnOrganisations();
       c.header('Cache-Control', 'no-store');
       return c.json({ organisations: rows }, 200);
     }
@@ -98,8 +97,7 @@ export default new Hono()
     ),
     async c => {
       const body = c.req.valid('json');
-      const principal = usePrincipal();
-      const organisation = await createOrganisation(principal, {
+      const organisation = await createOrganisation({
         name: body.name,
         displayName: body.displayName
       });
@@ -127,15 +125,13 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db
           .select({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt })
           .from(organisations)
-          .where(eq(organisations.id, id))
-      );
+          .where(eq(organisations.id, id));
+      });
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -163,17 +159,15 @@ export default new Hono()
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The organisation name.') })),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db
           .update(organisations)
           .set(c.req.valid('json'))
           .where(eq(organisations.id, id))
-          .returning({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt })
-      );
-      if (!row) throw new ApiFailure((await visible(session, id)) ? 'forbidden' : 'not_found');
+          .returning({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt });
+      });
+      if (!row) throw new ApiFailure((await visible(id)) ? 'forbidden' : 'not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -198,8 +192,7 @@ export default new Hono()
     requirePrincipal,
     validator('param', OrganisationParamsSchema),
     async c => {
-      const principal = usePrincipal();
-      await deleteOrganisation(principal, c.req.valid('param').id);
+      await deleteOrganisation(c.req.valid('param').id);
       return c.body(null, 204);
     }
   )
@@ -224,12 +217,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await listMembers(principal, id);
+      const rows = await listMembers(id);
       // Every member sees at least themselves, so no rows means the organisation is hidden, or its members are.
-      if (rows.length === 0 && !(await visible(session, id))) throw new ApiFailure('not_found');
+      if (rows.length === 0 && !(await visible(id))) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json({ members: rows }, 200);
     }
@@ -257,17 +247,16 @@ export default new Hono()
       z.strictObject({ displayName: z.string().trim().min(1).max(120).describe('Your name in this organisation.') })
     ),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
+      const [row] = await transaction(async () => {
+        const db = useDB();
+        return db
           .update(organisationProfiles)
           .set({ displayName: c.req.valid('json').displayName })
           .where(and(eq(organisationProfiles.organisationId, id), eq(organisationProfiles.userId, principal.id)))
-          .returning({ userId: organisationProfiles.userId, displayName: organisationProfiles.displayName })
-      );
+          .returning({ userId: organisationProfiles.userId, displayName: organisationProfiles.displayName });
+      });
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -295,9 +284,9 @@ export default new Hono()
     requirePrincipal,
     validator('param', MemberParamsSchema),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id, userId } = c.req.valid('param');
-      await endMembership(principal, id, userId === 'me' ? principal.id : userId);
+      await endMembership(id, userId === 'me' ? principal.id : userId);
       return c.body(null, 204);
     }
   )
@@ -321,9 +310,9 @@ export default new Hono()
     requirePrincipal,
     validator('param', MemberParamsSchema),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id, userId } = c.req.valid('param');
-      await grantAdmin(principal, id, userId === 'me' ? principal.id : userId);
+      await grantAdmin(id, userId === 'me' ? principal.id : userId);
       return c.body(null, 204);
     }
   )
@@ -349,9 +338,9 @@ export default new Hono()
     requirePrincipal,
     validator('param', MemberParamsSchema),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id, userId } = c.req.valid('param');
-      await revokeAdmin(principal, id, userId === 'me' ? principal.id : userId);
+      await revokeAdmin(id, userId === 'me' ? principal.id : userId);
       return c.body(null, 204);
     }
   )
@@ -374,8 +363,7 @@ export default new Hono()
     requirePrincipal,
     validator('param', OrganisationParamsSchema),
     async c => {
-      const principal = usePrincipal();
-      const invitations = await listOrganisationInvitations(principal, c.req.valid('param').id);
+      const invitations = await listOrganisationInvitations(c.req.valid('param').id);
       c.header('Cache-Control', 'no-store');
       return c.json({ invitations }, 200);
     }
@@ -417,8 +405,7 @@ export default new Hono()
         })
     ),
     async c => {
-      const principal = usePrincipal();
-      const invitation = await createInvitation(principal, c.req.valid('param').id, c.req.valid('json'));
+      const invitation = await createInvitation(c.req.valid('param').id, c.req.valid('json'));
       c.header('Cache-Control', 'no-store');
       return c.json(invitation, 201);
     }
@@ -443,8 +430,7 @@ export default new Hono()
     validator('param', OrganisationParamsSchema.extend({ invitationId: z.uuid().describe('The invitation.') })),
     async c => {
       const { id, invitationId } = c.req.valid('param');
-      const principal = usePrincipal();
-      await cancelInvitation(principal, id, invitationId);
+      await cancelInvitation(id, invitationId);
       return c.body(null, 204);
     }
   );
