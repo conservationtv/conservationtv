@@ -33,22 +33,6 @@ export type DeviceParams = z.output<typeof DeviceParamsSchema>;
 export const DeviceNameSchema = z.string().trim().min(1).max(120).describe('The device name.');
 export type DeviceName = z.output<typeof DeviceNameSchema>;
 
-/** A device's fields, as an agent or camera nests them under `device`: all but its ID, which is theirs too. */
-export const deviceQuery = {
-  columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
-} as const;
-
-/** A device: the columns every device route returns. */
-export const deviceColumns = {
-  id: devices.id,
-  kind: devices.kind,
-  name: devices.name,
-  networkId: devices.networkId,
-  publicKey: devices.publicKey,
-  publicId: devices.publicId,
-  createdAt: devices.createdAt
-};
-
 // An organisation's devices, in the principal's request session: members read them, administrators rename and move
 // them. A device is created and removed as its kind: under /agents or /cameras, which share its ID, or as a session's
 // browser (/browser). Administrators alone read a device's private key. Devices themselves, signing their requests, read
@@ -115,7 +99,15 @@ export default new Hono()
       const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
         tx
-          .select(deviceColumns)
+          .select({
+            id: devices.id,
+            kind: devices.kind,
+            name: devices.name,
+            networkId: devices.networkId,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId,
+            createdAt: devices.createdAt
+          })
           .from(devices)
           .where(and(eq(devices.organisationId, id), kind === undefined ? undefined : eq(devices.kind, kind)))
           .orderBy(devices.id)
@@ -148,7 +140,15 @@ export default new Hono()
       const session = await environment.session(principal);
       const [row] = await session.transaction(tx =>
         tx
-          .select(deviceColumns)
+          .select({
+            id: devices.id,
+            kind: devices.kind,
+            name: devices.name,
+            networkId: devices.networkId,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId,
+            createdAt: devices.createdAt
+          })
           .from(devices)
           .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
       );
@@ -225,7 +225,15 @@ export default new Hono()
           .update(devices)
           .set({ name: body.name, networkId: body.networkId })
           .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
-          .returning(deviceColumns);
+          .returning({
+            id: devices.id,
+            kind: devices.kind,
+            name: devices.name,
+            networkId: devices.networkId,
+            publicKey: devices.publicKey,
+            publicId: devices.publicId,
+            createdAt: devices.createdAt
+          });
         if (!device) throw await unchanged(tx, devices.id, deviceId);
         return device;
       });

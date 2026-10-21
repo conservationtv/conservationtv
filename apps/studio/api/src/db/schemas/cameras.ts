@@ -1,14 +1,16 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
 import { foreignKey, jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core';
-import type { Settings } from '../../topology/settings.ts';
+import { CameraCredentialsSchema, type CameraSettings } from '../../cameras/drivers.ts';
+import { encrypted, json } from '../encrypted.ts';
 import { devices } from './devices.ts';
 import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
  * A device that is a camera: it shares the device's ID, and with it the device's name, network and identity. Its
- * `settings` describe it, including the endpoints it offers by itself, from which those are derived.
+ * `settings` say which driver reads it (src/cameras/drivers.ts) and where its streams are; its `credentials`, kept
+ * encrypted and never readable by request sessions, how to authenticate to them.
  */
 export const cameras = withAccess(
   pgTable(
@@ -21,7 +23,8 @@ export const cameras = withAccess(
       kind: text('kind')
         .generatedAlwaysAs(sql`'camera'`)
         .notNull(),
-      settings: jsonb('settings').$type<Settings>().default({}).notNull()
+      settings: jsonb('settings').$type<CameraSettings>().notNull(),
+      credentials: encrypted('camera.credentials', json(CameraCredentialsSchema))('credentials')
     },
     t => [
       // The camera is its device, which is a camera and nothing else.
@@ -35,6 +38,7 @@ export const cameras = withAccess(
   t => ({
     name: 'cameras',
     scope: organisations.$access.scope.via(t.organisationId),
+    hidden: [t.credentials],
     actions: topologyActions,
     roles: topologyRoles
   })

@@ -27,15 +27,13 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const NetworkParamsSchema = OrganisationParamsSchema.extend({ networkId: z.uuid().describe('The network.') });
 export type NetworkParams = z.output<typeof NetworkParamsSchema>;
 
-/** A network as every network route returns it, with the agent active on it, if any. */
-const networkQuery = {
-  columns: { id: true, name: true, createdAt: true },
-  with: { activeAgent: { columns: { id: true } } }
-} as const;
-
 /** The network, as its routes return it. */
 function readNetwork(tx: Transaction, organisationId: string, networkId: string) {
-  return tx.query.networks.findFirst({ ...networkQuery, where: { organisationId, id: networkId } });
+  return tx.query.networks.findFirst({
+    columns: { id: true, name: true, createdAt: true },
+    with: { activeAgent: { columns: { id: true } } },
+    where: { organisationId, id: networkId }
+  });
 }
 
 // An organisation's managed networks, in the principal's request session: members read them, administrators manage
@@ -65,7 +63,12 @@ export default new Hono()
       const principal = usePrincipal();
       const session = await environment.session(principal);
       const rows = await session.transaction(tx =>
-        tx.query.networks.findMany({ ...networkQuery, where: { organisationId: id }, orderBy: { id: 'asc' } })
+        tx.query.networks.findMany({
+          columns: { id: true, name: true, createdAt: true },
+          with: { activeAgent: { columns: { id: true } } },
+          where: { organisationId: id },
+          orderBy: { id: 'asc' }
+        })
       );
       c.header('Cache-Control', 'no-store');
       return c.json({ networks: rows }, 200);

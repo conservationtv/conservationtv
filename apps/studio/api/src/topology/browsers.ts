@@ -16,23 +16,21 @@ import { deviceIdentity } from './identity.ts';
 /** The longest device name; a browser is named after its session's user agent. */
 const MAX_NAME_LENGTH = 120;
 
-/** A browser as the route returns it: its device, with the private key. */
-const browserQuery = {
-  columns: {
-    id: true,
-    kind: true,
-    name: true,
-    networkId: true,
-    publicKey: true,
-    publicId: true,
-    privateKey: true,
-    createdAt: true
-  }
-} as const;
-
 /** The device of the session's browser in the organisation, if it has one. */
 function existingBrowser(tx: Transaction, sessionId: string, organisationId: string) {
-  return tx.query.devices.findFirst({ ...browserQuery, where: { browser: { sessionId, organisationId } } });
+  return tx.query.devices.findFirst({
+    columns: {
+      id: true,
+      kind: true,
+      name: true,
+      networkId: true,
+      publicKey: true,
+      publicId: true,
+      privateKey: true,
+      createdAt: true
+    },
+    where: { browser: { sessionId, organisationId } }
+  });
 }
 
 /** Whether the principal belongs to the organisation. */

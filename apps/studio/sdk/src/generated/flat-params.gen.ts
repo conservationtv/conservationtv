@@ -193,7 +193,8 @@ export const CameraCreateParamsSchema = z.object({
     id: PostOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.'),
     name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
     networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.nonoptional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
+    credentials: PostOrganisationsByIdCamerasBodySchema.shape.credentials.optional().describe('How to authenticate to the camera. Write-only: never returned.')
 });
 
 export type CameraCreateParams = z.infer<typeof CameraCreateParamsSchema>;
@@ -215,7 +216,8 @@ export type CameraGetParams = z.infer<typeof CameraGetParamsSchema>;
 export const CameraUpdateParamsSchema = z.object({
     id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
-    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.nonoptional().describe('Settings validated by the implementation that reads them.')
+    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
+    credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional()
 });
 
 export type CameraUpdateParams = z.infer<typeof CameraUpdateParamsSchema>;
@@ -496,6 +498,10 @@ export type ReportSubmitParams = z.infer<typeof ReportSubmitParamsSchema>;
 export const IrohSessionCreateParamsSchema = z.object({});
 
 export type IrohSessionCreateParams = z.infer<typeof IrohSessionCreateParamsSchema>;
+
+export const DeviceConfigurationGetParamsSchema = z.object({});
+
+export type DeviceConfigurationGetParams = z.infer<typeof DeviceConfigurationGetParamsSchema>;
 
 export const GatewayKeyGetParamsSchema = z.object({});
 

@@ -7,16 +7,25 @@ import { z } from 'zod';
 import type { AgentConfiguration } from '../../config.ts';
 import { MetricReporter } from '../reports.ts';
 import { mediamtxBinary } from './binary.ts';
-import { type MediamtxAddresses, renderConfig } from './config.ts';
+import { MediamtxAuthSchema, MediamtxAuthServer } from './auth.ts';
+import { type MediamtxAddresses, MoqPublisherSchema, renderConfig } from './config.ts';
 import { MediamtxControl } from './control.ts';
+import { BroadcastJoiner } from './joiner.ts';
 import { METRICS_STOPPED, MediamtxMetrics, type MediamtxMetricsStatus } from './metrics.ts';
+import { moqBinary } from './moq.ts';
 import { MediamtxPathsSchema, pathIndexOf } from './paths.ts';
 
-/** Which MediaMTX to run, the paths it serves, and how often to ship its metrics. */
+/** Which MediaMTX to run, the paths it serves, how it admits readers, and how often to ship its metrics. */
 export const MediamtxSpecSchema = z.object({
   binary: mediamtxBinary.schema,
-  /** The paths to serve, each delivering an exposure. None serves any path, about the agent's device. */
+  /** The paths to serve, each delivering an exposure. None, without `auth`, serves any path, about the agent's device. */
   paths: MediamtxPathsSchema.default([]),
+  /** Admit readers and publishers on this machine, and others only by tokens the studio API signs for this gateway; without it, anyone. */
+  auth: MediamtxAuthSchema.optional(),
+  /** Exposures to publish to MoQ relays from what this MediaMTX serves: each rendition run by MediaMTX, joined by the agent. */
+  publishers: z.array(MoqPublisherSchema).default([]),
+  /** The moq CLI the publishers run, installed beside MediaMTX while there are any. */
+  moq: moqBinary.schema.optional(),
   /** How often to read MediaMTX's metrics page and submit what it says. */
   metricsIntervalMs: z.number().int().min(1_000)
 });
@@ -44,6 +53,9 @@ const STOPPED: MediamtxStatus = { ...PROCESS_STOPPED, version: null, installing:
  * the config beside it and has `AdoptedProcess` run it for that install: a MediaMTX left by an earlier agent is
  * adopted if it came from the install the spec now names, and replaced otherwise, so a changed config is a reload
  * in place while a changed version replaces the process. Only removing the key, through `finalize`, stops MediaMTX.
+ *
+ * Beside it, in the agent: the answers to MediaMTX's authentication requests (auth.ts), and the joined broadcast of
+ * each exposure it publishes (joiner.ts). Both stop with the agent, while MediaMTX goes on.
  */
 export class MediamtxRuntime {
   readonly status$ = new BehaviorSubject<MediamtxStatus>(STOPPED);
@@ -52,6 +64,8 @@ export class MediamtxRuntime {
   private readonly metrics: MediamtxMetrics;
   private readonly watching: Subscription[];
   private readonly configFile: string;
+  private readonly authServer: MediamtxAuthServer;
+  private readonly joiner = new BroadcastJoiner();
 
   constructor(
     private readonly config: AgentConfiguration,
@@ -66,16 +80,20 @@ export class MediamtxRuntime {
       this.metrics.status$.subscribe(metrics => this.update({ metrics }))
     ];
     this.configFile = join(options.directory, 'mediamtx.yml');
+    this.authServer = new MediamtxAuthServer(options.authHttp);
   }
 
   /**
-   * Installs the binary the spec names if need be, has a MediaMTX from it serving the config, then ships its metrics.
-   * Resolves once MediaMTX is serving.
+   * Installs the binary the spec names if need be, answers its authentication requests, has a MediaMTX from it serving
+   * the config, then joins its publishers' broadcasts and ships its metrics. Resolves once MediaMTX is serving.
    */
   async execute(spec: MediamtxSpec, signal: AbortSignal): Promise<void> {
     const installed = (await this.binaries.find(spec.binary)) ?? (await this.install(spec, signal));
     this.update({ version: installed.version });
-    await this.writeConfig(spec);
+    const moq = await this.installMoq(spec, signal);
+    if (spec.auth === undefined) await this.authServer.close();
+    else await this.authServer.serve(spec.auth);
+    await this.writeConfig(spec, moq?.path);
     // From the same spec as the config, so the metrics follow each path to the exposure it now delivers.
     this.metrics.attribute(pathIndexOf(spec.paths));
     const { directory } = this.options;
@@ -83,9 +101,18 @@ export class MediamtxRuntime {
       { key: installed.id, binary: installed.path, args: [this.configFile], cwd: directory },
       signal
     );
+    this.joiner.apply(spec.publishers);
     // A direct agent has no studio API to ship to.
     if (this.config.type !== 'direct') this.metrics.start(spec.metricsIntervalMs);
     await this.binaries.prune(installed, { spare: 1 });
+    if (moq !== undefined) await this.binaries.prune(moq, { spare: 1 });
+  }
+
+  /** The moq CLI, installed if the spec has publishers for it to run. */
+  private async installMoq(spec: MediamtxSpec, signal: AbortSignal): Promise<Installed | undefined> {
+    if (spec.publishers.length === 0) return undefined;
+    if (spec.moq === undefined) throw new Error('The spec has publishers, but no moq CLI for them to run');
+    return (await this.binaries.find(spec.moq)) ?? (await this.binaries.install(moqBinary, spec.moq, signal));
   }
 
   /**
@@ -94,14 +121,21 @@ export class MediamtxRuntime {
    */
   async finalize(): Promise<void> {
     this.metrics.stop();
+    this.joiner.close();
     await this.process.stop();
+    await this.authServer.close();
     await this.binaries.clear();
     this.update({ version: null });
   }
 
-  /** The agent is stopping. MediaMTX is left running for the next agent to adopt; only the watching stops. */
+  /**
+   * The agent is stopping. MediaMTX is left running for the next agent to adopt; the watching, joining and answering
+   * stop, so until then MediaMTX admits no one and its publishers' broadcasts go unjoined.
+   */
   dispose(): void {
     for (const subscription of this.watching) subscription.unsubscribe();
+    this.joiner.close();
+    void this.authServer.close();
     this.metrics.dispose();
     this.process.dispose();
     this.status$.complete();
@@ -117,9 +151,10 @@ export class MediamtxRuntime {
    * Writes the config before MediaMTX reads it, or re-reads it: a running MediaMTX reloads its file whenever it is
    * written, so one already serving this config is left undisturbed.
    */
-  private async writeConfig(spec: MediamtxSpec): Promise<void> {
+  private async writeConfig(spec: MediamtxSpec, moqExecutable: string | undefined): Promise<void> {
     await mkdir(this.options.directory, { recursive: true });
-    const config = await renderConfig({ ...this.options, paths: spec.paths });
+    const { paths, auth, publishers } = spec;
+    const config = await renderConfig({ ...this.options, paths, auth, publishers, moqExecutable });
     const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
     if (written !== config) await writeFile(this.configFile, config);
   }

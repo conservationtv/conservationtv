@@ -3,21 +3,26 @@ import { useEnvironment } from '../env/env.ts';
 import { CONNECTION_LIFETIME_SECONDS, provider, type ConnectionAction, type ConnectionRequest } from './provider.ts';
 
 // The built-in conservation.tv gateway: the MoQ relay gatekeeper names, which admits a connection by a token from
-// gatekeeper (src/gatekeeper/leases.ts has the same consumer) scoped to the exposure's broadcast. Without a gatekeeper,
-// the deployment's MOQ_RELAY_URL, which admits every connection, so connections carry no token.
+// gatekeeper (src/gatekeeper/leases.ts has the same consumer) scoped to the exposure's broadcast.
 
 /** Where an exposure is broadcast on the relay: its own path within its organisation's. */
 export const moqPath = (organisationId: string, exposureId: string) => `${organisationId}/${exposureId}`;
 
-/** What a token admits: the whole broadcast at the path, to publish or to subscribe. */
+/** The exposure's one broadcast under its path, in hang's format: every rendition a track of it. */
+export const MOQ_BROADCAST = 'live.hang';
+
+/**
+ * What a token admits: everything under the exposure's path, to subscribe, and to publish too for its publisher, which
+ * reads back the rendition broadcasts it joins into one.
+ */
 function moqCapability(path: string, action: ConnectionAction) {
-  return { root: path, publish: action === 'publish' ? [''] : [], subscribe: action === 'read' ? [''] : [] };
+  return { root: path, publish: action === 'publish' ? [''] : [], subscribe: [''] };
 }
 
 /** Ask gatekeeper for the token; `gateway_unavailable` if it cannot be reached. */
 async function exchange(request: ConnectionRequest, path: string) {
   const environment = useEnvironment();
-  const gatekeeper = environment.gatekeeper!;
+  const { gatekeeper } = environment;
   try {
     const client = await gatekeeper.client();
     return await client.grants.exchange.v1({
@@ -47,20 +52,15 @@ export const conservationtv = provider.builtin({
   ingest: { moq: 'tracks' },
   egress: { moq: 'tracks' },
   connect: async request => {
-    const environment = useEnvironment();
     const path = moqPath(request.organisationId, request.exposure.id);
-    if (environment.gatekeeper !== undefined) {
-      const credential = await moqToken(request, path);
-      return {
-        protocol: 'moq',
-        relay: credential.relay,
-        path,
-        token: credential.token,
-        expiresAt: credential.expires_at
-      };
-    }
-    const relay = environment.variables.MOQ_RELAY_URL;
-    if (relay === undefined) throw new ApiFailure('gateway_unavailable', { cause: 'No gatekeeper or MOQ_RELAY_URL' });
-    return { protocol: 'moq', relay, path };
+    const credential = await moqToken(request, path);
+    return {
+      protocol: 'moq',
+      relay: credential.relay,
+      path,
+      broadcast: MOQ_BROADCAST,
+      token: credential.token,
+      expiresAt: credential.expires_at
+    };
   }
 });

@@ -82,7 +82,12 @@ export type Device = {
 export type Camera = {
     id: string;
     settings: {
-        [key: string]: unknown;
+        driver: 'axis';
+        host: string;
+        resolutions: Array<string>;
+    } | {
+        driver: 'rtsp';
+        url: string;
     };
     device: {
         name: string;
@@ -278,11 +283,64 @@ export type Report = {
 
 export type IrohSession = {
     relay: Relay;
-    lease?: {
+    lease: {
         id: string;
         grantId: string;
         expiresAt: string;
     };
+};
+
+export type DeviceConfiguration = {
+    organisationId: string;
+    mediamtx: {
+        gatewayId: string;
+        auth: {
+            jwks: string;
+            issuer: string;
+            audience: string;
+        };
+    } | null;
+    streams: {
+        [key: string]: {
+            name: string;
+            renditions: {
+                default?: {
+                    url: string;
+                };
+                data_saver?: {
+                    url: string;
+                };
+                balanced?: {
+                    url: string;
+                };
+                quality?: {
+                    url: string;
+                };
+            };
+        };
+    };
+    exposures: {
+        [key: string]: {
+            streamId: string;
+            gatewayId: string;
+            ingest: string;
+            renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+            paths: {
+                default?: string;
+                data_saver?: string;
+                balanced?: string;
+                quality?: string;
+            };
+            upstream: {
+                id: string;
+                streamId: string;
+            } | null;
+        };
+    };
+    diagnostics: Array<{
+        subject: string;
+        message: string;
+    }>;
 };
 
 export type GatewayKey = {
@@ -1777,7 +1835,12 @@ export type GetOrganisationsByIdCamerasResponses = {
         cameras: Array<{
             id: string;
             settings: {
-                [key: string]: unknown;
+                driver: 'axis';
+                host: string;
+                resolutions: Array<string>;
+            } | {
+                driver: 'rtsp';
+                url: string;
             };
             device: {
                 name: string;
@@ -1804,10 +1867,22 @@ export type PostOrganisationsByIdCamerasData = {
          */
         networkId?: string | null;
         /**
-         * Settings validated by the implementation that reads them.
+         * What the camera is registered with: its `driver`, and what that driver reads.
          */
-        settings?: {
-            [key: string]: Schema0;
+        settings: {
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
+        };
+        /**
+         * How to authenticate to the camera. Write-only: never returned.
+         */
+        credentials?: {
+            username: string;
+            password: string;
         };
     };
     path: {
@@ -1969,11 +2044,20 @@ export type GetOrganisationsByIdCamerasByCameraIdResponse = GetOrganisationsById
 export type PatchOrganisationsByIdCamerasByCameraIdData = {
     body: {
         /**
-         * Settings validated by the implementation that reads them.
+         * What the camera is registered with: its `driver`, and what that driver reads.
          */
-        settings: {
-            [key: string]: Schema0;
+        settings?: {
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
         };
+        credentials?: {
+            username: string;
+            password: string;
+        } | null;
     };
     path: {
         /**
@@ -3295,6 +3379,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
         protocol: 'moq';
         relay: string;
         path: string;
+        broadcast: string;
         token?: string;
         expiresAt?: string;
         renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
@@ -4164,6 +4249,39 @@ export type PostIrohSessionsResponses = {
 };
 
 export type PostIrohSessionsResponse = PostIrohSessionsResponses[keyof PostIrohSessionsResponses];
+
+export type GetDeviceConfigurationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/device-configuration';
+};
+
+export type GetDeviceConfigurationErrors = {
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetDeviceConfigurationError = GetDeviceConfigurationErrors[keyof GetDeviceConfigurationErrors];
+
+export type GetDeviceConfigurationResponses = {
+    /**
+     * The configuration
+     */
+    200: DeviceConfiguration;
+};
+
+export type GetDeviceConfigurationResponse = GetDeviceConfigurationResponses[keyof GetDeviceConfigurationResponses];
 
 export type GetGatewayKeysData = {
     body?: never;

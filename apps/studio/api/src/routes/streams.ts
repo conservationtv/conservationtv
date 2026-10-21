@@ -95,25 +95,6 @@ export type RecorderKind = z.output<typeof RecorderKindSchema>;
 // stream); the database's composite foreign keys refuse anything else. What they cannot check, an exposure's gateway
 // (which may be built in), its upstream chain and the renditions along it, src/topology/exposures.ts does.
 
-const exposureColumns = {
-  id: exposures.id,
-  gatewayId: exposures.gatewayId,
-  renditions: exposures.renditions,
-  publisherDeviceId: exposures.publisherDeviceId,
-  upstreamExposureId: exposures.upstreamExposureId,
-  params: exposures.params,
-  createdAt: exposures.createdAt
-};
-
-const recorderColumns = {
-  id: recorders.id,
-  exposureId: recorders.exposureId,
-  rendition: recorders.rendition,
-  kind: recorders.kind,
-  params: recorders.params,
-  createdAt: recorders.createdAt
-};
-
 /** Whether a change to an exposure touches the renditions along its chain: its own, or its upstream. */
 function changesRenditions(changes: ExposureChanges) {
   return changes.renditions !== undefined || changes.upstreamExposureId !== undefined;
@@ -406,10 +387,18 @@ export default new Hono()
             upstreamExposureId: body.upstreamExposureId,
             params: body.params
           })
-          .returning(exposureColumns);
+          .returning({
+            id: exposures.id,
+            gatewayId: exposures.gatewayId,
+            renditions: exposures.renditions,
+            publisherDeviceId: exposures.publisherDeviceId,
+            upstreamExposureId: exposures.upstreamExposureId,
+            params: exposures.params,
+            createdAt: exposures.createdAt
+          });
         // A new exposure is no one's upstream yet, so its chain cannot loop.
         await checkGateway(tx, id, body.gatewayId);
-        if (body.upstreamExposureId) await checkRenditions(tx, streamId, exposure!.id);
+        if (body.upstreamExposureId) await checkRenditions(tx, exposure!.id);
         return exposure!;
       });
       c.header('Cache-Control', 'no-store');
@@ -460,11 +449,19 @@ export default new Hono()
             params: body.params
           })
           .where(and(eq(exposures.organisationId, id), eq(exposures.streamId, streamId), eq(exposures.id, exposureId)))
-          .returning(exposureColumns);
+          .returning({
+            id: exposures.id,
+            gatewayId: exposures.gatewayId,
+            renditions: exposures.renditions,
+            publisherDeviceId: exposures.publisherDeviceId,
+            upstreamExposureId: exposures.upstreamExposureId,
+            params: exposures.params,
+            createdAt: exposures.createdAt
+          });
         if (!exposure) throw await unchanged(tx, exposures.id, exposureId);
         if (body.gatewayId !== undefined) await checkGateway(tx, id, exposure.gatewayId);
         if (body.upstreamExposureId) await checkChain(tx, streamId, exposureId);
-        if (changesRenditions(body)) await checkRenditions(tx, streamId, exposureId);
+        if (changesRenditions(body)) await checkRenditions(tx, exposureId);
         return exposure;
       });
       c.header('Cache-Control', 'no-store');
@@ -513,7 +510,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Connect to an exposure',
       description:
-        "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token or password. `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
+        "Where to read or publish the exposure at its gateway by one of its protocols, with the short-lived credential that admits the caller there: a MoQ relay, path and token, or a URL (such as a WebRTC WHEP or WHIP endpoint) and a token to present as a bearer token, or as the URL's `jwt` query parameter where the protocol has no headers (RTSP, RTMP). `renditions` lists what the connection carries: the rendition chosen, or with `moq` every rendition the exposure offers, as tracks. Ask again before `expiresAt`, when the gateway stops admitting the caller. Members read, signed in. Devices call with an RFC 9421 HTTP Message Signature by their own identity, as for `reports.submit`: they publish the exposures they are the pinned publisher of, and read those exposures' upstreams.",
       responses: {
         200: { description: 'The connection details' },
         400: invalidRequest,
@@ -599,8 +596,15 @@ export default new Hono()
             kind: body.kind,
             params: body.params
           })
-          .returning(recorderColumns);
-        await checkRecorderRendition(tx, streamId, recorder!.id);
+          .returning({
+            id: recorders.id,
+            exposureId: recorders.exposureId,
+            rendition: recorders.rendition,
+            kind: recorders.kind,
+            params: recorders.params,
+            createdAt: recorders.createdAt
+          });
+        await checkRecorderRendition(tx, recorder!.id);
         return recorder!;
       });
       c.header('Cache-Control', 'no-store');
@@ -649,10 +653,16 @@ export default new Hono()
           .update(recorders)
           .set({ exposureId: body.exposureId, rendition: body.rendition, kind: body.kind, params: body.params })
           .where(and(eq(recorders.organisationId, id), eq(recorders.streamId, streamId), eq(recorders.id, recorderId)))
-          .returning(recorderColumns);
+          .returning({
+            id: recorders.id,
+            exposureId: recorders.exposureId,
+            rendition: recorders.rendition,
+            kind: recorders.kind,
+            params: recorders.params,
+            createdAt: recorders.createdAt
+          });
         if (!recorder) throw await unchanged(tx, recorders.id, recorderId);
-        if (body.exposureId !== undefined || body.rendition !== undefined)
-          await checkRecorderRendition(tx, streamId, recorderId);
+        if (body.exposureId !== undefined || body.rendition !== undefined) await checkRecorderRendition(tx, recorderId);
         return recorder;
       });
       c.header('Cache-Control', 'no-store');

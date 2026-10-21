@@ -33,17 +33,15 @@ export interface ExposureReference {
   exposureId: string;
 }
 
-const exposureColumns = {
-  id: exposures.id,
-  gatewayId: exposures.gatewayId,
-  renditions: exposures.renditions,
-  publisherDeviceId: exposures.publisherDeviceId,
-  params: exposures.params
-};
-
 function selectExposure(tx: Transaction, reference: ExposureReference) {
   return tx
-    .select(exposureColumns)
+    .select({
+      id: exposures.id,
+      gatewayId: exposures.gatewayId,
+      renditions: exposures.renditions,
+      publisherDeviceId: exposures.publisherDeviceId,
+      params: exposures.params
+    })
     .from(exposures)
     .where(
       and(

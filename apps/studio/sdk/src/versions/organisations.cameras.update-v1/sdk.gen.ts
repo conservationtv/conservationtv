@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, Schema0 } from './types.gen.js';
+import type { PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -51,19 +51,29 @@ export class Cameras extends HeyApiClient {
     /**
      * Update a camera
      *
-     * Administrators only. Replaces its `settings` whole. Its name and network are changed under `/devices`, with the same ID.
+     * Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         cameraId: string;
-        settings: {
-            [key: string]: Schema0;
+        settings?: {
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
         };
+        credentials?: {
+            username: string;
+            password: string;
+        } | null;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'cameraId' },
-                    { in: 'body', key: 'settings' }
+                    { in: 'body', key: 'settings' },
+                    { in: 'body', key: 'credentials' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
             url: '/organisations/{id}/cameras/{cameraId}',

@@ -25,18 +25,11 @@ export const config = {
   /**
    * The control plane that names the relays and admits devices to them: it leases each device's endpoint on its iroh
    * relay (src/gatekeeper/leases.ts) and issues tokens for its MoQ relay (src/gateways/conservationtv.ts), each with
-   * that relay's URL. Unset for relays that admit everyone, which IROH_RELAY_URL and MOQ_RELAY_URL then name.
+   * that relay's URL.
    */
-  GATEKEEPER_URL: z.url().optional(),
+  GATEKEEPER_URL: z.url(),
   /** The consumer token of the gatekeeper's environment, which trusts whoever holds it with its relays. */
-  GATEKEEPER_TOKEN: z.string().min(1).optional(),
-  /** Without a gatekeeper, the iroh relay every device's session uses, such as n0's; see src/topology/iroh.ts. */
-  IROH_RELAY_URL: z.url().optional(),
-  /**
-   * Without a gatekeeper, the MoQ relay of the built-in conservation.tv gateway; see src/gateways/conservationtv.ts.
-   * Unset as well, that gateway cannot be connected to.
-   */
-  MOQ_RELAY_URL: z.url().optional(),
+  GATEKEEPER_TOKEN: z.string().min(1),
   /**
    * The keys gateway tokens are signed with, as JSON; see src/gateways/keys.ts. Unset, gateways that verify them
    * (MediaMTX) cannot be connected to.
@@ -75,36 +68,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
   */
 
   // Optional clients
-  const gatekeeper = (() => {
-    if (variables.GATEKEEPER_URL === undefined && variables.GATEKEEPER_TOKEN === undefined) {
-      return;
-    }
-
-    // Leasing needs both; either alone is a half-configured deployment.
-    if (variables.GATEKEEPER_URL === undefined || variables.GATEKEEPER_TOKEN === undefined) {
-      throw new Error('Set GATEKEEPER_URL and GATEKEEPER_TOKEN together, or neither');
-    }
-
-    const url = variables.GATEKEEPER_URL;
-    const token = variables.GATEKEEPER_TOKEN;
-    let client: Promise<GatekeeperClient> | undefined = undefined;
-    return {
-      /** The deployment's gatekeeper, handshaken; rejects if the handshake fails. */
-      client: () => {
-        if (client === undefined) client = connectGatekeeper(url, token);
-        return client;
-      }
-    };
-  })();
-
-  // Gatekeeper names the relays it admits devices to; without one, the deployment names relays that admit everyone.
-  if (gatekeeper !== undefined && (variables.IROH_RELAY_URL !== undefined || variables.MOQ_RELAY_URL !== undefined)) {
-    throw new Error('Gatekeeper names the relays: unset IROH_RELAY_URL and MOQ_RELAY_URL with GATEKEEPER_URL');
-  }
-  if (gatekeeper === undefined && variables.IROH_RELAY_URL === undefined) {
-    throw new Error('Set GATEKEEPER_URL, or IROH_RELAY_URL for a relay that admits every endpoint');
-  }
-
   const gatewayKeys = (() => {
     if (variables.GATEWAY_SIGNING_KEYS === undefined) return;
     const secret = variables.GATEWAY_SIGNING_KEYS;
@@ -117,6 +80,20 @@ export const services = (variables: Variables, bindings: Bindings) => {
   })();
 
   // Required clients
+  /** The control plane that names the relays and admits devices to them. */
+  const gatekeeper = (() => {
+    const url = variables.GATEKEEPER_URL;
+    const token = variables.GATEKEEPER_TOKEN;
+    let client: Promise<GatekeeperClient> | undefined = undefined;
+    return {
+      /** The deployment's gatekeeper, handshaken; rejects if the handshake fails. */
+      client: () => {
+        if (client === undefined) client = connectGatekeeper(url, token);
+        return client;
+      }
+    };
+  })();
+
   /** The owning role's connection. Request handlers use `session()` instead. */
   const admin = connectLazily(bindings.admin);
   /** The application role's connection, enforced by row-level security. */

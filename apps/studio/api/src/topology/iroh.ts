@@ -5,8 +5,7 @@ import { useEnvironment } from '../env/env.ts';
 
 // How a device starts an iroh session: the relay its endpoint uses, whether it serves (an agent) or dials (the CLI, a
 // browser). Devices ask for it signed, each time they bind an endpoint, so this is where each device's endpoint is
-// leased on the relay gatekeeper names (src/gatekeeper/leases.ts), or, without a gatekeeper, given the deployment's
-// relay, which admits every endpoint.
+// leased on the relay gatekeeper names (src/gatekeeper/leases.ts).
 //
 // Every device gets the same single relay. So an agent's address is always its endpoint ID at that relay: devices
 // bind without address lookup and dial by relay URL, and nothing has to be published or registered.
@@ -31,15 +30,13 @@ export type Relay = z.output<typeof RelaySchema>;
 export interface IrohSession {
   /** The only relay the device's endpoint uses, and where it finds every other device. */
   relay: Relay;
-  /** What admits the device's endpoint to the relay; absent when the relay admits every endpoint. */
-  lease?: IrohLease;
+  /** What admits the device's endpoint to the relay. */
+  lease: IrohLease;
 }
 
-/** The iroh session the device starts now, with its endpoint leased on the relay if the relay requires it. */
+/** The iroh session the device starts now, with its endpoint leased on the relay. */
 export async function irohSession(device: AuthenticatedDevice): Promise<IrohSession> {
   const environment = useEnvironment();
-  // Without a gatekeeper, the environment requires IROH_RELAY_URL (src/env/config.ts).
-  if (environment.gatekeeper === undefined) return { relay: { url: environment.variables.IROH_RELAY_URL! } };
   const { relay, lease } = await leaseEndpoint(device, environment.gatekeeper);
   return { relay: { url: relay }, lease };
 }

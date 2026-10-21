@@ -48,6 +48,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `/organisations/{id}/subjects/{subjectId}/state`, `…/observations`, `…/metrics`, `…/logs`   | members                                      | `organisations.subjects.*` v1                                                                            |
 | `GET /organisations/{id}/subjects/{subjectId}/metrics/{seriesId}`                           | members                                      | `organisations.subjects.metrics.get` v1: one series' points over a time range, in buckets                |
 | `POST /reports`                                                                             | devices, by signature                        | `reports.submit` v1: a batch of events, metrics and logs                                                 |
+| `GET /device-configuration`                                                                 | devices, by signature                        | `deviceConfiguration.get` v1: what the signing device delivers, derived from the topology when it asks   |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
 | `GET /gateway-keys`                                                                         | anyone                                       | `gatewayKeys.get` v1: the JWKS gateways (MediaMTX) verify connection tokens with                         |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as        |
@@ -106,10 +107,8 @@ bindings:
 | `APP_URL`              | text       | where the API is served; Better Auth's base URL and passkey relying party           |
 | `WEB_ORIGINS`          | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
 | `OTP_DELIVERY`         | text       | `log` only, see above                                                               |
-| `GATEKEEPER_URL`       | text       | optional: the control plane naming the iroh and MoQ relays, and admitting devices   |
-| `GATEKEEPER_TOKEN`     | secret     | optional, with `GATEKEEPER_URL`: that control plane environment's consumer token    |
-| `IROH_RELAY_URL`       | text       | without a gatekeeper: the iroh relay every device's session uses, admitting all     |
-| `MOQ_RELAY_URL`        | text       | optional, without a gatekeeper: the built-in `conservationtv` gateway's MoQ relay   |
+| `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices             |
+| `GATEKEEPER_TOKEN`     | secret     | that control plane environment's consumer token                                     |
 | `GATEWAY_SIGNING_KEYS` | secret     | optional: the keys MediaMTX gateway tokens are signed with (`GET /gateway-keys`)    |
 
 The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
@@ -129,12 +128,27 @@ cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECR
 pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 ```
 
-`pnpm dev` uses n0's public relay and no gatekeeper. To lease devices' endpoints from a controlplane gatekeeper, run
-`pnpm dev:controlplane` (the local controlplane; see [gatekeeper's README](../../controlplane/gatekeeper/README.md#develop))
-or `pnpm dev:staging` (staging's relays) instead. Each sets only `GATEKEEPER_URL`, since gatekeeper names its relays, and reads its
-secrets from `.dev.vars.controlplane` or `.dev.vars.staging`, which replace `.dev.vars`: copy `.dev.vars` and add that
-environment's `GATEKEEPER_TOKEN` (`local-consumer-token`, or staging's from 1Password,
-`gatekeeper_staging_consumer_token`). Text bindings are never read from `.dev.vars` files, only from the environment.
+To try delivery end to end, seed a topology against the running API: an organisation with a network, its active agent
+running a MediaMTX gateway, an Axis camera, and a stream from it exposed on the LAN at every rendition, and from there
+to the conservation.tv relay, published by the agent: each rendition by the moq CLI, which the agent installs and
+MediaMTX runs, and joined by the agent into the one broadcast readers watch. The relay needs a gatekeeper to issue its
+tokens, so run `pnpm dev:staging` with `GATEWAY_SIGNING_KEYS` in `.dev.vars.staging`. The account is
+`SEED_EMAIL`'s, which then signs in by emailed code as ever; the camera's credentials go to the API, encrypted, and are
+never written to disk. It prints the agent's `AGENT_SECRET_KEY` and `STUDIO_API_URL`: run the agent
+(`apps/agent/runner`, `pnpm start`) with them, and it asks for its configuration (`deviceConfiguration.get`) and runs
+MediaMTX to serve it. The agent admits MediaMTX's readers on its own machine as they are, and others by tokens checked
+against `GET /gateway-keys`, so set `GATEWAY_SIGNING_KEYS` (`.dev.vars.example`) first.
+
+```sh
+SEED_EMAIL=you@example.com SEED_CAMERA_HOST=http://192.168.1.10 SEED_CAMERA_USERNAME=root SEED_CAMERA_PASSWORD=… \
+  pnpm --filter @conservationtv/studio-api db:seed
+```
+
+Gatekeeper names the relays and admits devices to them, so the API always runs against one. `pnpm dev` uses the local
+controlplane's (see [gatekeeper's README](../../controlplane/gatekeeper/README.md#develop)), with `.dev.vars`'s
+`GATEKEEPER_TOKEN=local-consumer-token`. `pnpm dev:staging` uses staging's instead, and reads its secrets from
+`.dev.vars.staging`, which replaces `.dev.vars`: copy `.dev.vars` and set staging's `GATEKEEPER_TOKEN` from 1Password
+(`gatekeeper_staging_consumer_token`). Text bindings are never read from `.dev.vars` files, only from the environment.
 
 Sign in from the terminal with the CLI, which opens the device flow (the web app must be running for the approval
 page) and then registers the session's browser device in an organisation you pick, or with curl: request a code, read it from the dev server's log (`"event":"email_otp"`), exchange it, and use
@@ -218,8 +232,9 @@ endpoint ID (the public key bytes in lowercase hex, unique). The private key, th
 `SecretKey`, is stored encrypted and request sessions cannot select it: it is written once, at creation, and only
 trusted code can read it. The kind and identity never change.
 
-Everything else belongs to the device's kind, a table whose row shares the device's ID: a `camera` adds its `settings`
-(including the endpoints it offers by itself, from which those are derived); an `agent` adds the network it serves (the device's own),
+Everything else belongs to the device's kind, a table whose row shares the device's ID: a `camera` adds its `settings`,
+which name the driver that reads it (`src/cameras/drivers.ts`: `axis`, which produces any rendition its resolutions
+allow, or `rtsp`, one stream as it comes) and where its streams are, and its `credentials`, encrypted and write-only; an `agent` adds the network it serves (the device's own),
 its standby priority and whether it is active. Each kind's table carries its kind as a generated column in a composite
 foreign key to the device, so a device is only ever the kind it was created as. `POST …/cameras` and `POST …/agents`
 create the device, with its identity, and its kind's row together, and their `DELETE` removes both. Their routes
@@ -350,8 +365,9 @@ cluster's configuration before migrating.
 
 Not built yet: provisioning an agent or camera with its private key, rotating or revoking a device identity, the
 state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns
-`state: null`, stale, until it exists), failover from expired agent state, deriving a device's configuration
-when it asks for it (with publisher resolution and the builders' diagnostics), and sharing across organisations.
+`state: null`, stale, until it exists), failover from expired agent state, choosing a
+publisher for an exposure that pins none (`deviceConfiguration.get` plans only the active agent's MediaMTX gateway and
+what is pinned to it), transcoding renditions a camera cannot produce, and sharing across organisations.
 
 ## Encrypted columns
 

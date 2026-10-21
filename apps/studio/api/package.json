@@ -8,7 +8,6 @@
   },
   "scripts": {
     "dev": "cf dev",
-    "dev:controlplane": "GATEKEEPER_URL=http://localhost:5176 cf dev --mode controlplane",
     "dev:staging": "GATEKEEPER_URL=https://gatekeeper.staging.conservation.tv cf dev --mode staging",
     "build": "cf build",
     "upload": "cf workers versions create",
@@ -24,7 +23,8 @@
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate && umbrella generate --role studio_app",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed-local.ts"
   },
   "dependencies": {
     "@arkenv/standard": "catalog:",

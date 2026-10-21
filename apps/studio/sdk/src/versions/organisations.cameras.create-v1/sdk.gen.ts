@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, Schema0 } from './types.gen.js';
+import type { PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -51,21 +51,31 @@ export class Cameras extends HeyApiClient {
     /**
      * Add a camera
      *
-     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera.
+     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         name: string;
         networkId?: string | null;
-        settings?: {
-            [key: string]: Schema0;
+        settings: {
+            driver: 'axis';
+            host: string;
+            resolutions: Array<string>;
+        } | {
+            driver: 'rtsp';
+            url: string;
+        };
+        credentials?: {
+            username: string;
+            password: string;
         };
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'settings' }
+                    { in: 'body', key: 'settings' },
+                    { in: 'body', key: 'credentials' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError>({
             url: '/organisations/{id}/cameras',

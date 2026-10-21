@@ -4439,20 +4439,6 @@
       "table": "exposure"
     },
     {
-      "value": "cardinality(\"renditions\") > 0 and \"renditions\" <@ array['default', 'data_saver', 'balanced', 'quality']::text[]",
-      "name": "exposure_renditions",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "exposure"
-    },
-    {
-      "value": "\"rendition\" = any(array['default', 'data_saver', 'balanced', 'quality']::text[])",
-      "name": "recorder_rendition",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "recorder"
-    },
-    {
       "value": "\"health\" in ('healthy', 'unhealthy', 'unknown')",
       "name": "reporter_opinion_health",
       "entityType": "checks",

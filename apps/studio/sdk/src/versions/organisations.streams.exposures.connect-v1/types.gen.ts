@@ -83,6 +83,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
         protocol: 'moq';
         relay: string;
         path: string;
+        broadcast: string;
         token?: string;
         expiresAt?: string;
         renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
