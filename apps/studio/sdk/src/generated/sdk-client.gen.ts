@@ -7,6 +7,7 @@ import { BaseClient as BaseClient62 } from '../versions/invitations.decline-v1/s
 import { BaseClient as BaseClient60 } from '../versions/invitations.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient59 } from '../versions/invitations.listMine-v1/sdk.gen.js';
 import { BaseClient as BaseClient64 } from '../versions/irohSessions.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient65 } from '../versions/moqSessions.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient35 } from '../versions/organisations.agents.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient38 } from '../versions/organisations.agents.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient36 } from '../versions/organisations.agents.get-v1/sdk.gen.js';
@@ -63,7 +64,7 @@ import { BaseClient as BaseClient55 } from '../versions/organisations.subjects.o
 import { BaseClient as BaseClient54 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient63 } from '../versions/reports.submit-v1/sdk.gen.js';
-import { BaseClient as BaseClient65 } from '../versions/whoami.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient66 } from '../versions/whoami.get-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -180,7 +181,10 @@ export class Client extends ClientCore {
     readonly irohSessions = {
         create: this.versioned('irohSessions.create', { v1: BaseClient64 })
     };
+    readonly moqSessions = {
+        create: this.versioned('moqSessions.create', { v1: BaseClient65 })
+    };
     readonly whoami = {
-        get: this.versioned('whoami.get', { v1: BaseClient65 })
+        get: this.versioned('whoami.get', { v1: BaseClient66 })
     };
 }

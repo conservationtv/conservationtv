@@ -19,6 +19,7 @@ export const expired = errorResponse('The invitation has expired');
 export const lastAdmin = errorResponse('The organisation would be left without an administrator');
 export const unavailable = errorResponse('The database is unavailable');
 export const leaseUnavailable = errorResponse('The database is unavailable, or the relay cannot lease the endpoint');
+export const tokenUnavailable = errorResponse('The database is unavailable, or the relay cannot issue a token');
 export const endpointRefused = errorResponse(
   "The relay will never admit the device's endpoint: it is denied, or leased to another service"
 );

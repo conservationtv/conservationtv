@@ -1165,6 +1165,37 @@
           "relay"
         ]
       },
+      "MoqSession": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "root": {
+            "type": "string"
+          },
+          "broadcast": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "grantId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "root",
+          "broadcast",
+          "token",
+          "grantId",
+          "expiresAt"
+        ]
+      },
       "Whoami": {
         "type": "object",
         "properties": {
@@ -9145,6 +9176,101 @@
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 }
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/moq-sessions": {
+      "post": {
+        "operationId": "moqSessions.create",
+        "x-operation-version": 1,
+        "summary": "Start a MoQ session",
+        "description": "The relay to publish an exposure's broadcast to, and the token admitting the signing device to publish it, for a device that delivers the exposure itself rather than through an agent. Only the source device of the exposure's stream, and only for a `moq` exposure. Asked for each time the device connects: the relay refuses new sessions once the token expires. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`.",
+        "responses": {
+          "200": {
+            "description": "The relay, broadcast and token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoqSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable, or the relay cannot issue a token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exposureId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "The exposure to publish."
+                  }
+                },
+                "required": [
+                  "exposureId"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -22407,6 +22533,182 @@
                     "schema": {
                       "$ref": "#/components/schemas/Error"
                     }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "MoqSession": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "root": {
+                "type": "string"
+              },
+              "broadcast": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string"
+              },
+              "grantId": {
+                "type": "string"
+              },
+              "expiresAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url",
+              "root",
+              "broadcast",
+              "token",
+              "grantId",
+              "expiresAt"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/moq-sessions": {
+          "post": {
+            "operationId": "moqSessions.create",
+            "x-operation-version": 1,
+            "summary": "Start a MoQ session",
+            "description": "The relay to publish an exposure's broadcast to, and the token admitting the signing device to publish it, for a device that delivers the exposure itself rather than through an agent. Only the source device of the exposure's stream, and only for a `moq` exposure. Asked for each time the device connects: the relay refuses new sessions once the token expires. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`.",
+            "responses": {
+              "200": {
+                "description": "The relay, broadcast and token",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/MoqSession"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable, or the relay cannot issue a token",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "exposureId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "The exposure to publish."
+                      }
+                    },
+                    "required": [
+                      "exposureId"
+                    ],
+                    "additionalProperties": false
                   }
                 }
               }

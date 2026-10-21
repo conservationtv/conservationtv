@@ -28,6 +28,11 @@ export const config = {
    * relay that admits every endpoint, such as n0's, when sessions carry no lease.
    */
   GATEKEEPER_URL: z.url().optional(),
+  /**
+   * The MoQ relay devices that deliver their own exposures publish to, with tokens from that gatekeeper; see
+   * src/topology/moq.ts. Unset, no device may.
+   */
+  MOQ_RELAY_URL: z.url().optional(),
   /** The consumer token of the gatekeeper's environment, which trusts whoever holds it with its relays. */
   GATEKEEPER_TOKEN: z.string().min(1).optional(),
   /** Only logging exists; see src/auth/otp.ts. */
