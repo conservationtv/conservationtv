@@ -227,7 +227,10 @@ export const gatekeeper = {
   versionTag: gatekeeperVersion,
   domain: gatekeeperDomain,
   hyperdriveId: gatekeeperHyperdrive.id,
-  versionId: gatekeeperVersionId
+  versionId: gatekeeperVersionId,
+  /** The relays gatekeeper hands out with each credential. */
+  moqRelayUrl: `https://${moqHostname}/`,
+  irohRelayUrl: `https://${irohHostname}/`
 };
 /** Every gatekeeper secret binding, uploaded with each version through `--secrets-file`. */
 export const gatekeeperSecrets = pulumi.secret({

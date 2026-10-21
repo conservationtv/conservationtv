@@ -4,10 +4,15 @@ import { LOCAL_DATABASE_URL } from './src/db/local.ts';
 import * as entrypoint from './src/index.ts' with { type: 'cf-worker' };
 
 // The Worker name and bindings for uploaded versions come from the controlplane Pulumi stack: set STACK_OUTPUT_JSON to
-// its `pulumi stack output --json` when uploading. Local development uses the docker-compose database. The custom domain
+// its `pulumi stack output --json` when uploading. Local development uses the docker-compose database and relays. The custom domain
 // and cron trigger are applied by that stack; `triggers` here only drives local development.
 const StackOutputsSchema = z.object({
-  gatekeeper: z.object({ workerName: z.string(), hyperdriveId: z.string() })
+  gatekeeper: z.object({
+    workerName: z.string(),
+    hyperdriveId: z.string(),
+    moqRelayUrl: z.url(),
+    irohRelayUrl: z.url()
+  })
 });
 type StackOutputs = z.output<typeof StackOutputsSchema>;
 const placeholderHyperdriveId = '00000000000000000000000000000000';
@@ -24,6 +29,10 @@ export default defineConfig({
     entrypoint,
     triggers: [triggers.scheduled({ schedule: '*/15 * * * *' })],
     env: {
+      /** The MoQ relay credentials are for: docker-compose's, whose QUIC listener is :4433, locally. */
+      MOQ_RELAY_URL: bindings.text(stack?.moqRelayUrl ?? 'https://localhost:4433/'),
+      /** The Iroh relay leases admit endpoints to: docker-compose's, in plain HTTP dev mode, locally. */
+      IROH_RELAY_URL: bindings.text(stack?.irohRelayUrl ?? 'http://localhost:3340/'),
       /** Endpoint IDs never admitted to the Iroh relay, as a JSON array; replaceable through .dev.vars. */
       DENIED_IROH_ENDPOINTS: bindings.text('[]'),
       HYPERDRIVE: bindings.hyperdrive({

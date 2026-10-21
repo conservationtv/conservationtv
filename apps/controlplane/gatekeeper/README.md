@@ -49,6 +49,11 @@ with the environment's relays, so the grant is issued as asked: there are no per
 ceilings. The only refusal beyond validation is an endpoint in `DENIED_IROH_ENDPOINTS`. In one transaction, gatekeeper
 writes the grant audit record, signs the MoQ token and creates the Iroh lease; a rejection leaves nothing behind.
 
+Each credential names the relay it is for: `credentials.moq.relay` (dial it, presenting the token) and
+`credentials.iroh.relay` (bind the endpoint to it). They are the environment's `MOQ_RELAY_URL` and `IROH_RELAY_URL`,
+so consumers configure only gatekeeper. Credentials are not tied to one relay (every relay asks gatekeeper), so the
+URL only says where to connect; every Iroh endpoint gets the same relay, where each finds the others.
+
 The credential lifetime is the lowest of the requested `expires_in`, `MAX_CREDENTIAL_LIFETIME_SECONDS` and 24 hours.
 
 Failures use `{ "error", "error_description" }` with fixed, non-revealing descriptions: 400 `invalid_request` for
@@ -161,10 +166,12 @@ through a deployment/restart. Revocation options are:
 | `MOQ_RELAY_TOKEN`                 | secret            | Pulumi-generated key MoQ relays present on admission callbacks |
 | `MOQ_CLUSTER_TOKEN`               | secret            | Pulumi-generated opaque credential shared by MoQ peers         |
 | `MAX_CREDENTIAL_LIFETIME_SECONDS` | text              | environment ceiling on credential lifetimes                    |
+| `MOQ_RELAY_URL`                   | text              | the MoQ relay credentials name; from the controlplane stack    |
+| `IROH_RELAY_URL`                  | text              | the Iroh relay leases name; from the controlplane stack        |
 
 Each controlplane Pulumi stack (`staging`, `prod`) owns its Worker, Hyperdrive config and every secret, including the
 signing keys and the consumer token (`pulumi stack output gatekeeperConsumerToken --show-secrets`).
-`pnpm upload` uploads a version without deploying it; the Hyperdrive ID comes from that stack's outputs, passed as
+`pnpm upload` uploads a version without deploying it; the Hyperdrive ID and relay URLs come from that stack's outputs, passed as
 `STACK_OUTPUT_JSON`. CI releases it on pushes to `main`, as described in the
 [controlplane README](../infrastructure/README.md#release-gatekeeper), which also covers key rotation.
 

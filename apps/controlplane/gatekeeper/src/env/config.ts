@@ -20,6 +20,10 @@ export const config = {
   MAX_CREDENTIAL_LIFETIME_SECONDS: z.int().min(1).max(86_400),
   /** The control plane's MoQ signing key set; see .dev.vars.example. */
   MOQ_SIGNING_KEYS: z.string(),
+  /** The MoQ relay a MoQ credential is for, as its holder dials it: any relay in the cluster admits the token. */
+  MOQ_RELAY_URL: z.url(),
+  /** The Iroh relay an Iroh lease admits the endpoint to, and where every endpoint finds every other. */
+  IROH_RELAY_URL: z.url(),
   /** Relay credentials. Empty ones match nothing, so that relay is refused. */
   IROH_RELAY_TOKEN: z.string(),
   MOQ_RELAY_TOKEN: z.string(),
