@@ -7,10 +7,10 @@ import { z } from 'zod';
 import type { AgentConfiguration } from '../../config.ts';
 import { MetricReporter } from '../reports.ts';
 import { mediamtxBinary } from './binary.ts';
-import { MediamtxAuthSchema, MediamtxAuthServer } from './auth.ts';
-import { type MediamtxAddresses, MoqPublisherSchema, renderConfig } from './config.ts';
+import { MediamtxAuthSchema, serveMediamtxAuth, type MediamtxAuth } from './auth.ts';
+import { type MediamtxAddresses, type MoqPublisher, MoqPublisherSchema, renderConfig } from './config.ts';
 import { MediamtxControl } from './control.ts';
-import { BroadcastJoiner } from './joiner.ts';
+import { joinBroadcast } from './joiner.ts';
 import { METRICS_STOPPED, MediamtxMetrics, type MediamtxMetricsStatus } from './metrics.ts';
 import { moqBinary } from './moq.ts';
 import { MediamtxPathsSchema, pathIndexOf } from './paths.ts';
@@ -57,6 +57,12 @@ const STOPPED: MediamtxStatus = { ...PROCESS_STOPPED, version: null, installing:
  * Beside it, in the agent: the answers to MediaMTX's authentication requests (auth.ts), and the joined broadcast of
  * each exposure it publishes (joiner.ts). Both stop with the agent, while MediaMTX goes on.
  */
+/** The answering of MediaMTX's authentication requests (auth.ts): by which `auth`, and how to stop it. */
+interface AuthAnswering {
+  auth: MediamtxAuth;
+  close: () => Promise<void>;
+}
+
 export class MediamtxRuntime {
   readonly status$ = new BehaviorSubject<MediamtxStatus>(STOPPED);
   private readonly binaries: BinaryStore;
@@ -64,8 +70,9 @@ export class MediamtxRuntime {
   private readonly metrics: MediamtxMetrics;
   private readonly watching: Subscription[];
   private readonly configFile: string;
-  private readonly authServer: MediamtxAuthServer;
-  private readonly joiner = new BroadcastJoiner();
+  private answering: AuthAnswering | undefined;
+  /** Each joined broadcast's close, by the publisher it joins for, as JSON. */
+  private readonly joined = new Map<string, () => void>();
 
   constructor(
     private readonly config: AgentConfiguration,
@@ -80,7 +87,6 @@ export class MediamtxRuntime {
       this.metrics.status$.subscribe(metrics => this.update({ metrics }))
     ];
     this.configFile = join(options.directory, 'mediamtx.yml');
-    this.authServer = new MediamtxAuthServer(options.authHttp);
   }
 
   /**
@@ -91,8 +97,7 @@ export class MediamtxRuntime {
     const installed = (await this.binaries.find(spec.binary)) ?? (await this.install(spec, signal));
     this.update({ version: installed.version });
     const moq = await this.installMoq(spec, signal);
-    if (spec.auth === undefined) await this.authServer.close();
-    else await this.authServer.serve(spec.auth);
+    await this.answer(spec.auth);
     await this.writeConfig(spec, moq);
     // From the same spec as the config, so the metrics follow each path to the exposure it now delivers.
     this.metrics.attribute(pathIndexOf(spec.paths));
@@ -101,11 +106,35 @@ export class MediamtxRuntime {
       { key: installed.id, binary: installed.path, args: [this.configFile], cwd: directory },
       signal
     );
-    this.joiner.apply(spec.publishers);
+    this.join(spec.publishers);
     // A direct agent has no studio API to ship to.
     if (this.config.type !== 'direct') this.metrics.start(spec.metricsIntervalMs);
     await this.binaries.prune(installed, { spare: 1 });
     if (moq !== undefined) await this.binaries.prune(moq, { spare: 1 });
+  }
+
+  /**
+   * Answers MediaMTX's authentication requests by `auth`, or stops answering without it. Only a changed `auth`
+   * restarts the answering, which refuses for the moment it is down.
+   */
+  private async answer(auth: MediamtxAuth | undefined): Promise<void> {
+    if (JSON.stringify(auth) === JSON.stringify(this.answering?.auth)) return;
+    await this.answering?.close();
+    this.answering = undefined;
+    if (auth !== undefined) this.answering = { auth, close: await serveMediamtxAuth(this.options.authHttp, auth) };
+  }
+
+  /** Joins the broadcast of each publisher, and no other: a publisher that changed at all is joined anew. */
+  private join(publishers: MoqPublisher[]): void {
+    const wanted = new Map(publishers.map(publisher => [JSON.stringify(publisher), publisher]));
+    for (const [key, close] of this.joined) {
+      if (wanted.has(key)) continue;
+      close();
+      this.joined.delete(key);
+    }
+    for (const [key, publisher] of wanted) {
+      if (!this.joined.has(key)) this.joined.set(key, joinBroadcast(publisher));
+    }
   }
 
   /** The moq CLI, installed if the spec has publishers for it to run. */
@@ -121,9 +150,9 @@ export class MediamtxRuntime {
    */
   async finalize(): Promise<void> {
     this.metrics.stop();
-    this.joiner.close();
+    this.join([]);
     await this.process.stop();
-    await this.authServer.close();
+    await this.answer(undefined);
     await this.binaries.clear();
     this.update({ version: null });
   }
@@ -134,8 +163,8 @@ export class MediamtxRuntime {
    */
   dispose(): void {
     for (const subscription of this.watching) subscription.unsubscribe();
-    this.joiner.close();
-    void this.authServer.close();
+    this.join([]);
+    void this.answering?.close();
     this.metrics.dispose();
     this.process.dispose();
     this.status$.complete();

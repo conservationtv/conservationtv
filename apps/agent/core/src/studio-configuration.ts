@@ -49,13 +49,13 @@ export function watchStudioConfiguration(config: ConservationTvConfiguration, ap
   const run = async () => {
     const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
     const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
-    const credentials = new Credentials(studio);
+    const connections: Connections = new Map();
     const logDiagnostics = diagnosticsLogger();
     while (!stopped.signal.aborted) {
       try {
         const configuration = await askConfiguration(studio);
         logDiagnostics(configuration);
-        await apply(await mediamtxSpec(configuration, credentials));
+        await apply(await mediamtxSpec(configuration, studio, connections));
       } catch (error) {
         // Stopping aborts whatever ask is in flight: that is no failure.
         if (!stopped.signal.aborted)
@@ -88,7 +88,7 @@ function diagnosticsLogger() {
 }
 
 /** The MediaMTX spec the configuration asks for, or none when the agent runs no MediaMTX gateway. */
-async function mediamtxSpec(configuration: DeviceConfiguration, credentials: Credentials) {
+async function mediamtxSpec(configuration: DeviceConfiguration, studio: Client, connections: Connections) {
   if (configuration.mediamtx === null) return undefined;
   const paths: MediamtxPath[] = [];
   const publishers: MoqPublisher[] = [];
@@ -100,7 +100,8 @@ async function mediamtxSpec(configuration: DeviceConfiguration, credentials: Cre
     }
     // One whose credentials cannot be had is left out, and tried again next time.
     try {
-      const connect = await credentials.publish(configuration.organisationId, exposure.streamId, exposureId);
+      const reference = { id: configuration.organisationId, streamId: exposure.streamId, exposureId };
+      const connect = await publishTarget(studio, connections, reference);
       publishers.push({ exposureId, ...connect, renditions: exposure.renditions });
     } catch (error) {
       console.error(JSON.stringify({ event: 'publisher_unavailable', exposureId, error: String(error) }));
@@ -120,36 +121,32 @@ async function mediamtxSpec(configuration: DeviceConfiguration, credentials: Cre
 /** The connection details `connect` returns, whichever protocol. */
 type Connection = Exclude<Awaited<ReturnType<Client['organisations']['streams']['exposures']['connect']['v1']>>, Error>;
 
-/** Credentials from `connect` to publish exposures by MoQ, kept until shortly before they expire. */
-class Credentials {
-  private readonly kept = new Map<string, Connection>();
+/** Connections from `connect` to publish each exposure by MoQ, by its ID, kept until shortly before they expire. */
+type Connections = Map<string, Connection>;
 
-  constructor(private readonly studio: Client) {}
+/** Which exposure to publish: by where its connections are made. */
+type ExposureReference = Pick<ExposureConnectParams, 'id' | 'streamId' | 'exposureId'>;
 
-  /**
-   * Where to publish the exposure: the relay URL to dial at its path, carrying its token as `?jwt=`, which the relay
-   * reads, and the broadcast under it. Renewed if what is kept expires within `RENEW_BEFORE_MS`; throws if `connect`
-   * refuses, or the exposure is not published by MoQ.
-   */
-  async publish(organisationId: string, streamId: string, exposureId: string) {
-    let connection = this.kept.get(exposureId);
-    const expiresAt = connection?.expiresAt === undefined ? Infinity : Date.parse(connection.expiresAt);
-    if (connection === undefined || expiresAt - Date.now() < RENEW_BEFORE_MS) {
-      const params: ExposureConnectParams = {
-        id: organisationId,
-        streamId,
-        exposureId,
-        action: 'publish',
-        protocol: 'moq'
-      };
-      const renewed = await this.studio.organisations.streams.exposures.connect.v1(params);
-      if (renewed instanceof Error) throw renewed;
-      this.kept.set(exposureId, renewed);
-      connection = renewed;
-    }
-    if (!('relay' in connection)) throw new Error(`Exposure ${exposureId} is not published by MoQ`);
-    const url = new URL(connection.path, connection.relay);
-    if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
-    return { connect: url.href, broadcast: connection.broadcast };
+/**
+ * Where to publish the exposure: the relay URL to dial at its path, carrying its token as `?jwt=`, which the relay
+ * reads, and the broadcast under it. Asks `connect` again when what is kept expires within `RENEW_BEFORE_MS`; throws
+ * if it refuses, or the exposure is not published by MoQ.
+ */
+async function publishTarget(studio: Client, connections: Connections, reference: ExposureReference) {
+  let connection = connections.get(reference.exposureId);
+  const expiresAt = connection?.expiresAt === undefined ? Infinity : Date.parse(connection.expiresAt);
+  if (connection === undefined || expiresAt - Date.now() < RENEW_BEFORE_MS) {
+    const renewed = await studio.organisations.streams.exposures.connect.v1({
+      ...reference,
+      action: 'publish',
+      protocol: 'moq'
+    });
+    if (renewed instanceof Error) throw renewed;
+    connections.set(reference.exposureId, renewed);
+    connection = renewed;
   }
+  if (!('relay' in connection)) throw new Error(`Exposure ${reference.exposureId} is not published by MoQ`);
+  const url = new URL(connection.path, connection.relay);
+  if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
+  return { connect: url.href, broadcast: connection.broadcast };
 }
