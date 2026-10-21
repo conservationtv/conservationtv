@@ -121,15 +121,40 @@ export type Agent = {
 };
 
 export type Gateway = {
-    id: string;
-    name: string;
-    kind: string;
-    networkId: string | null;
-    protocols: Array<string>;
-    settings: {
-        [key: string]: unknown;
-    };
-    createdAt: string;
+    gateways: Array<{
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+        name: 'conservation.tv';
+        kind: 'moq-relay';
+        protocols: Array<'moq'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+        name: 'Cloudflare';
+        kind: 'cloudflare-realtime';
+        protocols: Array<'webrtc'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        id: string;
+        builtin: boolean;
+        name: string;
+        kind: string;
+        networkId: string | null;
+        protocols: Array<string>;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    }>;
 };
 
 export type Stream = {
@@ -2363,21 +2388,9 @@ export type GetOrganisationsByIdGatewaysError = GetOrganisationsByIdGatewaysErro
 
 export type GetOrganisationsByIdGatewaysResponses = {
     /**
-     * The gateways, oldest first
+     * The built-in gateways, then the organisation’s own, oldest first
      */
-    200: {
-        gateways: Array<{
-            name: string;
-            id: string;
-            createdAt: string;
-            kind: string;
-            networkId: string | null;
-            settings: {
-                [key: string]: unknown;
-            };
-            protocols: Array<string>;
-        }>;
-    };
+    200: Gateway;
 };
 
 export type GetOrganisationsByIdGatewaysResponse = GetOrganisationsByIdGatewaysResponses[keyof GetOrganisationsByIdGatewaysResponses];
@@ -2450,7 +2463,18 @@ export type PostOrganisationsByIdGatewaysResponses = {
     /**
      * The new gateway
      */
-    201: Gateway;
+    201: {
+        id: string;
+        builtin: boolean;
+        name: string;
+        kind: string;
+        networkId: string | null;
+        protocols: Array<string>;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    };
 };
 
 export type PostOrganisationsByIdGatewaysResponse = PostOrganisationsByIdGatewaysResponses[keyof PostOrganisationsByIdGatewaysResponses];
@@ -2465,7 +2489,7 @@ export type DeleteOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -2523,7 +2547,7 @@ export type GetOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -2558,7 +2582,40 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
     /**
      * The gateway
      */
-    200: Gateway;
+    200: {
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+        name: 'conservation.tv';
+        kind: 'moq-relay';
+        protocols: Array<'moq'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+        name: 'Cloudflare';
+        kind: 'cloudflare-realtime';
+        protocols: Array<'webrtc'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        id: string;
+        builtin: boolean;
+        name: string;
+        kind: string;
+        networkId: string | null;
+        protocols: Array<string>;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    };
 };
 
 export type GetOrganisationsByIdGatewaysByGatewayIdResponse = GetOrganisationsByIdGatewaysByGatewayIdResponses[keyof GetOrganisationsByIdGatewaysByGatewayIdResponses];
@@ -2596,7 +2653,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -2643,7 +2700,18 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdResponses = {
     /**
      * The updated gateway
      */
-    200: Gateway;
+    200: {
+        id: string;
+        builtin: boolean;
+        name: string;
+        kind: string;
+        networkId: string | null;
+        protocols: Array<string>;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    };
 };
 
 export type PatchOrganisationsByIdGatewaysByGatewayIdResponse = PatchOrganisationsByIdGatewaysByGatewayIdResponses[keyof PatchOrganisationsByIdGatewaysByGatewayIdResponses];
@@ -2940,9 +3008,9 @@ export type PatchOrganisationsByIdStreamsByStreamIdResponse = PatchOrganisations
 export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
     body: {
         /**
-         * The gateway the stream is delivered to.
+         * The gateway the stream is delivered to: built in, or the organisation's own.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
         /**
          * One of the protocols the gateway accepts.
          */
@@ -3097,9 +3165,9 @@ export type DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdRespons
 export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
     body: {
         /**
-         * The gateway the stream is delivered to.
+         * The gateway the stream is delivered to: built in, or the organisation's own.
          */
-        gatewayId?: string;
+        gatewayId?: 'conservationtv' | 'cloudflare' | string;
         /**
          * One of the protocols the gateway accepts.
          */

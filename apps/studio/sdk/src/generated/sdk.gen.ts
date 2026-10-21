@@ -702,7 +702,7 @@ export class Gateways extends HeyApiClient {
     /**
      * List an organisation's gateways
      *
-     * Optionally only those on one network. Empty for organisations you are not a member of.
+     * The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -754,11 +754,11 @@ export class Gateways extends HeyApiClient {
     /**
      * Remove a gateway
      *
-     * Administrators only. Refused while exposures use it.
+     * Administrators only, and never a built-in gateway. Refused while exposures use it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'gatewayId' }] }]);
         return (options?.client ?? this.client).delete<DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
@@ -770,10 +770,12 @@ export class Gateways extends HeyApiClient {
     
     /**
      * Read a gateway
+     *
+     * A built-in gateway, or one of the organisation's own.
      */
     public get<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'gatewayId' }] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
@@ -786,11 +788,11 @@ export class Gateways extends HeyApiClient {
     /**
      * Update a gateway
      *
-     * Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.
+     * Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
         name?: string;
         kind?: string;
         networkId?: string | null;
@@ -830,7 +832,7 @@ export class Exposures extends HeyApiClient {
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
         protocol: string;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;
@@ -907,7 +909,7 @@ export class Exposures extends HeyApiClient {
         id: string;
         streamId: string;
         exposureId: string;
-        gatewayId?: string;
+        gatewayId?: 'conservationtv' | 'cloudflare' | string;
         protocol?: string;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;

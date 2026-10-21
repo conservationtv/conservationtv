@@ -50,10 +50,12 @@ class HeyApiRegistry<T> {
 export class Gateways extends HeyApiClient {
     /**
      * Read a gateway
+     *
+     * A built-in gateway, or one of the organisation's own.
      */
     public get<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'gatewayId' }] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({

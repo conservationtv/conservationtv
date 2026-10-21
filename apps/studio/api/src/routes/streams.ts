@@ -6,10 +6,10 @@ import { exposures, recorders, streams } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
-import { checkChain, checkProtocol } from '../topology/exposures.ts';
+import { checkChain, checkGateway } from '../topology/exposures.ts';
 import { ExposureParamsSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
-import { ProtocolSchema } from './gateways.ts';
+import { GatewayIdSchema, ProtocolSchema } from './gateways.ts';
 import {
   exposureCycle,
   forbidden,
@@ -41,7 +41,9 @@ const SourceDeviceSchema = z
   .nullable()
   .describe('The device the stream comes from, such as its camera, or null for none yet.');
 export type SourceDevice = z.output<typeof SourceDeviceSchema>;
-const GatewaySchema = z.uuid().describe('The gateway the stream is delivered to.');
+const GatewaySchema = GatewayIdSchema.describe(
+  "The gateway the stream is delivered to: built in, or the organisation's own."
+);
 export type Gateway = z.output<typeof GatewaySchema>;
 const ExposureProtocolSchema = ProtocolSchema.describe('One of the protocols the gateway accepts.');
 export type ExposureProtocol = z.output<typeof ExposureProtocolSchema>;
@@ -61,8 +63,8 @@ export type RecorderKind = z.output<typeof RecorderKindSchema>;
 // An organisation's streams, with their exposures and recorders, in the principal's request session: members read
 // them, administrators manage them. A stream's source device, an exposure's gateway and publisher, and a recorder's
 // exposure must belong to the same organisation (and an exposure's upstream and a recorder's exposure to the same
-// stream); the database's composite foreign keys refuse anything else. What they cannot check, an exposure's protocol
-// and its upstream chain, src/topology/exposures.ts does.
+// stream); the database's composite foreign keys refuse anything else. What they cannot check, an exposure's gateway
+// (which may be built in) and protocol, and its upstream chain, src/topology/exposures.ts does.
 
 const exposureColumns = {
   id: exposures.id,
@@ -351,7 +353,7 @@ export default new Hono()
           })
           .returning(exposureColumns);
         // A new exposure is no one's upstream yet, so its chain cannot loop.
-        await checkProtocol(tx, body.gatewayId, body.protocol);
+        await checkGateway(tx, id, body.gatewayId, body.protocol);
         return exposure!;
       });
       c.header('Cache-Control', 'no-store');
@@ -415,7 +417,7 @@ export default new Hono()
           .returning(exposureColumns);
         if (!exposure) throw await unchanged(tx, exposures.id, exposureId);
         if (body.gatewayId !== undefined || body.protocol !== undefined)
-          await checkProtocol(tx, exposure.gatewayId, exposure.protocol);
+          await checkGateway(tx, id, exposure.gatewayId, exposure.protocol);
         if (body.upstreamExposureId) await checkChain(tx, streamId, exposureId);
         return exposure;
       });

@@ -19,7 +19,7 @@ export type DeleteOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';

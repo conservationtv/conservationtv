@@ -56,7 +56,7 @@ export class Exposures extends HeyApiClient {
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         streamId: string;
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
         protocol: string;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;
