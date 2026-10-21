@@ -14,7 +14,7 @@ CREATE TABLE "gateway" (
 ALTER TABLE "exposure" DROP CONSTRAINT "exposure_network_fk";--> statement-breakpoint
 DROP TABLE "configuration_revision";--> statement-breakpoint
 DROP INDEX "exposure_network_idx";--> statement-breakpoint
-ALTER TABLE "exposure" ADD COLUMN "gateway_id" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "exposure" ADD COLUMN "gateway_id" uuid NOT NULL;--> statement-breakpoint
 ALTER TABLE "exposure" ADD COLUMN "publisher_device_id" uuid;--> statement-breakpoint
 ALTER TABLE "exposure" ADD COLUMN "upstream_exposure_id" uuid;--> statement-breakpoint
 ALTER TABLE "exposure" DROP COLUMN "network_id";--> statement-breakpoint
@@ -24,6 +24,7 @@ CREATE INDEX "exposure_publisher_device_idx" ON "exposure" ("publisher_device_id
 CREATE INDEX "exposure_upstream_idx" ON "exposure" ("upstream_exposure_id");--> statement-breakpoint
 ALTER TABLE "gateway" ADD CONSTRAINT "gateway_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "gateway" ADD CONSTRAINT "gateway_network_fk" FOREIGN KEY ("organisation_id","network_id") REFERENCES "network"("organisation_id","id");--> statement-breakpoint
+ALTER TABLE "exposure" ADD CONSTRAINT "exposure_gateway_fk" FOREIGN KEY ("organisation_id","gateway_id") REFERENCES "gateway"("organisation_id","id");--> statement-breakpoint
 ALTER TABLE "exposure" ADD CONSTRAINT "exposure_publisher_device_fk" FOREIGN KEY ("organisation_id","publisher_device_id") REFERENCES "device"("organisation_id","id");--> statement-breakpoint
 ALTER TABLE "exposure" ADD CONSTRAINT "exposure_upstream_fk" FOREIGN KEY ("stream_id","upstream_exposure_id") REFERENCES "exposure"("stream_id","id");--> statement-breakpoint
 ALTER TABLE "exposure" ADD CONSTRAINT "exposure_upstream_other" CHECK ("upstream_exposure_id" <> "id");
