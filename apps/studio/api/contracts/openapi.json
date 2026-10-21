@@ -522,47 +522,164 @@
       "Gateway": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "networkId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "protocols": {
+          "gateways": {
             "type": "array",
             "items": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "type": "null"
+                    },
+                    "settings": {
+                      "type": "object"
+                    },
+                    "createdAt": {
+                      "type": "null"
+                    },
+                    "name": {
+                      "type": "string",
+                      "const": "conservation.tv"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "moq-relay"
+                    },
+                    "protocols": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "const": "moq"
+                      }
+                    },
+                    "id": {
+                      "type": "string",
+                      "enum": [
+                        "cloudflare",
+                        "conservationtv"
+                      ]
+                    },
+                    "builtin": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "settings",
+                    "createdAt",
+                    "name",
+                    "kind",
+                    "protocols",
+                    "id",
+                    "builtin"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "networkId": {
+                      "type": "null"
+                    },
+                    "settings": {
+                      "type": "object"
+                    },
+                    "createdAt": {
+                      "type": "null"
+                    },
+                    "name": {
+                      "type": "string",
+                      "const": "Cloudflare"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "cloudflare-realtime"
+                    },
+                    "protocols": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "const": "webrtc"
+                      }
+                    },
+                    "id": {
+                      "type": "string",
+                      "enum": [
+                        "cloudflare",
+                        "conservationtv"
+                      ]
+                    },
+                    "builtin": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "networkId",
+                    "settings",
+                    "createdAt",
+                    "name",
+                    "kind",
+                    "protocols",
+                    "id",
+                    "builtin"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "builtin": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocols": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "protocols",
+                    "settings",
+                    "createdAt"
+                  ]
+                }
+              ]
             }
-          },
-          "settings": {
-            "type": "object",
-            "additionalProperties": {}
-          },
-          "createdAt": {
-            "type": "string"
           }
         },
         "required": [
-          "id",
-          "name",
-          "kind",
-          "networkId",
-          "protocols",
-          "settings",
-          "createdAt"
+          "gateways"
         ]
       },
       "Stream": {
@@ -5444,68 +5561,14 @@
         "operationId": "organisations.gateways.list",
         "x-operation-version": 1,
         "summary": "List an organisation's gateways",
-        "description": "Optionally only those on one network. Empty for organisations you are not a member of.",
+        "description": "The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.",
         "responses": {
           "200": {
-            "description": "The gateways, oldest first",
+            "description": "The built-in gateways, then the organisation’s own, oldest first",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "gateways": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string"
-                          },
-                          "kind": {
-                            "type": "string"
-                          },
-                          "networkId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "settings": {
-                            "type": "object",
-                            "additionalProperties": {}
-                          },
-                          "protocols": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "id",
-                          "createdAt",
-                          "kind",
-                          "networkId",
-                          "settings",
-                          "protocols"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "gateways"
-                  ]
+                  "$ref": "#/components/schemas/Gateway"
                 }
               }
             }
@@ -5589,7 +5652,54 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Gateway"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "builtin": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocols": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "protocols",
+                    "settings",
+                    "createdAt"
+                  ]
                 }
               }
             }
@@ -5746,13 +5856,167 @@
         "operationId": "organisations.gateways.get",
         "x-operation-version": 1,
         "summary": "Read a gateway",
+        "description": "A built-in gateway, or one of the organisation's own.",
         "responses": {
           "200": {
             "description": "The gateway",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Gateway"
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "networkId": {
+                              "type": "null"
+                            },
+                            "settings": {
+                              "type": "object"
+                            },
+                            "createdAt": {
+                              "type": "null"
+                            },
+                            "name": {
+                              "type": "string",
+                              "const": "conservation.tv"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "const": "moq-relay"
+                            },
+                            "protocols": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "const": "moq"
+                              }
+                            },
+                            "id": {
+                              "type": "string",
+                              "enum": [
+                                "cloudflare",
+                                "conservationtv"
+                              ]
+                            },
+                            "builtin": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "networkId",
+                            "settings",
+                            "createdAt",
+                            "name",
+                            "kind",
+                            "protocols",
+                            "id",
+                            "builtin"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "networkId": {
+                              "type": "null"
+                            },
+                            "settings": {
+                              "type": "object"
+                            },
+                            "createdAt": {
+                              "type": "null"
+                            },
+                            "name": {
+                              "type": "string",
+                              "const": "Cloudflare"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "const": "cloudflare-realtime"
+                            },
+                            "protocols": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "const": "webrtc"
+                              }
+                            },
+                            "id": {
+                              "type": "string",
+                              "enum": [
+                                "cloudflare",
+                                "conservationtv"
+                              ]
+                            },
+                            "builtin": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "networkId",
+                            "settings",
+                            "createdAt",
+                            "name",
+                            "kind",
+                            "protocols",
+                            "id",
+                            "builtin"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "builtin": {
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "networkId": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "protocols": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "settings": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "protocols",
+                        "settings",
+                        "createdAt"
+                      ]
+                    }
+                  ]
                 }
               }
             }
@@ -5824,9 +6088,20 @@
             "in": "path",
             "name": "gatewayId",
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "conservationtv",
+                    "cloudflare"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              ]
             },
             "required": true,
             "description": "The gateway."
@@ -5840,14 +6115,61 @@
         "operationId": "organisations.gateways.update",
         "x-operation-version": 1,
         "summary": "Update a gateway",
-        "description": "Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
+        "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
         "responses": {
           "200": {
             "description": "The updated gateway",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Gateway"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "builtin": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "protocols": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "protocols",
+                    "settings",
+                    "createdAt"
+                  ]
                 }
               }
             }
@@ -5949,9 +6271,20 @@
             "in": "path",
             "name": "gatewayId",
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "conservationtv",
+                    "cloudflare"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              ]
             },
             "required": true,
             "description": "The gateway."
@@ -6026,7 +6359,7 @@
         "operationId": "organisations.gateways.delete",
         "x-operation-version": 1,
         "summary": "Remove a gateway",
-        "description": "Administrators only. Refused while exposures use it.",
+        "description": "Administrators only, and never a built-in gateway. Refused while exposures use it.",
         "responses": {
           "204": {
             "description": "Removed"
@@ -6118,9 +6451,20 @@
             "in": "path",
             "name": "gatewayId",
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "conservationtv",
+                    "cloudflare"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              ]
             },
             "required": true,
             "description": "The gateway."
@@ -6891,10 +7235,21 @@
                 "type": "object",
                 "properties": {
                   "gatewayId": {
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "The gateway the stream is delivered to."
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "conservationtv",
+                          "cloudflare"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      }
+                    ],
+                    "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                   },
                   "protocol": {
                     "type": "string",
@@ -7129,10 +7484,21 @@
                 "type": "object",
                 "properties": {
                   "gatewayId": {
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                    "description": "The gateway the stream is delivered to."
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "conservationtv",
+                          "cloudflare"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      }
+                    ],
+                    "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                   },
                   "protocol": {
                     "type": "string",
@@ -16366,49 +16732,155 @@
               "gateways": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "kind": {
-                      "type": "string"
-                    },
-                    "networkId": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "networkId": {
                           "type": "null"
+                        },
+                        "settings": {
+                          "type": "object"
+                        },
+                        "createdAt": {
+                          "type": "null"
+                        },
+                        "name": {
+                          "type": "string",
+                          "const": "conservation.tv"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "moq-relay"
+                        },
+                        "protocols": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "const": "moq"
+                          }
+                        },
+                        "id": {
+                          "type": "string",
+                          "enum": [
+                            "cloudflare",
+                            "conservationtv"
+                          ]
+                        },
+                        "builtin": {
+                          "type": "boolean"
                         }
+                      },
+                      "required": [
+                        "networkId",
+                        "settings",
+                        "createdAt",
+                        "name",
+                        "kind",
+                        "protocols",
+                        "id",
+                        "builtin"
                       ]
                     },
-                    "settings": {
+                    {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "networkId": {
+                          "type": "null"
+                        },
+                        "settings": {
+                          "type": "object"
+                        },
+                        "createdAt": {
+                          "type": "null"
+                        },
+                        "name": {
+                          "type": "string",
+                          "const": "Cloudflare"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "cloudflare-realtime"
+                        },
+                        "protocols": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "const": "webrtc"
+                          }
+                        },
+                        "id": {
+                          "type": "string",
+                          "enum": [
+                            "cloudflare",
+                            "conservationtv"
+                          ]
+                        },
+                        "builtin": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "networkId",
+                        "settings",
+                        "createdAt",
+                        "name",
+                        "kind",
+                        "protocols",
+                        "id",
+                        "builtin"
+                      ]
                     },
-                    "protocols": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "builtin": {
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "networkId": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "protocols": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "settings": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "protocols",
+                        "settings",
+                        "createdAt"
+                      ]
                     }
-                  },
-                  "required": [
-                    "name",
-                    "id",
-                    "createdAt",
-                    "kind",
-                    "networkId",
-                    "settings",
-                    "protocols"
                   ]
                 }
               }
@@ -16425,10 +16897,10 @@
             "operationId": "organisations.gateways.list",
             "x-operation-version": 1,
             "summary": "List an organisation's gateways",
-            "description": "Optionally only those on one network. Empty for organisations you are not a member of.",
+            "description": "The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.",
             "responses": {
               "200": {
-                "description": "The gateways, oldest first",
+                "description": "The built-in gateways, then the organisation’s own, oldest first",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -16588,6 +17060,9 @@
               "id": {
                 "type": "string"
               },
+              "builtin": {
+                "type": "boolean"
+              },
               "name": {
                 "type": "string"
               },
@@ -16620,6 +17095,7 @@
             },
             "required": [
               "id",
+              "builtin",
               "name",
               "kind",
               "networkId",
@@ -16839,52 +17315,6 @@
               "error",
               "error_description"
             ]
-          },
-          "Gateway": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string"
-              },
-              "networkId": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "protocols": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "settings": {
-                "type": "object",
-                "additionalProperties": {}
-              },
-              "createdAt": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name",
-              "kind",
-              "networkId",
-              "protocols",
-              "settings",
-              "createdAt"
-            ]
           }
         }
       },
@@ -16894,13 +17324,167 @@
             "operationId": "organisations.gateways.get",
             "x-operation-version": 1,
             "summary": "Read a gateway",
+            "description": "A built-in gateway, or one of the organisation's own.",
             "responses": {
               "200": {
                 "description": "The gateway",
                 "content": {
                   "application/json": {
                     "schema": {
-                      "$ref": "#/components/schemas/Gateway"
+                      "anyOf": [
+                        {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "networkId": {
+                                  "type": "null"
+                                },
+                                "settings": {
+                                  "type": "object"
+                                },
+                                "createdAt": {
+                                  "type": "null"
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "const": "conservation.tv"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "const": "moq-relay"
+                                },
+                                "protocols": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "const": "moq"
+                                  }
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "enum": [
+                                    "cloudflare",
+                                    "conservationtv"
+                                  ]
+                                },
+                                "builtin": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "networkId",
+                                "settings",
+                                "createdAt",
+                                "name",
+                                "kind",
+                                "protocols",
+                                "id",
+                                "builtin"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "networkId": {
+                                  "type": "null"
+                                },
+                                "settings": {
+                                  "type": "object"
+                                },
+                                "createdAt": {
+                                  "type": "null"
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "const": "Cloudflare"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "const": "cloudflare-realtime"
+                                },
+                                "protocols": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "const": "webrtc"
+                                  }
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "enum": [
+                                    "cloudflare",
+                                    "conservationtv"
+                                  ]
+                                },
+                                "builtin": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "networkId",
+                                "settings",
+                                "createdAt",
+                                "name",
+                                "kind",
+                                "protocols",
+                                "id",
+                                "builtin"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "builtin": {
+                              "type": "boolean"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "networkId": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "protocols": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "settings": {
+                              "type": "object",
+                              "additionalProperties": {}
+                            },
+                            "createdAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "builtin",
+                            "name",
+                            "kind",
+                            "networkId",
+                            "protocols",
+                            "settings",
+                            "createdAt"
+                          ]
+                        }
+                      ]
                     }
                   }
                 }
@@ -16972,9 +17556,20 @@
                 "in": "path",
                 "name": "gatewayId",
                 "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "conservationtv",
+                        "cloudflare"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  ]
                 },
                 "required": true,
                 "description": "The gateway."
@@ -17067,6 +17662,9 @@
               "id": {
                 "type": "string"
               },
+              "builtin": {
+                "type": "boolean"
+              },
               "name": {
                 "type": "string"
               },
@@ -17099,6 +17697,7 @@
             },
             "required": [
               "id",
+              "builtin",
               "name",
               "kind",
               "networkId",
@@ -17115,7 +17714,7 @@
             "operationId": "organisations.gateways.update",
             "x-operation-version": 1,
             "summary": "Update a gateway",
-            "description": "Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
+            "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.",
             "responses": {
               "200": {
                 "description": "The updated gateway",
@@ -17224,9 +17823,20 @@
                 "in": "path",
                 "name": "gatewayId",
                 "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "conservationtv",
+                        "cloudflare"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  ]
                 },
                 "required": true,
                 "description": "The gateway."
@@ -17351,7 +17961,7 @@
             "operationId": "organisations.gateways.delete",
             "x-operation-version": 1,
             "summary": "Remove a gateway",
-            "description": "Administrators only. Refused while exposures use it.",
+            "description": "Administrators only, and never a built-in gateway. Refused while exposures use it.",
             "responses": {
               "204": {
                 "description": "Removed"
@@ -17443,9 +18053,20 @@
                 "in": "path",
                 "name": "gatewayId",
                 "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "conservationtv",
+                        "cloudflare"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  ]
                 },
                 "required": true,
                 "description": "The gateway."
@@ -18776,10 +19397,21 @@
                     "type": "object",
                     "properties": {
                       "gatewayId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "description": "The gateway the stream is delivered to."
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "conservationtv",
+                              "cloudflare"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        ],
+                        "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                       },
                       "protocol": {
                         "type": "string",
@@ -19168,10 +19800,21 @@
                     "type": "object",
                     "properties": {
                       "gatewayId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "description": "The gateway the stream is delivered to."
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "conservationtv",
+                              "cloudflare"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        ],
+                        "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                       },
                       "protocol": {
                         "type": "string",

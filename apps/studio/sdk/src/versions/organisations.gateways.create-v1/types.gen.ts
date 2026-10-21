@@ -15,6 +15,7 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 
 export type Gateway = {
     id: string;
+    builtin: boolean;
     name: string;
     kind: string;
     networkId: string | null;

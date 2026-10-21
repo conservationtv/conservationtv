@@ -33,9 +33,10 @@ export const ExposureSchema = z.object({
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.object({
-    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The gateway the stream is delivered to.'
-    }),
+    gatewayId: z.union([
+        z.enum(['conservationtv', 'cloudflare']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ]),
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'One of the protocols the gateway accepts.'
     }),

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
@@ -6,7 +6,8 @@ import { gateways } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { useEnvironment } from '../env/env.ts';
-import { checkProtocolsInUse } from '../topology/exposures.ts';
+import { checkGatewayUnused, checkProtocolsInUse } from '../topology/exposures.ts';
+import { BUILTIN_GATEWAY_IDS, builtinGateways, isBuiltinGateway } from '../topology/gateways.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 import {
@@ -24,7 +25,10 @@ import {
 
 const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisation.') });
 export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
-const GatewayParamsSchema = OrganisationParamsSchema.extend({ gatewayId: z.uuid().describe('The gateway.') });
+/** A gateway: a built-in gateway's slug, or the ID of one of the organisation's own. */
+export const GatewayIdSchema = z.union([z.enum(BUILTIN_GATEWAY_IDS), z.uuid()]).describe('The gateway.');
+export type GatewayId = z.output<typeof GatewayIdSchema>;
+const GatewayParamsSchema = OrganisationParamsSchema.extend({ gatewayId: GatewayIdSchema });
 export type GatewayParams = z.output<typeof GatewayParamsSchema>;
 
 const GatewayNameSchema = z.string().trim().min(1).max(120).describe('The gateway name.');
@@ -53,6 +57,7 @@ export type Protocols = z.output<typeof ProtocolsSchema>;
 
 const gatewayColumns = {
   id: gateways.id,
+  builtin: sql<boolean>`false`,
   name: gateways.name,
   kind: gateways.kind,
   networkId: gateways.networkId,
@@ -62,7 +67,8 @@ const gatewayColumns = {
 };
 
 // An organisation's gateways, in the principal's request session: members read them, administrators manage them. A
-// gateway's network must belong to the same organisation, which the database's composite foreign key enforces.
+// gateway's network must belong to the same organisation, which the database's composite foreign key enforces. The
+// built-in gateways (src/topology/gateways.ts) are listed and read beside them, but never changed.
 export default new Hono()
   .get(
     '/',
@@ -70,9 +76,10 @@ export default new Hono()
       operationId: 'organisations.gateways.list',
       ...operationVersion(1),
       summary: "List an organisation's gateways",
-      description: 'Optionally only those on one network. Empty for organisations you are not a member of.',
+      description:
+        "The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.",
       responses: {
-        200: { description: 'The gateways, oldest first' },
+        200: { description: 'The built-in gateways, then the organisation’s own, oldest first' },
         400: invalidRequest,
         401: unauthenticated,
         412: versionMismatch,
@@ -88,23 +95,16 @@ export default new Hono()
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
+      const filter =
+        networkId === undefined
+          ? eq(gateways.organisationId, id)
+          : and(eq(gateways.organisationId, id), eq(gateways.networkId, networkId));
       const rows = await session.transaction(tx =>
-        tx.query.gateways.findMany({
-          columns: {
-            id: true,
-            name: true,
-            kind: true,
-            networkId: true,
-            protocols: true,
-            settings: true,
-            createdAt: true
-          },
-          where: { organisationId: id, networkId },
-          orderBy: { id: 'asc' }
-        })
+        tx.select(gatewayColumns).from(gateways).where(filter).orderBy(gateways.id)
       );
+      const builtin = networkId === undefined ? builtinGateways : [];
       c.header('Cache-Control', 'no-store');
-      return c.json({ gateways: rows }, 200);
+      return c.json({ gateways: [...builtin, ...rows] }, 200);
     }
   )
   .post(
@@ -166,6 +166,7 @@ export default new Hono()
       operationId: 'organisations.gateways.get',
       ...operationVersion(1),
       summary: 'Read a gateway',
+      description: "A built-in gateway, or one of the organisation's own.",
       responses: {
         200: { description: 'The gateway' },
         400: invalidRequest,
@@ -179,6 +180,12 @@ export default new Hono()
     validator('param', GatewayParamsSchema),
     async c => {
       const { id, gatewayId } = c.req.valid('param');
+      c.header('Cache-Control', 'no-store');
+      if (isBuiltinGateway(gatewayId))
+        return c.json(
+          builtinGateways.find(gateway => gateway.id === gatewayId)!,
+          200
+        );
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
@@ -189,7 +196,6 @@ export default new Hono()
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
       );
       if (!row) throw new ApiFailure('not_found');
-      c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
   )
@@ -200,7 +206,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a gateway',
       description:
-        'Administrators only. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.',
+        'Administrators only, and never a built-in gateway. Changes only the fields given; `protocols` and `settings` are replaced whole. Refused if an exposure uses a protocol it would no longer accept.',
       responses: {
         200: { description: 'The updated gateway' },
         400: invalidRequest,
@@ -230,6 +236,7 @@ export default new Hono()
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       const body = c.req.valid('json');
+      if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
@@ -259,7 +266,7 @@ export default new Hono()
       operationId: 'organisations.gateways.delete',
       ...operationVersion(1),
       summary: 'Remove a gateway',
-      description: 'Administrators only. Refused while exposures use it.',
+      description: 'Administrators only, and never a built-in gateway. Refused while exposures use it.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,
@@ -275,6 +282,7 @@ export default new Hono()
     validator('param', GatewayParamsSchema),
     async c => {
       const { id, gatewayId } = c.req.valid('param');
+      if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
       const environment = useEnvironment();
       const principal = usePrincipal();
       const session = await environment.session(principal);
@@ -284,6 +292,7 @@ export default new Hono()
           .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
           .returning({ id: gateways.id });
         if (deleted.length === 0) throw await unchanged(tx, gateways.id, gatewayId);
+        await checkGatewayUnused(tx, gatewayId);
       });
       return c.body(null, 204);
     }

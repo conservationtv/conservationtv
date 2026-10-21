@@ -9,18 +9,6 @@ export type Error = {
     error_description: string;
 };
 
-export type Gateway = {
-    id: string;
-    name: string;
-    kind: string;
-    networkId: string | null;
-    protocols: Array<string>;
-    settings: {
-        [key: string]: unknown;
-    };
-    createdAt: string;
-};
-
 export type GetOrganisationsByIdGatewaysByGatewayIdData = {
     body?: never;
     path: {
@@ -31,7 +19,7 @@ export type GetOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway.
          */
-        gatewayId: string;
+        gatewayId: 'conservationtv' | 'cloudflare' | string;
     };
     query?: never;
     url: '/organisations/{id}/gateways/{gatewayId}';
@@ -66,7 +54,40 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
     /**
      * The gateway
      */
-    200: Gateway;
+    200: {
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+        name: 'conservation.tv';
+        kind: 'moq-relay';
+        protocols: Array<'moq'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+        name: 'Cloudflare';
+        kind: 'cloudflare-realtime';
+        protocols: Array<'webrtc'>;
+        id: 'cloudflare' | 'conservationtv';
+        builtin: boolean;
+    } | {
+        id: string;
+        builtin: boolean;
+        name: string;
+        kind: string;
+        networkId: string | null;
+        protocols: Array<string>;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    };
 };
 
 export type GetOrganisationsByIdGatewaysByGatewayIdResponse = GetOrganisationsByIdGatewaysByGatewayIdResponses[keyof GetOrganisationsByIdGatewaysByGatewayIdResponses];

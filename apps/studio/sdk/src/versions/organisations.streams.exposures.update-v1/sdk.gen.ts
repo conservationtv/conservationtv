@@ -57,7 +57,7 @@ export class Exposures extends HeyApiClient {
         id: string;
         streamId: string;
         exposureId: string;
-        gatewayId?: string;
+        gatewayId?: 'conservationtv' | 'cloudflare' | string;
         protocol?: string;
         publisherDeviceId?: string | null;
         upstreamExposureId?: string | null;

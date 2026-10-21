@@ -17,6 +17,7 @@ export const Schema0Schema = z.union([
 
 export const GatewaySchema = z.object({
     id: z.string(),
+    builtin: z.boolean(),
     name: z.string(),
     kind: z.string(),
     networkId: z.string().nullable(),
