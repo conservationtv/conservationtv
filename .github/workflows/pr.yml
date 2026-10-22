@@ -1,0 +1,62 @@
+name: pr
+
+on:
+  pull_request:
+
+# A newer push to the same pull request supersedes the checks still running for the last one.
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      # Each package generates what it needs first (Worker types, React Router types, the fleet build).
+      - name: Typecheck
+        run: pnpm -r --no-bail typecheck
+
+  # Advisory: warns on each versioned contract that changed or was removed relative to the base, without failing.
+  contracts:
+    runs-on: ubuntu-latest
+    env:
+      API_BASE_REF: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The check reads each API's document as it was at the base commit.
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Compare contracts with the base
+        run: pnpm -r --no-bail run ci:contracts pr
