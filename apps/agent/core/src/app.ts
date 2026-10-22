@@ -5,12 +5,14 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import document from '../contracts/openapi.json' with { type: 'json' };
 import { withConfig, type AgentConfiguration } from './config.ts';
+import { admitPeers } from './admission.ts';
 import { bindEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import status from './routes/status.ts';
 import system from './routes/system.ts';
 import { type AgentControllers, startSystem, withSpecApi, withSystem, type AgentSystem } from './system.ts';
 
+export { PeersSchema, type Peer, type Peers } from './admission.ts';
 export {
   useConfig,
   type AgentConfiguration,
@@ -56,10 +58,19 @@ export class Agent {
 
     // The server owns the endpoint from here: disposing it closes the endpoint too. If accepting fails, `closed`
     // rejects unhandled, which the host's process lifecycle treats as fatal.
-    this.server = serve(endpoint, (request, peer) =>
-      withSystem(system, () =>
-        withSpecApi(api, () => withConfig(this.config, () => app.fetch(request, { peer: peer.endpointId })))
-      )
+    // A peer that reached the agent over IP is only known once its handshake completes, so the list is checked again
+    // for each request.
+    const peers = this.config.peers;
+    const listed = (endpointId: string) => peers?.some(peer => peer.endpointId === endpointId) ?? true;
+    this.server = serve(
+      endpoint,
+      (request, peer) => {
+        if (!listed(peer.endpointId)) return new Response(null, { status: 403 });
+        return withSystem(system, () =>
+          withSpecApi(api, () => withConfig(this.config, () => app.fetch(request, { peer: peer.endpointId })))
+        );
+      },
+      { admit: admitPeers(peers) }
     );
     const endpointId = endpoint.id();
     console.log(JSON.stringify({ event: 'started', name: this.config.name, endpointId: endpointId.toString() }));

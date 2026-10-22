@@ -12,7 +12,7 @@
     "@conservationtv/controlplane-sdk": "workspace:*",
     "@conservationtv/gatekeeper": "workspace:*",
     "@hono/node-server": "2.1.4",
-    "@number0/iroh": "1.1.0",
+    "@number0/iroh": "catalog:",
     "@testcontainers/postgresql": "12.2.0",
     "@types/node": "24.10.1",
     "@types/pg": "catalog:",
