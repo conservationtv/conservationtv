@@ -309,54 +309,6 @@ export const IrohSessionSchema = z.object({
     })
 });
 
-export const DeviceConfigurationSchema = z.object({
-    organisationId: z.string(),
-    mediamtx: z.object({
-        gatewayId: z.string(),
-        auth: z.object({
-            jwks: z.string(),
-            issuer: z.string(),
-            audience: z.string()
-        })
-    }).nullable(),
-    exposures: z.record(z.string(), z.union([
-        z.object({
-            ingest: z.literal('pull'),
-            streamId: z.string(),
-            gatewayId: z.string(),
-            renditions: z.array(z.object({
-                rendition: z.enum([
-                    'default',
-                    'data_saver',
-                    'balanced',
-                    'quality'
-                ]),
-                path: z.string(),
-                source: z.string()
-            }))
-        }),
-        z.object({
-            ingest: z.literal('moq'),
-            streamId: z.string(),
-            gatewayId: z.string(),
-            upstreamExposureId: z.string(),
-            renditions: z.array(z.object({
-                rendition: z.enum([
-                    'default',
-                    'data_saver',
-                    'balanced',
-                    'quality'
-                ]),
-                source: z.string()
-            }))
-        })
-    ])),
-    diagnostics: z.array(z.object({
-        subject: z.string(),
-        message: z.string()
-    }))
-});
-
 export const GatewayKeySchema = z.object({
     keys: z.array(z.object({
         kty: z.union([
@@ -1930,7 +1882,64 @@ export const PostIrohSessionsResponseSchema = IrohSessionSchema;
 /**
  * The configuration
  */
-export const GetDeviceConfigurationResponseSchema = DeviceConfigurationSchema;
+export const GetDeviceConfigurationResponseSchema = z.union([
+    z.object({
+        state: z.literal('idle')
+    }),
+    z.object({
+        state: z.literal('active'),
+        mediamtx: z.object({
+            gatewayId: z.string(),
+            auth: z.object({
+                jwks: z.string(),
+                issuer: z.string(),
+                audience: z.string()
+            })
+        }),
+        paths: z.array(z.object({
+            name: z.string(),
+            exposureId: z.string(),
+            rendition: z.enum([
+                'default',
+                'data_saver',
+                'balanced',
+                'quality'
+            ]),
+            source: z.union([
+                z.object({
+                    url: z.string()
+                }),
+                z.object({
+                    path: z.string()
+                })
+            ])
+        })),
+        publishers: z.array(z.object({
+            exposureId: z.string(),
+            connect: z.object({
+                id: z.string(),
+                streamId: z.string(),
+                exposureId: z.string(),
+                action: z.literal('publish'),
+                protocol: z.literal('moq')
+            }),
+            layout: z.literal('tracks'),
+            renditions: z.array(z.object({
+                rendition: z.enum([
+                    'default',
+                    'data_saver',
+                    'balanced',
+                    'quality'
+                ]),
+                path: z.string()
+            }))
+        })),
+        diagnostics: z.array(z.object({
+            subject: z.string(),
+            message: z.string()
+        }))
+    })
+]);
 
 /**
  * The key set

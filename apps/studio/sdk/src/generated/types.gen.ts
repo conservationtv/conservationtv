@@ -290,43 +290,6 @@ export type IrohSession = {
     };
 };
 
-export type DeviceConfiguration = {
-    organisationId: string;
-    mediamtx: {
-        gatewayId: string;
-        auth: {
-            jwks: string;
-            issuer: string;
-            audience: string;
-        };
-    } | null;
-    exposures: {
-        [key: string]: {
-            ingest: 'pull';
-            streamId: string;
-            gatewayId: string;
-            renditions: Array<{
-                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
-                path: string;
-                source: string;
-            }>;
-        } | {
-            ingest: 'moq';
-            streamId: string;
-            gatewayId: string;
-            upstreamExposureId: string;
-            renditions: Array<{
-                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
-                source: string;
-            }>;
-        };
-    };
-    diagnostics: Array<{
-        subject: string;
-        message: string;
-    }>;
-};
-
 export type GatewayKey = {
     keys: Array<{
         kty?: 'EC' | 'oct' | 'RSA' | 'OKP' | 'AKP' | {
@@ -4262,7 +4225,48 @@ export type GetDeviceConfigurationResponses = {
     /**
      * The configuration
      */
-    200: DeviceConfiguration;
+    200: {
+        state: 'idle';
+    } | {
+        state: 'active';
+        mediamtx: {
+            gatewayId: string;
+            auth: {
+                jwks: string;
+                issuer: string;
+                audience: string;
+            };
+        };
+        paths: Array<{
+            name: string;
+            exposureId: string;
+            rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+            source: {
+                url: string;
+            } | {
+                path: string;
+            };
+        }>;
+        publishers: Array<{
+            exposureId: string;
+            connect: {
+                id: string;
+                streamId: string;
+                exposureId: string;
+                action: 'publish';
+                protocol: 'moq';
+            };
+            layout: 'tracks';
+            renditions: Array<{
+                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+                path: string;
+            }>;
+        }>;
+        diagnostics: Array<{
+            subject: string;
+            message: string;
+        }>;
+    };
 };
 
 export type GetDeviceConfigurationResponse = GetDeviceConfigurationResponses[keyof GetDeviceConfigurationResponses];

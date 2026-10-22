@@ -1,42 +1,55 @@
 import type { Rendition } from '../../topology/settings.ts';
 
-// The shapes of a device's planned configuration (src/configuration/plan/index.ts).
+// The shapes of a device's planned configuration (src/configuration/plan/index.ts), which mirror what the agent runs:
+// MediaMTX paths, and MoQ publishers reading them.
 
-/** A rendition the agent's MediaMTX serves: at `path`, pulled from `source` while it is read. */
-export interface ServedRendition {
-  rendition: Rendition;
-  path: string;
-  /** Where to pull it from, such as the camera's RTSP URL, credentials included. */
-  source: string;
+/** A URL MediaMTX pulls a path from while it is read, such as a camera's, credentials included. */
+export interface UrlSource {
+  url: string;
 }
 
-/** A rendition the agent publishes: read from `source`, a path its own MediaMTX serves. */
+/** Another path of the same MediaMTX, which a path is read from while it is read. */
+export interface LocalSource {
+  path: string;
+}
+
+/** Where a path gets its media. */
+export type PathSource = UrlSource | LocalSource;
+
+/** A path the agent's MediaMTX serves, delivering one rendition of an exposure. */
+export interface PlannedPath {
+  name: string;
+  exposureId: string;
+  rendition: Rendition;
+  source: PathSource;
+}
+
+/** The `connect` ask (`organisations.streams.exposures.connect`) for where a publisher publishes, and its token. */
+export interface PublisherConnect {
+  id: string;
+  streamId: string;
+  exposureId: string;
+  action: 'publish';
+  protocol: 'moq';
+}
+
+/** One rendition a publisher publishes: read from `path`, a path its MediaMTX serves. */
 export interface PublishedRendition {
   rendition: Rendition;
-  source: string;
-}
-
-/** An exposure the agent's MediaMTX serves, each rendition pulled from the stream's origin. */
-export interface ServedExposure {
-  ingest: 'pull';
-  streamId: string;
-  gatewayId: string;
-  renditions: ServedRendition[];
+  path: string;
 }
 
 /**
- * An exposure the agent publishes to its gateway by MoQ, reading each rendition from what its MediaMTX serves of
- * `upstreamExposureId`, and connecting (`organisations.streams.exposures.connect`) for credentials.
+ * An exposure the agent publishes by MoQ: the `connect` ask for where to (kept out of the plan, so a renewed token
+ * leaves the plan as it was), how its gateway takes the renditions, and where each is read. `tracks`: one broadcast,
+ * each rendition a track of it.
  */
-export interface PublishedExposure {
-  ingest: 'moq';
-  streamId: string;
-  gatewayId: string;
-  upstreamExposureId: string;
+export interface PlannedPublisher {
+  exposureId: string;
+  connect: PublisherConnect;
+  layout: 'tracks';
   renditions: PublishedRendition[];
 }
-
-export type ExposureConfiguration = ServedExposure | PublishedExposure;
 
 /** Something the topology asks for that the device's configuration leaves out, and why. */
 export interface Diagnostic {
@@ -44,9 +57,6 @@ export interface Diagnostic {
   subject: string;
   message: string;
 }
-
-/** Records why the exposure is left out of the configuration, or only partly in it. */
-export type Diagnose = (message: string) => void;
 
 /** How a MediaMTX checks a token: against this API's published keys, issued by this API, for its gateway. */
 export interface MediamtxAuth {
@@ -61,10 +71,18 @@ export interface MediamtxConfiguration {
   auth: MediamtxAuth;
 }
 
-export interface PlannedConfiguration {
-  /** The device's organisation, which its connections are made under. */
-  organisationId: string;
-  mediamtx: MediamtxConfiguration | null;
-  exposures: Record<string, ExposureConfiguration>;
+/** A device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. */
+export interface IdleConfiguration {
+  state: 'idle';
+}
+
+/** The network's active agent: the MediaMTX gateway it runs, the paths that serves, and what it publishes from them. */
+export interface ActiveConfiguration {
+  state: 'active';
+  mediamtx: MediamtxConfiguration;
+  paths: PlannedPath[];
+  publishers: PlannedPublisher[];
   diagnostics: Diagnostic[];
 }
+
+export type PlannedConfiguration = IdleConfiguration | ActiveConfiguration;
