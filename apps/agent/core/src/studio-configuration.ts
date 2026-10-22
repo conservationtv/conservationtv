@@ -29,31 +29,29 @@ const RENEW_BEFORE_MS = 10 * 60_000;
 export type ApplyMediamtx = (spec: MediamtxSpec | undefined) => Promise<void>;
 
 /**
- * Ask for the configuration now and every `INTERVAL_MS` until stopped, applying each answer. A failed ask keeps the
- * spec as it was, and is tried again next time. Returns the cleanup that stops it.
+ * Ask for the configuration now and every `INTERVAL_MS` until `signal` aborts, applying each answer. A failed ask
+ * keeps the spec as it was, and is tried again next time. Resolves once stopped.
  */
-export function watchStudioConfiguration(config: ConservationTvConfiguration, apply: ApplyMediamtx): () => void {
-  const stopped = new AbortController();
-  const run = async () => {
-    const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
-    const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
-    const connections: Connections = new Map();
-    const logDiagnostics = diagnosticsLogger();
-    while (!stopped.signal.aborted) {
-      try {
-        const configuration = await askConfiguration(studio);
-        logDiagnostics(configuration);
-        await apply(await mediamtxSpec(configuration, studio, connections));
-      } catch (error) {
-        // Stopping aborts whatever ask is in flight: that is no failure.
-        if (!stopped.signal.aborted)
-          console.error(JSON.stringify({ event: 'configuration_failed', error: String(error) }));
-      }
-      await sleep(INTERVAL_MS, undefined, { signal: stopped.signal }).catch(() => undefined);
+export async function watchStudioConfiguration(
+  config: ConservationTvConfiguration,
+  signal: AbortSignal,
+  apply: ApplyMediamtx
+): Promise<void> {
+  const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
+  const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
+  const connections: Connections = new Map();
+  const logDiagnostics = diagnosticsLogger();
+  while (!signal.aborted) {
+    try {
+      const configuration = await askConfiguration(studio);
+      logDiagnostics(configuration);
+      await apply(await mediamtxSpec(configuration, studio, connections));
+    } catch (error) {
+      // Stopping aborts whatever ask is in flight: that is no failure.
+      if (!signal.aborted) console.error(JSON.stringify({ event: 'configuration_failed', error: String(error) }));
     }
-  };
-  void run();
-  return () => stopped.abort();
+    await sleep(INTERVAL_MS, undefined, { signal }).catch(() => undefined);
+  }
 }
 
 /** One answer from the studio API, signed as the agent's device. */

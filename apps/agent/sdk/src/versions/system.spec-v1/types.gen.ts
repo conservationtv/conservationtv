@@ -30,8 +30,40 @@ export type System = {
             name: string;
             exposureId: string;
             rendition?: string;
+            source?: {
+                url: string;
+            } | {
+                path: string;
+            };
+        }>;
+        publishers: Array<{
+            exposureId: string;
+            connect: string;
+            broadcast: string;
+            layout: 'tracks';
+            renditions: Array<{
+                rendition: string;
+                path: string;
+            }>;
         }>;
         metricsIntervalMs: number;
+        auth?: {
+            jwks: string;
+            issuer: string;
+            audience: string;
+        };
+        moq?: {
+            version: string;
+            name: 'moq';
+            artifacts: {
+                [key: string]: {
+                    url: string;
+                    checksum: string;
+                    format: string;
+                    path?: string;
+                };
+            };
+        };
     };
 };
 

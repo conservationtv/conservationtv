@@ -1,15 +1,16 @@
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type Controller, type Convergence, type SystemSpec, controller, converge, mutator } from '../src/index.ts';
 import {
-  type Controller,
-  type Convergence,
-  type Mutations,
-  type Mutator,
-  type SystemSpec,
-  controller,
-  converge
-} from '../src/index.ts';
-import { type AppSpec, AppSpecSchema, type Running, app, revisionFor, seeded } from './harness.ts';
+  type AppSpec,
+  AppSpecSchema,
+  type Changes,
+  type Running,
+  app,
+  changes,
+  revisionFor,
+  seeded
+} from './harness.ts';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -180,10 +181,10 @@ class Run {
   }
 }
 
-/** A life that got going: its system, the API's hands on the spec, and how to stop the looping mutator. */
+/** A life that got going: its system, the API's hands on the spec, and how to stop the mutator's loop. */
 interface Started {
   system: Convergence<Chaos>;
-  api: Mutations<Chaos>;
+  api: Changes<Chaos>;
   quiet(): void;
 }
 
@@ -193,10 +194,10 @@ describe('chaos', () => {
   // can't be read or a mutator throws while starting.
   //
   // Every part misbehaves. Runtimes throw, reject, dawdle, ignore aborts, break their status streams and throw when
-  // disposed. The disk fails a fifth of its writes, and is sometimes slow. One mutator makes random changes, some of
-  // them invalid. Another loops, flipping a key between two specs. A rogue one makes a change the moment it is
-  // handed the changes, and ignores its cleanup, carrying on after the system stops. Between changes, time passes at
-  // random.
+  // disposed. The disk fails a fifth of its writes, and is sometimes slow. An API makes random changes through the
+  // mutator, some of them invalid. The mutator's run loops, flipping a key between two specs, and strikes like a
+  // rogue: a change the moment it starts, and more that ignore its signal, carrying on after the system stops.
+  // Between changes, time passes at random.
   //
   // Whatever happens: nothing runs twice at once, nothing touches the world or storage after its life has stopped,
   // nothing goes unhandled, and every change in a life that wasn't killed settles one way or the other. When the last
@@ -241,51 +242,46 @@ async function start(run: Run, life: Life, last: boolean): Promise<Started | und
     run.saved = spec;
   };
 
-  const handed: Mutations<Chaos>[] = [];
-  const api: Mutator<Chaos> = given => {
-    handed.push(given);
-    return () => undefined;
-  };
   let looping = true;
-  const loop: Mutator<Chaos> = given => {
+  const broken = !last && next() < 0.1;
+  const source = mutator<Chaos>(context => {
     const spin = async (): Promise<void> => {
-      for (let turn = 0; looping; turn++) {
-        await given.set('cache', app(7 + (turn % 2))).catch(() => undefined);
+      for (let turn = 0; looping && !context.signal.aborted; turn++) {
+        const flip = app(7 + (turn % 2));
+        await context
+          .update(draft => {
+            draft.cache = flip;
+          })
+          .catch(() => undefined);
         await new Promise(resolve => setTimeout(resolve, 3));
       }
     };
-    void spin();
-    return () => {
-      looping = false;
-    };
-  };
-  const rogue: Mutator<Chaos> = given => {
     const strike = (): void => {
-      run.track(life, given.set('db', app(Math.floor(next() * 4))));
+      const version = Math.floor(next() * 4);
+      const striking = context.update(draft => {
+        draft.db = app(version);
+      });
+      run.track(life, striking);
       if (next() < 0.8) setTimeout(strike, Math.floor(next() * 200));
     };
     strike();
-    return () => undefined;
-  };
-  const broken: Mutator<Chaos> = () => {
-    throw new Error('mutator failed to start');
-  };
-  const mutators = !last && next() < 0.1 ? [api, loop, rogue, broken] : [api, loop, rogue];
+    if (broken) throw new Error('mutator failed to start');
+    return spin();
+  });
   const quiet = (): void => {
     looping = false;
   };
 
-  const system = await withTime(converge({ controllers, sink, restore, mutators })).catch(() => undefined);
-  const given = handed[0];
-  if (system === undefined || given === undefined) {
+  const system = await withTime(converge({ controllers, sink, restore, mutator: source })).catch(() => undefined);
+  if (system === undefined) {
     quiet();
     return undefined;
   }
-  return { system, api: given, quiet };
+  return { system, api: changes(source), quiet };
 }
 
 /** Makes random changes through the API, letting time pass between some of them. */
-async function change(run: Run, life: Life, api: Mutations<Chaos>, operations: number): Promise<void> {
+async function change(run: Run, life: Life, api: Changes<Chaos>, operations: number): Promise<void> {
   for (let operation = 0; operation < operations; operation++) {
     const key = run.pick(KEYS);
     run.track(life, randomChange(api, key, run.next));
@@ -345,7 +341,7 @@ async function judge(run: Run, id: number): Promise<void> {
 }
 
 /** A change through the API: mostly sets and removes, now and then a whole replace, or something invalid. */
-function randomChange(api: Mutations<Chaos>, key: Key, next: () => number): Promise<void> {
+function randomChange(api: Changes<Chaos>, key: Key, next: () => number): Promise<void> {
   const roll = next();
   const version = Math.floor(next() * 4);
   if (roll < 0.55) return api.set(key, app(version));

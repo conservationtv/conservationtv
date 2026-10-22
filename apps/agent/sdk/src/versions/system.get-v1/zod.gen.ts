@@ -67,9 +67,9 @@ export const SystemSchema = z.object({
                 lastError: z.string().nullable()
             }),
             state: z.enum([
-                'running',
                 'stopped',
                 'starting',
+                'running',
                 'crashed'
             ]),
             pid: z.number().nullable(),
