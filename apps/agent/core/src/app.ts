@@ -1,3 +1,4 @@
+import { mutator } from '@conservationtv/converge';
 import { OperationRouter, PUBLISHED_DOCUMENT_PATH, servePublishedDocument } from '@conservationtv/versioned-api/server';
 import { serve, type IrohHttpServer } from '@strangecyan/iroh-http-node';
 import { Hono } from 'hono';
@@ -8,7 +9,7 @@ import { bindEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import status from './routes/status.ts';
 import system from './routes/system.ts';
-import { startSystem, withSystem, type AgentSystem } from './system.ts';
+import { type AgentControllers, startSystem, withSpecApi, withSystem, type AgentSystem } from './system.ts';
 
 export {
   useConfig,
@@ -46,20 +47,22 @@ export class Agent {
   /** Start the runtimes and an iroh session, and serve on its endpoint. Resolves once requests are being accepted. */
   async start() {
     if (this.system !== undefined) throw new Error('The agent is already started');
-    const config = this.config;
-    console.log(JSON.stringify({ event: 'starting', name: config.name, type: config.type }));
+    console.log(JSON.stringify({ event: 'starting', name: this.config.name, type: this.config.type }));
 
-    const system = await startSystem(config);
+    const api = mutator<AgentControllers>();
+    const system = await startSystem(this.config, api);
     this.system = system;
     const endpoint = await this.bind();
 
     // The server owns the endpoint from here: disposing it closes the endpoint too. If accepting fails, `closed`
     // rejects unhandled, which the host's process lifecycle treats as fatal.
     this.server = serve(endpoint, (request, peer) =>
-      withSystem(system, () => withConfig(config, () => app.fetch(request, { peer: peer.endpointId })))
+      withSystem(system, () =>
+        withSpecApi(api, () => withConfig(this.config, () => app.fetch(request, { peer: peer.endpointId })))
+      )
     );
     const endpointId = endpoint.id();
-    console.log(JSON.stringify({ event: 'started', name: config.name, endpointId: endpointId.toString() }));
+    console.log(JSON.stringify({ event: 'started', name: this.config.name, endpointId: endpointId.toString() }));
   }
 
   /**
