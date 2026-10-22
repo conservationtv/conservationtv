@@ -1,4 +1,5 @@
 import { createStore } from '@conservationtv/store';
+import type { Peers } from './admission.ts';
 
 interface BaseConfiguration {
   name: string;
@@ -9,6 +10,11 @@ interface BaseConfiguration {
    * the agent's identity and must stay the same across restarts.
    */
   secretKey: Uint8Array;
+  /**
+   * The peers the agent serves, and whether each may connect directly, learning its IP addresses, or only through the
+   * relay. Without it, every peer is served and may connect directly.
+   */
+  peers?: Peers;
 }
 
 /** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */

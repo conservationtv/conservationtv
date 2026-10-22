@@ -12,6 +12,10 @@ catalog:
   drizzle-kit: 1.0.0-rc.4
   drizzle-orm: 1.0.0-rc.4
   input-otp: 1.5.0
+  # A fork of the Node binding adding Incoming.acceptWithoutNatTraversal(), until iroh ships it. The agent hands its
+  # endpoint to iroh-http-node, which must load the same native addon.
+  '@number0/iroh': npm:@strangecyan/iroh@1.1.0-relayed.1
+  '@strangecyan/iroh-http-node': 0.3.0
   pg: 8.23.1
   typescript: 7.0.2
   zod: 4.6.2
@@ -45,3 +49,12 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@pulumi/digitalocean@4.83.0'
+  - '@strangecyan/iroh-darwin-arm64@1.1.0-relayed.1'
+  - '@strangecyan/iroh-linux-arm64-gnu@1.1.0-relayed.1'
+  - '@strangecyan/iroh-linux-arm64-musl@1.1.0-relayed.1'
+  - '@strangecyan/iroh-linux-x64-gnu@1.1.0-relayed.1'
+  - '@strangecyan/iroh-linux-x64-musl@1.1.0-relayed.1'
+  - '@strangecyan/iroh-win32-x64-msvc@1.1.0-relayed.1'
+  - '@strangecyan/iroh@1.1.0-relayed.1'
+  - '@strangecyan/iroh-http-core@0.3.0'
+  - '@strangecyan/iroh-http-node@0.3.0'

@@ -14,15 +14,18 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --store-dir /pnpm/store --filter @conservationtv/agent-runner... \
  && pnpm --filter @conservationtv/agent-runner build
 # The image's whole filesystem: the bundle, and iroh, the one dependency left external for its native addon, with
-# only its loader and the addon itself. Node ships with debug symbols; stripping them saves a tenth of the image.
-RUN mkdir -p /out/app/node_modules/@number0 \
+# only its loader and the addon itself. The bundle imports the loader as @number0/iroh, which may be an alias; the
+# loader requires its addon by the addon package's own name. Node ships with debug symbols; stripping them saves a
+# tenth of the image.
+RUN mkdir -p /out/app/node_modules/@number0/iroh \
  && cp apps/agent/runner/dist/index.js /out/app/ \
  && echo '{"type":"module"}' > /out/app/package.json \
  && iroh=$(cd apps/agent/core && node -p "require('node:path').dirname(require.resolve('@number0/iroh/package.json'))") \
  && addon=$(echo "$iroh"-linux-*) \
- && mkdir /out/app/node_modules/@number0/iroh /out/app/node_modules/@number0/"$(basename "$addon")" \
+ && addon_name=$(node -p "require('$addon/package.json').name") \
+ && mkdir -p /out/app/node_modules/"$addon_name" \
  && cp -L "$iroh"/package.json "$iroh"/index.js /out/app/node_modules/@number0/iroh/ \
- && cp -L "$addon"/package.json "$addon"/*.node /out/app/node_modules/@number0/"$(basename "$addon")"/ \
+ && cp -L "$addon"/package.json "$addon"/*.node /out/app/node_modules/"$addon_name"/ \
  && mkdir -p /out/usr/local/bin /out/usr/lib /out/lib /out/tmp \
  && strip -o /out/usr/local/bin/node /usr/local/bin/node \
  && cp -L /lib/ld-musl-*.so.1 /out/lib/ \
