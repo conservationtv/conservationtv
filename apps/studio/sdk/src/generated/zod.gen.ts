@@ -167,14 +167,8 @@ export const GatewaySchema = z.object({
 });
 
 export const StreamSchema = z.object({
-    name: z.string(),
-    id: z.string(),
-    createdAt: z.string(),
-    sourceDeviceId: z.string().nullable(),
     exposures: z.array(z.object({
-        params: z.record(z.string(), z.unknown()),
         id: z.string(),
-        createdAt: z.string(),
         gatewayId: z.string(),
         renditions: z.array(z.enum([
             'default',
@@ -183,21 +177,27 @@ export const StreamSchema = z.object({
             'quality'
         ])),
         publisherDeviceId: z.string().nullable(),
-        upstreamExposureId: z.string().nullable()
+        upstreamExposureId: z.string().nullable(),
+        params: z.record(z.string(), z.unknown()),
+        createdAt: z.string()
     })),
     recorders: z.array(z.object({
-        params: z.record(z.string(), z.unknown()),
         id: z.string(),
-        createdAt: z.string(),
-        kind: z.string(),
         exposureId: z.string(),
         rendition: z.enum([
             'default',
             'data_saver',
             'balanced',
             'quality'
-        ])
-    }))
+        ]),
+        kind: z.string(),
+        params: z.record(z.string(), z.unknown()),
+        createdAt: z.string()
+    })),
+    id: z.string(),
+    name: z.string(),
+    sourceDeviceId: z.string().nullable(),
+    createdAt: z.string()
 });
 
 export const ExposureSchema = z.object({

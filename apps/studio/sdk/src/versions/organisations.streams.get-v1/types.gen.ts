@@ -10,31 +10,31 @@ export type Error = {
 };
 
 export type Stream = {
-    name: string;
-    id: string;
-    createdAt: string;
-    sourceDeviceId: string | null;
     exposures: Array<{
-        params: {
-            [key: string]: unknown;
-        };
         id: string;
-        createdAt: string;
         gatewayId: string;
         renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
         publisherDeviceId: string | null;
         upstreamExposureId: string | null;
-    }>;
-    recorders: Array<{
         params: {
             [key: string]: unknown;
         };
-        id: string;
         createdAt: string;
-        kind: string;
+    }>;
+    recorders: Array<{
+        id: string;
         exposureId: string;
         rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+        kind: string;
+        params: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
     }>;
+    id: string;
+    name: string;
+    sourceDeviceId: string | null;
+    createdAt: string;
 };
 
 export type GetOrganisationsByIdStreamsByStreamIdData = {

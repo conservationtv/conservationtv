@@ -657,38 +657,12 @@
       "Stream": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "sourceDeviceId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "exposures": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "params": {
-                  "type": "object",
-                  "additionalProperties": {}
-                },
                 "id": {
-                  "type": "string"
-                },
-                "createdAt": {
                   "type": "string"
                 },
                 "gatewayId": {
@@ -725,16 +699,23 @@
                       "type": "null"
                     }
                   ]
+                },
+                "params": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "createdAt": {
+                  "type": "string"
                 }
               },
               "required": [
-                "params",
                 "id",
-                "createdAt",
                 "gatewayId",
                 "renditions",
                 "publisherDeviceId",
-                "upstreamExposureId"
+                "upstreamExposureId",
+                "params",
+                "createdAt"
               ]
             }
           },
@@ -743,17 +724,7 @@
             "items": {
               "type": "object",
               "properties": {
-                "params": {
-                  "type": "object",
-                  "additionalProperties": {}
-                },
                 "id": {
-                  "type": "string"
-                },
-                "createdAt": {
-                  "type": "string"
-                },
-                "kind": {
                   "type": "string"
                 },
                 "exposureId": {
@@ -767,26 +738,55 @@
                     "balanced",
                     "quality"
                   ]
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "createdAt": {
+                  "type": "string"
                 }
               },
               "required": [
-                "params",
                 "id",
-                "createdAt",
-                "kind",
                 "exposureId",
-                "rendition"
+                "rendition",
+                "kind",
+                "params",
+                "createdAt"
               ]
             }
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sourceDeviceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string"
           }
         },
         "required": [
-          "name",
-          "id",
-          "createdAt",
-          "sourceDeviceId",
           "exposures",
-          "recorders"
+          "recorders",
+          "id",
+          "name",
+          "sourceDeviceId",
+          "createdAt"
         ]
       },
       "Exposure": {
@@ -19254,38 +19254,12 @@
           "Stream": {
             "type": "object",
             "properties": {
-              "name": {
-                "type": "string"
-              },
-              "id": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
-              },
-              "sourceDeviceId": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
               "exposures": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    },
                     "id": {
-                      "type": "string"
-                    },
-                    "createdAt": {
                       "type": "string"
                     },
                     "gatewayId": {
@@ -19322,16 +19296,23 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
                     }
                   },
                   "required": [
-                    "params",
                     "id",
-                    "createdAt",
                     "gatewayId",
                     "renditions",
                     "publisherDeviceId",
-                    "upstreamExposureId"
+                    "upstreamExposureId",
+                    "params",
+                    "createdAt"
                   ]
                 }
               },
@@ -19340,17 +19321,7 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    },
                     "id": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "kind": {
                       "type": "string"
                     },
                     "exposureId": {
@@ -19364,26 +19335,55 @@
                         "balanced",
                         "quality"
                       ]
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
                     }
                   },
                   "required": [
-                    "params",
                     "id",
-                    "createdAt",
-                    "kind",
                     "exposureId",
-                    "rendition"
+                    "rendition",
+                    "kind",
+                    "params",
+                    "createdAt"
                   ]
                 }
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "sourceDeviceId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "createdAt": {
+                "type": "string"
               }
             },
             "required": [
-              "name",
-              "id",
-              "createdAt",
-              "sourceDeviceId",
               "exposures",
-              "recorders"
+              "recorders",
+              "id",
+              "name",
+              "sourceDeviceId",
+              "createdAt"
             ]
           }
         }

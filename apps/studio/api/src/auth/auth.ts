@@ -8,7 +8,8 @@ import type { Database } from '../db/client.ts';
 import { self } from '../db/roles.ts';
 import { account, deviceCodes, passkeys, session, users, verification } from '../db/schema.ts';
 import type { Variables } from '../env/config.ts';
-import { endSessionBrowsers } from '../topology/browsers.ts';
+import { trustedTransaction } from '../db/transaction.ts';
+import { deleteSessionBrowsers } from '../services/browsers.ts';
 import type { Background } from '../env/env.ts';
 import type { OtpDelivery } from './otp.ts';
 
@@ -56,9 +57,10 @@ export function createAuth({ database, access, variables, deliverOtp, background
       user: { create: { after: created => ensureSelfGrant(created.id) } },
       session: {
         create: { after: session => ensureSelfGrant(session.userId) },
-        // A session's browser devices end with it (src/topology/browsers.ts). Before, because the browser rows refer
-        // to the session; Better Auth runs this for every session it deletes, one at a time or in bulk.
-        delete: { before: ended => endSessionBrowsers(ended.id) }
+        // A session's browser devices end with it (src/services/browsers.ts). Before, because the browser rows refer
+        // to the session; Better Auth runs this for every session it deletes, one at a time or in bulk, on the owning
+        // connection it uses.
+        delete: { before: ended => trustedTransaction(() => deleteSessionBrowsers(ended.id)) }
       }
     },
     plugins: [
