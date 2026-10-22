@@ -16,6 +16,11 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "lint": "oxlint",
+    "signoff:lint": "pnpm lint && gh signoff lint",
+    "signoff:typecheck": "pnpm -r --no-bail typecheck && gh signoff typecheck",
+    "signoff:generated": "pnpm -r --filter './apps/agent/**' --filter './apps/studio/**' --filter './apps/controlplane/**' run generate && gh signoff generated",
+    "contracts": "API_BASE_REF=$(git merge-base origin/main HEAD) pnpm -r --no-bail run ci:contracts pr",
+    "contracts:snapshots": "API_BASE_REF=$(git merge-base origin/main HEAD) pnpm -r --no-bail run ci:contracts snapshots",
     "dev:staging": "pnpm --filter @conservationtv/studio-api db:up && pnpm --parallel --filter @conservationtv/studio-api --filter @conservationtv/web --filter @conservationtv/agent-runner run dev:staging"
   },
   "devDependencies": {
