@@ -1,0 +1,5 @@
+ALTER TABLE "organisation" ADD COLUMN "deleted_at" timestamp;--> statement-breakpoint
+ALTER TABLE "observation" DROP CONSTRAINT "observation_organisation_id_organisation_id_fkey", ADD CONSTRAINT "observation_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id");--> statement-breakpoint
+ALTER TABLE "metric_point" DROP CONSTRAINT "metric_point_series_fk", ADD CONSTRAINT "metric_point_series_fk" FOREIGN KEY ("organisation_id","series_id") REFERENCES "metric_series"("organisation_id","id");--> statement-breakpoint
+ALTER TABLE "metric_series" DROP CONSTRAINT "metric_series_organisation_id_organisation_id_fkey", ADD CONSTRAINT "metric_series_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id");--> statement-breakpoint
+ALTER TABLE "log_record" DROP CONSTRAINT "log_record_organisation_id_organisation_id_fkey", ADD CONSTRAINT "log_record_organisation_id_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id");

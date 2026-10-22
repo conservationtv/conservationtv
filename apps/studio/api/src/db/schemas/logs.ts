@@ -5,14 +5,14 @@ import type { Settings } from '../../topology/settings.ts';
 import { organisations } from './organisations.ts';
 import { observationAccess } from './report-access.ts';
 
-/** An accepted log report. */
+/** An accepted log report. Like observations, it does not cascade from its organisation. */
 export const logRecords = withAccess(
   pgTable(
     'log_record',
     {
       organisationId: uuid('organisation_id')
         .notNull()
-        .references(() => organisations.id, { onDelete: 'cascade' }),
+        .references(() => organisations.id),
       id: uuid('id')
         .primaryKey()
         .default(sql`uuidv7()`),
