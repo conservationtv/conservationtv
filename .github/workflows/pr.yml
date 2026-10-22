@@ -40,6 +40,17 @@ jobs:
       # Each package generates what it needs first (Worker types, React Router types, the fleet build).
       - name: Typecheck
         run: pnpm -r --no-bail typecheck
+      # After typecheck, which generates the Worker types the gatekeeper's and studio API's documents are built with.
+      # Each API's document, then its SDK, then its CLI: whatever is committed must be what its routes generate.
+      - name: Regenerate API contracts, SDKs and CLIs
+        run: pnpm -r --filter './apps/agent/**' --filter './apps/studio/**' --filter './apps/controlplane/**' run generate
+      - name: Check nothing generated is stale
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            echo "::error title=Stale generated code::Run 'pnpm --filter <package> generate' for each API whose files changed above (its API, then SDK, then CLI), and commit the result."
+            exit 1
+          fi
 
   # Advisory: warns on each versioned contract that changed or was removed relative to the base, without failing.
   contracts:
