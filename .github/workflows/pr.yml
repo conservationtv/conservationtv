@@ -46,8 +46,9 @@ jobs:
         run: pnpm -r --filter './apps/agent/**' --filter './apps/studio/**' --filter './apps/controlplane/**' run generate
       - name: Check nothing generated is stale
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git status --short
+          # Only the generated packages: typecheck builds other packages too, such as the fleet's dist.
+          if [ -n "$(git status --porcelain -- apps/agent apps/studio apps/controlplane)" ]; then
+            git status --short -- apps/agent apps/studio apps/controlplane
             echo "::error title=Stale generated code::Run 'pnpm --filter <package> generate' for each API whose files changed above (its API, then SDK, then CLI), and commit the result."
             exit 1
           fi
