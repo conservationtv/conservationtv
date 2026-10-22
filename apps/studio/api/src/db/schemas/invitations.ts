@@ -12,7 +12,7 @@ import { users } from './users.ts';
  *
  * Administrators create, list and cancel their organisation's invitations through their request session: none of
  * that changes grants. The invitee's side (reading an invitation by its link, listing their own, accepting, declining)
- * is trusted code in src/organisations/invitations.ts, because an emailed invitation belongs to no account until it is
+ * is trusted code in src/services/invitations.ts, because an emailed invitation belongs to no account until it is
  * accepted. The application role cannot read `code_hash`.
  */
 export const organisationInvitations = withAccess(

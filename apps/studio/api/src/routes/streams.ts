@@ -1,17 +1,27 @@
-import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { connectExposure } from '../gateways/connect.ts';
 import { ConnectionActionSchema } from '../gateways/provider.ts';
-import { exposures, recorders, streams } from '../db/schema.ts';
+import { transaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requireCaller } from '../middleware/device.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
-import { checkChain, checkGateway, checkRecorderRendition, checkRenditions } from '../topology/exposures.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
+import {
+  createExposure,
+  createRecorder,
+  createStream,
+  deleteExposure,
+  deleteRecorder,
+  deleteStream,
+  getStream,
+  listExposures,
+  listRecorders,
+  listStreams,
+  updateExposure,
+  updateRecorder,
+  updateStream
+} from '../services/streams.ts';
 import { ExposureParamsSchema, RenditionSchema, RenditionsSchema, SettingsSchema } from '../topology/settings.ts';
-import { unchanged } from '../topology/transaction.ts';
 import { GatewayIdSchema } from './gateways.ts';
 import {
   connectionRefused,
@@ -83,7 +93,7 @@ export type RecorderKind = z.output<typeof RecorderKindSchema>;
 // them, administrators manage them. A stream's source device, an exposure's gateway and publisher, and a recorder's
 // exposure must belong to the same organisation (and an exposure's upstream and a recorder's exposure to the same
 // stream); the database's composite foreign keys refuse anything else. What they cannot check, an exposure's gateway
-// (which may be built in), its upstream chain and the renditions along it, src/topology/exposures.ts does.
+// (which may be built in), its upstream chain and the renditions along it, each write checks (src/services/streams.ts).
 
 export default new Hono()
   .get(
@@ -105,21 +115,7 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
-          .select({
-            id: streams.id,
-            name: streams.name,
-            sourceDeviceId: streams.sourceDeviceId,
-            createdAt: streams.createdAt
-          })
-          .from(streams)
-          .where(eq(streams.organisationId, id))
-          .orderBy(streams.id)
-      );
+      const rows = await transaction(() => listStreams(id));
       c.header('Cache-Control', 'no-store');
       return c.json({ streams: rows }, 200);
     }
@@ -147,26 +143,9 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(async tx =>
-        tx
-          .insert(streams)
-          .values({
-            organisationId: id,
-            name: body.name,
-            sourceDeviceId: body.sourceDeviceId
-          })
-          .returning({
-            id: streams.id,
-            name: streams.name,
-            sourceDeviceId: streams.sourceDeviceId,
-            createdAt: streams.createdAt
-          })
-      );
+      const row = await transaction(() => createStream(id, body));
       c.header('Cache-Control', 'no-store');
-      return c.json(row!, 201);
+      return c.json(row, 201);
     }
   )
   .get(
@@ -189,33 +168,13 @@ export default new Hono()
     validator('param', StreamParamsSchema),
     async c => {
       const { id, streamId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(tx =>
-        tx.query.streams.findFirst({
-          columns: { id: true, name: true, sourceDeviceId: true, createdAt: true },
-          where: { organisationId: id, id: streamId },
-          with: {
-            exposures: {
-              columns: {
-                id: true,
-                gatewayId: true,
-                renditions: true,
-                publisherDeviceId: true,
-                upstreamExposureId: true,
-                params: true,
-                createdAt: true
-              },
-              orderBy: { id: 'asc' }
-            },
-            recorders: {
-              columns: { id: true, exposureId: true, rendition: true, kind: true, params: true, createdAt: true },
-              orderBy: { id: 'asc' }
-            }
-          }
-        })
-      );
+      const row = await transaction(async () => {
+        const stream = await getStream(id, streamId);
+        if (!stream) return undefined;
+        const streamExposures = await listExposures(id, streamId);
+        const streamRecorders = await listRecorders(id, streamId);
+        return { ...stream, exposures: streamExposures, recorders: streamRecorders };
+      });
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -251,23 +210,7 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [stream] = await tx
-          .update(streams)
-          .set({ name: body.name, sourceDeviceId: body.sourceDeviceId })
-          .where(and(eq(streams.organisationId, id), eq(streams.id, streamId)))
-          .returning({
-            id: streams.id,
-            name: streams.name,
-            sourceDeviceId: streams.sourceDeviceId,
-            createdAt: streams.createdAt
-          });
-        if (!stream) throw await unchanged(tx, streams.id, streamId);
-        return stream;
-      });
+      const row = await transaction(() => updateStream(id, streamId, body));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -293,16 +236,7 @@ export default new Hono()
     validator('param', StreamParamsSchema),
     async c => {
       const { id, streamId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      await session.transaction(async tx => {
-        const deleted = await tx
-          .delete(streams)
-          .where(and(eq(streams.organisationId, id), eq(streams.id, streamId)))
-          .returning({ id: streams.id });
-        if (deleted.length === 0) throw await unchanged(tx, streams.id, streamId);
-      });
+      await transaction(() => deleteStream(id, streamId));
       return c.body(null, 204);
     }
   )
@@ -340,39 +274,10 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [stream] = await tx
-          .select({ id: streams.id })
-          .from(streams)
-          .where(and(eq(streams.organisationId, id), eq(streams.id, streamId)));
+      const row = await transaction(async () => {
+        const stream = await getStream(id, streamId);
         if (!stream) throw new ApiFailure('not_found');
-        const [exposure] = await tx
-          .insert(exposures)
-          .values({
-            organisationId: id,
-            streamId,
-            gatewayId: body.gatewayId,
-            renditions: body.renditions,
-            publisherDeviceId: body.publisherDeviceId,
-            upstreamExposureId: body.upstreamExposureId,
-            params: body.params
-          })
-          .returning({
-            id: exposures.id,
-            gatewayId: exposures.gatewayId,
-            renditions: exposures.renditions,
-            publisherDeviceId: exposures.publisherDeviceId,
-            upstreamExposureId: exposures.upstreamExposureId,
-            params: exposures.params,
-            createdAt: exposures.createdAt
-          });
-        // A new exposure is no one's upstream yet, so its chain cannot loop.
-        await checkGateway(tx, id, body.gatewayId);
-        if (body.upstreamExposureId) await checkRenditions(tx, exposure!.id);
-        return exposure!;
+        return createExposure(id, streamId, body);
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
@@ -415,40 +320,7 @@ export default new Hono()
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      if (body.upstreamExposureId === exposureId) throw new ApiFailure('exposure_cycle');
-      const row = await session.transaction(async tx => {
-        // Write first, so row-level security refuses a principal who may not; then check only what the change could
-        // break: the gateway when it changed, the chain when it gained an upstream, and the renditions along it when
-        // they or the upstream changed.
-        const [exposure] = await tx
-          .update(exposures)
-          .set({
-            gatewayId: body.gatewayId,
-            renditions: body.renditions,
-            publisherDeviceId: body.publisherDeviceId,
-            upstreamExposureId: body.upstreamExposureId,
-            params: body.params
-          })
-          .where(and(eq(exposures.organisationId, id), eq(exposures.streamId, streamId), eq(exposures.id, exposureId)))
-          .returning({
-            id: exposures.id,
-            gatewayId: exposures.gatewayId,
-            renditions: exposures.renditions,
-            publisherDeviceId: exposures.publisherDeviceId,
-            upstreamExposureId: exposures.upstreamExposureId,
-            params: exposures.params,
-            createdAt: exposures.createdAt
-          });
-        if (!exposure) throw await unchanged(tx, exposures.id, exposureId);
-        if (body.gatewayId !== undefined) await checkGateway(tx, id, exposure.gatewayId);
-        if (body.upstreamExposureId) await checkChain(tx, streamId, exposureId);
-        if (body.renditions !== undefined || body.upstreamExposureId !== undefined)
-          await checkRenditions(tx, exposureId);
-        return exposure;
-      });
+      const row = await transaction(() => updateExposure(id, streamId, exposureId, body));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -475,16 +347,7 @@ export default new Hono()
     validator('param', ExposurePathParamsSchema),
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      await session.transaction(async tx => {
-        const deleted = await tx
-          .delete(exposures)
-          .where(and(eq(exposures.organisationId, id), eq(exposures.streamId, streamId), eq(exposures.id, exposureId)))
-          .returning({ id: exposures.id });
-        if (deleted.length === 0) throw await unchanged(tx, exposures.id, exposureId);
-      });
+      await transaction(() => deleteExposure(id, streamId, exposureId));
       return c.body(null, 204);
     }
   )
@@ -507,7 +370,7 @@ export default new Hono()
         503: gatewayUnavailable
       }
     }),
-    requireCaller,
+    requirePrincipal,
     validator('param', ExposurePathParamsSchema),
     validator(
       'json',
@@ -558,35 +421,10 @@ export default new Hono()
     async c => {
       const { id, streamId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [stream] = await tx
-          .select({ id: streams.id })
-          .from(streams)
-          .where(and(eq(streams.organisationId, id), eq(streams.id, streamId)));
+      const row = await transaction(async () => {
+        const stream = await getStream(id, streamId);
         if (!stream) throw new ApiFailure('not_found');
-        const [recorder] = await tx
-          .insert(recorders)
-          .values({
-            organisationId: id,
-            streamId,
-            exposureId: body.exposureId,
-            rendition: body.rendition,
-            kind: body.kind,
-            params: body.params
-          })
-          .returning({
-            id: recorders.id,
-            exposureId: recorders.exposureId,
-            rendition: recorders.rendition,
-            kind: recorders.kind,
-            params: recorders.params,
-            createdAt: recorders.createdAt
-          });
-        await checkRecorderRendition(tx, recorder!.id);
-        return recorder!;
+        return createRecorder(id, streamId, body);
       });
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
@@ -626,26 +464,7 @@ export default new Hono()
     async c => {
       const { id, streamId, recorderId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [recorder] = await tx
-          .update(recorders)
-          .set({ exposureId: body.exposureId, rendition: body.rendition, kind: body.kind, params: body.params })
-          .where(and(eq(recorders.organisationId, id), eq(recorders.streamId, streamId), eq(recorders.id, recorderId)))
-          .returning({
-            id: recorders.id,
-            exposureId: recorders.exposureId,
-            rendition: recorders.rendition,
-            kind: recorders.kind,
-            params: recorders.params,
-            createdAt: recorders.createdAt
-          });
-        if (!recorder) throw await unchanged(tx, recorders.id, recorderId);
-        if (body.exposureId !== undefined || body.rendition !== undefined) await checkRecorderRendition(tx, recorderId);
-        return recorder;
-      });
+      const row = await transaction(() => updateRecorder(id, streamId, recorderId, body));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -671,16 +490,7 @@ export default new Hono()
     validator('param', RecorderParamsSchema),
     async c => {
       const { id, streamId, recorderId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      await session.transaction(async tx => {
-        const deleted = await tx
-          .delete(recorders)
-          .where(and(eq(recorders.organisationId, id), eq(recorders.streamId, streamId), eq(recorders.id, recorderId)))
-          .returning({ id: recorders.id });
-        if (deleted.length === 0) throw await unchanged(tx, recorders.id, recorderId);
-      });
+      await transaction(() => deleteRecorder(id, streamId, recorderId));
       return c.body(null, 204);
     }
   );

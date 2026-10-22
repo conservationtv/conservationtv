@@ -28,7 +28,7 @@ export const organisationMember = role('organisationMember', {
 
 /**
  * Granted at its organisation to every device when it is created, and revoked when it is deleted
- * (src/topology/device-principals.ts). A device principal reads its organisation's devices, for an iroh allowlist of
+ * (src/services/devices.ts). A device principal reads its organisation's devices, for an iroh allowlist of
  * their public IDs, and nothing else.
  */
 export const organisationDevice = role('organisationDevice', {

@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
 import { exposures, gateways } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
-import { useCaller, useDevice } from '../middleware/device.ts';
-import { useEnvironment } from '../env/env.ts';
-import { trusted, type Transaction } from '../organisations/membership.ts';
+import { transaction, trustedTransaction, useDB } from '../db/transaction.ts';
+import { useDevice } from '../middleware/device.ts';
+import { usePrincipal } from '../middleware/principal.ts';
 import { BUILTIN_GATEWAYS, gatewayProvider, isBuiltinGateway } from './index.ts';
 import type { ConnectionAction, ConnectionDetails, RequestedConnection } from './provider.ts';
 
@@ -23,8 +23,9 @@ export interface ExposureLocation {
 export type ConnectionAsk = Pick<RequestedConnection, 'action' | 'protocol' | 'rendition'>;
 
 /** The exposure, if it is visible to the transaction. */
-async function selectExposure(tx: Transaction, location: ExposureLocation) {
-  const [exposure] = await tx
+async function selectExposure(location: ExposureLocation) {
+  const db = useDB();
+  const [exposure] = await db
     .select({
       id: exposures.id,
       gatewayId: exposures.gatewayId,
@@ -45,9 +46,10 @@ async function selectExposure(tx: Transaction, location: ExposureLocation) {
 type VisibleExposure = NonNullable<Awaited<ReturnType<typeof selectExposure>>>;
 
 /** The exposure's gateway, as its provider reads it: a built-in one has no settings, since where it is is the deployment's. */
-async function selectGateway(tx: Transaction, organisationId: string, gatewayId: string) {
+async function selectGateway(organisationId: string, gatewayId: string) {
   if (isBuiltinGateway(gatewayId)) return { id: gatewayId, kind: BUILTIN_GATEWAYS[gatewayId].kind, settings: {} };
-  const [gateway] = await tx
+  const db = useDB();
+  const [gateway] = await db
     .select({ id: gateways.id, kind: gateways.kind, settings: gateways.settings })
     .from(gateways)
     .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId)));
@@ -56,8 +58,9 @@ async function selectGateway(tx: Transaction, organisationId: string, gatewayId:
 }
 
 /** Whether the device publishes an exposure of the stream from this one. */
-async function publishesFrom(tx: Transaction, deviceId: string, location: ExposureLocation) {
-  const [downstream] = await tx
+async function publishesFrom(deviceId: string, location: ExposureLocation) {
+  const db = useDB({ trusted: true });
+  const [downstream] = await db
     .select({ id: exposures.id })
     .from(exposures)
     .where(
@@ -71,17 +74,16 @@ async function publishesFrom(tx: Transaction, deviceId: string, location: Exposu
   return downstream !== undefined;
 }
 
-/** What the caller may connect to, decided in `tx`: `not_found` if it cannot see the exposure, `forbidden` if `allowed` refuses. */
+/** What the caller may connect to, decided in the transaction: `not_found` if it cannot see the exposure, `forbidden` if `allowed` refuses. */
 async function connection(
-  tx: Transaction,
   location: ExposureLocation,
   subject: string,
   allowed: (exposure: VisibleExposure) => boolean | Promise<boolean>
 ) {
-  const exposure = await selectExposure(tx, location);
+  const exposure = await selectExposure(location);
   if (!exposure) throw new ApiFailure('not_found');
   if (!(await allowed(exposure))) throw new ApiFailure('forbidden');
-  const gateway = await selectGateway(tx, location.organisationId, exposure.gatewayId);
+  const gateway = await selectGateway(location.organisationId, exposure.gatewayId);
   return { organisationId: location.organisationId, subject, exposure, gateway };
 }
 
@@ -91,20 +93,18 @@ async function connection(
  * decided by trusted code, since a device principal cannot read the topology itself.
  */
 async function callerConnection(location: ExposureLocation, action: ConnectionAction) {
-  const caller = useCaller();
+  const caller = usePrincipal();
   const subject = `${caller.kind}:${caller.id}`;
   if (caller.kind === 'device') {
     const device = useDevice();
     if (device.organisationId !== location.organisationId) throw new ApiFailure('not_found');
-    return trusted(tx =>
-      connection(tx, location, subject, exposure =>
-        action === 'publish' ? exposure.publisherDeviceId === device.id : publishesFrom(tx, device.id, location)
+    return trustedTransaction(() =>
+      connection(location, subject, exposure =>
+        action === 'publish' ? exposure.publisherDeviceId === device.id : publishesFrom(device.id, location)
       )
     );
   }
-  const environment = useEnvironment();
-  const session = await environment.session(caller);
-  return session.transaction(tx => connection(tx, location, subject, () => action === 'read'));
+  return transaction(() => connection(location, subject, () => action === 'read'));
 }
 
 /**

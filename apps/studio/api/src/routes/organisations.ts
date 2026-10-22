@@ -1,22 +1,38 @@
-import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import type { Session } from '@conservationtv/umbrella';
-import { organisationProfiles, organisations } from '../db/schema.ts';
+import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { cancelInvitation, createInvitation, listOrganisationInvitations } from '../organisations/invitations.ts';
+import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { deleteMemberBrowsers } from '../services/browsers.ts';
 import {
+  createInvitation,
+  deleteExpiredInvitations,
+  deleteInvitation,
+  invitationCode,
+  listOrganisationInvitations,
+  type Recipient,
+  sendInvitation
+} from '../services/invitations.ts';
+import {
+  addMember,
   createOrganisation,
   deleteOrganisation,
   endMembership,
+  getMembership,
+  getOrganisation,
   grantAdmin,
+  keepAnotherAdmin,
   listMembers,
   listOwnOrganisations,
-  revokeAdmin
-} from '../organisations/membership.ts';
-import { useEnvironment } from '../env/env.ts';
+  lockOrganisation,
+  requireAdmin,
+  requireMemberRemoval,
+  requireOrganisationRemoval,
+  revokeAdmin,
+  updateOrganisation,
+  updateProfile
+} from '../services/organisations.ts';
 import {
   accountNotFound,
   alreadyInvited,
@@ -38,17 +54,9 @@ const MemberParamsSchema = OrganisationParamsSchema.extend({
 });
 export type MemberParams = z.output<typeof MemberParamsSchema>;
 
-/** Whether the organisation is visible to the session: distinguishes "not yours" from "not allowed". */
-async function visible(session: Session, organisationId: string) {
-  const rows = await session.transaction(tx =>
-    tx.select({ id: organisations.id }).from(organisations).where(eq(organisations.id, organisationId))
-  );
-  return rows.length > 0;
-}
-
 // Reads and edits run in the principal's request session, so row-level security decides what each account sees.
-// Creating, joining, removing and deleting change grants as well as rows: src/organisations/membership.ts.
-// Invitations: src/organisations/invitations.ts.
+// Creating, joining, removing and deleting change grants as well as rows, so they are trusted transactions, which
+// check the principal's permissions first (src/services/organisations.ts). Invitations: src/services/invitations.ts.
 export default new Hono()
   .get(
     '/',
@@ -67,8 +75,8 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const principal = usePrincipal();
-      const rows = await listOwnOrganisations(principal);
+      const principal = useUser();
+      const rows = await transaction(() => listOwnOrganisations(principal.id));
       c.header('Cache-Control', 'no-store');
       return c.json({ organisations: rows }, 200);
     }
@@ -98,10 +106,13 @@ export default new Hono()
     ),
     async c => {
       const body = c.req.valid('json');
-      const principal = usePrincipal();
-      const organisation = await createOrganisation(principal, {
-        name: body.name,
-        displayName: body.displayName
+      const principal = useUser();
+      // The creator is its first member and administrator.
+      const organisation = await trustedTransaction(async () => {
+        const created = await createOrganisation({ name: body.name });
+        await addMember(created.id, principal.id, { displayName: body.displayName });
+        await grantAdmin(created.id, principal.id);
+        return created;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(organisation, 201);
@@ -127,15 +138,7 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
-          .select({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt })
-          .from(organisations)
-          .where(eq(organisations.id, id))
-      );
+      const row = await transaction(() => getOrganisation(id));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -163,17 +166,8 @@ export default new Hono()
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The organisation name.') })),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
-          .update(organisations)
-          .set(c.req.valid('json'))
-          .where(eq(organisations.id, id))
-          .returning({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt })
-      );
-      if (!row) throw new ApiFailure((await visible(session, id)) ? 'forbidden' : 'not_found');
+      const changes = c.req.valid('json');
+      const row = await transaction(() => updateOrganisation(id, changes));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -198,8 +192,13 @@ export default new Hono()
     requirePrincipal,
     validator('param', OrganisationParamsSchema),
     async c => {
-      const principal = usePrincipal();
-      await deleteOrganisation(principal, c.req.valid('param').id);
+      const { id } = c.req.valid('param');
+      const principal = useUser();
+      await trustedTransaction(async () => {
+        await lockOrganisation(id, principal.id);
+        await requireOrganisationRemoval(id, principal.id);
+        await deleteOrganisation(id);
+      });
       return c.body(null, 204);
     }
   )
@@ -224,12 +223,12 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await listMembers(principal, id);
-      // Every member sees at least themselves, so no rows means the organisation is hidden, or its members are.
-      if (rows.length === 0 && !(await visible(session, id))) throw new ApiFailure('not_found');
+      const rows = await transaction(async () => {
+        const members = await listMembers(id);
+        // Every member sees at least themselves, so no rows means the organisation is hidden, or its members are.
+        if (members.length === 0 && !(await getOrganisation(id))) throw new ApiFailure('not_found');
+        return members;
+      });
       c.header('Cache-Control', 'no-store');
       return c.json({ members: rows }, 200);
     }
@@ -257,17 +256,10 @@ export default new Hono()
       z.strictObject({ displayName: z.string().trim().min(1).max(120).describe('Your name in this organisation.') })
     ),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id } = c.req.valid('param');
-      const environment = useEnvironment();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
-          .update(organisationProfiles)
-          .set({ displayName: c.req.valid('json').displayName })
-          .where(and(eq(organisationProfiles.organisationId, id), eq(organisationProfiles.userId, principal.id)))
-          .returning({ userId: organisationProfiles.userId, displayName: organisationProfiles.displayName })
-      );
+      const changes = c.req.valid('json');
+      const row = await transaction(() => updateProfile(id, principal.id, changes));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -295,9 +287,20 @@ export default new Hono()
     requirePrincipal,
     validator('param', MemberParamsSchema),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id, userId } = c.req.valid('param');
-      await endMembership(principal, id, userId === 'me' ? principal.id : userId);
+      const memberId = userId === 'me' ? principal.id : userId;
+      // Anyone may end their own membership; ending someone else's needs the remove permission. Either way the
+      // organisation must keep an administrator other than the member leaving, counting only active grants.
+      await trustedTransaction(async () => {
+        await lockOrganisation(id, principal.id);
+        const membership = await getMembership(id, memberId);
+        if (!membership) throw new ApiFailure('not_found');
+        if (membership.userId !== principal.id) await requireMemberRemoval(id, principal.id);
+        await keepAnotherAdmin(id, membership.userId);
+        await deleteMemberBrowsers(id, membership.userId);
+        await endMembership(id, membership.userId);
+      });
       return c.body(null, 204);
     }
   )
@@ -321,9 +324,16 @@ export default new Hono()
     requirePrincipal,
     validator('param', MemberParamsSchema),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id, userId } = c.req.valid('param');
-      await grantAdmin(principal, id, userId === 'me' ? principal.id : userId);
+      const memberId = userId === 'me' ? principal.id : userId;
+      await trustedTransaction(async () => {
+        await lockOrganisation(id, principal.id);
+        await requireAdmin(id, principal.id);
+        const membership = await getMembership(id, memberId);
+        if (!membership) throw new ApiFailure('not_found');
+        await grantAdmin(id, membership.userId);
+      });
       return c.body(null, 204);
     }
   )
@@ -349,9 +359,17 @@ export default new Hono()
     requirePrincipal,
     validator('param', MemberParamsSchema),
     async c => {
-      const principal = usePrincipal();
+      const principal = useUser();
       const { id, userId } = c.req.valid('param');
-      await revokeAdmin(principal, id, userId === 'me' ? principal.id : userId);
+      const memberId = userId === 'me' ? principal.id : userId;
+      await trustedTransaction(async () => {
+        await lockOrganisation(id, principal.id);
+        await requireAdmin(id, principal.id);
+        const membership = await getMembership(id, memberId);
+        if (!membership) throw new ApiFailure('not_found');
+        await keepAnotherAdmin(id, membership.userId);
+        await revokeAdmin(id, membership.userId);
+      });
       return c.body(null, 204);
     }
   )
@@ -374,8 +392,12 @@ export default new Hono()
     requirePrincipal,
     validator('param', OrganisationParamsSchema),
     async c => {
-      const principal = usePrincipal();
-      const invitations = await listOrganisationInvitations(principal, c.req.valid('param').id);
+      const { id } = c.req.valid('param');
+      const invitations = await transaction(async () => {
+        const organisation = await getOrganisation(id);
+        if (!organisation) throw new ApiFailure('not_found');
+        return listOrganisationInvitations(id);
+      });
       c.header('Cache-Control', 'no-store');
       return c.json({ invitations }, 200);
     }
@@ -417,8 +439,24 @@ export default new Hono()
         })
     ),
     async c => {
-      const principal = usePrincipal();
-      const invitation = await createInvitation(principal, c.req.valid('param').id, c.req.valid('json'));
+      const { id } = c.req.valid('param');
+      const recipient: Recipient = c.req.valid('json');
+      const principal = useUser();
+      // An emailed invitation is sent a link with a one-time code; one to an account is found by it under
+      // `/invitations`. An expired invitation to the same recipient is replaced.
+      const code = 'email' in recipient ? invitationCode() : null;
+      const { invitation, organisation } = await transaction(async () => {
+        const visible = await getOrganisation(id);
+        if (!visible) throw new ApiFailure('not_found');
+        const member = 'userId' in recipient ? await getMembership(id, recipient.userId) : undefined;
+        if (member) throw new ApiFailure('already_member');
+        await deleteExpiredInvitations(id, recipient);
+        const created = await createInvitation(id, { recipient, invitedBy: principal.id, code });
+        return { invitation: created, organisation: visible };
+      });
+      if (code !== null && invitation.email !== null) {
+        await sendInvitation(invitation.id, { email: invitation.email, organisationName: organisation.name, code });
+      }
       c.header('Cache-Control', 'no-store');
       return c.json(invitation, 201);
     }
@@ -443,8 +481,7 @@ export default new Hono()
     validator('param', OrganisationParamsSchema.extend({ invitationId: z.uuid().describe('The invitation.') })),
     async c => {
       const { id, invitationId } = c.req.valid('param');
-      const principal = usePrincipal();
-      await cancelInvitation(principal, id, invitationId);
+      await transaction(() => deleteInvitation(id, invitationId));
       return c.body(null, 204);
     }
   );
