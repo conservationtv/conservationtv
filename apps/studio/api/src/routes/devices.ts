@@ -1,15 +1,19 @@
-import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { devices } from '../db/schema.ts';
-import { transaction, useDB } from '../db/transaction.ts';
+import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal } from '../middleware/principal.ts';
+import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import {
+  getDevice,
+  getDeviceKeyPair,
+  listDevicePublicIds,
+  listDevices,
+  requireDevicePermission,
+  updateDevice
+} from '../services/devices.ts';
 import { DEVICE_KINDS } from '../topology/device-kinds.ts';
-import { deviceKeyPair } from '../topology/identity.ts';
 import { NetworkReferenceSchema } from '../topology/settings.ts';
-import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   inUse,
@@ -57,15 +61,7 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const [row] = await transaction(async () => {
-        const db = useDB();
-        return db
-          .select({
-            publicIds: sql<string[]>`coalesce(array_agg(${devices.publicId} order by ${devices.id}), '{}')`
-          })
-          .from(devices)
-          .where(eq(devices.organisationId, id));
-      });
+      const row = await transaction(() => listDevicePublicIds(id));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -90,23 +86,8 @@ export default new Hono()
     validator('query', z.object({ kind: z.enum(DEVICE_KINDS).optional().describe('Only devices of this kind.') })),
     async c => {
       const { id } = c.req.valid('param');
-      const { kind } = c.req.valid('query');
-      const rows = await transaction(async () => {
-        const db = useDB();
-        return db
-          .select({
-            id: devices.id,
-            kind: devices.kind,
-            name: devices.name,
-            networkId: devices.networkId,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId,
-            createdAt: devices.createdAt
-          })
-          .from(devices)
-          .where(and(eq(devices.organisationId, id), kind === undefined ? undefined : eq(devices.kind, kind)))
-          .orderBy(devices.id);
-      });
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listDevices(id, filter));
       c.header('Cache-Control', 'no-store');
       return c.json({ devices: rows }, 200);
     }
@@ -130,21 +111,7 @@ export default new Hono()
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
-      const [row] = await transaction(async () => {
-        const db = useDB();
-        return db
-          .select({
-            id: devices.id,
-            kind: devices.kind,
-            name: devices.name,
-            networkId: devices.networkId,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId,
-            createdAt: devices.createdAt
-          })
-          .from(devices)
-          .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)));
-      });
+      const row = await transaction(() => getDevice(id, deviceId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -172,7 +139,13 @@ export default new Hono()
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
-      const keyPair = await deviceKeyPair(id, deviceId);
+      const principal = useUser();
+      // Trusted, since request sessions cannot read private keys: after the decision row-level security would make.
+      const keyPair = await trustedTransaction(async () => {
+        await requireDevicePermission(id, principal.id, 'edit');
+        return getDeviceKeyPair(id, deviceId);
+      });
+      if (!keyPair) throw new ApiFailure('not_found');
       const privateKey = Buffer.from(keyPair.privateKey).toString('base64url');
       c.header('Cache-Control', 'no-store');
       return c.json({ ...keyPair, privateKey }, 200);
@@ -209,24 +182,7 @@ export default new Hono()
     async c => {
       const { id, deviceId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const row = await transaction(async () => {
-        const db = useDB();
-        const [device] = await db
-          .update(devices)
-          .set({ name: body.name, networkId: body.networkId })
-          .where(and(eq(devices.organisationId, id), eq(devices.id, deviceId)))
-          .returning({
-            id: devices.id,
-            kind: devices.kind,
-            name: devices.name,
-            networkId: devices.networkId,
-            publicKey: devices.publicKey,
-            publicId: devices.publicId,
-            createdAt: devices.createdAt
-          });
-        if (!device) throw await unchanged(devices.id, deviceId);
-        return device;
-      });
+      const row = await transaction(() => updateDevice(id, deviceId, body));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }

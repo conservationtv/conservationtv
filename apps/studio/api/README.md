@@ -91,7 +91,9 @@ provider is wired into `src/auth/otp.ts`.
 Auth creates an account, a `databaseHooks.user.create.after` hook grants `self` at that account's scope. Email,
 verification and creation time are immutable through request sessions.
 
-`src/access.ts` compiles the definitions once with `defineAuthorization`. Handlers run queries inside
+`src/access.ts` compiles the definitions once with `defineAuthorization`. Route handlers (`src/routes/`) validate the
+request and open the transaction; the queries they compose inside it live in `src/services/`, one file per route file,
+as functions taking the IDs they work on, largest first, then one payload. Handlers run them inside
 `transaction()` (`src/db/transaction.ts`), a session as the request's principal over the application connection only, so an account can only ever read or
 update its own row; a different account's row is simply absent. Only Better Auth's provisioning hooks and trusted code in `trustedTransaction()` (see [Organisations](#organisations)) hold
 `authorization.access(admin)`, and a request that never grants opens no admin connection. Umbrella needs two database roles, so there are two Hyperdrive
@@ -201,11 +203,11 @@ by trusted code: nothing in the API grants it, so make an operator one with
 `authorization.access(admin).root().grant({ principal: user(id), role: globalAdmin })`. The creator of an organisation
 is its first administrator; there is no endpoint to make others yet.
 
-Administrators create, list and cancel invitations in their request session (`src/organisations/invitations.ts`): that
+Administrators create, list and cancel invitations in their request session (`src/services/invitations.ts`): that
 changes no grants, so row-level security alone decides who may. The invitee's side (reading an invitation by its link,
 listing your own, accepting, declining) is trusted code, because an emailed invitation belongs to no account until
 someone presents its code. Creating an organisation, joining, removing and deleting change grants as well as rows, so
-they run as trusted code in one admin transaction (`src/organisations/membership.ts`), taking their decisions from the
+they run as trusted code in one admin transaction (`src/services/organisations.ts`), taking their decisions from the
 access definitions through `inspect`. Changes to an organisation's administrators lock its row, and its last
 administrator cannot leave or be removed. Deleting an organisation and removing a member are therefore `trusted` actions: declared for `inspect`, never granted to request sessions.
 
@@ -244,7 +246,7 @@ every device and renames or moves one, but never creates or deletes: an agent's 
 A `browser` is one auth session's device in one organisation, for iroh connections from the web app through a relay.
 `PUT …/browser` gets or creates it for the session that calls it, in an organisation the account belongs to, and
 returns it with its private key (the raw seed, unpadded base64url), so the browser can act as it; concurrent first
-requests make one between them. It is trusted code (`src/topology/browsers.ts`), so any member may make their own, and
+requests make one between them. It is trusted code (`src/services/browsers.ts`), so any member may make their own, and
 it is named after the session's user agent. A browser is always on the internet (409 `conflict` if moved), and
 belongs to the account as well as the organisation: its row references the auth session and the account's membership.
 Neither reference cascades. Instead the code that ends them deletes the browser and its device first: Better Auth's
@@ -253,7 +255,7 @@ session-delete hook, which runs for sign-out, bulk revocation, expired sessions 
 every browser under `/devices`, as they see every device; nothing reads a browser's private key but its own session.
 
 Every device is also a principal, `device(<id>)`, in its organisation, holding the shared `organisationDevice` role
-there (`src/topology/device-principals.ts`). That role reads the organisation's devices and nothing else, so a device,
+there (`src/services/devices.ts`). That role reads the organisation's devices and nothing else, so a device,
 like any member, can list its organisation's public IDs for an iroh allowlist. The grant is made in the transaction
 that creates the device and revoked in the one that deletes it, so a device never exists without it. Request sessions
 cannot write grants, so creating and deleting agents, cameras and browsers is trusted code: `changeDevices` first

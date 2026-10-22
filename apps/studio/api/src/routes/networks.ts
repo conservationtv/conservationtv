@@ -1,12 +1,18 @@
-import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { agents, networks } from '../db/schema.ts';
-import { transaction, useDB } from '../db/transaction.ts';
+import { transaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
-import { unchanged } from '../topology/transaction.ts';
+import {
+  activateAgent,
+  createNetwork,
+  deleteNetwork,
+  getNetwork,
+  listNetworks,
+  standDownActiveAgent,
+  updateNetwork
+} from '../services/networks.ts';
 import {
   conflict,
   forbidden,
@@ -25,16 +31,6 @@ const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisat
 export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const NetworkParamsSchema = OrganisationParamsSchema.extend({ networkId: z.uuid().describe('The network.') });
 export type NetworkParams = z.output<typeof NetworkParamsSchema>;
-
-/** The network, as its routes return it. */
-function readNetwork(organisationId: string, networkId: string) {
-  const db = useDB();
-  return db.query.networks.findFirst({
-    columns: { id: true, name: true, createdAt: true },
-    with: { activeAgent: { columns: { id: true } } },
-    where: { organisationId, id: networkId }
-  });
-}
 
 // An organisation's managed networks, in the principal's request session: members read them, administrators manage
 // them. Agents are under /organisations/{id}/agents.
@@ -59,15 +55,7 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const rows = await transaction(async () => {
-        const db = useDB();
-        return db.query.networks.findMany({
-          columns: { id: true, name: true, createdAt: true },
-          with: { activeAgent: { columns: { id: true } } },
-          where: { organisationId: id },
-          orderBy: { id: 'asc' }
-        });
-      });
+      const rows = await transaction(() => listNetworks(id));
       c.header('Cache-Control', 'no-store');
       return c.json({ networks: rows }, 200);
     }
@@ -93,11 +81,10 @@ export default new Hono()
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The network name.') })),
     async c => {
       const { id } = c.req.valid('param');
-      const { name } = c.req.valid('json');
+      const body = c.req.valid('json');
       const row = await transaction(async () => {
-        const db = useDB();
-        const [network] = await db.insert(networks).values({ organisationId: id, name }).returning({ id: networks.id });
-        const created = await readNetwork(id, network!.id);
+        const network = await createNetwork(id, body);
+        const created = await getNetwork(id, network.id);
         return created!;
       });
       c.header('Cache-Control', 'no-store');
@@ -123,7 +110,7 @@ export default new Hono()
     validator('param', NetworkParamsSchema),
     async c => {
       const { id, networkId } = c.req.valid('param');
-      const row = await transaction(() => readNetwork(id, networkId));
+      const row = await transaction(() => getNetwork(id, networkId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -151,16 +138,10 @@ export default new Hono()
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The network name.') })),
     async c => {
       const { id, networkId } = c.req.valid('param');
-      const { name } = c.req.valid('json');
+      const body = c.req.valid('json');
       const row = await transaction(async () => {
-        const db = useDB();
-        const updated = await db
-          .update(networks)
-          .set({ name })
-          .where(and(eq(networks.organisationId, id), eq(networks.id, networkId)))
-          .returning({ id: networks.id });
-        if (updated.length === 0) throw await unchanged(networks.id, networkId);
-        const network = await readNetwork(id, networkId);
+        await updateNetwork(id, networkId, body);
+        const network = await getNetwork(id, networkId);
         return network!;
       });
       c.header('Cache-Control', 'no-store');
@@ -189,14 +170,7 @@ export default new Hono()
     validator('param', NetworkParamsSchema),
     async c => {
       const { id, networkId } = c.req.valid('param');
-      await transaction(async () => {
-        const db = useDB();
-        const deleted = await db
-          .delete(networks)
-          .where(and(eq(networks.organisationId, id), eq(networks.id, networkId)))
-          .returning({ id: networks.id });
-        if (deleted.length === 0) throw await unchanged(networks.id, networkId);
-      });
+      await transaction(() => deleteNetwork(id, networkId));
       return c.body(null, 204);
     }
   )
@@ -232,39 +206,12 @@ export default new Hono()
       const { id, networkId } = c.req.valid('param');
       const { agentId } = c.req.valid('json');
       const row = await transaction(async () => {
-        const db = useDB();
-        const [network] = await db
-          .select({ id: networks.id })
-          .from(networks)
-          .where(and(eq(networks.organisationId, id), eq(networks.id, networkId)));
+        const network = await getNetwork(id, networkId);
         if (!network) throw new ApiFailure('not_found');
-        // Stand the current agent down first: the partial unique index allows one active agent per network.
-        await db
-          .update(agents)
-          .set({ active: false })
-          .where(and(eq(agents.networkId, networkId), eq(agents.active, true)));
-        // Writes the principal may not make reach no rows rather than fail, so check what each one left behind.
-        if (agentId === null) {
-          const [stillActive] = await db
-            .select({ id: agents.id })
-            .from(agents)
-            .where(and(eq(agents.networkId, networkId), eq(agents.active, true)));
-          if (stillActive) throw new ApiFailure('forbidden');
-        } else {
-          const [activated] = await db
-            .update(agents)
-            .set({ active: true })
-            .where(and(eq(agents.networkId, networkId), eq(agents.id, agentId)))
-            .returning({ id: agents.id });
-          if (!activated) {
-            const [registered] = await db
-              .select({ id: agents.id })
-              .from(agents)
-              .where(and(eq(agents.networkId, networkId), eq(agents.id, agentId)));
-            throw new ApiFailure(registered ? 'forbidden' : 'invalid_reference');
-          }
-        }
-        const changed = await readNetwork(id, networkId);
+        // Stand the current agent down first: the network has one active agent at most.
+        await standDownActiveAgent(id, networkId);
+        if (agentId !== null) await activateAgent(id, networkId, agentId);
+        const changed = await getNetwork(id, networkId);
         return changed!;
       });
       c.header('Cache-Control', 'no-store');
