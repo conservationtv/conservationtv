@@ -16,8 +16,13 @@ export const MediamtxPathSchema = z.strictObject({
   exposureId: z.uuid(),
   /** Which of the exposure's renditions it delivers, by ID, when the exposure has several paths. */
   rendition: z.string().min(1).max(60).optional(),
-  /** Where MediaMTX pulls it from while it is read, such as a camera's RTSP URL; none, and publishers push to it. */
-  source: z.string().min(1).optional()
+  /**
+   * Where MediaMTX pulls it from while it is read: a URL, such as a camera's RTSP URL, or another of its own paths;
+   * none, and publishers push to it.
+   */
+  source: z
+    .union([z.strictObject({ url: z.string().min(1) }), z.strictObject({ path: z.string().regex(PATH_NAME) })])
+    .optional()
 });
 export type MediamtxPath = z.output<typeof MediamtxPathSchema>;
 
