@@ -71,3 +71,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Compare contracts with the base
         run: pnpm -r --no-bail run ci:contracts pr
+      # Fails when a snapshot already frozen at the base is edited. Advisory until a contract is released: it reports,
+      # but never stops a merge.
+      - name: Check frozen snapshots are unchanged
+        continue-on-error: true
+        run: pnpm -r --no-bail run ci:contracts snapshots
