@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { type Mutator, type SystemSpec, controller, converge } from '../src/index.ts';
+import { type SystemSpec, controller, converge, mutator } from '../src/index.ts';
 import {
   AppSpecSchema,
   FakeRuntime,
@@ -33,8 +33,9 @@ describe('faulty runtimes', () => {
     await system.stop();
   });
 
-  // Two runtimes throw when disposed. Stopping still disposes every runtime and cleans up every mutator, then
-  // reports both failures together, so one bad runtime can't leave the others holding on to their timers.
+  // Two runtimes throw when disposed, and the mutator's run has already failed. Stopping still disposes every
+  // runtime and stops the mutator, then reports all three failures together, so one bad runtime can't leave the
+  // others holding on to their timers.
   it('disposes every runtime even when some throw, and reports what failed', async () => {
     const throws = (): never => {
       throw new Error('dispose failed');
@@ -43,22 +44,29 @@ describe('faulty runtimes', () => {
     const second = new FakeRuntime(true, succeedAfter(0));
     const third = new FakeRuntime(true, succeedAfter(0));
     const disposed = vi.fn();
-    const cleanup = vi.fn();
+    const signals: AbortSignal[] = [];
+    const source = mutator<Record<'first' | 'second' | 'third', FakeRuntime['controller']>>(async context => {
+      signals.push(context.signal);
+      throw new Error('watcher failed');
+    });
     const system = await started({
       controllers: {
         first: { ...first.controller, dispose: throws },
         second: { ...second.controller, dispose: disposed },
         third: { ...third.controller, dispose: throws }
       },
-      mutators: [() => cleanup]
+      mutator: source
     });
+    await flush();
 
     const stopping = system.stop();
 
     await expect(stopping).rejects.toThrow(AggregateError);
-    await expect(stopping).rejects.toMatchObject({ errors: [expect.any(Error), expect.any(Error)] });
+    await expect(stopping).rejects.toMatchObject({
+      errors: [expect.objectContaining({ message: 'watcher failed' }), expect.any(Error), expect.any(Error)]
+    });
     expect(disposed).toHaveBeenCalledOnce();
-    expect(cleanup).toHaveBeenCalledOnce();
+    expect(signals.map(signal => signal.aborted)).toEqual([true]);
   });
 });
 
@@ -74,26 +82,37 @@ describe('faulty starts', () => {
     expect(web.calls).toHaveLength(0);
   });
 
-  // The second of three mutators throws while starting. The start fails, but not before the system has cleaned up
-  // the mutator that did start, and stopped, so nothing is left running in the background.
-  it('stops again when a mutator throws while starting, leaving nothing running', async () => {
+  // The mutator's run throws while starting. The start fails, but not before the system has stopped, so nothing is
+  // left running in the background, and the mutator is let go of, so it can be tried again.
+  it('stops again when the mutator throws while starting, leaving nothing running', async () => {
     const web = new FakeRuntime(true, succeedAfter(0));
-    const cleanup = vi.fn();
     const dispose = vi.fn();
-    const broken: Mutator<WebOnly> = () => {
+    const broken = mutator<WebOnly>(() => {
       throw new Error('mutator failed to start');
-    };
-    const late = vi.fn(() => () => undefined);
-
-    const starting = converge({
-      controllers: { web: { ...web.controller, dispose } },
-      mutators: [() => cleanup, broken, late]
     });
 
+    const starting = converge({ controllers: { web: { ...web.controller, dispose } }, mutator: broken });
+
     await expect(starting).rejects.toThrow('mutator failed to start');
-    expect(cleanup).toHaveBeenCalledOnce();
-    expect(late).not.toHaveBeenCalled();
     expect(dispose).toHaveBeenCalledOnce();
+    expect(broken.attached).toBe(false);
+  });
+
+  // One mutator, handed to two systems: the second can't start, because its changes would race the first's. The
+  // first carries on, still changed through the mutator.
+  it('refuses a mutator already changing another system', async () => {
+    const first = new FakeRuntime(true, succeedAfter(0));
+    const second = new FakeRuntime(true, succeedAfter(0));
+    const dispose = vi.fn();
+    const system = await started({ controllers: { web: first.controller } });
+
+    const starting = converge({ controllers: { web: { ...second.controller, dispose } }, mutator: system.mutator });
+
+    await expect(starting).rejects.toThrow('already changing another system');
+    expect(dispose).toHaveBeenCalledOnce();
+    await system.set('web', app(1));
+    expect(system.spec()).toEqual({ web: app(1) });
+    await system.stop();
   });
 });
 

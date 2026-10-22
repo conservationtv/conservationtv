@@ -2,6 +2,8 @@
 
 import * as z from 'zod';
 
+import { DeleteSystemSpecMediamtxPathsByNamePathSchema, PutSystemSpecMediamtxPathsByNameBodySchema, PutSystemSpecMediamtxPathsByNamePathSchema } from './zod.gen.js';
+
 export const StatusGetParamsSchema = z.object({});
 
 export type StatusGetParams = z.infer<typeof StatusGetParamsSchema>;
@@ -13,3 +15,18 @@ export type SystemGetParams = z.infer<typeof SystemGetParamsSchema>;
 export const SystemSpecParamsSchema = z.object({});
 
 export type SystemSpecParams = z.infer<typeof SystemSpecParamsSchema>;
+
+export const PathDeleteParamsSchema = z.object({
+    name: DeleteSystemSpecMediamtxPathsByNamePathSchema.shape.name.nonoptional()
+});
+
+export type PathDeleteParams = z.infer<typeof PathDeleteParamsSchema>;
+
+export const PathPutParamsSchema = z.object({
+    name: PutSystemSpecMediamtxPathsByNamePathSchema.shape.name.nonoptional(),
+    exposureId: PutSystemSpecMediamtxPathsByNameBodySchema.shape.exposureId.nonoptional(),
+    rendition: PutSystemSpecMediamtxPathsByNameBodySchema.shape.rendition.optional(),
+    source: PutSystemSpecMediamtxPathsByNameBodySchema.shape.source.optional()
+});
+
+export type PathPutParams = z.infer<typeof PathPutParamsSchema>;

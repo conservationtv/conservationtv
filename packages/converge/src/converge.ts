@@ -1,14 +1,10 @@
+import { type Draft, produce } from 'immer';
 import { type Observable, combineLatest, firstValueFrom, map, shareReplay } from 'rxjs';
 import { z } from 'zod';
 import type { Apply, Controller, Controllers, KeyStatus, SystemSpec, SystemStatus } from './controller.ts';
 import { KeyLoop } from './key.ts';
+import { type Attachment, type Mutator, type MutatorTarget, attach } from './mutator.ts';
 import { revisionOf } from './revision.ts';
-
-/**
- * The only way the spec changes: a source such as an API, a file watcher or a config loader, handed the changes when
- * the system starts. Returns its cleanup.
- */
-export type Mutator<R extends Controllers> = (changes: Mutations<R>) => () => void;
 
 /** Where the spec comes from and where it is kept. Without `restore` or `sink`, nothing persists. */
 export interface ConvergeOptions<R extends Controllers> {
@@ -20,23 +16,14 @@ export interface ConvergeOptions<R extends Controllers> {
   restore?(): Promise<SystemSpec<R>>;
   /** Persists an accepted spec before it is applied. If it throws, the change is rejected and nothing changes. */
   sink?(spec: SystemSpec<R>): Promise<void>;
-  /** Every source of changes. Their changes share one queue, so they apply in the order they are made. */
-  mutators?: Mutator<R>[];
+  /**
+   * The one source of changes: the studio, an API or a file. It changes this system from once the restored spec is
+   * applied until the system stops. Without it, the spec stays as it was restored.
+   */
+  mutator?: Mutator<R>;
 }
 
-/**
- * Changes to the spec, handed only to mutators. Each is parsed with `schema`, and rejected if it does not parse, if the
- * sink fails, or once the system is stopping. A change that leaves the spec as it was resolves without touching the
- * sink.
- */
-export interface Mutations<R extends Controllers> {
-  schema: z.ZodType<SystemSpec<R>>;
-  replace(spec: SystemSpec<R>): Promise<void>;
-  set<K extends keyof R>(key: K, spec: SystemSpec<R>[K]): Promise<void>;
-  remove(key: keyof R): Promise<void>;
-}
-
-/** A running convergence: what it reports, and how to stop it. Changes come only through its mutators. */
+/** A running convergence: what it reports, and how to stop it. Changes come only through its mutator. */
 export interface Convergence<R extends Controllers> {
   /** Live. Never persisted: after a restart it is rebuilt from the runtimes. Errors if a runtime's status errors. */
   status$: Observable<SystemStatus<R>>;
@@ -47,7 +34,7 @@ export interface Convergence<R extends Controllers> {
   /**
    * Stops taking changes, and aborts the calls in flight. Resolves once the change being saved and every call have
    * settled and every runtime is disposed, so nothing more happens after it. Never finalizes. Rejects, having still
-   * done all of that, if a mutator's cleanup or a runtime's dispose threw.
+   * done all of that, if the mutator's `run` rejected or a runtime's dispose threw.
    */
   stop(): Promise<void>;
 }
@@ -57,11 +44,11 @@ type KeyedStatus<Status> = readonly [string, KeyStatus<Status>];
 
 /**
  * Starts converging every controller's runtime to the spec. Keys absent at start are finalized, so a key removed while
- * nothing was running is still torn down. If a mutator throws while starting, the system stops again and the start
- * rejects.
+ * nothing was running is still torn down. If the mutator is already changing another system, or its `run` throws, the
+ * system stops again and the start rejects.
  */
 export async function converge<R extends Controllers>(options: ConvergeOptions<R>): Promise<Convergence<R>> {
-  const { controllers, sink, mutators = [] } = options;
+  const { controllers, sink } = options;
   const SystemSchema = systemSchema(controllers);
   const restored = await options.restore?.();
   let committed = SystemSchema.parse(restored ?? {});
@@ -86,16 +73,14 @@ export async function converge<R extends Controllers>(options: ConvergeOptions<R
     return result;
   };
 
-  const changes: Mutations<R> = {
-    schema: SystemSchema,
-    replace: spec => mutate(() => spec),
-    set: (key, spec) => mutate(current => ({ ...current, [key]: spec })),
-    remove: key =>
-      mutate(current => {
-        const next = { ...current };
-        delete next[key];
-        return next;
-      })
+  const target: MutatorTarget<R> = {
+    update: recipe => {
+      // SAFETY: Immer takes a recipe that returns nothing or a whole new spec; only `Draft` of a generic spec stops
+      // TypeScript seeing that a `SystemSpec<R>` is one.
+      const edit = recipe as (draft: Draft<SystemSpec<R>>) => void;
+      return mutate(current => produce(current, edit));
+    },
+    spec: () => committed
   };
 
   const statuses = keys.map((key, index) => keyStatus(key, controllers[key], loops[index]));
@@ -106,13 +91,13 @@ export async function converge<R extends Controllers>(options: ConvergeOptions<R
   const replayLatest = shareReplay<SystemStatus<R>>({ bufferSize: 1, refCount: true });
   const status$ = combineLatest(statuses).pipe(toSystemStatus, replayLatest);
 
-  const cleanups: (() => void)[] = [];
+  let attachment: Attachment | undefined = undefined;
   const halt = async (): Promise<void> => {
     stopping = true;
-    const errors = cleanups.map(cleanup => attempt(cleanup));
+    const failed = attachment?.detach();
     await Promise.all([queue, ...loops.map(loop => loop.stop())]);
     const disposals = keys.map(key => attempt(() => controllers[key].dispose?.()));
-    const failures = [...errors, ...disposals].filter(error => error !== undefined);
+    const failures = [failed, ...disposals].filter(error => error !== undefined);
     if (failures.length > 0) throw new AggregateError(failures, 'Converge stopped, but cleaning up failed');
   };
   let stopped: Promise<void> | undefined = undefined;
@@ -123,7 +108,7 @@ export async function converge<R extends Controllers>(options: ConvergeOptions<R
 
   for (const loop of loops) loop.start();
   try {
-    for (const mutator of mutators) cleanups.push(mutator(changes));
+    if (options.mutator !== undefined) attachment = attach(options.mutator, target);
   } catch (error) {
     await stop().catch(() => undefined);
     throw error;

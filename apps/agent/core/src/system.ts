@@ -1,7 +1,7 @@
 import { join } from 'node:path';
-import { controller, converge } from '@conservationtv/converge';
+import { type Mutator, controller, converge, mutator } from '@conservationtv/converge';
 import { createStore } from '@conservationtv/store';
-import type { AgentConfiguration } from './config.ts';
+import type { AgentConfiguration, ConservationTvConfiguration } from './config.ts';
 import { MachineRuntime, MachineSpecSchema, type MachineSpec } from './runtimes/machine.ts';
 import {
   MEDIAMTX_MANIFEST,
@@ -37,6 +37,9 @@ function controllers(config: AgentConfiguration) {
   };
 }
 
+/** The agent's runtimes, by the key of the spec each converges to. */
+export type AgentControllers = ReturnType<typeof controllers>;
+
 /** The spec the system starts from: its keys, each present or absent. */
 interface RestoredSpec {
   machine: MachineSpec;
@@ -53,25 +56,36 @@ function restored(config: AgentConfiguration): RestoredSpec {
 }
 
 /**
- * Start converging. A direct agent runs MediaMTX serving any path from the start. A conservation.tv agent runs it only
- * once its configuration (src/studio-configuration.ts) says it runs a MediaMTX gateway, serving exactly its paths.
+ * Start converging. A direct agent runs MediaMTX serving any path from the start, changed only through `api`, by
+ * requests over iroh. A conservation.tv agent runs it only once its configuration (src/studio-configuration.ts) says
+ * it runs a MediaMTX gateway, serving exactly its paths; `api` changes nothing.
  */
-export function startSystem(config: AgentConfiguration) {
+export function startSystem(config: AgentConfiguration, api: Mutator<AgentControllers>) {
   return converge({
     controllers: controllers(config),
     restore: async () => restored(config),
-    mutators:
-      config.type === 'direct'
-        ? []
-        : [
-            changes =>
-              watchStudioConfiguration(config, spec =>
-                spec === undefined ? changes.remove('mediamtx') : changes.set('mediamtx', spec)
-              )
-          ]
+    mutator: config.type === 'direct' ? api : studioMutator(config)
   });
+}
+
+/** A conservation.tv agent's spec comes from the studio API, which owns its `mediamtx` key. */
+function studioMutator(config: ConservationTvConfiguration) {
+  return mutator<AgentControllers>(context =>
+    watchStudioConfiguration(config, context.signal, spec =>
+      context.update(draft => {
+        if (spec === undefined) delete draft.mediamtx;
+        else draft.mediamtx = spec;
+      })
+    )
+  );
 }
 
 /** The running agent's system. The host supplies it with each request; handlers read it with `useSystem()`. */
 export type AgentSystem = Awaited<ReturnType<typeof startSystem>>;
 export const [withSystem, useSystem] = createStore<AgentSystem>('system');
+
+/**
+ * Changes to the spec made by requests over iroh. The host supplies it with each request; handlers read it with
+ * `useSpecApi()`. Only a direct agent's system takes them: on any other, `update` rejects with `NotMutating`.
+ */
+export const [withSpecApi, useSpecApi] = createStore<Mutator<AgentControllers>>('specApi');

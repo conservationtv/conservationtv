@@ -2,14 +2,15 @@ import { BehaviorSubject, type Observable, filter, firstValueFrom } from 'rxjs';
 import { vi } from 'vitest';
 import { z } from 'zod';
 import {
-  type Mutations,
   type Mutator,
   type Controllers,
   type Convergence,
   type ConvergeOptions,
+  type SystemSpec,
   type SystemStatus,
   controller,
-  converge
+  converge,
+  mutator
 } from '../src/index.ts';
 import { revisionOf } from '../src/revision.ts';
 
@@ -133,24 +134,45 @@ export function succeedAfter(latencyMs: number): Driver {
   };
 }
 
-/** A running convergence, and the changes the test makes to it. */
-export type TestSystem<R extends Controllers> = Convergence<R> & Mutations<R>;
+/** Whole-key changes, made through a mutator the way an API's routes would. */
+export interface Changes<R extends Controllers> {
+  set<K extends keyof R>(key: K, spec: SystemSpec<R>[K]): Promise<void>;
+  remove(key: keyof R): Promise<void>;
+  replace(spec: SystemSpec<R>): Promise<void>;
+}
+
+/** Sets, removes and replaces keys through `handle`, each as one recipe. */
+export function changes<R extends Controllers>(handle: Mutator<R>): Changes<R> {
+  return {
+    set: (key, spec) =>
+      handle.update(draft => {
+        // SAFETY: the draft of the spec has the spec's keys; only `Draft` of a generic spec hides that.
+        const editable = draft as SystemSpec<R>;
+        editable[key] = spec;
+      }),
+    remove: key =>
+      handle.update(draft => {
+        // SAFETY: as in `set`.
+        const editable = draft as SystemSpec<R>;
+        delete editable[key];
+      }),
+    replace: spec => handle.update(() => spec)
+  };
+}
+
+/** A running convergence, the mutator changing it, and the changes the test makes through that mutator. */
+export interface TestSystem<R extends Controllers> extends Convergence<R>, Changes<R> {
+  mutator: Mutator<R>;
+}
 
 /**
- * Starts converging with one more mutator: the test's own, holding on to the changes the way an API or a file watcher
- * would. Everything the test sets, removes or replaces goes through it.
+ * Starts converging with the options' mutator, or one of the test's own with no `run`, holding on to it the way an
+ * API would. Everything the test sets, removes or replaces goes through it.
  */
 export async function started<R extends Controllers>(options: ConvergeOptions<R>): Promise<TestSystem<R>> {
-  const handed: Mutations<R>[] = [];
-  const test: Mutator<R> = changes => {
-    handed.push(changes);
-    return () => undefined;
-  };
-  const mutators = [...(options.mutators ?? []), test];
-  const system = await converge({ ...options, mutators });
-  const changes = handed[0];
-  if (changes === undefined) throw new Error('Converge started without handing its mutators the changes');
-  return { ...system, ...changes };
+  const handle = options.mutator ?? mutator<R>();
+  const system = await converge({ ...options, mutator: handle });
+  return { ...system, ...changes(handle), mutator: handle };
 }
 
 /** Resolves with the first status that satisfies `predicate`, including the current one. */

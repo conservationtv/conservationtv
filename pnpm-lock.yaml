@@ -870,6 +870,9 @@ importers:
 
   packages/converge:
     dependencies:
+      immer:
+        specifier: 11.1.21
+        version: 11.1.21
       ps-list:
         specifier: 9.0.0
         version: 9.0.0
