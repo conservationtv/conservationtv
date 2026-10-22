@@ -1,16 +1,12 @@
-import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { agents, devices } from '../db/schema.ts';
+import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
-import { changeDevices, grantDevice, revokeDevice } from '../topology/device-principals.ts';
+import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { createAgent, deleteAgent, getAgent, listAgents, updateAgent } from '../services/agents.ts';
+import { createDevice, deleteDevice, requireDevicePermission } from '../services/devices.ts';
 import { DeviceNameSchema } from './devices.ts';
-import { deviceIdentity } from '../topology/identity.ts';
-import type { Transaction } from '../organisations/membership.ts';
-import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   inUse,
@@ -31,19 +27,6 @@ export type AgentParams = z.output<typeof AgentParamsSchema>;
 
 const PrioritySchema = z.int().min(-1000).max(1000).describe('Standby preference; higher is preferred.');
 export type Priority = z.output<typeof PrioritySchema>;
-
-/** The agent, as its routes return it. */
-function readAgent(tx: Transaction, organisationId: string, agentId: string) {
-  return tx.query.agents.findFirst({
-    columns: { id: true, networkId: true, priority: true, active: true },
-    with: {
-      device: {
-        columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
-      }
-    },
-    where: { organisationId, id: agentId }
-  });
-}
 
 // An organisation's agents, in the principal's request session: members read them,
 // administrators manage them. An agent is a device that serves the network it is on (src/db/schemas/agents.ts): it is
@@ -69,22 +52,8 @@ export default new Hono()
     validator('query', z.object({ networkId: z.uuid().optional().describe('Only agents on this network.') })),
     async c => {
       const { id } = c.req.valid('param');
-      const { networkId } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx.query.agents.findMany({
-          columns: { id: true, networkId: true, priority: true, active: true },
-          with: {
-            device: {
-              columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
-            }
-          },
-          where: { organisationId: id, networkId },
-          orderBy: { id: 'asc' }
-        })
-      );
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listAgents(id, filter));
       c.header('Cache-Control', 'no-store');
       return c.json({ agents: rows }, 200);
     }
@@ -120,19 +89,13 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const principal = usePrincipal();
-      const identity = await deviceIdentity();
-      // Trusted, so the device's principal grant is made with it (src/topology/device-principals.ts).
-      const row = await changeDevices(principal, id, 'create', async (tx, access) => {
-        const [device] = await tx
-          .insert(devices)
-          .values({ ...identity, organisationId: id, kind: 'agent', name: body.name, networkId: body.networkId })
-          .returning({ id: devices.id });
-        await tx
-          .insert(agents)
-          .values({ id: device!.id, organisationId: id, networkId: body.networkId, priority: body.priority });
-        await grantDevice(access, id, device!.id);
-        const agent = await readAgent(tx, id, device!.id);
+      const principal = useUser();
+      // Trusted, so the device's principal grant is made with it (src/services/devices.ts).
+      const row = await trustedTransaction(async () => {
+        await requireDevicePermission(id, principal.id, 'create');
+        const device = await createDevice(id, { kind: 'agent', name: body.name, networkId: body.networkId });
+        await createAgent(id, device.id, { networkId: body.networkId, priority: body.priority });
+        const agent = await getAgent(id, device.id);
         return agent!;
       });
       c.header('Cache-Control', 'no-store');
@@ -158,10 +121,7 @@ export default new Hono()
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(tx => readAgent(tx, id, agentId));
+      const row = await transaction(() => getAgent(id, agentId));
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
@@ -191,17 +151,9 @@ export default new Hono()
     async c => {
       const { id, agentId } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const updated = await tx
-          .update(agents)
-          .set({ priority: body.priority })
-          .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
-          .returning({ id: agents.id });
-        if (updated.length === 0) throw await unchanged(tx, agents.id, agentId);
-        const agent = await readAgent(tx, id, agentId);
+      const row = await transaction(async () => {
+        await updateAgent(id, agentId, body);
+        const agent = await getAgent(id, agentId);
         return agent!;
       });
       c.header('Cache-Control', 'no-store');
@@ -231,16 +183,12 @@ export default new Hono()
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');
-      const principal = usePrincipal();
-      // Trusted, so the device's principal grant is revoked with it (src/topology/device-principals.ts).
-      await changeDevices(principal, id, 'remove', async (tx, access) => {
-        const deleted = await tx
-          .delete(agents)
-          .where(and(eq(agents.organisationId, id), eq(agents.id, agentId)))
-          .returning({ id: agents.id });
-        if (deleted.length === 0) throw new ApiFailure('not_found');
-        await tx.delete(devices).where(and(eq(devices.organisationId, id), eq(devices.id, agentId)));
-        await revokeDevice(access, id, agentId);
+      const principal = useUser();
+      // Trusted, so the device's principal grant is revoked with it (src/services/devices.ts).
+      await trustedTransaction(async () => {
+        await requireDevicePermission(id, principal.id, 'remove');
+        await deleteAgent(id, agentId);
+        await deleteDevice(id, agentId);
       });
       return c.body(null, 204);
     }

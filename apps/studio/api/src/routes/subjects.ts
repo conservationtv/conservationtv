@@ -1,12 +1,20 @@
-import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { SubjectIdSchema } from '@conservationtv/reports';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { ApiFailure } from '../errors.ts';
-import { logRecords, metricPoints, metricSeries, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { transaction } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
+import {
+  getMetricSeries,
+  getSubjectState,
+  listLogs,
+  listMetricPoints,
+  listMetricSeries,
+  listObservations,
+  listReporterOpinions
+} from '../services/subjects.ts';
 import {
   invalidRequest,
   notFound,
@@ -49,11 +57,9 @@ const PointsQuerySchema = z
   .refine(({ from, to }) => to === undefined || Date.parse(from) < Date.parse(to), '`from` is before `to`.');
 export type PointsQuery = z.output<typeof PointsQuerySchema>;
 
-// What devices report about a subject, in the principal's request session: members read it all. A subject is a string
-// (`@conservationtv/reports`), so there is nothing to create or delete, and one nothing was reported about reads as empty.
-// Reports themselves are only ever written by signed ingestion (/reports), and opinions and subject state by the state
-// consumer. Freshness is evaluated by Postgres against each expiry when read, so state
-// goes stale without a new report.
+// What devices report about a subject, in the principal's request session: members read it all (src/services/subjects.ts).
+// A subject is a string, so there is nothing to create or delete. Reports themselves are only ever written by signed
+// ingestion (/reports), and opinions and subject state by the state consumer.
 export default new Hono()
   .get(
     '/:subjectId/state',
@@ -75,43 +81,10 @@ export default new Hono()
     validator('param', SubjectParamsSchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const { state, opinions } = await session.transaction(async tx => {
-        const [combined] = await tx
-          .select({
-            health: subjectStates.health,
-            state: subjectStates.state,
-            freshness: sql<
-              'fresh' | 'stale'
-            >`case when ${subjectStates.expiresAt} > now() then 'fresh' else 'stale' end`,
-            observedAt: subjectStates.observedAt,
-            expiresAt: subjectStates.expiresAt,
-            computedAt: subjectStates.computedAt,
-            contributingReporterIds: subjectStates.contributingReporterIds,
-            evidenceReportIds: subjectStates.evidenceReportIds
-          })
-          .from(subjectStates)
-          .where(and(eq(subjectStates.organisationId, id), eq(subjectStates.subjectId, subjectId)));
-        return {
-          state: combined ?? null,
-          opinions: await tx
-            .select({
-              reporterId: reporterOpinions.reporterId,
-              health: reporterOpinions.health,
-              state: reporterOpinions.state,
-              freshness: sql<
-                'fresh' | 'stale'
-              >`case when ${reporterOpinions.expiresAt} > now() then 'fresh' else 'stale' end`,
-              observedAt: reporterOpinions.observedAt,
-              expiresAt: reporterOpinions.expiresAt,
-              evidenceReportIds: reporterOpinions.evidenceReportIds
-            })
-            .from(reporterOpinions)
-            .where(and(eq(reporterOpinions.organisationId, id), eq(reporterOpinions.subjectId, subjectId)))
-            .orderBy(reporterOpinions.reporterId)
-        };
+      const { state, opinions } = await transaction(async () => {
+        const combined = await getSubjectState(id, subjectId);
+        const reporters = await listReporterOpinions(id, subjectId);
+        return { state: combined ?? null, opinions: reporters };
       });
       c.header('Cache-Control', 'no-store');
       return c.json({ subjectId, state, reachable: state?.freshness === 'fresh', opinions }, 200);
@@ -137,31 +110,8 @@ export default new Hono()
     validator('query', HistoryQuerySchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const { limit, before } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
-          .select({
-            id: observations.id,
-            reporterId: observations.reporterId,
-            observedAt: observations.observedAt,
-            receivedAt: observations.receivedAt,
-            type: observations.type,
-            data: observations.data
-          })
-          .from(observations)
-          .where(
-            and(
-              eq(observations.organisationId, id),
-              eq(observations.subjectId, subjectId),
-              before === undefined ? undefined : lt(observations.observedAt, new Date(before))
-            )
-          )
-          .orderBy(desc(observations.observedAt))
-          .limit(limit)
-      );
+      const page = c.req.valid('query');
+      const rows = await transaction(() => listObservations(id, subjectId, page));
       c.header('Cache-Control', 'no-store');
       return c.json({ observations: rows }, 200);
     }
@@ -190,30 +140,8 @@ export default new Hono()
     ),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const { name } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
-          .select({
-            id: metricSeries.id,
-            name: metricSeries.name,
-            reporterId: metricSeries.reporterId,
-            unit: metricSeries.unit,
-            dimensions: metricSeries.dimensions,
-            createdAt: metricSeries.createdAt
-          })
-          .from(metricSeries)
-          .where(
-            and(
-              eq(metricSeries.organisationId, id),
-              eq(metricSeries.subjectId, subjectId),
-              name === undefined ? undefined : eq(metricSeries.name, name)
-            )
-          )
-          .orderBy(asc(metricSeries.name), asc(metricSeries.createdAt))
-      );
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listMetricSeries(id, subjectId, filter));
       c.header('Cache-Control', 'no-store');
       return c.json({ series: rows }, 200);
     }
@@ -241,53 +169,14 @@ export default new Hono()
       const { id, subjectId, seriesId } = c.req.valid('param');
       const query = c.req.valid('query');
       const environment = useEnvironment();
-      const principal = usePrincipal();
       const from = new Date(query.from);
       const to = query.to === undefined ? new Date(environment.clock()) : new Date(query.to);
       const range = Math.ceil((to.getTime() - from.getTime()) / 1000);
       const step = Math.max(query.step ?? 60, Math.ceil(range / MAX_BUCKETS));
-      // `step` is a validated integer, written into the query so GROUP BY can match the bucket expression.
-      const bucket = sql`time_bucket(make_interval(secs => ${sql.raw(String(step))}), ${metricPoints.observedAt})`;
-      const session = await environment.session(principal);
-      const result = await session.transaction(async tx => {
-        const [series] = await tx
-          .select({
-            id: metricSeries.id,
-            name: metricSeries.name,
-            reporterId: metricSeries.reporterId,
-            unit: metricSeries.unit,
-            dimensions: metricSeries.dimensions,
-            createdAt: metricSeries.createdAt
-          })
-          .from(metricSeries)
-          .where(
-            and(
-              eq(metricSeries.organisationId, id),
-              eq(metricSeries.subjectId, subjectId),
-              eq(metricSeries.id, seriesId)
-            )
-          );
+      const result = await transaction(async () => {
+        const series = await getMetricSeries(id, subjectId, seriesId);
         if (!series) throw new ApiFailure('not_found');
-        const points = await tx
-          .select({
-            at: bucket.mapWith(metricPoints.observedAt),
-            min: sql<number>`min(${metricPoints.min})`,
-            max: sql<number>`max(${metricPoints.max})`,
-            avg: sql<number>`sum(${metricPoints.avg} * ${metricPoints.count}) / sum(${metricPoints.count})`,
-            last: sql<number>`last(${metricPoints.last}, ${metricPoints.observedAt})`,
-            count: sql<number>`sum(${metricPoints.count})::integer`
-          })
-          .from(metricPoints)
-          .where(
-            and(
-              eq(metricPoints.organisationId, id),
-              eq(metricPoints.seriesId, seriesId),
-              gte(metricPoints.observedAt, from),
-              lt(metricPoints.observedAt, to)
-            )
-          )
-          .groupBy(bucket)
-          .orderBy(bucket);
+        const points = await listMetricPoints(id, seriesId, { from, to, step });
         return { ...series, from, to, step, points };
       });
       c.header('Cache-Control', 'no-store');
@@ -314,32 +203,8 @@ export default new Hono()
     validator('query', HistoryQuerySchema),
     async c => {
       const { id, subjectId } = c.req.valid('param');
-      const { limit, before } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const rows = await session.transaction(tx =>
-        tx
-          .select({
-            id: logRecords.id,
-            reporterId: logRecords.reporterId,
-            observedAt: logRecords.observedAt,
-            receivedAt: logRecords.receivedAt,
-            level: logRecords.level,
-            message: logRecords.message,
-            context: logRecords.context
-          })
-          .from(logRecords)
-          .where(
-            and(
-              eq(logRecords.organisationId, id),
-              eq(logRecords.subjectId, subjectId),
-              before === undefined ? undefined : lt(logRecords.observedAt, new Date(before))
-            )
-          )
-          .orderBy(desc(logRecords.observedAt))
-          .limit(limit)
-      );
+      const page = c.req.valid('query');
+      const rows = await transaction(() => listLogs(id, subjectId, page));
       c.header('Cache-Control', 'no-store');
       return c.json({ logs: rows }, 200);
     }

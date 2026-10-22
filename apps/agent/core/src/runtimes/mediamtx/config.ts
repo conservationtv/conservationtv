@@ -1,7 +1,7 @@
 import { MediamtxConfigBuilder, pipeline, toYaml } from '@conservationtv/mediamtx';
 import { z } from 'zod';
 import { MEDIAMTX_AUTH_PATH, type MediamtxAuth } from './auth.ts';
-import type { MediamtxPaths } from './paths.ts';
+import type { MediamtxPath, MediamtxPaths } from './paths.ts';
 
 // The config MediaMTX serves, assembled by steps from where its servers listen, the paths the spec names and who it
 // admits.
@@ -19,6 +19,9 @@ export interface MediamtxAddresses {
 /** MediaMTX's RTMP server, as a publisher on the same machine reaches it: its default listener, on loopback. */
 const RTMP_LOOPBACK = 'rtmp://127.0.0.1:1935';
 
+/** MediaMTX's RTSP server, as one of its own paths reads another: its default listener, on loopback. */
+const RTSP_LOOPBACK = 'rtsp://127.0.0.1:8554';
+
 /** Logs to stdout, which the runtime sends to its log file; the control API and metrics page on `addresses`. */
 const server = new MediamtxConfigBuilder<MediamtxAddresses>((addresses, config) => {
   config.logLevel = 'info';
@@ -34,7 +37,7 @@ export const MoqRenditionSchema = z.strictObject({
   /** The rendition, which names its own broadcast under the exposure's path. */
   rendition: z.string().regex(/^[a-z0-9_]+$/u),
   /** The path it is served at on this MediaMTX. */
-  source: z.string().min(1)
+  path: z.string().min(1)
 });
 export type MoqRendition = z.output<typeof MoqRenditionSchema>;
 
@@ -52,6 +55,8 @@ export const MoqPublisherSchema = z.strictObject({
   connect: z.url(),
   /** The joined broadcast under it. */
   broadcast: z.string().min(1),
+  /** How the relay takes the renditions: as tracks of the joined broadcast, the only way the agent publishes. */
+  layout: z.literal('tracks'),
   renditions: z.array(MoqRenditionSchema).min(1)
 });
 export type MoqPublisher = z.output<typeof MoqPublisherSchema>;
@@ -79,9 +84,15 @@ const paths = new MediamtxConfigBuilder<MediamtxServing>((serving, config) => {
   // read, or (with none) pushed to by its publisher.
   if (serving.paths.length === 0 && serving.auth === undefined) config.paths.all_others = {};
   for (const path of serving.paths) {
-    config.paths[path.name] = path.source === undefined ? {} : { source: path.source, sourceOnDemand: true };
+    if (path.source === undefined) config.paths[path.name] = {};
+    else config.paths[path.name] = { source: sourceUrl(path.source), sourceOnDemand: true };
   }
 });
+
+/** Where MediaMTX pulls a path from: its URL, or another of its own paths, read on loopback, which needs no token. */
+function sourceUrl(source: NonNullable<MediamtxPath['source']>) {
+  return 'url' in source ? source.url : `${RTSP_LOOPBACK}/${source.path}`;
+}
 
 /**
  * A rendition's publisher: the moq CLI pulling it from this MediaMTX over RTMP, as a reader on loopback, which needs no
@@ -89,7 +100,7 @@ const paths = new MediamtxConfigBuilder<MediamtxServing>((serving, config) => {
  */
 function publisherCommand(publisher: MoqPublisher, rendition: MoqRendition, moq: string) {
   const publish = [moq, '--connect', publisher.connect, 'import', '--broadcast', rendition.rendition];
-  return [...publish, 'rtmp', '--connect', `${RTMP_LOOPBACK}/${rendition.source}`].join(' ');
+  return [...publish, 'rtmp', '--connect', `${RTMP_LOOPBACK}/${rendition.path}`].join(' ');
 }
 
 /**

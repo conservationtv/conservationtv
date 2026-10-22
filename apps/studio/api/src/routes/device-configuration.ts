@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
-import { planConfiguration } from '../configuration/plan.ts';
+import { planConfiguration } from '../configuration/plan/index.ts';
 import { requireDevice, useDevice } from '../middleware/device.ts';
 import { invalidSignature, operationVersion, unavailable, versionMismatch } from './openapi.ts';
 
-// What the signing device should be doing, derived from the topology now (src/configuration/plan.ts). Devices ask for
-// it signed, as they do for `iroh-sessions`, and again whenever they want to notice a change.
+// What the signing device should be doing, derived from the topology now (src/configuration/plan/index.ts). Devices ask
+// for it signed, as they do for `iroh-sessions`, and again whenever they want to notice a change.
 export default new Hono().get(
   '/',
   describeRoute({
@@ -13,7 +13,7 @@ export default new Hono().get(
     ...operationVersion(1),
     summary: "Read the signing device's configuration",
     description:
-      "What the signing device delivers, derived from the topology whenever it asks: for a network's active agent, the MediaMTX gateway on its network (and how it checks readers' tokens), each exposure of that gateway with the MediaMTX path each rendition is served at and where to pull it from, credentials included, and each exposure it publishes by MoQ with the path each rendition is read from. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+      "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
     responses: {
       200: { description: 'The configuration' },
       401: invalidSignature,

@@ -1,21 +1,12 @@
-import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { gateways } from '../db/schema.ts';
+import { transaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
-import { useEnvironment } from '../env/env.ts';
-import { checkGatewayUnused } from '../topology/exposures.ts';
-import {
-  BUILTIN_GATEWAY_IDS,
-  builtinGateways,
-  checkGatewaySettings,
-  GATEWAY_KIND_IDS,
-  isBuiltinGateway
-} from '../gateways/index.ts';
+import { BUILTIN_GATEWAY_IDS, builtinGateways, GATEWAY_KIND_IDS, isBuiltinGateway } from '../gateways/index.ts';
+import { requirePrincipal } from '../middleware/principal.ts';
+import { createGateway, deleteGateway, getGateway, listGateways, updateGateway } from '../services/gateways.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
-import { unchanged } from '../topology/transaction.ts';
 import {
   forbidden,
   inUse,
@@ -67,30 +58,10 @@ export default new Hono()
     validator('query', z.object({ networkId: z.uuid().optional().describe('Only gateways on this network.') })),
     async c => {
       const { id } = c.req.valid('param');
-      const { networkId } = c.req.valid('query');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const filter =
-        networkId === undefined
-          ? eq(gateways.organisationId, id)
-          : and(eq(gateways.organisationId, id), eq(gateways.networkId, networkId));
-      const rows = await session.transaction(tx =>
-        tx
-          .select({
-            id: gateways.id,
-            builtin: sql<boolean>`false`,
-            name: gateways.name,
-            kind: gateways.kind,
-            networkId: gateways.networkId,
-            settings: gateways.settings,
-            createdAt: gateways.createdAt
-          })
-          .from(gateways)
-          .where(filter)
-          .orderBy(gateways.id)
-      );
-      const builtin = networkId === undefined ? builtinGateways : [];
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listGateways(id, filter));
+      // No built-in gateway is on a network.
+      const builtin = filter.networkId === undefined ? builtinGateways : [];
       c.header('Cache-Control', 'no-store');
       return c.json({ gateways: [...builtin, ...rows] }, 200);
     }
@@ -127,31 +98,7 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [gateway] = await tx
-          .insert(gateways)
-          .values({
-            organisationId: id,
-            name: body.name,
-            kind: body.kind,
-            networkId: body.networkId,
-            settings: body.settings
-          })
-          .returning({
-            id: gateways.id,
-            builtin: sql<boolean>`false`,
-            name: gateways.name,
-            kind: gateways.kind,
-            networkId: gateways.networkId,
-            settings: gateways.settings,
-            createdAt: gateways.createdAt
-          });
-        checkGatewaySettings(gateway!.kind, gateway!.settings);
-        return gateway!;
-      });
+      const row = await transaction(() => createGateway(id, body));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
     }
@@ -182,23 +129,7 @@ export default new Hono()
           builtinGateways.find(gateway => gateway.id === gatewayId)!,
           200
         );
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const [row] = await session.transaction(tx =>
-        tx
-          .select({
-            id: gateways.id,
-            builtin: sql<boolean>`false`,
-            name: gateways.name,
-            kind: gateways.kind,
-            networkId: gateways.networkId,
-            settings: gateways.settings,
-            createdAt: gateways.createdAt
-          })
-          .from(gateways)
-          .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
-      );
+      const row = await transaction(() => getGateway(id, gatewayId));
       if (!row) throw new ApiFailure('not_found');
       return c.json(row, 200);
     }
@@ -239,34 +170,7 @@ export default new Hono()
       const { id, gatewayId } = c.req.valid('param');
       const body = c.req.valid('json');
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      const row = await session.transaction(async tx => {
-        const [gateway] = await tx
-          .update(gateways)
-          .set({
-            name: body.name,
-            kind: body.kind,
-            networkId: body.networkId,
-            settings: body.settings
-          })
-          .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
-          .returning({
-            id: gateways.id,
-            builtin: sql<boolean>`false`,
-            name: gateways.name,
-            kind: gateways.kind,
-            networkId: gateways.networkId,
-            settings: gateways.settings,
-            createdAt: gateways.createdAt
-          });
-        if (!gateway) throw await unchanged(tx, gateways.id, gatewayId);
-        // Only a change to what its kind reads, the kind itself or its settings, can make them unfit.
-        if (body.kind !== undefined || body.settings !== undefined)
-          checkGatewaySettings(gateway.kind, gateway.settings);
-        return gateway;
-      });
+      const row = await transaction(() => updateGateway(id, gatewayId, body));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -294,17 +198,7 @@ export default new Hono()
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
-      const environment = useEnvironment();
-      const principal = usePrincipal();
-      const session = await environment.session(principal);
-      await session.transaction(async tx => {
-        const deleted = await tx
-          .delete(gateways)
-          .where(and(eq(gateways.organisationId, id), eq(gateways.id, gatewayId)))
-          .returning({ id: gateways.id });
-        if (deleted.length === 0) throw await unchanged(tx, gateways.id, gatewayId);
-        await checkGatewayUnused(tx, gatewayId);
-      });
+      await transaction(() => deleteGateway(id, gatewayId));
       return c.body(null, 204);
     }
   );

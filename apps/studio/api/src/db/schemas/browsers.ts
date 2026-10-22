@@ -9,7 +9,7 @@ import { users } from './users.ts';
 
 /**
  * A device that is one signed-in browser in one organisation, for iroh connections through a relay: there is at most
- * one per auth session and organisation, made on demand (src/topology/browsers.ts). It belongs to the account as well
+ * one per auth session and organisation, made on demand (src/services/browsers.ts). It belongs to the account as well
  * as the organisation, and lasts only as long as both its session and the account's membership. Code that ends either
  * deletes the browser and its device first (Better Auth's session-delete hook, `endMembership`); the foreign keys to
  * them do not cascade, so a path that forgot to would fail rather than leave a device behind.

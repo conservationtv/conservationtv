@@ -1,13 +1,16 @@
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { trustedTransaction } from '../db/transaction.ts';
+import { ApiFailure } from '../errors.ts';
+import { requirePrincipal, useUser } from '../middleware/principal.ts';
 import {
-  acceptInvitation,
-  declineInvitation,
+  deleteInvitation,
+  getOpenInvitation,
   listOwnInvitations,
-  readInvitation
-} from '../organisations/invitations.ts';
+  lockRedeemableInvitation
+} from '../services/invitations.ts';
+import { addMember } from '../services/organisations.ts';
 import {
   alreadyMember,
   expired,
@@ -31,8 +34,8 @@ const InvitationCodeSchema = z
   .describe("The one-time code from an emailed invitation's link.");
 export type InvitationCode = z.output<typeof InvitationCodeSchema>;
 
-// The invitee's side of invitations, all trusted code (src/organisations/invitations.ts): an emailed invitation
-// belongs to no account until someone signs in and presents its code.
+// The invitee's side of invitations, all trusted code (src/services/invitations.ts): an emailed invitation belongs to
+// no account until someone signs in and presents its code.
 export default new Hono()
   .get(
     '/',
@@ -51,8 +54,8 @@ export default new Hono()
     }),
     requirePrincipal,
     async c => {
-      const principal = usePrincipal();
-      const invitations = await listOwnInvitations(principal);
+      const principal = useUser();
+      const invitations = await trustedTransaction(() => listOwnInvitations(principal.id));
       c.header('Cache-Control', 'no-store');
       return c.json({ invitations }, 200);
     }
@@ -75,7 +78,9 @@ export default new Hono()
     }),
     validator('param', InvitationParamsSchema),
     async c => {
-      const invitation = await readInvitation(c.req.valid('param').id);
+      const { id } = c.req.valid('param');
+      const invitation = await trustedTransaction(() => getOpenInvitation(id));
+      if (!invitation) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
       return c.json(invitation, 200);
     }
@@ -110,11 +115,15 @@ export default new Hono()
       })
     ),
     async c => {
+      const { id } = c.req.valid('param');
       const body = c.req.valid('json');
-      const principal = usePrincipal();
-      const membership = await acceptInvitation(principal, c.req.valid('param').id, {
-        code: body.code,
-        displayName: body.displayName
+      const principal = useUser();
+      // Joins as the user, using the invitation up.
+      const membership = await trustedTransaction(async () => {
+        const invitation = await lockRedeemableInvitation(id, principal.id, { code: body.code });
+        const joined = await addMember(invitation.organisationId, principal.id, { displayName: body.displayName });
+        await deleteInvitation(invitation.organisationId, invitation.id);
+        return joined;
       });
       c.header('Cache-Control', 'no-store');
       return c.json(membership, 200);
@@ -142,8 +151,13 @@ export default new Hono()
     validator('param', InvitationParamsSchema),
     validator('json', z.strictObject({ code: InvitationCodeSchema.optional() })),
     async c => {
-      const principal = usePrincipal();
-      await declineInvitation(principal, c.req.valid('param').id, { code: c.req.valid('json').code });
+      const { id } = c.req.valid('param');
+      const proof = c.req.valid('json');
+      const principal = useUser();
+      await trustedTransaction(async () => {
+        const invitation = await lockRedeemableInvitation(id, principal.id, proof);
+        await deleteInvitation(invitation.organisationId, invitation.id);
+      });
       return c.body(null, 204);
     }
   );
