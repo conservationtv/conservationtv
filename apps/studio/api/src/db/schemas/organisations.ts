@@ -8,7 +8,8 @@ import { users } from './users.ts';
  * Each organisation is its own `organisation` scope. Members may read it, its administrators rename it,
  * and only global administrators delete it. Creating and deleting organisations are trusted operations
  * (src/organisations/); `remove` is declared so that they can ask umbrella who may, but the application role has no
- * `delete` privilege.
+ * `delete` privilege. Deleting one is soft: it sets `deleted_at` and leaves the row, its topology and its reports
+ * (deleteOrganisation), so no single transaction deletes an organisation's whole history.
  */
 export const organisations = withAccess(
   pgTable('organisation', {
@@ -16,12 +17,13 @@ export const organisations = withAccess(
       .primaryKey()
       .default(sql`uuidv7()`),
     name: text('name').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull()
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at')
   }),
   t => ({
     name: 'organisations',
     scope: resourceScope({ name: 'organisation', key: t.id }),
-    immutable: [t.createdAt],
+    immutable: [t.createdAt, t.deletedAt],
     actions: { read: ['select'], edit: ['update'], remove: ['delete'] },
     // Deleting an organisation revokes every grant at it too, so only trusted code does (deleteOrganisation).
     trusted: ['remove'],

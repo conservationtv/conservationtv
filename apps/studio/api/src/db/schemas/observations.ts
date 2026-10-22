@@ -9,7 +9,8 @@ const healthCheck = (column: AnyPgColumn) => sql`${column} in ('healthy', 'unhea
 
 /**
  * An accepted event report: the single logical event stream that the state consumer reads, in receipt order by its
- * `uuidv7()` ID.
+ * `uuidv7()` ID. Its organisation reference does not cascade, so deleting an organisation never deletes its history in
+ * one transaction (deleteOrganisation).
  */
 export const observations = withAccess(
   pgTable(
@@ -17,7 +18,7 @@ export const observations = withAccess(
     {
       organisationId: uuid('organisation_id')
         .notNull()
-        .references(() => organisations.id, { onDelete: 'cascade' }),
+        .references(() => organisations.id),
       id: uuid('id')
         .primaryKey()
         .default(sql`uuidv7()`),
