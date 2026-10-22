@@ -1,11 +1,13 @@
 name: pr
 
+# Pull requests are signed off locally with gh signoff (pnpm signoff:lint, signoff:typecheck, signoff:generated); this
+# runs the same checks on Actions by hand, as a cross-check.
 on:
-  pull_request:
+  workflow_dispatch:
 
-# A newer push to the same pull request supersedes the checks still running for the last one.
+# A newer run for the same branch supersedes the checks still running for the last one.
 concurrency:
-  group: pr-${{ github.event.pull_request.number }}
+  group: pr-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -57,11 +59,11 @@ jobs:
   contracts:
     runs-on: ubuntu-latest
     env:
-      API_BASE_REF: ${{ github.event.pull_request.base.sha }}
+      API_BASE_REF: origin/main
     steps:
       - uses: actions/checkout@v5
         with:
-          # The check reads each API's document as it was at the base commit.
+          # The check reads each API's document as it was on main.
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
