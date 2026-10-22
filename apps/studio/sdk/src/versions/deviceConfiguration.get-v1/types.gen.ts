@@ -9,6 +9,34 @@ export type Error = {
     error_description: string;
 };
 
+export type MediamtxAuth = {
+    jwks: string;
+    issuer: string;
+    audience: string;
+};
+
+export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+
+export type Publisher = {
+    exposureId: string;
+    connect: PublisherConnect;
+    layout: 'tracks';
+    renditions: Array<PublishedRendition>;
+};
+
+export type PublisherConnect = {
+    id: string;
+    streamId: string;
+    exposureId: string;
+    action: 'publish';
+    protocol: 'moq';
+};
+
+export type PublishedRendition = {
+    rendition: Rendition;
+    path: string;
+};
+
 export type GetDeviceConfigurationData = {
     body?: never;
     path?: never;
@@ -43,37 +71,19 @@ export type GetDeviceConfigurationResponses = {
         state: 'active';
         mediamtx: {
             gatewayId: string;
-            auth: {
-                jwks: string;
-                issuer: string;
-                audience: string;
-            };
+            auth: MediamtxAuth;
         };
         paths: Array<{
             name: string;
             exposureId: string;
-            rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+            rendition: Rendition;
             source: {
                 url: string;
             } | {
                 path: string;
             };
         }>;
-        publishers: Array<{
-            exposureId: string;
-            connect: {
-                id: string;
-                streamId: string;
-                exposureId: string;
-                action: 'publish';
-                protocol: 'moq';
-            };
-            layout: 'tracks';
-            renditions: Array<{
-                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
-                path: string;
-            }>;
-        }>;
+        publishers: Array<Publisher>;
         diagnostics: Array<{
             subject: string;
             message: string;

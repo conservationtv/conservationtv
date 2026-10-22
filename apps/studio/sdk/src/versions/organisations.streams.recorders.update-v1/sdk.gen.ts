@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, Schema0 } from './types.gen.js';
+import type { PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, Rendition, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -58,7 +58,7 @@ export class Recorders extends HeyApiClient {
         streamId: string;
         recorderId: string;
         exposureId?: string;
-        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition?: Rendition;
         kind?: string;
         params?: {
             [key: string]: Schema0;

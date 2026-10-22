@@ -7,6 +7,39 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
+export const MediamtxAuthSchema = z.object({
+    jwks: z.string(),
+    issuer: z.string(),
+    audience: z.string()
+});
+
+export const RenditionSchema = z.enum([
+    'default',
+    'data_saver',
+    'balanced',
+    'quality'
+]);
+
+export const PublisherConnectSchema = z.object({
+    id: z.string(),
+    streamId: z.string(),
+    exposureId: z.string(),
+    action: z.literal('publish'),
+    protocol: z.literal('moq')
+});
+
+export const PublishedRenditionSchema = z.object({
+    rendition: RenditionSchema,
+    path: z.string()
+});
+
+export const PublisherSchema = z.object({
+    exposureId: z.string(),
+    connect: PublisherConnectSchema,
+    layout: z.literal('tracks'),
+    renditions: z.array(PublishedRenditionSchema)
+});
+
 /**
  * The configuration
  */
@@ -18,21 +51,12 @@ export const GetDeviceConfigurationResponseSchema = z.union([
         state: z.literal('active'),
         mediamtx: z.object({
             gatewayId: z.string(),
-            auth: z.object({
-                jwks: z.string(),
-                issuer: z.string(),
-                audience: z.string()
-            })
+            auth: MediamtxAuthSchema
         }),
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
-            rendition: z.enum([
-                'default',
-                'data_saver',
-                'balanced',
-                'quality'
-            ]),
+            rendition: RenditionSchema,
             source: z.union([
                 z.object({
                     url: z.string()
@@ -42,26 +66,7 @@ export const GetDeviceConfigurationResponseSchema = z.union([
                 })
             ])
         })),
-        publishers: z.array(z.object({
-            exposureId: z.string(),
-            connect: z.object({
-                id: z.string(),
-                streamId: z.string(),
-                exposureId: z.string(),
-                action: z.literal('publish'),
-                protocol: z.literal('moq')
-            }),
-            layout: z.literal('tracks'),
-            renditions: z.array(z.object({
-                rendition: z.enum([
-                    'default',
-                    'data_saver',
-                    'balanced',
-                    'quality'
-                ]),
-                path: z.string()
-            }))
-        })),
+        publishers: z.array(PublisherSchema),
         diagnostics: z.array(z.object({
             subject: z.string(),
             message: z.string()
