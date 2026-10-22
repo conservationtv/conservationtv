@@ -15,10 +15,48 @@ export const Schema0Schema = z.union([
     z.record(z.string(), z.lazy((): any => Schema0Schema))
 ]).nullable();
 
+/**
+ * A quality the stream is delivered at.
+ */
+export const RenditionSchema = z.enum([
+    'default',
+    'data_saver',
+    'balanced',
+    'quality'
+]).register(z.globalRegistry, {
+    description: 'A quality the stream is delivered at.'
+});
+
 export const RelaySchema = z.object({
     url: z.string(),
     quicPort: z.number().optional(),
     authToken: z.string().optional()
+});
+
+export const MediamtxAuthSchema = z.object({
+    jwks: z.string(),
+    issuer: z.string(),
+    audience: z.string()
+});
+
+export const PublisherConnectSchema = z.object({
+    id: z.string(),
+    streamId: z.string(),
+    exposureId: z.string(),
+    action: z.literal('publish'),
+    protocol: z.literal('moq')
+});
+
+export const PublishedRenditionSchema = z.object({
+    rendition: RenditionSchema,
+    path: z.string()
+});
+
+export const PublisherSchema = z.object({
+    exposureId: z.string(),
+    connect: PublisherConnectSchema,
+    layout: z.literal('tracks'),
+    renditions: z.array(PublishedRenditionSchema)
 });
 
 export const HealthSchema = z.object({
@@ -170,12 +208,7 @@ export const StreamSchema = z.object({
     exposures: z.array(z.object({
         id: z.string(),
         gatewayId: z.string(),
-        renditions: z.array(z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ])),
+        renditions: z.array(RenditionSchema),
         publisherDeviceId: z.string().nullable(),
         upstreamExposureId: z.string().nullable(),
         params: z.record(z.string(), z.unknown()),
@@ -184,12 +217,7 @@ export const StreamSchema = z.object({
     recorders: z.array(z.object({
         id: z.string(),
         exposureId: z.string(),
-        rendition: z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ]),
+        rendition: RenditionSchema,
         kind: z.string(),
         params: z.record(z.string(), z.unknown()),
         createdAt: z.string()
@@ -203,12 +231,7 @@ export const StreamSchema = z.object({
 export const ExposureSchema = z.object({
     id: z.string(),
     gatewayId: z.string(),
-    renditions: z.array(z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ])),
+    renditions: z.array(RenditionSchema),
     publisherDeviceId: z.string().nullable(),
     upstreamExposureId: z.string().nullable(),
     params: z.record(z.string(), z.unknown()),
@@ -218,12 +241,7 @@ export const ExposureSchema = z.object({
 export const RecorderSchema = z.object({
     id: z.string(),
     exposureId: z.string(),
-    rendition: z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]),
+    rendition: RenditionSchema,
     kind: z.string(),
     params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
@@ -1382,14 +1400,7 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.objec
         z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]),
-    renditions: z.array(z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]).register(z.globalRegistry, {
-        description: 'A quality the stream is delivered at.'
-    })).min(1).register(z.globalRegistry, {
+    renditions: z.array(RenditionSchema).min(1).register(z.globalRegistry, {
         description: 'The renditions the exposure offers.'
     }).optional().default(['default']),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
@@ -1435,14 +1446,7 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySch
         z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]).optional(),
-    renditions: z.array(z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]).register(z.globalRegistry, {
-        description: 'A quality the stream is delivered at.'
-    })).min(1).register(z.globalRegistry, {
+    renditions: z.array(RenditionSchema).min(1).register(z.globalRegistry, {
         description: 'The renditions the exposure offers.'
     }).optional(),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
@@ -1474,14 +1478,7 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'
     }),
-    rendition: z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]).register(z.globalRegistry, {
-        description: 'The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.'
-    }).optional()
+    rendition: RenditionSchema.optional()
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema = z.object({
@@ -1507,24 +1504,14 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
         broadcast: z.string(),
         token: z.string().optional(),
         expiresAt: z.string().optional(),
-        renditions: z.array(z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ]))
+        renditions: z.array(RenditionSchema)
     }),
     z.object({
         protocol: z.string(),
         url: z.string(),
         token: z.string().optional(),
         expiresAt: z.string().optional(),
-        renditions: z.array(z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ]))
+        renditions: z.array(RenditionSchema)
     })
 ]);
 
@@ -1532,14 +1519,7 @@ export const PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema = z.objec
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The exposure of this stream to record.'
     }),
-    rendition: z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]).register(z.globalRegistry, {
-        description: 'The rendition of the exposure to record: one it offers.'
-    }).optional().default('default'),
+    rendition: RenditionSchema.optional(),
     kind: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The recording implementation.'
     }),
@@ -1585,14 +1565,7 @@ export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySch
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The exposure of this stream to record.'
     }).optional(),
-    rendition: z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]).register(z.globalRegistry, {
-        description: 'The rendition of the exposure to record: one it offers.'
-    }).optional(),
+    rendition: RenditionSchema.optional(),
     kind: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The recording implementation.'
     }).optional(),
@@ -1890,21 +1863,12 @@ export const GetDeviceConfigurationResponseSchema = z.union([
         state: z.literal('active'),
         mediamtx: z.object({
             gatewayId: z.string(),
-            auth: z.object({
-                jwks: z.string(),
-                issuer: z.string(),
-                audience: z.string()
-            })
+            auth: MediamtxAuthSchema
         }),
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
-            rendition: z.enum([
-                'default',
-                'data_saver',
-                'balanced',
-                'quality'
-            ]),
+            rendition: RenditionSchema,
             source: z.union([
                 z.object({
                     url: z.string()
@@ -1914,26 +1878,7 @@ export const GetDeviceConfigurationResponseSchema = z.union([
                 })
             ])
         })),
-        publishers: z.array(z.object({
-            exposureId: z.string(),
-            connect: z.object({
-                id: z.string(),
-                streamId: z.string(),
-                exposureId: z.string(),
-                action: z.literal('publish'),
-                protocol: z.literal('moq')
-            }),
-            layout: z.literal('tracks'),
-            renditions: z.array(z.object({
-                rendition: z.enum([
-                    'default',
-                    'data_saver',
-                    'balanced',
-                    'quality'
-                ]),
-                path: z.string()
-            }))
-        })),
+        publishers: z.array(PublisherSchema),
         diagnostics: z.array(z.object({
             subject: z.string(),
             message: z.string()

@@ -1,7 +1,8 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { Client, DeviceIdentity, deviceSignature } from '@conservationtv/studio-sdk';
-import type { ConservationTvConfiguration } from './config.ts';
+import type { Client } from '@conservationtv/studio-sdk';
+import { getLogger } from '@logtape/logtape';
 import { MEDIAMTX_MANIFEST, MOQ_MANIFEST, type MediamtxSpec, type MoqPublisher } from './runtimes/mediamtx/index.ts';
+import { useStudio } from './studio.ts';
 
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
 //
@@ -25,6 +26,8 @@ const METRICS_INTERVAL_MS = 60_000;
 /** How long before a credential expires it is renewed. Longer than `INTERVAL_MS`, so one ask always catches it. */
 const RENEW_BEFORE_MS = 10 * 60_000;
 
+const logger = getLogger(['agent', 'studio']);
+
 /** What converge is told: the `mediamtx` key's spec, or that the key is absent. */
 export type ApplyMediamtx = (spec: MediamtxSpec | undefined) => Promise<void>;
 
@@ -32,13 +35,8 @@ export type ApplyMediamtx = (spec: MediamtxSpec | undefined) => Promise<void>;
  * Ask for the configuration now and every `INTERVAL_MS` until `signal` aborts, applying each answer. A failed ask
  * keeps the spec as it was, and is tried again next time. Resolves once stopped.
  */
-export async function watchStudioConfiguration(
-  config: ConservationTvConfiguration,
-  signal: AbortSignal,
-  apply: ApplyMediamtx
-): Promise<void> {
-  const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
-  const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
+export async function watchStudioConfiguration(signal: AbortSignal, apply: ApplyMediamtx): Promise<void> {
+  const studio = useStudio();
   const connections: Connections = new Map();
   const logDiagnostics = diagnosticsLogger();
   while (!signal.aborted) {
@@ -48,7 +46,7 @@ export async function watchStudioConfiguration(
       await apply(await mediamtxSpec(configuration, studio, connections));
     } catch (error) {
       // Stopping aborts whatever ask is in flight: that is no failure.
-      if (!signal.aborted) console.error(JSON.stringify({ event: 'configuration_failed', error: String(error) }));
+      if (!signal.aborted) logger.error('Asking for the configuration failed: {error}', { error });
     }
     await sleep(INTERVAL_MS, undefined, { signal }).catch(() => undefined);
   }
@@ -70,7 +68,7 @@ function diagnosticsLogger() {
     const diagnostics = JSON.stringify(configuration.diagnostics);
     if (diagnostics === logged) return;
     logged = diagnostics;
-    console.log(JSON.stringify({ event: 'configuration_diagnostics', diagnostics: configuration.diagnostics }));
+    logger.info('The configuration has diagnostics', { diagnostics: configuration.diagnostics });
   };
 }
 
@@ -87,7 +85,7 @@ async function mediamtxSpec(configuration: DeviceConfiguration, studio: Client, 
       const connect = await publishTarget(studio, connections, ask);
       publishers.push({ exposureId, ...connect, layout, renditions });
     } catch (error) {
-      console.error(JSON.stringify({ event: 'publisher_unavailable', exposureId, error: String(error) }));
+      logger.error('Publisher {exposureId} is unavailable: {error}', { exposureId, error });
     }
   }
   const spec: MediamtxSpec = {

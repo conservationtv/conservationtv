@@ -9,6 +9,11 @@ export type Error = {
     error_description: string;
 };
 
+/**
+ * A quality the stream is delivered at.
+ */
+export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+
 export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsData = {
     body: {
         /**
@@ -19,10 +24,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
          * One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.
          */
         protocol: string;
-        /**
-         * The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.
-         */
-        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition?: Rendition;
     };
     path: {
         /**
@@ -86,13 +88,13 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
         broadcast: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions: Array<Rendition>;
     } | {
         protocol: string;
         url: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions: Array<Rendition>;
     };
 };
 

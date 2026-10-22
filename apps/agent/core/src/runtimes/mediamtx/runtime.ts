@@ -2,17 +2,18 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AdoptedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
+import { MediamtxAuthSchema, type MediamtxAuth } from '@conservationtv/studio-sdk';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../../config.ts';
 import { MetricReporter } from '../reports.ts';
-import { mediamtxBinary } from './binary.ts';
-import { MediamtxAuthSchema, serveMediamtxAuth, type MediamtxAuth } from './auth.ts';
+import { mediamtxBinary } from './binaries/mediamtx.ts';
+import { createMediamtxAuthApp, serveMediamtxAuth } from './auth.ts';
 import { type MediamtxAddresses, type MoqPublisher, MoqPublisherSchema, renderConfig } from './config.ts';
-import { MediamtxControl } from './control.ts';
+import { isMediamtxAlive } from './control.ts';
 import { joinBroadcast } from './joiner.ts';
 import { METRICS_STOPPED, MediamtxMetrics, type MediamtxMetricsStatus } from './metrics.ts';
-import { moqBinary } from './moq.ts';
+import { moqBinary } from './binaries/moq.ts';
 import { MediamtxPathsSchema, pathIndexOf } from './paths.ts';
 
 /** Which MediaMTX to run, the paths it serves, how it admits readers, and how often to ship its metrics. */
@@ -79,8 +80,7 @@ export class MediamtxRuntime {
     private readonly options: MediamtxRuntimeOptions
   ) {
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
-    const control = new MediamtxControl(options.api);
-    this.process = new AdoptedProcess(options.directory, { name: 'mediamtx', probe: signal => control.alive(signal) });
+    this.process = new AdoptedProcess(options.directory, { name: 'mediamtx', probe: isMediamtxAlive });
     this.metrics = new MediamtxMetrics(options.metrics, new MetricReporter(config));
     this.watching = [
       this.process.status$.subscribe(status => this.update(status)),
@@ -121,7 +121,10 @@ export class MediamtxRuntime {
     if (JSON.stringify(auth) === JSON.stringify(this.answering?.auth)) return;
     await this.answering?.close();
     this.answering = undefined;
-    if (auth !== undefined) this.answering = { auth, close: await serveMediamtxAuth(this.options.authHttp, auth) };
+    if (auth === undefined) return;
+    const app = createMediamtxAuthApp(auth);
+    const close = await serveMediamtxAuth(this.options.authHttp, app);
+    this.answering = { auth, close };
   }
 
   /** Joins the broadcast of each publisher, and no other: a publisher that changed at all is joined anew. */

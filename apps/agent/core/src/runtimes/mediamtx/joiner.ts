@@ -1,6 +1,9 @@
+import { getLogger } from '@logtape/logtape';
 import * as Moq from '@moq/net';
 import { z } from 'zod';
 import type { MoqPublisher } from './config.ts';
+
+const logger = getLogger(['agent', 'mediamtx', 'joiner']);
 
 // Each rendition of a published exposure is a broadcast of its own under the exposure's path, which the moq CLI
 // publishes (config.ts): `{organisation}/{exposure}/{rendition}`. Readers watch one broadcast, `{exposure path}/live.hang`,
@@ -89,7 +92,7 @@ export function joinBroadcast(publisher: MoqPublisher): () => void {
   effect.run(watching => {
     const error = watching.get(connection.error);
     if (error === undefined) return;
-    console.error(JSON.stringify({ event: 'moq_join_failed', exposureId: publisher.exposureId, error: String(error) }));
+    logger.error('Joining {exposureId} failed: {error}', { exposureId: publisher.exposureId, error });
   });
 
   // Each rendition's latest catalog, and the joined catalog last written: a new group only when it changes.

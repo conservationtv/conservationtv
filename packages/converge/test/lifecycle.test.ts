@@ -1,6 +1,6 @@
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { NotMutating, controller, mutator, type SystemSpec } from '../src/index.ts';
+import { NotMutating, controller, type MutatorRun, type SystemSpec } from '../src/index.ts';
 import { AppSpecSchema, FakeRuntime, app, flush, revisionFor, succeedAfter, until, started } from './harness.ts';
 
 /** A system of one `web` runtime. */
@@ -84,17 +84,17 @@ describe('starting', () => {
 });
 
 describe('mutators', () => {
-  // The mutator's run sets web as soon as it starts, and a caller then uses the same mutator from outside to set db
+  // The mutator sets web as soon as it starts, and a caller then uses its context from outside to set db
   // and move web on to v2. Both feed the same queue, so the changes land in the order they were made, and both keys
   // end up where the last change left them.
   it('takes changes from its run and from outside it through one queue, in the order they are made', async () => {
     const web = new FakeRuntime(true, succeedAfter(0));
     const db = new FakeRuntime(true, succeedAfter(0));
-    const source = mutator<Pair>(context => {
+    const source: MutatorRun<Pair> = context => {
       void context.update(draft => {
         draft.web = app(1);
       });
-    });
+    };
     const system = await started({ controllers: { web: web.controller, db: db.controller }, mutator: source });
 
     await system.set('db', app(1));
@@ -244,7 +244,7 @@ describe('stopping', () => {
   });
 
   // Someone sets web to v1, and the disk is slow, so the save is still under way when the system is told to stop. A
-  // caller still holding the mutator then tries to set v7, and is turned away. The system doesn't finish stopping
+  // caller still holding the mutator's context then tries to set v7, and is turned away. The system doesn't finish stopping
   // until the v1 save completes, so nothing is still writing to storage once stop() resolves. V1 is saved, ready for
   // the next start, but this system never applies it.
   it('turns changes away once stopping, and finishes the save already under way before it stops', async () => {
@@ -299,23 +299,22 @@ describe('stopping', () => {
   });
 
   // The mutator is whatever feeds the system changes, such as an API or a file watcher. When the system stops, it
-  // aborts the mutator's signal, so a watcher stops watching, and turns away changes made through it from outside,
-  // so an API's routes stop changing anything. The mutator is then free to change another system.
-  it('stops its mutator, and lets it go', async () => {
+  // aborts the mutator's signal, so a watcher stops watching, and turns away changes made through its context from
+  // outside, so an API's routes stop changing anything.
+  it('stops its mutator, and turns its changes away', async () => {
     const signals: AbortSignal[] = [];
-    const source = mutator<WebOnly>(context => {
+    const source: MutatorRun<WebOnly> = context => {
       signals.push(context.signal);
-    });
+    };
     const web = new FakeRuntime(true, succeedAfter(0));
     const system = await started({ controllers: { web: web.controller }, mutator: source });
-    expect(source.attached).toBe(true);
+    expect(signals.map(signal => signal.aborted)).toEqual([false]);
 
     await system.stop();
 
     expect(signals.map(signal => signal.aborted)).toEqual([true]);
-    expect(source.attached).toBe(false);
     await expect(system.set('web', app(1))).rejects.toThrow(NotMutating);
-    expect(() => source.spec()).toThrow(NotMutating);
+    expect(() => system.context.spec()).toThrow(NotMutating);
   });
 });
 

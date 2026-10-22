@@ -9,6 +9,11 @@ export type Error = {
     error_description: string;
 };
 
+/**
+ * A quality the stream is delivered at.
+ */
+export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+
 export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
@@ -16,7 +21,7 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 export type Recorder = {
     id: string;
     exposureId: string;
-    rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+    rendition: Rendition;
     kind: string;
     params: {
         [key: string]: unknown;
@@ -30,10 +35,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdData = {
          * The exposure of this stream to record.
          */
         exposureId?: string;
-        /**
-         * The rendition of the exposure to record: one it offers.
-         */
-        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition?: Rendition;
         /**
          * The recording implementation.
          */

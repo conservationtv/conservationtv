@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { type SystemSpec, controller, converge, mutator } from '../src/index.ts';
+import { type MutatorRun, type SystemSpec, controller, converge } from '../src/index.ts';
 import {
   AppSpecSchema,
   FakeRuntime,
@@ -45,10 +45,10 @@ describe('faulty runtimes', () => {
     const third = new FakeRuntime(true, succeedAfter(0));
     const disposed = vi.fn();
     const signals: AbortSignal[] = [];
-    const source = mutator<Record<'first' | 'second' | 'third', FakeRuntime['controller']>>(async context => {
+    const source: MutatorRun<Record<'first' | 'second' | 'third', FakeRuntime['controller']>> = async context => {
       signals.push(context.signal);
       throw new Error('watcher failed');
-    });
+    };
     const system = await started({
       controllers: {
         first: { ...first.controller, dispose: throws },
@@ -82,37 +82,22 @@ describe('faulty starts', () => {
     expect(web.calls).toHaveLength(0);
   });
 
-  // The mutator's run throws while starting. The start fails, but not before the system has stopped, so nothing is
-  // left running in the background, and the mutator is let go of, so it can be tried again.
+  // The mutator throws while starting. The start fails, but not before the system has stopped, so nothing is left
+  // running in the background, and the mutator's signal is aborted.
   it('stops again when the mutator throws while starting, leaving nothing running', async () => {
     const web = new FakeRuntime(true, succeedAfter(0));
     const dispose = vi.fn();
-    const broken = mutator<WebOnly>(() => {
+    const signals: AbortSignal[] = [];
+    const broken: MutatorRun<WebOnly> = context => {
+      signals.push(context.signal);
       throw new Error('mutator failed to start');
-    });
+    };
 
     const starting = converge({ controllers: { web: { ...web.controller, dispose } }, mutator: broken });
 
     await expect(starting).rejects.toThrow('mutator failed to start');
     expect(dispose).toHaveBeenCalledOnce();
-    expect(broken.attached).toBe(false);
-  });
-
-  // One mutator, handed to two systems: the second can't start, because its changes would race the first's. The
-  // first carries on, still changed through the mutator.
-  it('refuses a mutator already changing another system', async () => {
-    const first = new FakeRuntime(true, succeedAfter(0));
-    const second = new FakeRuntime(true, succeedAfter(0));
-    const dispose = vi.fn();
-    const system = await started({ controllers: { web: first.controller } });
-
-    const starting = converge({ controllers: { web: { ...second.controller, dispose } }, mutator: system.mutator });
-
-    await expect(starting).rejects.toThrow('already changing another system');
-    expect(dispose).toHaveBeenCalledOnce();
-    await system.set('web', app(1));
-    expect(system.spec()).toEqual({ web: app(1) });
-    await system.stop();
+    expect(signals.map(signal => signal.aborted)).toEqual([true]);
   });
 });
 
