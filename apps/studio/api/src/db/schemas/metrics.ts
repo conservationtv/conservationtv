@@ -19,7 +19,8 @@ import { observationAccess } from './report-access.ts';
 /**
  * One line on a chart: a named metric about a subject, from one reporter, with one unit and set of dimensions, such as
  * the bitrate of one MediaMTX path. A series is made the first time a report names it, and its points follow. Two
- * reporters measuring the same thing are two series, never summed.
+ * reporters measuring the same thing are two series, never summed. Like observations, a series does not cascade from
+ * its organisation, nor its points from it.
  */
 export const metricSeries = withAccess(
   pgTable(
@@ -30,7 +31,7 @@ export const metricSeries = withAccess(
         .default(sql`uuidv7()`),
       organisationId: uuid('organisation_id')
         .notNull()
-        .references(() => organisations.id, { onDelete: 'cascade' }),
+        .references(() => organisations.id),
       subjectId: text('subject_id').notNull(),
       name: text('name').notNull(),
       reporterId: text('reporter_id').notNull(),
@@ -75,7 +76,7 @@ export const metricPoints = withAccess(
         name: 'metric_point_series_fk',
         columns: [t.organisationId, t.seriesId],
         foreignColumns: [metricSeries.organisationId, metricSeries.id]
-      }).onDelete('cascade')
+      })
     ]
   ),
   t => ({ name: 'metricPoints', scope: organisations.$access.scope.via(t.organisationId), ...observationAccess })

@@ -1,11 +1,12 @@
 import { user } from '@conservationtv/umbrella';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { authorization } from '../access.ts';
 import { organisationAdmin, organisationMember } from '../db/roles.ts';
-import { organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
+import { organisationInvitations, organisationMemberships, organisationProfiles, organisations } from '../db/schema.ts';
 import { useAccess, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { unchanged } from '../topology/transaction.ts';
+import { deleteOrganisationBrowsers } from './browsers.ts';
 
 // Organisations, their members and the roles members hold. Reads and profile edits run in whichever transaction the
 // caller is in, so in a request session row-level security decides what each account sees. Joining, leaving and
@@ -66,13 +67,13 @@ export function listOwnOrganisations(userId: string) {
     .orderBy(organisations.id);
 }
 
-/** The organisation, if it is visible. */
+/** The organisation, if it is visible and not deleted. */
 export async function getOrganisation(organisationId: string) {
   const db = useDB();
   const [row] = await db
     .select({ id: organisations.id, name: organisations.name, createdAt: organisations.createdAt })
     .from(organisations)
-    .where(eq(organisations.id, organisationId));
+    .where(and(eq(organisations.id, organisationId), isNull(organisations.deletedAt)));
   return row;
 }
 
@@ -99,19 +100,24 @@ export async function updateOrganisation(organisationId: string, changes: Organi
 }
 
 /**
- * Delete the organisation, every grant at it (its devices' too), and by cascade its memberships, profiles,
- * invitations and topology, browsers included.
+ * Delete the organisation softly: revoke every grant at it (its devices' too), delete everything that would give
+ * access to it again (its browsers, invitations, and memberships with their profiles), and mark it deleted. Its row,
+ * topology and reports stay, so the delete is a few rows however long the organisation has reported; devices of a
+ * deleted organisation can no longer authenticate (src/middleware/device.ts).
  */
 export async function deleteOrganisation(organisationId: string) {
   const db = useDB({ trusted: true });
   const access = useAccess();
   await access.at(organisationScope(organisationId)).all.revoke();
-  await db.delete(organisations).where(eq(organisations.id, organisationId));
+  await deleteOrganisationBrowsers(organisationId);
+  await db.delete(organisationInvitations).where(eq(organisationInvitations.organisationId, organisationId));
+  await db.delete(organisationMemberships).where(eq(organisationMemberships.organisationId, organisationId));
+  await db.update(organisations).set({ deletedAt: sql`now()` }).where(eq(organisations.id, organisationId));
 }
 
 /**
  * Lock the organisation for the rest of the transaction, so concurrent changes to its administrators are serialised:
- * `not_found` unless the user can see it.
+ * `not_found` unless the user can see it and it is not deleted.
  */
 export async function lockOrganisation(organisationId: string, userId: string) {
   const db = useDB({ trusted: true });
@@ -119,7 +125,7 @@ export async function lockOrganisation(organisationId: string, userId: string) {
   const [row] = await db
     .select({ id: organisations.id })
     .from(organisations)
-    .where(eq(organisations.id, organisationId))
+    .where(and(eq(organisations.id, organisationId), isNull(organisations.deletedAt)))
     .for('update');
   const scope = organisationScope(organisationId);
   const decision = await access.inspect({ principal: user(userId), resource: organisations, scope });
