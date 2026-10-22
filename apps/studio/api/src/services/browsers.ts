@@ -73,6 +73,11 @@ export function deleteMemberBrowsers(organisationId: string, userId: string) {
   return deleteBrowsersWhere(and(eq(browsers.organisationId, organisationId), eq(browsers.userId, userId)));
 }
 
+/** Delete every browser in the organisation, as it is deleted. */
+export function deleteOrganisationBrowsers(organisationId: string) {
+  return deleteBrowsersWhere(eq(browsers.organisationId, organisationId));
+}
+
 /** Delete an auth session's browsers, as the session ends. */
 export function deleteSessionBrowsers(sessionId: string) {
   return deleteBrowsersWhere(eq(browsers.sessionId, sessionId));

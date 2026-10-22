@@ -211,6 +211,12 @@ they run as trusted code in one admin transaction (`src/services/organisations.t
 access definitions through `inspect`. Changes to an organisation's administrators lock its row, and its last
 administrator cannot leave or be removed. Deleting an organisation and removing a member are therefore `trusted` actions: declared for `inspect`, never granted to request sessions.
 
+Deleting an organisation is soft (`deleteOrganisation`): it revokes every grant at it, deletes its browsers,
+invitations and memberships, and sets `deleted_at`. Its row, topology and reports stay, and its devices can no longer
+authenticate. Reports (`observation`, `log_record`, `metric_series` and `metric_point`) do not cascade from their
+organisation, so deleting one never deletes its whole history in a single transaction: a hard delete of an
+organisation with reports fails on their foreign keys.
+
 Request sessions may read umbrella's grants table (the `grants_readable` migration, a select-only policy): the member
 directory and your organisation list show roles, and run under row-level security like every other read. A bug in
 those routes can therefore leak role assignments, never other data; writes to grants stay with trusted code, which
@@ -331,7 +337,7 @@ and stores the batch in the device's organisation. A batch is stored or refused 
 The signature's nonce stops a request from being stored twice, but nothing else deduplicates events and logs: a retry
 is signed again, and may store them twice. A metric point is keyed by its series and time, so a retried one is skipped. A report's reporter is named in the subject convention below, always
 `device:<id>` for the signing device, and like its subject is recorded as given rather than referenced, so reports
-stay when their device is deleted; they go with their organisation. Request sessions only
+stay when their device is deleted, and when their organisation is. Request sessions only
 read reports.
 
 A report's `subjectId` names what it is about, and its `reporterId` who sent it, by one convention

@@ -1,10 +1,10 @@
 import { createStore } from '@conservationtv/store';
 import { device as devicePrincipal, type Principal } from '@conservationtv/umbrella';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
 import { verifySignature, webcrypto, isSignatureError, type Verifier } from 'http-message-sig';
 import { verifyContentDigest } from 'httpbis-digest-headers';
-import { devices } from '../db/schema.ts';
+import { devices, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
@@ -38,7 +38,10 @@ interface DeviceVerifier extends Verifier {
   device: AuthenticatedDevice;
 }
 
-/** The device with this public ID, and a verifier for its key; `invalid_signature` if there is none. */
+/**
+ * The device with this public ID, and a verifier for its key; `invalid_signature` if there is none, or its organisation
+ * is deleted.
+ */
 async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerifier> {
   if (publicId === undefined) throw new ApiFailure('invalid_signature');
   const [row] = await trustedTransaction(async () => {
@@ -52,7 +55,8 @@ async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerif
         publicKey: devices.publicKey
       })
       .from(devices)
-      .where(eq(devices.publicId, publicId));
+      .innerJoin(organisations, eq(organisations.id, devices.organisationId))
+      .where(and(eq(devices.publicId, publicId), isNull(organisations.deletedAt)));
   });
   if (!row) throw new ApiFailure('invalid_signature');
   const key = await crypto.subtle.importKey('raw', Buffer.from(row.publicKey, 'base64url'), 'Ed25519', false, [
