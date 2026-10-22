@@ -2,6 +2,8 @@
 
 import { BaseClient } from '../versions/status.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient2 } from '../versions/system.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient5 } from '../versions/system.paths.delete-v1/sdk.gen.js';
+import { BaseClient as BaseClient4 } from '../versions/system.paths.put-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/system.spec-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
@@ -16,6 +18,10 @@ export class Client extends ClientCore {
     };
     readonly system = {
         get: this.versioned('system.get', { v1: BaseClient2 }),
-        spec: this.versioned('system.spec', { v1: BaseClient3 })
+        spec: this.versioned('system.spec', { v1: BaseClient3 }),
+        paths: {
+            put: this.versioned('system.paths.put', { v1: BaseClient4 }),
+            delete: this.versioned('system.paths.delete', { v1: BaseClient5 })
+        }
     };
 }

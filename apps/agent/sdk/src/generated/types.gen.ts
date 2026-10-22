@@ -68,7 +68,7 @@ export type System = {
                 lastSubmittedAt: string | null;
                 lastError: string | null;
             };
-            state: 'running' | 'stopped' | 'starting' | 'crashed';
+            state: 'stopped' | 'starting' | 'running' | 'crashed';
             pid: number | null;
             restarts: number;
             lastError: string | null;
@@ -86,6 +86,19 @@ export type System = {
             attempt: number;
         };
     };
+};
+
+export type Path = {
+    paths: Array<{
+        name: string;
+        exposureId: string;
+        rendition?: string;
+        source?: {
+            url: string;
+        } | {
+            path: string;
+        };
+    }>;
 };
 
 export type GetStatusData = {
@@ -179,10 +192,128 @@ export type GetSystemSpecResponses = {
                 name: string;
                 exposureId: string;
                 rendition?: string;
+                source?: {
+                    url: string;
+                } | {
+                    path: string;
+                };
+            }>;
+            publishers: Array<{
+                exposureId: string;
+                connect: string;
+                broadcast: string;
+                layout: 'tracks';
+                renditions: Array<{
+                    rendition: string;
+                    path: string;
+                }>;
             }>;
             metricsIntervalMs: number;
+            auth?: {
+                jwks: string;
+                issuer: string;
+                audience: string;
+            };
+            moq?: {
+                version: string;
+                name: 'moq';
+                artifacts: {
+                    [key: string]: {
+                        url: string;
+                        checksum: string;
+                        format: string;
+                        path?: string;
+                    };
+                };
+            };
         };
     };
 };
 
 export type GetSystemSpecResponse = GetSystemSpecResponses[keyof GetSystemSpecResponses];
+
+export type DeleteSystemSpecMediamtxPathsByNameData = {
+    body?: never;
+    path: {
+        name: string;
+    };
+    query?: never;
+    url: '/system/spec/mediamtx/paths/{name}';
+};
+
+export type DeleteSystemSpecMediamtxPathsByNameErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The agent is configured by the studio, so its spec is not changed over this API; or MediaMTX is not running
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The change would leave the spec invalid, such as two paths delivering the same exposure and rendition
+     */
+    422: Error;
+};
+
+export type DeleteSystemSpecMediamtxPathsByNameError = DeleteSystemSpecMediamtxPathsByNameErrors[keyof DeleteSystemSpecMediamtxPathsByNameErrors];
+
+export type DeleteSystemSpecMediamtxPathsByNameResponses = {
+    /**
+     * The paths MediaMTX serves
+     */
+    200: Path;
+};
+
+export type DeleteSystemSpecMediamtxPathsByNameResponse = DeleteSystemSpecMediamtxPathsByNameResponses[keyof DeleteSystemSpecMediamtxPathsByNameResponses];
+
+export type PutSystemSpecMediamtxPathsByNameData = {
+    body: {
+        exposureId: string;
+        rendition?: string;
+        source?: {
+            url: string;
+        } | {
+            path: string;
+        };
+    };
+    path: {
+        name: string;
+    };
+    query?: never;
+    url: '/system/spec/mediamtx/paths/{name}';
+};
+
+export type PutSystemSpecMediamtxPathsByNameErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The agent is configured by the studio, so its spec is not changed over this API; or MediaMTX is not running
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The change would leave the spec invalid, such as two paths delivering the same exposure and rendition
+     */
+    422: Error;
+};
+
+export type PutSystemSpecMediamtxPathsByNameError = PutSystemSpecMediamtxPathsByNameErrors[keyof PutSystemSpecMediamtxPathsByNameErrors];
+
+export type PutSystemSpecMediamtxPathsByNameResponses = {
+    /**
+     * The paths MediaMTX serves
+     */
+    200: Path;
+};
+
+export type PutSystemSpecMediamtxPathsByNameResponse = PutSystemSpecMediamtxPathsByNameResponses[keyof PutSystemSpecMediamtxPathsByNameResponses];

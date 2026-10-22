@@ -64,7 +64,7 @@ export type System = {
                 lastSubmittedAt: string | null;
                 lastError: string | null;
             };
-            state: 'running' | 'stopped' | 'starting' | 'crashed';
+            state: 'stopped' | 'starting' | 'running' | 'crashed';
             pid: number | null;
             restarts: number;
             lastError: string | null;

@@ -25,9 +25,42 @@ export const SystemSchema = z.object({
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
-            rendition: z.string().optional()
+            rendition: z.string().optional(),
+            source: z.union([
+                z.object({
+                    url: z.string()
+                }),
+                z.object({
+                    path: z.string()
+                })
+            ]).optional()
         })),
-        metricsIntervalMs: z.number()
+        publishers: z.array(z.object({
+            exposureId: z.string(),
+            connect: z.string(),
+            broadcast: z.string(),
+            layout: z.literal('tracks'),
+            renditions: z.array(z.object({
+                rendition: z.string(),
+                path: z.string()
+            }))
+        })),
+        metricsIntervalMs: z.number(),
+        auth: z.object({
+            jwks: z.string(),
+            issuer: z.string(),
+            audience: z.string()
+        }).optional(),
+        moq: z.object({
+            version: z.string(),
+            name: z.literal('moq'),
+            artifacts: z.record(z.string(), z.object({
+                url: z.string(),
+                checksum: z.string(),
+                format: z.string(),
+                path: z.string().optional()
+            }))
+        }).optional()
     }).optional()
 });
 
