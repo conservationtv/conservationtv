@@ -1,6 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { arkenv } from '@arkenv/standard';
-import { Agent } from '@conservationtv/agent-api';
+import { Agent, PeersSchema } from '@conservationtv/agent-api';
 import { z } from 'zod';
 
 /** The runner's settings, from the environment. */
@@ -24,6 +25,12 @@ export const config = {
     .transform(text => new Uint8Array(Buffer.from(text, 'hex'))),
   /** A directory of the agent's own, where its runtimes keep what they install and run. */
   AGENT_DATA_DIR: z.string().min(1).default('data'),
+  /**
+   * A JSON file listing the peers the agent serves, `[{ endpointId, allow: { relayed, direct } }]`: whether each may
+   * connect directly, learning the agent's IP addresses, or only through the relay. Without it, every peer is served
+   * and may connect directly.
+   */
+  AGENT_PEERS_FILE: z.string().min(1).optional(),
   /** How long in-flight requests get to finish after a shutdown signal before the process exits anyway. */
   SHUTDOWN_DELAY_MS: z.coerce.number().int().positive().default(10_000)
 };
@@ -42,8 +49,15 @@ export const services = (variables: Variables) => {
     const name = variables.AGENT_NAME;
     const secretKey = variables.AGENT_SECRET_KEY;
     const directory = resolve(variables.AGENT_DATA_DIR);
+    const peers = (() => {
+      const file = variables.AGENT_PEERS_FILE;
+      if (file === undefined) return undefined;
+      const text = readFileSync(file, 'utf8');
+      const json: unknown = JSON.parse(text);
+      return PeersSchema.parse(json);
+    })();
     if (variables.AGENT_MODE === 'direct') {
-      return new Agent({ type: 'direct', name, secretKey, directory });
+      return new Agent({ type: 'direct', name, secretKey, directory, peers });
     }
 
     if (variables.STUDIO_API_URL === undefined) {
@@ -55,6 +69,7 @@ export const services = (variables: Variables) => {
       name,
       secretKey,
       directory,
+      peers,
       studioUrl: variables.STUDIO_API_URL
     });
   })();
