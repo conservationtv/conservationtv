@@ -1,15 +1,16 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
-import { MEDIAMTX_MANIFEST, MOQ_MANIFEST, type MediamtxSpec, type MoqPublisher } from './runtimes/mediamtx/index.ts';
+import type { MetricsSpec, MoqPublisher, StreamsSpec } from './runtimes/mediamtx/index.ts';
 import { useStudio } from './studio.ts';
 
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
 //
 //   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device);
-//   2. turns that into the spec for its MediaMTX: the paths it names, as they are, and each publisher it names, with
-//      where to publish from `organisations.streams.exposures.connect`; and
-//   3. hands the spec to converge as the `mediamtx` key, which rewrites MediaMTX's config only when the spec changed.
+//   2. turns that into the spec for its streams: the paths it names, as they are, and each publisher it names, with
+//      where to publish from `organisations.streams.exposures.connect`; and for its metrics: what each path delivers;
+//   3. hands both to converge as the `streams` and `metrics` keys, each of which changes what runs only when its
+//      spec changed.
 //
 // A publisher reads its renditions on this machine, which needs no token (runtimes/mediamtx/auth.ts), and publishes
 // them to the relay with credentials from `organisations.streams.exposures.connect`. Those are kept until shortly
@@ -20,7 +21,7 @@ import { useStudio } from './studio.ts';
 /** How often the agent asks for its configuration. */
 const INTERVAL_MS = 30_000;
 
-/** How often MediaMTX's metrics are shipped. */
+/** How often the streams' metrics are shipped. */
 const METRICS_INTERVAL_MS = 60_000;
 
 /** How long before a credential expires it is renewed. Longer than `INTERVAL_MS`, so one ask always catches it. */
@@ -28,14 +29,20 @@ const RENEW_BEFORE_MS = 10 * 60_000;
 
 const logger = getLogger(['agent', 'studio']);
 
-/** What converge is told: the `mediamtx` key's spec, or that the key is absent. */
-export type ApplyMediamtx = (spec: MediamtxSpec | undefined) => Promise<void>;
+/** The specs the configuration gives the `streams` and `metrics` keys. */
+export interface StudioSpecs {
+  streams: StreamsSpec;
+  metrics: MetricsSpec;
+}
+
+/** What converge is told: the keys' specs, or that both are absent. */
+export type ApplyStudioSpecs = (specs: StudioSpecs | undefined) => Promise<void>;
 
 /**
  * Ask for the configuration now and every `INTERVAL_MS` until `signal` aborts, applying each answer. A failed ask
  * keeps the spec as it was, and is tried again next time. Resolves once stopped.
  */
-export async function watchStudioConfiguration(signal: AbortSignal, apply: ApplyMediamtx): Promise<void> {
+export async function watchStudioConfiguration(signal: AbortSignal, apply: ApplyStudioSpecs): Promise<void> {
   const studio = useStudio();
   const connections: Connections = new Map();
   const logDiagnostics = diagnosticsLogger();
@@ -43,7 +50,7 @@ export async function watchStudioConfiguration(signal: AbortSignal, apply: Apply
     try {
       const configuration = await askConfiguration(studio);
       logDiagnostics(configuration);
-      await apply(await mediamtxSpec(configuration, studio, connections));
+      await apply(await studioSpecs(configuration, studio, connections));
     } catch (error) {
       // Stopping aborts whatever ask is in flight: that is no failure.
       if (!signal.aborted) logger.error('Asking for the configuration failed: {error}', { error });
@@ -73,10 +80,14 @@ function diagnosticsLogger() {
 }
 
 /**
- * The MediaMTX spec the configuration asks for, or none when the agent is idle: its paths as they are, and each
- * publisher with where to publish from `connect`.
+ * The specs the configuration asks for, or none when the agent is idle: its paths as they are, each publisher with
+ * where to publish from `connect`, and the metrics of each path about what it delivers.
  */
-async function mediamtxSpec(configuration: DeviceConfiguration, studio: Client, connections: Connections) {
+async function studioSpecs(
+  configuration: DeviceConfiguration,
+  studio: Client,
+  connections: Connections
+): Promise<StudioSpecs | undefined> {
   if (configuration.state === 'idle') return undefined;
   const publishers: MoqPublisher[] = [];
   for (const { exposureId, connect: ask, layout, renditions } of configuration.publishers) {
@@ -88,15 +99,11 @@ async function mediamtxSpec(configuration: DeviceConfiguration, studio: Client, 
       logger.error('Publisher {exposureId} is unavailable: {error}', { exposureId, error });
     }
   }
-  const spec: MediamtxSpec = {
-    binary: MEDIAMTX_MANIFEST,
-    paths: configuration.paths,
-    auth: configuration.mediamtx.auth,
-    publishers,
-    moq: MOQ_MANIFEST,
-    metricsIntervalMs: METRICS_INTERVAL_MS
-  };
-  return spec;
+  const { paths } = configuration;
+  const streams: StreamsSpec = { paths, auth: configuration.mediamtx.auth, publishers };
+  const attributions = paths.map(({ name, exposureId, rendition }) => ({ name, exposureId, rendition }));
+  const metrics: MetricsSpec = { intervalMs: METRICS_INTERVAL_MS, paths: attributions };
+  return { streams, metrics };
 }
 
 /** The configuration `deviceConfiguration.get` returns. */
