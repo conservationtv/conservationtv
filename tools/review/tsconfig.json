@@ -1,0 +1,10 @@
+{
+  // The Worker and the browser app are checked apart: the Workers runtime's globals and the DOM's conflict. Code in
+  // src/shared is checked by both, so it must stay runtime-neutral.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.worker.json" },
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}

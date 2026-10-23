@@ -1,6 +1,7 @@
 packages:
   - apps/**
   - packages/**
+  - tools/review
   # The generated PlanetScale SDK copies its package.json into its build output.
   - '!apps/controlplane/infrastructure/sdks/*/bin'
 
