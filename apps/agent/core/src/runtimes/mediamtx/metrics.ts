@@ -1,17 +1,28 @@
 import { type PrometheusSample, parseMetrics } from '@conservationtv/mediamtx';
 import { pathMetrics } from '@conservationtv/reports';
 import { BehaviorSubject } from 'rxjs';
-import { type Metric, type MetricReporter, summary } from '../reports.ts';
-import type { PathIndex, PathTarget } from './paths.ts';
+import { z } from 'zod';
+import type { AgentConfiguration } from '../../config.ts';
+import { type Metric, MetricReporter, summary } from '../reports.ts';
+import { type PathIndex, type PathTarget, PathAttributionsSchema, pathIndexOf } from './paths.ts';
 
-// MediaMTX's metrics, shipped to the studio API per path. On one timer, every few seconds, read its metrics page for
-// each path's state, readers, and how fast its byte and frame-error counters moved since the last read; the read that
-// ends an interval then submits each path's samples summarised (least, greatest, mean and last), so each path is a
-// series of its own: about the exposure the spec says it delivers, with its rendition as a dimension, or, while the
-// spec names no paths, about the agent's device with the path as the `path` dimension. A path the spec does not name
-// is not reported. A path missing from a read counts as not ready with nothing flowing, so one that stops
-// mid-interval shows in that interval's summary; one missing for a whole interval is not reported. Per-session and
-// per-protocol samples are not shipped.
+// The `metrics` key, fulfilled by MediaMTX's metrics, shipped to the studio API per path. On one timer, every few
+// seconds, read its metrics page for each path's state, readers, and how fast its byte and frame-error counters moved
+// since the last read; the read that ends an interval then submits each path's samples summarised (least, greatest,
+// mean and last), so each path is a series of its own: about the exposure the spec says it delivers, with its rendition
+// as a dimension, or, while the spec names no paths, about the agent's device with the path as the `path` dimension. A
+// path the spec does not name is not reported. A path missing from a read counts as not ready with nothing flowing, so
+// one that stops mid-interval shows in that interval's summary; one missing for a whole interval is not reported.
+// Per-session and per-protocol samples are not shipped.
+
+/** How often to report the streams' metrics, and what each path's are about. */
+export const MetricsSpecSchema = z.object({
+  /** How often each path's summary is submitted. */
+  intervalMs: z.number().int().min(1_000),
+  /** The paths whose metrics are about an exposure. None, and every path's are about the agent's device. */
+  paths: PathAttributionsSchema.default([])
+});
+export type MetricsSpec = z.output<typeof MetricsSpecSchema>;
 
 /** How often MediaMTX's metrics page is read, at most: the samples each interval's summaries are made from. */
 const SAMPLE_INTERVAL_MS = 10_000;
@@ -99,7 +110,7 @@ function metricsOf(samples: PathSamples, dimensions: Record<string, string>): Me
   return metrics;
 }
 
-export interface MediamtxMetricsStatus {
+export interface MetricsStatus {
   /** Whether the metrics page is being read. */
   running: boolean;
   intervalMs: number | null;
@@ -119,7 +130,7 @@ export interface MediamtxMetricsStatus {
   lastError: string | null;
 }
 
-export const METRICS_STOPPED: MediamtxMetricsStatus = {
+const STOPPED: MetricsStatus = {
   running: false,
   intervalMs: null,
   subjectId: null,
@@ -133,10 +144,11 @@ export const METRICS_STOPPED: MediamtxMetricsStatus = {
 
 const SCRAPE_TIMEOUT_MS = 5_000;
 
-/** Reads MediaMTX's metrics page every few seconds, and submits each path's summary through `reporter` per interval. */
-export class MediamtxMetrics {
-  readonly status$ = new BehaviorSubject<MediamtxMetricsStatus>(METRICS_STOPPED);
+/** Reads MediaMTX's metrics page every few seconds, and submits each path's summary to the studio API per interval. */
+export class MediamtxMetricsRuntime {
+  readonly status$ = new BehaviorSubject<MetricsStatus>(STOPPED);
   private readonly url: string;
+  private readonly reporter: MetricReporter;
   private timer: ReturnType<typeof setInterval> | undefined = undefined;
   private sampleMs = SAMPLE_INTERVAL_MS;
   private intervalMs = 0;
@@ -154,32 +166,39 @@ export class MediamtxMetrics {
 
   /** @param address Where the metrics page listens, such as `127.0.0.1:9998`. */
   constructor(
-    address: string,
-    private readonly reporter: MetricReporter
+    private readonly config: AgentConfiguration,
+    address: string
   ) {
     this.url = `http://${address}/metrics`;
+    this.reporter = new MetricReporter(config);
+  }
+
+  /**
+   * Report each path's metrics about what `spec` says it delivers, from the next report on, including this interval's.
+   * Only a changed interval starts reading afresh, so new paths keep the samples taken so far. Accepted as soon as
+   * the timer is set; whether MediaMTX is up shows in each read.
+   */
+  async apply(spec: MetricsSpec): Promise<void> {
+    if (this.config.type === 'direct') throw new Error('A direct agent has no studio API to report to');
+    this.index = pathIndexOf(spec.paths);
+    if (this.timer === undefined || spec.intervalMs !== this.intervalMs) this.start(spec.intervalMs);
+  }
+
+  /** Stop reading, and drop what was not submitted. Safe when it never started. */
+  async teardown(): Promise<void> {
+    this.clear();
+    this.reporter.clear();
+    this.update({ running: false, intervalMs: null });
   }
 
   /** Read every few seconds, and report every `intervalMs`, from now on. */
-  start(intervalMs: number): void {
+  private start(intervalMs: number): void {
     this.clear();
     this.update({ running: true, intervalMs });
     this.intervalMs = intervalMs;
     this.sampleMs = Math.min(SAMPLE_INTERVAL_MS, intervalMs);
     this.intervalStartedAt = Date.now();
     this.timer = setInterval(() => void this.tick(), this.sampleMs);
-  }
-
-  /** Report each path's metrics about its target in `index` from the next report on, including this interval's. */
-  attribute(index: PathIndex): void {
-    this.index = index;
-  }
-
-  /** Stop reading, and drop what was not submitted. Safe when it never started. */
-  stop(): void {
-    this.clear();
-    this.reporter.clear();
-    this.update({ running: false, intervalMs: null });
   }
 
   /** Stop the timer for good when the agent stops; not a removal, so the status is left as it was. */
@@ -275,7 +294,7 @@ export class MediamtxMetrics {
     }
   }
 
-  private update(change: Partial<MediamtxMetricsStatus>): void {
+  private update(change: Partial<MetricsStatus>): void {
     if (this.status$.closed) return;
     const current = this.status$.getValue();
     const { reporter } = this;

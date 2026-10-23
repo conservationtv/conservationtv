@@ -19,8 +19,11 @@ import { controller, converge } from '@conservationtv/converge';
 import { MachineRuntime, MachineSpecSchema } from './runtimes/machine.ts';
 import {
   MEDIAMTX_MANIFEST,
+  MOQ_MANIFEST,
+  MediamtxMetricsRuntime,
   MediamtxRuntime,
-  MediamtxSpecSchema,
+  MetricsSpecSchema,
+  StreamsSpecSchema,
   createMediamtxClient,
   withMediamtxClient
 } from './runtimes/mediamtx/index.ts';
@@ -56,7 +59,54 @@ const app = new Hono<AgentEnv>({ router: operationRouter })
 /** Where MediaMTX's control API listens. */
 const MEDIAMTX_API = '127.0.0.1:9997';
 
+/** Where MediaMTX's metrics page listens. */
+const MEDIAMTX_METRICS = '127.0.0.1:9998';
+
 const logger = getLogger(['agent']);
+
+/** The agent's runtimes, by the key of the spec each converges to. */
+function controllers(config: ConservationTvConfiguration) {
+  const machine = new MachineRuntime(config);
+  // The streams and their metrics, both fulfilled by MediaMTX.
+  const streams = new MediamtxRuntime({
+    directory: join(config.directory, 'mediamtx'),
+    binary: MEDIAMTX_MANIFEST,
+    moq: MOQ_MANIFEST,
+    api: MEDIAMTX_API,
+    metrics: MEDIAMTX_METRICS,
+    authHttp: '127.0.0.1:9996'
+  });
+  const metrics = new MediamtxMetricsRuntime(config, MEDIAMTX_METRICS);
+
+  // const control = new ControlRuntime(config);
+
+  return {
+    machine: controller({
+      spec: MachineSpecSchema,
+      status: machine.status$,
+      execute: spec => machine.apply(spec),
+      finalize: () => machine.teardown(),
+      dispose: () => machine.dispose()
+    }),
+    streams: controller({
+      spec: StreamsSpecSchema,
+      status: streams.status$,
+      execute: (spec, signal) => streams.execute(spec, signal),
+      finalize: () => streams.finalize(),
+      dispose: () => streams.dispose()
+    }),
+    metrics: controller({
+      spec: MetricsSpecSchema,
+      status: metrics.status$,
+      execute: spec => metrics.apply(spec),
+      finalize: () => metrics.teardown(),
+      dispose: () => metrics.dispose()
+    })
+  };
+}
+
+/** The agent's runtimes, by key: what its system's spec and status are made of. */
+export type AgentControllers = ReturnType<typeof controllers>;
 
 /** The agent: the app, served as HTTP over iroh on an endpoint whose identity is the configured secret key. */
 export class Agent {
@@ -84,45 +134,26 @@ export class Agent {
 
   /** Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs in scope for both. */
   private async serve(config: ConservationTvConfiguration) {
-    const machine = new MachineRuntime(config);
-    const mediamtx = new MediamtxRuntime(config, {
-      directory: join(config.directory, 'mediamtx'),
-      api: MEDIAMTX_API,
-      metrics: '127.0.0.1:9998',
-      authHttp: '127.0.0.1:9996'
-    });
-
-    // const control = new ControlRuntime(config);
-
     this.system = await converge({
-      controllers: {
-        machine: controller({
-          spec: MachineSpecSchema,
-          status: machine.status$,
-          execute: spec => machine.apply(spec),
-          finalize: () => machine.teardown(),
-          dispose: () => machine.dispose()
-        }),
-        mediamtx: controller({
-          spec: MediamtxSpecSchema,
-          status: mediamtx.status$,
-          execute: (spec, signal) => mediamtx.execute(spec, signal),
-          finalize: () => mediamtx.finalize(),
-          dispose: () => mediamtx.dispose()
-        })
-      },
+      controllers: controllers(config),
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },
-          mediamtx: { binary: MEDIAMTX_MANIFEST, paths: [], publishers: [], metricsIntervalMs: 60_000 }
+          streams: { paths: [], publishers: [] },
+          metrics: { intervalMs: 60_000, paths: [] }
         };
         return spec;
       },
       mutator: context =>
-        watchStudioConfiguration(context.signal, spec =>
+        watchStudioConfiguration(context.signal, specs =>
           context.update(draft => {
-            if (spec === undefined) delete draft.mediamtx;
-            else draft.mediamtx = spec;
+            if (specs === undefined) {
+              delete draft.streams;
+              delete draft.metrics;
+            } else {
+              draft.streams = specs.streams;
+              draft.metrics = specs.metrics;
+            }
           })
         )
     });

@@ -49,24 +49,38 @@ export type System = {
             attempt: number;
         };
     };
-    mediamtx: {
+    streams: {
         runtime: {
             version: string | null;
             installing: boolean;
-            metrics: {
-                running: boolean;
-                intervalMs: number | null;
-                subjectId: string | null;
-                lastScrapedAt: string | null;
-                samples: number;
-                pending: number;
-                submitted: number;
-                lastSubmittedAt: string | null;
-                lastError: string | null;
-            };
-            state: 'stopped' | 'starting' | 'running' | 'crashed';
+            state: 'running' | 'stopped' | 'starting' | 'crashed';
             pid: number | null;
             restarts: number;
+            lastError: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    metrics: {
+        runtime: {
+            running: boolean;
+            intervalMs: number | null;
+            subjectId: string | null;
+            lastScrapedAt: string | null;
+            samples: number;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
             lastError: string | null;
         };
         apply: {

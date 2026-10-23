@@ -55,25 +55,14 @@ export const SystemSchema = z.object({
             })
         ])
     }),
-    mediamtx: z.object({
+    streams: z.object({
         runtime: z.object({
             version: z.string().nullable(),
             installing: z.boolean(),
-            metrics: z.object({
-                running: z.boolean(),
-                intervalMs: z.number().nullable(),
-                subjectId: z.string().nullable(),
-                lastScrapedAt: z.string().nullable(),
-                samples: z.number(),
-                pending: z.number(),
-                submitted: z.number(),
-                lastSubmittedAt: z.string().nullable(),
-                lastError: z.string().nullable()
-            }),
             state: z.enum([
+                'running',
                 'stopped',
                 'starting',
-                'running',
                 'crashed'
             ]),
             pid: z.number().nullable(),
@@ -96,23 +85,36 @@ export const SystemSchema = z.object({
                 attempt: z.number()
             })
         ])
-    })
-});
-
-export const PathSchema = z.object({
-    paths: z.array(z.object({
-        name: z.string(),
-        exposureId: z.string(),
-        rendition: z.string().optional(),
-        source: z.union([
+    }),
+    metrics: z.object({
+        runtime: z.object({
+            running: z.boolean(),
+            intervalMs: z.number().nullable(),
+            subjectId: z.string().nullable(),
+            lastScrapedAt: z.string().nullable(),
+            samples: z.number(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastError: z.string().nullable()
+        }),
+        apply: z.union([
             z.object({
-                url: z.string()
+                state: z.literal('applying'),
+                revision: z.string().nullable()
             }),
             z.object({
-                path: z.string()
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
             })
-        ]).optional()
-    }))
+        ])
+    })
 });
 
 /**
@@ -132,17 +134,7 @@ export const GetSystemSpecResponseSchema = z.object({
     machine: z.object({
         intervalMs: z.number()
     }).optional(),
-    mediamtx: z.object({
-        binary: z.object({
-            version: z.string(),
-            name: z.literal('mediamtx'),
-            artifacts: z.record(z.string(), z.object({
-                url: z.string(),
-                checksum: z.string(),
-                format: z.string(),
-                path: z.string().optional()
-            }))
-        }),
+    streams: z.object({
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
@@ -158,62 +150,33 @@ export const GetSystemSpecResponseSchema = z.object({
         })),
         publishers: z.array(z.object({
             exposureId: z.string(),
-            connect: z.string(),
-            broadcast: z.string(),
             layout: z.literal('tracks'),
             renditions: z.array(z.object({
-                rendition: z.string(),
+                rendition: z.enum([
+                    'default',
+                    'data_saver',
+                    'balanced',
+                    'quality'
+                ]),
                 path: z.string()
-            }))
+            })),
+            connect: z.string(),
+            broadcast: z.string()
         })),
-        metricsIntervalMs: z.number(),
         auth: z.object({
             jwks: z.string(),
             issuer: z.string(),
             audience: z.string()
-        }).optional(),
-        moq: z.object({
-            version: z.string(),
-            name: z.literal('moq'),
-            artifacts: z.record(z.string(), z.object({
-                url: z.string(),
-                checksum: z.string(),
-                format: z.string(),
-                path: z.string().optional()
-            }))
         }).optional()
+    }).optional(),
+    metrics: z.object({
+        intervalMs: z.number(),
+        paths: z.array(z.object({
+            exposureId: z.string(),
+            name: z.string(),
+            rendition: z.string().optional()
+        }))
     }).optional()
 }).register(z.globalRegistry, {
     description: 'The current system specification'
 });
-
-export const DeleteSystemSpecMediamtxPathsByNamePathSchema = z.object({
-    name: z.string().max(200).regex(/^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/)
-});
-
-/**
- * The paths MediaMTX serves
- */
-export const DeleteSystemSpecMediamtxPathsByNameResponseSchema = PathSchema;
-
-export const PutSystemSpecMediamtxPathsByNameBodySchema = z.object({
-    exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/),
-    rendition: z.string().min(1).max(60).optional(),
-    source: z.union([
-        z.object({
-            url: z.string().min(1)
-        }),
-        z.object({
-            path: z.string().regex(/^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/)
-        })
-    ]).optional()
-});
-
-export const PutSystemSpecMediamtxPathsByNamePathSchema = z.object({
-    name: z.string().max(200).regex(/^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/)
-});
-
-/**
- * The paths MediaMTX serves
- */
-export const PutSystemSpecMediamtxPathsByNameResponseSchema = PathSchema;
