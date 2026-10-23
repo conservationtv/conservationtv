@@ -102,13 +102,7 @@ export const ContractChangeSchema = z.object({
   method: z.string(),
   path: z.string(),
   summary: z.string().nullable(),
-  description: z.string().nullable(),
-  /**
-   * The contract as the checks compare it, before and after: every reference resolved, prose left out, laid out as
-   * JSON. Null on the side it does not exist on.
-   */
-  before: z.string().nullable(),
-  after: z.string().nullable()
+  description: z.string().nullable()
 });
 export type ContractChange = z.output<typeof ContractChangeSchema>;
 

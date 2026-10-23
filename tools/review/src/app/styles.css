@@ -1029,6 +1029,247 @@ button {
   color: #fff;
 }
 
+/* An operation as API reference */
+
+.api-docs {
+  margin-top: 1rem;
+}
+
+.docs-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.docs-heading {
+  margin: 1.5rem 0 0.25rem;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.docs-section {
+  margin-top: 1.25rem;
+}
+
+.docs-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.docs-section h4 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.schema-type {
+  margin: 0.25rem 0;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+}
+
+.field {
+  padding: 0.55rem 0 0.55rem 0.75rem;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--border);
+}
+
+.field:last-child {
+  border-bottom: 0;
+}
+
+.field-added {
+  border-left-color: var(--success);
+  background: color-mix(in srgb, var(--success) 6%, transparent);
+}
+
+.field-removed {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+}
+
+.field-removed .field-name {
+  text-decoration: line-through;
+}
+
+.field-changed {
+  border-left-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 6%, transparent);
+}
+
+.field-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+
+.field-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.field-type {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--merged);
+  overflow-wrap: anywhere;
+}
+
+.field-required {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.field-mark {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.mark-added {
+  background: var(--success);
+}
+
+.mark-removed {
+  background: var(--danger);
+}
+
+.mark-changed {
+  background: var(--warning);
+}
+
+.field-was {
+  margin-top: 0.15rem;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field-was code {
+  text-decoration: line-through;
+}
+
+.field-limits {
+  margin-top: 0.15rem;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.prose {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.prose p {
+  margin: 0.2rem 0 0;
+}
+
+.prose code {
+  background: var(--bg-subtle);
+  padding: 0.05rem 0.25rem;
+  border-radius: 4px;
+}
+
+.field-nested {
+  margin-top: 0.4rem;
+}
+
+.field-nested > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.variant {
+  margin: 0.4rem 0 0 0.25rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--border);
+}
+
+.variant > .fields {
+  margin-top: 0.15rem;
+}
+
+.field-nested > .fields {
+  margin: 0.25rem 0 0 0.25rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--border);
+}
+
+.response {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.response > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  background: var(--bg-subtle);
+  font-size: 13px;
+}
+
+.response[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.response > :not(summary) {
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
+}
+
+.response > .fields {
+  margin-bottom: 0.25rem;
+}
+
+.response-description {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-code {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--muted);
+}
+
+.status-2xx {
+  background: var(--success);
+}
+
+.status-4xx {
+  background: var(--warning);
+}
+
+.status-5xx {
+  background: var(--danger);
+}
+
 .review-path {
   margin: 0;
   padding-left: 1.25rem;

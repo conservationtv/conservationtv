@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import type { z } from 'zod';
+import { OperationDocsSchema } from '../shared/operation.ts';
 import { ApiErrorSchema, PullListSchema, ReviewSchema } from '../shared/review.ts';
 
 async function load<T extends z.ZodType>(path: string, schema: T): Promise<z.output<T>> {
@@ -18,6 +19,16 @@ export const pullQueries = {
       queryFn: () => load(`/api/pulls/${number}`, ReviewSchema),
       // Checks, comments and mergeability move while the page is open.
       refetchInterval: 60_000
+    }),
+  /** One operation as documentation, both sides of it: fetched when its page is opened. */
+  operation: (number: number, document: string, operation: string) =>
+    queryOptions({
+      queryKey: ['pulls', number, 'operations', document, operation] as const,
+      queryFn: () =>
+        load(
+          `/api/pulls/${number}/operations/${encodeURIComponent(operation)}?document=${encodeURIComponent(document)}`,
+          OperationDocsSchema
+        )
     })
 };
 
