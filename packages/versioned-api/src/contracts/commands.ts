@@ -3,15 +3,8 @@ import { join, relative } from 'node:path';
 import { z } from 'zod';
 import { releaseName, type ContractsProject } from './config.js';
 import { generateBundle } from './openapi.js';
-import {
-  checkReleasedContracts,
-  checkSnapshotFiles,
-  compatibilityChanges,
-  readBundleAt,
-  readCurrent,
-  readReleases,
-  type ReleaseDocument
-} from './release.js';
+import { compatibilityChanges, type ReleaseDocument } from './compare.js';
+import { checkReleasedContracts, checkSnapshotFiles, readBundleAt, readCurrent, readReleases } from './release.js';
 import { snapshotStatus } from './snapshot-status.js';
 
 /** Regenerate first; freeze a complete release bundle and never overwrite an existing snapshot. */
