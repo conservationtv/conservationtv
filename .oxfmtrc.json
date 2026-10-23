@@ -18,7 +18,7 @@
     "**/.wrangler/**",
     "**/node_modules/**",
     "target/**",
-    "tools/**",
+    "tools/oxlint/**",
     "apps/controlplane/gatekeeper/openapi.json",
     "apps/controlplane/gatekeeper/snapshots/**",
     "apps/controlplane/sdk/src/generated/**",

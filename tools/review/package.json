@@ -1,0 +1,38 @@
+{
+  "name": "@conservationtv/review",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "review.tools.conservation.tv: pull requests, read with this repository's generated code set apart.",
+  "scripts": {
+    "dev": "cf dev",
+    "build": "cf build",
+    "deploy": "CLOUDFLARE_ACCOUNT_ID=0def86f295b15a1a2d012774b38b04f9 cf deploy",
+    "types": "cf workers types",
+    "typecheck": "cf workers types && tsc -p tsconfig.worker.json && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "@conservationtv/store": "workspace:*",
+    "@conservationtv/versioned-api": "workspace:*",
+    "@pierre/diffs": "1.6.1",
+    "@pierre/trees": "1.0.0-beta.6",
+    "@tanstack/react-query": "5.104.2",
+    "hono": "4.13.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "beta",
+    "@types/node": "24.10.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "6.1.2",
+    "cf": "^1.0.0-beta.5",
+    "oxc-transform-react": "0.152.0",
+    "typescript": "catalog:",
+    "vite": "^8.3.0"
+  }
+}

@@ -45,7 +45,7 @@ const vendoredFiles = [
 ];
 
 /** The React apps and the components they share. */
-const reactFiles = ['apps/studio/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'];
+const reactFiles = ['apps/studio/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}', 'tools/review/src/app/**/*.{ts,tsx}'];
 
 /**
  * React Router route modules export these alongside the component; the framework handles them for Fast Refresh, so
@@ -76,7 +76,8 @@ export default defineConfig({
     '**/.wrangler',
     '**/build',
     '**/.react-router',
-    'tools',
+    // The lint rules themselves; the other tools are linted like any package.
+    'tools/oxlint',
     'node_modules',
     'target',
     // Generated from the gatekeeper's OpenAPI bundle; edit the routes or generators instead.
