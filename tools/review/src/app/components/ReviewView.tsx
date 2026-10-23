@@ -1,6 +1,9 @@
 import { WorkerPoolContextProvider } from '@pierre/diffs/react';
+import { useQuery } from '@tanstack/react-query';
 import { useRef, useState, type FC, type ReactNode } from 'react';
+import type { OperationDocs } from '../../shared/operation.ts';
 import type { ContractChange, Review, ReviewFile } from '../../shared/review.ts';
+import { pullQueries } from '../api.ts';
 import { GENERATED_SIGNOFF } from '../../shared/signoffs.ts';
 import { connectionEntry, contractEntry, fileEntry, type Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
@@ -11,6 +14,7 @@ import { ChangeTree } from './ChangeTree.tsx';
 import { CheckMark, MarkdownBody } from './common.tsx';
 import { DiffList, type DiffStyle, type Viewer } from './DiffList.tsx';
 import { Link } from './Link.tsx';
+import { OperationDocsView } from './OperationDocs.tsx';
 
 interface ReviewViewProps {
   review: Review;
@@ -285,6 +289,7 @@ const OperationList: FC<OperationListProps> = ({ review, changes, selected }) =>
 interface OperationHeaderProps {
   context: ChapterContext;
   change: ContractChange;
+  docs: OperationDocsState;
   entries: readonly Entry[];
   showGenerated: boolean;
   onShowGenerated(): void;
@@ -307,6 +312,7 @@ function consequence(change: ContractChange): string {
 const OperationHeader: FC<OperationHeaderProps> = ({
   context,
   change,
+  docs,
   entries,
   showGenerated,
   onShowGenerated,
@@ -333,13 +339,10 @@ const OperationHeader: FC<OperationHeaderProps> = ({
         <code>{change.operation}</code>
         {change.summary ? <span> · {change.summary}</span> : null}
       </p>
-      {change.description ? (
-        <details className="description">
-          <summary>Description</summary>
-          <MarkdownBody text={change.description} />
-        </details>
-      ) : null}
       <p className={change.kind === 'added' ? 'consequence' : 'consequence warning'}>{consequence(change)}</p>
+      {change.description ? <MarkdownBody text={change.description} /> : null}
+      <DocsState docs={docs} kind={change.kind} />
+      <h3 className="docs-heading">In this pull request</h3>
       <ol className="trace" aria-label="Where this operation is in the pull request">
         {trace.map(step => (
           <li key={step.label}>
@@ -365,6 +368,23 @@ const OperationHeader: FC<OperationHeaderProps> = ({
   );
 };
 
+/** The documentation as it loads: it is fetched when an operation's page opens. */
+interface OperationDocsState {
+  data: OperationDocs | undefined;
+  error: Error | null;
+}
+
+interface DocsStateProps {
+  docs: OperationDocsState;
+  kind: ContractChange['kind'];
+}
+
+const DocsState: FC<DocsStateProps> = ({ docs, kind }) => {
+  if (docs.error) return <p className="error-text">{docs.error.message}</p>;
+  if (!docs.data) return <p className="muted">Loading the documentation…</p>;
+  return <OperationDocsView docs={docs.data} kind={kind} />;
+};
+
 interface ApiChapterProps {
   context: ChapterContext;
   operation: string | undefined;
@@ -377,10 +397,14 @@ const ApiChapter: FC<ApiChapterProps> = ({ context, operation }) => {
     (a, b) => kindOrder[a.kind] - kindOrder[b.kind] || a.operation.localeCompare(b.operation)
   );
   const change = changes.find(candidate => candidate.operation === operation) ?? changes[0];
+  const docs = useQuery({
+    ...pullQueries.operation(review.pull.number, change?.document ?? '', change?.operation ?? ''),
+    enabled: change !== undefined
+  });
   const roleOrder = { route: 0, contract: 1, generated: 2 };
   const entries = change
     ? [
-        contractEntry(change),
+        ...(docs.data ? [contractEntry(change, docs.data)] : []),
         ...connectionsOf(change, review.files)
           .toSorted((a, b) => roleOrder[a.role] - roleOrder[b.role])
           .map(connection =>
@@ -419,6 +443,7 @@ const ApiChapter: FC<ApiChapterProps> = ({ context, operation }) => {
               <OperationHeader
                 context={context}
                 change={change}
+                docs={docs}
                 entries={entries}
                 showGenerated={showGenerated}
                 onShowGenerated={() => setShowGenerated(current => !current)}

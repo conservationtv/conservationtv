@@ -6,14 +6,24 @@ import {
 } from '@conservationtv/versioned-api/contracts/compare';
 import { z } from 'zod';
 import type { ContractChange, ReviewFile } from '../shared/review.ts';
-import { useGitHub } from './github.ts';
+import { GitHubError, useGitHub } from './github.ts';
 
 const DOCUMENT = /\/contracts\/openapi\.json$/;
 
-async function documentAt(sha: string, path: string): Promise<ReleaseDocument> {
+export async function documentAt(sha: string, path: string): Promise<ReleaseDocument> {
   const github = useGitHub();
   const text = await github.raw(sha, path);
   return ReleaseDocumentSchema.parse(JSON.parse(text));
+}
+
+/** A document that may not exist at a commit, such as an API's before it was first generated: empty there. */
+export async function documentOrEmpty(sha: string, path: string): Promise<ReleaseDocument> {
+  try {
+    return await documentAt(sha, path);
+  } catch (error) {
+    if (error instanceof GitHubError && error.status === 404) return {};
+    throw error;
+  }
 }
 
 // An API document as far as finding an operation in it goes: the current operations under `paths`, and every
@@ -27,35 +37,37 @@ const OperationSchema = z.object({
 type Operation = z.output<typeof OperationSchema>;
 const PathsSchema = z.object({
   paths: z.record(z.string(), z.record(z.string(), z.json())).catch({}),
-  'x-operation-contracts': z.array(z.json()).catch([])
+  'x-operation-contracts': z.array(ReleaseDocumentSchema).catch([])
 });
-type Paths = z.output<typeof PathsSchema>;
+export type Paths = z.output<typeof PathsSchema>;
 
-interface Located {
+export interface Located {
   method: string;
   path: string;
   operation: Operation;
+  /** The operation and its path item as written, and the document their references point into. */
+  raw: z.output<ReturnType<typeof z.json>>;
+  item: Record<string, z.output<ReturnType<typeof z.json>>>;
+  document: ReleaseDocument;
 }
 
-function* operationsIn(document: Paths): Generator<Located> {
-  for (const [path, item] of Object.entries(document.paths)) {
-    for (const [method, entry] of Object.entries(item)) {
-      const operation = OperationSchema.safeParse(entry);
-      if (operation.success) yield { method: method.toUpperCase(), path, operation: operation.data };
+function* operationsIn(document: ReleaseDocument): Generator<Located> {
+  const { paths } = PathsSchema.parse(document);
+  for (const [path, item] of Object.entries(paths)) {
+    for (const [method, raw] of Object.entries(item)) {
+      const operation = OperationSchema.safeParse(raw);
+      if (operation.success)
+        yield { method: method.toUpperCase(), path, operation: operation.data, raw, item, document };
     }
   }
 }
 
 /** Where `operationId@version` is served, and what it says of itself, from whichever document still has it. */
-function locate(documents: readonly ReleaseDocument[], key: string): Located | undefined {
+export function locate(documents: readonly ReleaseDocument[], key: string): Located | undefined {
   const at = key.lastIndexOf('@');
   const id = key.slice(0, at);
   const version = Number(key.slice(at + 1));
-  const bundles = documents.map(document => PathsSchema.parse(document));
-  const all = bundles.flatMap(bundle => [
-    bundle,
-    ...bundle['x-operation-contracts'].map(nested => PathsSchema.parse(nested))
-  ]);
+  const all = documents.flatMap(document => [document, ...PathsSchema.parse(document)['x-operation-contracts']]);
   for (const document of all) {
     for (const located of operationsIn(document)) {
       if (located.operation.operationId === id && located.operation['x-operation-version'] === version) return located;
@@ -65,8 +77,8 @@ function locate(documents: readonly ReleaseDocument[], key: string): Located | u
 }
 
 /** A canonical contract, as the checks compare it, laid out to be read and diffed. */
-function pretty(contract: string | undefined): string | null {
-  return contract === undefined ? null : `${JSON.stringify(JSON.parse(contract), null, 2)}\n`;
+export function pretty(contract: string): string {
+  return `${JSON.stringify(JSON.parse(contract), null, 2)}\n`;
 }
 
 /**
@@ -77,15 +89,13 @@ async function documentChanges(file: ReviewFile, mergeBaseSha: string, headSha: 
   const previous = file.status === 'added' ? {} : await documentAt(mergeBaseSha, file.previousPath ?? file.path);
   const current = file.status === 'removed' ? {} : await documentAt(headSha, file.path);
   const before = contractsOf(previous);
-  const after = contractsOf(current);
-  const added = [...after.keys()]
+  const added = [...contractsOf(current).keys()]
     .filter(operation => !before.has(operation))
     .map(operation => ({ operation, kind: 'added' as const }));
   const changes = [...compatibilityChanges(previous, current), ...added];
   return changes
     .map(change => {
-      // Described by whichever document still has it (the old one, for a removed operation), with the canonical
-      // contract on each side it exists on.
+      // Described by whichever document still has it: the old one, for a removed operation.
       const located = locate([current, previous], change.operation);
       return {
         document: file.path,
@@ -93,9 +103,7 @@ async function documentChanges(file: ReviewFile, mergeBaseSha: string, headSha: 
         method: located?.method ?? '',
         path: located?.path ?? '',
         summary: located?.operation.summary ?? null,
-        description: located?.operation.description ?? null,
-        before: pretty(before.get(change.operation)),
-        after: pretty(after.get(change.operation))
+        description: located?.operation.description ?? null
       };
     })
     .toSorted((a, b) => a.operation.localeCompare(b.operation));

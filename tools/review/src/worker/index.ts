@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { createGitHub, GitHubError, useGitHub, withGitHub } from './github.ts';
+import { operationDocs } from './operations.ts';
 import { pullList, review } from './pulls.ts';
 
 const SHA = /^[0-9a-f]{40}$/;
@@ -10,6 +11,14 @@ const app = new Hono()
   .get('/pulls/:number{[0-9]+}', async c => {
     const number = Number(c.req.param('number'));
     return c.json(await review(number), 200, { 'cache-control': 'no-store' });
+  })
+  // One operation of one API document as documentation, before and after: fetched when its page is opened.
+  .get('/pulls/:number{[0-9]+}/operations/:operation', async c => {
+    const number = Number(c.req.param('number'));
+    const document = c.req.query('document');
+    if (!document?.endsWith('/contracts/openapi.json')) return c.json({ error: 'Not an API document.' }, 400);
+    const docs = await operationDocs(number, document, c.req.param('operation'));
+    return c.json(docs, 200, { 'cache-control': 'no-store' });
   })
   // A file as committed, for the diff viewer to expand context and to diff files too large for GitHub to inline.
   .get('/raw/:sha/:path{.+}', async c => {

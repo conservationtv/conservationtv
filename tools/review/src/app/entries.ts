@@ -1,4 +1,5 @@
 import { parseDiffFromFile, type FileDiffMetadata } from '@pierre/diffs';
+import type { OperationDocs } from '../shared/operation.ts';
 import type { Category, ContractChange, FileStatus, ReviewFile } from '../shared/review.ts';
 import { patchDiff } from './diffs.ts';
 import type { Connection } from './story.ts';
@@ -79,13 +80,15 @@ const contractStatuses = {
 } satisfies Record<ContractChange['kind'], FileStatus>;
 
 /** An operation's contract as the checks compare it, before and after, as a diff of its own. */
-export function contractEntry(change: ContractChange): Entry {
+export function contractEntry(change: ContractChange, docs: OperationDocs): Entry {
   const name = `${change.operation}.contract.json`;
+  const before = docs.before?.contract;
+  const after = docs.after?.contract;
   const diff = parseDiffFromFile(
-    change.before === null ? null : { name, contents: change.before },
-    change.after === null ? null : { name, contents: change.after }
+    before === undefined ? null : { name, contents: before },
+    after === undefined ? null : { name, contents: after }
   );
-  diff.cacheKey = `contract:${change.document}:${change.operation}:${change.before?.length}:${change.after?.length}`;
+  diff.cacheKey = `contract:${change.document}:${change.operation}:${before?.length}:${after?.length}`;
   return {
     id: `${change.operation}:contract`,
     title: name,
@@ -93,9 +96,10 @@ export function contractEntry(change: ContractChange): Entry {
     status: contractStatuses[change.kind],
     category: 'contract',
     tag: 'contract',
-    note: 'References resolved, descriptions left out: what the contracts check compares',
+    note: 'References resolved, descriptions left out: exactly what the contracts check compares',
     ...counts(diff),
-    folded: false,
+    // The documentation above reads the same change; this is its proof.
+    folded: true,
     file: null,
     diff
   };
