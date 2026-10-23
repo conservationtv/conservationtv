@@ -1,0 +1,31 @@
+name: review-link
+
+# Links each pull request to its page on review.tools.conservation.tv (tools/review), which reads it source code first
+# with the generated code set apart. pull_request_target runs this file as it is on the base branch, with a token that
+# can edit pull requests from forks too; it never checks out or runs the pull request's code.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add the review link to the description
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          url="https://review.tools.conservation.tv/pr/$NUMBER"
+          # Read the description now rather than from the event, so an edit since opening is kept.
+          gh pr view "$NUMBER" --json body --jq .body > body.md
+          if grep -qF "$url" body.md; then
+            echo "Already linked."
+            exit 0
+          fi
+          printf '\n\n---\n\n**[Review on review.tools.conservation.tv](%s)**: source code first, the API contract by operation, generated code folded.\n' "$url" >> body.md
+          gh pr edit "$NUMBER" --body-file body.md

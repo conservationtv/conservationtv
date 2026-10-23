@@ -1,0 +1,3 @@
+# A fine-grained GitHub token: "Public repositories (read-only)" access, no other permissions. Leave it empty to read
+# anonymously, within GitHub's 60 requests an hour.
+GITHUB_TOKEN=
