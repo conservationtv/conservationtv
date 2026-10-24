@@ -2,7 +2,7 @@ import type { CodeViewItem, FileDiffMetadata } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions } from '@pierre/diffs/react';
 import { useMemo, useState, type FC, type ReactNode, type RefObject } from 'react';
 import type { Review, ReviewFile, Thread } from '../../shared/review.ts';
-import { fullDiff, isBinary, loadSides } from '../diffs.ts';
+import { fullDiff, isBinary, isMoved, loadSides } from '../diffs.ts';
 import type { Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
 import type { ViewedFiles } from '../viewed.ts';
@@ -169,8 +169,10 @@ interface AboutEntryProps {
   url: string;
 }
 
-/** A binary file, one too large for GitHub to inline until it is opened, or what an entry leaves out. */
+/** A moved or binary file, one too large for GitHub to inline until it is opened, or what an entry leaves out. */
 const AboutEntry: FC<AboutEntryProps> = ({ entry, folded, loaded, url }) => {
+  // A move before a binary file: both have no lines to diff.
+  if (entry.file && isMoved(entry.file)) return <span className="muted">Moved without changes</span>;
   if (entry.file && isBinary(entry.file)) return <a href={url}>Binary file: view on GitHub</a>;
   if (entry.file?.patch === null && !loaded && folded)
     return <span className="muted">Too large to inline: open to load</span>;

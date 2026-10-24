@@ -45,6 +45,11 @@ export async function fullDiff(pull: Pull, file: ReviewFile): Promise<FileDiffMe
   return diff;
 }
 
+/** A file moved without a line changed: GitHub sends no patch for it, as for a binary file. */
+export function isMoved(file: ReviewFile): boolean {
+  return file.status === 'renamed' && file.additions === 0 && file.deletions === 0;
+}
+
 /** Binary files have no lines to diff. */
 export function isBinary(file: ReviewFile): boolean {
   return file.patch === null && file.additions === 0 && file.deletions === 0;
