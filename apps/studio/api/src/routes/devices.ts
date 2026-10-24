@@ -12,6 +12,7 @@ import {
   requireDevicePermission,
   updateDevice
 } from '../services/devices.ts';
+import { listDeviceAddresses } from '../services/device-addresses.ts';
 import { DEVICE_KINDS } from '../topology/device-kinds.ts';
 import { NetworkReferenceSchema } from '../topology/settings.ts';
 import {
@@ -149,6 +150,36 @@ export default new Hono()
       const privateKey = Buffer.from(keyPair.privateKey).toString('base64url');
       c.header('Cache-Control', 'no-store');
       return c.json({ ...keyPair, privateKey }, 200);
+    }
+  )
+  .get(
+    '/:deviceId/addresses',
+    describeRoute({
+      operationId: 'organisations.devices.listAddresses',
+      ...operationVersion(1),
+      summary: "List a device's addresses",
+      description:
+        'The addresses the device last reported it can be reached at on its own network (`deviceAddresses.replace`), preferred first: what it found on its interfaces, not what anything has verified. Empty for a device that has never reported any.',
+      responses: {
+        200: { description: 'The addresses, preferred first' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', DeviceParamsSchema),
+    async c => {
+      const { id, deviceId } = c.req.valid('param');
+      const addresses = await transaction(async () => {
+        const device = await getDevice(id, deviceId);
+        if (!device) throw new ApiFailure('not_found');
+        return listDeviceAddresses(id, deviceId);
+      });
+      c.header('Cache-Control', 'no-store');
+      return c.json({ addresses }, 200);
     }
   )
   .patch(
