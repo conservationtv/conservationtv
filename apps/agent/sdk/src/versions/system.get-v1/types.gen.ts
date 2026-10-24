@@ -30,6 +30,11 @@ export type System = {
                 } | null;
                 uptimeSeconds: number;
                 agentRss: number;
+                addresses: Array<{
+                    address: string;
+                    interface: string;
+                    preferred: boolean;
+                }>;
             } | null;
             pending: number;
             submitted: number;
