@@ -48,6 +48,15 @@ export function summary(metric: MetricDefinition, samples: number[], dimensions:
   return { name: metric.name, summary: summarise(samples), unit: metric.unit, dimensions };
 }
 
+/** The studio API, signed as the agent's device and ready to call; throws for a direct agent, which has none. */
+export async function studioClient(config: AgentConfiguration): Promise<Client> {
+  if (config.type === 'direct') throw new Error('A direct agent has no studio API to report to');
+  const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
+  const client = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
+  await client.handshake();
+  return client;
+}
+
 /** Queues metrics about the agent's device, and submits them to the studio API in batches. */
 export class MetricReporter {
   private studio: Studio | undefined = undefined;
@@ -100,11 +109,7 @@ export class MetricReporter {
   /** The studio API and the agent's device, asked for once and kept. */
   private async connect(): Promise<Studio> {
     if (this.studio !== undefined) return this.studio;
-    const config = this.config;
-    if (config.type === 'direct') throw new Error('A direct agent has no studio API to report to');
-    const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
-    const client = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
-    await client.handshake();
+    const client = await studioClient(this.config);
     const device = await client.whoami.get.v1();
     if (device instanceof Error) throw device;
     const subjectId = deviceSubject(device.id);

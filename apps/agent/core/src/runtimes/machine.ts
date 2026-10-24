@@ -4,10 +4,12 @@ import { machineMetrics } from '@conservationtv/reports';
 import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../config.ts';
+import { AddressReporter, type LanAddress, lanAddresses } from './addresses.ts';
 import { type Metric, MetricReporter, gauge } from './reports.ts';
 
 // Machine metrics: on an interval, sample the machine the agent runs on and submit the samples to the studio API as
-// metrics about the agent's device (see reports.ts).
+// metrics about the agent's device (see reports.ts). Each sample also finds the machine's addresses (addresses.ts),
+// reported whenever they change.
 
 /** What the machine metrics runtime should do. */
 export const MachineSpecSchema = z.object({
@@ -40,6 +42,8 @@ export interface MachineSample {
   uptimeSeconds: number;
   /** The agent's own resident memory. */
   agentRss: number;
+  /** Where the machine can be reached on its network, the default route's first. */
+  addresses: LanAddress[];
 }
 
 export interface MachineStatus {
@@ -115,6 +119,7 @@ function metricsOf(sample: MachineSample): Metric[] {
 export class MachineRuntime {
   readonly status$ = new BehaviorSubject<MachineStatus>(STOPPED);
   private readonly reporter: MetricReporter;
+  private readonly addresses: AddressReporter;
   private timer: ReturnType<typeof setInterval> | undefined = undefined;
   private previousCpu: CpuTimes | undefined = undefined;
   /** Whether a tick is under way: a slow submission skips the ticks it overlaps rather than piling up. */
@@ -122,6 +127,7 @@ export class MachineRuntime {
 
   constructor(private readonly config: AgentConfiguration) {
     this.reporter = new MetricReporter(config);
+    this.addresses = new AddressReporter(config);
   }
 
   /** Sample at `spec`'s interval from now on. Accepted as soon as the timer is set; the studio API is asked later. */
@@ -138,6 +144,7 @@ export class MachineRuntime {
   async teardown(): Promise<void> {
     this.clear();
     this.reporter.clear();
+    this.addresses.clear();
     const current = this.status$.getValue();
     this.status$.next({ ...current, running: false, intervalMs: null, pending: 0 });
   }
@@ -155,7 +162,7 @@ export class MachineRuntime {
       const sample = await this.sample();
       this.reporter.queue(sample.observedAt, metricsOf(sample));
       this.update({ latest: sample });
-      await this.submit();
+      await this.submit(sample.addresses);
     } finally {
       this.ticking = false;
     }
@@ -169,6 +176,7 @@ export class MachineRuntime {
     const cpuUtilisation = previous === undefined || elapsed <= 0 ? null : ((cpu.busy - previous.busy) / elapsed) * 100;
     const [load] = os.loadavg();
     const disk = await diskUsage();
+    const addresses = await lanAddresses();
     const memory = process.memoryUsage();
     const now = new Date();
     return {
@@ -179,16 +187,21 @@ export class MachineRuntime {
       memory: { total: os.totalmem(), free: os.freemem() },
       disk,
       uptimeSeconds: os.uptime(),
-      agentRss: memory.rss
+      agentRss: memory.rss,
+      addresses
     };
   }
 
-  /** Submit every pending report, keeping them for the next tick if that fails. */
-  private async submit() {
+  /**
+   * Submit every pending report, keeping them for the next tick if that fails, and the addresses if they changed,
+   * tried again next tick likewise.
+   */
+  private async submit(addresses: LanAddress[]) {
     try {
       const { accepted, submittedAt } = await this.reporter.submit();
       const current = this.status$.getValue();
       this.update({ submitted: current.submitted + accepted, lastSubmittedAt: submittedAt, lastError: null });
+      await this.addresses.submit(addresses);
     } catch (error) {
       const failure = error instanceof Error ? error : new Error(String(error));
       this.update({ lastError: failure.message });
