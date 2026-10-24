@@ -11,17 +11,7 @@ export const SystemSchema = z.object({
     machine: z.object({
         intervalMs: z.number()
     }).optional(),
-    mediamtx: z.object({
-        binary: z.object({
-            version: z.string(),
-            name: z.literal('mediamtx'),
-            artifacts: z.record(z.string(), z.object({
-                url: z.string(),
-                checksum: z.string(),
-                format: z.string(),
-                path: z.string().optional()
-            }))
-        }),
+    streams: z.object({
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
@@ -37,30 +27,32 @@ export const SystemSchema = z.object({
         })),
         publishers: z.array(z.object({
             exposureId: z.string(),
-            connect: z.string(),
-            broadcast: z.string(),
             layout: z.literal('tracks'),
             renditions: z.array(z.object({
-                rendition: z.string(),
+                rendition: z.enum([
+                    'default',
+                    'data_saver',
+                    'balanced',
+                    'quality'
+                ]),
                 path: z.string()
-            }))
+            })),
+            connect: z.string(),
+            broadcast: z.string()
         })),
-        metricsIntervalMs: z.number(),
         auth: z.object({
             jwks: z.string(),
             issuer: z.string(),
             audience: z.string()
-        }).optional(),
-        moq: z.object({
-            version: z.string(),
-            name: z.literal('moq'),
-            artifacts: z.record(z.string(), z.object({
-                url: z.string(),
-                checksum: z.string(),
-                format: z.string(),
-                path: z.string().optional()
-            }))
         }).optional()
+    }).optional(),
+    metrics: z.object({
+        intervalMs: z.number(),
+        paths: z.array(z.object({
+            exposureId: z.string(),
+            name: z.string(),
+            rendition: z.string().optional()
+        }))
     }).optional()
 });
 

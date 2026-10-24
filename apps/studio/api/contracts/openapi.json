@@ -65,6 +65,16 @@
           }
         ]
       },
+      "Rendition": {
+        "type": "string",
+        "enum": [
+          "default",
+          "data_saver",
+          "balanced",
+          "quality"
+        ],
+        "description": "A quality the stream is delivered at."
+      },
       "Relay": {
         "type": "object",
         "properties": {
@@ -80,6 +90,96 @@
         },
         "required": [
           "url"
+        ]
+      },
+      "MediamtxAuth": {
+        "type": "object",
+        "properties": {
+          "jwks": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "audience": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "jwks",
+          "issuer",
+          "audience"
+        ]
+      },
+      "Publisher": {
+        "type": "object",
+        "properties": {
+          "exposureId": {
+            "type": "string"
+          },
+          "connect": {
+            "$ref": "#/components/schemas/PublisherConnect"
+          },
+          "layout": {
+            "type": "string",
+            "const": "tracks"
+          },
+          "renditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedRendition"
+            }
+          }
+        },
+        "required": [
+          "exposureId",
+          "connect",
+          "layout",
+          "renditions"
+        ]
+      },
+      "PublisherConnect": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "streamId": {
+            "type": "string"
+          },
+          "exposureId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "const": "publish"
+          },
+          "protocol": {
+            "type": "string",
+            "const": "moq"
+          }
+        },
+        "required": [
+          "id",
+          "streamId",
+          "exposureId",
+          "action",
+          "protocol"
+        ]
+      },
+      "PublishedRendition": {
+        "type": "object",
+        "properties": {
+          "rendition": {
+            "$ref": "#/components/schemas/Rendition"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rendition",
+          "path"
         ]
       },
       "Health": {
@@ -671,13 +771,7 @@
                 "renditions": {
                   "type": "array",
                   "items": {
-                    "type": "string",
-                    "enum": [
-                      "default",
-                      "data_saver",
-                      "balanced",
-                      "quality"
-                    ]
+                    "$ref": "#/components/schemas/Rendition"
                   }
                 },
                 "publisherDeviceId": {
@@ -731,13 +825,7 @@
                   "type": "string"
                 },
                 "rendition": {
-                  "type": "string",
-                  "enum": [
-                    "default",
-                    "data_saver",
-                    "balanced",
-                    "quality"
-                  ]
+                  "$ref": "#/components/schemas/Rendition"
                 },
                 "kind": {
                   "type": "string"
@@ -801,13 +889,7 @@
           "renditions": {
             "type": "array",
             "items": {
-              "type": "string",
-              "enum": [
-                "default",
-                "data_saver",
-                "balanced",
-                "quality"
-              ]
+              "$ref": "#/components/schemas/Rendition"
             }
           },
           "publisherDeviceId": {
@@ -858,13 +940,7 @@
             "type": "string"
           },
           "rendition": {
-            "type": "string",
-            "enum": [
-              "default",
-              "data_saver",
-              "balanced",
-              "quality"
-            ]
+            "$ref": "#/components/schemas/Rendition"
           },
           "kind": {
             "type": "string"
@@ -7468,14 +7544,7 @@
                     "minItems": 1,
                     "type": "array",
                     "items": {
-                      "type": "string",
-                      "enum": [
-                        "default",
-                        "data_saver",
-                        "balanced",
-                        "quality"
-                      ],
-                      "description": "A quality the stream is delivered at."
+                      "$ref": "#/components/schemas/Rendition"
                     },
                     "description": "The renditions the exposure offers."
                   },
@@ -7692,14 +7761,7 @@
                     "minItems": 1,
                     "type": "array",
                     "items": {
-                      "type": "string",
-                      "enum": [
-                        "default",
-                        "data_saver",
-                        "balanced",
-                        "quality"
-                      ],
-                      "description": "A quality the stream is delivered at."
+                      "$ref": "#/components/schemas/Rendition"
                     },
                     "description": "The renditions the exposure offers."
                   },
@@ -7907,13 +7969,7 @@
                         "renditions": {
                           "type": "array",
                           "items": {
-                            "type": "string",
-                            "enum": [
-                              "default",
-                              "data_saver",
-                              "balanced",
-                              "quality"
-                            ]
+                            "$ref": "#/components/schemas/Rendition"
                           }
                         }
                       },
@@ -7943,13 +7999,7 @@
                         "renditions": {
                           "type": "array",
                           "items": {
-                            "type": "string",
-                            "enum": [
-                              "default",
-                              "data_saver",
-                              "balanced",
-                              "quality"
-                            ]
+                            "$ref": "#/components/schemas/Rendition"
                           }
                         }
                       },
@@ -8092,14 +8142,7 @@
                     "description": "One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`."
                   },
                   "rendition": {
-                    "description": "The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.",
-                    "type": "string",
-                    "enum": [
-                      "default",
-                      "data_saver",
-                      "balanced",
-                      "quality"
-                    ]
+                    "$ref": "#/components/schemas/Rendition"
                   }
                 },
                 "required": [
@@ -8242,15 +8285,7 @@
                     "description": "The exposure of this stream to record."
                   },
                   "rendition": {
-                    "default": "default",
-                    "type": "string",
-                    "enum": [
-                      "default",
-                      "data_saver",
-                      "balanced",
-                      "quality"
-                    ],
-                    "description": "The rendition of the exposure to record: one it offers."
+                    "$ref": "#/components/schemas/Rendition"
                   },
                   "kind": {
                     "type": "string",
@@ -8422,14 +8457,7 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
                   "rendition": {
-                    "type": "string",
-                    "enum": [
-                      "default",
-                      "data_saver",
-                      "balanced",
-                      "quality"
-                    ],
-                    "description": "The rendition of the exposure to record: one it offers."
+                    "$ref": "#/components/schemas/Rendition"
                   },
                   "kind": {
                     "type": "string",
@@ -10051,23 +10079,7 @@
                               "type": "string"
                             },
                             "auth": {
-                              "type": "object",
-                              "properties": {
-                                "jwks": {
-                                  "type": "string"
-                                },
-                                "issuer": {
-                                  "type": "string"
-                                },
-                                "audience": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "jwks",
-                                "issuer",
-                                "audience"
-                              ]
+                              "$ref": "#/components/schemas/MediamtxAuth"
                             }
                           },
                           "required": [
@@ -10087,13 +10099,7 @@
                                 "type": "string"
                               },
                               "rendition": {
-                                "type": "string",
-                                "enum": [
-                                  "default",
-                                  "data_saver",
-                                  "balanced",
-                                  "quality"
-                                ]
+                                "$ref": "#/components/schemas/Rendition"
                               },
                               "source": {
                                 "anyOf": [
@@ -10133,75 +10139,7 @@
                         "publishers": {
                           "type": "array",
                           "items": {
-                            "type": "object",
-                            "properties": {
-                              "exposureId": {
-                                "type": "string"
-                              },
-                              "connect": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "streamId": {
-                                    "type": "string"
-                                  },
-                                  "exposureId": {
-                                    "type": "string"
-                                  },
-                                  "action": {
-                                    "type": "string",
-                                    "const": "publish"
-                                  },
-                                  "protocol": {
-                                    "type": "string",
-                                    "const": "moq"
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "streamId",
-                                  "exposureId",
-                                  "action",
-                                  "protocol"
-                                ]
-                              },
-                              "layout": {
-                                "type": "string",
-                                "const": "tracks"
-                              },
-                              "renditions": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "rendition": {
-                                      "type": "string",
-                                      "enum": [
-                                        "default",
-                                        "data_saver",
-                                        "balanced",
-                                        "quality"
-                                      ]
-                                    },
-                                    "path": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "rendition",
-                                    "path"
-                                  ]
-                                }
-                              }
-                            },
-                            "required": [
-                              "exposureId",
-                              "connect",
-                              "layout",
-                              "renditions"
-                            ]
+                            "$ref": "#/components/schemas/Publisher"
                           }
                         },
                         "diagnostics": {
@@ -19251,6 +19189,15 @@
               "error_description"
             ]
           },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
           "Stream": {
             "type": "object",
             "properties": {
@@ -19268,13 +19215,7 @@
                     "renditions": {
                       "type": "array",
                       "items": {
-                        "type": "string",
-                        "enum": [
-                          "default",
-                          "data_saver",
-                          "balanced",
-                          "quality"
-                        ]
+                        "$ref": "#/components/schemas/Rendition"
                       }
                     },
                     "publisherDeviceId": {
@@ -19328,13 +19269,7 @@
                       "type": "string"
                     },
                     "rendition": {
-                      "type": "string",
-                      "enum": [
-                        "default",
-                        "data_saver",
-                        "balanced",
-                        "quality"
-                      ]
+                      "$ref": "#/components/schemas/Rendition"
                     },
                     "kind": {
                       "type": "string"
@@ -19906,6 +19841,16 @@
               "error_description"
             ]
           },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
+            "description": "A quality the stream is delivered at."
+          },
           "__schema0": {
             "anyOf": [
               {
@@ -19949,13 +19894,7 @@
               "renditions": {
                 "type": "array",
                 "items": {
-                  "type": "string",
-                  "enum": [
-                    "default",
-                    "data_saver",
-                    "balanced",
-                    "quality"
-                  ]
+                  "$ref": "#/components/schemas/Rendition"
                 }
               },
               "publisherDeviceId": {
@@ -20151,14 +20090,7 @@
                         "minItems": 1,
                         "type": "array",
                         "items": {
-                          "type": "string",
-                          "enum": [
-                            "default",
-                            "data_saver",
-                            "balanced",
-                            "quality"
-                          ],
-                          "description": "A quality the stream is delivered at."
+                          "$ref": "#/components/schemas/Rendition"
                         },
                         "description": "The renditions the exposure offers."
                       },
@@ -20250,6 +20182,16 @@
               "error_description"
             ]
           },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
+            "description": "A quality the stream is delivered at."
+          },
           "__schema0": {
             "anyOf": [
               {
@@ -20293,13 +20235,7 @@
               "renditions": {
                 "type": "array",
                 "items": {
-                  "type": "string",
-                  "enum": [
-                    "default",
-                    "data_saver",
-                    "balanced",
-                    "quality"
-                  ]
+                  "$ref": "#/components/schemas/Rendition"
                 }
               },
               "publisherDeviceId": {
@@ -20513,14 +20449,7 @@
                         "minItems": 1,
                         "type": "array",
                         "items": {
-                          "type": "string",
-                          "enum": [
-                            "default",
-                            "data_saver",
-                            "balanced",
-                            "quality"
-                          ],
-                          "description": "A quality the stream is delivered at."
+                          "$ref": "#/components/schemas/Rendition"
                         },
                         "description": "The renditions the exposure offers."
                       },
@@ -20774,6 +20703,16 @@
               "error",
               "error_description"
             ]
+          },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
+            "description": "A quality the stream is delivered at."
           }
         }
       },
@@ -20816,13 +20755,7 @@
                             "renditions": {
                               "type": "array",
                               "items": {
-                                "type": "string",
-                                "enum": [
-                                  "default",
-                                  "data_saver",
-                                  "balanced",
-                                  "quality"
-                                ]
+                                "$ref": "#/components/schemas/Rendition"
                               }
                             }
                           },
@@ -20852,13 +20785,7 @@
                             "renditions": {
                               "type": "array",
                               "items": {
-                                "type": "string",
-                                "enum": [
-                                  "default",
-                                  "data_saver",
-                                  "balanced",
-                                  "quality"
-                                ]
+                                "$ref": "#/components/schemas/Rendition"
                               }
                             }
                           },
@@ -21011,14 +20938,7 @@
                         "description": "One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`."
                       },
                       "rendition": {
-                        "description": "The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.",
-                        "type": "string",
-                        "enum": [
-                          "default",
-                          "data_saver",
-                          "balanced",
-                          "quality"
-                        ]
+                        "$ref": "#/components/schemas/Rendition"
                       }
                     },
                     "required": [
@@ -21070,6 +20990,16 @@
               "error_description"
             ]
           },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
+            "description": "A quality the stream is delivered at."
+          },
           "__schema0": {
             "anyOf": [
               {
@@ -21111,13 +21041,7 @@
                 "type": "string"
               },
               "rendition": {
-                "type": "string",
-                "enum": [
-                  "default",
-                  "data_saver",
-                  "balanced",
-                  "quality"
-                ]
+                "$ref": "#/components/schemas/Rendition"
               },
               "kind": {
                 "type": "string"
@@ -21278,15 +21202,7 @@
                         "description": "The exposure of this stream to record."
                       },
                       "rendition": {
-                        "default": "default",
-                        "type": "string",
-                        "enum": [
-                          "default",
-                          "data_saver",
-                          "balanced",
-                          "quality"
-                        ],
-                        "description": "The rendition of the exposure to record: one it offers."
+                        "$ref": "#/components/schemas/Rendition"
                       },
                       "kind": {
                         "type": "string",
@@ -21356,6 +21272,16 @@
               "error_description"
             ]
           },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
+            "description": "A quality the stream is delivered at."
+          },
           "__schema0": {
             "anyOf": [
               {
@@ -21397,13 +21323,7 @@
                 "type": "string"
               },
               "rendition": {
-                "type": "string",
-                "enum": [
-                  "default",
-                  "data_saver",
-                  "balanced",
-                  "quality"
-                ]
+                "$ref": "#/components/schemas/Rendition"
               },
               "kind": {
                 "type": "string"
@@ -21575,14 +21495,7 @@
                         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                       },
                       "rendition": {
-                        "type": "string",
-                        "enum": [
-                          "default",
-                          "data_saver",
-                          "balanced",
-                          "quality"
-                        ],
-                        "description": "The rendition of the exposure to record: one it offers."
+                        "$ref": "#/components/schemas/Rendition"
                       },
                       "kind": {
                         "type": "string",
@@ -24208,6 +24121,105 @@
               "error",
               "error_description"
             ]
+          },
+          "MediamtxAuth": {
+            "type": "object",
+            "properties": {
+              "jwks": {
+                "type": "string"
+              },
+              "issuer": {
+                "type": "string"
+              },
+              "audience": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "jwks",
+              "issuer",
+              "audience"
+            ]
+          },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
+          "Publisher": {
+            "type": "object",
+            "properties": {
+              "exposureId": {
+                "type": "string"
+              },
+              "connect": {
+                "$ref": "#/components/schemas/PublisherConnect"
+              },
+              "layout": {
+                "type": "string",
+                "const": "tracks"
+              },
+              "renditions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublishedRendition"
+                }
+              }
+            },
+            "required": [
+              "exposureId",
+              "connect",
+              "layout",
+              "renditions"
+            ]
+          },
+          "PublisherConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "streamId": {
+                "type": "string"
+              },
+              "exposureId": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string",
+                "const": "publish"
+              },
+              "protocol": {
+                "type": "string",
+                "const": "moq"
+              }
+            },
+            "required": [
+              "id",
+              "streamId",
+              "exposureId",
+              "action",
+              "protocol"
+            ]
+          },
+          "PublishedRendition": {
+            "type": "object",
+            "properties": {
+              "rendition": {
+                "$ref": "#/components/schemas/Rendition"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "rendition",
+              "path"
+            ]
           }
         }
       },
@@ -24251,23 +24263,7 @@
                                   "type": "string"
                                 },
                                 "auth": {
-                                  "type": "object",
-                                  "properties": {
-                                    "jwks": {
-                                      "type": "string"
-                                    },
-                                    "issuer": {
-                                      "type": "string"
-                                    },
-                                    "audience": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "jwks",
-                                    "issuer",
-                                    "audience"
-                                  ]
+                                  "$ref": "#/components/schemas/MediamtxAuth"
                                 }
                               },
                               "required": [
@@ -24287,13 +24283,7 @@
                                     "type": "string"
                                   },
                                   "rendition": {
-                                    "type": "string",
-                                    "enum": [
-                                      "default",
-                                      "data_saver",
-                                      "balanced",
-                                      "quality"
-                                    ]
+                                    "$ref": "#/components/schemas/Rendition"
                                   },
                                   "source": {
                                     "anyOf": [
@@ -24333,75 +24323,7 @@
                             "publishers": {
                               "type": "array",
                               "items": {
-                                "type": "object",
-                                "properties": {
-                                  "exposureId": {
-                                    "type": "string"
-                                  },
-                                  "connect": {
-                                    "type": "object",
-                                    "properties": {
-                                      "id": {
-                                        "type": "string"
-                                      },
-                                      "streamId": {
-                                        "type": "string"
-                                      },
-                                      "exposureId": {
-                                        "type": "string"
-                                      },
-                                      "action": {
-                                        "type": "string",
-                                        "const": "publish"
-                                      },
-                                      "protocol": {
-                                        "type": "string",
-                                        "const": "moq"
-                                      }
-                                    },
-                                    "required": [
-                                      "id",
-                                      "streamId",
-                                      "exposureId",
-                                      "action",
-                                      "protocol"
-                                    ]
-                                  },
-                                  "layout": {
-                                    "type": "string",
-                                    "const": "tracks"
-                                  },
-                                  "renditions": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "rendition": {
-                                          "type": "string",
-                                          "enum": [
-                                            "default",
-                                            "data_saver",
-                                            "balanced",
-                                            "quality"
-                                          ]
-                                        },
-                                        "path": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": [
-                                        "rendition",
-                                        "path"
-                                      ]
-                                    }
-                                  }
-                                },
-                                "required": [
-                                  "exposureId",
-                                  "connect",
-                                  "layout",
-                                  "renditions"
-                                ]
+                                "$ref": "#/components/schemas/Publisher"
                               }
                             },
                             "diagnostics": {

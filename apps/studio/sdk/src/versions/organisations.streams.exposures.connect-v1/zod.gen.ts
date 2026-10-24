@@ -7,6 +7,18 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
+/**
+ * A quality the stream is delivered at.
+ */
+export const RenditionSchema = z.enum([
+    'default',
+    'data_saver',
+    'balanced',
+    'quality'
+]).register(z.globalRegistry, {
+    description: 'A quality the stream is delivered at.'
+});
+
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema = z.object({
     action: z.enum(['read', 'publish']).register(z.globalRegistry, {
         description: 'Whether to read the exposure from its gateway, or publish it there.'
@@ -14,14 +26,7 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'
     }),
-    rendition: z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]).register(z.globalRegistry, {
-        description: 'The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.'
-    }).optional()
+    rendition: RenditionSchema.optional()
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema = z.object({
@@ -47,23 +52,13 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
         broadcast: z.string(),
         token: z.string().optional(),
         expiresAt: z.string().optional(),
-        renditions: z.array(z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ]))
+        renditions: z.array(RenditionSchema)
     }),
     z.object({
         protocol: z.string(),
         url: z.string(),
         token: z.string().optional(),
         expiresAt: z.string().optional(),
-        renditions: z.array(z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ]))
+        renditions: z.array(RenditionSchema)
     })
 ]);

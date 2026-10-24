@@ -22,7 +22,10 @@ export type NetworkReference = z.output<typeof NetworkReferenceSchema>;
  * decide. A fixed vocabulary, so readers choose a quality the same way across every stream.
  */
 export const RENDITIONS = ['default', 'data_saver', 'balanced', 'quality'] as const;
-export const RenditionSchema = z.enum(RENDITIONS).describe('A quality the stream is delivered at.');
+export const RenditionSchema = z
+  .enum(RENDITIONS)
+  .describe('A quality the stream is delivered at.')
+  .meta({ id: 'Rendition' });
 export type Rendition = z.output<typeof RenditionSchema>;
 
 /** The renditions an exposure offers: at least one, each once. */
