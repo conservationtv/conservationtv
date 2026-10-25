@@ -3,19 +3,21 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const InvitationSchema = z.object({
-    invitations: z.array(z.object({
+  invitations: z.array(
+    z.object({
+      id: z.string(),
+      organisation: z.object({
         id: z.string(),
-        organisation: z.object({
-            id: z.string(),
-            name: z.string()
-        }),
-        expiresAt: z.string()
-    }))
+        name: z.string()
+      }),
+      expiresAt: z.string()
+    })
+  )
 });
 
 /**

@@ -3,24 +3,29 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const AccountSchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    email: z.string(),
-    emailVerified: z.boolean(),
-    image: z.string().nullable(),
-    createdAt: z.string()
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  image: z.string().nullable(),
+  createdAt: z.string()
 });
 
 export const PatchAccountBodySchema = z.object({
-    name: z.string().min(1).max(120).register(z.globalRegistry, {
-        description: 'The display name.'
-    }).optional(),
-    image: z.url().max(2048).nullish()
+  name: z
+    .string()
+    .min(1)
+    .max(120)
+    .register(z.globalRegistry, {
+      description: 'The display name.'
+    })
+    .optional(),
+  image: z.url().max(2048).nullish()
 });
 
 /**

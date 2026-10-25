@@ -2,12 +2,15 @@
 
 import * as z from 'zod';
 
-import { PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema } from './zod.gen.js';
+import {
+  PatchOrganisationsByIdNetworksByNetworkIdBodySchema,
+  PatchOrganisationsByIdNetworksByNetworkIdPathSchema
+} from './zod.gen.js';
 
 export const NetworkUpdateV1ParamsSchema = z.object({
-    id: PatchOrganisationsByIdNetworksByNetworkIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    networkId: PatchOrganisationsByIdNetworksByNetworkIdPathSchema.shape.networkId.nonoptional().describe('The network.'),
-    name: PatchOrganisationsByIdNetworksByNetworkIdBodySchema.shape.name.nonoptional().describe('The network name.')
+  id: PatchOrganisationsByIdNetworksByNetworkIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  networkId: PatchOrganisationsByIdNetworksByNetworkIdPathSchema.shape.networkId.nonoptional().describe('The network.'),
+  name: PatchOrganisationsByIdNetworksByNetworkIdBodySchema.shape.name.nonoptional().describe('The network name.')
 });
 
 export type NetworkUpdateV1Params = z.infer<typeof NetworkUpdateV1ParamsSchema>;

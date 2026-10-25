@@ -3,19 +3,15 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const WhoamiSchema = z.object({
-    id: z.string(),
-    organisationId: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    publicId: z.string()
+  id: z.string(),
+  organisationId: z.string(),
+  kind: z.enum(['agent', 'camera', 'browser']),
+  publicId: z.string()
 });
 
 /**

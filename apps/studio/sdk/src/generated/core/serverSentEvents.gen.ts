@@ -72,11 +72,7 @@ export interface StreamEvent<TData = unknown> {
 }
 
 export type ServerSentEventsResult<TData = unknown, TReturn = void, TNext = unknown> = {
-  stream: AsyncGenerator<
-    TData extends Record<string, unknown> ? TData[keyof TData] : TData,
-    TReturn,
-    TNext
-  >;
+  stream: AsyncGenerator<TData extends Record<string, unknown> ? TData[keyof TData] : TData, TReturn, TNext>;
 };
 
 export function createSseClient<TData = unknown>({
@@ -94,7 +90,7 @@ export function createSseClient<TData = unknown>({
 }: ServerSentEventsOptions): ServerSentEventsResult<TData> {
   let lastEventId: string | undefined;
 
-  const sleep = sseSleepFn ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const sleep = sseSleepFn ?? ((ms: number) => new Promise(resolve => setTimeout(resolve, ms)));
 
   const createStream = async function* () {
     let retryDelay: number = sseDefaultRetryDelay ?? 3000;
@@ -121,7 +117,7 @@ export function createSseClient<TData = unknown>({
           ...options,
           body: options.serializedBody,
           headers,
-          signal,
+          signal
         };
         let request = new Request(url, requestInit);
         if (onRequest) {
@@ -207,7 +203,7 @@ export function createSseClient<TData = unknown>({
                 data,
                 event: eventName,
                 id: lastEventId,
-                retry: retryDelay,
+                retry: retryDelay
               });
 
               if (dataLines.length) {

@@ -2,13 +2,18 @@
 
 import * as z from 'zod';
 
-import { PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdPathSchema } from './zod.gen.js';
+import {
+  PatchOrganisationsByIdCamerasByCameraIdBodySchema,
+  PatchOrganisationsByIdCamerasByCameraIdPathSchema
+} from './zod.gen.js';
 
 export const CameraUpdateV1ParamsSchema = z.object({
-    id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
-    settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
-    credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional()
+  id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
+  settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings
+    .optional()
+    .describe('What the camera is registered with: its `driver`, and what that driver reads.'),
+  credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional()
 });
 
 export type CameraUpdateV1Params = z.infer<typeof CameraUpdateV1ParamsSchema>;

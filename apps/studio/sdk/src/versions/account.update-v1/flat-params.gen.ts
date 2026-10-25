@@ -5,8 +5,8 @@ import * as z from 'zod';
 import { PatchAccountBodySchema } from './zod.gen.js';
 
 export const AccountUpdateV1ParamsSchema = z.object({
-    name: PatchAccountBodySchema.shape.name.optional().describe('The display name.'),
-    image: PatchAccountBodySchema.shape.image.optional().describe('An avatar URL, or null to remove it.')
+  name: PatchAccountBodySchema.shape.name.optional().describe('The display name.'),
+  image: PatchAccountBodySchema.shape.image.optional().describe('An avatar URL, or null to remove it.')
 });
 
 export type AccountUpdateV1Params = z.infer<typeof AccountUpdateV1ParamsSchema>;

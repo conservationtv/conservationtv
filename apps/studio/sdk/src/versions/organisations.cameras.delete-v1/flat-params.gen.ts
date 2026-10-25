@@ -5,8 +5,8 @@ import * as z from 'zod';
 import { DeleteOrganisationsByIdCamerasByCameraIdPathSchema } from './zod.gen.js';
 
 export const CameraDeleteV1ParamsSchema = z.object({
-    id: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    cameraId: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.')
+  id: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  cameraId: DeleteOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.')
 });
 
 export type CameraDeleteV1Params = z.infer<typeof CameraDeleteV1ParamsSchema>;

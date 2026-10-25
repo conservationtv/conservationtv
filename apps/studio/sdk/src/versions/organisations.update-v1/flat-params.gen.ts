@@ -5,8 +5,8 @@ import * as z from 'zod';
 import { PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdPathSchema } from './zod.gen.js';
 
 export const OrganisationUpdateV1ParamsSchema = z.object({
-    id: PatchOrganisationsByIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    name: PatchOrganisationsByIdBodySchema.shape.name.nonoptional().describe('The organisation name.')
+  id: PatchOrganisationsByIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  name: PatchOrganisationsByIdBodySchema.shape.name.nonoptional().describe('The organisation name.')
 });
 
 export type OrganisationUpdateV1Params = z.infer<typeof OrganisationUpdateV1ParamsSchema>;

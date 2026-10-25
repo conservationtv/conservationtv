@@ -11,11 +11,6 @@ FIELD_KEY=REPLACE_WITH_GENERATED_KEY
 # 1Password (gatekeeper_staging_consumer_token).
 GATEKEEPER_TOKEN=local-consumer-token
 
-# Optional: sign tokens for MediaMTX gateways, which verify them against `GET /gateway-keys`. A keyring of ES256 JWKs,
-# with the private `d`, on one line; generate one key with:
-# node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(({kty,crv,x,y,d})=>console.log(JSON.stringify({active_kid:'1',keys:[{kty,crv,x,y,d,alg:'ES256',kid:'1'}]})))"
-# GATEWAY_SIGNING_KEYS={"active_kid":"1","keys":[…]}
-
 # Text bindings are not read from this file: override the checked-in development defaults from the environment,
 # e.g. `APP_URL=… pnpm dev`.
 # APP_URL=http://localhost:5175

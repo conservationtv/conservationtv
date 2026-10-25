@@ -5,8 +5,10 @@ import * as z from 'zod';
 import { DeleteOrganisationsByIdMembersByUserIdAdminPathSchema } from './zod.gen.js';
 
 export const MemberRevokeAdminV1ParamsSchema = z.object({
-    id: DeleteOrganisationsByIdMembersByUserIdAdminPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    userId: DeleteOrganisationsByIdMembersByUserIdAdminPathSchema.shape.userId.nonoptional().describe('The member\'s account ID, or `me`.')
+  id: DeleteOrganisationsByIdMembersByUserIdAdminPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  userId: DeleteOrganisationsByIdMembersByUserIdAdminPathSchema.shape.userId
+    .nonoptional()
+    .describe("The member's account ID, or `me`.")
 });
 
 export type MemberRevokeAdminV1Params = z.infer<typeof MemberRevokeAdminV1ParamsSchema>;

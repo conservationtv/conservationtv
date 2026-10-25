@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { PostReportsBodySchema } from './zod.gen.js';
 
 export const ReportSubmitV1ParamsSchema = z.object({
-    reports: PostReportsBodySchema.shape.reports.nonoptional()
+  reports: PostReportsBodySchema.shape.reports.nonoptional()
 });
 
 export type ReportSubmitV1Params = z.infer<typeof ReportSubmitV1ParamsSchema>;

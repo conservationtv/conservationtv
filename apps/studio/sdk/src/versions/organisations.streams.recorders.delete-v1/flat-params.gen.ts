@@ -5,9 +5,15 @@ import * as z from 'zod';
 import { DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema } from './zod.gen.js';
 
 export const RecorderDeleteV1ParamsSchema = z.object({
-    id: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    streamId: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
-    recorderId: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.')
+  id: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.id
+    .nonoptional()
+    .describe('The organisation.'),
+  streamId: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId
+    .nonoptional()
+    .describe('The stream.'),
+  recorderId: DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId
+    .nonoptional()
+    .describe('The recorder.')
 });
 
 export type RecorderDeleteV1Params = z.infer<typeof RecorderDeleteV1ParamsSchema>;

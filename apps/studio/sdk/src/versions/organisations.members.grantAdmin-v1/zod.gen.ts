@@ -3,22 +3,27 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const PutOrganisationsByIdMembersByUserIdAdminPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
+  id: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The organisation.'
     }),
-    userId: z.string().min(1).max(64).register(z.globalRegistry, {
-        description: 'The member\'s account ID, or `me`.'
-    })
+  userId: z.string().min(1).max(64).register(z.globalRegistry, {
+    description: "The member's account ID, or `me`."
+  })
 });
 
 /**
  * The member is an administrator
  */
 export const PutOrganisationsByIdMembersByUserIdAdminResponseSchema = z.void().register(z.globalRegistry, {
-    description: 'The member is an administrator'
+  description: 'The member is an administrator'
 });

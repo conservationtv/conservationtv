@@ -5,10 +5,14 @@ import * as z from 'zod';
 import { PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsPathSchema } from './zod.gen.js';
 
 export const AgentCreateV1ParamsSchema = z.object({
-    id: PostOrganisationsByIdAgentsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    name: PostOrganisationsByIdAgentsBodySchema.shape.name.nonoptional().describe('The device name.'),
-    networkId: PostOrganisationsByIdAgentsBodySchema.shape.networkId.nonoptional().describe('The network the agent is on and serves.'),
-    priority: PostOrganisationsByIdAgentsBodySchema.shape.priority.optional().describe('Standby preference; higher is preferred.')
+  id: PostOrganisationsByIdAgentsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  name: PostOrganisationsByIdAgentsBodySchema.shape.name.nonoptional().describe('The device name.'),
+  networkId: PostOrganisationsByIdAgentsBodySchema.shape.networkId
+    .nonoptional()
+    .describe('The network the agent is on and serves.'),
+  priority: PostOrganisationsByIdAgentsBodySchema.shape.priority
+    .optional()
+    .describe('Standby preference; higher is preferred.')
 });
 
 export type AgentCreateV1Params = z.infer<typeof AgentCreateV1ParamsSchema>;

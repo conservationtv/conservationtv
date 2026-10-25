@@ -2,12 +2,21 @@
 
 import * as z from 'zod';
 
-import { GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema } from './zod.gen.js';
+import {
+  GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema,
+  GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema
+} from './zod.gen.js';
 
 export const MetricListV1ParamsSchema = z.object({
-    id: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'),
-    name: GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema.shape.name.optional().describe('Only series of this metric.')
+  id: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.subjectId
+    .nonoptional()
+    .describe(
+      'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    ),
+  name: GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema.shape.name
+    .optional()
+    .describe('Only series of this metric.')
 });
 
 export type MetricListV1Params = z.infer<typeof MetricListV1ParamsSchema>;

@@ -5,8 +5,10 @@ import * as z from 'zod';
 import { PutOrganisationsByIdMembersByUserIdAdminPathSchema } from './zod.gen.js';
 
 export const MemberGrantAdminV1ParamsSchema = z.object({
-    id: PutOrganisationsByIdMembersByUserIdAdminPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    userId: PutOrganisationsByIdMembersByUserIdAdminPathSchema.shape.userId.nonoptional().describe('The member\'s account ID, or `me`.')
+  id: PutOrganisationsByIdMembersByUserIdAdminPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  userId: PutOrganisationsByIdMembersByUserIdAdminPathSchema.shape.userId
+    .nonoptional()
+    .describe("The member's account ID, or `me`.")
 });
 
 export type MemberGrantAdminV1Params = z.infer<typeof MemberGrantAdminV1ParamsSchema>;
