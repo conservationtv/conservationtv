@@ -59,6 +59,10 @@ const PullHeader: FC<PullHeaderProps> = ({ review, tab }) => {
         <a href={pull.url} className="muted github-link">
           GitHub ↗
         </a>
+        {/* Opens the pull request in T3 Code, to work on it there. */}
+        <a href={`t3code://new?pr=${review.repository}/${pull.number}`} className="muted github-link">
+          T3 ↗
+        </a>
         <Account />
       </div>
       {tab === 'conversation' && <PullByline review={review} />}
