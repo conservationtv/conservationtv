@@ -18,7 +18,16 @@ export default defineConfig({
        * 5,000 requests an hour, not 60 shared by every Worker on the same egress address. Everything read is public;
        * an empty token reads anonymously. See .dev.vars.example.
        */
-      GITHUB_TOKEN: bindings.secret()
+      GITHUB_TOKEN: bindings.secret(),
+      /**
+       * A GitHub OAuth app's client ID and secret, for reviewers to sign in and comment, review and merge as themselves.
+       * The app holds no permissions: each reviewer grants their own token. Its callback URL is
+       * https://review.tools.conservation.tv/api/auth/callback. Empty, the tool only reads.
+       */
+      GITHUB_CLIENT_ID: bindings.secret(),
+      GITHUB_CLIENT_SECRET: bindings.secret(),
+      /** Seals the session cookie holding a reviewer's token: any long random string, such as `openssl rand -hex 32`. */
+      SESSION_SECRET: bindings.secret()
     }
   }
 });

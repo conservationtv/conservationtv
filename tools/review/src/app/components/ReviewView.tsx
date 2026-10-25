@@ -10,6 +10,8 @@ import { formatCount } from '../format.ts';
 import { highlighterOptions, poolOptions } from '../highlighting.ts';
 import { chaptersOf, connectionsOf, operationParts, type Chapter, type ChapterId } from '../story.ts';
 import { useViewed, type ViewedFiles } from '../viewed.ts';
+import { useDrafts, type Drafts } from '../drafts.ts';
+import { ReviewSubmit } from './ReviewSubmit.tsx';
 import { ChangeTree } from './ChangeTree.tsx';
 import { CheckMark, MarkdownBody } from './common.tsx';
 import { DiffList, type DiffStyle, type Viewer } from './DiffList.tsx';
@@ -36,6 +38,7 @@ function preferredStyle(): DiffStyle {
 const Story: FC<ReviewViewProps> = ({ review, chapter: chapterId, operation }) => {
   const viewer = useRef(null);
   const viewed = useViewed(review);
+  const drafts = useDrafts(review);
   const [diffStyle, setDiffStyle] = useState(preferredStyle);
   const chapters = chaptersOf(review);
   const index = Math.max(
@@ -45,10 +48,11 @@ const Story: FC<ReviewViewProps> = ({ review, chapter: chapterId, operation }) =
   const chapter = chapters[index];
   if (!chapter) return <main className="page narrow muted">This pull request changes no files.</main>;
   const next = chapters[index + 1];
-  const context: ChapterContext = { review, chapter, next, viewer, viewed, diffStyle };
+  const context: ChapterContext = { review, chapter, next, viewer, viewed, drafts, diffStyle };
   return (
     <main className="review">
       <StoryNav review={review} chapters={chapters} current={chapter.id} viewed={viewed}>
+        <ReviewSubmit review={review} drafts={drafts} />
         <div className="segmented" role="group" aria-label="Diff layout">
           {(['split', 'unified'] as const).map(style => (
             <button key={style} type="button" aria-pressed={diffStyle === style} onClick={() => setDiffStyle(style)}>
@@ -73,6 +77,8 @@ interface ChapterContext {
   next: Chapter | undefined;
   viewer: Viewer;
   viewed: ViewedFiles;
+  /** Line comments waiting for the review they belong to. */
+  drafts: Drafts;
   diffStyle: DiffStyle;
 }
 
@@ -232,6 +238,7 @@ const FileChapter: FC<FileChapterProps> = ({ context }) => {
           entries={entries}
           viewer={viewer}
           viewed={viewed}
+          drafts={context.drafts}
           diffStyle={diffStyle}
           header={
             <Intro context={context}>
@@ -437,6 +444,7 @@ const ApiChapter: FC<ApiChapterProps> = ({ context, operation }) => {
           entries={entries}
           viewer={viewer}
           viewed={viewed}
+          drafts={context.drafts}
           diffStyle={diffStyle}
           header={
             change ? (

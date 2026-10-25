@@ -1,6 +1,11 @@
-import type { FC } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState, type FC } from 'react';
+import { MergeMethodSchema, type MergeMethod } from '../../shared/actions.ts';
 import type { Check, ContractChange, ConversationEntry, Pull, Review, ReviewState } from '../../shared/review.ts';
 import { GENERATED_SIGNOFF, signoffs } from '../../shared/signoffs.ts';
+import { refreshReview, send } from '../api.ts';
+import { signInHref, useSession } from '../session.ts';
+import { Composer } from './Composer.tsx';
 import { Link } from './Link.tsx';
 import { chaptersOf } from '../story.ts';
 import { Avatar, CheckMark, MarkdownBody, RelativeTime } from './common.tsx';
@@ -57,6 +62,110 @@ interface ChecksProps {
   review: Review;
 }
 
+const mergeMethods = {
+  merge: 'Create a merge commit',
+  squash: 'Squash and merge',
+  rebase: 'Rebase and merge'
+} satisfies Record<MergeMethod, string>;
+
+/**
+ * Merging as the signed-in reviewer, asked twice: once to choose how, once to confirm. GitHub has the last word, and
+ * refuses if the branch moved since this page read it.
+ */
+const MergeControls: FC<ChecksProps> = ({ review }) => {
+  const session = useSession();
+  const queryClient = useQueryClient();
+  const [method, setMethod] = useState<MergeMethod>('merge');
+  const [confirming, setConfirming] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { pull } = review;
+  if (pull.state !== 'open' || !session?.viewer) return null;
+
+  async function merge() {
+    setMerging(true);
+    setError(null);
+    try {
+      await send(`/api/pulls/${pull.number}/merge`, { method, sha: pull.headSha });
+      await refreshReview(queryClient, pull.number);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'The merge did not go through.');
+    } finally {
+      setMerging(false);
+      setConfirming(false);
+    }
+  }
+
+  return (
+    <div className="merge-controls">
+      <select
+        value={method}
+        aria-label="How to merge"
+        disabled={merging}
+        onChange={event => setMethod(MergeMethodSchema.parse(event.target.value))}
+      >
+        {Object.entries(mergeMethods).map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+      {confirming ? (
+        <div className="merge-confirm">
+          <button type="button" className="button primary" disabled={merging} onClick={() => void merge()}>
+            {merging ? 'Merging…' : `Confirm: merge into ${pull.baseRef}`}
+          </button>
+          <button type="button" className="button" disabled={merging} onClick={() => setConfirming(false)}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="button primary"
+          disabled={pull.mergeable === false}
+          onClick={() => setConfirming(true)}
+        >
+          Merge pull request
+        </button>
+      )}
+      {error ? <p className="error-text small">{error}</p> : null}
+    </div>
+  );
+};
+
+/** A comment on the pull request as the signed-in reviewer, or a way to sign in to write one. */
+const CommentForm: FC<ChecksProps> = ({ review }) => {
+  const session = useSession();
+  const queryClient = useQueryClient();
+  const number = review.pull.number;
+  if (!session?.enabled) return null;
+  if (!session.viewer) {
+    return (
+      <p className="muted">
+        <a href={signInHref()}>Sign in with GitHub</a> to comment, review and merge.
+      </p>
+    );
+  }
+  return (
+    <section className="entry comment-form">
+      <Composer
+        placeholder="Leave a comment (Markdown)"
+        actions={[
+          {
+            label: 'Comment',
+            primary: true,
+            run: async body => {
+              await send(`/api/pulls/${number}/comments`, { body });
+              await refreshReview(queryClient, number);
+            }
+          }
+        ]}
+      />
+    </section>
+  );
+};
+
 const MergeBox: FC<ChecksProps> = ({ review }) => {
   const byName = new Map(review.checks.map(check => [check.name, check]));
   const others = review.checks.filter(check => check.kind !== 'signoff');
@@ -64,6 +173,7 @@ const MergeBox: FC<ChecksProps> = ({ review }) => {
     <section className="box">
       <h3>Merge</h3>
       <p>{mergeVerdict(review.pull)}</p>
+      <MergeControls review={review} />
       <h4>Signoffs</h4>
       <ul className="checks">
         {signoffs.map(signoff => {
@@ -214,6 +324,7 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
             on the changed files.
           </p>
         ) : null}
+        <CommentForm review={review} />
       </div>
       <aside className="sidebar">
         <MergeBox review={review} />
