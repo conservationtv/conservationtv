@@ -43,13 +43,6 @@ export const ReportedAddressesSchema = z.strictObject({
 });
 export type ReportedAddresses = z.output<typeof ReportedAddressesSchema>;
 
-const selection = {
-  address: deviceAddresses.address,
-  interface: deviceAddresses.interface,
-  preferred: deviceAddresses.preferred,
-  reportedAt: deviceAddresses.reportedAt
-};
-
 /**
  * Replace the device's addresses with what it reports now, all reported at once: trusted code, since the device's
  * signature authenticates it. Returns what is stored.
@@ -65,14 +58,24 @@ export async function replaceDeviceAddresses(device: AuthenticatedDevice, report
     ...address,
     reportedAt
   }));
-  return db.insert(deviceAddresses).values(rows).returning(selection);
+  return db.insert(deviceAddresses).values(rows).returning({
+    address: deviceAddresses.address,
+    interface: deviceAddresses.interface,
+    preferred: deviceAddresses.preferred,
+    reportedAt: deviceAddresses.reportedAt
+  });
 }
 
 /** The addresses the device last reported, preferred first, then by address. */
 export function listDeviceAddresses(organisationId: string, deviceId: string) {
   const db = useDB();
   return db
-    .select(selection)
+    .select({
+      address: deviceAddresses.address,
+      interface: deviceAddresses.interface,
+      preferred: deviceAddresses.preferred,
+      reportedAt: deviceAddresses.reportedAt
+    })
     .from(deviceAddresses)
     .where(and(eq(deviceAddresses.organisationId, organisationId), eq(deviceAddresses.deviceId, deviceId)))
     .orderBy(deviceAddresses.preferred, deviceAddresses.address);
