@@ -53,22 +53,11 @@ export type System = {
             attempt: number;
         };
     };
-    mediamtx: {
+    streams: {
         runtime: {
             version: string | null;
             installing: boolean;
-            metrics: {
-                running: boolean;
-                intervalMs: number | null;
-                subjectId: string | null;
-                lastScrapedAt: string | null;
-                samples: number;
-                pending: number;
-                submitted: number;
-                lastSubmittedAt: string | null;
-                lastError: string | null;
-            };
-            state: 'stopped' | 'starting' | 'running' | 'crashed';
+            state: 'running' | 'stopped' | 'starting' | 'crashed';
             pid: number | null;
             restarts: number;
             lastError: string | null;
@@ -86,19 +75,31 @@ export type System = {
             attempt: number;
         };
     };
-};
-
-export type Path = {
-    paths: Array<{
-        name: string;
-        exposureId: string;
-        rendition?: string;
-        source?: {
-            url: string;
-        } | {
-            path: string;
+    metrics: {
+        runtime: {
+            running: boolean;
+            intervalMs: number | null;
+            subjectId: string | null;
+            lastScrapedAt: string | null;
+            samples: number;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastError: string | null;
         };
-    }>;
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
 };
 
 export type GetStatusData = {
@@ -175,19 +176,7 @@ export type GetSystemSpecResponses = {
         machine?: {
             intervalMs: number;
         };
-        mediamtx?: {
-            binary: {
-                version: string;
-                name: 'mediamtx';
-                artifacts: {
-                    [key: string]: {
-                        url: string;
-                        checksum: string;
-                        format: string;
-                        path?: string;
-                    };
-                };
-            };
+        streams?: {
             paths: Array<{
                 name: string;
                 exposureId: string;
@@ -200,120 +189,29 @@ export type GetSystemSpecResponses = {
             }>;
             publishers: Array<{
                 exposureId: string;
-                connect: string;
-                broadcast: string;
                 layout: 'tracks';
                 renditions: Array<{
-                    rendition: string;
+                    rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
                     path: string;
                 }>;
+                connect: string;
+                broadcast: string;
             }>;
-            metricsIntervalMs: number;
             auth?: {
                 jwks: string;
                 issuer: string;
                 audience: string;
             };
-            moq?: {
-                version: string;
-                name: 'moq';
-                artifacts: {
-                    [key: string]: {
-                        url: string;
-                        checksum: string;
-                        format: string;
-                        path?: string;
-                    };
-                };
-            };
+        };
+        metrics?: {
+            intervalMs: number;
+            paths: Array<{
+                exposureId: string;
+                name: string;
+                rendition?: string;
+            }>;
         };
     };
 };
 
 export type GetSystemSpecResponse = GetSystemSpecResponses[keyof GetSystemSpecResponses];
-
-export type DeleteSystemSpecMediamtxPathsByNameData = {
-    body?: never;
-    path: {
-        name: string;
-    };
-    query?: never;
-    url: '/system/spec/mediamtx/paths/{name}';
-};
-
-export type DeleteSystemSpecMediamtxPathsByNameErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * The agent is configured by the studio, so its spec is not changed over this API; or MediaMTX is not running
-     */
-    409: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The change would leave the spec invalid, such as two paths delivering the same exposure and rendition
-     */
-    422: Error;
-};
-
-export type DeleteSystemSpecMediamtxPathsByNameError = DeleteSystemSpecMediamtxPathsByNameErrors[keyof DeleteSystemSpecMediamtxPathsByNameErrors];
-
-export type DeleteSystemSpecMediamtxPathsByNameResponses = {
-    /**
-     * The paths MediaMTX serves
-     */
-    200: Path;
-};
-
-export type DeleteSystemSpecMediamtxPathsByNameResponse = DeleteSystemSpecMediamtxPathsByNameResponses[keyof DeleteSystemSpecMediamtxPathsByNameResponses];
-
-export type PutSystemSpecMediamtxPathsByNameData = {
-    body: {
-        exposureId: string;
-        rendition?: string;
-        source?: {
-            url: string;
-        } | {
-            path: string;
-        };
-    };
-    path: {
-        name: string;
-    };
-    query?: never;
-    url: '/system/spec/mediamtx/paths/{name}';
-};
-
-export type PutSystemSpecMediamtxPathsByNameErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * The agent is configured by the studio, so its spec is not changed over this API; or MediaMTX is not running
-     */
-    409: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The change would leave the spec invalid, such as two paths delivering the same exposure and rendition
-     */
-    422: Error;
-};
-
-export type PutSystemSpecMediamtxPathsByNameError = PutSystemSpecMediamtxPathsByNameErrors[keyof PutSystemSpecMediamtxPathsByNameErrors];
-
-export type PutSystemSpecMediamtxPathsByNameResponses = {
-    /**
-     * The paths MediaMTX serves
-     */
-    200: Path;
-};
-
-export type PutSystemSpecMediamtxPathsByNameResponse = PutSystemSpecMediamtxPathsByNameResponses[keyof PutSystemSpecMediamtxPathsByNameResponses];

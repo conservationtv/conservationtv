@@ -25,18 +25,7 @@ export type Peer = z.output<typeof PeerSchema>;
 export const PeersSchema = z.array(PeerSchema);
 export type Peers = z.output<typeof PeersSchema>;
 
-/** The agent's admission policy for `serve`: without a list of peers, every peer is admitted directly. */
-export function admitPeers(peers: Peers | undefined) {
-  return (peer: IncomingPeer): Admission => {
-    const admission = decide(peers, peer);
-    console.log(
-      JSON.stringify({ event: 'admission', kind: peer.kind, endpointId: peer.endpointId ?? null, admission })
-    );
-    return admission;
-  };
-}
-
-function decide(peers: Peers | undefined, peer: IncomingPeer): Admission {
+export function decide(peers: Peers | undefined, peer: IncomingPeer): Admission {
   if (peers === undefined) return 'direct';
   // Over IP the peer is unknown until the handshake, but it already has one of the agent's addresses: nothing is left
   // to hide.

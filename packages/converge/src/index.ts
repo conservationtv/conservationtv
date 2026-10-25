@@ -10,4 +10,4 @@ export {
   type SystemStatus
 } from './controller.ts';
 export { converge, type Convergence, type ConvergeOptions } from './converge.ts';
-export { mutator, NotMutating, type Mutator, type MutatorContext, type MutatorRun, type Recipe } from './mutator.ts';
+export { NotMutating, type MutatorContext, type MutatorRun, type Recipe } from './mutator.ts';

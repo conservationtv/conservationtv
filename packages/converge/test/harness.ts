@@ -2,15 +2,15 @@ import { BehaviorSubject, type Observable, filter, firstValueFrom } from 'rxjs';
 import { vi } from 'vitest';
 import { z } from 'zod';
 import {
-  type Mutator,
   type Controllers,
   type Convergence,
   type ConvergeOptions,
+  type MutatorContext,
+  type MutatorRun,
   type SystemSpec,
   type SystemStatus,
   controller,
-  converge,
-  mutator
+  converge
 } from '../src/index.ts';
 import { revisionOf } from '../src/revision.ts';
 
@@ -142,7 +142,7 @@ export interface Changes<R extends Controllers> {
 }
 
 /** Sets, removes and replaces keys through `handle`, each as one recipe. */
-export function changes<R extends Controllers>(handle: Mutator<R>): Changes<R> {
+export function changes<R extends Controllers>(handle: MutatorContext<R>): Changes<R> {
   return {
     set: (key, spec) =>
       handle.update(draft => {
@@ -160,19 +160,33 @@ export function changes<R extends Controllers>(handle: Mutator<R>): Changes<R> {
   };
 }
 
-/** A running convergence, the mutator changing it, and the changes the test makes through that mutator. */
+/** A running convergence, its mutator's context, and the changes the test makes through that context. */
 export interface TestSystem<R extends Controllers> extends Convergence<R>, Changes<R> {
-  mutator: Mutator<R>;
+  context: MutatorContext<R>;
+}
+
+/** A mutator that keeps its context once started, as an API would, then runs `given`, if any. */
+export class HeldMutator<R extends Controllers> {
+  context: MutatorContext<R> | undefined = undefined;
+
+  constructor(private readonly given?: MutatorRun<R>) {}
+
+  readonly run: MutatorRun<R> = context => {
+    this.context = context;
+    return this.given?.(context);
+  };
 }
 
 /**
- * Starts converging with the options' mutator, or one of the test's own with no `run`, holding on to it the way an
- * API would. Everything the test sets, removes or replaces goes through it.
+ * Starts converging with the options' mutator, if any, holding on to its context the way an API would. Everything
+ * the test sets, removes or replaces goes through it.
  */
 export async function started<R extends Controllers>(options: ConvergeOptions<R>): Promise<TestSystem<R>> {
-  const handle = options.mutator ?? mutator<R>();
-  const system = await converge({ ...options, mutator: handle });
-  return { ...system, ...changes(handle), mutator: handle };
+  const held = new HeldMutator(options.mutator);
+  const system = await converge({ ...options, mutator: held.run });
+  const { context } = held;
+  if (context === undefined) throw new Error('The mutator was never started');
+  return { ...system, ...changes(context), context };
 }
 
 /** Resolves with the first status that satisfies `predicate`, including the current one. */

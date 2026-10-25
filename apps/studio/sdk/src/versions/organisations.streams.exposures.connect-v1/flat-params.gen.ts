@@ -10,7 +10,7 @@ export const ExposureConnectV1ParamsSchema = z.object({
     exposureId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
     action: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.action.nonoptional().describe('Whether to read the exposure from its gateway, or publish it there.'),
     protocol: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'),
-    rendition: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.rendition.optional().describe('The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.')
+    rendition: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.rendition.optional()
 });
 
 export type ExposureConnectV1Params = z.infer<typeof ExposureConnectV1ParamsSchema>;

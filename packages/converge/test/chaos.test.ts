@@ -1,10 +1,11 @@
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Controller, type Convergence, type SystemSpec, controller, converge, mutator } from '../src/index.ts';
+import { type Controller, type Convergence, type SystemSpec, controller, converge } from '../src/index.ts';
 import {
   type AppSpec,
   AppSpecSchema,
   type Changes,
+  HeldMutator,
   type Running,
   app,
   changes,
@@ -244,7 +245,7 @@ async function start(run: Run, life: Life, last: boolean): Promise<Started | und
 
   let looping = true;
   const broken = !last && next() < 0.1;
-  const source = mutator<Chaos>(context => {
+  const held = new HeldMutator<Chaos>(context => {
     const spin = async (): Promise<void> => {
       for (let turn = 0; looping && !context.signal.aborted; turn++) {
         const flip = app(7 + (turn % 2));
@@ -272,12 +273,13 @@ async function start(run: Run, life: Life, last: boolean): Promise<Started | und
     looping = false;
   };
 
-  const system = await withTime(converge({ controllers, sink, restore, mutator: source })).catch(() => undefined);
-  if (system === undefined) {
+  const system = await withTime(converge({ controllers, sink, restore, mutator: held.run })).catch(() => undefined);
+  const { context } = held;
+  if (system === undefined || context === undefined) {
     quiet();
     return undefined;
   }
-  return { system, api: changes(source), quiet };
+  return { system, api: changes(context), quiet };
 }
 
 /** Makes random changes through the API, letting time pass between some of them. */

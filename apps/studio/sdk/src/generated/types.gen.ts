@@ -13,10 +13,41 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
 
+/**
+ * A quality the stream is delivered at.
+ */
+export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+
 export type Relay = {
     url: string;
     quicPort?: number;
     authToken?: string;
+};
+
+export type MediamtxAuth = {
+    jwks: string;
+    issuer: string;
+    audience: string;
+};
+
+export type Publisher = {
+    exposureId: string;
+    connect: PublisherConnect;
+    layout: 'tracks';
+    renditions: Array<PublishedRendition>;
+};
+
+export type PublisherConnect = {
+    id: string;
+    streamId: string;
+    exposureId: string;
+    action: 'publish';
+    protocol: 'moq';
+};
+
+export type PublishedRendition = {
+    rendition: Rendition;
+    path: string;
 };
 
 export type Health = {
@@ -153,7 +184,7 @@ export type Stream = {
     exposures: Array<{
         id: string;
         gatewayId: string;
-        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions: Array<Rendition>;
         publisherDeviceId: string | null;
         upstreamExposureId: string | null;
         params: {
@@ -164,7 +195,7 @@ export type Stream = {
     recorders: Array<{
         id: string;
         exposureId: string;
-        rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition: Rendition;
         kind: string;
         params: {
             [key: string]: unknown;
@@ -180,7 +211,7 @@ export type Stream = {
 export type Exposure = {
     id: string;
     gatewayId: string;
-    renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+    renditions: Array<Rendition>;
     publisherDeviceId: string | null;
     upstreamExposureId: string | null;
     params: {
@@ -192,7 +223,7 @@ export type Exposure = {
 export type Recorder = {
     id: string;
     exposureId: string;
-    rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+    rendition: Rendition;
     kind: string;
     params: {
         [key: string]: unknown;
@@ -3035,7 +3066,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
         /**
          * The renditions the exposure offers.
          */
-        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions?: Array<Rendition>;
         /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */
@@ -3175,7 +3206,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
         /**
          * The renditions the exposure offers.
          */
-        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions?: Array<Rendition>;
         /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */
@@ -3262,10 +3293,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
          * One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.
          */
         protocol: string;
-        /**
-         * The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.
-         */
-        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition?: Rendition;
     };
     path: {
         /**
@@ -3329,13 +3357,13 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
         broadcast: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions: Array<Rendition>;
     } | {
         protocol: string;
         url: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions: Array<Rendition>;
     };
 };
 
@@ -3347,10 +3375,7 @@ export type PostOrganisationsByIdStreamsByStreamIdRecordersData = {
          * The exposure of this stream to record.
          */
         exposureId: string;
-        /**
-         * The rendition of the exposure to record: one it offers.
-         */
-        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition?: Rendition;
         /**
          * The recording implementation.
          */
@@ -3482,10 +3507,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdData = {
          * The exposure of this stream to record.
          */
         exposureId?: string;
-        /**
-         * The rendition of the exposure to record: one it offers.
-         */
-        rendition?: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition?: Rendition;
         /**
          * The recording implementation.
          */
@@ -4231,37 +4253,19 @@ export type GetDeviceConfigurationResponses = {
         state: 'active';
         mediamtx: {
             gatewayId: string;
-            auth: {
-                jwks: string;
-                issuer: string;
-                audience: string;
-            };
+            auth: MediamtxAuth;
         };
         paths: Array<{
             name: string;
             exposureId: string;
-            rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+            rendition: Rendition;
             source: {
                 url: string;
             } | {
                 path: string;
             };
         }>;
-        publishers: Array<{
-            exposureId: string;
-            connect: {
-                id: string;
-                streamId: string;
-                exposureId: string;
-                action: 'publish';
-                protocol: 'moq';
-            };
-            layout: 'tracks';
-            renditions: Array<{
-                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
-                path: string;
-            }>;
-        }>;
+        publishers: Array<Publisher>;
         diagnostics: Array<{
             subject: string;
             message: string;

@@ -9,6 +9,11 @@ export type Error = {
     error_description: string;
 };
 
+/**
+ * A quality the stream is delivered at.
+ */
+export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+
 export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
@@ -16,7 +21,7 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
 export type Exposure = {
     id: string;
     gatewayId: string;
-    renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+    renditions: Array<Rendition>;
     publisherDeviceId: string | null;
     upstreamExposureId: string | null;
     params: {
@@ -34,7 +39,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
         /**
          * The renditions the exposure offers.
          */
-        renditions?: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions?: Array<Rendition>;
         /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */

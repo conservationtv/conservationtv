@@ -2,8 +2,9 @@ import { exposureSubject } from '@conservationtv/reports';
 import { z } from 'zod';
 
 // The paths MediaMTX serves, each delivering one of the organisation's exposures. MediaMTX's config has nowhere to keep
-// what a path is for, and its metrics name a path only by its name, so the agent keeps that itself: the spec that
-// makes the config also makes an index from each path's name to what its metrics are about.
+// what a path is for, and its metrics name a path only by its name, so the agent keeps that itself: the `metrics`
+// spec names each path the `streams` spec serves and what it delivers, from which comes an index from each path's
+// name to what its metrics are about.
 
 /** A MediaMTX path name: segments of letters, digits, `_`, `-` and `.`, separated by `/`. */
 const PATH_NAME = /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/u;
@@ -26,15 +27,29 @@ export const MediamtxPathSchema = z.strictObject({
 });
 export type MediamtxPath = z.output<typeof MediamtxPathSchema>;
 
+/** What tells one path from another: its name, and what it delivers. */
+type PathIdentity = Pick<MediamtxPath, 'name' | 'exposureId' | 'rendition'>;
+
 /** Paths with different names, and each delivering something different: otherwise their metrics would collide. */
-export const MediamtxPathsSchema = z
-  .array(MediamtxPathSchema)
-  .refine(paths => new Set(paths.map(path => path.name)).size === paths.length, 'Path names must be unique')
-  .refine(
-    paths => new Set(paths.map(path => `${path.exposureId}/${path.rendition ?? ''}`)).size === paths.length,
-    'Each path must deliver a different exposure or rendition'
-  );
+function distinct<T extends z.ZodType<PathIdentity>>(path: T) {
+  return z
+    .array(path)
+    .refine(paths => new Set(paths.map(({ name }) => name)).size === paths.length, 'Path names must be unique')
+    .refine(
+      paths =>
+        new Set(paths.map(({ exposureId, rendition }) => `${exposureId}/${rendition ?? ''}`)).size === paths.length,
+      'Each path must deliver a different exposure or rendition'
+    );
+}
+
+export const MediamtxPathsSchema = distinct(MediamtxPathSchema);
 export type MediamtxPaths = z.output<typeof MediamtxPathsSchema>;
+
+/** The paths whose metrics are reported, each by its name and the exposure it delivers, but not where it comes from. */
+export const PathAttributionsSchema = distinct(
+  MediamtxPathSchema.pick({ name: true, exposureId: true, rendition: true })
+);
+export type PathAttributions = z.output<typeof PathAttributionsSchema>;
 
 /** What a path's metrics are about: a subject, or the agent's device without one, and their dimensions. */
 export interface PathTarget {
@@ -48,7 +63,7 @@ export interface PathTarget {
  */
 export type PathIndex = Map<string, PathTarget> | null;
 
-export function pathIndexOf(paths: MediamtxPaths): PathIndex {
+export function pathIndexOf(paths: PathAttributions): PathIndex {
   if (paths.length === 0) return null;
   const index = new Map<string, PathTarget>();
   for (const { name, exposureId, rendition } of paths) {
