@@ -68,13 +68,14 @@ interface DiffListProps {
   viewed: ViewedFiles;
   drafts: Drafts;
   diffStyle: DiffStyle;
+  wrap: boolean;
   header: ReactNode;
   footer: ReactNode;
 }
 
 /** A chapter's diffs in one scrolling list, with what to read open and the rest folded until asked for. */
 export const DiffList: FC<DiffListProps> = props => {
-  const { review, entries, viewer, viewed, drafts, diffStyle, header, footer } = props;
+  const { review, entries, viewer, viewed, drafts, diffStyle, wrap, header, footer } = props;
   const [states, setStates] = useState<Record<string, EntryState>>({});
   const threads = useMemo(() => Map.groupBy(review.threads, thread => thread.path), [review.threads]);
   const pending = useMemo(() => Map.groupBy(drafts.all, draft => draft.path), [drafts.all]);
@@ -175,6 +176,7 @@ export const DiffList: FC<DiffListProps> = props => {
   const options: CodeViewReactOptions<Note, undefined> = {
     theme,
     diffStyle,
+    overflow: wrap ? 'wrap' : 'scroll',
     stickyHeaders: true,
     loadDiffFiles: fileDiff => loadSides(review.pull, fileDiff.name, fileDiff.prevName),
     layout: { paddingTop: 0, paddingBottom: 96, gap: 12 },
