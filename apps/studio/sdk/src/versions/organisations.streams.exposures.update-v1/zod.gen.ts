@@ -7,6 +7,18 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
+/**
+ * A quality the stream is delivered at.
+ */
+export const RenditionSchema = z.enum([
+    'default',
+    'data_saver',
+    'balanced',
+    'quality'
+]).register(z.globalRegistry, {
+    description: 'A quality the stream is delivered at.'
+});
+
 export const Schema0Schema = z.union([
     z.string(),
     z.number(),
@@ -18,12 +30,7 @@ export const Schema0Schema = z.union([
 export const ExposureSchema = z.object({
     id: z.string(),
     gatewayId: z.string(),
-    renditions: z.array(z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ])),
+    renditions: z.array(RenditionSchema),
     publisherDeviceId: z.string().nullable(),
     upstreamExposureId: z.string().nullable(),
     params: z.record(z.string(), z.unknown()),
@@ -35,14 +42,7 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySch
         z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]).optional(),
-    renditions: z.array(z.enum([
-        'default',
-        'data_saver',
-        'balanced',
-        'quality'
-    ]).register(z.globalRegistry, {
-        description: 'A quality the stream is delivered at.'
-    })).min(1).register(z.globalRegistry, {
+    renditions: z.array(RenditionSchema).min(1).register(z.globalRegistry, {
         description: 'The renditions the exposure offers.'
     }).optional(),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),

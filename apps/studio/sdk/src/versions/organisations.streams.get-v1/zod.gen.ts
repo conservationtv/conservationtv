@@ -7,16 +7,18 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
+export const RenditionSchema = z.enum([
+    'default',
+    'data_saver',
+    'balanced',
+    'quality'
+]);
+
 export const StreamSchema = z.object({
     exposures: z.array(z.object({
         id: z.string(),
         gatewayId: z.string(),
-        renditions: z.array(z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ])),
+        renditions: z.array(RenditionSchema),
         publisherDeviceId: z.string().nullable(),
         upstreamExposureId: z.string().nullable(),
         params: z.record(z.string(), z.unknown()),
@@ -25,12 +27,7 @@ export const StreamSchema = z.object({
     recorders: z.array(z.object({
         id: z.string(),
         exposureId: z.string(),
-        rendition: z.enum([
-            'default',
-            'data_saver',
-            'balanced',
-            'quality'
-        ]),
+        rendition: RenditionSchema,
         kind: z.string(),
         params: z.record(z.string(), z.unknown()),
         createdAt: z.string()

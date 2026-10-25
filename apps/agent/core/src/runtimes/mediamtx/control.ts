@@ -1,18 +1,21 @@
 import { MediamtxApi, createClient, createConfig } from '@conservationtv/mediamtx/api';
+import { createStore } from '@conservationtv/store';
 
-/** MediaMTX's control API, used here only to tell that a MediaMTX is up and answering. */
-export class MediamtxControl {
-  private readonly api: MediamtxApi;
+// MediaMTX's control API, used here only to tell that a MediaMTX is up and answering.
 
-  /** @param address Where the API listens, such as `127.0.0.1:9997`. */
-  constructor(address: string) {
-    const client = createClient(createConfig({ baseUrl: `http://${address}` }));
-    this.api = new MediamtxApi({ client });
-  }
+/** The control API. The agent supplies it on start; runtimes read it with `useMediamtxClient()`. */
+export const [withMediamtxClient, useMediamtxClient] = createStore<MediamtxApi>('mediamtx');
 
-  /** Whether a MediaMTX is answering on the API. */
-  async alive(signal: AbortSignal): Promise<boolean> {
-    const { response } = await this.api.info({ signal });
-    return response?.ok === true;
-  }
+/** The control API at `address`, such as `127.0.0.1:9997`. */
+export function createMediamtxClient(address: string): MediamtxApi {
+  const config = createConfig({ baseUrl: `http://${address}` });
+  const client = createClient(config);
+  return new MediamtxApi({ client });
+}
+
+/** Whether a MediaMTX is answering on the API. */
+export async function isMediamtxAlive(signal: AbortSignal): Promise<boolean> {
+  const api = useMediamtxClient();
+  const { response } = await api.info({ signal });
+  return response?.ok === true;
 }

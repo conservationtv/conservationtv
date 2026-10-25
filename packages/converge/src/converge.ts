@@ -3,7 +3,7 @@ import { type Observable, combineLatest, firstValueFrom, map, shareReplay } from
 import { z } from 'zod';
 import type { Apply, Controller, Controllers, KeyStatus, SystemSpec, SystemStatus } from './controller.ts';
 import { KeyLoop } from './key.ts';
-import { type Attachment, type Mutator, type MutatorTarget, attach } from './mutator.ts';
+import { type Attachment, type MutatorRun, type MutatorTarget, attach } from './mutator.ts';
 import { revisionOf } from './revision.ts';
 
 /** Where the spec comes from and where it is kept. Without `restore` or `sink`, nothing persists. */
@@ -13,14 +13,14 @@ export interface ConvergeOptions<R extends Controllers> {
    * The spec to start from: the last one saved, or one fixed in code. Parsed again with the system's schema, so a
    * corrupt one fails the start. Without it, the system starts from an empty spec.
    */
-  restore?(): Promise<SystemSpec<R>>;
+  restore?(): Promise<SystemSpec<NoInfer<R>>>;
   /** Persists an accepted spec before it is applied. If it throws, the change is rejected and nothing changes. */
-  sink?(spec: SystemSpec<R>): Promise<void>;
+  sink?(spec: SystemSpec<NoInfer<R>>): Promise<void>;
   /**
    * The one source of changes: the studio, an API or a file. It changes this system from once the restored spec is
    * applied until the system stops. Without it, the spec stays as it was restored.
    */
-  mutator?: Mutator<R>;
+  mutator?: MutatorRun<NoInfer<R>>;
 }
 
 /** A running convergence: what it reports, and how to stop it. Changes come only through its mutator. */
@@ -44,8 +44,7 @@ type KeyedStatus<Status> = readonly [string, KeyStatus<Status>];
 
 /**
  * Starts converging every controller's runtime to the spec. Keys absent at start are finalized, so a key removed while
- * nothing was running is still torn down. If the mutator is already changing another system, or its `run` throws, the
- * system stops again and the start rejects.
+ * nothing was running is still torn down. If the mutator throws, the system stops again and the start rejects.
  */
 export async function converge<R extends Controllers>(options: ConvergeOptions<R>): Promise<Convergence<R>> {
   const { controllers, sink } = options;

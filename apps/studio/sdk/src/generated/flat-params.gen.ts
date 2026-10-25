@@ -384,7 +384,7 @@ export const ExposureConnectParamsSchema = z.object({
     exposureId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
     action: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.action.nonoptional().describe('Whether to read the exposure from its gateway, or publish it there.'),
     protocol: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'),
-    rendition: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.rendition.optional().describe('The rendition to connect to, for a protocol that carries one per connection (any but `moq`); optional when the exposure offers only one. With `moq`, every rendition is a track of the one connection.')
+    rendition: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.rendition.optional()
 });
 
 export type ExposureConnectParams = z.infer<typeof ExposureConnectParamsSchema>;
@@ -393,7 +393,7 @@ export const RecorderCreateParamsSchema = z.object({
     id: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.id.nonoptional().describe('The organisation.'),
     streamId: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     exposureId: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.exposureId.nonoptional().describe('The exposure of this stream to record.'),
-    rendition: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.rendition.optional().describe('The rendition of the exposure to record: one it offers.'),
+    rendition: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.rendition.optional(),
     kind: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.kind.nonoptional().describe('The recording implementation.'),
     params: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });
@@ -413,7 +413,7 @@ export const RecorderUpdateParamsSchema = z.object({
     streamId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
     recorderId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.'),
     exposureId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.exposureId.optional().describe('The exposure of this stream to record.'),
-    rendition: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.rendition.optional().describe('The rendition of the exposure to record: one it offers.'),
+    rendition: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.rendition.optional(),
     kind: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.kind.optional().describe('The recording implementation.'),
     params: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });

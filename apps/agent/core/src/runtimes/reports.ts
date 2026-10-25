@@ -1,6 +1,7 @@
 import { deviceSubject, summarise, type MetricDefinition } from '@conservationtv/reports';
-import { Client, DeviceIdentity, deviceSignature, type PostReportsData } from '@conservationtv/studio-sdk';
+import type { Client, PostReportsData } from '@conservationtv/studio-sdk';
 import type { AgentConfiguration } from '../config.ts';
+import { useStudio } from '../studio.ts';
 
 // Metric reports to the studio API (`reports.submit`), signed as the agent's device, and about it, `device:<id>`,
 // unless queued about another subject, such as an exposure. The agent knows only its key, so it asks the studio API
@@ -102,8 +103,7 @@ export class MetricReporter {
     if (this.studio !== undefined) return this.studio;
     const config = this.config;
     if (config.type === 'direct') throw new Error('A direct agent has no studio API to report to');
-    const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
-    const client = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
+    const client = useStudio();
     await client.handshake();
     const device = await client.whoami.get.v1();
     if (device instanceof Error) throw device;

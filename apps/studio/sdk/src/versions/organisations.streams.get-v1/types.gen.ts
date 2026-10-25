@@ -9,11 +9,13 @@ export type Error = {
     error_description: string;
 };
 
+export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+
 export type Stream = {
     exposures: Array<{
         id: string;
         gatewayId: string;
-        renditions: Array<'default' | 'data_saver' | 'balanced' | 'quality'>;
+        renditions: Array<Rendition>;
         publisherDeviceId: string | null;
         upstreamExposureId: string | null;
         params: {
@@ -24,7 +26,7 @@ export type Stream = {
     recorders: Array<{
         id: string;
         exposureId: string;
-        rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
+        rendition: Rendition;
         kind: string;
         params: {
             [key: string]: unknown;

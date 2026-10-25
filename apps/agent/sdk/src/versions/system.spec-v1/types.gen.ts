@@ -13,19 +13,7 @@ export type System = {
     machine?: {
         intervalMs: number;
     };
-    mediamtx?: {
-        binary: {
-            version: string;
-            name: 'mediamtx';
-            artifacts: {
-                [key: string]: {
-                    url: string;
-                    checksum: string;
-                    format: string;
-                    path?: string;
-                };
-            };
-        };
+    streams?: {
         paths: Array<{
             name: string;
             exposureId: string;
@@ -38,32 +26,27 @@ export type System = {
         }>;
         publishers: Array<{
             exposureId: string;
-            connect: string;
-            broadcast: string;
             layout: 'tracks';
             renditions: Array<{
-                rendition: string;
+                rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
                 path: string;
             }>;
+            connect: string;
+            broadcast: string;
         }>;
-        metricsIntervalMs: number;
         auth?: {
             jwks: string;
             issuer: string;
             audience: string;
         };
-        moq?: {
-            version: string;
-            name: 'moq';
-            artifacts: {
-                [key: string]: {
-                    url: string;
-                    checksum: string;
-                    format: string;
-                    path?: string;
-                };
-            };
-        };
+    };
+    metrics?: {
+        intervalMs: number;
+        paths: Array<{
+            exposureId: string;
+            name: string;
+            rendition?: string;
+        }>;
     };
 };
 

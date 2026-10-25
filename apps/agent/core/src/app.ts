@@ -1,16 +1,33 @@
-import { mutator } from '@conservationtv/converge';
 import { OperationRouter, PUBLISHED_DOCUMENT_PATH, servePublishedDocument } from '@conservationtv/versioned-api/server';
-import { serve, type IrohHttpServer } from '@strangecyan/iroh-http-node';
+import { Client, DeviceIdentity, deviceSignature } from '@conservationtv/studio-sdk';
+import { getLogger } from '@logtape/logtape';
+import { serve, type Admission, type IncomingPeer, type IrohHttpServer } from '@strangecyan/iroh-http-node';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import document from '../contracts/openapi.json' with { type: 'json' };
-import { withConfig, type AgentConfiguration } from './config.ts';
-import { admitPeers } from './admission.ts';
-import { bindEndpoint } from './iroh.ts';
+import { type AgentConfiguration, type ConservationTvConfiguration } from './config.ts';
+import { decide } from './admission.ts';
+import { connectWithEndpoint, createEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import status from './routes/status.ts';
 import system from './routes/system.ts';
-import { type AgentControllers, startSystem, withSpecApi, withSystem, type AgentSystem } from './system.ts';
+import { withStudio } from './studio.ts';
+import { withSystem, type AgentSystem } from './system.ts';
+
+import { join } from 'node:path';
+import { controller, converge } from '@conservationtv/converge';
+import { MachineRuntime, MachineSpecSchema } from './runtimes/machine.ts';
+import {
+  MEDIAMTX_MANIFEST,
+  MOQ_MANIFEST,
+  MediamtxMetricsRuntime,
+  MediamtxRuntime,
+  MetricsSpecSchema,
+  StreamsSpecSchema,
+  createMediamtxClient,
+  withMediamtxClient
+} from './runtimes/mediamtx/index.ts';
+import { watchStudioConfiguration } from './studio-configuration.ts';
 
 export { PeersSchema, type Peer, type Peers } from './admission.ts';
 export {
@@ -39,6 +56,58 @@ const app = new Hono<AgentEnv>({ router: operationRouter })
   .notFound(handleNotFound)
   .onError(handleError);
 
+/** Where MediaMTX's control API listens. */
+const MEDIAMTX_API = '127.0.0.1:9997';
+
+/** Where MediaMTX's metrics page listens. */
+const MEDIAMTX_METRICS = '127.0.0.1:9998';
+
+const logger = getLogger(['agent']);
+
+/** The agent's runtimes, by the key of the spec each converges to. */
+function controllers(config: ConservationTvConfiguration) {
+  const machine = new MachineRuntime(config);
+  // The streams and their metrics, both fulfilled by MediaMTX.
+  const streams = new MediamtxRuntime({
+    directory: join(config.directory, 'mediamtx'),
+    binary: MEDIAMTX_MANIFEST,
+    moq: MOQ_MANIFEST,
+    api: MEDIAMTX_API,
+    metrics: MEDIAMTX_METRICS,
+    authHttp: '127.0.0.1:9996'
+  });
+  const metrics = new MediamtxMetricsRuntime(config, MEDIAMTX_METRICS);
+
+  // const control = new ControlRuntime(config);
+
+  return {
+    machine: controller({
+      spec: MachineSpecSchema,
+      status: machine.status$,
+      execute: spec => machine.apply(spec),
+      finalize: () => machine.teardown(),
+      dispose: () => machine.dispose()
+    }),
+    streams: controller({
+      spec: StreamsSpecSchema,
+      status: streams.status$,
+      execute: (spec, signal) => streams.execute(spec, signal),
+      finalize: () => streams.finalize(),
+      dispose: () => streams.dispose()
+    }),
+    metrics: controller({
+      spec: MetricsSpecSchema,
+      status: metrics.status$,
+      execute: spec => metrics.apply(spec),
+      finalize: () => metrics.teardown(),
+      dispose: () => metrics.dispose()
+    })
+  };
+}
+
+/** The agent's runtimes, by key: what its system's spec and status are made of. */
+export type AgentControllers = ReturnType<typeof controllers>;
+
 /** The agent: the app, served as HTTP over iroh on an endpoint whose identity is the configured secret key. */
 export class Agent {
   private server: IrohHttpServer | undefined = undefined;
@@ -49,31 +118,75 @@ export class Agent {
   /** Start the runtimes and an iroh session, and serve on its endpoint. Resolves once requests are being accepted. */
   async start() {
     if (this.system !== undefined) throw new Error('The agent is already started');
-    console.log(JSON.stringify({ event: 'starting', name: this.config.name, type: this.config.type }));
+    const config = this.config;
+    if (!config) throw new Error('There is no config available.');
 
-    const api = mutator<AgentControllers>();
-    const system = await startSystem(this.config, api);
-    this.system = system;
-    const endpoint = await this.bind();
+    logger.info('Starting {name} as a {type} agent', { name: config.name, type: config.type });
+    if (config.type === 'direct') {
+      throw new Error('Agents cannot currently be started in direct mode.');
+    }
 
-    // The server owns the endpoint from here: disposing it closes the endpoint too. If accepting fails, `closed`
-    // rejects unhandled, which the host's process lifecycle treats as fatal.
-    // A peer that reached the agent over IP is only known once its handshake completes, so the list is checked again
-    // for each request.
-    const peers = this.config.peers;
-    const listed = (endpointId: string) => peers?.some(peer => peer.endpointId === endpointId) ?? true;
-    this.server = serve(
-      endpoint,
-      (request, peer) => {
-        if (!listed(peer.endpointId)) return new Response(null, { status: 403 });
-        return withSystem(system, () =>
-          withSpecApi(api, () => withConfig(this.config, () => app.fetch(request, { peer: peer.endpointId })))
-        );
+    const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
+    const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
+    const mediamtx = createMediamtxClient(MEDIAMTX_API);
+    await withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config)));
+  }
+
+  /** Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs in scope for both. */
+  private async serve(config: ConservationTvConfiguration) {
+    this.system = await converge({
+      controllers: controllers(config),
+      restore: async () => {
+        const spec = {
+          machine: { intervalMs: 60_000 },
+          streams: { paths: [], publishers: [] },
+          metrics: { intervalMs: 60_000, paths: [] }
+        };
+        return spec;
       },
-      { admit: admitPeers(peers) }
-    );
-    const endpointId = endpoint.id();
-    console.log(JSON.stringify({ event: 'started', name: this.config.name, endpointId: endpointId.toString() }));
+      mutator: context =>
+        watchStudioConfiguration(context.signal, specs =>
+          context.update(draft => {
+            if (specs === undefined) {
+              delete draft.streams;
+              delete draft.metrics;
+            } else {
+              draft.streams = specs.streams;
+              draft.metrics = specs.metrics;
+            }
+          })
+        )
+    });
+    const system = this.system;
+
+    try {
+      const endpoint = await createEndpoint(config);
+      await connectWithEndpoint(endpoint);
+
+      this.server = serve(
+        endpoint,
+        (request, peer) => {
+          // if (!listed(peer.endpointId)) return new Response(null, { status: 403 });
+          return withSystem(system, () => app.fetch(request, { peer: peer.endpointId }));
+        },
+        {
+          admit: (peer: IncomingPeer): Admission => {
+            const admission = decide(undefined, peer);
+            logger.info('Admitted {endpointId} over {kind} as {admission}', {
+              kind: peer.kind,
+              endpointId: peer.endpointId,
+              admission
+            });
+            return admission;
+          }
+        }
+      );
+      const endpointId = endpoint.id();
+      logger.info('Started {name} on {endpointId}', { name: this.config.name, endpointId: endpointId.toString() });
+    } catch (error) {
+      this.stop();
+      throw error;
+    }
   }
 
   /**
@@ -87,16 +200,6 @@ export class Agent {
     const system = this.system;
     this.system = undefined;
     await system?.stop();
-  }
-
-  /** Bind the endpoint, stopping the runtimes again if that fails, so a failed start leaves nothing running. */
-  private async bind() {
-    try {
-      return await bindEndpoint(this.config);
-    } catch (error) {
-      await this.stop();
-      throw error;
-    }
   }
 }
 

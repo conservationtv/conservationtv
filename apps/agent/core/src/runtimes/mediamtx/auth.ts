@@ -1,3 +1,4 @@
+import type { MediamtxAuth } from '@conservationtv/studio-sdk';
 import { serve, type ServerType } from '@hono/node-server';
 import { sValidator } from '@hono/standard-validator';
 import { Hono } from 'hono';
@@ -14,17 +15,6 @@ import { z } from 'zod';
 
 /** Where on `authHttp` the agent answers. */
 export const MEDIAMTX_AUTH_PATH = '/mediamtx/auth';
-
-/** How tokens are checked: against the studio API's published keys, issued by it, for this gateway. */
-export const MediamtxAuthSchema = z.strictObject({
-  /** Where the studio API publishes the keys it signs with. */
-  jwks: z.url(),
-  /** The studio API, which every token names as its issuer. */
-  issuer: z.string().min(1),
-  /** The gateway's ID, which every token for it names as its audience. */
-  audience: z.string().min(1)
-});
-export type MediamtxAuth = z.output<typeof MediamtxAuthSchema>;
 
 /** What MediaMTX asks about: who is doing what, to which path, and whatever credentials they offered. */
 const AuthRequestSchema = z.object({
@@ -67,11 +57,10 @@ async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys):
 }
 
 /**
- * Answers MediaMTX's authentication requests on `address` (such as `127.0.0.1:9996`: loopback, since only MediaMTX
- * asks) by the tokens `auth` says how to check, until the returned function closes it, after which MediaMTX admits no
- * one. Anything malformed or failing is refused, as is anything asked elsewhere, which Hono answers 404.
+ * Answers MediaMTX's authentication requests by the tokens `auth` says how to check. Anything malformed or failing is
+ * refused, as is anything asked elsewhere, which Hono answers 404.
  */
-export async function serveMediamtxAuth(address: string, auth: MediamtxAuth): Promise<() => Promise<void>> {
+export function createMediamtxAuthApp(auth: MediamtxAuth): Hono {
   const keys = createRemoteJWKSet(new URL(auth.jwks));
   const app = new Hono()
     .post(
@@ -85,6 +74,14 @@ export async function serveMediamtxAuth(address: string, auth: MediamtxAuth): Pr
       }
     )
     .onError((_error, c) => c.body(null, 401));
+  return app;
+}
+
+/**
+ * Serves `app` on `address` (such as `127.0.0.1:9996`: loopback, since only MediaMTX asks) until the returned function
+ * closes it, after which MediaMTX admits no one.
+ */
+export async function serveMediamtxAuth(address: string, app: Hono): Promise<() => Promise<void>> {
   const { hostname, port } = new URL(`http://${address}`);
   const server = await new Promise<ServerType>((resolve, reject) => {
     const options = { fetch: app.fetch, hostname: hostname.replace(/^\[|\]$/gu, ''), port: Number(port) };
