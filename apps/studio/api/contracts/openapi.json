@@ -111,6 +111,29 @@
           "audience"
         ]
       },
+      "MediamtxTls": {
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string"
+          },
+          "certificate": {
+            "type": "string"
+          },
+          "privateKey": {
+            "type": "string"
+          },
+          "notAfter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hostname",
+          "certificate",
+          "privateKey",
+          "notAfter"
+        ]
+      },
       "Publisher": {
         "type": "object",
         "properties": {
@@ -10242,6 +10265,9 @@
                             },
                             "auth": {
                               "$ref": "#/components/schemas/MediamtxAuth"
+                            },
+                            "tls": {
+                              "$ref": "#/components/schemas/MediamtxTls"
                             }
                           },
                           "required": [
@@ -24602,6 +24628,29 @@
               "audience"
             ]
           },
+          "MediamtxTls": {
+            "type": "object",
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "certificate": {
+                "type": "string"
+              },
+              "privateKey": {
+                "type": "string"
+              },
+              "notAfter": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hostname",
+              "certificate",
+              "privateKey",
+              "notAfter"
+            ]
+          },
           "Rendition": {
             "type": "string",
             "enum": [
@@ -24725,6 +24774,9 @@
                                 },
                                 "auth": {
                                   "$ref": "#/components/schemas/MediamtxAuth"
+                                },
+                                "tls": {
+                                  "$ref": "#/components/schemas/MediamtxTls"
                                 }
                               },
                               "required": [

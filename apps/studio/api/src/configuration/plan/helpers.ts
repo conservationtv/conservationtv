@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { cameraOrigin } from '../../cameras/drivers.ts';
-import { agents, gateways } from '../../db/schema.ts';
+import { agents, deviceAddresses, gateways, organisations } from '../../db/schema.ts';
 import { useDB } from '../../db/transaction.ts';
 import { useEnvironment } from '../../env/env.ts';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
@@ -35,6 +35,32 @@ export async function selectLocalGateway(device: AuthenticatedDevice) {
     .orderBy(gateways.id)
     .limit(1);
   return gateway?.id;
+}
+
+/** The gateway and the names its hostname is made from (src/gateways/certificates.ts). */
+export async function selectGatewayIdentity(gatewayId: string) {
+  const db = useDB({ trusted: true });
+  const [row] = await db
+    .select({
+      id: gateways.id,
+      organisationId: gateways.organisationId,
+      name: gateways.name,
+      organisationName: organisations.name
+    })
+    .from(gateways)
+    .innerJoin(organisations, eq(organisations.id, gateways.organisationId))
+    .where(eq(gateways.id, gatewayId));
+  return row!;
+}
+
+/** The address the agent last reported its default route leaves by, where its gateway's hostname should point. */
+export async function selectPreferredAddress(deviceId: string) {
+  const db = useDB({ trusted: true });
+  const [row] = await db
+    .select({ address: deviceAddresses.address })
+    .from(deviceAddresses)
+    .where(and(eq(deviceAddresses.deviceId, deviceId), eq(deviceAddresses.preferred, true)));
+  return row?.address;
 }
 
 /** Which exposures an agent delivers: its own MediaMTX gateway's, unless pinned to another device, and those pinned to it. */

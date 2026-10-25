@@ -846,6 +846,29 @@
                             "issuer",
                             "audience"
                           ]
+                        },
+                        "tls": {
+                          "type": "object",
+                          "properties": {
+                            "hostname": {
+                              "type": "string"
+                            },
+                            "certificate": {
+                              "type": "string"
+                            },
+                            "privateKey": {
+                              "type": "string"
+                            },
+                            "notAfter": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "hostname",
+                            "certificate",
+                            "privateKey",
+                            "notAfter"
+                          ]
                         }
                       },
                       "required": [
@@ -1843,6 +1866,29 @@
                       "jwks",
                       "issuer",
                       "audience"
+                    ]
+                  },
+                  "tls": {
+                    "type": "object",
+                    "properties": {
+                      "hostname": {
+                        "type": "string"
+                      },
+                      "certificate": {
+                        "type": "string"
+                      },
+                      "privateKey": {
+                        "type": "string"
+                      },
+                      "notAfter": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "hostname",
+                      "certificate",
+                      "privateKey",
+                      "notAfter"
                     ]
                   }
                 },

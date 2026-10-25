@@ -39,6 +39,13 @@ export const MediamtxAuthSchema = z.object({
     audience: z.string()
 });
 
+export const MediamtxTlsSchema = z.object({
+    hostname: z.string(),
+    certificate: z.string(),
+    privateKey: z.string(),
+    notAfter: z.string()
+});
+
 export const PublisherConnectSchema = z.object({
     id: z.string(),
     streamId: z.string(),
@@ -1895,7 +1902,8 @@ export const GetDeviceConfigurationResponseSchema = z.union([
         state: z.literal('active'),
         mediamtx: z.object({
             gatewayId: z.string(),
-            auth: MediamtxAuthSchema
+            auth: MediamtxAuthSchema,
+            tls: MediamtxTlsSchema.optional()
         }),
         paths: z.array(z.object({
             name: z.string(),

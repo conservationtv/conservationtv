@@ -114,6 +114,11 @@ bindings:
 | `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices             |
 | `GATEKEEPER_TOKEN`     | secret     | that control plane environment's consumer token                                     |
 | `GATEWAY_SIGNING_KEYS` | secret     | optional: the keys MediaMTX gateway tokens are signed with (`GET /gateway-keys`)    |
+| `GATEWAY_DOMAIN`       | text       | optional: the zone MediaMTX gateways get hostnames and certificates in, see below   |
+| `CLOUDFLARE_ZONE_ID`   | text       | with `GATEWAY_DOMAIN`: its Cloudflare zone                                          |
+| `CLOUDFLARE_API_TOKEN` | secret     | with `GATEWAY_DOMAIN`: a token that may edit that zone's DNS records                |
+| `ACME_DIRECTORY_URL`   | text       | with `GATEWAY_DOMAIN`: the ACME directory certificates come from (Let's Encrypt)    |
+| `ACME_ACCOUNT_KEY`     | secret     | with `GATEWAY_DOMAIN`: the ACME account key, one ES256 JWK with its private `d`     |
 
 The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
 every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access
@@ -314,6 +319,28 @@ every rendition as a track of one broadcast. Publishers connect the same way, by
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
 for it.
+
+#### Gateway hostnames and certificates
+
+With `GATEWAY_DOMAIN` set, each MediaMTX gateway an agent runs gets a hostname, `<gateway>.<organisation>.<domain>`,
+and a certificate for it (`gateway_certificate`, `src/gateways/certificates.ts`), so readers and publishers on the
+network reach it by name over TLS (RTSPS, RTMPS, HTTPS for HLS and WebRTC) and browsers treat it as a secure origin.
+The domain is bought for this alone and not shared with the app. The labels come from the gateway's and organisation's
+names (letters and digits, lowercase, anything else a hyphen), chosen the first time and kept, so renaming either
+changes nothing; a gateway whose plain hostname another already has gets part of its ID in its label. The hostname's A
+record, in the domain's Cloudflare zone (`src/gateways/dns.ts`), follows the address the active agent reports its
+default route leaves by (`device_address`), so the name moves with the agent. Public DNS, private address: Cloudflare
+serves the name and never the traffic.
+
+Certificates come from an ACME authority by DNS-01 (`src/gateways/acme.ts`, a minimal RFC 8555 client over `jose` and
+WebCrypto): the challenge token goes in a TXT record the API creates and removes. The private key is generated here,
+stored encrypted and hidden from request sessions, and handed only to the agent running the gateway, in its
+configuration (`deviceConfiguration.get`, under `mediamtx.tls`), with the chain and the hostname. All of it happens
+while the agent asks for its configuration, after the plan's transaction: the first ask with a new gateway, and any ask
+within 48 hours of the certificate expiring, waits the tens of seconds the authority takes. A failed attempt is recorded
+(`attempted_at`, `error`) and not repeated for ten minutes, so the authority's rate limits hold and the asks between
+stay quick; the agent keeps the certificate it had until it expires. Nothing runs in the background. What is missing
+and why is in the configuration's `diagnostics`.
 
 ### Device authentication
 

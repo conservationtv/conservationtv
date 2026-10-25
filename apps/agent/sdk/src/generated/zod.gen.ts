@@ -172,6 +172,12 @@ export const GetSystemSpecResponseSchema = z.object({
             jwks: z.string(),
             issuer: z.string(),
             audience: z.string()
+        }).optional(),
+        tls: z.object({
+            hostname: z.string(),
+            certificate: z.string(),
+            privateKey: z.string(),
+            notAfter: z.string()
         }).optional()
     }).optional(),
     metrics: z.object({

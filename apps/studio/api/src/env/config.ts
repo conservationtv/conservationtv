@@ -7,6 +7,7 @@ import { createAuth, type Auth } from '../auth/auth.ts';
 import { otpDelivery } from '../auth/otp.ts';
 import type { Cache } from '../cache/cache.ts';
 import { loadGatewayKeyring, type GatewayKeyring } from '../gateways/keys.ts';
+import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
 import { connectLazily } from '../db/client.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
@@ -17,6 +18,10 @@ import type { Background, Clock, Environment } from './env.ts';
 /**
  * The deployment's text bindings and secrets: under `nodejs_compat` they are also `process.env`, which ArkEnv reads.
  */
+/** A text binding that may be left empty, which Workers text bindings are rather than unset. */
+const optionalText = <Schema extends z.ZodType>(schema: Schema) =>
+  z.preprocess(value => (value === '' ? undefined : value), schema.optional());
+
 export const config = {
   /** Where the API is served: Better Auth's base URL and the passkey relying party. */
   APP_URL: z.url(),
@@ -35,6 +40,18 @@ export const config = {
    * (MediaMTX) cannot be connected to.
    */
   GATEWAY_SIGNING_KEYS: z.string().min(1).optional(),
+  /**
+   * The zone MediaMTX gateways get hostnames in, `<gateway>.<organisation>.<GATEWAY_DOMAIN>`, with certificates for
+   * them; see src/gateways/certificates.ts. Unset (or empty), gateways get neither. Set, the rest of this group is
+   * required.
+   */
+  GATEWAY_DOMAIN: optionalText(z.string().regex(/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/u, 'a bare domain name')),
+  /** The Cloudflare zone GATEWAY_DOMAIN is served from, and a token that may edit its DNS records. */
+  CLOUDFLARE_ZONE_ID: optionalText(z.string().min(1)),
+  CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
+  /** The ACME directory certificates come from, and the account key, one ES256 JWK with its private `d`. */
+  ACME_DIRECTORY_URL: optionalText(z.url()),
+  ACME_ACCOUNT_KEY: z.string().min(1).optional(),
   /** Only logging exists; see src/auth/otp.ts. */
   OTP_DELIVERY: z.literal('log'),
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -80,6 +97,9 @@ export const services = (variables: Variables, bindings: Bindings) => {
       }
     };
   })();
+
+  /** Hostnames and certificates for MediaMTX gateways, when GATEWAY_DOMAIN is set. */
+  const gatewayCertificates: CertificateIssuer | undefined = certificateIssuer(variables);
 
   // Required clients
   /** The control plane that names the relays and admits devices to them. */
@@ -132,6 +152,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
     cache: bindings.cache,
     gatekeeper,
     gatewayKeys,
+    gatewayCertificates,
     close: () => Promise.all([admin.close(), app.close()])
   };
 };

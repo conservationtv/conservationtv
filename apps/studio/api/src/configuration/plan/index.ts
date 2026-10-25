@@ -1,5 +1,6 @@
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
 import { trustedTransaction } from '../../db/transaction.ts';
+import { ensureGatewayTls } from '../../gateways/certificates.ts';
 import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
 import type { Rendition } from '../../topology/settings.ts';
@@ -10,8 +11,10 @@ import {
   type StreamInput,
   cameraFeeds,
   mediamtxAuth,
+  selectGatewayIdentity,
   selectGatewayKinds,
   selectLocalGateway,
+  selectPreferredAddress,
   selectStreams
 } from './helpers.ts';
 import type { ActiveConfiguration, Diagnostic, PlannedConfiguration, PlannedPath, PlannedPublisher } from './types.ts';
@@ -32,21 +35,35 @@ export type * from './types.ts';
 // itself. Planning reads the agent's part of the topology, then decides from it alone. What it cannot plan yet
 // (transcoding, upstreams another device delivers, publishing by other protocols) is left out, with a diagnostic
 // saying why.
+//
+// After the plan, outside its transaction since it waits on the network, the gateway's hostname and certificate
+// (src/gateways/certificates.ts): pointed at the agent's preferred address, and issued or renewed when due.
 
 /** The signing device's configuration, read by trusted code: a device principal cannot read the topology. */
-export function planConfiguration(device: AuthenticatedDevice): Promise<PlannedConfiguration> {
-  return trustedTransaction(async () => {
+export async function planConfiguration(device: AuthenticatedDevice): Promise<PlannedConfiguration> {
+  const planned = await trustedTransaction(async () => {
     if (device.kind !== 'agent') {
       throw new Error('Currently planning configuration is only supported for agents.');
     }
 
     const gatewayId = await selectLocalGateway(device);
-    if (!gatewayId) return { state: 'idle' };
+    if (!gatewayId) return undefined;
 
     const streams = await selectStreams(device.id, gatewayId);
     const gatewayKinds = await selectGatewayKinds(device.organisationId);
-    return planActiveAgent({ organisationId: device.organisationId, gatewayId, gatewayKinds, streams });
+    const gateway = await selectGatewayIdentity(gatewayId);
+    const address = await selectPreferredAddress(device.id);
+    const configuration = planActiveAgent({ organisationId: device.organisationId, gatewayId, gatewayKinds, streams });
+    return { configuration, gateway, address };
   });
+  if (planned === undefined) return { state: 'idle' };
+
+  const { configuration, gateway, address } = planned;
+  const tls = await ensureGatewayTls(gateway, address, message =>
+    configuration.diagnostics.push({ subject: `gateway:${gateway.id}`, message })
+  );
+  if (tls !== undefined) configuration.mediamtx.tls = tls;
+  return configuration;
 }
 
 /** What planning an active agent decides from: its MediaMTX gateway, and each stream it delivers some of. */
