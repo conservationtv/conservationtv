@@ -5,8 +5,8 @@ import * as z from 'zod';
 import { GetOrganisationsByIdDevicesByDeviceIdPathSchema } from './zod.gen.js';
 
 export const DeviceGetV1ParamsSchema = z.object({
-  id: GetOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  deviceId: GetOrganisationsByIdDevicesByDeviceIdPathSchema.shape.deviceId.nonoptional().describe('The device.')
+    id: GetOrganisationsByIdDevicesByDeviceIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    deviceId: GetOrganisationsByIdDevicesByDeviceIdPathSchema.shape.deviceId.nonoptional().describe('The device.')
 });
 
 export type DeviceGetV1Params = z.infer<typeof DeviceGetV1ParamsSchema>;

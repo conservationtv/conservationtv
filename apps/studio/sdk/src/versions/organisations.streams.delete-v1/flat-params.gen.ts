@@ -5,8 +5,8 @@ import * as z from 'zod';
 import { DeleteOrganisationsByIdStreamsByStreamIdPathSchema } from './zod.gen.js';
 
 export const StreamDeleteV1ParamsSchema = z.object({
-  id: DeleteOrganisationsByIdStreamsByStreamIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  streamId: DeleteOrganisationsByIdStreamsByStreamIdPathSchema.shape.streamId.nonoptional().describe('The stream.')
+    id: DeleteOrganisationsByIdStreamsByStreamIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: DeleteOrganisationsByIdStreamsByStreamIdPathSchema.shape.streamId.nonoptional().describe('The stream.')
 });
 
 export type StreamDeleteV1Params = z.infer<typeof StreamDeleteV1ParamsSchema>;

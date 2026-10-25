@@ -2,19 +2,12 @@
 
 import * as z from 'zod';
 
-import {
-  PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema,
-  PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema
-} from './zod.gen.js';
+import { PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
 
 export const NetworkSetActiveAgentV1ParamsSchema = z.object({
-  id: PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  networkId: PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema.shape.networkId
-    .nonoptional()
-    .describe('The network.'),
-  agentId: PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema.shape.agentId
-    .nonoptional()
-    .describe('An agent registered on this network, or null for none.')
+    id: PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    networkId: PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema.shape.networkId.nonoptional().describe('The network.'),
+    agentId: PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema.shape.agentId.nonoptional().describe('An agent registered on this network, or null for none.')
 });
 
 export type NetworkSetActiveAgentV1Params = z.infer<typeof NetworkSetActiveAgentV1ParamsSchema>;

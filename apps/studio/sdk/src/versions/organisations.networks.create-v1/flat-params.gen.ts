@@ -5,8 +5,8 @@ import * as z from 'zod';
 import { PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema } from './zod.gen.js';
 
 export const NetworkCreateV1ParamsSchema = z.object({
-  id: PostOrganisationsByIdNetworksPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  name: PostOrganisationsByIdNetworksBodySchema.shape.name.nonoptional().describe('The network name.')
+    id: PostOrganisationsByIdNetworksPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdNetworksBodySchema.shape.name.nonoptional().describe('The network name.')
 });
 
 export type NetworkCreateV1Params = z.infer<typeof NetworkCreateV1ParamsSchema>;

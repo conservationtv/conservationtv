@@ -3,86 +3,52 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
 export const MetricSchema = z.object({
-  from: z.string(),
-  to: z.string(),
-  step: z.number(),
-  points: z.array(
-    z.object({
-      at: z.string(),
-      min: z.number(),
-      max: z.number(),
-      avg: z.number(),
-      last: z.number(),
-      count: z.number()
-    })
-  ),
-  id: z.string(),
-  name: z.string(),
-  reporterId: z.string(),
-  unit: z.string().nullable(),
-  dimensions: z.record(z.string(), z.string()),
-  createdAt: z.string()
+    from: z.string(),
+    to: z.string(),
+    step: z.number(),
+    points: z.array(z.object({
+        at: z.string(),
+        min: z.number(),
+        max: z.number(),
+        avg: z.number(),
+        last: z.number(),
+        count: z.number()
+    })),
+    id: z.string(),
+    name: z.string(),
+    reporterId: z.string(),
+    unit: z.string().nullable(),
+    dimensions: z.record(z.string(), z.string()),
+    createdAt: z.string()
 });
 
 export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema = z.object({
-  id: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The organisation.'
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
     }),
-  subjectId: z
-    .string()
-    .regex(
-      /^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/
-    )
-    .register(z.globalRegistry, {
-      description:
-        'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
     }),
-  seriesId: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The series.'
+    seriesId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The series.'
     })
 });
 
 export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema = z.object({
-  from: z.iso
-    .datetime()
-    .regex(
-      /^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/
-    )
-    .register(z.globalRegistry, {
-      description: 'Points observed at or after this time.'
+    from: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Points observed at or after this time.'
     }),
-  to: z.iso
-    .datetime()
-    .regex(
-      /^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/
-    )
-    .register(z.globalRegistry, {
-      description: 'Points observed before this time; now by default.'
-    })
-    .optional(),
-  step: z
-    .int()
-    .gte(10)
-    .lte(2678400)
-    .register(z.globalRegistry, {
-      description: 'Seconds per bucket, at least; widened so the range has at most 1000 buckets.'
-    })
-    .optional()
+    to: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Points observed before this time; now by default.'
+    }).optional(),
+    step: z.int().gte(10).lte(2678400).register(z.globalRegistry, {
+        description: 'Seconds per bucket, at least; widened so the range has at most 1000 buckets.'
+    }).optional()
 });
 
 /**

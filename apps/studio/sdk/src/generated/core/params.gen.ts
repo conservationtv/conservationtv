@@ -46,7 +46,7 @@ const extraPrefixesMap: Record<string, Slot> = {
   $body_: 'body',
   $headers_: 'headers',
   $path_: 'path',
-  $query_: 'query'
+  $query_: 'query',
 };
 const extraPrefixes = Object.entries(extraPrefixesMap);
 
@@ -72,12 +72,12 @@ function buildKeyMap(fields: FieldsConfig, map?: KeyMap): KeyMap {
       if (config.key) {
         map.set(config.key, {
           in: config.in,
-          map: config.map
+          map: config.map,
         });
       }
     } else if ('key' in config) {
       map.set(config.key, {
-        map: config.map
+        map: config.map,
       });
     } else if (config.args) {
       buildKeyMap(config.args, map);
@@ -107,7 +107,7 @@ export function buildClientParams(args: ReadonlyArray<unknown>, fields: FieldsCo
   const params: Params = {
     headers: Object.create(null),
     path: Object.create(null),
-    query: Object.create(null)
+    query: Object.create(null),
   };
 
   const map = buildKeyMap(fields);

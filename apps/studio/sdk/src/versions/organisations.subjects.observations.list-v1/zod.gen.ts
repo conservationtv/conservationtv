@@ -3,62 +3,37 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
 export const ObservationSchema = z.object({
-  observations: z.array(
-    z.object({
-      id: z.string(),
-      reporterId: z.string(),
-      observedAt: z.string(),
-      receivedAt: z.string(),
-      type: z.string(),
-      data: z.record(z.string(), z.unknown())
-    })
-  )
+    observations: z.array(z.object({
+        id: z.string(),
+        reporterId: z.string(),
+        observedAt: z.string(),
+        receivedAt: z.string(),
+        type: z.string(),
+        data: z.record(z.string(), z.unknown())
+    }))
 });
 
 export const GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema = z.object({
-  id: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The organisation.'
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
     }),
-  subjectId: z
-    .string()
-    .regex(
-      /^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/
-    )
-    .register(z.globalRegistry, {
-      description:
-        'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 
 export const GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema = z.object({
-  limit: z
-    .int()
-    .gte(1)
-    .lte(1000)
-    .register(z.globalRegistry, {
-      description: 'At most this many, newest first.'
-    })
-    .optional()
-    .default(100),
-  before: z.iso
-    .datetime()
-    .regex(
-      /^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/
-    )
-    .register(z.globalRegistry, {
-      description: 'Only those observed before this time, to page back.'
-    })
-    .optional()
+    limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
+        description: 'At most this many, newest first.'
+    }).optional().default(100),
+    before: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Only those observed before this time, to page back.'
+    }).optional()
 });
 
 /**

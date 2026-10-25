@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { GetOrganisationsByIdNetworksPathSchema } from './zod.gen.js';
 
 export const NetworkListV1ParamsSchema = z.object({
-  id: GetOrganisationsByIdNetworksPathSchema.shape.id.nonoptional().describe('The organisation.')
+    id: GetOrganisationsByIdNetworksPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
 export type NetworkListV1Params = z.infer<typeof NetworkListV1ParamsSchema>;

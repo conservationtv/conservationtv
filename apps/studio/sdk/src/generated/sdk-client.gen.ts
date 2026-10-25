@@ -76,119 +76,119 @@ import { BaseClient } from './sdk.gen.js';
  * The SDK for servers running any release since the oldest supported snapshot. Call `handshake()` before versioned operations.
  */
 export class Client extends ClientCore {
-  readonly http = { createClient, mergeHeaders };
-  readonly health = {
-    get: this.versionless('health.get', BaseClient)
-  };
-  readonly account = {
-    get: this.versioned('account.get', { v1: BaseClient2 }),
-    update: this.versioned('account.update', { v1: BaseClient3 })
-  };
-  readonly organisations = {
-    list: this.versioned('organisations.list', { v1: BaseClient4 }),
-    create: this.versioned('organisations.create', { v1: BaseClient5 }),
-    get: this.versioned('organisations.get', { v1: BaseClient6 }),
-    update: this.versioned('organisations.update', { v1: BaseClient7 }),
-    delete: this.versioned('organisations.delete', { v1: BaseClient8 }),
-    members: {
-      list: this.versioned('organisations.members.list', { v1: BaseClient9 }),
-      updateSelf: this.versioned('organisations.members.updateSelf', { v1: BaseClient10 }),
-      remove: this.versioned('organisations.members.remove', { v1: BaseClient11 }),
-      grantAdmin: this.versioned('organisations.members.grantAdmin', { v1: BaseClient12 }),
-      revokeAdmin: this.versioned('organisations.members.revokeAdmin', { v1: BaseClient13 })
-    },
-    invitations: {
-      list: this.versioned('organisations.invitations.list', { v1: BaseClient14 }),
-      create: this.versioned('organisations.invitations.create', { v1: BaseClient15 }),
-      cancel: this.versioned('organisations.invitations.cancel', { v1: BaseClient16 })
-    },
-    networks: {
-      list: this.versioned('organisations.networks.list', { v1: BaseClient17 }),
-      create: this.versioned('organisations.networks.create', { v1: BaseClient18 }),
-      get: this.versioned('organisations.networks.get', { v1: BaseClient19 }),
-      update: this.versioned('organisations.networks.update', { v1: BaseClient20 }),
-      delete: this.versioned('organisations.networks.delete', { v1: BaseClient21 }),
-      setActiveAgent: this.versioned('organisations.networks.setActiveAgent', { v1: BaseClient22 })
-    },
-    devices: {
-      allowlist: this.versioned('organisations.devices.allowlist', { v1: BaseClient23 }),
-      list: this.versioned('organisations.devices.list', { v1: BaseClient24 }),
-      get: this.versioned('organisations.devices.get', { v1: BaseClient25 }),
-      getKeyPair: this.versioned('organisations.devices.getKeyPair', { v1: BaseClient26 }),
-      update: this.versioned('organisations.devices.update', { v1: BaseClient27 })
-    },
-    cameras: {
-      list: this.versioned('organisations.cameras.list', { v1: BaseClient28 }),
-      create: this.versioned('organisations.cameras.create', { v1: BaseClient29 }),
-      get: this.versioned('organisations.cameras.get', { v1: BaseClient30 }),
-      update: this.versioned('organisations.cameras.update', { v1: BaseClient31 }),
-      delete: this.versioned('organisations.cameras.delete', { v1: BaseClient32 })
-    },
-    browser: {
-      ensure: this.versioned('organisations.browser.ensure', { v1: BaseClient33 })
-    },
-    agents: {
-      list: this.versioned('organisations.agents.list', { v1: BaseClient34 }),
-      create: this.versioned('organisations.agents.create', { v1: BaseClient35 }),
-      get: this.versioned('organisations.agents.get', { v1: BaseClient36 }),
-      update: this.versioned('organisations.agents.update', { v1: BaseClient37 }),
-      delete: this.versioned('organisations.agents.delete', { v1: BaseClient38 })
-    },
-    gateways: {
-      list: this.versioned('organisations.gateways.list', { v1: BaseClient39 }),
-      create: this.versioned('organisations.gateways.create', { v1: BaseClient40 }),
-      get: this.versioned('organisations.gateways.get', { v1: BaseClient41 }),
-      update: this.versioned('organisations.gateways.update', { v1: BaseClient42 }),
-      delete: this.versioned('organisations.gateways.delete', { v1: BaseClient43 })
-    },
-    streams: {
-      list: this.versioned('organisations.streams.list', { v1: BaseClient44 }),
-      create: this.versioned('organisations.streams.create', { v1: BaseClient45 }),
-      get: this.versioned('organisations.streams.get', { v1: BaseClient46 }),
-      update: this.versioned('organisations.streams.update', { v1: BaseClient47 }),
-      delete: this.versioned('organisations.streams.delete', { v1: BaseClient48 }),
-      exposures: {
-        create: this.versioned('organisations.streams.exposures.create', { v1: BaseClient49 }),
-        update: this.versioned('organisations.streams.exposures.update', { v1: BaseClient50 }),
-        delete: this.versioned('organisations.streams.exposures.delete', { v1: BaseClient51 }),
-        connect: this.versioned('organisations.streams.exposures.connect', { v1: BaseClient52 })
-      },
-      recorders: {
-        create: this.versioned('organisations.streams.recorders.create', { v1: BaseClient53 }),
-        update: this.versioned('organisations.streams.recorders.update', { v1: BaseClient54 }),
-        delete: this.versioned('organisations.streams.recorders.delete', { v1: BaseClient55 })
-      }
-    },
-    subjects: {
-      state: this.versioned('organisations.subjects.state', { v1: BaseClient56 }),
-      observations: {
-        list: this.versioned('organisations.subjects.observations.list', { v1: BaseClient57 })
-      },
-      metrics: {
-        list: this.versioned('organisations.subjects.metrics.list', { v1: BaseClient58 }),
-        get: this.versioned('organisations.subjects.metrics.get', { v1: BaseClient59 })
-      },
-      logs: {
-        list: this.versioned('organisations.subjects.logs.list', { v1: BaseClient60 })
-      }
-    }
-  };
-  readonly invitations = {
-    listMine: this.versioned('invitations.listMine', { v1: BaseClient61 }),
-    get: this.versioned('invitations.get', { v1: BaseClient62 }),
-    accept: this.versioned('invitations.accept', { v1: BaseClient63 }),
-    decline: this.versioned('invitations.decline', { v1: BaseClient64 })
-  };
-  readonly reports = {
-    submit: this.versioned('reports.submit', { v1: BaseClient65 })
-  };
-  readonly irohSessions = {
-    create: this.versioned('irohSessions.create', { v1: BaseClient66 })
-  };
-  readonly deviceConfiguration = {
-    get: this.versioned('deviceConfiguration.get', { v1: BaseClient67 })
-  };
-  readonly whoami = {
-    get: this.versioned('whoami.get', { v1: BaseClient68 })
-  };
+    readonly http = { createClient, mergeHeaders };
+    readonly health = {
+        get: this.versionless('health.get', BaseClient)
+    };
+    readonly account = {
+        get: this.versioned('account.get', { v1: BaseClient2 }),
+        update: this.versioned('account.update', { v1: BaseClient3 })
+    };
+    readonly organisations = {
+        list: this.versioned('organisations.list', { v1: BaseClient4 }),
+        create: this.versioned('organisations.create', { v1: BaseClient5 }),
+        get: this.versioned('organisations.get', { v1: BaseClient6 }),
+        update: this.versioned('organisations.update', { v1: BaseClient7 }),
+        delete: this.versioned('organisations.delete', { v1: BaseClient8 }),
+        members: {
+            list: this.versioned('organisations.members.list', { v1: BaseClient9 }),
+            updateSelf: this.versioned('organisations.members.updateSelf', { v1: BaseClient10 }),
+            remove: this.versioned('organisations.members.remove', { v1: BaseClient11 }),
+            grantAdmin: this.versioned('organisations.members.grantAdmin', { v1: BaseClient12 }),
+            revokeAdmin: this.versioned('organisations.members.revokeAdmin', { v1: BaseClient13 })
+        },
+        invitations: {
+            list: this.versioned('organisations.invitations.list', { v1: BaseClient14 }),
+            create: this.versioned('organisations.invitations.create', { v1: BaseClient15 }),
+            cancel: this.versioned('organisations.invitations.cancel', { v1: BaseClient16 })
+        },
+        networks: {
+            list: this.versioned('organisations.networks.list', { v1: BaseClient17 }),
+            create: this.versioned('organisations.networks.create', { v1: BaseClient18 }),
+            get: this.versioned('organisations.networks.get', { v1: BaseClient19 }),
+            update: this.versioned('organisations.networks.update', { v1: BaseClient20 }),
+            delete: this.versioned('organisations.networks.delete', { v1: BaseClient21 }),
+            setActiveAgent: this.versioned('organisations.networks.setActiveAgent', { v1: BaseClient22 })
+        },
+        devices: {
+            allowlist: this.versioned('organisations.devices.allowlist', { v1: BaseClient23 }),
+            list: this.versioned('organisations.devices.list', { v1: BaseClient24 }),
+            get: this.versioned('organisations.devices.get', { v1: BaseClient25 }),
+            getKeyPair: this.versioned('organisations.devices.getKeyPair', { v1: BaseClient26 }),
+            update: this.versioned('organisations.devices.update', { v1: BaseClient27 })
+        },
+        cameras: {
+            list: this.versioned('organisations.cameras.list', { v1: BaseClient28 }),
+            create: this.versioned('organisations.cameras.create', { v1: BaseClient29 }),
+            get: this.versioned('organisations.cameras.get', { v1: BaseClient30 }),
+            update: this.versioned('organisations.cameras.update', { v1: BaseClient31 }),
+            delete: this.versioned('organisations.cameras.delete', { v1: BaseClient32 })
+        },
+        browser: {
+            ensure: this.versioned('organisations.browser.ensure', { v1: BaseClient33 })
+        },
+        agents: {
+            list: this.versioned('organisations.agents.list', { v1: BaseClient34 }),
+            create: this.versioned('organisations.agents.create', { v1: BaseClient35 }),
+            get: this.versioned('organisations.agents.get', { v1: BaseClient36 }),
+            update: this.versioned('organisations.agents.update', { v1: BaseClient37 }),
+            delete: this.versioned('organisations.agents.delete', { v1: BaseClient38 })
+        },
+        gateways: {
+            list: this.versioned('organisations.gateways.list', { v1: BaseClient39 }),
+            create: this.versioned('organisations.gateways.create', { v1: BaseClient40 }),
+            get: this.versioned('organisations.gateways.get', { v1: BaseClient41 }),
+            update: this.versioned('organisations.gateways.update', { v1: BaseClient42 }),
+            delete: this.versioned('organisations.gateways.delete', { v1: BaseClient43 })
+        },
+        streams: {
+            list: this.versioned('organisations.streams.list', { v1: BaseClient44 }),
+            create: this.versioned('organisations.streams.create', { v1: BaseClient45 }),
+            get: this.versioned('organisations.streams.get', { v1: BaseClient46 }),
+            update: this.versioned('organisations.streams.update', { v1: BaseClient47 }),
+            delete: this.versioned('organisations.streams.delete', { v1: BaseClient48 }),
+            exposures: {
+                create: this.versioned('organisations.streams.exposures.create', { v1: BaseClient49 }),
+                update: this.versioned('organisations.streams.exposures.update', { v1: BaseClient50 }),
+                delete: this.versioned('organisations.streams.exposures.delete', { v1: BaseClient51 }),
+                connect: this.versioned('organisations.streams.exposures.connect', { v1: BaseClient52 })
+            },
+            recorders: {
+                create: this.versioned('organisations.streams.recorders.create', { v1: BaseClient53 }),
+                update: this.versioned('organisations.streams.recorders.update', { v1: BaseClient54 }),
+                delete: this.versioned('organisations.streams.recorders.delete', { v1: BaseClient55 })
+            }
+        },
+        subjects: {
+            state: this.versioned('organisations.subjects.state', { v1: BaseClient56 }),
+            observations: {
+                list: this.versioned('organisations.subjects.observations.list', { v1: BaseClient57 })
+            },
+            metrics: {
+                list: this.versioned('organisations.subjects.metrics.list', { v1: BaseClient58 }),
+                get: this.versioned('organisations.subjects.metrics.get', { v1: BaseClient59 })
+            },
+            logs: {
+                list: this.versioned('organisations.subjects.logs.list', { v1: BaseClient60 })
+            }
+        }
+    };
+    readonly invitations = {
+        listMine: this.versioned('invitations.listMine', { v1: BaseClient61 }),
+        get: this.versioned('invitations.get', { v1: BaseClient62 }),
+        accept: this.versioned('invitations.accept', { v1: BaseClient63 }),
+        decline: this.versioned('invitations.decline', { v1: BaseClient64 })
+    };
+    readonly reports = {
+        submit: this.versioned('reports.submit', { v1: BaseClient65 })
+    };
+    readonly irohSessions = {
+        create: this.versioned('irohSessions.create', { v1: BaseClient66 })
+    };
+    readonly deviceConfiguration = {
+        get: this.versioned('deviceConfiguration.get', { v1: BaseClient67 })
+    };
+    readonly whoami = {
+        get: this.versioned('whoami.get', { v1: BaseClient68 })
+    };
 }

@@ -11,7 +11,7 @@ import {
   getParseAs,
   mergeConfigs,
   mergeHeaders,
-  setAuthParams
+  setAuthParams,
 } from './utils.gen.js';
 
 type ReqInit = Omit<RequestInit, 'body' | 'headers'> & {
@@ -35,16 +35,16 @@ export const createClient = (config: Config = {}): Client => {
     TData = unknown,
     TResponseStyle extends 'data' | 'fields' = 'fields',
     ThrowOnError extends boolean = boolean,
-    Url extends string = string
+    Url extends string = string,
   >(
-    options: RequestOptions<TData, TResponseStyle, ThrowOnError, Url>
+    options: RequestOptions<TData, TResponseStyle, ThrowOnError, Url>,
   ) => {
     const opts = {
       ..._config,
       ...options,
       fetch: options.fetch ?? _config.fetch ?? globalThis.fetch,
       headers: mergeHeaders(_config.headers, options.headers),
-      serializedBody: undefined as string | undefined
+      serializedBody: undefined as string | undefined,
     };
 
     if (opts.security) {
@@ -64,13 +64,14 @@ export const createClient = (config: Config = {}): Client => {
       opts.headers.delete('Content-Type');
     }
 
-    const resolvedOpts = opts as typeof opts & ResolvedRequestOptions<TResponseStyle, ThrowOnError, Url>;
+    const resolvedOpts = opts as typeof opts &
+      ResolvedRequestOptions<TResponseStyle, ThrowOnError, Url>;
     const url = buildUrl(resolvedOpts);
 
     return { opts: resolvedOpts, url };
   };
 
-  const request: Client['request'] = async options => {
+  const request: Client['request'] = async (options) => {
     const throwOnError = options.throwOnError ?? _config.throwOnError;
     const responseStyle = options.responseStyle ?? _config.responseStyle;
 
@@ -82,7 +83,7 @@ export const createClient = (config: Config = {}): Client => {
       const requestInit: ReqInit = {
         redirect: 'follow',
         ...opts,
-        body: getValidRequestBody(opts)
+        body: getValidRequestBody(opts),
       };
 
       request = new Request(url, requestInit);
@@ -107,12 +108,14 @@ export const createClient = (config: Config = {}): Client => {
 
       const result = {
         request,
-        response
+        response,
       };
 
       if (response.ok) {
         const parseAs =
-          (opts.parseAs === 'auto' ? getParseAs(response.headers.get('Content-Type')) : opts.parseAs) ?? 'json';
+          (opts.parseAs === 'auto'
+            ? getParseAs(response.headers.get('Content-Type'))
+            : opts.parseAs) ?? 'json';
 
         if (response.status === 204 || response.headers.get('Content-Length') === '0') {
           let emptyData: any;
@@ -137,7 +140,7 @@ export const createClient = (config: Config = {}): Client => {
             ? emptyData
             : {
                 data: emptyData,
-                ...result
+                ...result,
               };
         }
 
@@ -161,7 +164,7 @@ export const createClient = (config: Config = {}): Client => {
               ? response.body
               : {
                   data: response.body,
-                  ...result
+                  ...result,
                 };
         }
 
@@ -179,7 +182,7 @@ export const createClient = (config: Config = {}): Client => {
           ? data
           : {
               data,
-              ...result
+              ...result,
             };
       }
 
@@ -214,12 +217,13 @@ export const createClient = (config: Config = {}): Client => {
         : {
             error: finalError,
             request,
-            response
+            response,
           };
     }
   };
 
-  const makeMethodFn = (method: Uppercase<HttpMethod>) => (options: RequestOptions) => request({ ...options, method });
+  const makeMethodFn = (method: Uppercase<HttpMethod>) => (options: RequestOptions) =>
+    request({ ...options, method });
 
   const makeSseFn = (method: Uppercase<HttpMethod>) => async (options: RequestOptions) => {
     const { opts, url } = await beforeRequest(options);
@@ -237,11 +241,11 @@ export const createClient = (config: Config = {}): Client => {
         return request;
       },
       serializedBody: getValidRequestBody(opts) as BodyInit | null | undefined,
-      url
+      url,
     });
   };
 
-  const _buildUrl: Client['buildUrl'] = options => buildUrl({ ..._config, ...options });
+  const _buildUrl: Client['buildUrl'] = (options) => buildUrl({ ..._config, ...options });
 
   return {
     buildUrl: _buildUrl,
@@ -266,8 +270,8 @@ export const createClient = (config: Config = {}): Client => {
       patch: makeSseFn('PATCH'),
       post: makeSseFn('POST'),
       put: makeSseFn('PUT'),
-      trace: makeSseFn('TRACE')
+      trace: makeSseFn('TRACE'),
     },
-    trace: makeMethodFn('TRACE')
+    trace: makeMethodFn('TRACE'),
   } as Client;
 };

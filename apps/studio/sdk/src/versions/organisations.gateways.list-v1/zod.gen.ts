@@ -3,56 +3,40 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
 export const GatewaySchema = z.object({
-  gateways: z.array(
-    z.union([
-      z.object({
-        id: z.literal('conservationtv'),
-        builtin: z.literal(true),
-        name: z.string(),
-        kind: z.string(),
-        networkId: z.null(),
-        settings: z.record(z.string(), z.unknown()),
-        createdAt: z.null()
-      }),
-      z.object({
-        id: z.string(),
-        builtin: z.boolean(),
-        name: z.string(),
-        kind: z.string(),
-        networkId: z.string().nullable(),
-        settings: z.record(z.string(), z.unknown()),
-        createdAt: z.string()
-      })
-    ])
-  )
+    gateways: z.array(z.union([z.object({
+            id: z.literal('conservationtv'),
+            builtin: z.literal(true),
+            name: z.string(),
+            kind: z.string(),
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null()
+        }), z.object({
+            id: z.string(),
+            builtin: z.boolean(),
+            name: z.string(),
+            kind: z.string(),
+            networkId: z.string().nullable(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.string()
+        })]))
 });
 
 export const GetOrganisationsByIdGatewaysPathSchema = z.object({
-  id: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The organisation.'
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
     })
 });
 
 export const GetOrganisationsByIdGatewaysQuerySchema = z.object({
-  networkId: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'Only gateways on this network.'
-    })
-    .optional()
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'Only gateways on this network.'
+    }).optional()
 });
 
 /**

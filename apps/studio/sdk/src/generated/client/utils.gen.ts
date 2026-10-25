@@ -3,13 +3,18 @@
 import { getAuthToken } from '../core/auth.gen.js';
 import type { QuerySerializerOptions } from '../core/bodySerializer.gen.js';
 import { jsonBodySerializer } from '../core/bodySerializer.gen.js';
-import { serializeArrayParam, serializeObjectParam, serializePrimitiveParam } from '../core/pathSerializer.gen.js';
+import {
+  serializeArrayParam,
+  serializeObjectParam,
+  serializePrimitiveParam,
+} from '../core/pathSerializer.gen.js';
 import { getUrl } from '../core/utils.gen.js';
 import type { Client, ClientOptions, Config, RequestOptions } from './types.gen.js';
 
-export const createQuerySerializer = <T = unknown>({ parameters = {}, ...args }: QuerySerializerOptions = {}): ((
-  queryParams: T
-) => string) => {
+export const createQuerySerializer = <T = unknown>({
+  parameters = {},
+  ...args
+}: QuerySerializerOptions = {}): ((queryParams: T) => string) => {
   const querySerializer = (queryParams: T): string => {
     const search: string[] = [];
     if (queryParams && typeof queryParams === 'object') {
@@ -29,7 +34,7 @@ export const createQuerySerializer = <T = unknown>({ parameters = {}, ...args }:
             name,
             style: 'form',
             value,
-            ...options.array
+            ...options.array,
           });
           if (serializedArray) search.push(serializedArray);
         } else if (typeof value === 'object') {
@@ -39,14 +44,14 @@ export const createQuerySerializer = <T = unknown>({ parameters = {}, ...args }:
             name,
             style: 'deepObject',
             value: value as Record<string, unknown>,
-            ...options.object
+            ...options.object,
           });
           if (serializedObject) search.push(serializedObject);
         } else {
           const serializedPrimitive = serializePrimitiveParam({
             allowReserved: options.allowReserved,
             name,
-            value: value as string
+            value: value as string,
           });
           if (serializedPrimitive) search.push(serializedPrimitive);
         }
@@ -81,7 +86,9 @@ export const getParseAs = (contentType: string | null): Exclude<Config['parseAs'
     return 'formData';
   }
 
-  if (['application/', 'audio/', 'image/', 'video/'].some(type => cleanContent.startsWith(type))) {
+  if (
+    ['application/', 'audio/', 'image/', 'video/'].some((type) => cleanContent.startsWith(type))
+  ) {
     return 'blob';
   }
 
@@ -96,12 +103,16 @@ const checkForExistence = (
   options: Pick<RequestOptions, 'auth' | 'query'> & {
     headers: Headers;
   },
-  name?: string
+  name?: string,
 ): boolean => {
   if (!name) {
     return false;
   }
-  if (options.headers.has(name) || options.query?.[name] || options.headers.get('Cookie')?.includes(`${name}=`)) {
+  if (
+    options.headers.has(name) ||
+    options.query?.[name] ||
+    options.headers.get('Cookie')?.includes(`${name}=`)
+  ) {
     return true;
   }
   return false;
@@ -110,7 +121,7 @@ const checkForExistence = (
 export async function setAuthParams(
   options: Pick<RequestOptions, 'auth' | 'query' | 'security'> & {
     headers: Headers;
-  }
+  },
 ): Promise<void> {
   for (const auth of options.security ?? []) {
     if (checkForExistence(options, auth.name)) {
@@ -143,7 +154,7 @@ export async function setAuthParams(
   }
 }
 
-export const buildUrl: Client['buildUrl'] = options =>
+export const buildUrl: Client['buildUrl'] = (options) =>
   getUrl({
     baseUrl: options.baseUrl as string,
     path: options.path,
@@ -152,7 +163,7 @@ export const buildUrl: Client['buildUrl'] = options =>
       typeof options.querySerializer === 'function'
         ? options.querySerializer
         : createQuerySerializer(options.querySerializer),
-    url: options.url
+    url: options.url,
   });
 
 export const mergeConfigs = (a: Config, b: Config): Config => {
@@ -172,7 +183,9 @@ const headersEntries = (headers: Headers): Array<[string, string]> => {
   return entries;
 };
 
-export const mergeHeaders = (...headers: Array<Required<Config>['headers'] | undefined>): Headers => {
+export const mergeHeaders = (
+  ...headers: Array<Required<Config>['headers'] | undefined>
+): Headers => {
   const mergedHeaders = new Headers();
   for (const header of headers) {
     if (!header) {
@@ -191,7 +204,10 @@ export const mergeHeaders = (...headers: Array<Required<Config>['headers'] | und
       } else if (value !== undefined) {
         // assume object headers are meant to be JSON stringified, i.e., their
         // content value in OpenAPI specification is 'application/json'
-        mergedHeaders.set(key, typeof value === 'object' ? JSON.stringify(value) : (value as string));
+        mergedHeaders.set(
+          key,
+          typeof value === 'object' ? JSON.stringify(value) : (value as string),
+        );
       }
     }
   }
@@ -204,12 +220,16 @@ type ErrInterceptor<Err, Res, Req, Options> = (
   response: Res | undefined,
   /** request may be undefined, because error may be from building the request object itself */
   request: Req | undefined,
-  options: Options
+  options: Options,
 ) => Err | Promise<Err>;
 
 type ReqInterceptor<Req, Options> = (request: Req, options: Options) => Req | Promise<Req>;
 
-type ResInterceptor<Res, Req, Options> = (response: Res, request: Req, options: Options) => Res | Promise<Res>;
+type ResInterceptor<Res, Req, Options> = (
+  response: Res,
+  request: Req,
+  options: Options,
+) => Res | Promise<Res>;
 
 class Interceptors<Interceptor> {
   fns: Array<Interceptor | null> = [];
@@ -258,34 +278,39 @@ export interface Middleware<Req, Res, Err, Options> {
   response: Interceptors<ResInterceptor<Res, Req, Options>>;
 }
 
-export const createInterceptors = <Req, Res, Err, Options>(): Middleware<Req, Res, Err, Options> => ({
+export const createInterceptors = <Req, Res, Err, Options>(): Middleware<
+  Req,
+  Res,
+  Err,
+  Options
+> => ({
   error: new Interceptors<ErrInterceptor<Err, Res, Req, Options>>(),
   request: new Interceptors<ReqInterceptor<Req, Options>>(),
-  response: new Interceptors<ResInterceptor<Res, Req, Options>>()
+  response: new Interceptors<ResInterceptor<Res, Req, Options>>(),
 });
 
 const defaultQuerySerializer = createQuerySerializer({
   allowReserved: false,
   array: {
     explode: true,
-    style: 'form'
+    style: 'form',
   },
   object: {
     explode: true,
-    style: 'deepObject'
-  }
+    style: 'deepObject',
+  },
 });
 
 const defaultHeaders = {
-  'Content-Type': 'application/json'
+  'Content-Type': 'application/json',
 };
 
 export const createConfig = <T extends ClientOptions = ClientOptions>(
-  override: Config<Omit<ClientOptions, keyof T> & T> = {}
+  override: Config<Omit<ClientOptions, keyof T> & T> = {},
 ): Config<Omit<ClientOptions, keyof T> & T> => ({
   ...jsonBodySerializer,
   headers: defaultHeaders,
   parseAs: 'auto',
   querySerializer: defaultQuerySerializer,
-  ...override
+  ...override,
 });

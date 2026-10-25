@@ -3,23 +3,23 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
 export const OrganisationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  createdAt: z.string()
+    id: z.string(),
+    name: z.string(),
+    createdAt: z.string()
 });
 
 export const PostOrganisationsBodySchema = z.object({
-  name: z.string().min(1).max(120).register(z.globalRegistry, {
-    description: 'The organisation name.'
-  }),
-  displayName: z.string().min(1).max(120).register(z.globalRegistry, {
-    description: "Your name as the organisation's members will see it."
-  })
+    name: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The organisation name.'
+    }),
+    displayName: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'Your name as the organisation\'s members will see it.'
+    })
 });
 
 /**

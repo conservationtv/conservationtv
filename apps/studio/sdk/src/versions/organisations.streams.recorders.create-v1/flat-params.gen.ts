@@ -2,26 +2,15 @@
 
 import * as z from 'zod';
 
-import {
-  PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema,
-  PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema
-} from './zod.gen.js';
+import { PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema } from './zod.gen.js';
 
 export const RecorderCreateV1ParamsSchema = z.object({
-  id: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  streamId: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.streamId
-    .nonoptional()
-    .describe('The stream.'),
-  exposureId: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.exposureId
-    .nonoptional()
-    .describe('The exposure of this stream to record.'),
-  rendition: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.rendition.optional(),
-  kind: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.kind
-    .nonoptional()
-    .describe('The recording implementation.'),
-  params: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.params
-    .optional()
-    .describe('Settings validated by the implementation that reads them.')
+    id: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    exposureId: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.exposureId.nonoptional().describe('The exposure of this stream to record.'),
+    rendition: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.rendition.optional(),
+    kind: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.kind.nonoptional().describe('The recording implementation.'),
+    params: PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });
 
 export type RecorderCreateV1Params = z.infer<typeof RecorderCreateV1ParamsSchema>;

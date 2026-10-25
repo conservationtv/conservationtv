@@ -2,24 +2,13 @@
 
 import * as z from 'zod';
 
-import {
-  GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema,
-  GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema
-} from './zod.gen.js';
+import { GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema } from './zod.gen.js';
 
 export const LogListV1ParamsSchema = z.object({
-  id: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  subjectId: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.subjectId
-    .nonoptional()
-    .describe(
-      'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
-    ),
-  limit: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.limit
-    .optional()
-    .describe('At most this many, newest first.'),
-  before: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.before
-    .optional()
-    .describe('Only those observed before this time, to page back.')
+    id: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'),
+    limit: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
+    before: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.')
 });
 
 export type LogListV1Params = z.infer<typeof LogListV1ParamsSchema>;

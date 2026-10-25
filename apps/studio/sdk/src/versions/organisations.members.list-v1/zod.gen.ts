@@ -3,34 +3,25 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
 export const MemberSchema = z.object({
-  members: z.array(
-    z.object({
-      userId: z.string(),
-      displayName: z.string().nullable(),
-      joinedAt: z.string(),
-      roles: z.array(
-        z.object({
-          id: z.string(),
-          label: z.string()
-        })
-      )
-    })
-  )
+    members: z.array(z.object({
+        userId: z.string(),
+        displayName: z.string().nullable(),
+        joinedAt: z.string(),
+        roles: z.array(z.object({
+            id: z.string(),
+            label: z.string()
+        }))
+    }))
 });
 
 export const GetOrganisationsByIdMembersPathSchema = z.object({
-  id: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The organisation.'
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
     })
 });
 

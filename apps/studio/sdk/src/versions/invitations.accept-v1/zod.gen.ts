@@ -3,38 +3,28 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
 export const InvitationSchema = z.object({
-  organisationId: z.string(),
-  userId: z.string(),
-  joinedAt: z.string()
+    organisationId: z.string(),
+    userId: z.string(),
+    joinedAt: z.string()
 });
 
 export const PostInvitationsByIdAcceptBodySchema = z.object({
-  code: z
-    .string()
-    .min(1)
-    .max(128)
-    .register(z.globalRegistry, {
-      description: "The one-time code from an emailed invitation's link."
+    code: z.string().min(1).max(128).register(z.globalRegistry, {
+        description: 'The one-time code from an emailed invitation\'s link.'
+    }).optional(),
+    displayName: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'Your name as the organisation\'s members will see it.'
     })
-    .optional(),
-  displayName: z.string().min(1).max(120).register(z.globalRegistry, {
-    description: "Your name as the organisation's members will see it."
-  })
 });
 
 export const PostInvitationsByIdAcceptPathSchema = z.object({
-  id: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The invitation.'
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The invitation.'
     })
 });
 

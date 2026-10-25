@@ -5,10 +5,8 @@ import * as z from 'zod';
 import { DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema } from './zod.gen.js';
 
 export const InvitationCancelV1ParamsSchema = z.object({
-  id: DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  invitationId: DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema.shape.invitationId
-    .nonoptional()
-    .describe('The invitation.')
+    id: DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    invitationId: DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema.shape.invitationId.nonoptional().describe('The invitation.')
 });
 
 export type InvitationCancelV1Params = z.infer<typeof InvitationCancelV1ParamsSchema>;

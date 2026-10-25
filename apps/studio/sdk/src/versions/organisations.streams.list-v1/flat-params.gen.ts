@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { GetOrganisationsByIdStreamsPathSchema } from './zod.gen.js';
 
 export const StreamListV1ParamsSchema = z.object({
-  id: GetOrganisationsByIdStreamsPathSchema.shape.id.nonoptional().describe('The organisation.')
+    id: GetOrganisationsByIdStreamsPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
 export type StreamListV1Params = z.infer<typeof StreamListV1ParamsSchema>;
