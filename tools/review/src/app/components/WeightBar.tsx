@@ -26,7 +26,7 @@ export const WeightBar: FC<WeightBarProps> = ({ weights }) => {
         ))}
       </div>
       <span className="weight-caption">
-        <strong>{formatCount(read)}</strong> of {formatCount(total)} changed lines to read
+        <strong>{formatCount(read)}</strong> of {formatCount(total)} lines to read
       </span>
     </div>
   );
