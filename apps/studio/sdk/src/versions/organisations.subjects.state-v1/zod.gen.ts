@@ -3,40 +3,53 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const SubjectSchema = z.object({
-    subjectId: z.string(),
-    state: z.object({
-        health: z.string(),
-        state: z.record(z.string(), z.unknown()),
-        freshness: z.enum(['fresh', 'stale']),
-        observedAt: z.string(),
-        expiresAt: z.string(),
-        computedAt: z.string(),
-        contributingReporterIds: z.array(z.string()),
-        evidenceReportIds: z.array(z.string())
-    }),
-    reachable: z.boolean(),
-    opinions: z.array(z.object({
-        reporterId: z.string(),
-        health: z.string(),
-        state: z.record(z.string(), z.unknown()),
-        freshness: z.enum(['fresh', 'stale']),
-        observedAt: z.string(),
-        expiresAt: z.string(),
-        evidenceReportIds: z.array(z.string())
-    }))
+  subjectId: z.string(),
+  state: z.object({
+    health: z.string(),
+    state: z.record(z.string(), z.unknown()),
+    freshness: z.enum(['fresh', 'stale']),
+    observedAt: z.string(),
+    expiresAt: z.string(),
+    computedAt: z.string(),
+    contributingReporterIds: z.array(z.string()),
+    evidenceReportIds: z.array(z.string())
+  }),
+  reachable: z.boolean(),
+  opinions: z.array(
+    z.object({
+      reporterId: z.string(),
+      health: z.string(),
+      state: z.record(z.string(), z.unknown()),
+      freshness: z.enum(['fresh', 'stale']),
+      observedAt: z.string(),
+      expiresAt: z.string(),
+      evidenceReportIds: z.array(z.string())
+    })
+  )
 });
 
 export const GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
+  id: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The organisation.'
     }),
-    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+  subjectId: z
+    .string()
+    .regex(
+      /^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/
+    )
+    .register(z.globalRegistry, {
+      description:
+        'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 

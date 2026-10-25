@@ -3,41 +3,52 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 /**
  * A quality the stream is delivered at.
  */
-export const RenditionSchema = z.enum([
-    'default',
-    'data_saver',
-    'balanced',
-    'quality'
-]).register(z.globalRegistry, {
-    description: 'A quality the stream is delivered at.'
+export const RenditionSchema = z.enum(['default', 'data_saver', 'balanced', 'quality']).register(z.globalRegistry, {
+  description: 'A quality the stream is delivered at.'
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema = z.object({
-    action: z.enum(['read', 'publish']).register(z.globalRegistry, {
-        description: 'Whether to read the exposure from its gateway, or publish it there.'
-    }),
-    protocol: z.string().min(1).max(60).register(z.globalRegistry, {
-        description: 'One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'
-    }),
-    rendition: RenditionSchema.optional()
+  action: z.enum(['read', 'publish']).register(z.globalRegistry, {
+    description: 'Whether to read the exposure from its gateway, or publish it there.'
+  }),
+  protocol: z.string().min(1).max(60).register(z.globalRegistry, {
+    description:
+      'One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'
+  }),
+  rendition: RenditionSchema.optional()
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
+  id: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The organisation.'
     }),
-    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The stream.'
+  streamId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The stream.'
     }),
-    exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The exposure.'
+  exposureId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The exposure.'
     })
 });
 
@@ -45,20 +56,20 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
  * The connection details
  */
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponseSchema = z.union([
-    z.object({
-        protocol: z.literal('moq'),
-        relay: z.string(),
-        path: z.string(),
-        broadcast: z.string(),
-        token: z.string().optional(),
-        expiresAt: z.string().optional(),
-        renditions: z.array(RenditionSchema)
-    }),
-    z.object({
-        protocol: z.string(),
-        url: z.string(),
-        token: z.string().optional(),
-        expiresAt: z.string().optional(),
-        renditions: z.array(RenditionSchema)
-    })
+  z.object({
+    protocol: z.literal('moq'),
+    relay: z.string(),
+    path: z.string(),
+    broadcast: z.string(),
+    token: z.string().optional(),
+    expiresAt: z.string().optional(),
+    renditions: z.array(RenditionSchema)
+  }),
+  z.object({
+    protocol: z.string(),
+    url: z.string(),
+    token: z.string().optional(),
+    expiresAt: z.string().optional(),
+    renditions: z.array(RenditionSchema)
+  })
 ]);

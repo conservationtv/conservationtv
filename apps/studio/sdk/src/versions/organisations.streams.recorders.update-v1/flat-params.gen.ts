@@ -2,16 +2,31 @@
 
 import * as z from 'zod';
 
-import { PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema } from './zod.gen.js';
+import {
+  PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema,
+  PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema
+} from './zod.gen.js';
 
 export const RecorderUpdateV1ParamsSchema = z.object({
-    id: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    streamId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
-    recorderId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.'),
-    exposureId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.exposureId.optional().describe('The exposure of this stream to record.'),
-    rendition: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.rendition.optional(),
-    kind: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.kind.optional().describe('The recording implementation.'),
-    params: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
+  id: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.id
+    .nonoptional()
+    .describe('The organisation.'),
+  streamId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.streamId
+    .nonoptional()
+    .describe('The stream.'),
+  recorderId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema.shape.recorderId
+    .nonoptional()
+    .describe('The recorder.'),
+  exposureId: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.exposureId
+    .optional()
+    .describe('The exposure of this stream to record.'),
+  rendition: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.rendition.optional(),
+  kind: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.kind
+    .optional()
+    .describe('The recording implementation.'),
+  params: PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema.shape.params
+    .optional()
+    .describe('Settings validated by the implementation that reads them.')
 });
 
 export type RecorderUpdateV1Params = z.infer<typeof RecorderUpdateV1ParamsSchema>;

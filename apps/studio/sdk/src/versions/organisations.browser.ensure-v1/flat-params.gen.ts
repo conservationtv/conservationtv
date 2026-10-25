@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { PutOrganisationsByIdBrowserPathSchema } from './zod.gen.js';
 
 export const BrowserEnsureV1ParamsSchema = z.object({
-    id: PutOrganisationsByIdBrowserPathSchema.shape.id.nonoptional().describe('The organisation.')
+  id: PutOrganisationsByIdBrowserPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
 export type BrowserEnsureV1Params = z.infer<typeof BrowserEnsureV1ParamsSchema>;

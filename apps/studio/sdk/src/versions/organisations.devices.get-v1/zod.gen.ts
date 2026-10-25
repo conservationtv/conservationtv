@@ -3,30 +3,36 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const DeviceSchema = z.object({
-    id: z.string(),
-    kind: z.enum([
-        'agent',
-        'camera',
-        'browser'
-    ]),
-    name: z.string(),
-    networkId: z.string().nullable(),
-    publicKey: z.string(),
-    publicId: z.string(),
-    createdAt: z.string()
+  id: z.string(),
+  kind: z.enum(['agent', 'camera', 'browser']),
+  name: z.string(),
+  networkId: z.string().nullable(),
+  publicKey: z.string(),
+  publicId: z.string(),
+  createdAt: z.string()
 });
 
 export const GetOrganisationsByIdDevicesByDeviceIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
+  id: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The organisation.'
     }),
-    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The device.'
+  deviceId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The device.'
     })
 });
 

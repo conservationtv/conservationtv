@@ -1,20 +1,25 @@
-import type { MediamtxAuth } from '@conservationtv/studio-sdk';
+import type { DeviceIdentity, MediamtxAuth } from '@conservationtv/studio-sdk';
 import { serve, type ServerType } from '@hono/node-server';
 import { sValidator } from '@hono/standard-validator';
 import { Hono } from 'hono';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createLocalJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 
 // Who MediaMTX admits, answered by the agent itself: MediaMTX asks over HTTP (`authMethod: http`) before every read
 // and publish. A reader or publisher on this machine is admitted as it is: anything running here already has the
 // camera's credentials (in MediaMTX's config) and the agent's identity, so a token would add nothing. That is how the
 // moq CLI publishers read renditions over RTMP, which cannot carry a token. Anyone else needs a token the studio API
-// signed for this gateway, admitting that action on that path, checked as MediaMTX's own JWT method would.
+// signed for this gateway with the agent's own identity, admitting that action on that path, checked as MediaMTX's
+// own JWT method would against the agent's public key: the agent holds it, so nothing is fetched from anywhere. It
+// serves that key as a JWKS beside the answers, for a MediaMTX that checks tokens itself (`authJWTJWKS`).
 //
 // MediaMTX outlives the agent (runtime.ts), and admits no one while the agent is not answering.
 
 /** Where on `authHttp` the agent answers. */
 export const MEDIAMTX_AUTH_PATH = '/mediamtx/auth';
+
+/** Where on `authHttp` the agent serves the JWKS of its identity. */
+export const MEDIAMTX_JWKS_PATH = '/mediamtx/jwks';
 
 /** What MediaMTX asks about: who is doing what, to which path, and whatever credentials they offered. */
 const AuthRequestSchema = z.object({
@@ -44,7 +49,7 @@ function permits(permissions: Permissions, request: AuthRequest) {
   return permissions.some(({ action, path }) => action === request.action && (path === '' || path === request.path));
 }
 
-type JwksKeys = ReturnType<typeof createRemoteJWKSet>;
+type JwksKeys = ReturnType<typeof createLocalJWKSet>;
 
 /** Whether MediaMTX should admit what it asked about: anything from this machine, or what a token admits. */
 async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys): Promise<boolean> {
@@ -57,12 +62,15 @@ async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys):
 }
 
 /**
- * Answers MediaMTX's authentication requests by the tokens `auth` says how to check. Anything malformed or failing is
- * refused, as is anything asked elsewhere, which Hono answers 404.
+ * Answers MediaMTX's authentication requests by tokens signed as `identity`, issued and scoped as `auth` says, and
+ * serves `identity`'s JWKS. Anything malformed or failing is refused, as is anything asked elsewhere, which Hono
+ * answers 404.
  */
-export function createMediamtxAuthApp(auth: MediamtxAuth): Hono {
-  const keys = createRemoteJWKSet(new URL(auth.jwks));
+export function createMediamtxAuthApp(auth: MediamtxAuth, identity: DeviceIdentity): Hono {
+  const jwks = { keys: [identity.publicJwk] };
+  const keys = createLocalJWKSet(jwks);
   const app = new Hono()
+    .get(MEDIAMTX_JWKS_PATH, c => c.json(jwks))
     .post(
       MEDIAMTX_AUTH_PATH,
       sValidator('json', AuthRequestSchema, (result, c) => {

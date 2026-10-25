@@ -5,8 +5,10 @@ import * as z from 'zod';
 import { PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema } from './zod.gen.js';
 
 export const InvitationDeclineV1ParamsSchema = z.object({
-    id: PostInvitationsByIdDeclinePathSchema.shape.id.nonoptional().describe('The invitation.'),
-    code: PostInvitationsByIdDeclineBodySchema.shape.code.optional().describe('The one-time code from an emailed invitation\'s link.')
+  id: PostInvitationsByIdDeclinePathSchema.shape.id.nonoptional().describe('The invitation.'),
+  code: PostInvitationsByIdDeclineBodySchema.shape.code
+    .optional()
+    .describe("The one-time code from an emailed invitation's link.")
 });
 
 export type InvitationDeclineV1Params = z.infer<typeof InvitationDeclineV1ParamsSchema>;

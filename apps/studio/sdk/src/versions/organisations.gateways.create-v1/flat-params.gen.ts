@@ -5,11 +5,17 @@ import * as z from 'zod';
 import { PostOrganisationsByIdGatewaysBodySchema, PostOrganisationsByIdGatewaysPathSchema } from './zod.gen.js';
 
 export const GatewayCreateV1ParamsSchema = z.object({
-    id: PostOrganisationsByIdGatewaysPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    name: PostOrganisationsByIdGatewaysBodySchema.shape.name.nonoptional().describe('The gateway name.'),
-    kind: PostOrganisationsByIdGatewaysBodySchema.shape.kind.nonoptional().describe('The gateway implementation, such as `mediamtx`.'),
-    networkId: PostOrganisationsByIdGatewaysBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    settings: PostOrganisationsByIdGatewaysBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+  id: PostOrganisationsByIdGatewaysPathSchema.shape.id.nonoptional().describe('The organisation.'),
+  name: PostOrganisationsByIdGatewaysBodySchema.shape.name.nonoptional().describe('The gateway name.'),
+  kind: PostOrganisationsByIdGatewaysBodySchema.shape.kind
+    .nonoptional()
+    .describe('The gateway implementation, such as `mediamtx`.'),
+  networkId: PostOrganisationsByIdGatewaysBodySchema.shape.networkId
+    .optional()
+    .describe('A network of the organisation, or null for the internet.'),
+  settings: PostOrganisationsByIdGatewaysBodySchema.shape.settings
+    .optional()
+    .describe('Settings validated by the implementation that reads them.')
 });
 
 export type GatewayCreateV1Params = z.infer<typeof GatewayCreateV1ParamsSchema>;

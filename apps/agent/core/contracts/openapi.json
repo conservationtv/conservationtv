@@ -808,9 +808,6 @@
                         "auth": {
                           "type": "object",
                           "properties": {
-                            "jwks": {
-                              "type": "string"
-                            },
                             "issuer": {
                               "type": "string"
                             },
@@ -819,7 +816,6 @@
                             }
                           },
                           "required": [
-                            "jwks",
                             "issuer",
                             "audience"
                           ]
@@ -1783,9 +1779,6 @@
                   "auth": {
                     "type": "object",
                     "properties": {
-                      "jwks": {
-                        "type": "string"
-                      },
                       "issuer": {
                         "type": "string"
                       },
@@ -1794,7 +1787,6 @@
                       }
                     },
                     "required": [
-                      "jwks",
                       "issuer",
                       "audience"
                     ]

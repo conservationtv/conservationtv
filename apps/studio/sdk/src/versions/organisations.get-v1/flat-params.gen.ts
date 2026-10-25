@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { GetOrganisationsByIdPathSchema } from './zod.gen.js';
 
 export const OrganisationGetV1ParamsSchema = z.object({
-    id: GetOrganisationsByIdPathSchema.shape.id.nonoptional().describe('The organisation.')
+  id: GetOrganisationsByIdPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
 export type OrganisationGetV1Params = z.infer<typeof OrganisationGetV1ParamsSchema>;

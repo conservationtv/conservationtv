@@ -3,62 +3,97 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 /**
  * A quality the stream is delivered at.
  */
-export const RenditionSchema = z.enum([
-    'default',
-    'data_saver',
-    'balanced',
-    'quality'
-]).register(z.globalRegistry, {
-    description: 'A quality the stream is delivered at.'
+export const RenditionSchema = z.enum(['default', 'data_saver', 'balanced', 'quality']).register(z.globalRegistry, {
+  description: 'A quality the stream is delivered at.'
 });
 
-export const Schema0Schema = z.union([
+export const Schema0Schema = z
+  .union([
     z.string(),
     z.number(),
     z.boolean(),
     z.array(z.lazy((): any => Schema0Schema)),
-    z.record(z.string(), z.lazy((): any => Schema0Schema))
-]).nullable();
+    z.record(
+      z.string(),
+      z.lazy((): any => Schema0Schema)
+    )
+  ])
+  .nullable();
 
 export const ExposureSchema = z.object({
-    id: z.string(),
-    gatewayId: z.string(),
-    renditions: z.array(RenditionSchema),
-    publisherDeviceId: z.string().nullable(),
-    upstreamExposureId: z.string().nullable(),
-    params: z.record(z.string(), z.unknown()),
-    createdAt: z.string()
+  id: z.string(),
+  gatewayId: z.string(),
+  renditions: z.array(RenditionSchema),
+  publisherDeviceId: z.string().nullable(),
+  upstreamExposureId: z.string().nullable(),
+  params: z.record(z.string(), z.unknown()),
+  createdAt: z.string()
 });
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema = z.object({
-    gatewayId: z.union([
-        z.enum(['conservationtv']),
-        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
-    ]).optional(),
-    renditions: z.array(RenditionSchema).min(1).register(z.globalRegistry, {
-        description: 'The renditions the exposure offers.'
-    }).optional(),
-    publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
-    params: z.record(z.string(), Schema0Schema).optional()
+  gatewayId: z
+    .union([
+      z.enum(['conservationtv']),
+      z
+        .uuid()
+        .regex(
+          /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+        )
+    ])
+    .optional(),
+  renditions: z
+    .array(RenditionSchema)
+    .min(1)
+    .register(z.globalRegistry, {
+      description: 'The renditions the exposure offers.'
+    })
+    .optional(),
+  publisherDeviceId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .nullish(),
+  upstreamExposureId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .nullish(),
+  params: z.record(z.string(), Schema0Schema).optional()
 });
 
 export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
+  id: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The organisation.'
     }),
-    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The stream.'
+  streamId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The stream.'
     }),
-    exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The exposure.'
+  exposureId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The exposure.'
     })
 });
 

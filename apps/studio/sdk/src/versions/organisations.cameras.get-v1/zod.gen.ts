@@ -3,43 +3,51 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const CameraSchema = z.object({
-    id: z.string(),
-    settings: z.union([
-        z.object({
-            driver: z.literal('axis'),
-            host: z.string(),
-            resolutions: z.array(z.string())
-        }),
-        z.object({
-            driver: z.literal('rtsp'),
-            url: z.string()
-        })
-    ]),
-    device: z.object({
-        name: z.string(),
-        createdAt: z.string(),
-        publicKey: z.string(),
-        kind: z.enum([
-            'agent',
-            'camera',
-            'browser'
-        ]),
-        networkId: z.string().nullable(),
-        publicId: z.string()
-    }).nullable()
+  id: z.string(),
+  settings: z.union([
+    z.object({
+      driver: z.literal('axis'),
+      host: z.string(),
+      resolutions: z.array(z.string())
+    }),
+    z.object({
+      driver: z.literal('rtsp'),
+      url: z.string()
+    })
+  ]),
+  device: z
+    .object({
+      name: z.string(),
+      createdAt: z.string(),
+      publicKey: z.string(),
+      kind: z.enum(['agent', 'camera', 'browser']),
+      networkId: z.string().nullable(),
+      publicId: z.string()
+    })
+    .nullable()
 });
 
 export const GetOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The organisation.'
+  id: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The organisation.'
     }),
-    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
-        description: 'The camera.'
+  cameraId: z
+    .uuid()
+    .regex(
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    )
+    .register(z.globalRegistry, {
+      description: 'The camera.'
     })
 });
 

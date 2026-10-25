@@ -3,20 +3,24 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-    error: z.string(),
-    error_description: z.string()
+  error: z.string(),
+  error_description: z.string()
 });
 
 export const OrganisationSchema = z.object({
-    organisations: z.array(z.object({
-        id: z.string(),
-        name: z.string(),
-        createdAt: z.string(),
-        roles: z.array(z.object({
-            id: z.string(),
-            label: z.string()
-        }))
-    }))
+  organisations: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      createdAt: z.string(),
+      roles: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string()
+        })
+      )
+    })
+  )
 });
 
 /**

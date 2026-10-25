@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { GetInvitationsByIdPathSchema } from './zod.gen.js';
 
 export const InvitationGetV1ParamsSchema = z.object({
-    id: GetInvitationsByIdPathSchema.shape.id.nonoptional().describe('The invitation.')
+  id: GetInvitationsByIdPathSchema.shape.id.nonoptional().describe('The invitation.')
 });
 
 export type InvitationGetV1Params = z.infer<typeof InvitationGetV1ParamsSchema>;

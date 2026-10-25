@@ -2,15 +2,32 @@
 
 import * as z from 'zod';
 
-import { GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema } from './zod.gen.js';
+import {
+  GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema,
+  GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema
+} from './zod.gen.js';
 
 export const MetricGetV1ParamsSchema = z.object({
-    id: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'),
-    seriesId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.seriesId.nonoptional().describe('The series.'),
-    from: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.from.nonoptional().describe('Points observed at or after this time.'),
-    to: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.to.optional().describe('Points observed before this time; now by default.'),
-    step: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.step.optional().describe('Seconds per bucket, at least; widened so the range has at most 1000 buckets.')
+  id: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.id
+    .nonoptional()
+    .describe('The organisation.'),
+  subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.subjectId
+    .nonoptional()
+    .describe(
+      'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    ),
+  seriesId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.seriesId
+    .nonoptional()
+    .describe('The series.'),
+  from: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.from
+    .nonoptional()
+    .describe('Points observed at or after this time.'),
+  to: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.to
+    .optional()
+    .describe('Points observed before this time; now by default.'),
+  step: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.step
+    .optional()
+    .describe('Seconds per bucket, at least; widened so the range has at most 1000 buckets.')
 });
 
 export type MetricGetV1Params = z.infer<typeof MetricGetV1ParamsSchema>;

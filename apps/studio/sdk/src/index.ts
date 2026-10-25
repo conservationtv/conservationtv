@@ -1,6 +1,6 @@
 export * from './generated/index.js';
 export * from './versions/index.js';
-export { DeviceIdentity, deviceSignature } from './device.js';
+export { DeviceIdentity, deviceSignature, type DevicePublicJwk } from './device.js';
 export {
   bearer,
   ForbiddenError,
