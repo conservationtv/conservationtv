@@ -1,13 +1,16 @@
-import type { CodeViewItem, FileDiffMetadata } from '@pierre/diffs';
+import type { CodeViewItem, DiffLineAnnotation, FileDiffMetadata, SelectedLineRange } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions } from '@pierre/diffs/react';
-import { useMemo, useState, type FC, type ReactNode, type RefObject } from 'react';
-import type { Review, ReviewFile, Thread } from '../../shared/review.ts';
+import { useMemo, useRef, useState, type FC, type ReactNode, type RefObject } from 'react';
+import type { Review, ReviewFile } from '../../shared/review.ts';
 import { fullDiff, isBinary, isMoved, loadSides } from '../diffs.ts';
+import type { Drafts } from '../drafts.ts';
 import type { Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
+import { lineTarget, type LineTarget, type Note } from '../notes.ts';
+import { useSession } from '../session.ts';
 import type { ViewedFiles } from '../viewed.ts';
 import { theme } from '../highlighting.ts';
-import { ThreadView } from './ThreadView.tsx';
+import { NoteView } from './LineNotes.tsx';
 
 export type DiffStyle = 'split' | 'unified';
 
@@ -31,6 +34,22 @@ function version(parts: readonly (string | number | boolean)[]): number {
   return hash >>> 0;
 }
 
+/** What a note shows, for an item's version: a thread's comments, a draft, or where a comment is being written. */
+function noteKey(note: Note): string {
+  if (note.kind === 'thread') return `thread:${note.thread.comments.length}`;
+  if (note.kind === 'draft') return `draft:${note.draft.id}`;
+  return `composer:${note.target.side}:${note.target.line}`;
+}
+
+/** Which item a gutter click was in. */
+interface GutterItem {
+  id: string;
+}
+
+interface GutterContext {
+  item: GutterItem;
+}
+
 /** What has happened to an entry since the chapter opened. */
 interface EntryState {
   folded?: boolean;
@@ -40,22 +59,29 @@ interface EntryState {
   error?: string;
 }
 
-export type Viewer = RefObject<CodeViewHandle<Thread, undefined> | null>;
+export type Viewer = RefObject<CodeViewHandle<Note, undefined> | null>;
 
 interface DiffListProps {
   review: Review;
   entries: readonly Entry[];
   viewer: Viewer;
   viewed: ViewedFiles;
+  drafts: Drafts;
   diffStyle: DiffStyle;
   header: ReactNode;
   footer: ReactNode;
 }
 
 /** A chapter's diffs in one scrolling list, with what to read open and the rest folded until asked for. */
-export const DiffList: FC<DiffListProps> = ({ review, entries, viewer, viewed, diffStyle, header, footer }) => {
+export const DiffList: FC<DiffListProps> = props => {
+  const { review, entries, viewer, viewed, drafts, diffStyle, header, footer } = props;
   const [states, setStates] = useState<Record<string, EntryState>>({});
   const threads = useMemo(() => Map.groupBy(review.threads, thread => thread.path), [review.threads]);
+  const pending = useMemo(() => Map.groupBy(drafts.all, draft => draft.path), [drafts.all]);
+  const signedIn = Boolean(useSession()?.viewer);
+  // The comment being written, and what is written of it: kept here, as its line can scroll out of view and back.
+  const [target, setTarget] = useState<LineTarget | null>(null);
+  const written = useRef('');
 
   const update = (id: string, change: EntryState) =>
     setStates(current => ({ ...current, [id]: { ...current[id], ...change } }));
@@ -90,38 +116,75 @@ export const DiffList: FC<DiffListProps> = ({ review, entries, viewer, viewed, d
     viewed.toggle(file);
   }
 
-  const items: CodeViewItem<Thread>[] = entries.map(entry => {
+  /**
+   * Threads, pending comments and the comment being written: only on an entry showing a whole file, as GitHub's are.
+   * Each kind is gathered from its own source and placed at its line.
+   */
+  function notesOf(entry: Entry): DiffLineAnnotation<Note>[] {
+    if (!entry.file) return [];
+    // A thread whose line has since changed is shown at the top of its file.
+    const threadNotes = (threads.get(entry.file.path) ?? []).map(thread => ({
+      side: thread.side,
+      lineNumber: thread.line ?? 0,
+      metadata: { kind: 'thread', thread } satisfies Note
+    }));
+    const draftNotes = (pending.get(entry.file.path) ?? []).map(draft => ({
+      side: draft.side,
+      lineNumber: draft.line,
+      metadata: { kind: 'draft', draft } satisfies Note
+    }));
+    const composing = target?.entryId === entry.id ? [target] : [];
+    const composerNotes = composing.map(line => ({
+      side: line.side,
+      lineNumber: line.line,
+      metadata: { kind: 'composer', target: line } satisfies Note
+    }));
+    return [...threadNotes, ...draftNotes, ...composerNotes];
+  }
+
+  const items: CodeViewItem<Note>[] = entries.map(entry => {
+    // Each entry as the viewer draws it: folded or not, its whole diff once loaded, and its notes; the version
+    // changes whenever any of them does.
     const state = states[entry.id];
-    // Threads are line comments on the whole file, so only an entry showing the whole file carries them.
-    const entryThreads = entry.file ? (threads.get(entry.file.path) ?? []) : [];
     const folded = isFolded(entry) || needsLoading(entry);
+    const annotations = notesOf(entry);
     return {
       id: entry.id,
       type: 'diff',
       fileDiff: state?.full ?? entry.diff,
       collapsed: folded,
-      // A thread whose line has since changed is shown at the top of its file.
-      annotations: entryThreads.map(thread => ({ side: thread.side, lineNumber: thread.line ?? 0, metadata: thread })),
+      annotations,
       version: version([
         entry.diff.cacheKey ?? entry.id,
         folded,
         Boolean(state?.full),
-        entryThreads.reduce((count, thread) => count + thread.comments.length, 0)
+        ...annotations.map(({ metadata: note }) => noteKey(note))
       ])
     };
   });
   const byId = new Map(entries.map(entry => [entry.id, entry]));
 
-  const options: CodeViewReactOptions<Thread, undefined> = {
+  function compose(range: SelectedLineRange, context: GutterContext) {
+    const entry = byId.get(context.item.id);
+    const line = entry ? lineTarget(entry, range) : null;
+    if (!line) return;
+    written.current = '';
+    setTarget(line);
+  }
+
+  const options: CodeViewReactOptions<Note, undefined> = {
     theme,
     diffStyle,
     stickyHeaders: true,
     loadDiffFiles: fileDiff => loadSides(review.pull, fileDiff.name, fileDiff.prevName),
-    layout: { paddingTop: 0, paddingBottom: 96, gap: 12 }
+    layout: { paddingTop: 0, paddingBottom: 96, gap: 12 },
+    // The gutter's + comments on a line, or on the lines dragged over; signed in, as comments are the reviewer's own.
+    enableGutterUtility: signedIn,
+    onGutterUtilityClick: compose
   };
 
   return (
-    <CodeView<Thread, undefined>
+    <CodeView<Note, undefined>
       ref={viewer}
       className="code-view"
       items={items}
@@ -143,7 +206,18 @@ export const DiffList: FC<DiffListProps> = ({ review, entries, viewer, viewed, d
           />
         );
       }}
-      renderAnnotation={(...[annotation]) => <ThreadView thread={annotation.metadata} />}
+      renderAnnotation={(...[annotation]) => (
+        <NoteView
+          pull={review.pull}
+          note={annotation.metadata}
+          drafts={drafts}
+          written={written.current}
+          onWrite={body => {
+            written.current = body;
+          }}
+          onCloseComposer={() => setTarget(null)}
+        />
+      )}
     />
   );
 };
