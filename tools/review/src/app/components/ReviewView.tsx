@@ -11,6 +11,7 @@ import { highlighterOptions, poolOptions } from '../highlighting.ts';
 import { chaptersOf, connectionsOf, operationParts, type Chapter, type ChapterId } from '../story.ts';
 import { useViewed, type ViewedFiles } from '../viewed.ts';
 import { useDrafts, type Drafts } from '../drafts.ts';
+import { useSwitch } from '../preferences.ts';
 import { ReviewSubmit } from './ReviewSubmit.tsx';
 import { ChangeTree } from './ChangeTree.tsx';
 import { CheckMark, MarkdownBody } from './common.tsx';
@@ -35,11 +36,17 @@ function preferredStyle(): DiffStyle {
   return window.matchMedia('(max-width: 900px)').matches ? 'unified' : 'split';
 }
 
+/**
+ * The chapter asked for, else the first, under the chapters and the reviewer's view switches: the file sidebar, wrapping
+ * and the diff layout.
+ */
 const Story: FC<ReviewViewProps> = ({ review, chapter: chapterId, operation }) => {
   const viewer = useRef(null);
   const viewed = useViewed(review);
   const drafts = useDrafts(review);
   const [diffStyle, setDiffStyle] = useState(preferredStyle);
+  const [sidebar, toggleSidebar] = useSwitch('sidebar', true);
+  const [wrap, toggleWrap] = useSwitch('wrap', false);
   const chapters = chaptersOf(review);
   const index = Math.max(
     0,
@@ -48,11 +55,19 @@ const Story: FC<ReviewViewProps> = ({ review, chapter: chapterId, operation }) =
   const chapter = chapters[index];
   if (!chapter) return <main className="page narrow muted">This pull request changes no files.</main>;
   const next = chapters[index + 1];
-  const context: ChapterContext = { review, chapter, next, viewer, viewed, drafts, diffStyle };
+  const context: ChapterContext = { review, chapter, next, viewer, viewed, drafts, diffStyle, wrap };
   return (
-    <main className="review">
+    <main className={sidebar ? 'review' : 'review sidebar-hidden'}>
       <StoryNav review={review} chapters={chapters} current={chapter.id} viewed={viewed}>
         <ReviewSubmit review={review} drafts={drafts} />
+        <div className="segmented toggles" role="group" aria-label="View">
+          <button type="button" className="sidebar-toggle" aria-pressed={sidebar} onClick={toggleSidebar}>
+            Files
+          </button>
+          <button type="button" aria-pressed={wrap} onClick={toggleWrap}>
+            Wrap
+          </button>
+        </div>
         <div className="segmented" role="group" aria-label="Diff layout">
           {(['split', 'unified'] as const).map(style => (
             <button key={style} type="button" aria-pressed={diffStyle === style} onClick={() => setDiffStyle(style)}>
@@ -80,6 +95,8 @@ interface ChapterContext {
   /** Line comments waiting for the review they belong to. */
   drafts: Drafts;
   diffStyle: DiffStyle;
+  /** Long lines wrapped rather than scrolled sideways. */
+  wrap: boolean;
 }
 
 function chapterUrl(review: Review, id: ChapterId): string {
@@ -240,6 +257,7 @@ const FileChapter: FC<FileChapterProps> = ({ context }) => {
           viewed={viewed}
           drafts={context.drafts}
           diffStyle={diffStyle}
+          wrap={context.wrap}
           header={
             <Intro context={context}>
               {chapter.id === 'generated' ? <GeneratedSummary context={context} /> : null}
@@ -446,6 +464,7 @@ const ApiChapter: FC<ApiChapterProps> = ({ context, operation }) => {
           viewed={viewed}
           drafts={context.drafts}
           diffStyle={diffStyle}
+          wrap={context.wrap}
           header={
             change ? (
               <OperationHeader
