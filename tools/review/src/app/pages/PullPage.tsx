@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { FC } from 'react';
 import type { Review } from '../../shared/review.ts';
 import { pullQueries } from '../api.ts';
+import { Account } from '../components/Account.tsx';
 import { Avatar, RelativeTime, StateBadge } from '../components/common.tsx';
 import { ConversationView } from '../components/ConversationView.tsx';
 import { ReviewView } from '../components/ReviewView.tsx';
@@ -58,6 +59,11 @@ const PullHeader: FC<PullHeaderProps> = ({ review, tab }) => {
         <a href={pull.url} className="muted github-link">
           GitHub ↗
         </a>
+        {/* Opens the pull request in T3 Code, to work on it there. */}
+        <a href={`t3code://new?pr=${review.repository}/${pull.number}`} className="muted github-link">
+          T3 ↗
+        </a>
+        <Account />
       </div>
       {tab === 'conversation' && <PullByline review={review} />}
       <div className="pull-bar">

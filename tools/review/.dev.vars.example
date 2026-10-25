@@ -1,3 +1,11 @@
 # A fine-grained GitHub token: "Public repositories (read-only)" access, no other permissions. Leave it empty to read
 # anonymously, within GitHub's 60 requests an hour.
 GITHUB_TOKEN=
+
+# A GitHub OAuth app for signing in (Settings → Developer settings → OAuth Apps), with its callback URL at
+# <origin>/api/auth/callback. GitHub sends only to the callback URL it has, so a local one needs its own app. Leave
+# these empty and the tool only reads.
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+# Seals the session cookie: openssl rand -hex 32
+SESSION_SECRET=

@@ -51,10 +51,23 @@ repositories and no other permission. Responses are kept in the Cache API and re
 token costs nothing against the rate limit. Without one, GitHub allows 60 requests an hour from an address, counting
 revalidations, so cached copies serve ten times longer; a pull request takes about ten requests.
 
+## Signing in
+
+Signed in with GitHub, a reviewer comments, replies to threads, comments on lines (on their own or gathered into a
+review that comments, approves or requests changes) and merges, all as themselves. Sign-in goes through a GitHub OAuth
+app that holds no permissions of its own: each reviewer grants a `public_repo` token, which the Worker keeps in an
+HttpOnly cookie sealed with AES-GCM under `SESSION_SECRET`, so only the Worker can read it. Signing out revokes it.
+Changes are taken only from this site's own pages (their `Origin`), and only on lines GitHub's own diff shows.
+
+The OAuth app is `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, with its callback URL at
+`https://review.tools.conservation.tv/api/auth/callback`. GitHub sends only to the callback URL it has, so signing in
+locally needs a second app whose callback is `http://localhost:5177/api/auth/callback`. Without them the tool only
+reads.
+
 ## Development
 
 ```sh
-cp .dev.vars.example .dev.vars   # and set GITHUB_TOKEN, or leave it empty
+cp .dev.vars.example .dev.vars   # and set GITHUB_TOKEN and the OAuth app's, or leave them empty
 pnpm dev                         # http://localhost:5177
 pnpm typecheck
 ```
@@ -70,8 +83,8 @@ pnpm run deploy                                    # build and deploy
 pnpm exec cf workers secrets update GITHUB_TOKEN   # replace the token
 ```
 
-A Worker that does not exist yet cannot be deployed without its secret: the first deploy passed it with
-`--secrets-file`.
+A Worker cannot be deployed without a secret its config declares that it does not yet have: the first deploy, and the
+one that added the sign-in secrets, passed them with `--secrets-file .dev.vars`.
 
 ## Pull request links
 

@@ -1,14 +1,51 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import type { z } from 'zod';
+import {
+  SessionSchema,
+  type CommentRequest,
+  type LineCommentRequest,
+  type MergeRequest,
+  type ReviewRequest
+} from '../shared/actions.ts';
 import { OperationDocsSchema } from '../shared/operation.ts';
 import { ApiErrorSchema, PullListSchema, ReviewSchema } from '../shared/review.ts';
 
-async function load<T extends z.ZodType>(path: string, schema: T): Promise<z.output<T>> {
-  const response = await fetch(path);
-  const body = await response.json();
-  if (!response.ok)
-    throw new Error(ApiErrorSchema.safeParse(body).data?.error ?? `The API answered ${response.status}.`);
-  return schema.parse(body);
+/** The API's own explanation of a failure, else its status. */
+async function failure(response: Response): Promise<Error> {
+  const body = await response.json().catch(() => null);
+  return new Error(ApiErrorSchema.safeParse(body).data?.error ?? `The API answered ${response.status}.`);
+}
+
+async function load<T extends z.ZodType>(path: string, schema: T, headers?: HeadersInit): Promise<z.output<T>> {
+  const response = await fetch(path, { headers });
+  if (!response.ok) throw await failure(response);
+  return schema.parse(await response.json());
+}
+
+/** Who is signed in, if anyone, and whether signing in is set up at all. */
+export const sessionQuery = queryOptions({
+  queryKey: ['session'] as const,
+  queryFn: () => load('/api/auth/session', SessionSchema),
+  staleTime: Infinity
+});
+
+/** What a change sends: nothing, for signing out. */
+type ActionBody = MergeRequest | CommentRequest | LineCommentRequest | ReviewRequest;
+
+/** A change made on GitHub as the signed-in reviewer. */
+export async function send(path: string, body?: ActionBody): Promise<void> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!response.ok) throw await failure(response);
+}
+
+/** The pull request read again straight after a change, past the Worker's few seconds of cache, so the change shows. */
+export async function refreshReview(queryClient: QueryClient, number: number): Promise<void> {
+  const review = await load(`/api/pulls/${number}`, ReviewSchema, { 'x-review-fresh': '1' });
+  queryClient.setQueryData(pullQueries.review(number).queryKey, review);
 }
 
 export const pullQueries = {
