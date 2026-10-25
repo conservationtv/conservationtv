@@ -1246,6 +1246,15 @@ button {
   color: #fff;
 }
 
+/* The file sidebar folded away gives the diffs the whole width. */
+.sidebar-hidden .review-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sidebar-hidden .review-sidebar {
+  display: none;
+}
+
 /* An operation as API reference */
 
 .api-docs {
@@ -1760,8 +1769,14 @@ button {
     padding: 0.4rem 0.5rem;
   }
 
-  .story-nav .segmented {
+  /* A phone shows one side and no sidebar, so only wrapping is left to choose. */
+  .story-nav .segmented:not(.toggles),
+  .sidebar-toggle {
     display: none;
+  }
+
+  .sidebar-toggle + button {
+    border-left: 0;
   }
 
   .code-view {
