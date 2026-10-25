@@ -1,4 +1,5 @@
 import { getSingularPatch, parseDiffFromFile, type FileDiffLoadedFiles, type FileDiffMetadata } from '@pierre/diffs';
+import type { LineSide } from '../shared/actions.ts';
 import type { Pull, ReviewFile } from '../shared/review.ts';
 import { rawFile } from './api.ts';
 
@@ -53,4 +54,16 @@ export function isMoved(file: ReviewFile): boolean {
 /** Binary files have no lines to diff. */
 export function isBinary(file: ReviewFile): boolean {
   return file.patch === null && file.additions === 0 && file.deletions === 0;
+}
+
+/**
+ * Whether GitHub takes a comment on these lines: only lines its own diff shows, so not context expanded beyond a hunk,
+ * and a range only within one hunk.
+ */
+export function commentable(diff: FileDiffMetadata, side: LineSide, from: number, to: number): boolean {
+  return diff.hunks.some(hunk => {
+    const start = side === 'additions' ? hunk.additionStart : hunk.deletionStart;
+    const count = side === 'additions' ? hunk.additionCount : hunk.deletionCount;
+    return from >= start && to < start + count;
+  });
 }

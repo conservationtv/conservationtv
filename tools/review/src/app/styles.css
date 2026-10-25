@@ -502,6 +502,187 @@ button {
   min-width: 2px;
 }
 
+/* Signing in, and changes made as the signed-in reviewer */
+
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.button.small-button {
+  margin-top: 0;
+  padding: 0.2rem 0.65rem;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.button.primary:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #000);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.composer textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.composer textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-color: var(--accent);
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.composer-actions .button {
+  margin-top: 0;
+}
+
+.comment-form {
+  padding: 0.75rem;
+}
+
+.merge-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.merge-controls select {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.merge-controls .button,
+.merge-confirm .button {
+  margin-top: 0;
+}
+
+.merge-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.thread-composer {
+  padding: 0.5rem 0.75rem;
+}
+
+.line-note {
+  margin: 0.5rem;
+  max-width: 760px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  white-space: normal;
+}
+
+.line-note > p {
+  margin: 0 0 0.4rem;
+}
+
+.line-note-blocked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.line-note-blocked p {
+  margin: 0;
+}
+
+.line-note-draft {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.line-note-draft header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.line-note-draft header .link-button {
+  margin-left: auto;
+}
+
+.pending-badge {
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.review-submit {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.review-submit .count {
+  background: color-mix(in srgb, #fff 25%, transparent);
+  border-color: transparent;
+  color: inherit;
+}
+
+.review-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 20;
+  width: min(28rem, calc(100vw - 1.5rem));
+  padding: 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.18);
+}
+
+.review-panel > p {
+  margin: 0 0 0.5rem;
+}
+
 /* The conversation */
 
 .conversation {
