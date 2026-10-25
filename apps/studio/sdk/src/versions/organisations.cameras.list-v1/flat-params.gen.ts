@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { GetOrganisationsByIdCamerasPathSchema } from './zod.gen.js';
 
 export const CameraListV1ParamsSchema = z.object({
-  id: GetOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.')
+    id: GetOrganisationsByIdCamerasPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
 
 export type CameraListV1Params = z.infer<typeof CameraListV1ParamsSchema>;

@@ -5,15 +5,9 @@ import * as z from 'zod';
 import { DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema } from './zod.gen.js';
 
 export const ExposureDeleteV1ParamsSchema = z.object({
-  id: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.id
-    .nonoptional()
-    .describe('The organisation.'),
-  streamId: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.streamId
-    .nonoptional()
-    .describe('The stream.'),
-  exposureId: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId
-    .nonoptional()
-    .describe('The exposure.')
+    id: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    exposureId: DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema.shape.exposureId.nonoptional().describe('The exposure.')
 });
 
 export type ExposureDeleteV1Params = z.infer<typeof ExposureDeleteV1ParamsSchema>;

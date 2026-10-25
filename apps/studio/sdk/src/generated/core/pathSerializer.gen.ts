@@ -69,14 +69,14 @@ export const serializeArrayParam = ({
   explode,
   name,
   style,
-  value
+  value,
 }: SerializeOptions<ArraySeparatorStyle> & {
   value: unknown[];
 }): string => {
   if (!explode) {
-    const joinedValues = (allowReserved ? value : value.map(v => encodeURIComponent(v as string))).join(
-      separatorArrayNoExplode(style)
-    );
+    const joinedValues = (
+      allowReserved ? value : value.map((v) => encodeURIComponent(v as string))
+    ).join(separatorArrayNoExplode(style));
     switch (style) {
       case 'label':
         return `.${joinedValues}`;
@@ -91,7 +91,7 @@ export const serializeArrayParam = ({
 
   const separator = separatorArrayExplode(style);
   const joinedValues = value
-    .map(v => {
+    .map((v) => {
       if (style === 'label' || style === 'simple') {
         return allowReserved ? v : encodeURIComponent(v as string);
       }
@@ -99,21 +99,25 @@ export const serializeArrayParam = ({
       return serializePrimitiveParam({
         allowReserved,
         name,
-        value: v as string
+        value: v as string,
       });
     })
     .join(separator);
   return style === 'label' || style === 'matrix' ? separator + joinedValues : joinedValues;
 };
 
-export const serializePrimitiveParam = ({ allowReserved, name, value }: SerializePrimitiveParam): string => {
+export const serializePrimitiveParam = ({
+  allowReserved,
+  name,
+  value,
+}: SerializePrimitiveParam): string => {
   if (value === undefined || value === null) {
     return '';
   }
 
   if (typeof value === 'object') {
     throw new Error(
-      'Deeply-nested arrays/objects aren’t supported. Provide your own `querySerializer()` to handle these.'
+      'Deeply-nested arrays/objects aren’t supported. Provide your own `querySerializer()` to handle these.',
     );
   }
 
@@ -126,7 +130,7 @@ export const serializeObjectParam = ({
   name,
   style,
   value,
-  valueOnly
+  valueOnly,
 }: SerializeOptions<ObjectSeparatorStyle> & {
   value: Record<string, unknown> | Date;
   valueOnly?: boolean;
@@ -159,8 +163,8 @@ export const serializeObjectParam = ({
       serializePrimitiveParam({
         allowReserved,
         name: style === 'deepObject' ? `${name}[${key}]` : key,
-        value: v as string
-      })
+        value: v as string,
+      }),
     )
     .join(separator);
   return style === 'label' || style === 'matrix' ? separator + joinedValues : joinedValues;

@@ -47,19 +47,19 @@ export const formDataBodySerializer = {
         return;
       }
       if (Array.isArray(value)) {
-        value.forEach(v => serializeFormDataPair(data, key, v));
+        value.forEach((v) => serializeFormDataPair(data, key, v));
       } else {
         serializeFormDataPair(data, key, value);
       }
     });
 
     return data;
-  }
+  },
 };
 
 export const jsonBodySerializer = {
   bodySerializer: (body: unknown): string =>
-    JSON.stringify(body, (_key, value) => (typeof value === 'bigint' ? value.toString() : value))
+    JSON.stringify(body, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)),
 };
 
 export const urlSearchParamsBodySerializer = {
@@ -71,12 +71,12 @@ export const urlSearchParamsBodySerializer = {
         return;
       }
       if (Array.isArray(value)) {
-        value.forEach(v => serializeUrlSearchParamsPair(data, key, v));
+        value.forEach((v) => serializeUrlSearchParamsPair(data, key, v));
       } else {
         serializeUrlSearchParamsPair(data, key, value);
       }
     });
 
     return data.toString();
-  }
+  },
 };

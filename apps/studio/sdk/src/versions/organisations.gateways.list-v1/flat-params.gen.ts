@@ -5,10 +5,8 @@ import * as z from 'zod';
 import { GetOrganisationsByIdGatewaysPathSchema, GetOrganisationsByIdGatewaysQuerySchema } from './zod.gen.js';
 
 export const GatewayListV1ParamsSchema = z.object({
-  id: GetOrganisationsByIdGatewaysPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  networkId: GetOrganisationsByIdGatewaysQuerySchema.shape.networkId
-    .optional()
-    .describe('Only gateways on this network.')
+    id: GetOrganisationsByIdGatewaysPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    networkId: GetOrganisationsByIdGatewaysQuerySchema.shape.networkId.optional().describe('Only gateways on this network.')
 });
 
 export type GatewayListV1Params = z.infer<typeof GatewayListV1ParamsSchema>;

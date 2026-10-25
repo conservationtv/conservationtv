@@ -3,56 +3,47 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
-export const RenditionSchema = z.enum(['default', 'data_saver', 'balanced', 'quality']);
+export const RenditionSchema = z.enum([
+    'default',
+    'data_saver',
+    'balanced',
+    'quality'
+]);
 
 export const StreamSchema = z.object({
-  exposures: z.array(
-    z.object({
-      id: z.string(),
-      gatewayId: z.string(),
-      renditions: z.array(RenditionSchema),
-      publisherDeviceId: z.string().nullable(),
-      upstreamExposureId: z.string().nullable(),
-      params: z.record(z.string(), z.unknown()),
-      createdAt: z.string()
-    })
-  ),
-  recorders: z.array(
-    z.object({
-      id: z.string(),
-      exposureId: z.string(),
-      rendition: RenditionSchema,
-      kind: z.string(),
-      params: z.record(z.string(), z.unknown()),
-      createdAt: z.string()
-    })
-  ),
-  id: z.string(),
-  name: z.string(),
-  sourceDeviceId: z.string().nullable(),
-  createdAt: z.string()
+    exposures: z.array(z.object({
+        id: z.string(),
+        gatewayId: z.string(),
+        renditions: z.array(RenditionSchema),
+        publisherDeviceId: z.string().nullable(),
+        upstreamExposureId: z.string().nullable(),
+        params: z.record(z.string(), z.unknown()),
+        createdAt: z.string()
+    })),
+    recorders: z.array(z.object({
+        id: z.string(),
+        exposureId: z.string(),
+        rendition: RenditionSchema,
+        kind: z.string(),
+        params: z.record(z.string(), z.unknown()),
+        createdAt: z.string()
+    })),
+    id: z.string(),
+    name: z.string(),
+    sourceDeviceId: z.string().nullable(),
+    createdAt: z.string()
 });
 
 export const GetOrganisationsByIdStreamsByStreamIdPathSchema = z.object({
-  id: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The organisation.'
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
     }),
-  streamId: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The stream.'
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream.'
     })
 });
 

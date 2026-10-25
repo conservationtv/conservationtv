@@ -5,11 +5,9 @@ import * as z from 'zod';
 import { PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsPathSchema } from './zod.gen.js';
 
 export const StreamCreateV1ParamsSchema = z.object({
-  id: PostOrganisationsByIdStreamsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  name: PostOrganisationsByIdStreamsBodySchema.shape.name.nonoptional().describe('The stream name.'),
-  sourceDeviceId: PostOrganisationsByIdStreamsBodySchema.shape.sourceDeviceId
-    .optional()
-    .describe('The device the stream comes from, such as its camera, or null for none yet.')
+    id: PostOrganisationsByIdStreamsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdStreamsBodySchema.shape.name.nonoptional().describe('The stream name.'),
+    sourceDeviceId: PostOrganisationsByIdStreamsBodySchema.shape.sourceDeviceId.optional().describe('The device the stream comes from, such as its camera, or null for none yet.')
 });
 
 export type StreamCreateV1Params = z.infer<typeof StreamCreateV1ParamsSchema>;

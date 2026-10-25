@@ -3,52 +3,34 @@
 import * as z from 'zod';
 
 export const ErrorSchema = z.object({
-  error: z.string(),
-  error_description: z.string()
+    error: z.string(),
+    error_description: z.string()
 });
 
 export const MetricSchema = z.object({
-  series: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      reporterId: z.string(),
-      unit: z.string().nullable(),
-      dimensions: z.record(z.string(), z.string()),
-      createdAt: z.string()
-    })
-  )
+    series: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        reporterId: z.string(),
+        unit: z.string().nullable(),
+        dimensions: z.record(z.string(), z.string()),
+        createdAt: z.string()
+    }))
 });
 
 export const GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema = z.object({
-  id: z
-    .uuid()
-    .regex(
-      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
-    )
-    .register(z.globalRegistry, {
-      description: 'The organisation.'
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
     }),
-  subjectId: z
-    .string()
-    .regex(
-      /^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/
-    )
-    .register(z.globalRegistry, {
-      description:
-        'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 
 export const GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema = z.object({
-  name: z
-    .string()
-    .min(1)
-    .max(200)
-    .register(z.globalRegistry, {
-      description: 'Only series of this metric.'
-    })
-    .optional()
+    name: z.string().min(1).max(200).register(z.globalRegistry, {
+        description: 'Only series of this metric.'
+    }).optional()
 });
 
 /**

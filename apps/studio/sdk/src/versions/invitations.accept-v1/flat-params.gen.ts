@@ -5,13 +5,9 @@ import * as z from 'zod';
 import { PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema } from './zod.gen.js';
 
 export const InvitationAcceptV1ParamsSchema = z.object({
-  id: PostInvitationsByIdAcceptPathSchema.shape.id.nonoptional().describe('The invitation.'),
-  code: PostInvitationsByIdAcceptBodySchema.shape.code
-    .optional()
-    .describe("The one-time code from an emailed invitation's link."),
-  displayName: PostInvitationsByIdAcceptBodySchema.shape.displayName
-    .nonoptional()
-    .describe("Your name as the organisation's members will see it.")
+    id: PostInvitationsByIdAcceptPathSchema.shape.id.nonoptional().describe('The invitation.'),
+    code: PostInvitationsByIdAcceptBodySchema.shape.code.optional().describe('The one-time code from an emailed invitation\'s link.'),
+    displayName: PostInvitationsByIdAcceptBodySchema.shape.displayName.nonoptional().describe('Your name as the organisation\'s members will see it.')
 });
 
 export type InvitationAcceptV1Params = z.infer<typeof InvitationAcceptV1ParamsSchema>;

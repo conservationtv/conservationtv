@@ -5,11 +5,9 @@ import * as z from 'zod';
 import { PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema } from './zod.gen.js';
 
 export const InvitationCreateV1ParamsSchema = z.object({
-  id: PostOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  email: PostOrganisationsByIdInvitationsBodySchema.shape.email
-    .optional()
-    .describe('The address to send the invitation to.'),
-  userId: PostOrganisationsByIdInvitationsBodySchema.shape.userId.optional().describe('The account to invite.')
+    id: PostOrganisationsByIdInvitationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    email: PostOrganisationsByIdInvitationsBodySchema.shape.email.optional().describe('The address to send the invitation to.'),
+    userId: PostOrganisationsByIdInvitationsBodySchema.shape.userId.optional().describe('The account to invite.')
 });
 
 export type InvitationCreateV1Params = z.infer<typeof InvitationCreateV1ParamsSchema>;

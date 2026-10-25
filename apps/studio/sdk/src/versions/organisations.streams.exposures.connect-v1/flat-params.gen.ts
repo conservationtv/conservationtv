@@ -2,28 +2,15 @@
 
 import * as z from 'zod';
 
-import {
-  PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema,
-  PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema
-} from './zod.gen.js';
+import { PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema } from './zod.gen.js';
 
 export const ExposureConnectV1ParamsSchema = z.object({
-  id: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.id
-    .nonoptional()
-    .describe('The organisation.'),
-  streamId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.streamId
-    .nonoptional()
-    .describe('The stream.'),
-  exposureId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.exposureId
-    .nonoptional()
-    .describe('The exposure.'),
-  action: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.action
-    .nonoptional()
-    .describe('Whether to read the exposure from its gateway, or publish it there.'),
-  protocol: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.protocol
-    .nonoptional()
-    .describe('One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'),
-  rendition: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.rendition.optional()
+    id: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    exposureId: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema.shape.exposureId.nonoptional().describe('The exposure.'),
+    action: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.action.nonoptional().describe('Whether to read the exposure from its gateway, or publish it there.'),
+    protocol: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'),
+    rendition: PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema.shape.rendition.optional()
 });
 
 export type ExposureConnectV1Params = z.infer<typeof ExposureConnectV1ParamsSchema>;

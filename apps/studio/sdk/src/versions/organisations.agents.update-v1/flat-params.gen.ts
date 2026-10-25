@@ -2,17 +2,12 @@
 
 import * as z from 'zod';
 
-import {
-  PatchOrganisationsByIdAgentsByAgentIdBodySchema,
-  PatchOrganisationsByIdAgentsByAgentIdPathSchema
-} from './zod.gen.js';
+import { PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema } from './zod.gen.js';
 
 export const AgentUpdateV1ParamsSchema = z.object({
-  id: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  agentId: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.agentId.nonoptional().describe('The agent.'),
-  priority: PatchOrganisationsByIdAgentsByAgentIdBodySchema.shape.priority
-    .nonoptional()
-    .describe('Standby preference; higher is preferred.')
+    id: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    agentId: PatchOrganisationsByIdAgentsByAgentIdPathSchema.shape.agentId.nonoptional().describe('The agent.'),
+    priority: PatchOrganisationsByIdAgentsByAgentIdBodySchema.shape.priority.nonoptional().describe('Standby preference; higher is preferred.')
 });
 
 export type AgentUpdateV1Params = z.infer<typeof AgentUpdateV1ParamsSchema>;

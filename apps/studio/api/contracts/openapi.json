@@ -29,7 +29,10 @@
             "type": "string"
           }
         },
-        "required": ["error", "error_description"]
+        "required": [
+          "error",
+          "error_description"
+        ]
       },
       "__schema0": {
         "anyOf": [
@@ -64,7 +67,12 @@
       },
       "Rendition": {
         "type": "string",
-        "enum": ["default", "data_saver", "balanced", "quality"],
+        "enum": [
+          "default",
+          "data_saver",
+          "balanced",
+          "quality"
+        ],
         "description": "A quality the stream is delivered at."
       },
       "Relay": {
@@ -80,7 +88,9 @@
             "type": "string"
           }
         },
-        "required": ["url"]
+        "required": [
+          "url"
+        ]
       },
       "MediamtxAuth": {
         "type": "object",
@@ -92,7 +102,10 @@
             "type": "string"
           }
         },
-        "required": ["issuer", "audience"]
+        "required": [
+          "issuer",
+          "audience"
+        ]
       },
       "Publisher": {
         "type": "object",
@@ -114,7 +127,12 @@
             }
           }
         },
-        "required": ["exposureId", "connect", "layout", "renditions"]
+        "required": [
+          "exposureId",
+          "connect",
+          "layout",
+          "renditions"
+        ]
       },
       "PublisherConnect": {
         "type": "object",
@@ -137,7 +155,13 @@
             "const": "moq"
           }
         },
-        "required": ["id", "streamId", "exposureId", "action", "protocol"]
+        "required": [
+          "id",
+          "streamId",
+          "exposureId",
+          "action",
+          "protocol"
+        ]
       },
       "PublishedRendition": {
         "type": "object",
@@ -149,7 +173,10 @@
             "type": "string"
           }
         },
-        "required": ["rendition", "path"]
+        "required": [
+          "rendition",
+          "path"
+        ]
       },
       "Health": {
         "type": "object",
@@ -159,7 +186,9 @@
             "const": "ok"
           }
         },
-        "required": ["status"]
+        "required": [
+          "status"
+        ]
       },
       "Account": {
         "type": "object",
@@ -190,7 +219,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "email", "emailVerified", "image", "createdAt"]
+        "required": [
+          "id",
+          "name",
+          "email",
+          "emailVerified",
+          "image",
+          "createdAt"
+        ]
       },
       "Organisation": {
         "type": "object",
@@ -205,7 +241,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "createdAt"]
+        "required": [
+          "id",
+          "name",
+          "createdAt"
+        ]
       },
       "Member": {
         "type": "object",
@@ -243,15 +283,25 @@
                         "type": "string"
                       }
                     },
-                    "required": ["id", "label"]
+                    "required": [
+                      "id",
+                      "label"
+                    ]
                   }
                 }
               },
-              "required": ["userId", "displayName", "joinedAt", "roles"]
+              "required": [
+                "userId",
+                "displayName",
+                "joinedAt",
+                "roles"
+              ]
             }
           }
         },
-        "required": ["members"]
+        "required": [
+          "members"
+        ]
       },
       "Invitation": {
         "type": "object",
@@ -269,7 +319,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name"]
+            "required": [
+              "id",
+              "name"
+            ]
           },
           "needsCode": {
             "type": "boolean"
@@ -278,7 +331,12 @@
             "type": "string"
           }
         },
-        "required": ["id", "organisation", "needsCode", "expiresAt"]
+        "required": [
+          "id",
+          "organisation",
+          "needsCode",
+          "expiresAt"
+        ]
       },
       "Network": {
         "type": "object",
@@ -301,7 +359,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["id"]
+                "required": [
+                  "id"
+                ]
               },
               {
                 "type": "null"
@@ -309,7 +369,12 @@
             ]
           }
         },
-        "required": ["name", "id", "createdAt", "activeAgent"]
+        "required": [
+          "name",
+          "id",
+          "createdAt",
+          "activeAgent"
+        ]
       },
       "Device": {
         "type": "object",
@@ -319,7 +384,11 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["agent", "camera", "browser"]
+            "enum": [
+              "agent",
+              "camera",
+              "browser"
+            ]
           },
           "name": {
             "type": "string"
@@ -344,7 +413,15 @@
             "type": "string"
           }
         },
-        "required": ["id", "kind", "name", "networkId", "publicKey", "publicId", "createdAt"]
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "networkId",
+          "publicKey",
+          "publicId",
+          "createdAt"
+        ]
       },
       "Camera": {
         "type": "object",
@@ -371,7 +448,11 @@
                     }
                   }
                 },
-                "required": ["driver", "host", "resolutions"]
+                "required": [
+                  "driver",
+                  "host",
+                  "resolutions"
+                ]
               },
               {
                 "type": "object",
@@ -384,7 +465,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["driver", "url"]
+                "required": [
+                  "driver",
+                  "url"
+                ]
               }
             ]
           },
@@ -404,7 +488,11 @@
                   },
                   "kind": {
                     "type": "string",
-                    "enum": ["agent", "camera", "browser"]
+                    "enum": [
+                      "agent",
+                      "camera",
+                      "browser"
+                    ]
                   },
                   "networkId": {
                     "anyOf": [
@@ -420,7 +508,14 @@
                     "type": "string"
                   }
                 },
-                "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                "required": [
+                  "name",
+                  "createdAt",
+                  "publicKey",
+                  "kind",
+                  "networkId",
+                  "publicId"
+                ]
               },
               {
                 "type": "null"
@@ -428,7 +523,11 @@
             ]
           }
         },
-        "required": ["id", "settings", "device"]
+        "required": [
+          "id",
+          "settings",
+          "device"
+        ]
       },
       "Browser": {
         "type": "object",
@@ -450,7 +549,11 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["agent", "camera", "browser"]
+            "enum": [
+              "agent",
+              "camera",
+              "browser"
+            ]
           },
           "networkId": {
             "anyOf": [
@@ -466,7 +569,16 @@
             "type": "string"
           }
         },
-        "required": ["privateKey", "name", "id", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+        "required": [
+          "privateKey",
+          "name",
+          "id",
+          "createdAt",
+          "publicKey",
+          "kind",
+          "networkId",
+          "publicId"
+        ]
       },
       "Agent": {
         "type": "object",
@@ -499,7 +611,11 @@
                   },
                   "kind": {
                     "type": "string",
-                    "enum": ["agent", "camera", "browser"]
+                    "enum": [
+                      "agent",
+                      "camera",
+                      "browser"
+                    ]
                   },
                   "networkId": {
                     "anyOf": [
@@ -515,7 +631,14 @@
                     "type": "string"
                   }
                 },
-                "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                "required": [
+                  "name",
+                  "createdAt",
+                  "publicKey",
+                  "kind",
+                  "networkId",
+                  "publicId"
+                ]
               },
               {
                 "type": "null"
@@ -523,7 +646,13 @@
             ]
           }
         },
-        "required": ["id", "active", "networkId", "priority", "device"]
+        "required": [
+          "id",
+          "active",
+          "networkId",
+          "priority",
+          "device"
+        ]
       },
       "Gateway": {
         "type": "object",
@@ -560,7 +689,15 @@
                       "type": "null"
                     }
                   },
-                  "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "settings",
+                    "createdAt"
+                  ]
                 },
                 {
                   "type": "object",
@@ -595,13 +732,23 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "settings",
+                    "createdAt"
+                  ]
                 }
               ]
             }
           }
         },
-        "required": ["gateways"]
+        "required": [
+          "gateways"
+        ]
       },
       "Stream": {
         "type": "object",
@@ -687,7 +834,14 @@
                   "type": "string"
                 }
               },
-              "required": ["id", "exposureId", "rendition", "kind", "params", "createdAt"]
+              "required": [
+                "id",
+                "exposureId",
+                "rendition",
+                "kind",
+                "params",
+                "createdAt"
+              ]
             }
           },
           "id": {
@@ -710,7 +864,14 @@
             "type": "string"
           }
         },
-        "required": ["exposures", "recorders", "id", "name", "sourceDeviceId", "createdAt"]
+        "required": [
+          "exposures",
+          "recorders",
+          "id",
+          "name",
+          "sourceDeviceId",
+          "createdAt"
+        ]
       },
       "Exposure": {
         "type": "object",
@@ -755,7 +916,15 @@
             "type": "string"
           }
         },
-        "required": ["id", "gatewayId", "renditions", "publisherDeviceId", "upstreamExposureId", "params", "createdAt"]
+        "required": [
+          "id",
+          "gatewayId",
+          "renditions",
+          "publisherDeviceId",
+          "upstreamExposureId",
+          "params",
+          "createdAt"
+        ]
       },
       "Recorder": {
         "type": "object",
@@ -780,7 +949,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "exposureId", "rendition", "kind", "params", "createdAt"]
+        "required": [
+          "id",
+          "exposureId",
+          "rendition",
+          "kind",
+          "params",
+          "createdAt"
+        ]
       },
       "Subject": {
         "type": "object",
@@ -800,7 +976,10 @@
               },
               "freshness": {
                 "type": "string",
-                "enum": ["fresh", "stale"]
+                "enum": [
+                  "fresh",
+                  "stale"
+                ]
               },
               "observedAt": {
                 "type": "string"
@@ -855,7 +1034,10 @@
                 },
                 "freshness": {
                   "type": "string",
-                  "enum": ["fresh", "stale"]
+                  "enum": [
+                    "fresh",
+                    "stale"
+                  ]
                 },
                 "observedAt": {
                   "type": "string"
@@ -870,11 +1052,24 @@
                   }
                 }
               },
-              "required": ["reporterId", "health", "state", "freshness", "observedAt", "expiresAt", "evidenceReportIds"]
+              "required": [
+                "reporterId",
+                "health",
+                "state",
+                "freshness",
+                "observedAt",
+                "expiresAt",
+                "evidenceReportIds"
+              ]
             }
           }
         },
-        "required": ["subjectId", "state", "reachable", "opinions"]
+        "required": [
+          "subjectId",
+          "state",
+          "reachable",
+          "opinions"
+        ]
       },
       "Observation": {
         "type": "object",
@@ -904,11 +1099,20 @@
                   "additionalProperties": {}
                 }
               },
-              "required": ["id", "reporterId", "observedAt", "receivedAt", "type", "data"]
+              "required": [
+                "id",
+                "reporterId",
+                "observedAt",
+                "receivedAt",
+                "type",
+                "data"
+              ]
             }
           }
         },
-        "required": ["observations"]
+        "required": [
+          "observations"
+        ]
       },
       "Metric": {
         "type": "object",
@@ -946,7 +1150,14 @@
                   "type": "number"
                 }
               },
-              "required": ["at", "min", "max", "avg", "last", "count"]
+              "required": [
+                "at",
+                "min",
+                "max",
+                "avg",
+                "last",
+                "count"
+              ]
             }
           },
           "id": {
@@ -978,7 +1189,18 @@
             "type": "string"
           }
         },
-        "required": ["from", "to", "step", "points", "id", "name", "reporterId", "unit", "dimensions", "createdAt"]
+        "required": [
+          "from",
+          "to",
+          "step",
+          "points",
+          "id",
+          "name",
+          "reporterId",
+          "unit",
+          "dimensions",
+          "createdAt"
+        ]
       },
       "Log": {
         "type": "object",
@@ -1011,11 +1233,21 @@
                   "additionalProperties": {}
                 }
               },
-              "required": ["id", "reporterId", "observedAt", "receivedAt", "level", "message", "context"]
+              "required": [
+                "id",
+                "reporterId",
+                "observedAt",
+                "receivedAt",
+                "level",
+                "message",
+                "context"
+              ]
             }
           }
         },
-        "required": ["logs"]
+        "required": [
+          "logs"
+        ]
       },
       "Report": {
         "type": "object",
@@ -1024,7 +1256,9 @@
             "type": "number"
           }
         },
-        "required": ["accepted"]
+        "required": [
+          "accepted"
+        ]
       },
       "IrohSession": {
         "type": "object",
@@ -1045,10 +1279,17 @@
                 "type": "string"
               }
             },
-            "required": ["id", "grantId", "expiresAt"]
+            "required": [
+              "id",
+              "grantId",
+              "expiresAt"
+            ]
           }
         },
-        "required": ["relay", "lease"]
+        "required": [
+          "relay",
+          "lease"
+        ]
       },
       "Whoami": {
         "type": "object",
@@ -1061,13 +1302,22 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["agent", "camera", "browser"]
+            "enum": [
+              "agent",
+              "camera",
+              "browser"
+            ]
           },
           "publicId": {
             "type": "string"
           }
         },
-        "required": ["id", "organisationId", "kind", "publicId"]
+        "required": [
+          "id",
+          "organisationId",
+          "kind",
+          "publicId"
+        ]
       }
     }
   },
@@ -1148,7 +1398,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "account.update",
@@ -1249,7 +1501,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations": {
@@ -1292,15 +1546,25 @@
                                   "type": "string"
                                 }
                               },
-                              "required": ["id", "label"]
+                              "required": [
+                                "id",
+                                "label"
+                              ]
                             }
                           }
                         },
-                        "required": ["id", "name", "createdAt", "roles"]
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "roles"
+                        ]
                       }
                     }
                   },
-                  "required": ["organisations"]
+                  "required": [
+                    "organisations"
+                  ]
                 }
               }
             }
@@ -1336,7 +1600,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "post": {
         "operationId": "organisations.create",
@@ -1415,13 +1681,18 @@
                     "description": "Your name as the organisation's members will see it."
                   }
                 },
-                "required": ["name", "displayName"],
+                "required": [
+                  "name",
+                  "displayName"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}": {
@@ -1505,7 +1776,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "organisations.update",
@@ -1611,13 +1884,17 @@
                     "description": "The organisation name."
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.delete",
@@ -1702,7 +1979,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/members": {
@@ -1786,7 +2065,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/members/me": {
@@ -1810,7 +2091,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["userId", "displayName"]
+                  "required": [
+                    "userId",
+                    "displayName"
+                  ]
                 }
               }
             }
@@ -1893,13 +2177,17 @@
                     "description": "Your name in this organisation."
                   }
                 },
-                "required": ["displayName"],
+                "required": [
+                  "displayName"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/members/{userId}": {
@@ -2007,7 +2295,9 @@
             "description": "The member's account ID, or `me`."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/members/{userId}/admin": {
@@ -2105,7 +2395,9 @@
             "description": "The member's account ID, or `me`."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.members.revokeAdmin",
@@ -2211,7 +2503,9 @@
             "description": "The member's account ID, or `me`."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/invitations": {
@@ -2273,11 +2567,20 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "email", "userId", "invitedBy", "createdAt", "expiresAt"]
+                        "required": [
+                          "id",
+                          "email",
+                          "userId",
+                          "invitedBy",
+                          "createdAt",
+                          "expiresAt"
+                        ]
                       }
                     }
                   },
-                  "required": ["invitations"]
+                  "required": [
+                    "invitations"
+                  ]
                 }
               }
             }
@@ -2346,7 +2649,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "post": {
         "operationId": "organisations.invitations.create",
@@ -2401,7 +2706,14 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "email", "userId", "invitedBy", "createdAt", "expiresAt"]
+                  "required": [
+                    "id",
+                    "email",
+                    "userId",
+                    "invitedBy",
+                    "createdAt",
+                    "expiresAt"
+                  ]
                 }
               }
             }
@@ -2516,7 +2828,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/invitations/{invitationId}": {
@@ -2604,7 +2918,9 @@
             "description": "The invitation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/networks": {
@@ -2644,7 +2960,9 @@
                                     "type": "string"
                                   }
                                 },
-                                "required": ["id"]
+                                "required": [
+                                  "id"
+                                ]
                               },
                               {
                                 "type": "null"
@@ -2652,11 +2970,18 @@
                             ]
                           }
                         },
-                        "required": ["name", "id", "createdAt", "activeAgent"]
+                        "required": [
+                          "name",
+                          "id",
+                          "createdAt",
+                          "activeAgent"
+                        ]
                       }
                     }
                   },
-                  "required": ["networks"]
+                  "required": [
+                    "networks"
+                  ]
                 }
               }
             }
@@ -2715,7 +3040,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "post": {
         "operationId": "organisations.networks.create",
@@ -2811,13 +3138,17 @@
                     "description": "The network name."
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/networks/{networkId}": {
@@ -2911,7 +3242,9 @@
             "description": "The network."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "organisations.networks.update",
@@ -3028,13 +3361,17 @@
                     "description": "The network name."
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.networks.delete",
@@ -3140,7 +3477,9 @@
             "description": "The network."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/networks/{networkId}/active-agent": {
@@ -3286,13 +3625,17 @@
                     "description": "An agent registered on this network, or null for none."
                   }
                 },
-                "required": ["agentId"],
+                "required": [
+                  "agentId"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/devices/allowlist": {
@@ -3316,7 +3659,9 @@
                       }
                     }
                   },
-                  "required": ["publicIds"]
+                  "required": [
+                    "publicIds"
+                  ]
                 }
               }
             }
@@ -3375,7 +3720,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/devices": {
@@ -3402,7 +3749,11 @@
                           },
                           "kind": {
                             "type": "string",
-                            "enum": ["agent", "camera", "browser"]
+                            "enum": [
+                              "agent",
+                              "camera",
+                              "browser"
+                            ]
                           },
                           "name": {
                             "type": "string"
@@ -3427,11 +3778,21 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "kind", "name", "networkId", "publicKey", "publicId", "createdAt"]
+                        "required": [
+                          "id",
+                          "kind",
+                          "name",
+                          "networkId",
+                          "publicKey",
+                          "publicId",
+                          "createdAt"
+                        ]
                       }
                     }
                   },
-                  "required": ["devices"]
+                  "required": [
+                    "devices"
+                  ]
                 }
               }
             }
@@ -3494,12 +3855,18 @@
             "name": "kind",
             "schema": {
               "type": "string",
-              "enum": ["agent", "camera", "browser"]
+              "enum": [
+                "agent",
+                "camera",
+                "browser"
+              ]
             },
             "description": "Only devices of this kind."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/devices/{deviceId}": {
@@ -3593,7 +3960,9 @@
             "description": "The device."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "organisations.devices.update",
@@ -3748,7 +4117,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/devices/{deviceId}/key-pair": {
@@ -3775,7 +4146,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["privateKey", "publicKey", "publicId"]
+                  "required": [
+                    "privateKey",
+                    "publicKey",
+                    "publicId"
+                  ]
                 }
               }
             }
@@ -3865,7 +4240,9 @@
             "description": "The device."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/cameras": {
@@ -3909,7 +4286,11 @@
                                     }
                                   }
                                 },
-                                "required": ["driver", "host", "resolutions"]
+                                "required": [
+                                  "driver",
+                                  "host",
+                                  "resolutions"
+                                ]
                               },
                               {
                                 "type": "object",
@@ -3922,7 +4303,10 @@
                                     "type": "string"
                                   }
                                 },
-                                "required": ["driver", "url"]
+                                "required": [
+                                  "driver",
+                                  "url"
+                                ]
                               }
                             ]
                           },
@@ -3942,7 +4326,11 @@
                                   },
                                   "kind": {
                                     "type": "string",
-                                    "enum": ["agent", "camera", "browser"]
+                                    "enum": [
+                                      "agent",
+                                      "camera",
+                                      "browser"
+                                    ]
                                   },
                                   "networkId": {
                                     "anyOf": [
@@ -3958,7 +4346,14 @@
                                     "type": "string"
                                   }
                                 },
-                                "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                                "required": [
+                                  "name",
+                                  "createdAt",
+                                  "publicKey",
+                                  "kind",
+                                  "networkId",
+                                  "publicId"
+                                ]
                               },
                               {
                                 "type": "null"
@@ -3966,11 +4361,17 @@
                             ]
                           }
                         },
-                        "required": ["id", "settings", "device"]
+                        "required": [
+                          "id",
+                          "settings",
+                          "device"
+                        ]
                       }
                     }
                   },
-                  "required": ["cameras"]
+                  "required": [
+                    "cameras"
+                  ]
                 }
               }
             }
@@ -4029,7 +4430,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "post": {
         "operationId": "organisations.cameras.create",
@@ -4170,7 +4573,11 @@
                             }
                           }
                         },
-                        "required": ["driver", "host", "resolutions"],
+                        "required": [
+                          "driver",
+                          "host",
+                          "resolutions"
+                        ],
                         "additionalProperties": false
                       },
                       {
@@ -4185,7 +4592,10 @@
                             "format": "uri"
                           }
                         },
-                        "required": ["driver", "url"],
+                        "required": [
+                          "driver",
+                          "url"
+                        ],
                         "additionalProperties": false
                       }
                     ],
@@ -4204,18 +4614,26 @@
                         "maxLength": 256
                       }
                     },
-                    "required": ["username", "password"],
+                    "required": [
+                      "username",
+                      "password"
+                    ],
                     "additionalProperties": false,
                     "description": "How to authenticate to the camera. Write-only: never returned."
                   }
                 },
-                "required": ["name", "settings"],
+                "required": [
+                  "name",
+                  "settings"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/cameras/{cameraId}": {
@@ -4309,7 +4727,9 @@
             "description": "The camera."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "organisations.cameras.update",
@@ -4441,7 +4861,11 @@
                             }
                           }
                         },
-                        "required": ["driver", "host", "resolutions"],
+                        "required": [
+                          "driver",
+                          "host",
+                          "resolutions"
+                        ],
                         "additionalProperties": false
                       },
                       {
@@ -4456,7 +4880,10 @@
                             "format": "uri"
                           }
                         },
-                        "required": ["driver", "url"],
+                        "required": [
+                          "driver",
+                          "url"
+                        ],
                         "additionalProperties": false
                       }
                     ],
@@ -4477,7 +4904,10 @@
                             "maxLength": 256
                           }
                         },
-                        "required": ["username", "password"],
+                        "required": [
+                          "username",
+                          "password"
+                        ],
                         "additionalProperties": false,
                         "description": "How to authenticate to the camera. Write-only: never returned."
                       },
@@ -4492,7 +4922,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.cameras.delete",
@@ -4598,7 +5030,9 @@
             "description": "The camera."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/browser": {
@@ -4682,7 +5116,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/agents": {
@@ -4732,7 +5168,11 @@
                                   },
                                   "kind": {
                                     "type": "string",
-                                    "enum": ["agent", "camera", "browser"]
+                                    "enum": [
+                                      "agent",
+                                      "camera",
+                                      "browser"
+                                    ]
                                   },
                                   "networkId": {
                                     "anyOf": [
@@ -4748,7 +5188,14 @@
                                     "type": "string"
                                   }
                                 },
-                                "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                                "required": [
+                                  "name",
+                                  "createdAt",
+                                  "publicKey",
+                                  "kind",
+                                  "networkId",
+                                  "publicId"
+                                ]
                               },
                               {
                                 "type": "null"
@@ -4756,11 +5203,19 @@
                             ]
                           }
                         },
-                        "required": ["id", "active", "networkId", "priority", "device"]
+                        "required": [
+                          "id",
+                          "active",
+                          "networkId",
+                          "priority",
+                          "device"
+                        ]
                       }
                     }
                   },
-                  "required": ["agents"]
+                  "required": [
+                    "agents"
+                  ]
                 }
               }
             }
@@ -4829,7 +5284,9 @@
             "description": "Only agents on this network."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "post": {
         "operationId": "organisations.agents.create",
@@ -4948,13 +5405,18 @@
                     "description": "Standby preference; higher is preferred."
                   }
                 },
-                "required": ["name", "networkId"],
+                "required": [
+                  "name",
+                  "networkId"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/agents/{agentId}": {
@@ -5048,7 +5510,9 @@
             "description": "The agent."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "organisations.agents.update",
@@ -5165,13 +5629,17 @@
                     "description": "Standby preference; higher is preferred."
                   }
                 },
-                "required": ["priority"],
+                "required": [
+                  "priority"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.agents.delete",
@@ -5277,7 +5745,9 @@
             "description": "The agent."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/gateways": {
@@ -5361,7 +5831,9 @@
             "description": "Only gateways on this network."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "post": {
         "operationId": "organisations.gateways.create",
@@ -5406,7 +5878,15 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "settings",
+                    "createdAt"
+                  ]
                 }
               }
             }
@@ -5500,7 +5980,9 @@
                   },
                   "kind": {
                     "type": "string",
-                    "enum": ["mediamtx"],
+                    "enum": [
+                      "mediamtx"
+                    ],
                     "description": "The gateway implementation, such as `mediamtx`."
                   },
                   "networkId": {
@@ -5530,13 +6012,18 @@
                     "description": "Settings validated by the implementation that reads them."
                   }
                 },
-                "required": ["name", "kind"],
+                "required": [
+                  "name",
+                  "kind"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/gateways/{gatewayId}": {
@@ -5580,7 +6067,15 @@
                           "type": "null"
                         }
                       },
-                      "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt"
+                      ]
                     },
                     {
                       "type": "object",
@@ -5615,7 +6110,15 @@
                           "type": "string"
                         }
                       },
-                      "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt"
+                      ]
                     }
                   ]
                 }
@@ -5692,7 +6195,9 @@
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["conservationtv"]
+                  "enum": [
+                    "conservationtv"
+                  ]
                 },
                 {
                   "type": "string",
@@ -5705,7 +6210,9 @@
             "description": "The gateway."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "organisations.gateways.update",
@@ -5750,7 +6257,15 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "settings",
+                    "createdAt"
+                  ]
                 }
               }
             }
@@ -5845,7 +6360,9 @@
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["conservationtv"]
+                  "enum": [
+                    "conservationtv"
+                  ]
                 },
                 {
                   "type": "string",
@@ -5873,7 +6390,9 @@
                   },
                   "kind": {
                     "type": "string",
-                    "enum": ["mediamtx"],
+                    "enum": [
+                      "mediamtx"
+                    ],
                     "description": "The gateway implementation, such as `mediamtx`."
                   },
                   "networkId": {
@@ -5906,7 +6425,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.gateways.delete",
@@ -6007,7 +6528,9 @@
               "anyOf": [
                 {
                   "type": "string",
-                  "enum": ["conservationtv"]
+                  "enum": [
+                    "conservationtv"
+                  ]
                 },
                 {
                   "type": "string",
@@ -6020,7 +6543,9 @@
             "description": "The gateway."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/streams": {
@@ -6062,11 +6587,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "name", "sourceDeviceId", "createdAt"]
+                        "required": [
+                          "id",
+                          "name",
+                          "sourceDeviceId",
+                          "createdAt"
+                        ]
                       }
                     }
                   },
-                  "required": ["streams"]
+                  "required": [
+                    "streams"
+                  ]
                 }
               }
             }
@@ -6125,7 +6657,9 @@
             "description": "The organisation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "post": {
         "operationId": "organisations.streams.create",
@@ -6160,7 +6694,12 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name", "sourceDeviceId", "createdAt"]
+                  "required": [
+                    "id",
+                    "name",
+                    "sourceDeviceId",
+                    "createdAt"
+                  ]
                 }
               }
             }
@@ -6267,13 +6806,17 @@
                     "description": "The device the stream comes from, such as its camera, or null for none yet."
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/streams/{streamId}": {
@@ -6368,7 +6911,9 @@
             "description": "The stream."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "patch": {
         "operationId": "organisations.streams.update",
@@ -6403,7 +6948,12 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name", "sourceDeviceId", "createdAt"]
+                  "required": [
+                    "id",
+                    "name",
+                    "sourceDeviceId",
+                    "createdAt"
+                  ]
                 }
               }
             }
@@ -6535,7 +7085,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.streams.delete",
@@ -6631,7 +7183,9 @@
             "description": "The stream."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/streams/{streamId}/exposures": {
@@ -6757,7 +7311,9 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["conservationtv"]
+                        "enum": [
+                          "conservationtv"
+                        ]
                       },
                       {
                         "type": "string",
@@ -6768,7 +7324,9 @@
                     "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                   },
                   "renditions": {
-                    "default": ["default"],
+                    "default": [
+                      "default"
+                    ],
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -6816,13 +7374,17 @@
                     }
                   }
                 },
-                "required": ["gatewayId"],
+                "required": [
+                  "gatewayId"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/streams/{streamId}/exposures/{exposureId}": {
@@ -6969,7 +7531,9 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["conservationtv"]
+                        "enum": [
+                          "conservationtv"
+                        ]
                       },
                       {
                         "type": "string",
@@ -7029,7 +7593,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.streams.exposures.delete",
@@ -7146,7 +7712,9 @@
             "description": "The exposure."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections": {
@@ -7191,7 +7759,13 @@
                           }
                         }
                       },
-                      "required": ["protocol", "relay", "path", "broadcast", "renditions"]
+                      "required": [
+                        "protocol",
+                        "relay",
+                        "path",
+                        "broadcast",
+                        "renditions"
+                      ]
                     },
                     {
                       "type": "object",
@@ -7215,7 +7789,11 @@
                           }
                         }
                       },
-                      "required": ["protocol", "url", "renditions"]
+                      "required": [
+                        "protocol",
+                        "url",
+                        "renditions"
+                      ]
                     }
                   ]
                 }
@@ -7337,7 +7915,10 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": ["read", "publish"],
+                    "enum": [
+                      "read",
+                      "publish"
+                    ],
                     "description": "Whether to read the exposure from its gateway, or publish it there."
                   },
                   "protocol": {
@@ -7350,13 +7931,18 @@
                     "$ref": "#/components/schemas/Rendition"
                   }
                 },
-                "required": ["action", "protocol"],
+                "required": [
+                  "action",
+                  "protocol"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/streams/{streamId}/recorders": {
@@ -7506,13 +8092,18 @@
                     "description": "Settings validated by the implementation that reads them."
                   }
                 },
-                "required": ["exposureId", "kind"],
+                "required": [
+                  "exposureId",
+                  "kind"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/streams/{streamId}/recorders/{recorderId}": {
@@ -7677,7 +8268,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       },
       "delete": {
         "operationId": "organisations.streams.recorders.delete",
@@ -7784,7 +8377,9 @@
             "description": "The recorder."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/subjects/{subjectId}/state": {
@@ -7868,7 +8463,9 @@
             "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/subjects/{subjectId}/observations": {
@@ -7973,7 +8570,9 @@
             "description": "Only those observed before this time, to page back."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/subjects/{subjectId}/metrics": {
@@ -8024,11 +8623,20 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "name", "reporterId", "unit", "dimensions", "createdAt"]
+                        "required": [
+                          "id",
+                          "name",
+                          "reporterId",
+                          "unit",
+                          "dimensions",
+                          "createdAt"
+                        ]
                       }
                     }
                   },
-                  "required": ["series"]
+                  "required": [
+                    "series"
+                  ]
                 }
               }
             }
@@ -8107,7 +8715,9 @@
             "description": "Only series of this metric."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/subjects/{subjectId}/metrics/{seriesId}": {
@@ -8243,7 +8853,9 @@
             "description": "Seconds per bucket, at least; widened so the range has at most 1000 buckets."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/organisations/{id}/subjects/{subjectId}/logs": {
@@ -8348,7 +8960,9 @@
             "description": "Only those observed before this time, to page back."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/invitations": {
@@ -8383,17 +8997,26 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["id", "name"]
+                            "required": [
+                              "id",
+                              "name"
+                            ]
                           },
                           "expiresAt": {
                             "type": "string"
                           }
                         },
-                        "required": ["id", "organisation", "expiresAt"]
+                        "required": [
+                          "id",
+                          "organisation",
+                          "expiresAt"
+                        ]
                       }
                     }
                   },
-                  "required": ["invitations"]
+                  "required": [
+                    "invitations"
+                  ]
                 }
               }
             }
@@ -8429,7 +9052,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/invitations/{id}": {
@@ -8503,7 +9128,9 @@
             "description": "The invitation."
           }
         ],
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/invitations/{id}/accept": {
@@ -8530,7 +9157,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["organisationId", "userId", "joinedAt"]
+                  "required": [
+                    "organisationId",
+                    "userId",
+                    "joinedAt"
+                  ]
                 }
               }
             }
@@ -8649,13 +9280,17 @@
                     "description": "Your name as the organisation's members will see it."
                   }
                 },
-                "required": ["displayName"],
+                "required": [
+                  "displayName"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/invitations/{id}/decline": {
@@ -8771,7 +9406,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/reports": {
@@ -8893,11 +9530,18 @@
                                   "description": "Settings validated by the implementation that reads them."
                                 }
                               },
-                              "required": ["type"],
+                              "required": [
+                                "type"
+                              ],
                               "additionalProperties": false
                             }
                           },
-                          "required": ["kind", "subjectId", "observedAt", "payload"],
+                          "required": [
+                            "kind",
+                            "subjectId",
+                            "observedAt",
+                            "payload"
+                          ],
                           "additionalProperties": false
                         },
                         {
@@ -8957,7 +9601,10 @@
                                       "type": "number"
                                     }
                                   },
-                                  "required": ["name", "value"],
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ],
                                   "additionalProperties": false
                                 },
                                 {
@@ -9015,17 +9662,31 @@
                                           "maximum": 9007199254740991
                                         }
                                       },
-                                      "required": ["min", "max", "avg", "last", "count"],
+                                      "required": [
+                                        "min",
+                                        "max",
+                                        "avg",
+                                        "last",
+                                        "count"
+                                      ],
                                       "additionalProperties": false
                                     }
                                   },
-                                  "required": ["name", "summary"],
+                                  "required": [
+                                    "name",
+                                    "summary"
+                                  ],
                                   "additionalProperties": false
                                 }
                               ]
                             }
                           },
-                          "required": ["kind", "subjectId", "observedAt", "payload"],
+                          "required": [
+                            "kind",
+                            "subjectId",
+                            "observedAt",
+                            "payload"
+                          ],
                           "additionalProperties": false
                         },
                         {
@@ -9070,24 +9731,36 @@
                                   "description": "Settings validated by the implementation that reads them."
                                 }
                               },
-                              "required": ["level", "message"],
+                              "required": [
+                                "level",
+                                "message"
+                              ],
                               "additionalProperties": false
                             }
                           },
-                          "required": ["kind", "subjectId", "observedAt", "payload"],
+                          "required": [
+                            "kind",
+                            "subjectId",
+                            "observedAt",
+                            "payload"
+                          ],
                           "additionalProperties": false
                         }
                       ]
                     }
                   }
                 },
-                "required": ["reports"],
+                "required": [
+                  "reports"
+                ],
                 "additionalProperties": false
               }
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/iroh-sessions": {
@@ -9148,7 +9821,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/device-configuration": {
@@ -9172,7 +9847,9 @@
                           "const": "idle"
                         }
                       },
-                      "required": ["state"]
+                      "required": [
+                        "state"
+                      ]
                     },
                     {
                       "type": "object",
@@ -9191,7 +9868,10 @@
                               "$ref": "#/components/schemas/MediamtxAuth"
                             }
                           },
-                          "required": ["gatewayId", "auth"]
+                          "required": [
+                            "gatewayId",
+                            "auth"
+                          ]
                         },
                         "paths": {
                           "type": "array",
@@ -9216,7 +9896,9 @@
                                         "type": "string"
                                       }
                                     },
-                                    "required": ["url"]
+                                    "required": [
+                                      "url"
+                                    ]
                                   },
                                   {
                                     "type": "object",
@@ -9225,12 +9907,19 @@
                                         "type": "string"
                                       }
                                     },
-                                    "required": ["path"]
+                                    "required": [
+                                      "path"
+                                    ]
                                   }
                                 ]
                               }
                             },
-                            "required": ["name", "exposureId", "rendition", "source"]
+                            "required": [
+                              "name",
+                              "exposureId",
+                              "rendition",
+                              "source"
+                            ]
                           }
                         },
                         "publishers": {
@@ -9251,11 +9940,20 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["subject", "message"]
+                            "required": [
+                              "subject",
+                              "message"
+                            ]
                           }
                         }
                       },
-                      "required": ["state", "mediamtx", "paths", "publishers", "diagnostics"]
+                      "required": [
+                        "state",
+                        "mediamtx",
+                        "paths",
+                        "publishers",
+                        "diagnostics"
+                      ]
                     }
                   ]
                 }
@@ -9293,7 +9991,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     },
     "/whoami": {
@@ -9334,7 +10034,9 @@
             }
           }
         },
-        "x-operation-versions": [1]
+        "x-operation-versions": [
+          1
+        ]
       }
     }
   },
@@ -9370,7 +10072,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Account": {
             "type": "object",
@@ -9401,7 +10106,14 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "email", "emailVerified", "image", "createdAt"]
+            "required": [
+              "id",
+              "name",
+              "email",
+              "emailVerified",
+              "image",
+              "createdAt"
+            ]
           }
         }
       },
@@ -9511,7 +10223,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Account": {
             "type": "object",
@@ -9542,7 +10257,14 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "email", "emailVerified", "image", "createdAt"]
+            "required": [
+              "id",
+              "name",
+              "email",
+              "emailVerified",
+              "image",
+              "createdAt"
+            ]
           }
         }
       },
@@ -9694,7 +10416,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Organisation": {
             "type": "object",
@@ -9725,15 +10450,25 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "label"]
+                        "required": [
+                          "id",
+                          "label"
+                        ]
                       }
                     }
                   },
-                  "required": ["id", "name", "createdAt", "roles"]
+                  "required": [
+                    "id",
+                    "name",
+                    "createdAt",
+                    "roles"
+                  ]
                 }
               }
             },
-            "required": ["organisations"]
+            "required": [
+              "organisations"
+            ]
           }
         }
       },
@@ -9833,7 +10568,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Organisation": {
             "type": "object",
@@ -9848,7 +10586,11 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "createdAt"]
+            "required": [
+              "id",
+              "name",
+              "createdAt"
+            ]
           }
         }
       },
@@ -9931,7 +10673,10 @@
                         "description": "Your name as the organisation's members will see it."
                       }
                     },
-                    "required": ["name", "displayName"],
+                    "required": [
+                      "name",
+                      "displayName"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -9984,7 +10729,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Organisation": {
             "type": "object",
@@ -9999,7 +10747,11 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "createdAt"]
+            "required": [
+              "id",
+              "name",
+              "createdAt"
+            ]
           }
         }
       },
@@ -10130,7 +10882,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Organisation": {
             "type": "object",
@@ -10145,7 +10900,11 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "createdAt"]
+            "required": [
+              "id",
+              "name",
+              "createdAt"
+            ]
           }
         }
       },
@@ -10265,7 +11024,9 @@
                         "description": "The organisation name."
                       }
                     },
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -10306,7 +11067,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -10440,7 +11204,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Member": {
             "type": "object",
@@ -10478,15 +11245,25 @@
                             "type": "string"
                           }
                         },
-                        "required": ["id", "label"]
+                        "required": [
+                          "id",
+                          "label"
+                        ]
                       }
                     }
                   },
-                  "required": ["userId", "displayName", "joinedAt", "roles"]
+                  "required": [
+                    "userId",
+                    "displayName",
+                    "joinedAt",
+                    "roles"
+                  ]
                 }
               }
             },
-            "required": ["members"]
+            "required": [
+              "members"
+            ]
           }
         }
       },
@@ -10617,7 +11394,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Member": {
             "type": "object",
@@ -10629,7 +11409,10 @@
                 "type": "string"
               }
             },
-            "required": ["userId", "displayName"]
+            "required": [
+              "userId",
+              "displayName"
+            ]
           }
         }
       },
@@ -10739,7 +11522,9 @@
                         "description": "Your name in this organisation."
                       }
                     },
-                    "required": ["displayName"],
+                    "required": [
+                      "displayName"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -10780,7 +11565,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -10935,7 +11723,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -11080,7 +11871,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -11235,7 +12029,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Invitation": {
             "type": "object",
@@ -11285,11 +12082,20 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "email", "userId", "invitedBy", "createdAt", "expiresAt"]
+                  "required": [
+                    "id",
+                    "email",
+                    "userId",
+                    "invitedBy",
+                    "createdAt",
+                    "expiresAt"
+                  ]
                 }
               }
             },
-            "required": ["invitations"]
+            "required": [
+              "invitations"
+            ]
           }
         }
       },
@@ -11420,7 +12226,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Invitation": {
             "type": "object",
@@ -11465,7 +12274,14 @@
                 "type": "string"
               }
             },
-            "required": ["id", "email", "userId", "invitedBy", "createdAt", "expiresAt"]
+            "required": [
+              "id",
+              "email",
+              "userId",
+              "invitedBy",
+              "createdAt",
+              "expiresAt"
+            ]
           }
         }
       },
@@ -11642,7 +12458,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -11777,7 +12596,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Network": {
             "type": "object",
@@ -11805,7 +12627,9 @@
                               "type": "string"
                             }
                           },
-                          "required": ["id"]
+                          "required": [
+                            "id"
+                          ]
                         },
                         {
                           "type": "null"
@@ -11813,11 +12637,18 @@
                       ]
                     }
                   },
-                  "required": ["name", "id", "createdAt", "activeAgent"]
+                  "required": [
+                    "name",
+                    "id",
+                    "createdAt",
+                    "activeAgent"
+                  ]
                 }
               }
             },
-            "required": ["networks"]
+            "required": [
+              "networks"
+            ]
           }
         }
       },
@@ -11938,7 +12769,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Network": {
             "type": "object",
@@ -11961,7 +12795,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["id"]
+                    "required": [
+                      "id"
+                    ]
                   },
                   {
                     "type": "null"
@@ -11969,7 +12805,12 @@
                 ]
               }
             },
-            "required": ["name", "id", "createdAt", "activeAgent"]
+            "required": [
+              "name",
+              "id",
+              "createdAt",
+              "activeAgent"
+            ]
           }
         }
       },
@@ -12079,7 +12920,9 @@
                         "description": "The network name."
                       }
                     },
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -12120,7 +12963,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Network": {
             "type": "object",
@@ -12143,7 +12989,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["id"]
+                    "required": [
+                      "id"
+                    ]
                   },
                   {
                     "type": "null"
@@ -12151,7 +12999,12 @@
                 ]
               }
             },
-            "required": ["name", "id", "createdAt", "activeAgent"]
+            "required": [
+              "name",
+              "id",
+              "createdAt",
+              "activeAgent"
+            ]
           }
         }
       },
@@ -12292,7 +13145,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Network": {
             "type": "object",
@@ -12315,7 +13171,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["id"]
+                    "required": [
+                      "id"
+                    ]
                   },
                   {
                     "type": "null"
@@ -12323,7 +13181,12 @@
                 ]
               }
             },
-            "required": ["name", "id", "createdAt", "activeAgent"]
+            "required": [
+              "name",
+              "id",
+              "createdAt",
+              "activeAgent"
+            ]
           }
         }
       },
@@ -12454,7 +13317,9 @@
                         "description": "The network name."
                       }
                     },
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -12495,7 +13360,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -12650,7 +13518,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Network": {
             "type": "object",
@@ -12673,7 +13544,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["id"]
+                    "required": [
+                      "id"
+                    ]
                   },
                   {
                     "type": "null"
@@ -12681,7 +13554,12 @@
                 ]
               }
             },
-            "required": ["name", "id", "createdAt", "activeAgent"]
+            "required": [
+              "name",
+              "id",
+              "createdAt",
+              "activeAgent"
+            ]
           }
         }
       },
@@ -12839,7 +13717,9 @@
                         "description": "An agent registered on this network, or null for none."
                       }
                     },
-                    "required": ["agentId"],
+                    "required": [
+                      "agentId"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -12880,7 +13760,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Device": {
             "type": "object",
@@ -12892,7 +13775,9 @@
                 }
               }
             },
-            "required": ["publicIds"]
+            "required": [
+              "publicIds"
+            ]
           }
         }
       },
@@ -13013,7 +13898,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Device": {
             "type": "object",
@@ -13028,7 +13916,11 @@
                     },
                     "kind": {
                       "type": "string",
-                      "enum": ["agent", "camera", "browser"]
+                      "enum": [
+                        "agent",
+                        "camera",
+                        "browser"
+                      ]
                     },
                     "name": {
                       "type": "string"
@@ -13053,11 +13945,21 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "kind", "name", "networkId", "publicKey", "publicId", "createdAt"]
+                  "required": [
+                    "id",
+                    "kind",
+                    "name",
+                    "networkId",
+                    "publicKey",
+                    "publicId",
+                    "createdAt"
+                  ]
                 }
               }
             },
-            "required": ["devices"]
+            "required": [
+              "devices"
+            ]
           }
         }
       },
@@ -13137,7 +14039,11 @@
                 "name": "kind",
                 "schema": {
                   "type": "string",
-                  "enum": ["agent", "camera", "browser"]
+                  "enum": [
+                    "agent",
+                    "camera",
+                    "browser"
+                  ]
                 },
                 "description": "Only devices of this kind."
               },
@@ -13187,7 +14093,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Device": {
             "type": "object",
@@ -13197,7 +14106,11 @@
               },
               "kind": {
                 "type": "string",
-                "enum": ["agent", "camera", "browser"]
+                "enum": [
+                  "agent",
+                  "camera",
+                  "browser"
+                ]
               },
               "name": {
                 "type": "string"
@@ -13222,7 +14135,15 @@
                 "type": "string"
               }
             },
-            "required": ["id", "kind", "name", "networkId", "publicKey", "publicId", "createdAt"]
+            "required": [
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
+              "createdAt"
+            ]
           }
         }
       },
@@ -13363,7 +14284,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Device": {
             "type": "object",
@@ -13378,7 +14302,11 @@
                 "type": "string"
               }
             },
-            "required": ["privateKey", "publicKey", "publicId"]
+            "required": [
+              "privateKey",
+              "publicKey",
+              "publicId"
+            ]
           }
         }
       },
@@ -13530,7 +14458,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Device": {
             "type": "object",
@@ -13540,7 +14471,11 @@
               },
               "kind": {
                 "type": "string",
-                "enum": ["agent", "camera", "browser"]
+                "enum": [
+                  "agent",
+                  "camera",
+                  "browser"
+                ]
               },
               "name": {
                 "type": "string"
@@ -13565,7 +14500,15 @@
                 "type": "string"
               }
             },
-            "required": ["id", "kind", "name", "networkId", "publicKey", "publicId", "createdAt"]
+            "required": [
+              "id",
+              "kind",
+              "name",
+              "networkId",
+              "publicKey",
+              "publicId",
+              "createdAt"
+            ]
           }
         }
       },
@@ -13769,7 +14712,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Camera": {
             "type": "object",
@@ -13801,7 +14747,11 @@
                               }
                             }
                           },
-                          "required": ["driver", "host", "resolutions"]
+                          "required": [
+                            "driver",
+                            "host",
+                            "resolutions"
+                          ]
                         },
                         {
                           "type": "object",
@@ -13814,7 +14764,10 @@
                               "type": "string"
                             }
                           },
-                          "required": ["driver", "url"]
+                          "required": [
+                            "driver",
+                            "url"
+                          ]
                         }
                       ]
                     },
@@ -13834,7 +14787,11 @@
                             },
                             "kind": {
                               "type": "string",
-                              "enum": ["agent", "camera", "browser"]
+                              "enum": [
+                                "agent",
+                                "camera",
+                                "browser"
+                              ]
                             },
                             "networkId": {
                               "anyOf": [
@@ -13850,7 +14807,14 @@
                               "type": "string"
                             }
                           },
-                          "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                          "required": [
+                            "name",
+                            "createdAt",
+                            "publicKey",
+                            "kind",
+                            "networkId",
+                            "publicId"
+                          ]
                         },
                         {
                           "type": "null"
@@ -13858,11 +14822,17 @@
                       ]
                     }
                   },
-                  "required": ["id", "settings", "device"]
+                  "required": [
+                    "id",
+                    "settings",
+                    "device"
+                  ]
                 }
               }
             },
-            "required": ["cameras"]
+            "required": [
+              "cameras"
+            ]
           }
         }
       },
@@ -13983,7 +14953,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Camera": {
             "type": "object",
@@ -14010,7 +14983,11 @@
                         }
                       }
                     },
-                    "required": ["driver", "host", "resolutions"]
+                    "required": [
+                      "driver",
+                      "host",
+                      "resolutions"
+                    ]
                   },
                   {
                     "type": "object",
@@ -14023,7 +15000,10 @@
                         "type": "string"
                       }
                     },
-                    "required": ["driver", "url"]
+                    "required": [
+                      "driver",
+                      "url"
+                    ]
                   }
                 ]
               },
@@ -14043,7 +15023,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["agent", "camera", "browser"]
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
                       },
                       "networkId": {
                         "anyOf": [
@@ -14059,7 +15043,14 @@
                         "type": "string"
                       }
                     },
-                    "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
@@ -14067,7 +15058,11 @@
                 ]
               }
             },
-            "required": ["id", "settings", "device"]
+            "required": [
+              "id",
+              "settings",
+              "device"
+            ]
           }
         }
       },
@@ -14222,7 +15217,11 @@
                                 }
                               }
                             },
-                            "required": ["driver", "host", "resolutions"],
+                            "required": [
+                              "driver",
+                              "host",
+                              "resolutions"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -14237,7 +15236,10 @@
                                 "format": "uri"
                               }
                             },
-                            "required": ["driver", "url"],
+                            "required": [
+                              "driver",
+                              "url"
+                            ],
                             "additionalProperties": false
                           }
                         ],
@@ -14256,12 +15258,18 @@
                             "maxLength": 256
                           }
                         },
-                        "required": ["username", "password"],
+                        "required": [
+                          "username",
+                          "password"
+                        ],
                         "additionalProperties": false,
                         "description": "How to authenticate to the camera. Write-only: never returned."
                       }
                     },
-                    "required": ["name", "settings"],
+                    "required": [
+                      "name",
+                      "settings"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -14302,7 +15310,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Camera": {
             "type": "object",
@@ -14329,7 +15340,11 @@
                         }
                       }
                     },
-                    "required": ["driver", "host", "resolutions"]
+                    "required": [
+                      "driver",
+                      "host",
+                      "resolutions"
+                    ]
                   },
                   {
                     "type": "object",
@@ -14342,7 +15357,10 @@
                         "type": "string"
                       }
                     },
-                    "required": ["driver", "url"]
+                    "required": [
+                      "driver",
+                      "url"
+                    ]
                   }
                 ]
               },
@@ -14362,7 +15380,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["agent", "camera", "browser"]
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
                       },
                       "networkId": {
                         "anyOf": [
@@ -14378,7 +15400,14 @@
                         "type": "string"
                       }
                     },
-                    "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
@@ -14386,7 +15415,11 @@
                 ]
               }
             },
-            "required": ["id", "settings", "device"]
+            "required": [
+              "id",
+              "settings",
+              "device"
+            ]
           }
         }
       },
@@ -14527,7 +15560,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Camera": {
             "type": "object",
@@ -14554,7 +15590,11 @@
                         }
                       }
                     },
-                    "required": ["driver", "host", "resolutions"]
+                    "required": [
+                      "driver",
+                      "host",
+                      "resolutions"
+                    ]
                   },
                   {
                     "type": "object",
@@ -14567,7 +15607,10 @@
                         "type": "string"
                       }
                     },
-                    "required": ["driver", "url"]
+                    "required": [
+                      "driver",
+                      "url"
+                    ]
                   }
                 ]
               },
@@ -14587,7 +15630,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["agent", "camera", "browser"]
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
                       },
                       "networkId": {
                         "anyOf": [
@@ -14603,7 +15650,14 @@
                         "type": "string"
                       }
                     },
-                    "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
@@ -14611,7 +15665,11 @@
                 ]
               }
             },
-            "required": ["id", "settings", "device"]
+            "required": [
+              "id",
+              "settings",
+              "device"
+            ]
           }
         }
       },
@@ -14757,7 +15815,11 @@
                                 }
                               }
                             },
-                            "required": ["driver", "host", "resolutions"],
+                            "required": [
+                              "driver",
+                              "host",
+                              "resolutions"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -14772,7 +15834,10 @@
                                 "format": "uri"
                               }
                             },
-                            "required": ["driver", "url"],
+                            "required": [
+                              "driver",
+                              "url"
+                            ],
                             "additionalProperties": false
                           }
                         ],
@@ -14793,7 +15858,10 @@
                                 "maxLength": 256
                               }
                             },
-                            "required": ["username", "password"],
+                            "required": [
+                              "username",
+                              "password"
+                            ],
                             "additionalProperties": false,
                             "description": "How to authenticate to the camera. Write-only: never returned."
                           },
@@ -14843,7 +15911,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -14998,7 +16069,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Browser": {
             "type": "object",
@@ -15020,7 +16094,11 @@
               },
               "kind": {
                 "type": "string",
-                "enum": ["agent", "camera", "browser"]
+                "enum": [
+                  "agent",
+                  "camera",
+                  "browser"
+                ]
               },
               "networkId": {
                 "anyOf": [
@@ -15036,7 +16114,16 @@
                 "type": "string"
               }
             },
-            "required": ["privateKey", "name", "id", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+            "required": [
+              "privateKey",
+              "name",
+              "id",
+              "createdAt",
+              "publicKey",
+              "kind",
+              "networkId",
+              "publicId"
+            ]
           }
         }
       },
@@ -15167,7 +16254,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Agent": {
             "type": "object",
@@ -15205,7 +16295,11 @@
                             },
                             "kind": {
                               "type": "string",
-                              "enum": ["agent", "camera", "browser"]
+                              "enum": [
+                                "agent",
+                                "camera",
+                                "browser"
+                              ]
                             },
                             "networkId": {
                               "anyOf": [
@@ -15221,7 +16315,14 @@
                               "type": "string"
                             }
                           },
-                          "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                          "required": [
+                            "name",
+                            "createdAt",
+                            "publicKey",
+                            "kind",
+                            "networkId",
+                            "publicId"
+                          ]
                         },
                         {
                           "type": "null"
@@ -15229,11 +16330,19 @@
                       ]
                     }
                   },
-                  "required": ["id", "active", "networkId", "priority", "device"]
+                  "required": [
+                    "id",
+                    "active",
+                    "networkId",
+                    "priority",
+                    "device"
+                  ]
                 }
               }
             },
-            "required": ["agents"]
+            "required": [
+              "agents"
+            ]
           }
         }
       },
@@ -15364,7 +16473,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Agent": {
             "type": "object",
@@ -15397,7 +16509,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["agent", "camera", "browser"]
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
                       },
                       "networkId": {
                         "anyOf": [
@@ -15413,7 +16529,14 @@
                         "type": "string"
                       }
                     },
-                    "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
@@ -15421,7 +16544,13 @@
                 ]
               }
             },
-            "required": ["id", "active", "networkId", "priority", "device"]
+            "required": [
+              "id",
+              "active",
+              "networkId",
+              "priority",
+              "device"
+            ]
           }
         }
       },
@@ -15554,7 +16683,10 @@
                         "description": "Standby preference; higher is preferred."
                       }
                     },
-                    "required": ["name", "networkId"],
+                    "required": [
+                      "name",
+                      "networkId"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -15595,7 +16727,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Agent": {
             "type": "object",
@@ -15628,7 +16763,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["agent", "camera", "browser"]
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
                       },
                       "networkId": {
                         "anyOf": [
@@ -15644,7 +16783,14 @@
                         "type": "string"
                       }
                     },
-                    "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
@@ -15652,7 +16798,13 @@
                 ]
               }
             },
-            "required": ["id", "active", "networkId", "priority", "device"]
+            "required": [
+              "id",
+              "active",
+              "networkId",
+              "priority",
+              "device"
+            ]
           }
         }
       },
@@ -15793,7 +16945,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Agent": {
             "type": "object",
@@ -15826,7 +16981,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["agent", "camera", "browser"]
+                        "enum": [
+                          "agent",
+                          "camera",
+                          "browser"
+                        ]
                       },
                       "networkId": {
                         "anyOf": [
@@ -15842,7 +17001,14 @@
                         "type": "string"
                       }
                     },
-                    "required": ["name", "createdAt", "publicKey", "kind", "networkId", "publicId"]
+                    "required": [
+                      "name",
+                      "createdAt",
+                      "publicKey",
+                      "kind",
+                      "networkId",
+                      "publicId"
+                    ]
                   },
                   {
                     "type": "null"
@@ -15850,7 +17016,13 @@
                 ]
               }
             },
-            "required": ["id", "active", "networkId", "priority", "device"]
+            "required": [
+              "id",
+              "active",
+              "networkId",
+              "priority",
+              "device"
+            ]
           }
         }
       },
@@ -15981,7 +17153,9 @@
                         "description": "Standby preference; higher is preferred."
                       }
                     },
-                    "required": ["priority"],
+                    "required": [
+                      "priority"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -16022,7 +17196,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -16177,7 +17354,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Gateway": {
             "type": "object",
@@ -16214,7 +17394,15 @@
                           "type": "null"
                         }
                       },
-                      "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt"
+                      ]
                     },
                     {
                       "type": "object",
@@ -16249,13 +17437,23 @@
                           "type": "string"
                         }
                       },
-                      "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt"
+                      ]
                     }
                   ]
                 }
               }
             },
-            "required": ["gateways"]
+            "required": [
+              "gateways"
+            ]
           }
         }
       },
@@ -16386,7 +17584,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "__schema0": {
             "anyOf": [
@@ -16452,7 +17653,15 @@
                 "type": "string"
               }
             },
-            "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+            "required": [
+              "id",
+              "builtin",
+              "name",
+              "kind",
+              "networkId",
+              "settings",
+              "createdAt"
+            ]
           }
         }
       },
@@ -16573,7 +17782,9 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["mediamtx"],
+                        "enum": [
+                          "mediamtx"
+                        ],
                         "description": "The gateway implementation, such as `mediamtx`."
                       },
                       "networkId": {
@@ -16603,7 +17814,10 @@
                         "description": "Settings validated by the implementation that reads them."
                       }
                     },
-                    "required": ["name", "kind"],
+                    "required": [
+                      "name",
+                      "kind"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -16644,7 +17858,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -16690,7 +17907,15 @@
                               "type": "null"
                             }
                           },
-                          "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                          "required": [
+                            "id",
+                            "builtin",
+                            "name",
+                            "kind",
+                            "networkId",
+                            "settings",
+                            "createdAt"
+                          ]
                         },
                         {
                           "type": "object",
@@ -16725,7 +17950,15 @@
                               "type": "string"
                             }
                           },
-                          "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+                          "required": [
+                            "id",
+                            "builtin",
+                            "name",
+                            "kind",
+                            "networkId",
+                            "settings",
+                            "createdAt"
+                          ]
                         }
                       ]
                     }
@@ -16802,7 +18035,9 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "enum": ["conservationtv"]
+                      "enum": [
+                        "conservationtv"
+                      ]
                     },
                     {
                       "type": "string",
@@ -16860,7 +18095,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "__schema0": {
             "anyOf": [
@@ -16926,7 +18164,15 @@
                 "type": "string"
               }
             },
-            "required": ["id", "builtin", "name", "kind", "networkId", "settings", "createdAt"]
+            "required": [
+              "id",
+              "builtin",
+              "name",
+              "kind",
+              "networkId",
+              "settings",
+              "createdAt"
+            ]
           }
         }
       },
@@ -17038,7 +18284,9 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "enum": ["conservationtv"]
+                      "enum": [
+                        "conservationtv"
+                      ]
                     },
                     {
                       "type": "string",
@@ -17076,7 +18324,9 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["mediamtx"],
+                        "enum": [
+                          "mediamtx"
+                        ],
                         "description": "The gateway implementation, such as `mediamtx`."
                       },
                       "networkId": {
@@ -17144,7 +18394,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -17249,7 +18502,9 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "enum": ["conservationtv"]
+                      "enum": [
+                        "conservationtv"
+                      ]
                     },
                     {
                       "type": "string",
@@ -17307,7 +18562,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Stream": {
             "type": "object",
@@ -17337,11 +18595,18 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name", "sourceDeviceId", "createdAt"]
+                  "required": [
+                    "id",
+                    "name",
+                    "sourceDeviceId",
+                    "createdAt"
+                  ]
                 }
               }
             },
-            "required": ["streams"]
+            "required": [
+              "streams"
+            ]
           }
         }
       },
@@ -17462,7 +18727,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Stream": {
             "type": "object",
@@ -17487,7 +18755,12 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "sourceDeviceId", "createdAt"]
+            "required": [
+              "id",
+              "name",
+              "sourceDeviceId",
+              "createdAt"
+            ]
           }
         }
       },
@@ -17621,7 +18894,9 @@
                         "description": "The device the stream comes from, such as its camera, or null for none yet."
                       }
                     },
-                    "required": ["name"],
+                    "required": [
+                      "name"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -17662,11 +18937,19 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Rendition": {
             "type": "string",
-            "enum": ["default", "data_saver", "balanced", "quality"]
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
           },
           "Stream": {
             "type": "object",
@@ -17752,7 +19035,14 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "exposureId", "rendition", "kind", "params", "createdAt"]
+                  "required": [
+                    "id",
+                    "exposureId",
+                    "rendition",
+                    "kind",
+                    "params",
+                    "createdAt"
+                  ]
                 }
               },
               "id": {
@@ -17775,7 +19065,14 @@
                 "type": "string"
               }
             },
-            "required": ["exposures", "recorders", "id", "name", "sourceDeviceId", "createdAt"]
+            "required": [
+              "exposures",
+              "recorders",
+              "id",
+              "name",
+              "sourceDeviceId",
+              "createdAt"
+            ]
           }
         }
       },
@@ -17917,7 +19214,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Stream": {
             "type": "object",
@@ -17942,7 +19242,12 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "sourceDeviceId", "createdAt"]
+            "required": [
+              "id",
+              "name",
+              "sourceDeviceId",
+              "createdAt"
+            ]
           }
         }
       },
@@ -18136,7 +19441,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -18281,11 +19589,19 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Rendition": {
             "type": "string",
-            "enum": ["default", "data_saver", "balanced", "quality"],
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
             "description": "A quality the stream is delivered at."
           },
           "__schema0": {
@@ -18508,7 +19824,9 @@
                         "anyOf": [
                           {
                             "type": "string",
-                            "enum": ["conservationtv"]
+                            "enum": [
+                              "conservationtv"
+                            ]
                           },
                           {
                             "type": "string",
@@ -18519,7 +19837,9 @@
                         "description": "The gateway the stream is delivered to: built in, or the organisation's own."
                       },
                       "renditions": {
-                        "default": ["default"],
+                        "default": [
+                          "default"
+                        ],
                         "minItems": 1,
                         "type": "array",
                         "items": {
@@ -18567,7 +19887,9 @@
                         }
                       }
                     },
-                    "required": ["gatewayId"],
+                    "required": [
+                      "gatewayId"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -18608,11 +19930,19 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Rendition": {
             "type": "string",
-            "enum": ["default", "data_saver", "balanced", "quality"],
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
             "description": "A quality the stream is delivered at."
           },
           "__schema0": {
@@ -18856,7 +20186,9 @@
                         "anyOf": [
                           {
                             "type": "string",
-                            "enum": ["conservationtv"]
+                            "enum": [
+                              "conservationtv"
+                            ]
                           },
                           {
                             "type": "string",
@@ -18951,7 +20283,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -19117,11 +20452,19 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Rendition": {
             "type": "string",
-            "enum": ["default", "data_saver", "balanced", "quality"],
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
             "description": "A quality the stream is delivered at."
           }
         }
@@ -19169,7 +20512,13 @@
                               }
                             }
                           },
-                          "required": ["protocol", "relay", "path", "broadcast", "renditions"]
+                          "required": [
+                            "protocol",
+                            "relay",
+                            "path",
+                            "broadcast",
+                            "renditions"
+                          ]
                         },
                         {
                           "type": "object",
@@ -19193,7 +20542,11 @@
                               }
                             }
                           },
-                          "required": ["protocol", "url", "renditions"]
+                          "required": [
+                            "protocol",
+                            "url",
+                            "renditions"
+                          ]
                         }
                       ]
                     }
@@ -19325,7 +20678,10 @@
                     "properties": {
                       "action": {
                         "type": "string",
-                        "enum": ["read", "publish"],
+                        "enum": [
+                          "read",
+                          "publish"
+                        ],
                         "description": "Whether to read the exposure from its gateway, or publish it there."
                       },
                       "protocol": {
@@ -19338,7 +20694,10 @@
                         "$ref": "#/components/schemas/Rendition"
                       }
                     },
-                    "required": ["action", "protocol"],
+                    "required": [
+                      "action",
+                      "protocol"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -19379,11 +20738,19 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Rendition": {
             "type": "string",
-            "enum": ["default", "data_saver", "balanced", "quality"],
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
             "description": "A quality the stream is delivered at."
           },
           "__schema0": {
@@ -19440,7 +20807,14 @@
                 "type": "string"
               }
             },
-            "required": ["id", "exposureId", "rendition", "kind", "params", "createdAt"]
+            "required": [
+              "id",
+              "exposureId",
+              "rendition",
+              "kind",
+              "params",
+              "createdAt"
+            ]
           }
         }
       },
@@ -19602,7 +20976,10 @@
                         "description": "Settings validated by the implementation that reads them."
                       }
                     },
-                    "required": ["exposureId", "kind"],
+                    "required": [
+                      "exposureId",
+                      "kind"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -19643,11 +21020,19 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Rendition": {
             "type": "string",
-            "enum": ["default", "data_saver", "balanced", "quality"],
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ],
             "description": "A quality the stream is delivered at."
           },
           "__schema0": {
@@ -19704,7 +21089,14 @@
                 "type": "string"
               }
             },
-            "required": ["id", "exposureId", "rendition", "kind", "params", "createdAt"]
+            "required": [
+              "id",
+              "exposureId",
+              "rendition",
+              "kind",
+              "params",
+              "createdAt"
+            ]
           }
         }
       },
@@ -19916,7 +21308,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -20072,7 +21467,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Subject": {
             "type": "object",
@@ -20092,7 +21490,10 @@
                   },
                   "freshness": {
                     "type": "string",
-                    "enum": ["fresh", "stale"]
+                    "enum": [
+                      "fresh",
+                      "stale"
+                    ]
                   },
                   "observedAt": {
                     "type": "string"
@@ -20147,7 +21548,10 @@
                     },
                     "freshness": {
                       "type": "string",
-                      "enum": ["fresh", "stale"]
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
                     },
                     "observedAt": {
                       "type": "string"
@@ -20174,7 +21578,12 @@
                 }
               }
             },
-            "required": ["subjectId", "state", "reachable", "opinions"]
+            "required": [
+              "subjectId",
+              "state",
+              "reachable",
+              "opinions"
+            ]
           }
         }
       },
@@ -20305,7 +21714,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Observation": {
             "type": "object",
@@ -20335,11 +21747,20 @@
                       "additionalProperties": {}
                     }
                   },
-                  "required": ["id", "reporterId", "observedAt", "receivedAt", "type", "data"]
+                  "required": [
+                    "id",
+                    "reporterId",
+                    "observedAt",
+                    "receivedAt",
+                    "type",
+                    "data"
+                  ]
                 }
               }
             },
-            "required": ["observations"]
+            "required": [
+              "observations"
+            ]
           }
         }
       },
@@ -20491,7 +21912,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Metric": {
             "type": "object",
@@ -20530,11 +21954,20 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name", "reporterId", "unit", "dimensions", "createdAt"]
+                  "required": [
+                    "id",
+                    "name",
+                    "reporterId",
+                    "unit",
+                    "dimensions",
+                    "createdAt"
+                  ]
                 }
               }
             },
-            "required": ["series"]
+            "required": [
+              "series"
+            ]
           }
         }
       },
@@ -20675,7 +22108,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Metric": {
             "type": "object",
@@ -20713,7 +22149,14 @@
                       "type": "number"
                     }
                   },
-                  "required": ["at", "min", "max", "avg", "last", "count"]
+                  "required": [
+                    "at",
+                    "min",
+                    "max",
+                    "avg",
+                    "last",
+                    "count"
+                  ]
                 }
               },
               "id": {
@@ -20745,7 +22188,18 @@
                 "type": "string"
               }
             },
-            "required": ["from", "to", "step", "points", "id", "name", "reporterId", "unit", "dimensions", "createdAt"]
+            "required": [
+              "from",
+              "to",
+              "step",
+              "points",
+              "id",
+              "name",
+              "reporterId",
+              "unit",
+              "dimensions",
+              "createdAt"
+            ]
           }
         }
       },
@@ -20928,7 +22382,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Log": {
             "type": "object",
@@ -20961,11 +22418,21 @@
                       "additionalProperties": {}
                     }
                   },
-                  "required": ["id", "reporterId", "observedAt", "receivedAt", "level", "message", "context"]
+                  "required": [
+                    "id",
+                    "reporterId",
+                    "observedAt",
+                    "receivedAt",
+                    "level",
+                    "message",
+                    "context"
+                  ]
                 }
               }
             },
-            "required": ["logs"]
+            "required": [
+              "logs"
+            ]
           }
         }
       },
@@ -21117,7 +22584,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Invitation": {
             "type": "object",
@@ -21140,17 +22610,26 @@
                           "type": "string"
                         }
                       },
-                      "required": ["id", "name"]
+                      "required": [
+                        "id",
+                        "name"
+                      ]
                     },
                     "expiresAt": {
                       "type": "string"
                     }
                   },
-                  "required": ["id", "organisation", "expiresAt"]
+                  "required": [
+                    "id",
+                    "organisation",
+                    "expiresAt"
+                  ]
                 }
               }
             },
-            "required": ["invitations"]
+            "required": [
+              "invitations"
+            ]
           }
         }
       },
@@ -21250,7 +22729,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Invitation": {
             "type": "object",
@@ -21268,7 +22750,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["id", "name"]
+                "required": [
+                  "id",
+                  "name"
+                ]
               },
               "needsCode": {
                 "type": "boolean"
@@ -21277,7 +22762,12 @@
                 "type": "string"
               }
             },
-            "required": ["id", "organisation", "needsCode", "expiresAt"]
+            "required": [
+              "id",
+              "organisation",
+              "needsCode",
+              "expiresAt"
+            ]
           }
         }
       },
@@ -21398,7 +22888,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Invitation": {
             "type": "object",
@@ -21413,7 +22906,11 @@
                 "type": "string"
               }
             },
-            "required": ["organisationId", "userId", "joinedAt"]
+            "required": [
+              "organisationId",
+              "userId",
+              "joinedAt"
+            ]
           }
         }
       },
@@ -21559,7 +23056,9 @@
                         "description": "Your name as the organisation's members will see it."
                       }
                     },
-                    "required": ["displayName"],
+                    "required": [
+                      "displayName"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -21600,7 +23099,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           }
         }
       },
@@ -21763,7 +23265,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "__schema0": {
             "anyOf": [
@@ -21803,7 +23308,9 @@
                 "type": "number"
               }
             },
-            "required": ["accepted"]
+            "required": [
+              "accepted"
+            ]
           }
         }
       },
@@ -21927,11 +23434,18 @@
                                       "description": "Settings validated by the implementation that reads them."
                                     }
                                   },
-                                  "required": ["type"],
+                                  "required": [
+                                    "type"
+                                  ],
                                   "additionalProperties": false
                                 }
                               },
-                              "required": ["kind", "subjectId", "observedAt", "payload"],
+                              "required": [
+                                "kind",
+                                "subjectId",
+                                "observedAt",
+                                "payload"
+                              ],
                               "additionalProperties": false
                             },
                             {
@@ -21991,7 +23505,10 @@
                                           "type": "number"
                                         }
                                       },
-                                      "required": ["name", "value"],
+                                      "required": [
+                                        "name",
+                                        "value"
+                                      ],
                                       "additionalProperties": false
                                     },
                                     {
@@ -22049,17 +23566,31 @@
                                               "maximum": 9007199254740991
                                             }
                                           },
-                                          "required": ["min", "max", "avg", "last", "count"],
+                                          "required": [
+                                            "min",
+                                            "max",
+                                            "avg",
+                                            "last",
+                                            "count"
+                                          ],
                                           "additionalProperties": false
                                         }
                                       },
-                                      "required": ["name", "summary"],
+                                      "required": [
+                                        "name",
+                                        "summary"
+                                      ],
                                       "additionalProperties": false
                                     }
                                   ]
                                 }
                               },
-                              "required": ["kind", "subjectId", "observedAt", "payload"],
+                              "required": [
+                                "kind",
+                                "subjectId",
+                                "observedAt",
+                                "payload"
+                              ],
                               "additionalProperties": false
                             },
                             {
@@ -22104,18 +23635,28 @@
                                       "description": "Settings validated by the implementation that reads them."
                                     }
                                   },
-                                  "required": ["level", "message"],
+                                  "required": [
+                                    "level",
+                                    "message"
+                                  ],
                                   "additionalProperties": false
                                 }
                               },
-                              "required": ["kind", "subjectId", "observedAt", "payload"],
+                              "required": [
+                                "kind",
+                                "subjectId",
+                                "observedAt",
+                                "payload"
+                              ],
                               "additionalProperties": false
                             }
                           ]
                         }
                       }
                     },
-                    "required": ["reports"],
+                    "required": [
+                      "reports"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -22168,7 +23709,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Relay": {
             "type": "object",
@@ -22183,7 +23727,9 @@
                 "type": "string"
               }
             },
-            "required": ["url"]
+            "required": [
+              "url"
+            ]
           },
           "IrohSession": {
             "type": "object",
@@ -22204,10 +23750,17 @@
                     "type": "string"
                   }
                 },
-                "required": ["id", "grantId", "expiresAt"]
+                "required": [
+                  "id",
+                  "grantId",
+                  "expiresAt"
+                ]
               }
             },
-            "required": ["relay", "lease"]
+            "required": [
+              "relay",
+              "lease"
+            ]
           }
         }
       },
@@ -22317,7 +23870,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "MediamtxAuth": {
             "type": "object",
@@ -22329,11 +23885,19 @@
                 "type": "string"
               }
             },
-            "required": ["issuer", "audience"]
+            "required": [
+              "issuer",
+              "audience"
+            ]
           },
           "Rendition": {
             "type": "string",
-            "enum": ["default", "data_saver", "balanced", "quality"]
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
           },
           "Publisher": {
             "type": "object",
@@ -22355,7 +23919,12 @@
                 }
               }
             },
-            "required": ["exposureId", "connect", "layout", "renditions"]
+            "required": [
+              "exposureId",
+              "connect",
+              "layout",
+              "renditions"
+            ]
           },
           "PublisherConnect": {
             "type": "object",
@@ -22378,7 +23947,13 @@
                 "const": "moq"
               }
             },
-            "required": ["id", "streamId", "exposureId", "action", "protocol"]
+            "required": [
+              "id",
+              "streamId",
+              "exposureId",
+              "action",
+              "protocol"
+            ]
           },
           "PublishedRendition": {
             "type": "object",
@@ -22390,7 +23965,10 @@
                 "type": "string"
               }
             },
-            "required": ["rendition", "path"]
+            "required": [
+              "rendition",
+              "path"
+            ]
           }
         }
       },
@@ -22416,7 +23994,9 @@
                               "const": "idle"
                             }
                           },
-                          "required": ["state"]
+                          "required": [
+                            "state"
+                          ]
                         },
                         {
                           "type": "object",
@@ -22435,7 +24015,10 @@
                                   "$ref": "#/components/schemas/MediamtxAuth"
                                 }
                               },
-                              "required": ["gatewayId", "auth"]
+                              "required": [
+                                "gatewayId",
+                                "auth"
+                              ]
                             },
                             "paths": {
                               "type": "array",
@@ -22460,7 +24043,9 @@
                                             "type": "string"
                                           }
                                         },
-                                        "required": ["url"]
+                                        "required": [
+                                          "url"
+                                        ]
                                       },
                                       {
                                         "type": "object",
@@ -22469,12 +24054,19 @@
                                             "type": "string"
                                           }
                                         },
-                                        "required": ["path"]
+                                        "required": [
+                                          "path"
+                                        ]
                                       }
                                     ]
                                   }
                                 },
-                                "required": ["name", "exposureId", "rendition", "source"]
+                                "required": [
+                                  "name",
+                                  "exposureId",
+                                  "rendition",
+                                  "source"
+                                ]
                               }
                             },
                             "publishers": {
@@ -22495,11 +24087,20 @@
                                     "type": "string"
                                   }
                                 },
-                                "required": ["subject", "message"]
+                                "required": [
+                                  "subject",
+                                  "message"
+                                ]
                               }
                             }
                           },
-                          "required": ["state", "mediamtx", "paths", "publishers", "diagnostics"]
+                          "required": [
+                            "state",
+                            "mediamtx",
+                            "paths",
+                            "publishers",
+                            "diagnostics"
+                          ]
                         }
                       ]
                     }
@@ -22584,7 +24185,10 @@
                 "type": "string"
               }
             },
-            "required": ["error", "error_description"]
+            "required": [
+              "error",
+              "error_description"
+            ]
           },
           "Whoami": {
             "type": "object",
@@ -22597,13 +24201,22 @@
               },
               "kind": {
                 "type": "string",
-                "enum": ["agent", "camera", "browser"]
+                "enum": [
+                  "agent",
+                  "camera",
+                  "browser"
+                ]
               },
               "publicId": {
                 "type": "string"
               }
             },
-            "required": ["id", "organisationId", "kind", "publicId"]
+            "required": [
+              "id",
+              "organisationId",
+              "kind",
+              "publicId"
+            ]
           }
         }
       },

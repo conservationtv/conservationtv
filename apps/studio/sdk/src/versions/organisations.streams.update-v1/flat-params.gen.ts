@@ -2,18 +2,13 @@
 
 import * as z from 'zod';
 
-import {
-  PatchOrganisationsByIdStreamsByStreamIdBodySchema,
-  PatchOrganisationsByIdStreamsByStreamIdPathSchema
-} from './zod.gen.js';
+import { PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema } from './zod.gen.js';
 
 export const StreamUpdateV1ParamsSchema = z.object({
-  id: PatchOrganisationsByIdStreamsByStreamIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-  streamId: PatchOrganisationsByIdStreamsByStreamIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
-  name: PatchOrganisationsByIdStreamsByStreamIdBodySchema.shape.name.optional().describe('The stream name.'),
-  sourceDeviceId: PatchOrganisationsByIdStreamsByStreamIdBodySchema.shape.sourceDeviceId
-    .optional()
-    .describe('The device the stream comes from, such as its camera, or null for none yet.')
+    id: PatchOrganisationsByIdStreamsByStreamIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    streamId: PatchOrganisationsByIdStreamsByStreamIdPathSchema.shape.streamId.nonoptional().describe('The stream.'),
+    name: PatchOrganisationsByIdStreamsByStreamIdBodySchema.shape.name.optional().describe('The stream name.'),
+    sourceDeviceId: PatchOrganisationsByIdStreamsByStreamIdBodySchema.shape.sourceDeviceId.optional().describe('The device the stream comes from, such as its camera, or null for none yet.')
 });
 
 export type StreamUpdateV1Params = z.infer<typeof StreamUpdateV1ParamsSchema>;

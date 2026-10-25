@@ -5,10 +5,8 @@ import * as z from 'zod';
 import { PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema } from './zod.gen.js';
 
 export const MemberUpdateSelfV1ParamsSchema = z.object({
-  id: PatchOrganisationsByIdMembersMePathSchema.shape.id.nonoptional().describe('The organisation.'),
-  displayName: PatchOrganisationsByIdMembersMeBodySchema.shape.displayName
-    .nonoptional()
-    .describe('Your name in this organisation.')
+    id: PatchOrganisationsByIdMembersMePathSchema.shape.id.nonoptional().describe('The organisation.'),
+    displayName: PatchOrganisationsByIdMembersMeBodySchema.shape.displayName.nonoptional().describe('Your name in this organisation.')
 });
 
 export type MemberUpdateSelfV1Params = z.infer<typeof MemberUpdateSelfV1ParamsSchema>;
