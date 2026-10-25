@@ -15,44 +15,63 @@ interface PullHeaderProps {
   tab: Tab;
 }
 
-/** The title, who wants what merged where, its stack, and the tabs with how much of the change there is to read. */
-const PullHeader: FC<PullHeaderProps> = ({ review, tab }) => {
+interface PullBylineProps {
+  review: Review;
+}
+
+/** Who wants what merged where, and when: on the conversation, where there is room for it. */
+const PullByline: FC<PullBylineProps> = ({ review }) => {
   const { pull } = review;
   const commits = `${pull.commits} commit${pull.commits === 1 ? '' : 's'}`;
+  return (
+    <div className="pull-byline">
+      <Avatar person={pull.author} />
+      <span>
+        <strong>{pull.author.login}</strong>{' '}
+        <span className="byline-detail">
+          {pull.state === 'merged' ? 'merged' : 'wants to merge'} {commits} into{' '}
+          <code className="ref">{pull.baseRef}</code> from <code className="ref">{pull.headRef}</code>
+        </span>{' '}
+        · <RelativeTime iso={pull.updatedAt} />
+      </span>
+    </div>
+  );
+};
+
+/**
+ * The title on one line, then the tabs beside its stack and how much of the change there is to read: kept short so
+ * the review below has the screen.
+ */
+const PullHeader: FC<PullHeaderProps> = ({ review, tab }) => {
+  const { pull } = review;
   const comments = review.conversation.length + review.threads.length;
   return (
     <header className="pull-header">
-      <div className="crumbs">
-        <Link to="/">← Pull requests</Link>
-        <a href={pull.url} className="muted">
-          Open on GitHub ↗
+      <div className="pull-title">
+        <Link to="/" className="back" title="Pull requests">
+          ←
+        </Link>
+        <StateBadge state={pull.state} />
+        <h1 title={pull.title}>
+          {pull.title} <span className="muted">#{pull.number}</span>
+        </h1>
+        <a href={pull.url} className="muted github-link">
+          GitHub ↗
         </a>
       </div>
-      <h1>
-        {pull.title} <span className="muted">#{pull.number}</span>
-      </h1>
-      <div className="pull-byline">
-        <StateBadge state={pull.state} />
-        <Avatar person={pull.author} />
-        <span>
-          <strong>{pull.author.login}</strong>{' '}
-          <span className="byline-detail">
-            {pull.state === 'merged' ? 'merged' : 'wants to merge'} {commits} into{' '}
-            <code className="ref">{pull.baseRef}</code> from <code className="ref">{pull.headRef}</code>
-          </span>{' '}
-          · <RelativeTime iso={pull.updatedAt} />
-        </span>
-      </div>
-      <StackBar stack={review.stack} current={pull.number} tab={tab} />
-      <nav className="tabs">
-        <Link to={`/pr/${pull.number}`} className={tab === 'conversation' ? 'tab active' : 'tab'}>
-          Conversation <span className="count">{comments}</span>
-        </Link>
-        <Link to={`/pr/${pull.number}/files`} className={tab === 'files' ? 'tab active' : 'tab'}>
-          Review <span className="count">{review.files.length} files</span>
-        </Link>
+      {tab === 'conversation' && <PullByline review={review} />}
+      <div className="pull-bar">
+        <nav className="tabs">
+          <Link to={`/pr/${pull.number}`} className={tab === 'conversation' ? 'tab active' : 'tab'}>
+            Conversation <span className="count">{comments}</span>
+          </Link>
+          <Link to={`/pr/${pull.number}/files`} className={tab === 'files' ? 'tab active' : 'tab'}>
+            Review <span className="count">{review.files.length} files</span>
+          </Link>
+        </nav>
+        <StackBar stack={review.stack} current={pull.number} tab={tab} />
         <WeightBar weights={weigh(review.files)} />
-      </nav>
+      </div>
     </header>
   );
 };
