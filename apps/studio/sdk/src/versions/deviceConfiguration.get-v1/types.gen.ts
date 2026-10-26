@@ -91,10 +91,6 @@ export type GetDeviceConfigurationResponses = {
             };
         }>;
         publishers: Array<Publisher>;
-        diagnostics: Array<{
-            subject: string;
-            message: string;
-        }>;
     };
 };
 

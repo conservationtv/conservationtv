@@ -58,13 +58,6 @@ export const PlannedPublisherSchema = z
   .meta({ id: 'Publisher' });
 export type PlannedPublisher = z.output<typeof PlannedPublisherSchema>;
 
-/** Something the topology asks for that the device's configuration leaves out, and why. */
-export interface Diagnostic {
-  /** What it is about, as reports name subjects: `exposure:<id>` or `gateway:<id>`. */
-  subject: string;
-  message: string;
-}
-
 /** How a MediaMTX checks a token: signed by the agent's own identity, issued by this API, for its gateway. */
 export const MediamtxAuthSchema = z.object({ issuer: z.string(), audience: z.string() }).meta({ id: 'MediamtxAuth' });
 export type MediamtxAuth = z.output<typeof MediamtxAuthSchema>;
@@ -101,7 +94,6 @@ export interface ActiveConfiguration {
   mediamtx: MediamtxConfiguration;
   paths: PlannedPath[];
   publishers: PlannedPublisher[];
-  diagnostics: Diagnostic[];
 }
 
 export type PlannedConfiguration = IdleConfiguration | ActiveConfiguration;

@@ -81,9 +81,6 @@ export interface GatewayTls {
   notAfter: string;
 }
 
-/** Records why the gateway has no hostname or certificate yet, or an out-of-date one. */
-type Diagnose = (message: string) => void;
-
 /** A DNS label from a name: its letters and digits, lowercase, runs of anything else as one hyphen. */
 export function label(name: string, fallback: string): string {
   const slug = name
@@ -134,18 +131,14 @@ function update(gatewayId: string, changes: Partial<CertificateRow>) {
   });
 }
 
-/** Points the hostname at the address, when it does not already. Refusals are diagnosed, not thrown. */
-async function pointAt(row: CertificateRow, address: string | undefined, zone: DnsZone, diagnose: Diagnose) {
-  if (address === undefined) {
-    diagnose(`${row.hostname} points nowhere yet: the agent has not reported a preferred address`);
-    return;
-  }
-  if (row.address === address) return;
+/** Points the hostname at the address, when there is one and it does not already. Refusals are logged, not thrown. */
+async function pointAt(row: CertificateRow, address: string | undefined, zone: DnsZone) {
+  if (address === undefined || row.address === address) return;
   try {
     await upsertRecord(zone, address.includes(':') ? 'AAAA' : 'A', row.hostname, address);
     await update(row.gatewayId, { address });
   } catch (error) {
-    diagnose(`${row.hostname} could not be pointed at ${address}: ${String(error)}`);
+    console.warn(JSON.stringify({ event: 'gateway_dns_failed', hostname: row.hostname, cause: String(error) }));
   }
 }
 
@@ -154,8 +147,8 @@ function due(row: CertificateRow, now: number) {
   return row.certificate === null || row.notAfter === null || row.notAfter.getTime() - now < RENEW_BEFORE_MS;
 }
 
-/** Issues the certificate, or records why it could not be, diagnosed either way it fails. */
-async function issue(row: CertificateRow, issuer: CertificateIssuer, now: number, diagnose: Diagnose) {
+/** Issues the certificate, or records why it could not be. */
+async function issue(row: CertificateRow, issuer: CertificateIssuer, now: number) {
   const attemptedAt = new Date(now);
   try {
     const certificate = await issueCertificate(issuer.authority, issuer.zone, row.hostname, row.privateKey);
@@ -166,36 +159,30 @@ async function issue(row: CertificateRow, issuer: CertificateIssuer, now: number
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await update(row.gatewayId, { attemptedAt, error: message });
-    diagnose(`No certificate could be issued for ${row.hostname}: ${message}`);
+    console.warn(JSON.stringify({ event: 'gateway_certificate_failed', hostname: row.hostname, cause: message }));
     return { ...row, attemptedAt, error: message };
   }
 }
 
 /**
  * The gateway's hostname, pointed at `address`, and a certificate for it, issued or renewed now if due and not just
- * tried. Undefined, with a diagnostic saying why, when the deployment issues none, or the gateway has no certificate
- * yet; one that is due but could not be renewed is returned as it is, since it still works until it expires.
+ * tried. Undefined when the deployment issues none, or the gateway has no certificate yet; one that is due but could
+ * not be renewed is returned as it is, since it still works until it expires.
  */
 export async function ensureGatewayTls(
   gateway: CertifiedGateway,
-  address: string | undefined,
-  diagnose: Diagnose
+  address: string | undefined
 ): Promise<GatewayTls | undefined> {
   const environment = useEnvironment();
   const issuer = environment.gatewayCertificates;
-  if (issuer === undefined) {
-    diagnose('GATEWAY_DOMAIN is unset, so the gateway has no hostname or certificate');
-    return undefined;
-  }
+  if (issuer === undefined) return undefined;
   let row = await trustedTransaction(() => findOrCreate(gateway, issuer.domain));
-  await pointAt(row, address, issuer.zone, diagnose);
+  await pointAt(row, address, issuer.zone);
 
   const now = environment.clock();
   if (due(row, now)) {
     const recently = row.attemptedAt !== null && now - row.attemptedAt.getTime() < RETRY_AFTER_MS;
-    if (recently && row.error !== null)
-      diagnose(`Issuing a certificate for ${row.hostname} is waiting to be retried: ${row.error}`);
-    else row = await issue(row, issuer, now, diagnose);
+    if (!recently || row.error === null) row = await issue(row, issuer, now);
   }
   if (row.certificate === null || row.notAfter === null) return undefined;
   return {

@@ -73,10 +73,6 @@ export const GetDeviceConfigurationResponseSchema = z.union([
                 })
             ])
         })),
-        publishers: z.array(PublisherSchema),
-        diagnostics: z.array(z.object({
-            subject: z.string(),
-            message: z.string()
-        }))
+        publishers: z.array(PublisherSchema)
     })
 ]);

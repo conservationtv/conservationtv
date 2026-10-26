@@ -46,11 +46,9 @@ export type ApplyStudioSpecs = (specs: StudioSpecs | undefined) => Promise<void>
 export async function watchStudioConfiguration(signal: AbortSignal, apply: ApplyStudioSpecs): Promise<void> {
   const studio = useStudio();
   const connections: Connections = new Map();
-  const logDiagnostics = diagnosticsLogger();
   while (!signal.aborted) {
     try {
       const configuration = await askConfiguration(studio);
-      logDiagnostics(configuration);
       await apply(await studioSpecs(configuration, studio, connections));
     } catch (error) {
       // Stopping aborts whatever ask is in flight: that is no failure.
@@ -66,18 +64,6 @@ async function askConfiguration(studio: Client) {
   const configuration = await studio.deviceConfiguration.get.v1();
   if (configuration instanceof Error) throw configuration;
   return configuration;
-}
-
-/** Logs what the topology asks for that the configuration leaves out, whenever that changes. */
-function diagnosticsLogger() {
-  let logged = '';
-  return (configuration: DeviceConfiguration) => {
-    if (configuration.state === 'idle') return;
-    const diagnostics = JSON.stringify(configuration.diagnostics);
-    if (diagnostics === logged) return;
-    logged = diagnostics;
-    logger.info('The configuration has diagnostics', { diagnostics: configuration.diagnostics });
-  };
 }
 
 /**

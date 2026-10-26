@@ -337,8 +337,7 @@ configuration (`deviceConfiguration.get`, under `mediamtx.tls`), with the chain 
 while the agent asks for its configuration, after the plan's transaction: the first ask with a new gateway, and any ask
 within 48 hours of the certificate expiring, waits the tens of seconds the authority takes. A failed attempt is recorded
 (`attempted_at`, `error`) and not repeated for ten minutes, so the authority's rate limits hold and the asks between
-stay quick; the agent keeps the certificate it had until it expires. Nothing runs in the background. What is missing
-and why is in the configuration's `diagnostics`.
+stay quick; the agent keeps the certificate it had until it expires. Nothing runs in the background.
 
 ### Device authentication
 

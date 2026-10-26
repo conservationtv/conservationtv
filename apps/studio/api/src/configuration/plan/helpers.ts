@@ -9,9 +9,6 @@ import type { MediamtxAuth, PathSource } from './types.ts';
 
 // The steps of planning a device's configuration (src/configuration/plan/index.ts).
 
-/** Records why something is left out of the configuration, or only partly in it. */
-export type Diagnose = (message: string) => void;
-
 // Reading the topology.
 
 /** The MediaMTX gateway on the agent's network, which the agent runs while it is the network's active agent. */
@@ -116,13 +113,13 @@ export async function selectGatewayKinds(organisationId: string) {
 /** Where one rendition of an exposure comes from on this agent: a URL to pull, or a path its MediaMTX already serves. */
 export type Feed = PathSource;
 
-/** A camera's renditions, each pulled from where its driver says; the ones it cannot produce are diagnosed. */
-export function cameraFeeds(exposure: ExposureInput, camera: CameraInput, diagnose: Diagnose) {
+/** A camera's renditions, each pulled from where its driver says; the ones it cannot produce are left out. */
+export function cameraFeeds(exposure: ExposureInput, camera: CameraInput) {
   const feeds = new Map<Rendition, Feed>();
   for (const rendition of exposure.renditions) {
     const url = cameraOrigin(camera.settings, camera.credentials ?? undefined, rendition);
-    if (url === undefined) diagnose(`The camera cannot produce ${rendition}, and nothing transcodes yet`);
-    else feeds.set(rendition, { url });
+    // Nothing transcodes yet.
+    if (url !== undefined) feeds.set(rendition, { url });
   }
   return feeds;
 }
