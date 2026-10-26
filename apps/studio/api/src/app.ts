@@ -8,6 +8,7 @@ import account from './routes/account.ts';
 import agents from './routes/agents.ts';
 import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
+import deviceAddresses from './routes/device-addresses.ts';
 import deviceConfiguration from './routes/device-configuration.ts';
 import devices from './routes/devices.ts';
 import gateways from './routes/gateways.ts';
@@ -60,6 +61,7 @@ const app = new Hono({ router: operationRouter })
   .route('/reports', reports)
   .route('/iroh-sessions', irohSessions)
   .route('/device-configuration', deviceConfiguration)
+  .route('/device-addresses', deviceAddresses)
   // Fetched by gateways, with no session.
   .route('/whoami', whoami)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))

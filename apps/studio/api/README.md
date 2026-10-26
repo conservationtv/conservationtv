@@ -38,6 +38,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET /organisations/{id}/devices`; `GET`, `PATCH …/devices/{deviceId}`                      | members read, administrators rename and move | `organisations.devices.*` v1: every kind                                                                 |
 | `GET /organisations/{id}/devices/{deviceId}/key-pair`                                       | administrators                               | `organisations.devices.getKeyPair` v1: with its private key                                              |
 | `GET /organisations/{id}/devices/allowlist`                                                 | members, and devices by signature            | `organisations.devices.allowlist` v1: for iroh allowlists                                                |
+| `GET /organisations/{id}/devices/{deviceId}/addresses`                                      | members                                      | `organisations.devices.listAddresses` v1: where it last said it is reachable on its network              |
 | `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}`    | members read, administrators write           | `organisations.cameras.*` v1                                                                             |
 | `PUT /organisations/{id}/browser`                                                           | members                                      | `organisations.browser.ensure` v1: this session's browser device, with its private key                   |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}`       | members read, administrators write           | `organisations.agents.*` v1                                                                              |
@@ -49,6 +50,7 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET /organisations/{id}/subjects/{subjectId}/metrics/{seriesId}`                           | members                                      | `organisations.subjects.metrics.get` v1: one series' points over a time range, in buckets                |
 | `POST /reports`                                                                             | devices, by signature                        | `reports.submit` v1: a batch of events, metrics and logs                                                 |
 | `GET /device-configuration`                                                                 | devices, by signature                        | `deviceConfiguration.get` v1: what the signing device delivers, derived from the topology when it asks   |
+| `PUT /device-addresses`                                                                     | devices, by signature                        | `deviceAddresses.replace` v1: the addresses the signing device found on its interfaces, replaced whole   |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as        |
 | `GET /openapi.json`                                                                         | SDK/CLI                                      | the published capability bundle                                                                          |
@@ -246,6 +248,12 @@ foreign key to the device, so a device is only ever the kind it was created as. 
 create the device, with its identity, and its kind's row together, and their `DELETE` removes both. Their routes
 nest the device's fields under `device` (a network its active agent under `activeAgent`), each read with one relational query (`src/db/relations.ts`). `/devices` lists
 every device and renames or moves one, but never creates or deletes: an agent's device cannot change network (409 `in_use`), and a device a stream uses as its source cannot be removed.
+
+A device may report the addresses it can be reached at on its own network (`device_address`, `src/services/device-addresses.ts`):
+what it found on its interfaces, with the one its default route leaves by marked `preferred`, replaced whole each time
+it reports (`PUT /device-addresses`, signed as the device) so the rows are always its latest report. Nothing verifies
+them; they are where an agent says a reader on its network could find it. Members read them (`GET …/devices/{deviceId}/addresses`);
+trusted code writes them, as for reports, since the device's signature says whose they are. They go with their device.
 
 A `browser` is one auth session's device in one organisation, for iroh connections from the web app through a relay.
 `PUT …/browser` gets or creates it for the session that calls it, in an organisation the account belongs to, and

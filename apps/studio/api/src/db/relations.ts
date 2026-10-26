@@ -84,7 +84,11 @@ export const relations = defineRelations(schema, r => ({
     agent: r.one.agents({ from: r.devices.id, to: r.agents.id }),
     browser: r.one.browsers({ from: r.devices.id, to: r.browsers.id }),
     sourcedStreams: r.many.streams({ from: r.devices.id, to: r.streams.sourceDeviceId }),
-    publishedExposures: r.many.exposures({ from: r.devices.id, to: r.exposures.publisherDeviceId })
+    publishedExposures: r.many.exposures({ from: r.devices.id, to: r.exposures.publisherDeviceId }),
+    addresses: r.many.deviceAddresses({ from: r.devices.id, to: r.deviceAddresses.deviceId })
+  },
+  deviceAddresses: {
+    device: r.one.devices({ from: r.deviceAddresses.deviceId, to: r.devices.id })
   },
   cameras: {
     organisation: r.one.organisations({ from: r.cameras.organisationId, to: r.organisations.id }),

@@ -27,7 +27,12 @@ export const SystemSchema = z.object({
                     free: z.number()
                 }).nullable(),
                 uptimeSeconds: z.number(),
-                agentRss: z.number()
+                agentRss: z.number(),
+                addresses: z.array(z.object({
+                    address: z.string(),
+                    interface: z.string(),
+                    preferred: z.boolean()
+                }))
             }).nullable(),
             pending: z.number(),
             submitted: z.number(),
