@@ -33,8 +33,9 @@ function matches(header: string | undefined, etag: string): boolean {
 
 /**
  * Serve the published OpenAPI bundle with a strong entity tag. `no-cache` lets browsers keep it but revalidate on
- * every handshake, so a deploy is seen at once while an unchanged document costs a 304 with no body. A long max-age
- * would be faster still, but the SDK re-handshakes after a version mismatch and must then see the new document.
+ * every handshake, so a deploy is seen at once while an unchanged document costs a 304 with no body. The SDK sends
+ * `If-None-Match` itself too, so runtimes without an HTTP cache, such as Node, get the same. A long max-age would be
+ * faster still, but the SDK re-handshakes after a version mismatch and must then see the new document.
  */
 export function servePublishedDocument(document: PublishedDocument): PublishedDocumentHandler {
   let published: Promise<Published> | undefined = undefined;
