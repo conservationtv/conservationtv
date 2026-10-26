@@ -85,7 +85,7 @@
 }
 
 :root {
-  --font-figtree: "Figtree Variable", "Figtree", sans-serif;
+  --font-figtree: 'Figtree Variable', 'Figtree', sans-serif;
   --font-weight-custom-normal: 400;
   --font-weight-custom-medium: 500;
   --font-weight-custom-semibold: 600;
