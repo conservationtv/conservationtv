@@ -79,9 +79,7 @@ function planActiveAgent(input: PlanningInput): ActiveConfiguration {
   const diagnostics: Diagnostic[] = [];
   const paths: PlannedPath[] = [];
   const publishers: PlannedPublisher[] = [];
-  const auth = mediamtxAuth(input.gatewayId, message =>
-    diagnostics.push({ subject: `gateway:${input.gatewayId}`, message })
-  );
+  const auth = mediamtxAuth(input.gatewayId);
 
   for (const stream of input.streams) {
     const exposures = new Map(stream.exposures.map(exposure => [exposure.id, exposure]));

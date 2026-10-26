@@ -35,7 +35,6 @@ export type System = {
             broadcast: string;
         }>;
         auth?: {
-            jwks: string;
             issuer: string;
             audience: string;
         };

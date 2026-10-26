@@ -203,7 +203,6 @@ export type GetSystemSpecResponses = {
                 broadcast: string;
             }>;
             auth?: {
-                jwks: string;
                 issuer: string;
                 audience: string;
             };

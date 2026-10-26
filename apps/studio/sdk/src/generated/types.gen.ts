@@ -25,7 +25,6 @@ export type Relay = {
 };
 
 export type MediamtxAuth = {
-    jwks: string;
     issuer: string;
     audience: string;
 };
@@ -334,46 +333,6 @@ export type DeviceAddress = {
         interface: string;
         preferred: boolean;
         reportedAt: string;
-    }>;
-};
-
-export type GatewayKey = {
-    keys: Array<{
-        kty?: 'EC' | 'oct' | 'RSA' | 'OKP' | 'AKP' | {
-            length: number;
-        };
-        alg?: 'Ed25519' | 'ES256' | 'HS256' | 'HS384' | 'HS512' | 'RS256' | 'RS384' | 'RS512' | 'PS256' | 'PS384' | 'PS512' | 'ES384' | 'ES512' | 'EdDSA' | 'ML-DSA-44' | 'ML-DSA-65' | 'ML-DSA-87' | 'dir' | 'A128KW' | 'A192KW' | 'A256KW' | 'A128GCMKW' | 'A192GCMKW' | 'A256GCMKW' | 'ECDH-ES' | 'ECDH-ES+A128KW' | 'ECDH-ES+A192KW' | 'ECDH-ES+A256KW' | 'RSA-OAEP' | 'RSA-OAEP-256' | 'RSA-OAEP-384' | 'RSA-OAEP-512' | 'PBES2-HS256+A128KW' | 'PBES2-HS384+A192KW' | 'PBES2-HS512+A256KW' | 'A128CBC-HS256' | 'A192CBC-HS384' | 'A256CBC-HS512' | 'A128GCM' | 'A192GCM' | 'A256GCM' | {
-            length: number;
-        };
-        key_ops?: Array<string>;
-        ext?: boolean;
-        use?: 'sig' | 'enc' | {
-            length: number;
-        };
-        x5c?: Array<string>;
-        x5t?: string;
-        'x5t#S256'?: string;
-        x5u?: string;
-        kid?: string;
-        crv?: string;
-        d?: string;
-        dp?: string;
-        dq?: string;
-        e?: string;
-        k?: string;
-        n?: string;
-        p?: string;
-        q?: string;
-        qi?: string;
-        x?: string;
-        y?: string;
-        pub?: string;
-        priv?: string;
-        oth?: Array<{
-            d?: string;
-            r?: string;
-            t?: string;
-        }>;
     }>;
 };
 
@@ -4403,31 +4362,6 @@ export type PutDeviceAddressesResponses = {
 };
 
 export type PutDeviceAddressesResponse = PutDeviceAddressesResponses[keyof PutDeviceAddressesResponses];
-
-export type GetGatewayKeysData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/gateway-keys';
-};
-
-export type GetGatewayKeysErrors = {
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-};
-
-export type GetGatewayKeysError = GetGatewayKeysErrors[keyof GetGatewayKeysErrors];
-
-export type GetGatewayKeysResponses = {
-    /**
-     * The key set
-     */
-    200: GatewayKey;
-};
-
-export type GetGatewayKeysResponse = GetGatewayKeysResponses[keyof GetGatewayKeysResponses];
 
 export type GetWhoamiData = {
     body?: never;

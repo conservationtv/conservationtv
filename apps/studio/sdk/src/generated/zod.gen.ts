@@ -34,7 +34,6 @@ export const RelaySchema = z.object({
 });
 
 export const MediamtxAuthSchema = z.object({
-    jwks: z.string(),
     issuer: z.string(),
     audience: z.string()
 });
@@ -340,103 +339,6 @@ export const DeviceAddressSchema = z.object({
         interface: z.string(),
         preferred: z.boolean(),
         reportedAt: z.string()
-    }))
-});
-
-export const GatewayKeySchema = z.object({
-    keys: z.array(z.object({
-        kty: z.union([
-            z.enum([
-                'EC',
-                'oct',
-                'RSA',
-                'OKP',
-                'AKP'
-            ]),
-            z.object({
-                length: z.number()
-            })
-        ]).optional(),
-        alg: z.union([
-            z.enum([
-                'Ed25519',
-                'ES256',
-                'HS256',
-                'HS384',
-                'HS512',
-                'RS256',
-                'RS384',
-                'RS512',
-                'PS256',
-                'PS384',
-                'PS512',
-                'ES384',
-                'ES512',
-                'EdDSA',
-                'ML-DSA-44',
-                'ML-DSA-65',
-                'ML-DSA-87',
-                'dir',
-                'A128KW',
-                'A192KW',
-                'A256KW',
-                'A128GCMKW',
-                'A192GCMKW',
-                'A256GCMKW',
-                'ECDH-ES',
-                'ECDH-ES+A128KW',
-                'ECDH-ES+A192KW',
-                'ECDH-ES+A256KW',
-                'RSA-OAEP',
-                'RSA-OAEP-256',
-                'RSA-OAEP-384',
-                'RSA-OAEP-512',
-                'PBES2-HS256+A128KW',
-                'PBES2-HS384+A192KW',
-                'PBES2-HS512+A256KW',
-                'A128CBC-HS256',
-                'A192CBC-HS384',
-                'A256CBC-HS512',
-                'A128GCM',
-                'A192GCM',
-                'A256GCM'
-            ]),
-            z.object({
-                length: z.number()
-            })
-        ]).optional(),
-        key_ops: z.array(z.string()).optional(),
-        ext: z.boolean().optional(),
-        use: z.union([
-            z.enum(['sig', 'enc']),
-            z.object({
-                length: z.number()
-            })
-        ]).optional(),
-        x5c: z.array(z.string()).optional(),
-        x5t: z.string().optional(),
-        'x5t#S256': z.string().optional(),
-        x5u: z.string().optional(),
-        kid: z.string().optional(),
-        crv: z.string().optional(),
-        d: z.string().optional(),
-        dp: z.string().optional(),
-        dq: z.string().optional(),
-        e: z.string().optional(),
-        k: z.string().optional(),
-        n: z.string().optional(),
-        p: z.string().optional(),
-        q: z.string().optional(),
-        qi: z.string().optional(),
-        x: z.string().optional(),
-        y: z.string().optional(),
-        pub: z.string().optional(),
-        priv: z.string().optional(),
-        oth: z.array(z.object({
-            d: z.string().optional(),
-            r: z.string().optional(),
-            t: z.string().optional()
-        })).optional()
     }))
 });
 
@@ -1947,11 +1849,6 @@ export const PutDeviceAddressesBodySchema = z.object({
  * The addresses as stored
  */
 export const PutDeviceAddressesResponseSchema = DeviceAddressSchema;
-
-/**
- * The key set
- */
-export const GetGatewayKeysResponseSchema = GatewayKeySchema;
 
 /**
  * The signing device

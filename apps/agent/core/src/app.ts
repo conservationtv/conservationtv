@@ -65,13 +65,14 @@ const MEDIAMTX_METRICS = '127.0.0.1:9998';
 const logger = getLogger(['agent']);
 
 /** The agent's runtimes, by the key of the spec each converges to. */
-function controllers(config: ConservationTvConfiguration) {
+function controllers(config: ConservationTvConfiguration, identity: DeviceIdentity) {
   const machine = new MachineRuntime(config);
   // The streams and their metrics, both fulfilled by MediaMTX.
   const streams = new MediamtxRuntime({
     directory: join(config.directory, 'mediamtx'),
     binary: MEDIAMTX_MANIFEST,
     moq: MOQ_MANIFEST,
+    identity,
     api: MEDIAMTX_API,
     metrics: MEDIAMTX_METRICS,
     authHttp: '127.0.0.1:9996'
@@ -129,13 +130,13 @@ export class Agent {
     const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
     const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
     const mediamtx = createMediamtxClient(MEDIAMTX_API);
-    await withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config)));
+    await withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config, identity)));
   }
 
   /** Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs in scope for both. */
-  private async serve(config: ConservationTvConfiguration) {
+  private async serve(config: ConservationTvConfiguration, identity: DeviceIdentity) {
     this.system = await converge({
-      controllers: controllers(config),
+      controllers: controllers(config, identity),
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },

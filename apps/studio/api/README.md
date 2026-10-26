@@ -52,7 +52,6 @@ Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are plac
 | `GET /device-configuration`                                                                 | devices, by signature                        | `deviceConfiguration.get` v1: what the signing device delivers, derived from the topology when it asks   |
 | `PUT /device-addresses`                                                                     | devices, by signature                        | `deviceAddresses.replace` v1: the addresses the signing device found on its interfaces, replaced whole   |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
-| `GET /gateway-keys`                                                                         | anyone                                       | `gatewayKeys.get` v1: the JWKS gateways (MediaMTX) verify connection tokens with                         |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as        |
 | `GET /openapi.json`                                                                         | SDK/CLI                                      | the published capability bundle                                                                          |
 | `/auth/*`                                                                                   | accounts                                     | Better Auth's routes, hidden from the contract                                                           |
@@ -113,7 +112,6 @@ bindings:
 | `OTP_DELIVERY`         | text       | `log` only, see above                                                               |
 | `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices             |
 | `GATEKEEPER_TOKEN`     | secret     | that control plane environment's consumer token                                     |
-| `GATEWAY_SIGNING_KEYS` | secret     | optional: the keys MediaMTX gateway tokens are signed with (`GET /gateway-keys`)    |
 | `GATEWAY_DOMAIN`       | text       | optional: the zone MediaMTX gateways get hostnames and certificates in, see below   |
 | `CLOUDFLARE_ZONE_ID`   | text       | with `GATEWAY_DOMAIN`: its Cloudflare zone                                          |
 | `CLOUDFLARE_API_TOKEN` | secret     | with `GATEWAY_DOMAIN`: a token that may edit that zone's DNS records                |
@@ -141,12 +139,12 @@ To try delivery end to end, seed a topology against the running API: an organisa
 running a MediaMTX gateway, an Axis camera, and a stream from it exposed on the LAN at every rendition, and from there
 to the conservation.tv relay, published by the agent: each rendition by the moq CLI, which the agent installs and
 MediaMTX runs, and joined by the agent into the one broadcast readers watch. The relay needs a gatekeeper to issue its
-tokens, so run `pnpm dev:staging` with `GATEWAY_SIGNING_KEYS` in `.dev.vars.staging`. The account is
+tokens, so run `pnpm dev:staging`. The account is
 `SEED_EMAIL`'s, which then signs in by emailed code as ever; the camera's credentials go to the API, encrypted, and are
 never written to disk. It prints the agent's `AGENT_SECRET_KEY` and `STUDIO_API_URL`: run the agent
 (`apps/agent/runner`, `pnpm start`) with them, and it asks for its configuration (`deviceConfiguration.get`) and runs
-MediaMTX to serve it. The agent admits MediaMTX's readers on its own machine as they are, and others by tokens checked
-against `GET /gateway-keys`, so set `GATEWAY_SIGNING_KEYS` (`.dev.vars.example`) first.
+MediaMTX to serve it. The agent admits MediaMTX's readers on its own machine as they are, and others by tokens the
+API signs with the agent's own identity, which the agent checks without asking anyone.
 
 ```sh
 SEED_EMAIL=you@example.com SEED_CAMERA_HOST=http://192.168.1.10 SEED_CAMERA_USERNAME=root SEED_CAMERA_PASSWORD=… \

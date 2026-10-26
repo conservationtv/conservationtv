@@ -65,10 +65,8 @@ export interface Diagnostic {
   message: string;
 }
 
-/** How a MediaMTX checks a token: against this API's published keys, issued by this API, for its gateway. */
-export const MediamtxAuthSchema = z
-  .object({ jwks: z.string(), issuer: z.string(), audience: z.string() })
-  .meta({ id: 'MediamtxAuth' });
+/** How a MediaMTX checks a token: signed by the agent's own identity, issued by this API, for its gateway. */
+export const MediamtxAuthSchema = z.object({ issuer: z.string(), audience: z.string() }).meta({ id: 'MediamtxAuth' });
 export type MediamtxAuth = z.output<typeof MediamtxAuthSchema>;
 
 /** The hostname the gateway is reached at on its network, and the certificate its MediaMTX serves TLS with. */
@@ -83,7 +81,7 @@ export const MediamtxTlsSchema = z
 export type MediamtxTls = z.output<typeof MediamtxTlsSchema>;
 
 /**
- * The MediaMTX gateway the device runs, how it admits readers and publishers (by tokens this API signs for it), and
+ * The MediaMTX gateway the device runs, how it admits readers and publishers (by tokens this API signs as it), and
  * the hostname and certificate it serves TLS with, when the deployment issues them (src/gateways/certificates.ts).
  */
 export interface MediamtxConfiguration {

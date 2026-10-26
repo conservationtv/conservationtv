@@ -47,8 +47,6 @@ export default defineConfig({
       GATEKEEPER_URL: bindings.text(process.env.GATEKEEPER_URL ?? 'http://localhost:5176'),
       /** The control plane environment's consumer token; see .dev.vars.example. */
       GATEKEEPER_TOKEN: bindings.secret(),
-      /** The keys gateway tokens are signed with; see .dev.vars.example. */
-      GATEWAY_SIGNING_KEYS: bindings.secret(),
       /**
        * Optional: the zone MediaMTX gateways get hostnames and certificates in, its Cloudflare zone, and the ACME
        * directory and account key; see .dev.vars.example. Empty text leaves gateways without hostnames.

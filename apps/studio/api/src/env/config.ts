@@ -6,9 +6,8 @@ import { authorization } from '../access.ts';
 import { createAuth, type Auth } from '../auth/auth.ts';
 import { otpDelivery } from '../auth/otp.ts';
 import type { Cache } from '../cache/cache.ts';
-import { loadGatewayKeyring, type GatewayKeyring } from '../gateways/keys.ts';
-import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
 import { connectLazily } from '../db/client.ts';
+import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
 // Building the environment loads the database schema, Better Auth and the authorization client. It is kept apart from
@@ -35,11 +34,6 @@ export const config = {
   GATEKEEPER_URL: z.url(),
   /** The consumer token of the gatekeeper's environment, which trusts whoever holds it with its relays. */
   GATEKEEPER_TOKEN: z.string().min(1),
-  /**
-   * The keys gateway tokens are signed with, as JSON; see src/gateways/keys.ts. Unset, gateways that verify them
-   * (MediaMTX) cannot be connected to.
-   */
-  GATEWAY_SIGNING_KEYS: z.string().min(1).optional(),
   /**
    * The zone MediaMTX gateways get hostnames in, `<gateway>.<organisation>.<GATEWAY_DOMAIN>`, with certificates for
    * them; see src/gateways/certificates.ts. Unset (or empty), gateways get neither. Set, the rest of this group is
@@ -84,24 +78,9 @@ export const services = (variables: Variables, bindings: Bindings) => {
     that connects opens on first use: requests that never touch storage never open a connection.
   */
 
-  // Optional clients
-  const gatewayKeys = (() => {
-    const secret = variables.GATEWAY_SIGNING_KEYS;
-    if (secret === undefined) return;
-    let keyring: Promise<GatewayKeyring> | undefined = undefined;
-    return {
-      /** The gateway signing keys, loaded; rejects if the secret is malformed. */
-      keyring: () => {
-        if (keyring === undefined) keyring = loadGatewayKeyring(secret);
-        return keyring;
-      }
-    };
-  })();
-
   /** Hostnames and certificates for MediaMTX gateways, when GATEWAY_DOMAIN is set. */
   const gatewayCertificates: CertificateIssuer | undefined = certificateIssuer(variables);
 
-  // Required clients
   /** The control plane that names the relays and admits devices to them. */
   const gatekeeper = (() => {
     const url = variables.GATEKEEPER_URL;
@@ -151,7 +130,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
     auth,
     cache: bindings.cache,
     gatekeeper,
-    gatewayKeys,
     gatewayCertificates,
     close: () => Promise.all([admin.close(), app.close()])
   };

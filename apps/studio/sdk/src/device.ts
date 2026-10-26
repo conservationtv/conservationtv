@@ -23,17 +23,30 @@ function fromBase64url(text: string) {
   return Uint8Array.from(atob(base64), character => character.charCodeAt(0));
 }
 
+/** The public half of a device's identity as a JSON Web Key: an Ed25519 `OKP` key, its `kid` the public ID. */
+export interface DevicePublicJwk {
+  kty: 'OKP';
+  crv: 'Ed25519';
+  x: string;
+  kid: string;
+  alg: 'EdDSA';
+  use: 'sig';
+}
+
 /** A device's identity: its Ed25519 key pair, as the studio API and iroh both know it. */
 export class DeviceIdentity {
   /** The 32-byte seed: what iroh calls the endpoint's secret key. */
   readonly secretKey: Uint8Array;
   /** The public key in lowercase hex: the device's public ID, and its iroh endpoint ID. */
   readonly publicId: string;
+  /** The public key as a JWK, for verifying what the studio API signs as this device (`EdDSA`), such as gateway tokens. */
+  readonly publicJwk: DevicePublicJwk;
   private readonly signingKey: CryptoKey;
 
-  private constructor(secretKey: Uint8Array, publicId: string, signingKey: CryptoKey) {
+  private constructor(secretKey: Uint8Array, publicJwk: DevicePublicJwk, signingKey: CryptoKey) {
     this.secretKey = secretKey;
-    this.publicId = publicId;
+    this.publicId = publicJwk.kid;
+    this.publicJwk = publicJwk;
     this.signingKey = signingKey;
   }
 
@@ -43,8 +56,16 @@ export class DeviceIdentity {
     const pkcs8 = new Uint8Array([...PKCS8_ED25519_PREFIX, ...secretKey]);
     const signingKey = await crypto.subtle.importKey('pkcs8', pkcs8, 'Ed25519', true, ['sign']);
     const jwk = await crypto.subtle.exportKey('jwk', signingKey);
-    const publicId = hex(fromBase64url(jwk.x!));
-    return new DeviceIdentity(secretKey, publicId, signingKey);
+    const x = jwk.x!;
+    const publicJwk: DevicePublicJwk = {
+      kty: 'OKP',
+      crv: 'Ed25519',
+      x,
+      kid: hex(fromBase64url(x)),
+      alg: 'EdDSA',
+      use: 'sig'
+    };
+    return new DeviceIdentity(secretKey, publicJwk, signingKey);
   }
 
   /** The request with its body's digest and this device's signature over it. */

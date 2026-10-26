@@ -1207,7 +1207,7 @@ importers:
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: beta
-        version: 2.0.0-beta.v.3(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261006.1)
+        version: 2.0.0-beta.v.4(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261006.1)
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
