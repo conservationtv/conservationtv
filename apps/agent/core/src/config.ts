@@ -1,5 +1,6 @@
 import { createStore } from '@conservationtv/store';
 import type { Peers } from './admission.ts';
+import type { RetentionOptions } from './db/retention.ts';
 
 interface BaseConfiguration {
   name: string;
@@ -15,6 +16,8 @@ interface BaseConfiguration {
    * relay. Without it, every peer is served and may connect directly.
    */
   peers?: Peers;
+  /** How long the agent keeps its samples and logs, and how much of its disk they may take; 14 days and 1 GiB unless set. */
+  retention?: Partial<RetentionOptions>;
 }
 
 /** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */

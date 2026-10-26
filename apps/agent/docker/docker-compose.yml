@@ -15,5 +15,11 @@ services:
       # The agent's identity, as hex: its device's secret key in the studio, or for `direct`, any (`pnpm keygen`).
       AGENT_SECRET_KEY: ${AGENT_SECRET_KEY:?Set AGENT_SECRET_KEY to the agent's secret key}
       SHUTDOWN_DELAY_MS: 10000
+    # What the agent keeps across restarts: its runtimes' installs, and its database of samples and logs.
+    volumes:
+      - data:/data
     # Longer than SHUTDOWN_DELAY_MS, so close-with-grace's own deadline ends the process rather than Docker's SIGKILL.
     stop_grace_period: 15s
+
+volumes:
+  data:

@@ -7,8 +7,12 @@ import { describeRoute } from 'hono-openapi';
 import document from '../contracts/openapi.json' with { type: 'json' };
 import { type AgentConfiguration, type ConservationTvConfiguration } from './config.ts';
 import { decide } from './admission.ts';
+import { type AgentDatabase, withDatabase } from './db/database.ts';
+import { DEFAULT_RETENTION, Retention } from './db/retention.ts';
 import { connectWithEndpoint, createEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
+import logs from './routes/logs.ts';
+import metrics from './routes/metrics.ts';
 import status from './routes/status.ts';
 import system from './routes/system.ts';
 import { withStudio } from './studio.ts';
@@ -30,6 +34,9 @@ import {
 import { watchStudioConfiguration } from './studio-configuration.ts';
 
 export { PeersSchema, type Peer, type Peers } from './admission.ts';
+export { openDatabase, type AgentDatabase, type DatabaseOptions } from './db/database.ts';
+export { getDatabaseSink } from './db/logs.ts';
+export { type RetentionOptions } from './db/retention.ts';
 export {
   useConfig,
   type AgentConfiguration,
@@ -52,6 +59,8 @@ export const operationRouter = new OperationRouter();
 const app = new Hono<AgentEnv>({ router: operationRouter })
   .route('/status', status)
   .route('/system', system)
+  .route('/metrics', metrics)
+  .route('/logs', logs)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)
   .onError(handleError);
@@ -109,12 +118,25 @@ function controllers(config: ConservationTvConfiguration, identity: DeviceIdenti
 /** The agent's runtimes, by key: what its system's spec and status are made of. */
 export type AgentControllers = ReturnType<typeof controllers>;
 
-/** The agent: the app, served as HTTP over iroh on an endpoint whose identity is the configured secret key. */
+/**
+ * The agent: the app, served as HTTP over iroh on an endpoint whose identity is the configured secret key. It keeps its
+ * samples and logs in `database`, which the host opens and closes around it.
+ */
 export class Agent {
   private server: IrohHttpServer | undefined = undefined;
   private system: AgentSystem | undefined = undefined;
+  private readonly retention: Retention;
 
-  constructor(readonly config: AgentConfiguration) {}
+  constructor(
+    readonly config: AgentConfiguration,
+    private readonly database: AgentDatabase
+  ) {
+    // Each retention limit the host leaves unset is the default.
+    this.retention = new Retention(database, {
+      maxAgeMs: config.retention?.maxAgeMs ?? DEFAULT_RETENTION.maxAgeMs,
+      maxBytes: config.retention?.maxBytes ?? DEFAULT_RETENTION.maxBytes
+    });
+  }
 
   /** Start the runtimes and an iroh session, and serve on its endpoint. Resolves once requests are being accepted. */
   async start() {
@@ -130,10 +152,16 @@ export class Agent {
     const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
     const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
     const mediamtx = createMediamtxClient(MEDIAMTX_API);
-    await withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config, identity)));
+    this.retention.start();
+    await withDatabase(this.database, () =>
+      withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config, identity)))
+    );
   }
 
-  /** Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs in scope for both. */
+  /**
+   * Converge the runtimes and serve on the endpoint, with the database and the studio and MediaMTX APIs in scope for
+   * both.
+   */
   private async serve(config: ConservationTvConfiguration, identity: DeviceIdentity) {
     this.system = await converge({
       controllers: controllers(config, identity),
@@ -168,7 +196,9 @@ export class Agent {
         endpoint,
         (request, peer) => {
           // if (!listed(peer.endpointId)) return new Response(null, { status: 403 });
-          return withSystem(system, () => app.fetch(request, { peer: peer.endpointId }));
+          return withDatabase(this.database, () =>
+            withSystem(system, () => app.fetch(request, { peer: peer.endpointId }))
+          );
         },
         {
           admit: (peer: IncomingPeer): Admission => {
@@ -201,6 +231,7 @@ export class Agent {
     const system = this.system;
     this.system = undefined;
     await system?.stop();
+    this.retention.stop();
   }
 }
 

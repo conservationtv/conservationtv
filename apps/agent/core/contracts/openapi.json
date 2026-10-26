@@ -632,6 +632,145 @@
           "streams",
           "metrics"
         ]
+      },
+      "Metric": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "step": {
+            "type": "number"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "at": {
+                  "type": "string"
+                },
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "avg": {
+                  "type": "number"
+                },
+                "last": {
+                  "type": "number"
+                },
+                "count": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "at",
+                "min",
+                "max",
+                "avg",
+                "last",
+                "count"
+              ]
+            }
+          },
+          "id": {
+            "type": "number"
+          },
+          "subjectId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "step",
+          "points",
+          "id",
+          "subjectId",
+          "name",
+          "unit",
+          "dimensions"
+        ]
+      },
+      "Log": {
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "recordedAt": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "error",
+                    "trace",
+                    "debug",
+                    "info",
+                    "warning",
+                    "fatal"
+                  ]
+                },
+                "category": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "template": {
+                  "type": "string"
+                },
+                "properties": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "id",
+                "recordedAt",
+                "level",
+                "category",
+                "message",
+                "template",
+                "properties"
+              ]
+            }
+          }
+        },
+        "required": [
+          "logs"
+        ]
       }
     }
   },
@@ -898,6 +1037,317 @@
             }
           }
         },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics.list",
+        "x-operation-version": 1,
+        "summary": "List the metric series the agent keeps",
+        "description": "Each series is one metric about one subject, with one unit and set of dimensions, such as the ingest bitrate of one MediaMTX path, and the range of the points the agent still has. A series about the agent’s own device has a null `subjectId`. Optionally of one metric, by name. Read a series’ points with `metrics.get`.",
+        "responses": {
+          "200": {
+            "description": "The series, by name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "series": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "subjectId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "unit": {
+                            "type": "string"
+                          },
+                          "dimensions": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "firstObservedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastObservedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "subjectId",
+                          "name",
+                          "unit",
+                          "dimensions",
+                          "firstObservedAt",
+                          "lastObservedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "series"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "Only series of this metric."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/metrics/{seriesId}": {
+      "get": {
+        "operationId": "metrics.get",
+        "x-operation-version": 1,
+        "summary": "Read a metric series over a time range",
+        "description": "The series, and its points from `from` until `to` in buckets of `step` seconds, oldest first: each bucket's least and greatest samples, their mean, the last and how many there were. A bucket with no points is absent, so a gap is a time nothing was sampled. The step defaults to the samples' own, 10 seconds, and is widened so the range has at most 1000 buckets, and returned.",
+        "responses": {
+          "200": {
+            "description": "The series and its points",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metric"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The series does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "seriesId",
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "required": true,
+            "description": "The series."
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "required": true,
+            "description": "Points observed at or after this time."
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "description": "Points observed before this time; now by default."
+          },
+          {
+            "in": "query",
+            "name": "step",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2678400
+            },
+            "description": "Seconds per bucket, at least; widened so the range has at most 1000 buckets."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/logs": {
+      "get": {
+        "operationId": "logs.list",
+        "x-operation-version": 1,
+        "summary": "List the agent's logs",
+        "description": "Each line the agent logged, newest first: its message with values substituted, the template it was made from, and its values as properties. Page back by passing the last id as `before`.",
+        "responses": {
+          "200": {
+            "description": "The log lines",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Log"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "description": "At most this many, newest first."
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "description": "Only lines before this one, by id, to page back."
+          },
+          {
+            "in": "query",
+            "name": "level",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "trace",
+                "debug",
+                "info",
+                "warning",
+                "error",
+                "fatal"
+              ]
+            },
+            "description": "Only lines at least this severe."
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "Only lines from this logger category or those beneath it, such as `agent.mediamtx`."
+          }
+        ],
         "x-operation-versions": [
           1
         ]
@@ -1909,6 +2359,603 @@
               }
             },
             "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Agent API",
+        "description": "The conservation.tv agent API, served by the agent itself.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Metric": {
+            "type": "object",
+            "properties": {
+              "series": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "subjectId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "dimensions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "firstObservedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lastObservedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "subjectId",
+                    "name",
+                    "unit",
+                    "dimensions",
+                    "firstObservedAt",
+                    "lastObservedAt"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "series"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/metrics": {
+          "get": {
+            "operationId": "metrics.list",
+            "x-operation-version": 1,
+            "summary": "List the metric series the agent keeps",
+            "description": "Each series is one metric about one subject, with one unit and set of dimensions, such as the ingest bitrate of one MediaMTX path, and the range of the points the agent still has. A series about the agent’s own device has a null `subjectId`. Optionally of one metric, by name. Read a series’ points with `metrics.get`.",
+            "responses": {
+              "200": {
+                "description": "The series, by name",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Metric"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "query",
+                "name": "name",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "description": "Only series of this metric."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Agent API",
+        "description": "The conservation.tv agent API, served by the agent itself.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Metric": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "step": {
+                "type": "number"
+              },
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "at": {
+                      "type": "string"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    },
+                    "avg": {
+                      "type": "number"
+                    },
+                    "last": {
+                      "type": "number"
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "at",
+                    "min",
+                    "max",
+                    "avg",
+                    "last",
+                    "count"
+                  ]
+                }
+              },
+              "id": {
+                "type": "number"
+              },
+              "subjectId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "dimensions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "step",
+              "points",
+              "id",
+              "subjectId",
+              "name",
+              "unit",
+              "dimensions"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/metrics/{seriesId}": {
+          "get": {
+            "operationId": "metrics.get",
+            "x-operation-version": 1,
+            "summary": "Read a metric series over a time range",
+            "description": "The series, and its points from `from` until `to` in buckets of `step` seconds, oldest first: each bucket's least and greatest samples, their mean, the last and how many there were. A bucket with no points is absent, so a gap is a time nothing was sampled. The step defaults to the samples' own, 10 seconds, and is widened so the range has at most 1000 buckets, and returned.",
+            "responses": {
+              "200": {
+                "description": "The series and its points",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Metric"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The series does not exist",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "seriesId",
+                "schema": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "required": true,
+                "description": "The series."
+              },
+              {
+                "in": "query",
+                "name": "from",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "required": true,
+                "description": "Points observed at or after this time."
+              },
+              {
+                "in": "query",
+                "name": "to",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "description": "Points observed before this time; now by default."
+              },
+              {
+                "in": "query",
+                "name": "step",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2678400
+                },
+                "description": "Seconds per bucket, at least; widened so the range has at most 1000 buckets."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Agent API",
+        "description": "The conservation.tv agent API, served by the agent itself.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Log": {
+            "type": "object",
+            "properties": {
+              "logs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "recordedAt": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "string",
+                      "enum": [
+                        "error",
+                        "trace",
+                        "debug",
+                        "info",
+                        "warning",
+                        "fatal"
+                      ]
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "template": {
+                      "type": "string"
+                    },
+                    "properties": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "recordedAt",
+                    "level",
+                    "category",
+                    "message",
+                    "template",
+                    "properties"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "logs"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/logs": {
+          "get": {
+            "operationId": "logs.list",
+            "x-operation-version": 1,
+            "summary": "List the agent's logs",
+            "description": "Each line the agent logged, newest first: its message with values substituted, the template it was made from, and its values as properties. Page back by passing the last id as `before`.",
+            "responses": {
+              "200": {
+                "description": "The log lines",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Log"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "query",
+                "name": "limit",
+                "schema": {
+                  "default": 100,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000
+                },
+                "description": "At most this many, newest first."
+              },
+              {
+                "in": "query",
+                "name": "before",
+                "schema": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "description": "Only lines before this one, by id, to page back."
+              },
+              {
+                "in": "query",
+                "name": "level",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "trace",
+                    "debug",
+                    "info",
+                    "warning",
+                    "error",
+                    "fatal"
+                  ]
+                },
+                "description": "Only lines at least this severe."
+              },
+              {
+                "in": "query",
+                "name": "category",
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "description": "Only lines from this logger category or those beneath it, such as `agent.mediamtx`."
+              },
               {
                 "in": "header",
                 "name": "Operation-Version",

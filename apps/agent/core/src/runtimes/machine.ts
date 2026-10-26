@@ -4,11 +4,12 @@ import { machineMetrics } from '@conservationtv/reports';
 import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../config.ts';
+import { recordMetrics } from '../db/metrics.ts';
 import { AddressReporter, type LanAddress, lanAddresses } from './addresses.ts';
 import { type Metric, MetricReporter, gauge } from './reports.ts';
 
 // Machine metrics: on an interval, sample the machine the agent runs on and submit the samples to the studio API as
-// metrics about the agent's device (see reports.ts). Each sample also finds the machine's addresses (addresses.ts),
+// metrics about the agent's device (see reports.ts), keeping them in the agent's database too (db/metrics.ts). Each sample also finds the machine's addresses (addresses.ts),
 // reported whenever they change.
 
 /** What the machine metrics runtime should do. */
@@ -160,11 +161,22 @@ export class MachineRuntime {
     this.ticking = true;
     try {
       const sample = await this.sample();
-      this.reporter.queue(sample.observedAt, metricsOf(sample));
+      const metrics = metricsOf(sample);
+      this.reporter.queue(sample.observedAt, metrics);
+      this.keep(sample.observedAt, metrics);
       this.update({ latest: sample });
       await this.submit(sample.addresses);
     } finally {
       this.ticking = false;
+    }
+  }
+
+  /** Keep the sample in the agent's database. A failure is reported in the status; the sample is submitted regardless. */
+  private keep(observedAt: string, metrics: Metric[]): void {
+    try {
+      recordMetrics(new Date(observedAt), metrics);
+    } catch (error) {
+      this.update({ lastError: error instanceof Error ? error.message : String(error) });
     }
   }
 

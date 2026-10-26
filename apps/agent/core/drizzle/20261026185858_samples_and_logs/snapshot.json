@@ -1,0 +1,273 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "e096dbe2-f4a8-40df-834a-0bfaf75cc8dd",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "ddl": [
+    {
+      "name": "log_record",
+      "entityType": "tables"
+    },
+    {
+      "name": "metric_point",
+      "entityType": "tables"
+    },
+    {
+      "name": "metric_series",
+      "entityType": "tables"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "log_record"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "recorded_at",
+      "entityType": "columns",
+      "table": "log_record"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "level",
+      "entityType": "columns",
+      "table": "log_record"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "category",
+      "entityType": "columns",
+      "table": "log_record"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "message",
+      "entityType": "columns",
+      "table": "log_record"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "template",
+      "entityType": "columns",
+      "table": "log_record"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "properties",
+      "entityType": "columns",
+      "table": "log_record"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "series_id",
+      "entityType": "columns",
+      "table": "metric_point"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "observed_at",
+      "entityType": "columns",
+      "table": "metric_point"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "value",
+      "entityType": "columns",
+      "table": "metric_point"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "metric_series"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "key",
+      "entityType": "columns",
+      "table": "metric_series"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "subject_id",
+      "entityType": "columns",
+      "table": "metric_series"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "metric_series"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "unit",
+      "entityType": "columns",
+      "table": "metric_series"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "dimensions",
+      "entityType": "columns",
+      "table": "metric_series"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "metric_series"
+    },
+    {
+      "columns": [
+        "series_id"
+      ],
+      "tableTo": "metric_series",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_metric_point_series_id_metric_series_id_fk",
+      "entityType": "fks",
+      "table": "metric_point"
+    },
+    {
+      "columns": [
+        "series_id",
+        "observed_at"
+      ],
+      "nameExplicit": false,
+      "name": "metric_point_pk",
+      "entityType": "pks",
+      "table": "metric_point"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "log_record_pk",
+      "table": "log_record",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "metric_series_pk",
+      "table": "metric_series",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        {
+          "value": "recorded_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "log_record_recorded_at",
+      "entityType": "indexes",
+      "table": "log_record"
+    },
+    {
+      "columns": [
+        {
+          "value": "observed_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "metric_point_observed_at",
+      "entityType": "indexes",
+      "table": "metric_point"
+    },
+    {
+      "columns": [
+        "key"
+      ],
+      "nameExplicit": false,
+      "name": "metric_series_key_unique",
+      "entityType": "uniques",
+      "table": "metric_series"
+    }
+  ],
+  "renames": []
+}

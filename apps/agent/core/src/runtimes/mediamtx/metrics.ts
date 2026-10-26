@@ -1,9 +1,10 @@
 import { type PrometheusSample, parseMetrics } from '@conservationtv/mediamtx';
-import { pathMetrics } from '@conservationtv/reports';
+import { type MetricDefinition, pathMetrics } from '@conservationtv/reports';
 import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../../config.ts';
-import { type Metric, MetricReporter, summary } from '../reports.ts';
+import { recordMetrics } from '../../db/metrics.ts';
+import { type Metric, MetricReporter, gauge, summary } from '../reports.ts';
 import { type PathIndex, type PathTarget, PathAttributionsSchema, pathIndexOf } from './paths.ts';
 
 // The `metrics` key, fulfilled by MediaMTX's metrics, shipped to the studio API per path. On one timer, every few
@@ -13,6 +14,7 @@ import { type PathIndex, type PathTarget, PathAttributionsSchema, pathIndexOf } 
 // as a dimension, or, while the spec names no paths, about the agent's device with the path as the `path` dimension. A
 // path the spec does not name is not reported. A path missing from a read counts as not ready with nothing flowing, so
 // one that stops mid-interval shows in that interval's summary; one missing for a whole interval is not reported.
+// Every read's samples are also kept in the agent's database, under the same series, for reading over the agent API.
 // Per-session and per-protocol samples are not shipped.
 
 /** How often to report the streams' metrics, and what each path's are about. */
@@ -83,31 +85,48 @@ function addRate(into: number[], current: number, previous: number, seconds: num
   if (moved >= 0) into.push((moved * scale) / seconds);
 }
 
-/** Sample a path missing from a read: it has stopped, so nothing is ready, read or flowing. */
-function addStopped(samples: PathSamples): void {
-  samples.ready.push(0);
-  samples.readers.push(0);
-  samples.ingestBitrate.push(0);
-  samples.egressBitrate.push(0);
-  samples.frameErrors.push(0);
+/** No samples yet. */
+function emptySamples(): PathSamples {
+  return { ready: [], readers: [], ingestBitrate: [], egressBitrate: [], frameErrors: [] };
+}
+
+/** The samples of a path missing from a read: it has stopped, so nothing is ready, read or flowing. */
+function stoppedSamples(): PathSamples {
+  return { ready: [0], readers: [0], ingestBitrate: [0], egressBitrate: [0], frameErrors: [0] };
+}
+
+/** Add one read's samples of a path to its interval's. */
+function addSamples(into: PathSamples, read: PathSamples): void {
+  into.ready.push(...read.ready);
+  into.readers.push(...read.readers);
+  into.ingestBitrate.push(...read.ingestBitrate);
+  into.egressBitrate.push(...read.egressBitrate);
+  into.frameErrors.push(...read.frameErrors);
 }
 
 /**
- * A path's summaries of an interval, with `dimensions`. Every path read this interval has its state and readers; its
- * rates need two reads, so its first interval may have none.
+ * Each metric a path has samples of. Every path read has its state and readers; its rates need two reads, so its first
+ * may have none.
  */
-function metricsOf(samples: PathSamples, dimensions: Record<string, string>): Metric[] {
-  const metrics = [
-    summary(pathMetrics.ready, samples.ready, dimensions),
-    summary(pathMetrics.readers, samples.readers, dimensions)
+function seriesOf(samples: PathSamples): [MetricDefinition, number[]][] {
+  const series: [MetricDefinition, number[]][] = [
+    [pathMetrics.ready, samples.ready],
+    [pathMetrics.readers, samples.readers],
+    [pathMetrics.ingestBitrate, samples.ingestBitrate],
+    [pathMetrics.egressBitrate, samples.egressBitrate],
+    [pathMetrics.ingestFrameErrors, samples.frameErrors]
   ];
-  if (samples.ingestBitrate.length > 0)
-    metrics.push(summary(pathMetrics.ingestBitrate, samples.ingestBitrate, dimensions));
-  if (samples.egressBitrate.length > 0)
-    metrics.push(summary(pathMetrics.egressBitrate, samples.egressBitrate, dimensions));
-  if (samples.frameErrors.length > 0)
-    metrics.push(summary(pathMetrics.ingestFrameErrors, samples.frameErrors, dimensions));
-  return metrics;
+  return series.filter(([, values]) => values.length > 0);
+}
+
+/** A path's summaries of an interval, with `dimensions`. */
+function metricsOf(samples: PathSamples, dimensions: Record<string, string>): Metric[] {
+  return seriesOf(samples).map(([metric, values]) => summary(metric, values, dimensions));
+}
+
+/** A path's samples from one read, at most one of each metric, with `dimensions`. */
+function gaugesOf(samples: PathSamples, dimensions: Record<string, string>): Metric[] {
+  return seriesOf(samples).flatMap(([metric, values]) => values.map(value => gauge(metric, value, dimensions)));
 }
 
 export interface MetricsStatus {
@@ -232,26 +251,22 @@ export class MediamtxMetricsRuntime {
       const text = await response.text();
       const samples = parseMetrics(text);
       const now = new Date();
-      this.record({ at: now.getTime(), paths: readingsOf(samples) });
+      const read = this.record({ at: now.getTime(), paths: readingsOf(samples) });
+      this.keep(now, read);
       this.update({ lastScrapedAt: now.toISOString(), samples: samples.length });
     } catch (error) {
       this.update({ lastError: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  /** Add a read's samples to each path's interval, and keep it for the next read's rates. */
-  private record(read: Read): void {
+  /** Add a read's samples to each path's interval, and keep it for the next read's rates. Returns the read's samples. */
+  private record(read: Read): Map<string, PathSamples> {
     const previous = this.previous;
+    const sampled = new Map<string, PathSamples>();
     for (const [path, reading] of read.paths) {
       // A path in the read samples its state and readers, and its rates when the previous read had it too.
-      const samples = this.interval.get(path) ?? {
-        ready: [],
-        readers: [],
-        ingestBitrate: [],
-        egressBitrate: [],
-        frameErrors: []
-      };
-      this.interval.set(path, samples);
+      const samples = emptySamples();
+      sampled.set(path, samples);
       samples.ready.push(reading.ready > 0 ? 1 : 0);
       samples.readers.push(reading.readers);
       const before = previous?.paths.get(path);
@@ -262,8 +277,35 @@ export class MediamtxMetricsRuntime {
       addRate(samples.frameErrors, reading.framesInError, before.framesInError, seconds, 1);
     }
     // A path seen this interval but missing from the read has stopped.
-    for (const [path, samples] of this.interval) if (!read.paths.has(path)) addStopped(samples);
+    for (const path of this.interval.keys()) if (!read.paths.has(path)) sampled.set(path, stoppedSamples());
+    for (const [path, samples] of sampled) {
+      const interval = this.interval.get(path) ?? emptySamples();
+      this.interval.set(path, interval);
+      addSamples(interval, samples);
+    }
     this.previous = read;
+    return sampled;
+  }
+
+  /**
+   * Keep a read's samples in the agent's database, under the series their summaries are reported as. A failure is
+   * reported in the status; the summaries are reported regardless.
+   */
+  private keep(at: Date, read: Map<string, PathSamples>): void {
+    try {
+      for (const [path, samples] of read) {
+        const target = this.targetOf(path);
+        if (target === undefined) continue;
+        recordMetrics(at, gaugesOf(samples, target.dimensions), target.subjectId);
+      }
+    } catch (error) {
+      this.update({ lastError: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  /** What a path's metrics are about: a path the spec names, its exposure; with no spec paths, any is the device's. */
+  private targetOf(path: string): PathTarget | undefined {
+    return this.index === null ? { subjectId: undefined, dimensions: { path } } : this.index.get(path);
   }
 
   /** Submit each path's summary of the interval, and start the next. */
@@ -275,9 +317,7 @@ export class MediamtxMetricsRuntime {
     this.intervalStartedAt = now.getTime();
     const observedAt = now.toISOString();
     for (const [path, samples] of paths) {
-      // A path the spec names is reported about its exposure; with no spec paths, any is about the device.
-      const target: PathTarget | undefined =
-        this.index === null ? { subjectId: undefined, dimensions: { path } } : this.index.get(path);
+      const target = this.targetOf(path);
       if (target === undefined) continue;
       this.reporter.queue(observedAt, metricsOf(samples, target.dimensions), target.subjectId);
     }

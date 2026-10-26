@@ -122,6 +122,44 @@ export const SystemSchema = z.object({
     })
 });
 
+export const MetricSchema = z.object({
+    from: z.string(),
+    to: z.string(),
+    step: z.number(),
+    points: z.array(z.object({
+        at: z.string(),
+        min: z.number(),
+        max: z.number(),
+        avg: z.number(),
+        last: z.number(),
+        count: z.number()
+    })),
+    id: z.number(),
+    subjectId: z.string().nullable(),
+    name: z.string(),
+    unit: z.string(),
+    dimensions: z.record(z.string(), z.string())
+});
+
+export const LogSchema = z.object({
+    logs: z.array(z.object({
+        id: z.number(),
+        recordedAt: z.string(),
+        level: z.enum([
+            'error',
+            'trace',
+            'debug',
+            'info',
+            'warning',
+            'fatal'
+        ]),
+        category: z.string(),
+        message: z.string(),
+        template: z.string(),
+        properties: z.record(z.string(), z.unknown())
+    }))
+});
+
 /**
  * The agent is serving requests
  */
@@ -184,3 +222,76 @@ export const GetSystemSpecResponseSchema = z.object({
 }).register(z.globalRegistry, {
     description: 'The current system specification'
 });
+
+export const GetMetricsQuerySchema = z.object({
+    name: z.string().min(1).max(200).register(z.globalRegistry, {
+        description: 'Only series of this metric.'
+    }).optional()
+});
+
+/**
+ * The series, by name
+ */
+export const GetMetricsResponseSchema = z.object({
+    series: z.array(z.object({
+        id: z.number(),
+        subjectId: z.string().nullable(),
+        name: z.string(),
+        unit: z.string(),
+        dimensions: z.record(z.string(), z.string()),
+        firstObservedAt: z.string().nullable(),
+        lastObservedAt: z.string().nullable()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The series, by name'
+});
+
+export const GetMetricsBySeriesIdPathSchema = z.object({
+    seriesId: z.int().gt(0).lte(9007199254740991).register(z.globalRegistry, {
+        description: 'The series.'
+    })
+});
+
+export const GetMetricsBySeriesIdQuerySchema = z.object({
+    from: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Points observed at or after this time.'
+    }),
+    to: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Points observed before this time; now by default.'
+    }).optional(),
+    step: z.int().gte(1).lte(2678400).register(z.globalRegistry, {
+        description: 'Seconds per bucket, at least; widened so the range has at most 1000 buckets.'
+    }).optional()
+});
+
+/**
+ * The series and its points
+ */
+export const GetMetricsBySeriesIdResponseSchema = MetricSchema;
+
+export const GetLogsQuerySchema = z.object({
+    limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
+        description: 'At most this many, newest first.'
+    }).optional().default(100),
+    before: z.int().gt(0).lte(9007199254740991).register(z.globalRegistry, {
+        description: 'Only lines before this one, by id, to page back.'
+    }).optional(),
+    level: z.enum([
+        'trace',
+        'debug',
+        'info',
+        'warning',
+        'error',
+        'fatal'
+    ]).register(z.globalRegistry, {
+        description: 'Only lines at least this severe.'
+    }).optional(),
+    category: z.string().min(1).max(200).register(z.globalRegistry, {
+        description: 'Only lines from this logger category or those beneath it, such as `agent.mediamtx`.'
+    }).optional()
+});
+
+/**
+ * The log lines
+ */
+export const GetLogsResponseSchema = LogSchema;

@@ -3,3 +3,6 @@
 export * from './status.get-v1/index.js';
 export * from './system.get-v1/index.js';
 export * from './system.spec-v1/index.js';
+export * from './metrics.list-v1/index.js';
+export * from './metrics.get-v1/index.js';
+export * from './logs.list-v1/index.js';

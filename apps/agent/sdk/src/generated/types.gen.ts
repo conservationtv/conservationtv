@@ -107,6 +107,41 @@ export type System = {
     };
 };
 
+export type Metric = {
+    from: string;
+    to: string;
+    step: number;
+    points: Array<{
+        at: string;
+        min: number;
+        max: number;
+        avg: number;
+        last: number;
+        count: number;
+    }>;
+    id: number;
+    subjectId: string | null;
+    name: string;
+    unit: string;
+    dimensions: {
+        [key: string]: string;
+    };
+};
+
+export type Log = {
+    logs: Array<{
+        id: number;
+        recordedAt: string;
+        level: 'error' | 'trace' | 'debug' | 'info' | 'warning' | 'fatal';
+        category: string;
+        message: string;
+        template: string;
+        properties: {
+            [key: string]: unknown;
+        };
+    }>;
+};
+
 export type GetStatusData = {
     body?: never;
     path?: never;
@@ -219,3 +254,146 @@ export type GetSystemSpecResponses = {
 };
 
 export type GetSystemSpecResponse = GetSystemSpecResponses[keyof GetSystemSpecResponses];
+
+export type GetMetricsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Only series of this metric.
+         */
+        name?: string;
+    };
+    url: '/metrics';
+};
+
+export type GetMetricsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetMetricsError = GetMetricsErrors[keyof GetMetricsErrors];
+
+export type GetMetricsResponses = {
+    /**
+     * The series, by name
+     */
+    200: {
+        series: Array<{
+            id: number;
+            subjectId: string | null;
+            name: string;
+            unit: string;
+            dimensions: {
+                [key: string]: string;
+            };
+            firstObservedAt: string | null;
+            lastObservedAt: string | null;
+        }>;
+    };
+};
+
+export type GetMetricsResponse = GetMetricsResponses[keyof GetMetricsResponses];
+
+export type GetMetricsBySeriesIdData = {
+    body?: never;
+    path: {
+        /**
+         * The series.
+         */
+        seriesId: number;
+    };
+    query: {
+        /**
+         * Points observed at or after this time.
+         */
+        from: string;
+        /**
+         * Points observed before this time; now by default.
+         */
+        to?: string;
+        /**
+         * Seconds per bucket, at least; widened so the range has at most 1000 buckets.
+         */
+        step?: number;
+    };
+    url: '/metrics/{seriesId}';
+};
+
+export type GetMetricsBySeriesIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The series does not exist
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetMetricsBySeriesIdError = GetMetricsBySeriesIdErrors[keyof GetMetricsBySeriesIdErrors];
+
+export type GetMetricsBySeriesIdResponses = {
+    /**
+     * The series and its points
+     */
+    200: Metric;
+};
+
+export type GetMetricsBySeriesIdResponse = GetMetricsBySeriesIdResponses[keyof GetMetricsBySeriesIdResponses];
+
+export type GetLogsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only lines before this one, by id, to page back.
+         */
+        before?: number;
+        /**
+         * Only lines at least this severe.
+         */
+        level?: 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
+        /**
+         * Only lines from this logger category or those beneath it, such as `agent.mediamtx`.
+         */
+        category?: string;
+    };
+    url: '/logs';
+};
+
+export type GetLogsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetLogsError = GetLogsErrors[keyof GetLogsErrors];
+
+export type GetLogsResponses = {
+    /**
+     * The log lines
+     */
+    200: Log;
+};
+
+export type GetLogsResponse = GetLogsResponses[keyof GetLogsResponses];
