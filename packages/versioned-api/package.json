@@ -7,6 +7,7 @@
   "exports": {
     "./server": "./src/server/index.ts",
     "./contracts": "./src/contracts/index.ts",
+    "./contracts/compare": "./src/contracts/compare.ts",
     "./codegen": "./src/codegen/index.ts",
     "./codegen/cli": "./src/codegen/incur-builder.plugin.ts",
     "./client": "./src/client/index.ts",

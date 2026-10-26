@@ -326,6 +326,15 @@ export const IrohSessionSchema = z.object({
     })
 });
 
+export const DeviceAddressSchema = z.object({
+    addresses: z.array(z.object({
+        address: z.string(),
+        interface: z.string(),
+        preferred: z.boolean(),
+        reportedAt: z.string()
+    }))
+});
+
 export const WhoamiSchema = z.object({
     id: z.string(),
     organisationId: z.string(),
@@ -791,6 +800,29 @@ export const GetOrganisationsByIdDevicesByDeviceIdKeyPairResponseSchema = z.obje
     publicId: z.string()
 }).register(z.globalRegistry, {
     description: 'The key pair'
+});
+
+export const GetOrganisationsByIdDevicesByDeviceIdAddressesPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The device.'
+    })
+});
+
+/**
+ * The addresses, preferred first
+ */
+export const GetOrganisationsByIdDevicesByDeviceIdAddressesResponseSchema = z.object({
+    addresses: z.array(z.object({
+        address: z.string(),
+        interface: z.string(),
+        preferred: z.boolean(),
+        reportedAt: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The addresses, preferred first'
 });
 
 export const GetOrganisationsByIdCamerasPathSchema = z.object({
@@ -1787,6 +1819,28 @@ export const GetDeviceConfigurationResponseSchema = z.union([
         }))
     })
 ]);
+
+export const PutDeviceAddressesBodySchema = z.object({
+    addresses: z.array(z.object({
+        address: z.union([
+            z.ipv4().regex(/^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/),
+            z.ipv6().regex(/^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/)
+        ]),
+        interface: z.string().min(1).max(120).register(z.globalRegistry, {
+            description: 'The interface it was found on, as the device names it, such as `eth0` or `en0`.'
+        }),
+        preferred: z.boolean().register(z.globalRegistry, {
+            description: 'Whether this is the address the device\'s default route leaves by: at most one is.'
+        }).optional().default(false)
+    })).max(32).register(z.globalRegistry, {
+        description: 'The addresses, in no order. Empty when the device found none it can be reached at.'
+    })
+});
+
+/**
+ * The addresses as stored
+ */
+export const PutDeviceAddressesResponseSchema = DeviceAddressSchema;
 
 /**
  * The signing device

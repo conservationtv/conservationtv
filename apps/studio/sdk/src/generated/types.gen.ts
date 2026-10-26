@@ -320,6 +320,15 @@ export type IrohSession = {
     };
 };
 
+export type DeviceAddress = {
+    addresses: Array<{
+        address: string;
+        interface: string;
+        preferred: boolean;
+        reportedAt: string;
+    }>;
+};
+
 export type Whoami = {
     id: string;
     organisationId: string;
@@ -1730,6 +1739,63 @@ export type GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses = {
 };
 
 export type GetOrganisationsByIdDevicesByDeviceIdKeyPairResponse = GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses[keyof GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses];
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The device.
+         */
+        deviceId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/devices/{deviceId}/addresses';
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesError = GetOrganisationsByIdDevicesByDeviceIdAddressesErrors[keyof GetOrganisationsByIdDevicesByDeviceIdAddressesErrors];
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesResponses = {
+    /**
+     * The addresses, preferred first
+     */
+    200: {
+        addresses: Array<{
+            address: string;
+            interface: string;
+            preferred: boolean;
+            reportedAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesResponse = GetOrganisationsByIdDevicesByDeviceIdAddressesResponses[keyof GetOrganisationsByIdDevicesByDeviceIdAddressesResponses];
 
 export type GetOrganisationsByIdCamerasData = {
     body?: never;
@@ -4233,6 +4299,61 @@ export type GetDeviceConfigurationResponses = {
 };
 
 export type GetDeviceConfigurationResponse = GetDeviceConfigurationResponses[keyof GetDeviceConfigurationResponses];
+
+export type PutDeviceAddressesData = {
+    body: {
+        /**
+         * The addresses, in no order. Empty when the device found none it can be reached at.
+         */
+        addresses: Array<{
+            /**
+             * An IPv4 or IPv6 address of the device, without a scope.
+             */
+            address: string | string;
+            /**
+             * The interface it was found on, as the device names it, such as `eth0` or `en0`.
+             */
+            interface: string;
+            /**
+             * Whether this is the address the device's default route leaves by: at most one is.
+             */
+            preferred?: boolean;
+        }>;
+    };
+    path?: never;
+    query?: never;
+    url: '/device-addresses';
+};
+
+export type PutDeviceAddressesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutDeviceAddressesError = PutDeviceAddressesErrors[keyof PutDeviceAddressesErrors];
+
+export type PutDeviceAddressesResponses = {
+    /**
+     * The addresses as stored
+     */
+    200: DeviceAddress;
+};
+
+export type PutDeviceAddressesResponse = PutDeviceAddressesResponses[keyof PutDeviceAddressesResponses];
 
 export type GetWhoamiData = {
     body?: never;

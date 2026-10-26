@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { compareReleases, releaseName } from './config.js';
-import { ReleaseDocumentSchema, type ReleaseProject } from './release.js';
+import { ReleaseDocumentSchema } from './compare.js';
+import type { ReleaseProject } from './release.js';
 
 export interface SnapshotStatus {
   required: boolean;
