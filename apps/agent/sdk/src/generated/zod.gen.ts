@@ -169,7 +169,6 @@ export const GetSystemSpecResponseSchema = z.object({
             broadcast: z.string()
         })),
         auth: z.object({
-            jwks: z.string(),
             issuer: z.string(),
             audience: z.string()
         }).optional()

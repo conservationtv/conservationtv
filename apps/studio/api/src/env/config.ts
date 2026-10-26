@@ -6,7 +6,6 @@ import { authorization } from '../access.ts';
 import { createAuth, type Auth } from '../auth/auth.ts';
 import { otpDelivery } from '../auth/otp.ts';
 import type { Cache } from '../cache/cache.ts';
-import { loadGatewayKeyring, type GatewayKeyring } from '../gateways/keys.ts';
 import { connectLazily } from '../db/client.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
@@ -30,11 +29,6 @@ export const config = {
   GATEKEEPER_URL: z.url(),
   /** The consumer token of the gatekeeper's environment, which trusts whoever holds it with its relays. */
   GATEKEEPER_TOKEN: z.string().min(1),
-  /**
-   * The keys gateway tokens are signed with, as JSON; see src/gateways/keys.ts. Unset, gateways that verify them
-   * (MediaMTX) cannot be connected to.
-   */
-  GATEWAY_SIGNING_KEYS: z.string().min(1).optional(),
   /** Only logging exists; see src/auth/otp.ts. */
   OTP_DELIVERY: z.literal('log'),
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -67,21 +61,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
     that connects opens on first use: requests that never touch storage never open a connection.
   */
 
-  // Optional clients
-  const gatewayKeys = (() => {
-    const secret = variables.GATEWAY_SIGNING_KEYS;
-    if (secret === undefined) return;
-    let keyring: Promise<GatewayKeyring> | undefined = undefined;
-    return {
-      /** The gateway signing keys, loaded; rejects if the secret is malformed. */
-      keyring: () => {
-        if (keyring === undefined) keyring = loadGatewayKeyring(secret);
-        return keyring;
-      }
-    };
-  })();
-
-  // Required clients
   /** The control plane that names the relays and admits devices to them. */
   const gatekeeper = (() => {
     const url = variables.GATEKEEPER_URL;
@@ -131,7 +110,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
     auth,
     cache: bindings.cache,
     gatekeeper,
-    gatewayKeys,
     close: () => Promise.all([admin.close(), app.close()])
   };
 };

@@ -516,10 +516,6 @@ export const DeviceAddressReplaceParamsSchema = z.object({
 
 export type DeviceAddressReplaceParams = z.infer<typeof DeviceAddressReplaceParamsSchema>;
 
-export const GatewayKeyGetParamsSchema = z.object({});
-
-export type GatewayKeyGetParams = z.infer<typeof GatewayKeyGetParamsSchema>;
-
 export const WhoamiGetParamsSchema = z.object({});
 
 export type WhoamiGetParams = z.infer<typeof WhoamiGetParamsSchema>;

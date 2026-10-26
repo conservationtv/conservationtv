@@ -101,11 +101,11 @@ export function cameraFeeds(exposure: ExposureInput, camera: CameraInput, diagno
   return feeds;
 }
 
-/** How tokens are checked by the agent's MediaMTX: as src/gateways/mediamtx.ts signs them, for its gateway. */
-export function mediamtxAuth(gatewayId: string, diagnose: Diagnose): MediamtxAuth {
+/**
+ * How tokens are checked by the agent's MediaMTX: as src/gateways/mediamtx.ts signs them, with the agent's own key,
+ * for its gateway.
+ */
+export function mediamtxAuth(gatewayId: string): MediamtxAuth {
   const environment = useEnvironment();
-  if (environment.gatewayKeys === undefined)
-    diagnose('GATEWAY_SIGNING_KEYS is unset, so no reader or publisher can be admitted');
-  const issuer = environment.variables.APP_URL;
-  return { jwks: new URL('/gateway-keys', issuer).href, issuer, audience: gatewayId };
+  return { issuer: environment.variables.APP_URL, audience: gatewayId };
 }

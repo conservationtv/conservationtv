@@ -11,7 +11,6 @@ import cameras from './routes/cameras.ts';
 import deviceAddresses from './routes/device-addresses.ts';
 import deviceConfiguration from './routes/device-configuration.ts';
 import devices from './routes/devices.ts';
-import gatewayKeys from './routes/gateway-keys.ts';
 import gateways from './routes/gateways.ts';
 import health from './routes/health.ts';
 import invitations from './routes/invitations.ts';
@@ -64,7 +63,6 @@ const app = new Hono({ router: operationRouter })
   .route('/device-configuration', deviceConfiguration)
   .route('/device-addresses', deviceAddresses)
   // Fetched by gateways, with no session.
-  .route('/gateway-keys', gatewayKeys)
   .route('/whoami', whoami)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)

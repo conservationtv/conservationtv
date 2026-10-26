@@ -8,7 +8,6 @@ export const ErrorSchema = z.object({
 });
 
 export const MediamtxAuthSchema = z.object({
-    jwks: z.string(),
     issuer: z.string(),
     audience: z.string()
 });
