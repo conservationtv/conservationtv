@@ -3,6 +3,7 @@ import {
   ClientTransport,
   type BoundMethod,
   type OperationOutcome,
+  type RawResult,
   type ResultCall,
   type SdkClass,
   type SdkMethod
@@ -128,6 +129,8 @@ export abstract class ClientCore extends ClientTransport {
   private readonly supported = new Map<string, number[]>();
   private negotiated: Map<string, number> | undefined;
   private available = new Map<string, number[]>();
+  /** The entity tag of the document last negotiated against, sent back so an unchanged document costs a 304. */
+  private etag: string | undefined;
   private pendingHandshake: Promise<void> | undefined;
 
   /**
@@ -182,9 +185,14 @@ export abstract class ClientCore extends ClientTransport {
     return this.operation(operationId, sdk);
   }
 
-  /** Fetch and validate the published document, then negotiate every operation against it at once. */
+  /**
+   * Fetch and validate the published document, then negotiate every operation against it at once. Once negotiated,
+   * the document is asked for conditionally: a 304 says it is unchanged, so what was negotiated stands. Browsers do
+   * this in their HTTP cache; runtimes without one, such as Node, would otherwise download and parse it every time.
+   */
   private async readPublishedDocument(): Promise<void> {
-    const result = await this.transport.get({ url: PUBLISHED_DOCUMENT_URL });
+    const result = await this.fetchPublishedDocument();
+    if (result === 'unchanged') return;
     const parsed = PublishedDocumentSchema.safeParse(result.data);
     if (!parsed.success) {
       const status = result.response?.status ?? 'no response';
@@ -195,6 +203,15 @@ export abstract class ClientCore extends ClientTransport {
     const { negotiated, available } = negotiate(parsed.data, this.supported);
     this.negotiated = negotiated;
     this.available = available;
+    this.etag = result.response?.headers.get('ETag') ?? undefined;
+  }
+
+  /** GET the document, conditionally once negotiated: `'unchanged'` when the server answers 304 to the known tag. */
+  private async fetchPublishedDocument(): Promise<RawResult | 'unchanged'> {
+    const conditional = this.negotiated !== undefined && this.etag !== undefined;
+    const headers = conditional ? { 'If-None-Match': this.etag } : undefined;
+    const result = await this.transport.get({ url: PUBLISHED_DOCUMENT_URL, headers });
+    return conditional && result.response?.status === 304 ? 'unchanged' : result;
   }
 
   private versionOf(operationId: string): number | undefined {
