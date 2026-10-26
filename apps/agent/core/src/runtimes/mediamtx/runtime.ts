@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AdoptedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
-import { MediamtxAuthSchema, type MediamtxAuth } from '@conservationtv/studio-sdk';
+import { MediamtxAuthSchema, type DeviceIdentity, type MediamtxAuth } from '@conservationtv/studio-sdk';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
 import { type MediamtxManifest, mediamtxBinary } from './binaries/mediamtx.ts';
@@ -17,7 +17,7 @@ import { MediamtxPathsSchema } from './paths.ts';
 export const StreamsSpecSchema = z.object({
   /** The paths to serve, each delivering an exposure. None, without `auth`, serves any path. */
   paths: MediamtxPathsSchema.default([]),
-  /** Admit readers and publishers on this machine, and others only by tokens the studio API signs for this gateway; without it, anyone. */
+  /** Admit readers and publishers on this machine, and others only by tokens the studio API signs as this agent for this gateway; without it, anyone. */
   auth: MediamtxAuthSchema.optional(),
   /** Exposures to publish to MoQ relays from what is served: each rendition run by MediaMTX, joined by the agent. */
   publishers: z.array(MoqPublisherSchema).default([])
@@ -32,6 +32,8 @@ export interface MediamtxRuntimeOptions extends MediamtxAddresses {
   binary: MediamtxManifest;
   /** The moq CLI release the publishers run, installed beside MediaMTX while there are any. */
   moq: MoqManifest;
+  /** The agent's identity, which the tokens MediaMTX admits by are signed as. */
+  identity: DeviceIdentity;
 }
 
 export interface MediamtxStatus extends ProcessStatus {
@@ -105,7 +107,7 @@ export class MediamtxRuntime {
     await this.answering?.close();
     this.answering = undefined;
     if (auth === undefined) return;
-    const app = createMediamtxAuthApp(auth);
+    const app = createMediamtxAuthApp(auth, this.options.identity);
     const close = await serveMediamtxAuth(this.options.authHttp, app);
     this.answering = { auth, close };
   }

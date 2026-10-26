@@ -68,5 +68,4 @@ export * from './reports.submit-v1/index.js';
 export * from './irohSessions.create-v1/index.js';
 export * from './deviceConfiguration.get-v1/index.js';
 export * from './deviceAddresses.replace-v1/index.js';
-export * from './gatewayKeys.get-v1/index.js';
 export * from './whoami.get-v1/index.js';

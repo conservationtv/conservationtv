@@ -10,7 +10,6 @@ export type Error = {
 };
 
 export type MediamtxAuth = {
-    jwks: string;
     issuer: string;
     audience: string;
 };

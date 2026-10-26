@@ -65,13 +65,11 @@ export interface Diagnostic {
   message: string;
 }
 
-/** How a MediaMTX checks a token: against this API's published keys, issued by this API, for its gateway. */
-export const MediamtxAuthSchema = z
-  .object({ jwks: z.string(), issuer: z.string(), audience: z.string() })
-  .meta({ id: 'MediamtxAuth' });
+/** How a MediaMTX checks a token: signed by the agent's own identity, issued by this API, for its gateway. */
+export const MediamtxAuthSchema = z.object({ issuer: z.string(), audience: z.string() }).meta({ id: 'MediamtxAuth' });
 export type MediamtxAuth = z.output<typeof MediamtxAuthSchema>;
 
-/** The MediaMTX gateway the device runs, and how it admits readers and publishers: by tokens this API signs for it. */
+/** The MediaMTX gateway the device runs, and how it admits readers and publishers: by tokens this API signs as it. */
 export interface MediamtxConfiguration {
   gatewayId: string;
   auth: MediamtxAuth;

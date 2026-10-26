@@ -4,7 +4,6 @@ import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient69 } from '../versions/deviceAddresses.replace-v1/sdk.gen.js';
 import { BaseClient as BaseClient68 } from '../versions/deviceConfiguration.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient70 } from '../versions/gatewayKeys.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient64 } from '../versions/invitations.accept-v1/sdk.gen.js';
 import { BaseClient as BaseClient65 } from '../versions/invitations.decline-v1/sdk.gen.js';
 import { BaseClient as BaseClient63 } from '../versions/invitations.get-v1/sdk.gen.js';
@@ -69,7 +68,7 @@ import { BaseClient as BaseClient58 } from '../versions/organisations.subjects.o
 import { BaseClient as BaseClient57 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient66 } from '../versions/reports.submit-v1/sdk.gen.js';
-import { BaseClient as BaseClient71 } from '../versions/whoami.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient70 } from '../versions/whoami.get-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -195,10 +194,7 @@ export class Client extends ClientCore {
     readonly deviceAddresses = {
         replace: this.versioned('deviceAddresses.replace', { v1: BaseClient69 })
     };
-    readonly gatewayKeys = {
-        get: this.versioned('gatewayKeys.get', { v1: BaseClient70 })
-    };
     readonly whoami = {
-        get: this.versioned('whoami.get', { v1: BaseClient71 })
+        get: this.versioned('whoami.get', { v1: BaseClient70 })
     };
 }
