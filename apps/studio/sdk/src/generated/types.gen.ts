@@ -25,7 +25,6 @@ export type Relay = {
 };
 
 export type MediamtxAuth = {
-    jwks: string;
     issuer: string;
     audience: string;
 };
@@ -321,43 +320,12 @@ export type IrohSession = {
     };
 };
 
-export type GatewayKey = {
-    keys: Array<{
-        kty?: 'EC' | 'oct' | 'RSA' | 'OKP' | 'AKP' | {
-            length: number;
-        };
-        alg?: 'Ed25519' | 'ES256' | 'HS256' | 'HS384' | 'HS512' | 'RS256' | 'RS384' | 'RS512' | 'PS256' | 'PS384' | 'PS512' | 'ES384' | 'ES512' | 'EdDSA' | 'ML-DSA-44' | 'ML-DSA-65' | 'ML-DSA-87' | 'dir' | 'A128KW' | 'A192KW' | 'A256KW' | 'A128GCMKW' | 'A192GCMKW' | 'A256GCMKW' | 'ECDH-ES' | 'ECDH-ES+A128KW' | 'ECDH-ES+A192KW' | 'ECDH-ES+A256KW' | 'RSA-OAEP' | 'RSA-OAEP-256' | 'RSA-OAEP-384' | 'RSA-OAEP-512' | 'PBES2-HS256+A128KW' | 'PBES2-HS384+A192KW' | 'PBES2-HS512+A256KW' | 'A128CBC-HS256' | 'A192CBC-HS384' | 'A256CBC-HS512' | 'A128GCM' | 'A192GCM' | 'A256GCM' | {
-            length: number;
-        };
-        key_ops?: Array<string>;
-        ext?: boolean;
-        use?: 'sig' | 'enc' | {
-            length: number;
-        };
-        x5c?: Array<string>;
-        x5t?: string;
-        'x5t#S256'?: string;
-        x5u?: string;
-        kid?: string;
-        crv?: string;
-        d?: string;
-        dp?: string;
-        dq?: string;
-        e?: string;
-        k?: string;
-        n?: string;
-        p?: string;
-        q?: string;
-        qi?: string;
-        x?: string;
-        y?: string;
-        pub?: string;
-        priv?: string;
-        oth?: Array<{
-            d?: string;
-            r?: string;
-            t?: string;
-        }>;
+export type DeviceAddress = {
+    addresses: Array<{
+        address: string;
+        interface: string;
+        preferred: boolean;
+        reportedAt: string;
     }>;
 };
 
@@ -1771,6 +1739,63 @@ export type GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses = {
 };
 
 export type GetOrganisationsByIdDevicesByDeviceIdKeyPairResponse = GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses[keyof GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses];
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The device.
+         */
+        deviceId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/devices/{deviceId}/addresses';
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesError = GetOrganisationsByIdDevicesByDeviceIdAddressesErrors[keyof GetOrganisationsByIdDevicesByDeviceIdAddressesErrors];
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesResponses = {
+    /**
+     * The addresses, preferred first
+     */
+    200: {
+        addresses: Array<{
+            address: string;
+            interface: string;
+            preferred: boolean;
+            reportedAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdDevicesByDeviceIdAddressesResponse = GetOrganisationsByIdDevicesByDeviceIdAddressesResponses[keyof GetOrganisationsByIdDevicesByDeviceIdAddressesResponses];
 
 export type GetOrganisationsByIdCamerasData = {
     body?: never;
@@ -4275,30 +4300,60 @@ export type GetDeviceConfigurationResponses = {
 
 export type GetDeviceConfigurationResponse = GetDeviceConfigurationResponses[keyof GetDeviceConfigurationResponses];
 
-export type GetGatewayKeysData = {
-    body?: never;
+export type PutDeviceAddressesData = {
+    body: {
+        /**
+         * The addresses, in no order. Empty when the device found none it can be reached at.
+         */
+        addresses: Array<{
+            /**
+             * An IPv4 or IPv6 address of the device, without a scope.
+             */
+            address: string | string;
+            /**
+             * The interface it was found on, as the device names it, such as `eth0` or `en0`.
+             */
+            interface: string;
+            /**
+             * Whether this is the address the device's default route leaves by: at most one is.
+             */
+            preferred?: boolean;
+        }>;
+    };
     path?: never;
     query?: never;
-    url: '/gateway-keys';
+    url: '/device-addresses';
 };
 
-export type GetGatewayKeysErrors = {
+export type PutDeviceAddressesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
     /**
      * The selected operation version is not served
      */
     412: Error;
-};
-
-export type GetGatewayKeysError = GetGatewayKeysErrors[keyof GetGatewayKeysErrors];
-
-export type GetGatewayKeysResponses = {
     /**
-     * The key set
+     * The database is unavailable
      */
-    200: GatewayKey;
+    503: Error;
 };
 
-export type GetGatewayKeysResponse = GetGatewayKeysResponses[keyof GetGatewayKeysResponses];
+export type PutDeviceAddressesError = PutDeviceAddressesErrors[keyof PutDeviceAddressesErrors];
+
+export type PutDeviceAddressesResponses = {
+    /**
+     * The addresses as stored
+     */
+    200: DeviceAddress;
+};
+
+export type PutDeviceAddressesResponse = PutDeviceAddressesResponses[keyof PutDeviceAddressesResponses];
 
 export type GetWhoamiData = {
     body?: never;

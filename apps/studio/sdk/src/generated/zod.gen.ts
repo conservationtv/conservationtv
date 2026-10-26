@@ -34,7 +34,6 @@ export const RelaySchema = z.object({
 });
 
 export const MediamtxAuthSchema = z.object({
-    jwks: z.string(),
     issuer: z.string(),
     audience: z.string()
 });
@@ -327,100 +326,12 @@ export const IrohSessionSchema = z.object({
     })
 });
 
-export const GatewayKeySchema = z.object({
-    keys: z.array(z.object({
-        kty: z.union([
-            z.enum([
-                'EC',
-                'oct',
-                'RSA',
-                'OKP',
-                'AKP'
-            ]),
-            z.object({
-                length: z.number()
-            })
-        ]).optional(),
-        alg: z.union([
-            z.enum([
-                'Ed25519',
-                'ES256',
-                'HS256',
-                'HS384',
-                'HS512',
-                'RS256',
-                'RS384',
-                'RS512',
-                'PS256',
-                'PS384',
-                'PS512',
-                'ES384',
-                'ES512',
-                'EdDSA',
-                'ML-DSA-44',
-                'ML-DSA-65',
-                'ML-DSA-87',
-                'dir',
-                'A128KW',
-                'A192KW',
-                'A256KW',
-                'A128GCMKW',
-                'A192GCMKW',
-                'A256GCMKW',
-                'ECDH-ES',
-                'ECDH-ES+A128KW',
-                'ECDH-ES+A192KW',
-                'ECDH-ES+A256KW',
-                'RSA-OAEP',
-                'RSA-OAEP-256',
-                'RSA-OAEP-384',
-                'RSA-OAEP-512',
-                'PBES2-HS256+A128KW',
-                'PBES2-HS384+A192KW',
-                'PBES2-HS512+A256KW',
-                'A128CBC-HS256',
-                'A192CBC-HS384',
-                'A256CBC-HS512',
-                'A128GCM',
-                'A192GCM',
-                'A256GCM'
-            ]),
-            z.object({
-                length: z.number()
-            })
-        ]).optional(),
-        key_ops: z.array(z.string()).optional(),
-        ext: z.boolean().optional(),
-        use: z.union([
-            z.enum(['sig', 'enc']),
-            z.object({
-                length: z.number()
-            })
-        ]).optional(),
-        x5c: z.array(z.string()).optional(),
-        x5t: z.string().optional(),
-        'x5t#S256': z.string().optional(),
-        x5u: z.string().optional(),
-        kid: z.string().optional(),
-        crv: z.string().optional(),
-        d: z.string().optional(),
-        dp: z.string().optional(),
-        dq: z.string().optional(),
-        e: z.string().optional(),
-        k: z.string().optional(),
-        n: z.string().optional(),
-        p: z.string().optional(),
-        q: z.string().optional(),
-        qi: z.string().optional(),
-        x: z.string().optional(),
-        y: z.string().optional(),
-        pub: z.string().optional(),
-        priv: z.string().optional(),
-        oth: z.array(z.object({
-            d: z.string().optional(),
-            r: z.string().optional(),
-            t: z.string().optional()
-        })).optional()
+export const DeviceAddressSchema = z.object({
+    addresses: z.array(z.object({
+        address: z.string(),
+        interface: z.string(),
+        preferred: z.boolean(),
+        reportedAt: z.string()
     }))
 });
 
@@ -889,6 +800,29 @@ export const GetOrganisationsByIdDevicesByDeviceIdKeyPairResponseSchema = z.obje
     publicId: z.string()
 }).register(z.globalRegistry, {
     description: 'The key pair'
+});
+
+export const GetOrganisationsByIdDevicesByDeviceIdAddressesPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The device.'
+    })
+});
+
+/**
+ * The addresses, preferred first
+ */
+export const GetOrganisationsByIdDevicesByDeviceIdAddressesResponseSchema = z.object({
+    addresses: z.array(z.object({
+        address: z.string(),
+        interface: z.string(),
+        preferred: z.boolean(),
+        reportedAt: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The addresses, preferred first'
 });
 
 export const GetOrganisationsByIdCamerasPathSchema = z.object({
@@ -1886,10 +1820,27 @@ export const GetDeviceConfigurationResponseSchema = z.union([
     })
 ]);
 
+export const PutDeviceAddressesBodySchema = z.object({
+    addresses: z.array(z.object({
+        address: z.union([
+            z.ipv4().regex(/^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/),
+            z.ipv6().regex(/^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/)
+        ]),
+        interface: z.string().min(1).max(120).register(z.globalRegistry, {
+            description: 'The interface it was found on, as the device names it, such as `eth0` or `en0`.'
+        }),
+        preferred: z.boolean().register(z.globalRegistry, {
+            description: 'Whether this is the address the device\'s default route leaves by: at most one is.'
+        }).optional().default(false)
+    })).max(32).register(z.globalRegistry, {
+        description: 'The addresses, in no order. Empty when the device found none it can be reached at.'
+    })
+});
+
 /**
- * The key set
+ * The addresses as stored
  */
-export const GetGatewayKeysResponseSchema = GatewayKeySchema;
+export const PutDeviceAddressesResponseSchema = DeviceAddressSchema;
 
 /**
  * The signing device

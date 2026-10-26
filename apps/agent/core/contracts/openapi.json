@@ -144,6 +144,28 @@
                           },
                           "agentRss": {
                             "type": "number"
+                          },
+                          "addresses": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "address": {
+                                  "type": "string"
+                                },
+                                "interface": {
+                                  "type": "string"
+                                },
+                                "preferred": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "address",
+                                "interface",
+                                "preferred"
+                              ]
+                            }
                           }
                         },
                         "required": [
@@ -154,7 +176,8 @@
                           "memory",
                           "disk",
                           "uptimeSeconds",
-                          "agentRss"
+                          "agentRss",
+                          "addresses"
                         ]
                       },
                       {
@@ -808,9 +831,6 @@
                         "auth": {
                           "type": "object",
                           "properties": {
-                            "jwks": {
-                              "type": "string"
-                            },
                             "issuer": {
                               "type": "string"
                             },
@@ -819,7 +839,6 @@
                             }
                           },
                           "required": [
-                            "jwks",
                             "issuer",
                             "audience"
                           ]
@@ -1115,6 +1134,28 @@
                               },
                               "agentRss": {
                                 "type": "number"
+                              },
+                              "addresses": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "address": {
+                                      "type": "string"
+                                    },
+                                    "interface": {
+                                      "type": "string"
+                                    },
+                                    "preferred": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "address",
+                                    "interface",
+                                    "preferred"
+                                  ]
+                                }
                               }
                             },
                             "required": [
@@ -1125,7 +1166,8 @@
                               "memory",
                               "disk",
                               "uptimeSeconds",
-                              "agentRss"
+                              "agentRss",
+                              "addresses"
                             ]
                           },
                           {
@@ -1783,9 +1825,6 @@
                   "auth": {
                     "type": "object",
                     "properties": {
-                      "jwks": {
-                        "type": "string"
-                      },
                       "issuer": {
                         "type": "string"
                       },
@@ -1794,7 +1833,6 @@
                       }
                     },
                     "required": [
-                      "jwks",
                       "issuer",
                       "audience"
                     ]

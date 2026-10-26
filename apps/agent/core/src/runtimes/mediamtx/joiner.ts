@@ -69,12 +69,58 @@ export function joinCatalogs(catalogs: RenditionCatalog[]): Catalog {
   return joined;
 }
 
+/** A rendition broadcast's catalog, as it is published: undefined until it first is, then its latest. */
+function followCatalog(
+  effect: Moq.Signals.Effect,
+  consumed: Moq.Origin.Producer,
+  rendition: string
+): Moq.Signals.Getter<Catalog | undefined> {
+  const latest = new Moq.Signals.Signal<Catalog | undefined>(undefined);
+  const request = consumed.request(Moq.Path.from(rendition), { announced: true });
+  effect.cleanup(() => request.close());
+  effect.run(following => {
+    const active = following.get(request.active);
+    if (active === undefined) return;
+    const track = active.track(CATALOG_TRACK).subscribe({ priority: 0 });
+    following.cleanup(() => track.close());
+    following.spawn(async () => {
+      // Each group is one version of the catalog.
+      for (
+        let group = await following.race(track.recvGroup());
+        group;
+        group = await following.race(track.recvGroup())
+      ) {
+        const catalog = CatalogSchema.safeParse(await following.race(group.readJson()));
+        if (catalog.success) latest.set(catalog.data);
+      }
+    });
+  });
+  return latest;
+}
+
+/** Writes the catalog `track` describes its broadcast by, a new group whenever `catalog` reads differently. */
+function writeCatalog(
+  effect: Moq.Signals.Effect,
+  track: Moq.Track.Producer,
+  catalog: (watching: Moq.Signals.Effect) => Catalog
+): void {
+  let written = '';
+  effect.run(watching => {
+    const text = JSON.stringify(catalog(watching));
+    if (text === written) return;
+    written = text;
+    const group = track.appendGroup();
+    group.writeString(text);
+    group.close();
+  });
+}
+
 /**
  * Joins one exposure's renditions into its broadcast, on a connection of its own to the relay, reconnecting if it
- * drops, until the returned function closes it. Its joined catalog follows each rendition's whenever it is published,
- * across its publisher's restarts. New credentials are a new join, as they restart the renditions' publishers too.
+ * drops, until the returned function closes it. New credentials are a new join, as they restart the renditions'
+ * publishers too.
  */
-export function joinBroadcast(publisher: MoqPublisher): () => void {
+function joinBroadcast(publisher: MoqPublisher): () => void {
   const effect = new Moq.Signals.Effect();
   const published = new Moq.Origin.Producer();
   const consumed = new Moq.Origin.Producer();
@@ -82,7 +128,6 @@ export function joinBroadcast(publisher: MoqPublisher): () => void {
   const connection = new Moq.Connection({ url, publish: published.consume(), consume: consumed });
   const broadcast = published.createBroadcast(Moq.Path.from(publisher.broadcast));
   broadcast.announce();
-  const catalogTrack = broadcast.createTrack(CATALOG_TRACK);
   effect.cleanup(() => {
     broadcast.close();
     connection.close();
@@ -95,43 +140,41 @@ export function joinBroadcast(publisher: MoqPublisher): () => void {
     logger.error('Joining {exposureId} failed: {error}', { exposureId: publisher.exposureId, error });
   });
 
-  // Each rendition's latest catalog, and the joined catalog last written: a new group only when it changes.
-  const catalogs = new Map<string, Catalog>();
-  let written = '';
-  const update = (rendition: string, catalog: Catalog) => {
-    catalogs.set(rendition, catalog);
-    const known = publisher.renditions.flatMap(({ rendition: name }) => {
-      const latest = catalogs.get(name);
-      return latest === undefined ? [] : [{ rendition: name, catalog: latest }];
-    });
-    const text = JSON.stringify(joinCatalogs(known));
-    if (text === written) return;
-    written = text;
-    const group = catalogTrack.appendGroup();
-    group.writeString(text);
-    group.close();
-  };
-
-  for (const { rendition } of publisher.renditions) {
-    const request = consumed.request(Moq.Path.from(rendition), { announced: true });
-    effect.cleanup(() => request.close());
-    effect.run(following => {
-      const active = following.get(request.active);
-      if (active === undefined) return;
-      const track = active.track(CATALOG_TRACK).subscribe({ priority: 0 });
-      following.cleanup(() => track.close());
-      following.spawn(async () => {
-        // Each group is one version of the catalog.
-        for (
-          let group = await following.race(track.recvGroup());
-          group;
-          group = await following.race(track.recvGroup())
-        ) {
-          const catalog = CatalogSchema.safeParse(await following.race(group.readJson()));
-          if (catalog.success) update(rendition, catalog.data);
-        }
-      });
-    });
-  }
+  // In the publisher's order, so the joined catalog lists the renditions as it does.
+  const followed = publisher.renditions.map(({ rendition }) => ({
+    rendition,
+    catalog: followCatalog(effect, consumed, rendition)
+  }));
+  writeCatalog(effect, broadcast.createTrack(CATALOG_TRACK), watching =>
+    joinCatalogs(
+      followed.flatMap(({ rendition, catalog }) => {
+        const latest = watching.get(catalog);
+        return latest === undefined ? [] : [{ rendition, catalog: latest }];
+      })
+    )
+  );
   return () => effect.close();
+}
+
+/** The joined broadcasts of the exposures MediaMTX publishes, each joined while its publisher is wanted. */
+export class BroadcastJoiner {
+  /** Each joined broadcast's close, by the publisher it joins for, as JSON. */
+  private readonly joined = new Map<string, () => void>();
+
+  /** Joins the broadcast of each publisher, and no other: a publisher that changed at all is joined anew. */
+  set(publishers: MoqPublisher[]): void {
+    const wanted = new Map(publishers.map(publisher => [JSON.stringify(publisher), publisher]));
+    for (const [key, close] of this.joined) {
+      if (wanted.has(key)) continue;
+      close();
+      this.joined.delete(key);
+    }
+    for (const [key, publisher] of wanted) {
+      if (!this.joined.has(key)) this.joined.set(key, joinBroadcast(publisher));
+    }
+  }
+
+  close(): void {
+    this.set([]);
+  }
 }
