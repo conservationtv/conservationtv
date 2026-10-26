@@ -112,7 +112,10 @@ export async function deleteOrganisation(organisationId: string) {
   await deleteOrganisationBrowsers(organisationId);
   await db.delete(organisationInvitations).where(eq(organisationInvitations.organisationId, organisationId));
   await db.delete(organisationMemberships).where(eq(organisationMemberships.organisationId, organisationId));
-  await db.update(organisations).set({ deletedAt: sql`now()` }).where(eq(organisations.id, organisationId));
+  await db
+    .update(organisations)
+    .set({ deletedAt: sql`now()` })
+    .where(eq(organisations.id, organisationId));
 }
 
 /**
