@@ -9,6 +9,7 @@ export * from './schemas/organisations.ts';
 export * from './schemas/invitations.ts';
 export * from './schemas/networks.ts';
 export * from './schemas/devices.ts';
+export * from './schemas/device-addresses.ts';
 export * from './schemas/cameras.ts';
 export * from './schemas/browsers.ts';
 export * from './schemas/agents.ts';

@@ -2,22 +2,22 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AdoptedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
-import { MediamtxAuthSchema, type MediamtxAuth } from '@conservationtv/studio-sdk';
+import { MediamtxAuthSchema, type DeviceIdentity, type MediamtxAuth } from '@conservationtv/studio-sdk';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
 import { type MediamtxManifest, mediamtxBinary } from './binaries/mediamtx.ts';
 import { type MoqManifest, moqBinary } from './binaries/moq.ts';
 import { createMediamtxAuthApp, serveMediamtxAuth } from './auth.ts';
-import { type MediamtxAddresses, type MoqPublisher, MoqPublisherSchema, renderConfig } from './config.ts';
+import { type MediamtxAddresses, MoqPublisherSchema, renderConfig } from './config.ts';
 import { isMediamtxAlive } from './control.ts';
-import { joinBroadcast } from './joiner.ts';
+import { BroadcastJoiner } from './joiner.ts';
 import { MediamtxPathsSchema } from './paths.ts';
 
 /** The streams to serve, who may read and publish them, and the exposures to publish from them. */
 export const StreamsSpecSchema = z.object({
   /** The paths to serve, each delivering an exposure. None, without `auth`, serves any path. */
   paths: MediamtxPathsSchema.default([]),
-  /** Admit readers and publishers on this machine, and others only by tokens the studio API signs for this gateway; without it, anyone. */
+  /** Admit readers and publishers on this machine, and others only by tokens the studio API signs as this agent for this gateway; without it, anyone. */
   auth: MediamtxAuthSchema.optional(),
   /** Exposures to publish to MoQ relays from what is served: each rendition run by MediaMTX, joined by the agent. */
   publishers: z.array(MoqPublisherSchema).default([])
@@ -32,6 +32,8 @@ export interface MediamtxRuntimeOptions extends MediamtxAddresses {
   binary: MediamtxManifest;
   /** The moq CLI release the publishers run, installed beside MediaMTX while there are any. */
   moq: MoqManifest;
+  /** The agent's identity, which the tokens MediaMTX admits by are signed as. */
+  identity: DeviceIdentity;
 }
 
 export interface MediamtxStatus extends ProcessStatus {
@@ -67,8 +69,7 @@ export class MediamtxRuntime {
   private readonly watching: Subscription[];
   private readonly configFile: string;
   private answering: AuthAnswering | undefined;
-  /** Each joined broadcast's close, by the publisher it joins for, as JSON. */
-  private readonly joined = new Map<string, () => void>();
+  private readonly joiner = new BroadcastJoiner();
 
   constructor(private readonly options: MediamtxRuntimeOptions) {
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
@@ -92,7 +93,7 @@ export class MediamtxRuntime {
       { key: installed.id, binary: installed.path, args: [this.configFile], cwd: directory },
       signal
     );
-    this.join(spec.publishers);
+    this.joiner.set(spec.publishers);
     await this.binaries.prune(installed, { spare: 1 });
     if (moq !== undefined) await this.binaries.prune(moq, { spare: 1 });
   }
@@ -106,22 +107,9 @@ export class MediamtxRuntime {
     await this.answering?.close();
     this.answering = undefined;
     if (auth === undefined) return;
-    const app = createMediamtxAuthApp(auth);
+    const app = createMediamtxAuthApp(auth, this.options.identity);
     const close = await serveMediamtxAuth(this.options.authHttp, app);
     this.answering = { auth, close };
-  }
-
-  /** Joins the broadcast of each publisher, and no other: a publisher that changed at all is joined anew. */
-  private join(publishers: MoqPublisher[]): void {
-    const wanted = new Map(publishers.map(publisher => [JSON.stringify(publisher), publisher]));
-    for (const [key, close] of this.joined) {
-      if (wanted.has(key)) continue;
-      close();
-      this.joined.delete(key);
-    }
-    for (const [key, publisher] of wanted) {
-      if (!this.joined.has(key)) this.joined.set(key, joinBroadcast(publisher));
-    }
   }
 
   /** The moq CLI, installed if the spec has publishers for it to run. */
@@ -136,7 +124,7 @@ export class MediamtxRuntime {
    * vendored binaries too: removing the key removes everything it put there.
    */
   async finalize(): Promise<void> {
-    this.join([]);
+    this.joiner.close();
     await this.process.stop();
     await this.answer(undefined);
     await this.binaries.clear();
@@ -149,7 +137,7 @@ export class MediamtxRuntime {
    */
   dispose(): void {
     for (const subscription of this.watching) subscription.unsubscribe();
-    this.join([]);
+    this.joiner.close();
     void this.answering?.close();
     this.process.dispose();
     this.status$.complete();
