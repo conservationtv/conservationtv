@@ -103,7 +103,10 @@ const AccountMenu: FC = () => {
               </Tooltip>
             ))}
           </nav>
-          <Separator orientation="vertical" className="bg-sidebar-foreground/40 data-vertical:h-5 data-vertical:self-auto" />
+          <Separator
+            orientation="vertical"
+            className="bg-sidebar-foreground/40 data-vertical:h-5 data-vertical:self-auto"
+          />
           <nav aria-label="Account" className="flex gap-0.5">
             <NavLink to="/account" className={headerLinkClassName}>
               <UserCircleGearIcon aria-hidden="true" />
@@ -151,9 +154,7 @@ const AboutRoute: FC = () => {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <BrandMark className="h-6" />
-            <span className="text-lg leading-none font-semibold tracking-tight">
-              conservation.tv
-            </span>
+            <span className="text-lg leading-none font-semibold tracking-tight">conservation.tv</span>
           </div>
           <nav aria-label="Sections" className="flex gap-0.5">
             <NavLink to="/about" className={headerLinkClassName}>
@@ -194,16 +195,18 @@ const AboutRoute: FC = () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...menuEntrance, duration: 0.6 }}
-                className="relative z-10 w-full max-w-xl text-center text-3xl font-semibold text-balance sm:text-5xl">
+                className="relative z-10 w-full max-w-xl text-center text-3xl font-semibold text-balance sm:text-5xl"
+              >
                 Next generation conservation
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...menuEntrance, duration: 0.6, delay: TEXT_STAGGER_SECONDS }}
-                className="relative z-10 max-w-2xl text-center leading-tight text-balance">
-                We're a collaborative network of organizations, communities, and individuals who believe 24/7 live cameras
-                and streaming are powerful conservation tools.
+                className="relative z-10 max-w-2xl text-center leading-tight text-balance"
+              >
+                We're a collaborative network of organizations, communities, and individuals who believe 24/7 live
+                cameras and streaming are powerful conservation tools.
               </motion.p>
             </div>
           </div>

@@ -287,7 +287,10 @@ export const adminDb = drizzle(process.env.ADMIN_DATABASE_URL!);
 export const authorization = defineAuthorization({ schema, roles: { admin, reader, organisationAdmin } });
 
 /** The same, with both connections bound up front; the rest of this guide uses it for brevity. */
-export const secured = withAuthorization({ app: appDb, admin: adminDb }, { schema, roles: { admin, reader, organisationAdmin } });
+export const secured = withAuthorization(
+  { app: appDb, admin: adminDb },
+  { schema, roles: { admin, reader, organisationAdmin } }
+);
 ```
 
 Table roles, and shared roles that tables include, are discovered from `schema`. The optional `roles` registry also lists shared roles in the catalog before any table includes them. `defineAuthorization` compiles and validates the definitions once, so call it at module scope; on platforms that open a connection per request, supply that connection to `as()` or `access()` when the request runs. Most requests only ever need `as()` and the application connection.

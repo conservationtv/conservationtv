@@ -21,19 +21,7 @@
 
 :root,
 .dark {
-  --interaction-active: color-mix(
-    in srgb,
-    var(--accent) var(--interaction-active-strength),
-    transparent
-  );
-  --interaction-hover: color-mix(
-    in srgb,
-    var(--accent) var(--interaction-hover-strength),
-    transparent
-  );
-  --menu-highlight: color-mix(
-    in srgb,
-    var(--accent) var(--menu-highlight-strength),
-    transparent
-  );
+  --interaction-active: color-mix(in srgb, var(--accent) var(--interaction-active-strength), transparent);
+  --interaction-hover: color-mix(in srgb, var(--accent) var(--interaction-hover-strength), transparent);
+  --menu-highlight: color-mix(in srgb, var(--accent) var(--menu-highlight-strength), transparent);
 }
