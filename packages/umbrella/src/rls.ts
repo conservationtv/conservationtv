@@ -142,6 +142,8 @@ const breakpoint = '\n--> statement-breakpoint\n';
 /**
  * Drops every policy, immutability trigger and definer function an earlier migration generated, wherever it is,
  * so each migration rebuilds from nothing rather than leaving behind definitions that no longer exist.
+ * A trigger a child table (a TimescaleDB chunk, or a partition) shares with its parent goes with the parent's, so
+ * only the parent's is dropped.
  * Tables keep RLS enabled, so until policies are recreated the application role can reach no rows.
  */
 const teardown = `do $authz$
@@ -152,7 +154,9 @@ begin
     execute format('drop policy %I on %I.%I', item.policyname, item.schemaname, item.tablename);
   end loop;
   for item in select t.tgrelid::regclass as tbl from pg_catalog.pg_trigger t
-      where t.tgname = '${immutableTrigger}' and not t.tgisinternal loop
+      where t.tgname = '${immutableTrigger}' and not t.tgisinternal
+        and not exists (select from pg_catalog.pg_inherits i join pg_catalog.pg_trigger p
+          on p.tgrelid = i.inhparent and p.tgname = t.tgname where i.inhrelid = t.tgrelid) loop
     execute format('drop trigger ${immutableTrigger} on %s', item.tbl);
   end loop;
   for item in select p.oid::regprocedure as fn from pg_catalog.pg_proc p where p.proname like 'authz:%' loop
