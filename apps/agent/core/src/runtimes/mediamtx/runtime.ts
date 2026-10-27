@@ -8,8 +8,8 @@ import { z } from 'zod';
 import { type MediamtxManifest, mediamtxBinary } from './binaries/mediamtx.ts';
 import { type MoqManifest, moqBinary } from './binaries/moq.ts';
 import { createMediamtxAuthApp, serveMediamtxAuth } from './auth.ts';
-import { type MediamtxAddresses, MoqPublisherSchema, renderConfig } from './config.ts';
-import { isMediamtxAlive } from './control.ts';
+import { type MediamtxAddresses, MoqPublisherSchema, listeningPorts, renderConfig } from './config.ts';
+import { isMediamtxAlive, mediamtxInstance } from './control.ts';
 import { BroadcastJoiner } from './joiner.ts';
 import { MediamtxPathsSchema } from './paths.ts';
 
@@ -71,7 +71,11 @@ export class MediamtxRuntime {
 
   constructor(private readonly options: MediamtxRuntimeOptions) {
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
-    this.process = new AdoptedProcess(options.directory, { name: 'mediamtx', probe: isMediamtxAlive });
+    this.process = new AdoptedProcess(options.directory, {
+      name: 'mediamtx',
+      probe: isMediamtxAlive,
+      identify: mediamtxInstance
+    });
     this.watching = [this.process.status$.subscribe(status => this.update(status))];
     this.configFile = join(options.directory, 'mediamtx.yml');
   }
@@ -86,9 +90,17 @@ export class MediamtxRuntime {
     this.update({ version: installed.version });
     const moq = await this.installMoq(spec, signal);
     await this.answer(spec.auth);
-    await this.writeConfig(spec, moq);
+    // The config names the instance it is for, so it is written once that is known: the MediaMTX adopted, or the one
+    // about to start.
     await this.process.ensure(
-      { key: installed.id, binary: installed.path, args: [this.configFile], cwd: directory },
+      {
+        key: installed.id,
+        binary: installed.path,
+        args: [this.configFile],
+        cwd: directory,
+        ports: listeningPorts(this.options),
+        prepare: instance => this.writeConfig(spec, moq, instance)
+      },
       signal
     );
     this.joiner.set(spec.publishers);
@@ -149,14 +161,14 @@ export class MediamtxRuntime {
   }
 
   /**
-   * Writes the config before MediaMTX reads it, or re-reads it: a running MediaMTX reloads its file whenever it is
-   * written, so one already serving this config is left undisturbed.
+   * Writes the config for `instance` before MediaMTX reads it, or re-reads it: a running MediaMTX reloads its file
+   * whenever it is written, so one already serving this config is left undisturbed.
    */
-  private async writeConfig(spec: StreamsSpec, moq: Installed | undefined): Promise<void> {
+  private async writeConfig(spec: StreamsSpec, moq: Installed | undefined, instance: string): Promise<void> {
     await mkdir(this.options.directory, { recursive: true });
     const { paths, auth, publishers } = spec;
     const publishing = moq === undefined ? undefined : { moq: moq.path, publishers };
-    const config = await renderConfig({ ...this.options, paths, auth, publishing });
+    const config = await renderConfig({ ...this.options, instance, paths, auth, publishing });
     const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
     if (written !== config) await writeFile(this.configFile, config);
   }

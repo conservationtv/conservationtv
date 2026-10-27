@@ -8,9 +8,10 @@ const logger = getLogger(['agent', 'mediamtx', 'joiner']);
 // Each rendition of a published exposure is a broadcast of its own under the exposure's path, which the moq CLI
 // publishes (config.ts): `{organisation}/{exposure}/{rendition}`. Readers watch one broadcast, `{exposure path}/live.hang`,
 // so the agent publishes that too, with nothing in it but a catalog joining the renditions': each of its tracks is
-// listed where it already is, by its rendition's broadcast (`broadcast`, relative to the joined broadcast) and its name
-// there (`track`), so no media passes through the agent. Every rendition broadcast names its tracks alike, so they are
-// listed under the rendition's name instead, and the audio, the same in every rendition, only once.
+// listed where it already is, under its name there and by its rendition's broadcast (`broadcast`, relative to the
+// joined broadcast), so no media passes through the agent. hang keys a rendition by its track's name, and has no other
+// field for it, while every rendition broadcast names its tracks alike: until they are told apart, only the first
+// rendition's video is listed, and the audio, the same in every rendition, only once.
 //
 // The joined catalog follows the renditions': it is rewritten whenever one of theirs changes, and keeps a rendition's
 // last catalog while its publisher restarts.
@@ -34,19 +35,19 @@ interface RenditionCatalog {
   catalog: Catalog;
 }
 
-/** The joined catalog's entry for a track of a rendition broadcast: its config, and where to find it. */
-function reference(rendition: string, track: string, config: TrackConfig) {
-  return { ...config, broadcast: `./${rendition}`, track };
+/** The joined catalog's entry for a track of a rendition broadcast: its config, and the broadcast to find it in. */
+function reference(rendition: string, config: TrackConfig) {
+  return { ...config, broadcast: `./${rendition}` };
 }
 
-/** Each rendition's video, by the rendition's name, and the track's too should it have several. */
+/** The renditions' video, by each track's name: the first rendition's, of any that name their tracks alike. */
 function joinedVideo(catalogs: RenditionCatalog[]): Tracks {
   const renditions: Tracks['renditions'] = {};
   for (const { rendition, catalog } of catalogs) {
-    // Every track of every rendition, keyed so no two collide though their names do.
-    const tracks = Object.entries(catalog.video?.renditions ?? {});
-    for (const [track, config] of tracks) {
-      renditions[tracks.length === 1 ? rendition : `${rendition}.${track}`] = reference(rendition, track, config);
+    // Every track of every rendition, in the publisher's order, skipping a name an earlier rendition already took.
+    for (const [track, config] of Object.entries(catalog.video?.renditions ?? {})) {
+      if (track in renditions) continue;
+      renditions[track] = reference(rendition, config);
     }
   }
   return { renditions };
@@ -56,7 +57,7 @@ function joinedVideo(catalogs: RenditionCatalog[]): Tracks {
 function joinedAudio(catalogs: RenditionCatalog[]): Tracks | undefined {
   for (const { rendition, catalog } of catalogs) {
     const [first] = Object.entries(catalog.audio?.renditions ?? {});
-    if (first !== undefined) return { renditions: { audio: reference(rendition, first[0], first[1]) } };
+    if (first !== undefined) return { renditions: { [first[0]]: reference(rendition, first[1]) } };
   }
   return undefined;
 }

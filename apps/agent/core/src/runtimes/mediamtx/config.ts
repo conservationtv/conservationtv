@@ -1,7 +1,9 @@
 import { pipeline, toYaml } from '@conservationtv/mediamtx';
+import { portOf } from '@conservationtv/converge/process';
 import { PublisherSchema, type MediamtxAuth } from '@conservationtv/studio-sdk';
 import { z } from 'zod';
 import { auth } from './builders/auth.ts';
+import { instance } from './builders/instance.ts';
 import { paths } from './builders/paths.ts';
 import { publishers } from './builders/publishers.ts';
 import { server } from './builders/server.ts';
@@ -41,15 +43,22 @@ export interface MoqPublishing {
   publishers: MoqPublisher[];
 }
 
-/** What MediaMTX serves, and who it admits. */
+/** What MediaMTX serves, who it admits, and as which instance. */
 export interface MediamtxServing {
+  /** The instance it was started as (`AdoptedProcess`), which the config names for the agent to ask it for. */
+  instance: string;
   paths: MediamtxPaths;
   auth?: MediamtxAuth;
   /** Absent when it publishes nothing. */
   publishing?: MoqPublishing;
 }
 
-export const mediamtxConfig = pipeline(server, paths, publishers, auth);
+export const mediamtxConfig = pipeline(server, instance, paths, publishers, auth);
+
+/** The TCP ports MediaMTX listens on: its control API, its metrics page, and its RTSP, RTMP, HLS and WebRTC defaults. */
+export function listeningPorts(addresses: MediamtxAddresses): number[] {
+  return [portOf(addresses.api), portOf(addresses.metrics), 8554, 1935, 8888, 8889];
+}
 
 /** The config file's text. Throws if the config is unfit to serve, naming what made it so. */
 export async function renderConfig(params: MediamtxAddresses & MediamtxServing): Promise<string> {

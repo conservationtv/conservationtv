@@ -9,7 +9,9 @@ export {
   describe,
   exclusive,
   findProcess,
+  freePorts,
   ready,
   restartDelay,
   stopProcess
 } from './process.ts';
+export { type PortHolders, type ProcessInfo, portHolders, portOf, processInfo } from './system.ts';
