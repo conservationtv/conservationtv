@@ -21,7 +21,7 @@
     "signoff:generated": "pnpm -r --filter './apps/agent/**' --filter './apps/studio/**' --filter './apps/controlplane/**' run generate && gh signoff generated",
     "contracts": "API_BASE_REF=$(git merge-base origin/main HEAD) pnpm -r --no-bail run ci:contracts pr",
     "contracts:snapshots": "API_BASE_REF=$(git merge-base origin/main HEAD) pnpm -r --no-bail run ci:contracts snapshots",
-    "dev:staging": "pnpm --filter @conservationtv/studio-api db:up && pnpm --parallel --filter @conservationtv/studio-api --filter @conservationtv/web --filter @conservationtv/agent-runner run dev:staging"
+    "dev:staging": "set -a; [ ! -f .env.staging.local ] || . ./.env.staging.local; set +a; pnpm --filter @conservationtv/studio-api db:up && pnpm --parallel --filter @conservationtv/studio-api --filter @conservationtv/web --filter @conservationtv/agent-runner run dev:staging"
   },
   "devDependencies": {
     "@oxlint/plugins": "^1.78.0",
