@@ -46,7 +46,7 @@ Gatekeeper releases like an image: upload a version as the artefact, then deploy
 
 `gatekeeperVersion` is not kept in `Pulumi.prod.yaml`. When it is unset, the stack reads the deployed tag from its own last outputs and keeps it, so a `pulumi up` from a workstation never rolls gatekeeper back. To roll back, `pulumi up --config gatekeeperVersion=<earlier commit>`.
 
-The `staging` and `prod` environments each hold `PULUMI_CONFIG_PASSPHRASE`, `PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PLANETSCALE_SERVICE_TOKEN_ID`, `PLANETSCALE_SERVICE_TOKEN`, `CLOUDFLARE_API_TOKEN` and `DIGITALOCEAN_TOKEN` as secrets, copied from the 1Password items `.env.pulumi` refers to, and `PULUMI_BACKEND_URL`, `PGSSLMODE` and `CLOUDFLARE_ACCOUNT_ID` as variables. To rotate one, update 1Password and run `op read --no-newline <reference> | gh secret set <NAME> --env <stack> -R conservationtv/conservationtv`.
+The `staging` and `prod` environments each hold `PULUMI_CONFIG_PASSPHRASE`, `PULUMI_STATE_ACCESS_KEY_ID`, `PULUMI_STATE_SECRET_ACCESS_KEY` (the state bucket's credentials, passed to Pulumi as `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`), `PLANETSCALE_SERVICE_TOKEN_ID`, `PLANETSCALE_SERVICE_TOKEN`, `CLOUDFLARE_API_TOKEN` and `DIGITALOCEAN_TOKEN` as secrets, copied from the 1Password items `.env.pulumi` refers to, and `CLOUDFLARE_ACCOUNT_ID` as a variable. The state backend is the project's `backend.url` in `Pulumi.yaml`; see [Pulumi](../../../docs/infra/pulumi.md). To rotate one, update 1Password and run `op read --no-newline <reference> | gh secret set <NAME> --env <stack> -R conservationtv/conservationtv`.
 
 Secrets reach gatekeeper only with a release. After rotating one here, release to apply it. Uploads keep secrets that are not in the file.
 
