@@ -1,10 +1,10 @@
 {
+  "id": "82c3f665-bbac-406c-a5bb-7756697d5921",
+  "prevIds": [
+    "0fe8021f-ce3a-4616-8662-b0dc66380800"
+  ],
   "version": "8",
   "dialect": "postgres",
-  "id": "fde820cf-7107-4d49-94bb-851887dde78f",
-  "prevIds": [
-    "a20bc93c-7b6c-4b06-b4ed-d8b0e53d85f6"
-  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -86,6 +86,12 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "device_address",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "camera",
       "entityType": "tables",
       "schema": "public"
@@ -104,7 +110,7 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "configuration_revision",
+      "name": "gateway",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1125,6 +1131,19 @@
       "table": "organisation"
     },
     {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "organisation"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1405,6 +1424,84 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "organisation_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "device_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "inet",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "interface",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "preferred",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "reported_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "id",
       "entityType": "columns",
       "schema": "public",
@@ -1444,10 +1541,23 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'{}'",
+      "default": null,
       "generated": null,
       "identity": null,
       "name": "settings",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credentials",
       "entityType": "columns",
       "schema": "public",
       "table": "camera"
@@ -1612,7 +1722,7 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "configuration_revision"
+      "table": "gateway"
     },
     {
       "type": "uuid",
@@ -1625,75 +1735,59 @@
       "name": "organisation_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "configuration_revision"
+      "table": "gateway"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "gateway"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "gateway"
     },
     {
       "type": "uuid",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "agent_id",
+      "name": "network_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "configuration_revision"
+      "table": "gateway"
     },
     {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "'{}'",
       "generated": null,
       "identity": null,
-      "name": "config",
+      "name": "settings",
       "entityType": "columns",
       "schema": "public",
-      "table": "configuration_revision"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'[]'",
-      "generated": null,
-      "identity": null,
-      "name": "diagnostics",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "configuration_revision"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": {
-        "as": "jsonb_path_exists(diagnostics, '$[*] ? (@.severity == \"error\")')",
-        "type": "stored"
-      },
-      "identity": null,
-      "name": "has_errors",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "configuration_revision"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "served",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "configuration_revision"
+      "table": "gateway"
     },
     {
       "type": "timestamp",
@@ -1706,7 +1800,7 @@
       "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "configuration_revision"
+      "table": "gateway"
     },
     {
       "type": "uuid",
@@ -1748,14 +1842,14 @@
       "table": "exposure"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "network_id",
+      "name": "gateway_id",
       "entityType": "columns",
       "schema": "public",
       "table": "exposure"
@@ -1764,11 +1858,37 @@
       "type": "text",
       "typeSchema": null,
       "notNull": true,
+      "dimensions": 1,
+      "default": "'{default}'",
+      "generated": null,
+      "identity": null,
+      "name": "renditions",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exposure"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "protocol",
+      "name": "publisher_device_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "exposure"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "upstream_exposure_id",
       "entityType": "columns",
       "schema": "public",
       "table": "exposure"
@@ -1847,6 +1967,19 @@
       "generated": null,
       "identity": null,
       "name": "exposure_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recorder"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'default'",
+      "generated": null,
+      "identity": null,
+      "name": "rendition",
       "entityType": "columns",
       "schema": "public",
       "table": "recorder"
@@ -3029,48 +3162,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "agent_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": "\"served\"",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "configuration_revision_agent_served",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "configuration_revision"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "agent_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "configuration_revision_agent_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "configuration_revision"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "network_id",
           "isExpression": false,
           "asc": true,
@@ -3083,7 +3174,70 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "exposure_network_idx",
+      "name": "gateway_network_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "gateway"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "gateway_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exposure_gateway_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "exposure"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "publisher_device_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exposure_publisher_device_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "exposure"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "upstream_exposure_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "exposure_upstream_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "exposure"
@@ -3233,7 +3387,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "account_user_id_user_id_fk",
+      "name": "account_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "account"
@@ -3250,7 +3404,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "passkey_user_id_user_id_fk",
+      "name": "passkey_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "passkey"
@@ -3267,7 +3421,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "session_user_id_user_id_fk",
+      "name": "session_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "session"
@@ -3441,6 +3595,42 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
+      "name": "device_address_organisation_id_organisation_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "device_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "device",
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "device_address_device_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organisation_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organisation",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "camera_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3593,29 +3783,29 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "configuration_revision_organisation_id_organisation_id_fkey",
+      "name": "gateway_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "configuration_revision"
+      "table": "gateway"
     },
     {
       "nameExplicit": true,
       "columns": [
         "organisation_id",
-        "agent_id"
+        "network_id"
       ],
       "schemaTo": "public",
-      "tableTo": "agent",
+      "tableTo": "network",
       "columnsTo": [
         "organisation_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "configuration_revision_agent_fk",
+      "onDelete": "NO ACTION",
+      "name": "gateway_network_fk",
       "entityType": "fks",
       "schema": "public",
-      "table": "configuration_revision"
+      "table": "gateway"
     },
     {
       "nameExplicit": false,
@@ -3657,17 +3847,36 @@
       "nameExplicit": true,
       "columns": [
         "organisation_id",
-        "network_id"
+        "publisher_device_id"
       ],
       "schemaTo": "public",
-      "tableTo": "network",
+      "tableTo": "device",
       "columnsTo": [
         "organisation_id",
         "id"
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
-      "name": "exposure_network_fk",
+      "name": "exposure_publisher_device_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "exposure"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "stream_id",
+        "upstream_exposure_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "exposure",
+      "columnsTo": [
+        "stream_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "exposure_upstream_fk",
       "entityType": "fks",
       "schema": "public",
       "table": "exposure"
@@ -3774,7 +3983,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "observation_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3827,7 +4036,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "metric_point_series_fk",
       "entityType": "fks",
       "schema": "public",
@@ -3844,7 +4053,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "metric_series_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3861,7 +4070,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "log_record_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3877,6 +4086,17 @@
       "entityType": "pks",
       "schema": "public",
       "table": "organisation_profile"
+    },
+    {
+      "columns": [
+        "device_id",
+        "address"
+      ],
+      "nameExplicit": false,
+      "name": "device_address_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "device_address"
     },
     {
       "columns": [
@@ -4066,9 +4286,9 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "configuration_revision_pkey",
+      "name": "gateway_pkey",
       "schema": "public",
-      "table": "configuration_revision",
+      "table": "gateway",
       "entityType": "pks"
     },
     {
@@ -4250,6 +4470,18 @@
     {
       "nameExplicit": true,
       "columns": [
+        "organisation_id",
+        "id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "gateway_organisation_id",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "gateway"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
         "stream_id",
         "id"
       ],
@@ -4305,7 +4537,7 @@
         "token"
       ],
       "nullsNotDistinct": false,
-      "name": "session_token_unique",
+      "name": "session_token_key",
       "schema": "public",
       "table": "session",
       "entityType": "uniques"
@@ -4316,7 +4548,7 @@
         "email"
       ],
       "nullsNotDistinct": false,
-      "name": "user_email_unique",
+      "name": "user_email_key",
       "schema": "public",
       "table": "user",
       "entityType": "uniques"
@@ -4357,11 +4589,11 @@
       "table": "device"
     },
     {
-      "value": "not (\"served\" and \"has_errors\")",
-      "name": "configuration_revision_served_usable",
+      "value": "\"upstream_exposure_id\" <> \"id\"",
+      "name": "exposure_upstream_other",
       "entityType": "checks",
       "schema": "public",
-      "table": "configuration_revision"
+      "table": "exposure"
     },
     {
       "value": "\"health\" in ('healthy', 'unhealthy', 'unknown')",

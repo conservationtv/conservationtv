@@ -1,10 +1,10 @@
 {
-  "id": "7f0a9b74-a639-447e-9392-b9609acc0d63",
-  "prevIds": [
-    "6bf5d4a4-2e66-4ec5-bfe9-e9617656838e"
-  ],
   "version": "8",
   "dialect": "postgres",
+  "id": "6442e95e-6fec-4a0f-9bec-3f7668755eb1",
+  "prevIds": [
+    "9f6bcc06-75a8-4ae7-bb05-f274d75c9c01"
+  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -81,6 +81,12 @@
     {
       "isRlsEnabled": false,
       "name": "device",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "device_address",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1409,6 +1415,84 @@
       "entityType": "columns",
       "schema": "public",
       "table": "device"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organisation_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "device_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "inet",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "interface",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "preferred",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "reported_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
     },
     {
       "type": "uuid",
@@ -3303,7 +3387,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "account_user_id_user_id_fk",
+      "name": "account_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "account"
@@ -3320,7 +3404,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "passkey_user_id_user_id_fk",
+      "name": "passkey_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "passkey"
@@ -3337,7 +3421,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "session_user_id_user_id_fk",
+      "name": "session_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "session"
@@ -3498,6 +3582,42 @@
       "entityType": "fks",
       "schema": "public",
       "table": "device"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organisation_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organisation",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "device_address_organisation_id_organisation_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "device_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "device",
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "device_address_device_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "device_address"
     },
     {
       "nameExplicit": false,
@@ -3969,6 +4089,17 @@
     },
     {
       "columns": [
+        "device_id",
+        "address"
+      ],
+      "nameExplicit": false,
+      "name": "device_address_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "columns": [
         "subject_id",
         "reporter_id"
       ],
@@ -4406,7 +4537,7 @@
         "token"
       ],
       "nullsNotDistinct": false,
-      "name": "session_token_unique",
+      "name": "session_token_key",
       "schema": "public",
       "table": "session",
       "entityType": "uniques"
@@ -4417,7 +4548,7 @@
         "email"
       ],
       "nullsNotDistinct": false,
-      "name": "user_email_unique",
+      "name": "user_email_key",
       "schema": "public",
       "table": "user",
       "entityType": "uniques"

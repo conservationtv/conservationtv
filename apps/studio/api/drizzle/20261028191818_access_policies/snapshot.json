@@ -1,8 +1,10 @@
 {
+  "id": "0fe8021f-ce3a-4616-8662-b0dc66380800",
+  "prevIds": [
+    "6ffee7ee-c110-40ac-afaa-7f0610c9b54f"
+  ],
   "version": "8",
   "dialect": "postgres",
-  "id": "0b1835de-fd92-4186-9d9c-81a5cdb2013f",
-  "prevIds": ["7f0a9b74-a639-447e-9392-b9609acc0d63"],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -3375,49 +3377,65 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "account_user_id_user_id_fk",
+      "name": "account_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "account"
     },
     {
       "nameExplicit": false,
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "passkey_user_id_user_id_fk",
+      "name": "passkey_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "passkey"
     },
     {
       "nameExplicit": false,
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "session_user_id_user_id_fk",
+      "name": "session_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "session"
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "organisation_membership_organisation_id_organisation_id_fkey",
@@ -3427,10 +3445,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "organisation_membership_user_id_user_id_fkey",
@@ -3440,10 +3462,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "user_id"],
+      "columns": [
+        "organisation_id",
+        "user_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation_membership",
-      "columnsTo": ["organisation_id", "user_id"],
+      "columnsTo": [
+        "organisation_id",
+        "user_id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "organisation_profile_membership_fk",
@@ -3453,10 +3481,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "organisation_invitation_organisation_id_organisation_id_fkey",
@@ -3466,10 +3498,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "organisation_invitation_user_id_user_id_fkey",
@@ -3479,10 +3515,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["invited_by"],
+      "columns": [
+        "invited_by"
+      ],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "organisation_invitation_invited_by_user_id_fkey",
@@ -3492,10 +3532,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "network_organisation_id_organisation_id_fkey",
@@ -3505,10 +3549,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "device_organisation_id_organisation_id_fkey",
@@ -3518,10 +3566,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "network_id"],
+      "columns": [
+        "organisation_id",
+        "network_id"
+      ],
       "schemaTo": "public",
       "tableTo": "network",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "device_network_fk",
@@ -3531,10 +3585,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "device_address_organisation_id_organisation_id_fkey",
@@ -3544,10 +3602,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "device_id"],
+      "columns": [
+        "organisation_id",
+        "device_id"
+      ],
       "schemaTo": "public",
       "tableTo": "device",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "device_address_device_fk",
@@ -3557,10 +3621,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "camera_organisation_id_organisation_id_fkey",
@@ -3570,10 +3638,18 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id", "kind"],
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
       "schemaTo": "public",
       "tableTo": "device",
-      "columnsTo": ["organisation_id", "id", "kind"],
+      "columnsTo": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "camera_device_fk",
@@ -3583,10 +3659,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "browser_organisation_id_organisation_id_fkey",
@@ -3596,10 +3676,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["session_id"],
+      "columns": [
+        "session_id"
+      ],
       "schemaTo": "public",
       "tableTo": "session",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "browser_session_id_session_id_fkey",
@@ -3609,10 +3693,18 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id", "kind"],
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
       "schemaTo": "public",
       "tableTo": "device",
-      "columnsTo": ["organisation_id", "id", "kind"],
+      "columnsTo": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "browser_device_fk",
@@ -3622,10 +3714,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "user_id"],
+      "columns": [
+        "organisation_id",
+        "user_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation_membership",
-      "columnsTo": ["organisation_id", "user_id"],
+      "columnsTo": [
+        "organisation_id",
+        "user_id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "browser_membership_fk",
@@ -3635,10 +3733,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "agent_organisation_id_organisation_id_fkey",
@@ -3648,10 +3750,20 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id", "kind", "network_id"],
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind",
+        "network_id"
+      ],
       "schemaTo": "public",
       "tableTo": "device",
-      "columnsTo": ["organisation_id", "id", "kind", "network_id"],
+      "columnsTo": [
+        "organisation_id",
+        "id",
+        "kind",
+        "network_id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "agent_device_fk",
@@ -3661,10 +3773,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "gateway_organisation_id_organisation_id_fkey",
@@ -3674,10 +3790,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "network_id"],
+      "columns": [
+        "organisation_id",
+        "network_id"
+      ],
       "schemaTo": "public",
       "tableTo": "network",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "gateway_network_fk",
@@ -3687,10 +3809,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "exposure_organisation_id_organisation_id_fkey",
@@ -3700,10 +3826,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "stream_id"],
+      "columns": [
+        "organisation_id",
+        "stream_id"
+      ],
       "schemaTo": "public",
       "tableTo": "stream",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "exposure_stream_fk",
@@ -3713,10 +3845,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "publisher_device_id"],
+      "columns": [
+        "organisation_id",
+        "publisher_device_id"
+      ],
       "schemaTo": "public",
       "tableTo": "device",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "exposure_publisher_device_fk",
@@ -3726,10 +3864,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["stream_id", "upstream_exposure_id"],
+      "columns": [
+        "stream_id",
+        "upstream_exposure_id"
+      ],
       "schemaTo": "public",
       "tableTo": "exposure",
-      "columnsTo": ["stream_id", "id"],
+      "columnsTo": [
+        "stream_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "exposure_upstream_fk",
@@ -3739,10 +3883,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "recorder_organisation_id_organisation_id_fkey",
@@ -3752,10 +3900,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "stream_id"],
+      "columns": [
+        "organisation_id",
+        "stream_id"
+      ],
       "schemaTo": "public",
       "tableTo": "stream",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "recorder_stream_fk",
@@ -3765,10 +3919,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["stream_id", "exposure_id"],
+      "columns": [
+        "stream_id",
+        "exposure_id"
+      ],
       "schemaTo": "public",
       "tableTo": "exposure",
-      "columnsTo": ["stream_id", "id"],
+      "columnsTo": [
+        "stream_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "recorder_exposure_fk",
@@ -3778,10 +3938,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "stream_organisation_id_organisation_id_fkey",
@@ -3791,10 +3955,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "source_device_id"],
+      "columns": [
+        "organisation_id",
+        "source_device_id"
+      ],
       "schemaTo": "public",
       "tableTo": "device",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "stream_source_device_fk",
@@ -3804,10 +3974,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "observation_organisation_id_organisation_id_fkey",
@@ -3817,10 +3991,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "reporter_opinion_organisation_id_organisation_id_fkey",
@@ -3830,10 +4008,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "subject_state_organisation_id_organisation_id_fkey",
@@ -3843,10 +4025,16 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "series_id"],
+      "columns": [
+        "organisation_id",
+        "series_id"
+      ],
       "schemaTo": "public",
       "tableTo": "metric_series",
-      "columnsTo": ["organisation_id", "id"],
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "metric_point_series_fk",
@@ -3856,10 +4044,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "metric_series_organisation_id_organisation_id_fkey",
@@ -3869,10 +4061,14 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["organisation_id"],
+      "columns": [
+        "organisation_id"
+      ],
       "schemaTo": "public",
       "tableTo": "organisation",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "log_record_organisation_id_organisation_id_fkey",
@@ -3881,7 +4077,10 @@
       "table": "log_record"
     },
     {
-      "columns": ["organisation_id", "user_id"],
+      "columns": [
+        "organisation_id",
+        "user_id"
+      ],
       "nameExplicit": false,
       "name": "organisation_profile_pkey",
       "entityType": "pks",
@@ -3889,7 +4088,10 @@
       "table": "organisation_profile"
     },
     {
-      "columns": ["device_id", "address"],
+      "columns": [
+        "device_id",
+        "address"
+      ],
       "nameExplicit": false,
       "name": "device_address_pkey",
       "entityType": "pks",
@@ -3897,7 +4099,10 @@
       "table": "device_address"
     },
     {
-      "columns": ["subject_id", "reporter_id"],
+      "columns": [
+        "subject_id",
+        "reporter_id"
+      ],
       "nameExplicit": false,
       "name": "reporter_opinion_pkey",
       "entityType": "pks",
@@ -3905,7 +4110,10 @@
       "table": "reporter_opinion"
     },
     {
-      "columns": ["organisation_id", "subject_id"],
+      "columns": [
+        "organisation_id",
+        "subject_id"
+      ],
       "nameExplicit": false,
       "name": "subject_state_pkey",
       "entityType": "pks",
@@ -3913,7 +4121,10 @@
       "table": "subject_state"
     },
     {
-      "columns": ["series_id", "observed_at"],
+      "columns": [
+        "series_id",
+        "observed_at"
+      ],
       "nameExplicit": false,
       "name": "metric_point_pkey",
       "entityType": "pks",
@@ -3921,7 +4132,9 @@
       "table": "metric_point"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "account_pkey",
       "schema": "public",
@@ -3929,7 +4142,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "device_code_pkey",
       "schema": "public",
@@ -3937,7 +4152,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "passkey_pkey",
       "schema": "public",
@@ -3945,7 +4162,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "authz_role_assignments_pkey",
       "schema": "public",
@@ -3953,7 +4172,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "session_pkey",
       "schema": "public",
@@ -3961,7 +4182,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "verification_pkey",
       "schema": "public",
@@ -3969,7 +4192,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "user_pkey",
       "schema": "public",
@@ -3977,7 +4202,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "organisation_membership_pkey",
       "schema": "public",
@@ -3985,7 +4212,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "organisation_pkey",
       "schema": "public",
@@ -3993,7 +4222,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "organisation_invitation_pkey",
       "schema": "public",
@@ -4001,7 +4232,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "network_pkey",
       "schema": "public",
@@ -4009,7 +4242,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "device_pkey",
       "schema": "public",
@@ -4017,7 +4252,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "camera_pkey",
       "schema": "public",
@@ -4025,7 +4262,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "browser_pkey",
       "schema": "public",
@@ -4033,7 +4272,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "agent_pkey",
       "schema": "public",
@@ -4041,7 +4282,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "gateway_pkey",
       "schema": "public",
@@ -4049,7 +4292,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "exposure_pkey",
       "schema": "public",
@@ -4057,7 +4302,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "recorder_pkey",
       "schema": "public",
@@ -4065,7 +4312,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "stream_pkey",
       "schema": "public",
@@ -4073,7 +4322,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "observation_pkey",
       "schema": "public",
@@ -4081,7 +4332,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "metric_series_pkey",
       "schema": "public",
@@ -4089,7 +4342,9 @@
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "log_record_pkey",
       "schema": "public",
@@ -4116,7 +4371,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "user_id"],
+      "columns": [
+        "organisation_id",
+        "user_id"
+      ],
       "nullsNotDistinct": false,
       "name": "organisation_membership_organisation_user",
       "entityType": "uniques",
@@ -4125,7 +4383,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id"],
+      "columns": [
+        "organisation_id",
+        "id"
+      ],
       "nullsNotDistinct": false,
       "name": "network_organisation_id",
       "entityType": "uniques",
@@ -4134,7 +4395,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id"],
+      "columns": [
+        "organisation_id",
+        "id"
+      ],
       "nullsNotDistinct": false,
       "name": "device_organisation_id",
       "entityType": "uniques",
@@ -4143,7 +4407,11 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id", "kind"],
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind"
+      ],
       "nullsNotDistinct": false,
       "name": "device_organisation_id_kind",
       "entityType": "uniques",
@@ -4152,7 +4420,12 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id", "kind", "network_id"],
+      "columns": [
+        "organisation_id",
+        "id",
+        "kind",
+        "network_id"
+      ],
       "nullsNotDistinct": false,
       "name": "device_organisation_id_kind_network",
       "entityType": "uniques",
@@ -4161,7 +4434,9 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["public_id"],
+      "columns": [
+        "public_id"
+      ],
       "nullsNotDistinct": false,
       "name": "device_public_id",
       "entityType": "uniques",
@@ -4170,7 +4445,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["session_id", "organisation_id"],
+      "columns": [
+        "session_id",
+        "organisation_id"
+      ],
       "nullsNotDistinct": false,
       "name": "browser_session_organisation",
       "entityType": "uniques",
@@ -4179,7 +4457,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id"],
+      "columns": [
+        "organisation_id",
+        "id"
+      ],
       "nullsNotDistinct": false,
       "name": "agent_organisation_id",
       "entityType": "uniques",
@@ -4188,7 +4469,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id"],
+      "columns": [
+        "organisation_id",
+        "id"
+      ],
       "nullsNotDistinct": false,
       "name": "gateway_organisation_id",
       "entityType": "uniques",
@@ -4197,7 +4481,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["stream_id", "id"],
+      "columns": [
+        "stream_id",
+        "id"
+      ],
       "nullsNotDistinct": false,
       "name": "exposure_stream_id",
       "entityType": "uniques",
@@ -4206,7 +4493,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id"],
+      "columns": [
+        "organisation_id",
+        "id"
+      ],
       "nullsNotDistinct": false,
       "name": "stream_organisation_id",
       "entityType": "uniques",
@@ -4215,7 +4505,14 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "subject_id", "name", "reporter_id", "unit", "dimensions"],
+      "columns": [
+        "organisation_id",
+        "subject_id",
+        "name",
+        "reporter_id",
+        "unit",
+        "dimensions"
+      ],
       "nullsNotDistinct": true,
       "name": "metric_series_identity",
       "entityType": "uniques",
@@ -4224,7 +4521,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": ["organisation_id", "id"],
+      "columns": [
+        "organisation_id",
+        "id"
+      ],
       "nullsNotDistinct": false,
       "name": "metric_series_organisation_id",
       "entityType": "uniques",
@@ -4233,18 +4533,22 @@
     },
     {
       "nameExplicit": false,
-      "columns": ["token"],
+      "columns": [
+        "token"
+      ],
       "nullsNotDistinct": false,
-      "name": "session_token_unique",
+      "name": "session_token_key",
       "schema": "public",
       "table": "session",
       "entityType": "uniques"
     },
     {
       "nameExplicit": false,
-      "columns": ["email"],
+      "columns": [
+        "email"
+      ],
       "nullsNotDistinct": false,
-      "name": "user_email_unique",
+      "name": "user_email_key",
       "schema": "public",
       "table": "user",
       "entityType": "uniques"

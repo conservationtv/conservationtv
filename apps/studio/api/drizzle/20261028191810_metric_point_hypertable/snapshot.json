@@ -1,10 +1,10 @@
 {
+  "id": "6ffee7ee-c110-40ac-afaa-7f0610c9b54f",
+  "prevIds": [
+    "6442e95e-6fec-4a0f-9bec-3f7668755eb1"
+  ],
   "version": "8",
   "dialect": "postgres",
-  "id": "ea01a176-a87a-4fdb-b6c9-45d69b6a2e71",
-  "prevIds": [
-    "da7c0109-9f96-48da-adda-19d9a6efc698"
-  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -81,6 +81,12 @@
     {
       "isRlsEnabled": false,
       "name": "device",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "device_address",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1125,6 +1131,19 @@
       "table": "organisation"
     },
     {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "organisation"
+    },
+    {
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -1405,6 +1424,84 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "organisation_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "device_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "inet",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "interface",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "preferred",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "reported_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "id",
       "entityType": "columns",
       "schema": "public",
@@ -1444,10 +1541,23 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "'{}'",
+      "default": null,
       "generated": null,
       "identity": null,
       "name": "settings",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "camera"
+    },
+    {
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credentials",
       "entityType": "columns",
       "schema": "public",
       "table": "camera"
@@ -1667,19 +1777,6 @@
       "table": "gateway"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "protocols",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "gateway"
-    },
-    {
       "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
@@ -1745,7 +1842,7 @@
       "table": "exposure"
     },
     {
-      "type": "uuid",
+      "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1761,11 +1858,11 @@
       "type": "text",
       "typeSchema": null,
       "notNull": true,
-      "dimensions": 0,
-      "default": null,
+      "dimensions": 1,
+      "default": "'{default}'",
       "generated": null,
       "identity": null,
-      "name": "protocol",
+      "name": "renditions",
       "entityType": "columns",
       "schema": "public",
       "table": "exposure"
@@ -1870,6 +1967,19 @@
       "generated": null,
       "identity": null,
       "name": "exposure_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "recorder"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'default'",
+      "generated": null,
+      "identity": null,
+      "name": "rendition",
       "entityType": "columns",
       "schema": "public",
       "table": "recorder"
@@ -3277,7 +3387,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "account_user_id_user_id_fk",
+      "name": "account_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "account"
@@ -3294,7 +3404,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "passkey_user_id_user_id_fk",
+      "name": "passkey_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "passkey"
@@ -3311,7 +3421,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "session_user_id_user_id_fk",
+      "name": "session_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "session"
@@ -3472,6 +3582,42 @@
       "entityType": "fks",
       "schema": "public",
       "table": "device"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "organisation_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "organisation",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "device_address_organisation_id_organisation_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "device_address"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "organisation_id",
+        "device_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "device",
+      "columnsTo": [
+        "organisation_id",
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "device_address_device_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "device_address"
     },
     {
       "nameExplicit": false,
@@ -3701,25 +3847,6 @@
       "nameExplicit": true,
       "columns": [
         "organisation_id",
-        "gateway_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "gateway",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "exposure_gateway_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "exposure"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
         "publisher_device_id"
       ],
       "schemaTo": "public",
@@ -3856,7 +3983,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "observation_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3909,7 +4036,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "metric_point_series_fk",
       "entityType": "fks",
       "schema": "public",
@@ -3926,7 +4053,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "metric_series_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3943,7 +4070,7 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
+      "onDelete": "NO ACTION",
       "name": "log_record_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -3959,6 +4086,17 @@
       "entityType": "pks",
       "schema": "public",
       "table": "organisation_profile"
+    },
+    {
+      "columns": [
+        "device_id",
+        "address"
+      ],
+      "nameExplicit": false,
+      "name": "device_address_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "device_address"
     },
     {
       "columns": [
@@ -4399,7 +4537,7 @@
         "token"
       ],
       "nullsNotDistinct": false,
-      "name": "session_token_unique",
+      "name": "session_token_key",
       "schema": "public",
       "table": "session",
       "entityType": "uniques"
@@ -4410,7 +4548,7 @@
         "email"
       ],
       "nullsNotDistinct": false,
-      "name": "user_email_unique",
+      "name": "user_email_key",
       "schema": "public",
       "table": "user",
       "entityType": "uniques"
@@ -4449,13 +4587,6 @@
       "entityType": "checks",
       "schema": "public",
       "table": "device"
-    },
-    {
-      "value": "cardinality(\"protocols\") > 0",
-      "name": "gateway_protocols",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "gateway"
     },
     {
       "value": "\"upstream_exposure_id\" <> \"id\"",
