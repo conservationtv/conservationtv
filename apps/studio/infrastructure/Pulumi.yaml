@@ -1,0 +1,7 @@
+name: studio
+description: The studio API's Worker, database and secrets.
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm
+    typescript: false

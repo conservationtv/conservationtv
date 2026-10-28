@@ -764,6 +764,28 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  apps/studio/infrastructure:
+    dependencies:
+      '@pulumi/cloudflare':
+        specifier: 'catalog:'
+        version: 6.22.0(supports-color@10.2.2)
+      '@pulumi/planetscale':
+        specifier: workspace:*
+        version: link:../../controlplane/infrastructure/sdks/planetscale
+      '@pulumi/pulumi':
+        specifier: 3.268.0
+        version: 3.268.0(supports-color@10.2.2)
+      '@pulumi/random':
+        specifier: 'catalog:'
+        version: 4.21.2(supports-color@10.2.2)
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   apps/studio/sdk:
     dependencies:
       '@conservationtv/versioned-api':
