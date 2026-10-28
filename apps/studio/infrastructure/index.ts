@@ -8,11 +8,13 @@ const stack = pulumi.getStack();
 const zoneId = config.require('zoneId');
 const apiDomain = config.require('apiDomain');
 const appUrl = `https://${apiDomain}`;
-// Not served by this stack yet; the API trusts it as the web app's origin and hosts the device approval page there.
-const webOrigin = `https://${config.require('webDomain')}`;
+const webDomain = config.require('webDomain');
+// The web app's origin: the API trusts it, and hosts the device approval page there.
+const webOrigin = `https://${webDomain}`;
 // Account-wide names: prod keeps the bare names, other stacks (staging) are suffixed with their name.
 const accountName = (name: string) => (stack === 'prod' ? name : `${name}-${stack}`);
-const workerName = accountName('studio-api');
+const apiWorkerName = accountName('studio-api');
+const webWorkerName = accountName('studio-web');
 const databaseName = accountName('studio');
 const accountId = cloudflare.getZoneOutput({ zoneId }).account.id;
 
@@ -33,7 +35,15 @@ const gatekeeperToken = controlplane.requireOutput('gatekeeperConsumerToken');
 // routes traffic to the one tagged `apiVersion` once that is set.
 const apiWorker = new cloudflare.Worker('studio-api', {
   accountId,
-  name: workerName,
+  name: apiWorkerName,
+  observability: { enabled: true },
+  subdomain: { enabled: false }
+});
+// The web app's Worker. Its versions carry the app's build as static assets and serve the configuration it reads at
+// runtime (`web` below) as /config.js; they are uploaded from ../web/worker, and deployed, like the API's.
+const webWorker = new cloudflare.Worker('studio-web', {
+  accountId,
+  name: webWorkerName,
   observability: { enabled: true },
   subdomain: { enabled: false }
 });
@@ -95,47 +105,53 @@ const betterAuthSecret = new random.RandomBytes('better-auth-secret', { length: 
 // Every encrypted column is sealed under this key, and nothing re-seals them yet: replacing it loses that data.
 const fieldKey = new random.RandomBytes('field-key', { length: 32 }, { protect: true });
 
-interface DeployedApi {
+/** What this stack reads of its own `api` and `web` outputs. */
+interface DeployedWorker {
   versionTag?: string;
 }
 
-// The tag a version was uploaded with (`cf workers versions create --tag`), like an image tag. CI sets it for each
-// release; otherwise this keeps the version deployed now, read from the stack's last outputs, so a plain `pulumi up`
-// never rolls the API back or removes its deployment. Unset before the first upload, which needs the Worker and the
-// bindings above to exist.
+// Each Worker's versions are uploaded with a tag (`cf workers versions create --tag`), like an image tag. CI sets
+// `apiVersion` and `webVersion` for each release; otherwise this keeps the versions deployed now, read from the stack's
+// last outputs, so a plain `pulumi up` never rolls either back or removes its deployment. Each is unset before its
+// Worker's first upload, which needs the Worker and the bindings above to exist.
 const previousOutputs = new pulumi.StackReference(`${pulumi.getOrganization()}/${pulumi.getProject()}/${stack}`);
-// SAFETY: `api` is this stack's own output, exported below with this shape (or absent before the first update).
-const deployed = (await previousOutputs.getOutputDetails('api')).value as DeployedApi | undefined;
-const apiVersion = config.get('apiVersion') ?? deployed?.versionTag;
-const apiVersionId = apiVersion
-  ? cloudflare.getWorkerVersionsOutput({ accountId, workerId: apiWorker.name }).results.apply(versions => {
-      // A tag can be uploaded more than once; the latest upload wins.
-      const [latest] = versions
-        .filter(v => v.annotations.workersTag === apiVersion)
-        .sort((a, b) => b.number - a.number);
-      if (!latest) throw new Error(`No studio API version is tagged ${apiVersion}; upload it first`);
-      return latest.id;
-    })
-  : undefined;
-if (apiVersionId) {
-  const deployment = new cloudflare.WorkersDeployment('studio-api', {
+const deployedTag = async (output: 'api' | 'web') =>
+  // SAFETY: `api` and `web` are this stack's own outputs, exported below with this shape (or absent before the first
+  // update).
+  ((await previousOutputs.getOutputDetails(output)).value as DeployedWorker | undefined)?.versionTag;
+
+/** Routes all of `worker`'s traffic to its version tagged `tag`, serves it on `hostname`, and returns the version's id. */
+const deploy = (name: string, worker: cloudflare.Worker, hostname: string, tag: string) => {
+  const versionId = cloudflare.getWorkerVersionsOutput({ accountId, workerId: worker.name }).results.apply(versions => {
+    // A tag can be uploaded more than once; the latest upload wins.
+    const [latest] = versions.filter(v => v.annotations.workersTag === tag).sort((a, b) => b.number - a.number);
+    if (!latest) throw new Error(`No ${name} version is tagged ${tag}; upload it first`);
+    return latest.id;
+  });
+  const deployment = new cloudflare.WorkersDeployment(name, {
     accountId,
-    scriptName: apiWorker.name,
+    scriptName: worker.name,
     strategy: 'percentage',
-    versions: [{ versionId: apiVersionId, percentage: 100 }],
-    annotations: { workersMessage: `Deploy ${apiVersion}` }
+    versions: [{ versionId, percentage: 100 }],
+    annotations: { workersMessage: `Deploy ${tag}` }
   });
   // Cloudflare only attaches domains to a Worker that has a deployment.
   new cloudflare.WorkersCustomDomain(
-    'studio-api',
-    { accountId, zoneId, hostname: apiDomain, service: apiWorker.name },
+    name,
+    { accountId, zoneId, hostname, service: worker.name },
     { dependsOn: deployment }
   );
-}
+  return versionId;
+};
+
+const apiVersion = config.get('apiVersion') ?? (await deployedTag('api'));
+const apiVersionId = apiVersion ? deploy('studio-api', apiWorker, apiDomain, apiVersion) : undefined;
+const webVersion = config.get('webVersion') ?? (await deployedTag('web'));
+const webVersionId = webVersion ? deploy('studio-web', webWorker, webDomain, webVersion) : undefined;
 
 /** The studio API's build settings, read from STACK_OUTPUT_JSON. */
 export const api = {
-  workerName,
+  workerName: apiWorkerName,
   versionTag: apiVersion,
   versionId: apiVersionId,
   adminHyperdriveId: adminHyperdrive.id,
@@ -144,6 +160,13 @@ export const api = {
   appUrl,
   webOrigins: [webOrigin],
   gatekeeperUrl
+};
+/** The studio web Worker's build settings, read from STACK_OUTPUT_JSON: `apiUrl` is served to the app as /config.js. */
+export const web = {
+  workerName: webWorkerName,
+  versionTag: webVersion,
+  versionId: webVersionId,
+  apiUrl: appUrl
 };
 /** Every studio API secret binding, uploaded with each version through `--secrets-file`. */
 export const apiSecrets = pulumi.secret({

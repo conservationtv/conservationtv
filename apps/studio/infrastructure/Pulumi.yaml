@@ -1,5 +1,5 @@
 name: studio
-description: The studio API's Worker, database and secrets.
+description: The studio API's Worker, database and secrets, and the web app's Worker.
 # State lives in the R2 bucket conservationtv-pulumi-state, with the passphrase secrets provider; see
 # docs/infra/pulumi.md.
 backend:

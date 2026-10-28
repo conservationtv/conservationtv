@@ -6,9 +6,12 @@ on:
     paths:
       - apps/studio/api/**
       - apps/studio/infrastructure/**
+      - apps/studio/sdk/**
+      - apps/studio/web/**
       - apps/controlplane/sdk/**
       - packages/reports/**
       - packages/store/**
+      - packages/ui/**
       - packages/umbrella/**
       - packages/versioned-api/**
       - pnpm-lock.yaml
@@ -68,8 +71,8 @@ jobs:
       - name: Build the stack program
         run: pnpm run build
 
-      # Without apiVersion the stack keeps the deployed version, so this applies only infrastructure changes and the
-      # version uploaded below binds resources that already exist.
+      # Without apiVersion and webVersion the stack keeps the deployed versions, so this applies only infrastructure
+      # changes and the versions uploaded below bind resources that already exist.
       - name: Apply infrastructure
         run: pulumi up --stack "$STACK" --yes --non-interactive --diff
 
@@ -99,5 +102,20 @@ jobs:
             pnpm --filter @conservationtv/studio-api run upload \
             --tag "$GITHUB_SHA" --message "studio-api $GITHUB_SHA" --secrets-file "$secrets"
 
-      - name: Deploy the version
-        run: pulumi up --stack "$STACK" --yes --non-interactive --diff --config "apiVersion=$GITHUB_SHA"
+      # The same build for every stack: the web Worker serves the stack's configuration to it as /config.js.
+      - name: Build the web app
+        working-directory: .
+        run: pnpm --filter @conservationtv/web run build
+
+      - name: Upload a studio web version
+        run: |
+          STACK_OUTPUT_JSON=$(pulumi stack output --json --stack "$STACK") \
+            pnpm --filter @conservationtv/studio-web-worker run upload \
+            --tag "$GITHUB_SHA" --message "studio-web $GITHUB_SHA"
+
+      # Both Workers switch in the one update. The app negotiates operation versions with the API, so it tolerates the
+      # moment either runs ahead of the other.
+      - name: Deploy the versions
+        run: >-
+          pulumi up --stack "$STACK" --yes --non-interactive --diff
+          --config "apiVersion=$GITHUB_SHA" --config "webVersion=$GITHUB_SHA"
