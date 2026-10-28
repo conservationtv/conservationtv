@@ -37,13 +37,10 @@ jobs:
     environment: ${{ github.event_name == 'push' && 'staging' || inputs.stack }}
     env:
       STACK: ${{ github.event_name == 'push' && 'staging' || inputs.stack }}
-      PULUMI_BACKEND_URL: ${{ vars.PULUMI_BACKEND_URL }}
+      # The state backend is each project's Pulumi.yaml backend.url, an R2 bucket reached with these S3 credentials.
+      AWS_ACCESS_KEY_ID: ${{ secrets.PULUMI_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PULUMI_STATE_SECRET_ACCESS_KEY }}
       PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-      PGHOST: ${{ secrets.PGHOST }}
-      PGDATABASE: ${{ secrets.PGDATABASE }}
-      PGUSER: ${{ secrets.PGUSER }}
-      PGPASSWORD: ${{ secrets.PGPASSWORD }}
-      PGSSLMODE: ${{ vars.PGSSLMODE }}
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -84,8 +81,7 @@ jobs:
           DATABASE_URL="$database_url" pnpm --filter @conservationtv/studio-api run db:migrate
 
       # The migrations create `studio_app` and grant to it; PlanetScale names its login roles, so the application role
-      # logs in under its own name as a member. The env's PG* variables are Pulumi's state database: the URL overrides
-      # them, and psql checks the server against the system's certificates.
+      # logs in under its own name as a member. psql checks the server against the system's certificates.
       - name: Grant the application role
         run: |
           database_url=$(pulumi stack output databaseMigrationUrl --show-secrets --stack "$STACK")
