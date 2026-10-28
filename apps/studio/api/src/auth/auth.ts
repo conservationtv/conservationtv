@@ -34,7 +34,7 @@ export interface AuthDependencies {
  * `/device`, and the token it receives is sent as a bearer token on every request.
  */
 export function createAuth({ database, access, variables, deliverOtp, background }: AuthDependencies) {
-  const appUrl = new URL(variables.APP_URL);
+  const webApp = new URL(variables.WEB_ORIGINS[0]);
   const ensureSelfGrant = async (userId: string): Promise<void> => {
     await access.at(users.$access.scope.at(userId)).grant({ principal: principalOf(userId), role: self });
   };
@@ -65,10 +65,12 @@ export function createAuth({ database, access, variables, deliverOtp, background
     },
     plugins: [
       emailOTP({ sendVerificationOTP: deliverOtp, disableSignUp: false }),
+      // Passkeys are registered and used in the web app, and a browser only accepts a relying party that is the page's
+      // own host or a parent of it, so the relying party is the web app's host rather than this API's.
       passkey({
-        rpID: appUrl.hostname,
+        rpID: webApp.hostname,
         rpName: 'conservation.tv studio',
-        origin: [variables.APP_URL, ...variables.WEB_ORIGINS],
+        origin: variables.WEB_ORIGINS,
         // Discoverable credentials carry their account, so the web app can sign in with a passkey without asking for
         // (or storing) an email first.
         authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' }

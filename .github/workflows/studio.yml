@@ -1,0 +1,107 @@
+name: studio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/studio/api/**
+      - apps/studio/infrastructure/**
+      - apps/controlplane/sdk/**
+      - packages/reports/**
+      - packages/store/**
+      - packages/umbrella/**
+      - packages/versioned-api/**
+      - pnpm-lock.yaml
+      - .github/workflows/studio.yml
+  # Pushes to main release to staging; prod is released by hand, from a commit staging already runs. A dispatch must
+  # name its stack: below, only a push means staging.
+  workflow_dispatch:
+    inputs:
+      stack:
+        description: The studio stack to release
+        type: choice
+        options: [staging, prod]
+        required: true
+
+# One deploy per stack at a time; a newer push waits rather than cancelling an apply in progress.
+concurrency:
+  group: studio-${{ github.event_name == 'push' && 'staging' || inputs.stack }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'push' && 'staging' || inputs.stack }}
+    env:
+      STACK: ${{ github.event_name == 'push' && 'staging' || inputs.stack }}
+      PULUMI_BACKEND_URL: ${{ vars.PULUMI_BACKEND_URL }}
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      PGHOST: ${{ secrets.PGHOST }}
+      PGDATABASE: ${{ secrets.PGDATABASE }}
+      PGUSER: ${{ secrets.PGUSER }}
+      PGPASSWORD: ${{ secrets.PGPASSWORD }}
+      PGSSLMODE: ${{ vars.PGSSLMODE }}
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      # Pulumi downloads github:// provider plugins through the GitHub API; unauthenticated, runners share its rate limit.
+      GITHUB_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        working-directory: apps/studio/infrastructure
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: pulumi/actions@v6
+        with:
+          pulumi-version: 3.250.0
+
+      - name: Install
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the stack program
+        run: pnpm run build
+
+      # Without apiVersion the stack keeps the deployed version, so this applies only infrastructure changes and the
+      # version uploaded below binds resources that already exist.
+      - name: Apply infrastructure
+        run: pulumi up --stack "$STACK" --yes --non-interactive --diff
+
+      # Migrations must stay compatible with the version still serving until the deployment switches.
+      - name: Migrate the database
+        run: |
+          database_url=$(pulumi stack output databaseMigrationUrl --show-secrets --stack "$STACK")
+          echo "::add-mask::$database_url"
+          DATABASE_URL="$database_url" pnpm --filter @conservationtv/studio-api run db:migrate
+
+      # The migrations create `studio_app` and grant to it; PlanetScale names its login roles, so the application role
+      # logs in under its own name as a member. The env's PG* variables are Pulumi's state database: the URL overrides
+      # them, and psql checks the server against the system's certificates.
+      - name: Grant the application role
+        run: |
+          database_url=$(pulumi stack output databaseMigrationUrl --show-secrets --stack "$STACK")
+          echo "::add-mask::$database_url"
+          app_role=$(pulumi stack output databaseAppRole --stack "$STACK")
+          echo 'grant studio_app to :"app_role";' |
+            PGSSLROOTCERT=system psql "$database_url" -v ON_ERROR_STOP=1 -v app_role="$app_role"
+
+      - name: Upload a studio API version
+        run: |
+          secrets="$RUNNER_TEMP/studio-api-secrets.json"
+          trap 'rm -f "$secrets"' EXIT
+          pulumi stack output apiSecrets --json --show-secrets --stack "$STACK" > "$secrets"
+          STACK_OUTPUT_JSON=$(pulumi stack output --json --stack "$STACK") \
+            pnpm --filter @conservationtv/studio-api run upload \
+            --tag "$GITHUB_SHA" --message "studio-api $GITHUB_SHA" --secrets-file "$secrets"
+
+      - name: Deploy the version
+        run: pulumi up --stack "$STACK" --yes --non-interactive --diff --config "apiVersion=$GITHUB_SHA"

@@ -9,7 +9,8 @@ Unlike gatekeeper, requests run as a signed-in account and the database decides 
 authorization is [`@conservationtv/umbrella`](../../../packages/umbrella), which compiles access definitions written
 beside each Drizzle table into PostgreSQL row-level security. Read its [guide](../../../packages/umbrella/GUIDE.md).
 
-Not deployed yet: there is no Pulumi stack, and the Hyperdrive bindings are placeholders.
+Its Worker, database and secrets are the studio Pulumi stack's ([`../infrastructure`](../infrastructure)), which
+releases it the way gatekeeper is released. Locally, the Hyperdrive and KV IDs are placeholders.
 
 ## Endpoints
 
@@ -75,7 +76,7 @@ organisations are this API's own tables rather than Better Auth's (see [Organisa
   `Authorization: Bearer …` (the `bearer` plugin), so `requirePrincipal` needs no cookie.
 - **Passkeys** as an alternative sign-in only: `/auth/passkey/generate-register-options` and `/auth/passkey/verify-registration`
   need an existing session, so a passkey can never create an account; `/auth/sign-in/passkey` signs in with one. The
-  relying party is `APP_URL`'s host, with `APP_URL` and `WEB_ORIGINS` as allowed origins.
+  relying party is the web app's host (the first `WEB_ORIGINS` entry), with `WEB_ORIGINS` as allowed origins.
 
 `requirePrincipal` (`src/middleware/principal.ts`) resolves the session cookie with `auth.api.getSession` and runs
 the rest of the request with its umbrella principal, `user(<account id>)`, which handlers read with `usePrincipal()`. Better Auth itself uses the admin connection and owns its
@@ -100,20 +101,22 @@ update its own row; a different account's row is simply absent. Only Better Auth
 `authorization.access(admin)`, and a request that never grants opens no admin connection. Umbrella needs two database roles, so there are two Hyperdrive
 bindings:
 
-| Binding              | Kind       | Purpose                                                                             |
-| -------------------- | ---------- | ----------------------------------------------------------------------------------- |
-| `HYPERDRIVE_ADMIN`   | Hyperdrive | the owning role: migrations, Better Auth, grants                                    |
-| `HYPERDRIVE_APP`     | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                    |
-| `CACHE`              | KV         | the key-value cache: device request nonces                                          |
-| `BETTER_AUTH_SECRET` | secret     | Better Auth's signing secret                                                        |
-| `FIELD_KEY`          | secret     | base64 32-byte master key for encrypted columns and blind indexes                   |
-| `APP_URL`            | text       | where the API is served; Better Auth's base URL and passkey relying party           |
-| `WEB_ORIGINS`        | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` |
-| `OTP_DELIVERY`       | text       | `log` only, see above                                                               |
-| `GATEKEEPER_URL`     | text       | the control plane naming the iroh and MoQ relays, and admitting devices             |
-| `GATEKEEPER_TOKEN`   | secret     | that control plane environment's consumer token                                     |
+| Binding              | Kind       | Purpose                                                                                                              |
+| -------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `HYPERDRIVE_ADMIN`   | Hyperdrive | the owning role: migrations, Better Auth, grants                                                                     |
+| `HYPERDRIVE_APP`     | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                                                     |
+| `CACHE`              | KV         | the key-value cache: device request nonces                                                                           |
+| `BETTER_AUTH_SECRET` | secret     | Better Auth's signing secret                                                                                         |
+| `FIELD_KEY`          | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
+| `APP_URL`            | text       | where the API is served; Better Auth's base URL                                                                      |
+| `WEB_ORIGINS`        | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` and is the passkey relying party |
+| `OTP_DELIVERY`       | text       | `log` only, see above                                                                                                |
+| `GATEKEEPER_URL`     | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
+| `GATEKEEPER_TOKEN`   | secret     | that control plane environment's consumer token                                                                      |
 
-The application role is `studio_app` in every environment: `docker/init.sql` creates it locally. Its privileges on
+The application role is `studio_app` in every environment, created by the `application_role` migration. Locally,
+`docker/init.sql` creates it as a login role first; deployed, PlanetScale's login role is made a member of it (see
+[the stack's README](../infrastructure/README.md#database-roles)). Its privileges on
 every protected table are generated, not written: `umbrella generate --role studio_app` derives them from the access
 definitions in each access-policies migration (every operation an action declares except `trusted` ones; `select`
 of every column but `hidden` ones; `update` of every column that is not a primary key, generated or immutable), and

@@ -1,0 +1,20 @@
+{
+  "name": "@conservationtv/studio-infrastructure",
+  "private": true,
+  "type": "module",
+  "main": "bin/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pulumi/cloudflare": "catalog:",
+    "@pulumi/planetscale": "workspace:*",
+    "@pulumi/pulumi": "catalog:",
+    "@pulumi/random": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "catalog:"
+  }
+}

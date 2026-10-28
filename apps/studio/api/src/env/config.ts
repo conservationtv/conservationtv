@@ -17,9 +17,12 @@ import type { Background, Clock, Environment } from './env.ts';
  * The deployment's text bindings and secrets: under `nodejs_compat` they are also `process.env`, which ArkEnv reads.
  */
 export const config = {
-  /** Where the API is served: Better Auth's base URL and the passkey relying party. */
+  /** Where the API is served: Better Auth's base URL. */
   APP_URL: z.url(),
-  /** Comma-separated. The first is the studio web app, which hosts the device-flow approval page. */
+  /**
+   * Comma-separated. The first is the studio web app, which hosts the device-flow approval page and whose host is the
+   * passkey relying party.
+   */
   WEB_ORIGINS: z.array(z.url()).nonempty(),
   /**
    * The control plane that names the relays and admits devices to them: it leases each device's endpoint on its iroh
