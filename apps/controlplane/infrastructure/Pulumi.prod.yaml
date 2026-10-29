@@ -5,3 +5,5 @@ config:
   controlplane:acmeEmail: james@siliconlemonade.com
   controlplane:gatekeeperDomain: gatekeeper.conservation.tv
   controlplane:planetscaleOrganization: conservationtv
+  controlplane:consumers:
+    prod: 1

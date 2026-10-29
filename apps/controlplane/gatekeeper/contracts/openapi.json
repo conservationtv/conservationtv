@@ -230,7 +230,7 @@
                         "properties": {
                           "root": {
                             "type": "string",
-                            "maxLength": 256
+                            "maxLength": 223
                           },
                           "publish": {
                             "maxItems": 32,
@@ -518,7 +518,7 @@
                             "properties": {
                               "root": {
                                 "type": "string",
-                                "maxLength": 256
+                                "maxLength": 223
                               },
                               "publish": {
                                 "maxItems": 32,
