@@ -1,0 +1,64 @@
+name: studio-preview
+run-name: 'studio-preview #${{ inputs.pr }}'
+
+# Releases a pull request to the one preview stack (studio.preview.conservation.tv), on a fresh clone of staging's
+# database: `gh workflow run studio-preview -f pr=<number>`. Each release replaces the last, whichever pull request it
+# was for, and comments on the pull request it releases.
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: The pull request to preview
+        type: number
+        required: true
+
+# One preview at a time; a newer request waits rather than cancelling a restore or apply in progress.
+concurrency:
+  group: studio-preview
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # The release runs the pull request's code with the preview environment's secrets, so only this repository's own
+  # branches are previewed, never a fork's.
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+    steps:
+      - id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+        run: |
+          read -r state cross sha < <(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" \
+            --json state,isCrossRepository,headRefOid --jq '"\(.state) \(.isCrossRepository) \(.headRefOid)"')
+          if [ "$state" != OPEN ]; then echo "::error::#$PR is $state, not open"; exit 1; fi
+          if [ "$cross" != false ]; then echo "::error::#$PR is from a fork, which is never previewed"; exit 1; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: resolve
+    uses: ./.github/workflows/studio-release.yml
+    with:
+      stack: preview
+      ref: ${{ needs.resolve.outputs.sha }}
+      restore: true
+    secrets: inherit
+
+  announce:
+    needs: [resolve, release]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+          URL: ${{ needs.release.outputs.url }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
+            --body "Previewing $SHA at $URL, on a copy of staging's data. The next preview replaces it."
