@@ -81,6 +81,42 @@ Secrets reach the API only with a release. `GATEKEEPER_TOKEN` is the controlplan
 rotating that, release the studio too. `BETTER_AUTH_SECRET` and `FIELD_KEY` are generated here. `FIELD_KEY` seals every
 encrypted column and nothing re-seals them, so it is protected: replacing it loses that data.
 
+## Tracing
+
+The API's Worker records [Workers traces](https://developers.cloudflare.com/workers/observability/traces/), kept in
+Cloudflare and exported over OTLP to Sentry, so the web app's requests (#82) and the API spans they cause share a trace.
+The stack sets the Worker's trace settings; three optional config values control them:
+
+- `apiTraceDestination`: the name of the account's OTLP traces destination for Sentry. The provider cannot manage
+  destinations, so create one per Sentry project in the dashboard (**Observability** > **Destinations**, type Traces) or
+  with `cf o11y destinations create`, as
+  [Cloudflare's Sentry guide](https://developers.cloudflare.com/observability/export/opentelemetry/sentry/) describes:
+  the endpoint is the project's OTLP traces endpoint (`https://<host>/api/<project>/integration/otlp/v1/traces`) and the
+  header is `x-sentry-auth: sentry sentry_key=<public key>`, both from the project's **Client Keys (DSN)** >
+  **OpenTelemetry (OTLP)**. The key is the DSN's public key, not a secret. Unset, nothing is exported.
+- `apiTraceSampleRate`: the share of requests traced, from 0 to 1; 1 unless set. Sampling is head-based in the Worker.
+- `acceptTraceContext`: `true` makes the Worker continue an incoming W3C `traceparent` (`propagation_policy: accept`).
+  Cloudflare documents this as needing the account's trace propagation feature, so set it only once that is enabled;
+  unset, every request starts its own trace. Cloudflare does not verify who sent the context, so a caller can choose
+  the trace its requests join.
+
+```sh
+pulumi config set apiTraceDestination studio-api-sentry --stack staging
+pulumi config set acceptTraceContext true --stack staging
+```
+
+What is recorded and propagated:
+
+- Spans cover the fetch handler, outbound `fetch` (gatekeeper) and the KV cache. Hyperdrive queries, over TCP sockets,
+  have no spans. Cloudflare documents no automatic `traceparent` on outbound `fetch`, so gatekeeper's spans are not
+  expected to join the API's trace.
+- Fetch spans carry the full URL, query string included (`url.full`, `url.query`), and only the `content-type`,
+  `content-length`, `accept`, `accept-encoding` and `accept-language` headers: no `Cookie` or `Authorization`, and no
+  bodies, so sign-in codes posted to Better Auth are not recorded. Query strings can carry secrets (Better Auth's
+  verification and device `user_code` links), and the Worker's `redact_query_string` setting would remove them, but
+  the provider's `Worker` resource cannot set it yet. Until it can, rely on Sentry's server-side scrubbing.
+- Only traces are exported; logs, which hold sign-in codes while `OTP_DELIVERY` is `log`, are not.
+
 ## Not deployed yet
 
 - **Sign-in codes.** `OTP_DELIVERY` is `log` only, so codes are written to the Worker's logs, readable by anyone with
