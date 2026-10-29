@@ -1,5 +1,9 @@
 name: controlplane
 description: One MoQ relay and one Iroh relay in DigitalOcean London.
+# State lives in the R2 bucket conservationtv-pulumi-state, with the passphrase secrets provider; see
+# docs/infra/pulumi.md.
+backend:
+  url: s3://conservationtv-pulumi-state?endpoint=0def86f295b15a1a2d012774b38b04f9.r2.cloudflarestorage.com&region=auto&s3ForcePathStyle=true
 runtime:
   name: nodejs
   options:

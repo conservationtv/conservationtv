@@ -1,0 +1,6 @@
+config:
+  studio:zoneId: d070375f1867a6beb82f703c9d6f8a58
+  studio:apiDomain: api.studio.conservation.tv
+  studio:webDomain: studio.conservation.tv
+  studio:planetscaleOrganization: conservationtv
+encryptionsalt: v1:bNtHvD5PnBs=:v1:FtmHqjYTqDU37B6h:mGeMPz6PDc7jEgKfvk9R5cdBAPk7ew==

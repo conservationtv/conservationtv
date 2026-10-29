@@ -1,0 +1,20 @@
+{
+  "name": "@conservationtv/studio-web-worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cf build",
+    "upload": "cf workers versions create",
+    "types": "cf workers types",
+    "typecheck": "cf workers types && tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "beta",
+    "@types/node": "24.10.1",
+    "cf": "^1.0.0-beta.5",
+    "typescript": "catalog:",
+    "vite": "^8.3.0",
+    "zod": "catalog:"
+  }
+}

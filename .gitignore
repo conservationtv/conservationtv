@@ -1,1 +1,3 @@
 node_modules/
+# Machine-local overrides, such as .env.staging.local for `pnpm dev:staging`.
+.env.*.local

@@ -48,6 +48,9 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* The deployment's runtime configuration (src/lib/config.ts). A classic script, so it runs before the app's
+            modules, which are deferred. */}
+        <script src="/config.js" />
         <Meta />
         <Links />
       </head>
