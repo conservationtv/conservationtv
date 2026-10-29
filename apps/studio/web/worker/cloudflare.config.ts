@@ -8,7 +8,16 @@ import * as entrypoint from './src/index.ts' with { type: 'cf-worker' };
 const StackOutputsSchema = z.object({
   web: z.object({
     workerName: z.string(),
-    apiUrl: z.url()
+    apiUrl: z.url(),
+    // Checked in full by the app (SentryConfigSchema in ../src/lib/config.ts); absent while the stack sets no DSN.
+    sentry: z
+      .object({
+        dsn: z.url(),
+        environment: z.string(),
+        tracesSampleRate: z.number(),
+        replaysOnErrorSampleRate: z.number()
+      })
+      .optional()
   })
 });
 type StackOutputs = z.output<typeof StackOutputsSchema>;
@@ -29,7 +38,9 @@ export default defineConfig({
     },
     env: {
       /** The studio API, which the app calls with credentials. */
-      API_URL: bindings.text(stack?.apiUrl ?? process.env.API_URL ?? 'http://localhost:5175')
+      API_URL: bindings.text(stack?.apiUrl ?? process.env.API_URL ?? 'http://localhost:5175'),
+      /** Where the app reports errors and traces, or null to report nothing. */
+      SENTRY: bindings.json(stack?.sentry ?? null)
     }
   }
 });

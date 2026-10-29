@@ -5,9 +5,24 @@ declare global {
   var studioConfig: unknown;
 }
 
+/** Where the app reports its errors and traces; see lib/sentry.ts. */
+const SentryConfigSchema = z.object({
+  /** The Sentry project's client key. It is public: it can only send events to that project. */
+  dsn: z.url(),
+  /** The stack the app is deployed as, e.g. `staging` or `prod`. */
+  environment: z.string(),
+  /** The share of page loads and navigations traced, and so of the API requests they make. */
+  tracesSampleRate: z.number().min(0).max(1),
+  /** The share of sessions that send a replay when they hit an error. Replays need telemetry consent. */
+  replaysOnErrorSampleRate: z.number().min(0).max(1)
+});
+export type SentryConfig = z.output<typeof SentryConfigSchema>;
+
 const StudioConfigSchema = z.object({
   /** The studio API. Its cookies are same-site, so credentials travel with every call. */
-  apiUrl: z.url()
+  apiUrl: z.url(),
+  /** Absent where the stack sets no Sentry project, as in local development: nothing is reported. */
+  sentry: SentryConfigSchema.optional()
 });
 export type StudioConfig = z.output<typeof StudioConfigSchema>;
 

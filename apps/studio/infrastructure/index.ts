@@ -161,12 +161,28 @@ export const api = {
   webOrigins: [webOrigin],
   gatekeeperUrl
 };
-/** The studio web Worker's build settings, read from STACK_OUTPUT_JSON: `apiUrl` is served to the app as /config.js. */
+// The web app reports errors and traces to the Sentry project whose DSN is `webSentryDsn` (public, so plain config), as
+// this stack's environment; without one it reports nothing. Prod traces a tenth of page loads unless told otherwise.
+const webSentryDsn = config.get('webSentryDsn');
+const webSentry = webSentryDsn
+  ? {
+      dsn: webSentryDsn,
+      environment: stack,
+      tracesSampleRate: config.getNumber('webSentryTracesSampleRate') ?? (stack === 'prod' ? 0.1 : 1),
+      replaysOnErrorSampleRate: config.getNumber('webSentryReplaysOnErrorSampleRate') ?? 1
+    }
+  : undefined;
+
+/**
+ * The studio web Worker's build settings, read from STACK_OUTPUT_JSON: `apiUrl` and `sentry` are served to the app as
+ * /config.js.
+ */
 export const web = {
   workerName: webWorkerName,
   versionTag: webVersion,
   versionId: webVersionId,
-  apiUrl: appUrl
+  apiUrl: appUrl,
+  sentry: webSentry
 };
 /** Every studio API secret binding, uploaded with each version through `--secrets-file`. */
 export const apiSecrets = pulumi.secret({

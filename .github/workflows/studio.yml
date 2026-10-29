@@ -50,6 +50,13 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       # Pulumi downloads github:// provider plugins through the GitHub API; unauthenticated, runners share its rate limit.
       GITHUB_TOKEN: ${{ github.token }}
+      # The web build uploads its source maps to the studio web Sentry project and creates the release it injects; see
+      # apps/studio/web/vite.config.ts. Without the token there are no source maps and no release, and the build goes on.
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_WEB_PROJECT }}
+      SENTRY_URL: ${{ vars.SENTRY_URL || 'https://sentry.io' }}
+      SENTRY_RELEASE: studio-web@${{ github.sha }}
     defaults:
       run:
         working-directory: apps/studio/infrastructure
@@ -119,3 +126,13 @@ jobs:
         run: >-
           pulumi up --stack "$STACK" --yes --non-interactive --diff
           --config "apiVersion=$GITHUB_SHA" --config "webVersion=$GITHUB_SHA"
+
+      # Records that the release now serves this stack's Sentry environment. Sentry being down never fails a release.
+      - name: Record the web deploy in Sentry
+        if: env.SENTRY_AUTH_TOKEN != ''
+        continue-on-error: true
+        run: >-
+          curl --fail-with-body --silent --show-error --request POST
+          --header "Authorization: Bearer $SENTRY_AUTH_TOKEN" --header 'Content-Type: application/json'
+          --data "{\"environment\": \"$STACK\"}"
+          "$SENTRY_URL/api/0/organizations/$SENTRY_ORG/releases/$SENTRY_RELEASE/deploys/"

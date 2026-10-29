@@ -74,8 +74,23 @@ read from its own last outputs, so a `pulumi up` from a workstation never rolls 
 The web app's build is the same for every stack. Its Worker ([`../web/worker`](../web/worker)) serves the build as
 static assets, answering unknown paths with `index.html`, and serves the stack's configuration for it as `/config.js`,
 which the document loads before the app (see `src/lib/config.ts` there). That configuration is the `web` output, bound
-to each version as text, so it changes only with a release and rolls back with one. In development, the web app's
+to each version, so it changes only with a release and rolls back with one. In development, the web app's
 Vite server answers `/config.js` instead, from `API_URL` in the environment or the local API.
+
+### Sentry for the web app
+
+The web app reports its errors and traces to Sentry once its stack has a DSN, the studio web project's client key
+(public, so plain config): `pulumi config set webSentryDsn <dsn> --stack <stack>`. Its environment is the stack's name.
+It traces every page load on staging and a tenth on prod unless `webSentryTracesSampleRate` says otherwise; every error
+is reported. Replays of the sessions that hit an error (`webSentryReplaysOnErrorSampleRate`, default 1) are recorded
+only in browsers that have consented to UI telemetry (`src/lib/telemetry-consent.ts` in the web app). The browser sends
+trace headers (`traceparent`, `sentry-trace`, `baggage`) to the studio API only.
+
+The release workflow uploads the web build's source maps and creates its release, `studio-web@<commit>`, then records
+the deploy to the stack's environment. It needs, in each GitHub environment, the secret `SENTRY_AUTH_TOKEN` (an
+organization token that can write releases) and the variables `SENTRY_ORG` and `SENTRY_WEB_PROJECT`, with `SENTRY_URL`
+for a region other than sentry.io's default. Without the token the build has no source maps and no release, and the
+release goes ahead.
 
 Secrets reach the API only with a release. `GATEKEEPER_TOKEN` is the controlplane stack's consumer token: after
 rotating that, release the studio too. `BETTER_AUTH_SECRET` and `FIELD_KEY` are generated here. `FIELD_KEY` seals every
