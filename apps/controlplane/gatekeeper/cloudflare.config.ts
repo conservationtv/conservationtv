@@ -39,8 +39,8 @@ export default defineConfig({
         id: stack?.hyperdriveId ?? placeholderHyperdriveId,
         dev: { connectionString: LOCAL_DATABASE_URL }
       }),
-      /** The environment's consumer credential, presented as a bearer token to exchange grants. */
-      CONSUMER_TOKEN: bindings.secret(),
+      /** The environment's consumers, as a JSON array of `{ namespace, token }`; see .dev.vars.example. */
+      CONSUMERS: bindings.secret(),
       /** The control plane's MoQ signing key set; see .dev.vars.example. */
       MOQ_SIGNING_KEYS: bindings.secret(),
       /** Shared with the Iroh relay's `access.http.bearer_token`. */

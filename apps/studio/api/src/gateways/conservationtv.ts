@@ -14,14 +14,15 @@ export const conservationtv = provider.builtin({
   ingest: { moq: 'tracks' },
   egress: { moq: 'tracks' },
   connect: async request => {
-    // Where the exposure is broadcast on the relay: its own path within its organisation's.
+    // Where the exposure is broadcast: its own path within its organisation's, which gatekeeper places beneath this
+    // deployment's namespace on the relay, so the credential's root is the path to dial.
     const path = `${request.organisationId}/${request.exposure.id}`;
     const publish = request.action === 'publish';
     const credential = await moqToken(request.subject, path, publish, CONNECTION_LIFETIME_SECONDS);
     return {
       protocol: 'moq',
       relay: credential.relay,
-      path,
+      path: credential.root,
       broadcast: MOQ_BROADCAST,
       token: credential.token,
       expiresAt: credential.expires_at

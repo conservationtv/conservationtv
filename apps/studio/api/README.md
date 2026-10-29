@@ -112,7 +112,7 @@ bindings:
 | `WEB_ORIGINS`          | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` and is the passkey relying party |
 | `OTP_DELIVERY`         | text       | `log` only, see above                                                                                                |
 | `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
-| `GATEKEEPER_TOKEN`     | secret     | that control plane environment's consumer token                                                                      |
+| `GATEKEEPER_TOKEN`     | secret     | that control plane environment's token for this consumer, whose MoQ paths it places beneath the consumer's namespace |
 | `GATEWAY_DOMAIN`       | text       | optional: the zone MediaMTX gateways get hostnames and certificates in, see below                                    |
 | `CLOUDFLARE_ZONE_ID`   | text       | with `GATEWAY_DOMAIN`: its Cloudflare zone                                                                           |
 | `CLOUDFLARE_API_TOKEN` | secret     | with `GATEWAY_DOMAIN`: a token that may edit that zone's DNS records                                                 |
@@ -157,8 +157,9 @@ SEED_EMAIL=you@example.com SEED_CAMERA_HOST=http://192.168.1.10 SEED_CAMERA_USER
 Gatekeeper names the relays and admits devices to them, so the API always runs against one. `pnpm dev` uses the local
 controlplane's (see [gatekeeper's README](../../controlplane/gatekeeper/README.md#develop)), with `.dev.vars`'s
 `GATEKEEPER_TOKEN=local-consumer-token`. `pnpm dev:staging` uses staging's instead, and reads its secrets from
-`.dev.vars.staging`, which replaces `.dev.vars`: copy `.dev.vars` and set staging's `GATEKEEPER_TOKEN` from 1Password
-(`gatekeeper_staging_consumer_token`). Text bindings are never read from `.dev.vars` files, only from the environment.
+`.dev.vars.staging`, which replaces `.dev.vars`: copy `.dev.vars` and set `GATEKEEPER_TOKEN` to staging's `local`
+consumer token from 1Password (`gatekeeper_staging_local_consumer_token`). Gatekeeper places that consumer's MoQ paths
+beneath `local/`, apart from deployed staging's and previews'. Text bindings are never read from `.dev.vars` files, only from the environment.
 
 Sign in from the terminal with the CLI, which opens the device flow (the web app must be running for the approval
 page) and then registers the session's browser device in an organisation you pick, or with curl: request a code, read it from the dev server's log (`"event":"email_otp"`), exchange it, and use

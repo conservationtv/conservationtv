@@ -77,8 +77,8 @@ which the document loads before the app (see `src/lib/config.ts` there). That co
 to each version as text, so it changes only with a release and rolls back with one. In development, the web app's
 Vite server answers `/config.js` instead, from `API_URL` in the environment or the local API.
 
-Secrets reach the API only with a release. `GATEKEEPER_TOKEN` is the controlplane stack's consumer token: after
-rotating that, release the studio too. `BETTER_AUTH_SECRET` and `FIELD_KEY` are generated here. `FIELD_KEY` seals every
+Secrets reach the API only with a release. `GATEKEEPER_TOKEN` is the token of the controlplane stack's consumer named after
+this stack: after rotating that, release the studio too. `BETTER_AUTH_SECRET` and `FIELD_KEY` are generated here. `FIELD_KEY` seals every
 encrypted column and nothing re-seals them, so it is protected: replacing it loses that data.
 
 ## Not deployed yet

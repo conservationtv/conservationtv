@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EndpointIdSchema, GrantSubjectSchema, MoqPathSchema, MoqRelativePathSchema } from './identifiers.ts';
+import { EndpointIdSchema, GrantSubjectSchema, MoqRelativePathSchema, MoqRootSchema } from './identifiers.ts';
 
 const MAX_PATHS_PER_ACTION = 32;
 /** The longest credential any relay protocol here is issued for, before the environment's ceiling. */
@@ -15,7 +15,8 @@ export type MoqPathList = z.output<typeof MoqPathListSchema>;
 
 const MoqRequestSchema = z
   .strictObject({
-    root: MoqPathSchema,
+    /** Relative to the consumer's namespace, which gatekeeper prefixes. */
+    root: MoqRootSchema,
     publish: MoqPathListSchema,
     subscribe: MoqPathListSchema
   })

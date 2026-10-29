@@ -6,9 +6,9 @@ BETTER_AUTH_SECRET=REPLACE_WITH_GENERATED_SECRET
 FIELD_KEY=REPLACE_WITH_GENERATED_KEY
 
 # The consumer token of the controlplane gatekeeper, which names the relays and admits devices to them. `pnpm dev` uses
-# the local one (apps/controlplane/gatekeeper: `pnpm local:up` and `pnpm dev`). `pnpm dev:staging` uses staging's, and
-# reads secrets from .dev.vars.staging instead of this file: copy this file there, with staging's token from
-# 1Password (gatekeeper_staging_consumer_token).
+# the local one (apps/controlplane/gatekeeper: `pnpm local:up` and `pnpm dev`). `pnpm dev:staging` uses staging's, as its
+# `local` consumer, and reads secrets from .dev.vars.staging instead of this file: copy this file there, with that
+# token from 1Password (gatekeeper_staging_local_consumer_token).
 GATEKEEPER_TOKEN=local-consumer-token
 
 # Optional: give MediaMTX gateways hostnames under a domain you control, `<gateway>.<organisation>.<domain>`, pointed

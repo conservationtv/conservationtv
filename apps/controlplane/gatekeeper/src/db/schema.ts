@@ -9,7 +9,13 @@ export const grants = pgTable(
   'grants',
   {
     id: text('id').primaryKey(),
+    /**
+     * The consumer that exchanged it. `subject` is that consumer's own label, unique only within its namespace.
+     * The empty default only serves grants from versions before namespaces; drop it once none are serving.
+     */
+    namespace: text('namespace').notNull().default(''),
     subject: text('subject').notNull(),
+    /** The root the MoQ token was signed for, beneath the namespace. */
     moqRoot: text('moq_root'),
     moqPublish: text('moq_publish').array(),
     moqSubscribe: text('moq_subscribe').array(),
@@ -18,7 +24,7 @@ export const grants = pgTable(
     expiresAt: instant('expires_at').notNull(),
     revokedAt: instant('revoked_at')
   },
-  table => [index().on(table.subject), index().on(table.issuedAt)]
+  table => [index().on(table.namespace, table.subject), index().on(table.issuedAt)]
 );
 
 export const irohLeaseStatus = pgEnum('iroh_lease_status', ['active', 'revoked']);
