@@ -6,6 +6,7 @@ export {
   connectTestDatabase,
   startWorker,
   CONSUMER_TOKEN,
+  CONSUMER_NAMESPACE,
   MOQ_RELAY_TOKEN,
   MOQ_CLUSTER_TOKEN,
   RELAY_TOKEN,

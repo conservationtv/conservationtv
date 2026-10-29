@@ -1,8 +1,10 @@
+import { eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { GrantExchangeResultSchema } from './support/responses.ts';
 import { decodePayload, exampleGrant, randomEndpointId } from './support/consumer.ts';
-import { connectTestDatabase, CONSUMER_TOKEN, startWorker, MOQ_KEY_ID } from './support/harness.ts';
+import { grants } from '../src/db/schema.ts';
+import { connectTestDatabase, CONSUMER_TOKEN, MOQ_KEY_ID, OTHER_CONSUMER, startWorker } from './support/harness.ts';
 
 const database = connectTestDatabase();
 const worker = await startWorker();
@@ -39,7 +41,7 @@ describe('successful exchange', () => {
       lease_id: expect.stringMatching(/^irl_/),
       expires_at: result.expires_at
     });
-    expect(result.credentials.moq?.root).toBe('app-a/t_92/room_71');
+    expect(result.credentials.moq?.root).toBe('test/app-a/t_92/room_71');
     expect(result.credentials.moq?.relay).toBe('https://localhost:4433/');
   });
 
@@ -50,7 +52,7 @@ describe('successful exchange', () => {
     const { payload, protectedHeader } = await jwtVerify(credentials.moq?.token ?? '', worker.verificationKey);
     expect(protectedHeader).toEqual({ alg: 'ES256', kid: MOQ_KEY_ID, typ: 'JWT' });
     expect(payload).toEqual({
-      root: 'app-a/t_92/room_71',
+      root: 'test/app-a/t_92/room_71',
       publish: ['camera/**'],
       subscribe: [],
       iat: expect.any(Number),
@@ -84,6 +86,18 @@ describe('successful exchange', () => {
     expect(Date.parse(clamped.expires_at) - Date.parse(clamped.issued_at)).toBe(120_000);
   });
 
+  it("places each consumer's root beneath its namespace, and records it", async () => {
+    const response = await worker.exchange(exampleGrant(), OTHER_CONSUMER.token);
+    const { credentials, grant_id } = GrantExchangeResultSchema.parse(await response.json());
+    expect(credentials.moq?.root).toBe('other/app-a/t_92/room_71');
+    expect(decodePayload(credentials.moq?.token ?? '')).toMatchObject({ root: 'other/app-a/t_92/room_71' });
+    const [audited] = await database.database
+      .select({ namespace: grants.namespace, moqRoot: grants.moqRoot })
+      .from(grants)
+      .where(eq(grants.id, grant_id));
+    expect(audited).toEqual({ namespace: 'other', moqRoot: 'other/app-a/t_92/room_71' });
+  });
+
   it('leases the same endpoint again', async () => {
     const endpointId = randomEndpointId();
     expect((await worker.exchange(exampleGrant(endpointId))).status).toBe(200);
@@ -107,8 +121,8 @@ describe('consumer authentication', () => {
     await expectError(response, 401, 'invalid_token');
   });
 
-  it('refuses every exchange while the consumer token is unset', async () => {
-    await worker.restart({ CONSUMER_TOKEN: '' });
+  it('refuses every exchange while no consumer is configured', async () => {
+    await worker.restart({ CONSUMERS: '[]' });
     await expectError(await worker.exchange(exampleGrant(), ''), 401, 'invalid_token');
   });
 
@@ -166,6 +180,12 @@ describe('grant schema', () => {
     await expectError(await worker.exchange({ ...exampleGrant(), requested_capabilities: {} }), 400, 'invalid_request');
   });
 
+  it('rejects a root too long to place beneath a namespace', async () => {
+    const grant = exampleGrant();
+    grant.requested_capabilities.moq.root = Array.from({ length: 16 }, () => 'a').join('/');
+    await expectError(await worker.exchange(grant), 400, 'invalid_request');
+  });
+
   it('rejects a subject with spaces', async () => {
     await expectError(await worker.exchange({ ...exampleGrant(), subject: 'app a' }), 400, 'invalid_request');
   });
@@ -196,6 +216,28 @@ describe('deployment configuration', () => {
     await worker.restart({ DENIED_IROH_ENDPOINTS: value });
     expect((await worker.exchange(exampleGrant())).status).toBe(500);
     // An invalid configuration must not become a cached partial policy on subsequent requests.
+    expect((await worker.request('/health')).status).toBe(500);
+  });
+
+  it.each([
+    [
+      'a duplicate namespace',
+      [
+        { namespace: 'test', token: 'a' },
+        { namespace: 'test', token: 'b' }
+      ]
+    ],
+    [
+      'a duplicate token',
+      [
+        { namespace: 'test', token: 'a' },
+        { namespace: 'other', token: 'a' }
+      ]
+    ],
+    ['a namespace that is not one segment', [{ namespace: 'test/nested', token: 'a' }]],
+    ['an empty token', [{ namespace: 'test', token: '' }]]
+  ])('fails closed for %s in CONSUMERS', async (_name, consumers) => {
+    await worker.restart({ CONSUMERS: JSON.stringify(consumers) });
     expect((await worker.request('/health')).status).toBe(500);
   });
 });

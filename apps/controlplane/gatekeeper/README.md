@@ -1,9 +1,10 @@
 # Gatekeeper
 
 The conservation.stream control plane: a **relay capability broker** for the MoQ and Iroh relays. Each environment
-(local, staging, prod) has its own gatekeeper and relays, and one **consumer token**: whoever holds it (the studio API,
-or a trusted developer's local one against staging) authenticates its own users, decides what they may do, and asks
-for relay credentials on their behalf. Gatekeeper records each grant and issues:
+(local, staging, prod) has its own gatekeeper and relays, and one or more **consumers**, each with its own token and
+**namespace**: prod's studio API in prod; staging's, developers' local ones (`local`) and previews (`preview`) in
+staging. A consumer authenticates its own users, decides what they may do, and asks for relay credentials on their
+behalf. Its MoQ roots are placed beneath its namespace, so consumers sharing the relays can use the same paths. Gatekeeper records each grant and issues:
 
 - a control-plane-signed **moq-relay token**, and/or
 - a short-lived **Iroh endpoint lease**, checked by the Iroh relay's access callout.
@@ -28,8 +29,8 @@ Signing keys are never published: the control plane is the only party that verif
 
 ## Grant exchange
 
-`POST /grants/exchange` requires the environment's consumer token as `Authorization: Bearer <CONSUMER_TOKEN>`, compared
-with the fixed-length digest comparison the relay callbacks use, and takes the grant itself as strict JSON (duplicate
+`POST /grants/exchange` requires one of the environment's consumer tokens (from `CONSUMERS`) as
+`Authorization: Bearer <token>`, compared with the fixed-length digest comparison the relay callbacks use, and takes the grant itself as strict JSON (duplicate
 members and unknown fields are refused at every level):
 
 ```json
@@ -43,11 +44,15 @@ members and unknown fields are refused at every level):
 }
 ```
 
-`subject` is the consumer's own label for who the credentials are for, kept for audit. Paths are canonical (no empty,
-`.`, `..`, wildcard or encoded segments), at most one of each capability, and at least one. The consumer is trusted
-with the environment's relays, so the grant is issued as asked: there are no per-consumer namespaces or delegation
-ceilings. The only refusal beyond validation is an endpoint in `DENIED_IROH_ENDPOINTS`. In one transaction, gatekeeper
+`subject` is the consumer's own label for who the credentials are for, kept for audit with the consumer's namespace.
+Paths are canonical (no empty, `.`, `..`, wildcard or encoded segments), at most one of each capability, and at least
+one. The consumer is trusted with its namespace, so the grant is issued as asked: there are no delegation ceilings. The only refusal beyond validation is an endpoint in `DENIED_IROH_ENDPOINTS`. In one transaction, gatekeeper
 writes the grant audit record, signs the MoQ token and creates the Iroh lease; a rejection leaves nothing behind.
+
+The MoQ root is relative to the consumer's namespace: gatekeeper signs the token for `<namespace>/<root>` and returns
+that as `credentials.moq.root`, the path to dial. A consumer's root has one segment fewer (15) and 33 characters fewer
+(223) than a token's, leaving room for the namespace. Iroh leases are not namespaced: an endpoint ID is the endpoint's
+own key, and the relay admits it whichever consumer leased it.
 
 Each credential names the relay it is for: `credentials.moq.relay` (dial it, presenting the token) and
 `credentials.iroh.relay` (bind the endpoint to it). They are the environment's `MOQ_RELAY_URL` and `IROH_RELAY_URL`,
@@ -151,14 +156,15 @@ All bindings are declared by `config` in `src/env/config.ts` (ArkEnv over `proce
 request in each isolate; an invalid one fails every request rather than falling back to a default. Apply changes
 through a deployment/restart. Revocation options are:
 
-- rotate `CONSUMER_TOKEN`, which stops new exchanges (issued credentials last until they expire or are revoked);
+- rotate a consumer's token in `CONSUMERS`, which stops its new exchanges (issued credentials last until they expire or
+  are revoked);
 - add an endpoint to `DENIED_IROH_ENDPOINTS`;
 - set `grants.revoked_at`, which immediately stops Iroh admission for that grant's leases and closes its MoQ sessions
   at their next revalidation.
 
 | Binding                           | Kind              | Purpose                                                        |
 | --------------------------------- | ----------------- | -------------------------------------------------------------- |
-| `CONSUMER_TOKEN`                  | secret            | Pulumi-generated token the environment's consumer presents     |
+| `CONSUMERS`                       | secret            | JSON array of `{ namespace, token }`, one per consumer         |
 | `DENIED_IROH_ENDPOINTS`           | text (JSON array) | Denied endpoint IDs; `[]` by default                           |
 | `HYPERDRIVE`                      | Hyperdrive        | PlanetScale Postgres, uncached; ID from the controlplane stack |
 | `MOQ_SIGNING_KEYS`                | secret            | `{ active_kid, keys: [private ES256 JWK…] }`                   |
@@ -170,7 +176,7 @@ through a deployment/restart. Revocation options are:
 | `IROH_RELAY_URL`                  | text              | the Iroh relay leases name; from the controlplane stack        |
 
 Each controlplane Pulumi stack (`staging`, `prod`) owns its Worker, Hyperdrive config and every secret, including the
-signing keys and the consumer token (`pulumi stack output gatekeeperConsumerToken --show-secrets`).
+signing keys and the consumer tokens (`pulumi stack output gatekeeperConsumerTokens --show-secrets`).
 `pnpm upload` uploads a version without deploying it; the Hyperdrive ID and relay URLs come from that stack's outputs, passed as
 `STACK_OUTPUT_JSON`. CI releases it on pushes to `main`, as described in the
 [controlplane README](../infrastructure/README.md#release-gatekeeper), which also covers key rotation.
@@ -191,7 +197,7 @@ pnpm --filter @conservationtv/gatekeeper dev         # http://localhost:5176
 pnpm --filter @conservationtv/gatekeeper test        # builds Worker, then tests in workerd; needs db:up
 ```
 
-The local tokens are fixed in `.dev.vars.example`, the compose file and the studio API's `.dev.vars.example`, so the
+The local tokens are fixed in `.dev.vars.example` (one consumer, `local`), the compose file and the studio API's `.dev.vars.example`, so the
 studio API leases endpoints on the local iroh-relay with `pnpm dev` (see its README). iroh-relay runs in `--dev` mode over plain HTTP. moq-relay generates a
 certificate for `localhost` and publishes its hash at `http://localhost:4443/certificate.sha256`, for WebTransport's
 `serverCertificateHashes`. `pnpm db:up` starts Postgres alone; `pnpm local:down` stops everything.

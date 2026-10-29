@@ -12,6 +12,11 @@ import type { Database } from '../../src/db/client.ts';
 import { LOCAL_DATABASE_URL } from '../../src/db/local.ts';
 
 export const CONSUMER_TOKEN = 'consumer-test-token';
+/** The namespace gatekeeper places the test consumer's MoQ roots beneath. */
+export const CONSUMER_NAMESPACE = 'test';
+/** Another consumer sharing the environment's relays. */
+export const OTHER_CONSUMER = { namespace: 'other', token: 'other-consumer-test-token' };
+const CONSUMERS = JSON.stringify([{ namespace: CONSUMER_NAMESPACE, token: CONSUMER_TOKEN }, OTHER_CONSUMER]);
 export const RELAY_TOKEN = 'relay-test-token';
 export const MOQ_RELAY_TOKEN = 'e'.repeat(64);
 export const MOQ_CLUSTER_TOKEN = 'c'.repeat(64);
@@ -85,7 +90,7 @@ export async function startWorker(options: WorkerOptions = {}): Promise<TestWork
       dev: { connectionString: options.connectionString ?? process.env.DATABASE_URL ?? LOCAL_DATABASE_URL }
     };
     const bindings = {
-      CONSUMER_TOKEN,
+      CONSUMERS,
       MOQ_SIGNING_KEYS: signingKeys,
       IROH_RELAY_TOKEN: RELAY_TOKEN,
       MOQ_RELAY_TOKEN,

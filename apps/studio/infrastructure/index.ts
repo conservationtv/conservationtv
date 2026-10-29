@@ -29,7 +29,15 @@ const controlplane = new pulumi.StackReference(`${pulumi.getOrganization()}/cont
 // SAFETY: the controlplane stack exports `gatekeeper` with its domain.
 const controlplaneGatekeeper = controlplane.requireOutput('gatekeeper') as pulumi.Output<ControlplaneGatekeeper>;
 const gatekeeperUrl = pulumi.interpolate`https://${controlplaneGatekeeper.domain}`;
-const gatekeeperToken = controlplane.requireOutput('gatekeeperConsumerToken');
+// SAFETY: the controlplane stack exports each consumer's token by namespace, and names this stack's consumer after it.
+const gatekeeperTokens = controlplane.requireOutput('gatekeeperConsumerTokens') as pulumi.Output<
+  Record<string, string>
+>;
+const gatekeeperToken = gatekeeperTokens.apply(tokens => {
+  const token = tokens[stack];
+  if (token === undefined) throw new Error(`The controlplane stack has no ${stack} consumer`);
+  return token;
+});
 
 // The studio API's Worker and the resources its versions bind. Versions are uploaded from the API's build; this stack
 // routes traffic to the one tagged `apiVersion` once that is set.
