@@ -4,14 +4,11 @@ import { AsnConvert, OctetString } from '@peculiar/asn1-schema';
 import {
   AlgorithmIdentifier,
   Attribute,
-  AttributeTypeAndValue,
-  AttributeValue,
   Certificate,
   Extension,
   Extensions,
   GeneralName,
   Name,
-  RelativeDistinguishedName,
   SubjectAlternativeName,
   SubjectPublicKeyInfo
 } from '@peculiar/asn1-x509';
@@ -161,7 +158,6 @@ export function certificateNotAfter(chainPem: string): Date {
 
 // Object identifiers the request is made of.
 const OID = {
-  commonName: '2.5.4.3',
   subjectAltName: '2.5.29.17',
   extensionRequest: '1.2.840.113549.1.9.14',
   ecdsaWithSha256: '1.2.840.10045.4.3.2'
@@ -177,8 +173,8 @@ function integer(unsigned: Uint8Array): ArrayBuffer {
 }
 
 /**
- * A PKCS#10 request for a certificate naming `hostname`, as its common name and its one subject alternative name,
- * for `keys`, signed by them with ECDSA over SHA-256: the DER.
+ * A PKCS#10 request for a certificate naming `hostname`, as its one subject alternative name and with an empty
+ * subject, for `keys`, signed by them with ECDSA over SHA-256: the DER.
  */
 export async function certificateRequest(hostname: string, keys: CryptoKeyPair): Promise<ArrayBuffer> {
   // SAFETY: exporting a public key as SPKI yields DER bytes, not a JWK.
@@ -193,11 +189,8 @@ export async function certificateRequest(hostname: string, keys: CryptoKeyPair):
   ]);
   const info = new CertificationRequestInfo({
     version: 0,
-    subject: new Name([
-      new RelativeDistinguishedName([
-        new AttributeTypeAndValue({ type: OID.commonName, value: new AttributeValue({ utf8String: hostname }) })
-      ])
-    ]),
+    // No common name: it holds at most 64 characters, which a hostname can pass, and the authority goes by the SAN.
+    subject: new Name([]),
     subjectPKInfo: AsnConvert.parse(spki, SubjectPublicKeyInfo),
     attributes: new Attributes([
       new Attribute({ type: OID.extensionRequest, values: [AsnConvert.serialize(extensions)] })
