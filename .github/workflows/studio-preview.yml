@@ -21,8 +21,10 @@ permissions:
   contents: read
 
 jobs:
-  # The release runs the pull request's code with the preview environment's secrets, so only this repository's own
-  # branches are previewed, never a fork's.
+  # The release runs the pull request's code with the preview environment's secrets, so only a maintainer (the
+  # repository's maintain or admin role, who can merge) may release one, and only this repository's own branches are
+  # previewed, never a fork's. Whoever dispatches vouches for the head as it is now: the release is pinned to it. The
+  # preview environment admits only main's workflows, so this check cannot be edited away on a branch.
   resolve:
     runs-on: ubuntu-latest
     outputs:
@@ -32,7 +34,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ inputs.pr }}
+          ACTOR: ${{ github.triggering_actor }}
         run: |
+          role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$ACTOR/permission" --jq .role_name)
+          case "$role" in
+            admin | maintain) ;;
+            *) echo "::error::$ACTOR is $role here; only maintainers release previews"; exit 1 ;;
+          esac
           read -r state cross sha < <(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" \
             --json state,isCrossRepository,headRefOid --jq '"\(.state) \(.isCrossRepository) \(.headRefOid)"')
           if [ "$state" != OPEN ]; then echo "::error::#$PR is $state, not open"; exit 1; fi

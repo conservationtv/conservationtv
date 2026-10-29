@@ -102,8 +102,10 @@ The [`studio-preview` workflow](../../../.github/workflows/studio-preview.yml) r
 five), so the preview starts from staging's data as it was then, migrates it with the pull request's migrations, and
 releases the pull request's head as the other stacks release theirs; then it comments on the pull request. A pull
 request must be up to date with `main` (the check above), must be open, and must be from this repository, not a fork:
-the release runs its code with the `preview` environment's secrets. Each preview replaces the last, whichever pull
-request it was for; a restore takes about two minutes.
+the release runs its code with the `preview` environment's secrets. For the same reason only a maintainer (the
+repository's maintain or admin role, the roles that can merge into `main`) may dispatch it, and the `preview`
+environment, like `staging` and `prod`, admits only `main`'s workflows, so a branch cannot release with an edited copy.
+Each preview replaces the last, whichever pull request it was for; a restore takes about two minutes.
 
 Sign in with your staging account by code (written to `studio-api-preview`'s logs for now; see [Not deployed yet](#not-deployed-yet)): passkeys are bound to the web app's host, so staging's do not work
 on the preview. The preview is staging's gatekeeper's `preview` consumer, so its MoQ roots never meet staging's, but
