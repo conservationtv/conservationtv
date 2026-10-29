@@ -1,8 +1,9 @@
 import { cancel, isCancel, select } from '@clack/prompts';
 import type { Client } from '@conservationtv/studio-sdk';
-import type { Credential, Profile } from './credentials.js';
+import { sessionApiUrl, type Credentials, type Device } from './credentials.js';
 import { LoginError } from './errors.js';
 
+/** An organisation, or anything else `choose` offers: a profile is offered by its name, as `id`. */
 export interface Organisation {
   id: string;
   name: string;
@@ -50,18 +51,17 @@ export async function choose(choices: Organisation[], { requested, message, how 
   return match;
 }
 
-/** Register the session's browser device in the organisation (get or create, with its private key): a profile. */
-export async function registerProfile(studio: Client, organisation: Organisation): Promise<Profile> {
+/** Register the session's browser device in the organisation (get or create, with its private key): a profile's. */
+export async function registerDevice(studio: Client, organisation: Organisation): Promise<Device> {
   const browser = await studio.organisations.browser.ensure.v1({ id: organisation.id });
   if (browser instanceof Error) throw browser;
-  const device = {
+  return {
     id: browser.id,
     name: browser.name,
     publicKey: browser.publicKey,
     publicId: browser.publicId,
     privateKey: browser.privateKey
   };
-  return { organisationId: organisation.id, organisationName: organisation.name, device };
 }
 
 /** A profile's device as commands report it: never its private key. */
@@ -72,18 +72,29 @@ export interface DeviceSummary {
 }
 
 export interface ProfileSummary {
+  name: string;
+  env: string;
+  api: string;
+  email: string;
   organisationId: string;
   organisation: string;
   device: DeviceSummary;
   current: boolean;
 }
 
-export function summarise(profile: Profile, credential: Credential): ProfileSummary {
+export function summarise(name: string, credentials: Credentials): ProfileSummary {
+  const profile = credentials.profiles[name]!;
+  const session = credentials.sessions[profile.session]!;
   const device = profile.device;
+  const api = sessionApiUrl(session);
   return {
+    name,
+    env: session.env,
+    api,
+    email: session.email,
     organisationId: profile.organisationId,
     organisation: profile.organisationName,
     device: { id: device.id, name: device.name, publicKey: device.publicKey },
-    current: profile.organisationId === credential.current
+    current: name === credentials.current
   };
 }

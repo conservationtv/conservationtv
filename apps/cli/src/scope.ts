@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 /** Options every command parses, wherever they appear on the command line. */
 export const GlobalsSchema = z.object({
+  profile: z.string().optional().describe('Act as this profile, by name, instead of the current one'),
   endpoint: z.string().optional().describe('For `agent` commands: the iroh endpoint id of the agent to call'),
   direct: z
     .boolean()

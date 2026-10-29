@@ -1,7 +1,6 @@
 import { Client, deviceSignature, type DeviceIdentity } from '@conservationtv/studio-sdk';
 import { Endpoint, EndpointAddr, EndpointId, RelayMap, RelayMode } from '@number0/iroh';
 import { connect, ORIGIN_SUFFIX } from '@strangecyan/iroh-http-node';
-import { apiUrl } from './api.js';
 
 /** An open HTTP over iroh connection to one agent, as an SDK's base URL and `fetch`. Disposing it closes it. */
 export interface AgentConnection extends AsyncDisposable {
@@ -27,7 +26,7 @@ interface Session {
  * Start an iroh session: ask the studio API, signed as the device, for its relay, and bind an endpoint on it alone,
  * with no address lookup: every device has the same relay, so an agent is found at its endpoint ID there.
  */
-async function studioSession(identity: DeviceIdentity): Promise<Session> {
+async function studioSession(identity: DeviceIdentity, apiUrl: string): Promise<Session> {
   const studio = new Client({ baseUrl: apiUrl, auth: deviceSignature(identity) });
   await studio.handshake();
   const session = await studio.irohSessions.create.v1();
@@ -52,10 +51,18 @@ async function directSession(identity: DeviceIdentity): Promise<Session> {
   return { endpoint, relayUrl: undefined };
 }
 
-export interface ConnectOptions {
-  /** A direct agent, found through n0 rather than on the studio's relay. */
-  direct: boolean;
+/** A direct agent, found through n0 rather than on the studio's relay. */
+export interface DirectAgent {
+  direct: true;
 }
+
+/** An agent on the relay of the studio API at `apiUrl`. */
+export interface StudioAgent {
+  direct: false;
+  apiUrl: string;
+}
+
+export type ConnectOptions = DirectAgent | StudioAgent;
 
 /**
  * Start an iroh session as the device, and dial the agent with endpoint id `agent`: on the session's relay, or for a
@@ -64,12 +71,13 @@ export interface ConnectOptions {
 export async function connectAgent(
   agent: string,
   identity: DeviceIdentity,
-  { direct }: ConnectOptions
+  options: ConnectOptions
 ): Promise<AgentConnection> {
   const id = parseEndpointId(agent);
   // Closed here if connecting fails; handed to the connection if it succeeds.
   await using opened = new AsyncDisposableStack();
-  const { endpoint, relayUrl } = await (direct ? directSession(identity) : studioSession(identity));
+  const session = options.direct ? directSession(identity) : studioSession(identity, options.apiUrl);
+  const { endpoint, relayUrl } = await session;
   opened.defer(() => endpoint.close());
   const address = new EndpointAddr(id, relayUrl);
   const client = await connect(endpoint, address);

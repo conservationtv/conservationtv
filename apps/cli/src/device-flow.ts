@@ -15,7 +15,7 @@ type AuthClient = ReturnType<typeof authClient>;
 /** A signed-in session, before it has a profile. */
 export interface Session {
   token: string;
-  email: string | undefined;
+  email: string;
 }
 
 /** Better Auth's bearer plugin reads the session from this header, so no cookie is needed. */
@@ -74,19 +74,25 @@ async function showApproval(auth: AuthClient, code: DeviceCode): Promise<string>
 }
 
 /** The OAuth device flow: show a code, then wait while the person approves it in the web app. */
-export async function authorize(): Promise<Session> {
-  const auth = authClient();
+export async function authorize(apiUrl: string): Promise<Session> {
+  const auth = authClient(apiUrl);
   const { data: code, error } = await auth.device.code({ client_id: CLIENT_ID });
   if (error) throw new LoginError(`The API refused to start a device login (HTTP ${error.status}).`);
   const url = code.verification_uri_complete ?? code.verification_uri;
   log.step(`Open ${url} and approve the code ${code.user_code}`, { output });
   const token = await showApproval(auth, code);
   const session = await auth.getSession({ fetchOptions: bearer(token) });
-  return { token, email: session.data?.user.email };
+  const email = session.data?.user.email;
+  // Logins are told apart by account, so one whose account the API won't say is signed out again, as best it can be.
+  if (email === undefined) {
+    await signOut(apiUrl, token).catch(() => undefined);
+    throw new LoginError('The code was approved, but the API did not say which account signed in. Log in again.');
+  }
+  return { token, email };
 }
 
 /** Revoke a session on the API, which also removes its browser devices. */
-export async function signOut(token: string): Promise<void> {
-  const auth = authClient();
+export async function signOut(apiUrl: string, token: string): Promise<void> {
+  const auth = authClient(apiUrl);
   await auth.signOut({ fetchOptions: bearer(token) });
 }

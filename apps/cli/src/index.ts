@@ -1,10 +1,10 @@
 import { buildCli as buildStudioCli } from '@conservationtv/studio-cli';
 import { Cli } from 'incur';
-import { studioClient } from './api.js';
+import { apiUrlOf, studioClient } from './api.js';
 import { agentCommand } from './commands/agent.js';
 import { loginCommand, logoutCommand } from './commands/auth.js';
 import { profilesCommand } from './commands/profiles.js';
-import { currentToken } from './credentials.js';
+import { activeProfile, readCredentials } from './credentials.js';
 import { mapErrors } from './errors.js';
 import { GlobalsSchema, scoped } from './scope.js';
 
@@ -20,10 +20,14 @@ const cli = Cli.create('ctv', {
   .command(profilesCommand)
   .command(agentCommand);
 
-// The studio API's generated commands, at the top level, with the stored session's token.
+// The studio API's generated commands, at the top level: on the active profile's environment, with its session's
+// token. Without a profile, they call prod's unauthenticated.
 buildStudioCli(cli, () => {
-  const token = currentToken();
-  return studioClient(token);
+  const credentials = readCredentials();
+  const active = activeProfile(credentials);
+  const apiUrl = active?.apiUrl ?? apiUrlOf('prod');
+  const token = active?.session.token;
+  return studioClient(apiUrl, token);
 });
 
 await cli.serve();
