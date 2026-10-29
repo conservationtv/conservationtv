@@ -934,6 +934,9 @@ importers:
 
   packages/converge:
     dependencies:
+      execa:
+        specifier: 10.1.1
+        version: 10.1.1
       immer:
         specifier: 11.1.21
         version: 11.1.21
@@ -953,9 +956,6 @@ importers:
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
-      execa:
-        specifier: 10.1.1
-        version: 10.1.1
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

@@ -1,5 +1,5 @@
 export {
-  AdoptedProcess,
+  AttachedProcess,
   type ProcessDefinition,
   type ProcessStatus,
   type Run,

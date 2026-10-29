@@ -13,7 +13,7 @@ import { z } from 'zod';
 // own JWT method would against the agent's public key: the agent holds it, so nothing is fetched from anywhere. It
 // serves that key as a JWKS beside the answers, for a MediaMTX that checks tokens itself (`authJWTJWKS`).
 //
-// MediaMTX outlives the agent (runtime.ts), and admits no one while the agent is not answering.
+// MediaMTX lives and dies with the agent (runtime.ts), so it is never running without these answers.
 
 /** Where on `authHttp` the agent answers. */
 export const MEDIAMTX_AUTH_PATH = '/mediamtx/auth';

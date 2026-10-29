@@ -325,10 +325,9 @@ going back a version needs no download. Spares are chosen by when they were inst
 run different versions of the same binary from the same store, either one's prune deletes the other's install. Give
 them separate stores (separate directories), or prune from one place that knows about both.
 
-**Record what's running** if the process outlives the agent. An agent that restarts after the spec has changed
-needs to know whether the running process came from the version the spec now asks for. Write `installed.id` beside
-the process's pidfile before starting it, and compare it on the next start. `AdoptedProcess` in
-[`converge/process`](../process/README.md) does exactly this with its run's key.
+**Key the process by the install.** Start it for `installed.id`, so a new install replaces the process and the same
+one leaves it running. `AttachedProcess` in [`converge/process`](../process/README.md) does exactly this with its
+run's key.
 
 **Removing everything**: `remove(name)` for one binary, `clear()` for the store. Stop processes first; deleting a
 running executable's file works on macOS and Linux, but not on Windows.
@@ -373,8 +372,8 @@ async function install(manifest, signal) {
 - **Report installing separately** from running, and only while a download is really under way: `execute` runs on
   every spec change, and `find` says whether the manifest is already installed. A large download can take a while,
   and it's useful to see that the old version is still serving while the new one installs.
-- See [`examples/caddy/managed.ts`](../../examples/caddy/managed.ts) for a complete runtime that adopts a process
-  left running and records which install it came from.
+- See [`examples/caddy/managed.ts`](../../examples/caddy/managed.ts) for a complete runtime that runs the binary it
+  installs, replacing the process when the version changes.
 
 ## Platforms
 
