@@ -390,6 +390,10 @@ importers:
 
   apps/cli:
     dependencies:
+      '@number0/iroh':
+        specifier: 'catalog:'
+        version: '@strangecyan/iroh@1.1.0-relayed.1'
+    devDependencies:
       '@clack/prompts':
         specifier: 1.8.1
         version: 1.8.1
@@ -408,31 +412,30 @@ importers:
       '@conservationtv/studio-sdk':
         specifier: workspace:*
         version: link:../studio/sdk
-      '@number0/iroh':
-        specifier: 'catalog:'
-        version: '@strangecyan/iroh@1.1.0-relayed.1'
       '@strangecyan/iroh-http-node':
         specifier: 'catalog:'
         version: 0.3.0
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
       better-auth:
         specifier: 'catalog:'
         version: 1.7.7(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.17)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)))
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       incur:
         specifier: 0.6.1
         version: 0.6.1
       tsx:
         specifier: 4.23.15
         version: 4.23.15
-      zod:
-        specifier: 'catalog:'
-        version: 4.6.2
-    devDependencies:
-      '@types/node':
-        specifier: 24.10.1
-        version: 24.10.1
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
 
   apps/controlplane/cli:
     dependencies:
