@@ -7,7 +7,9 @@ begin
     execute format('drop policy %I on %I.%I', item.policyname, item.schemaname, item.tablename);
   end loop;
   for item in select t.tgrelid::regclass as tbl from pg_catalog.pg_trigger t
-      where t.tgname = 'authz_immutable' and not t.tgisinternal loop
+      where t.tgname = 'authz_immutable' and not t.tgisinternal
+        and not exists (select from pg_catalog.pg_inherits i join pg_catalog.pg_trigger p
+          on p.tgrelid = i.inhparent and p.tgname = t.tgname where i.inhrelid = t.tgrelid) loop
     execute format('drop trigger authz_immutable on %s', item.tbl);
   end loop;
   for item in select p.oid::regprocedure as fn from pg_catalog.pg_proc p where p.proname like 'authz:%' loop

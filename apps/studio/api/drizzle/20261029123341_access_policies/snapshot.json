@@ -1,10 +1,10 @@
 {
+  "id": "d908292a-5590-46c6-94dc-1949c3fd9fe4",
+  "prevIds": [
+    "c63ec068-5e06-46cf-8c26-1bb7df7f0601"
+  ],
   "version": "8",
   "dialect": "postgres",
-  "id": "c7756e93-eea3-489f-bed9-369ea0f66650",
-  "prevIds": [
-    "c41deeb4-e4c9-4eed-b900-ede5f48881be"
-  ],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -3536,7 +3536,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "account_user_id_user_id_fk",
+      "name": "account_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "account"
@@ -3553,7 +3553,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "passkey_user_id_user_id_fk",
+      "name": "passkey_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "passkey"
@@ -3570,7 +3570,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "session_user_id_user_id_fk",
+      "name": "session_user_id_user_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "session"
@@ -4743,7 +4743,7 @@
         "token"
       ],
       "nullsNotDistinct": false,
-      "name": "session_token_unique",
+      "name": "session_token_key",
       "schema": "public",
       "table": "session",
       "entityType": "uniques"
@@ -4754,7 +4754,7 @@
         "email"
       ],
       "nullsNotDistinct": false,
-      "name": "user_email_unique",
+      "name": "user_email_key",
       "schema": "public",
       "table": "user",
       "entityType": "uniques"
