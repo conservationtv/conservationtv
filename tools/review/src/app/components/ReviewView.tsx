@@ -13,6 +13,7 @@ import { useViewed, type ViewedFiles } from '../viewed.ts';
 import { useDrafts, type Drafts } from '../drafts.ts';
 import { useSwitch } from '../preferences.ts';
 import { ReviewSubmit } from './ReviewSubmit.tsx';
+import { CallGraphView } from './CallGraphView.tsx';
 import { ChangeTree } from './ChangeTree.tsx';
 import { CheckMark, MarkdownBody } from './common.tsx';
 import { DiffList, type DiffStyle, type Viewer } from './DiffList.tsx';
@@ -230,7 +231,70 @@ interface FileChapterProps {
   context: ChapterContext;
 }
 
+interface ViewSwitchProps {
+  calls: boolean;
+  onToggle(): void;
+}
+
+/** The source chapter as calls between what changed, or as its files. */
+const ViewSwitch: FC<ViewSwitchProps> = ({ calls, onToggle }) => (
+  <div className="segmented view-switch" role="group" aria-label="Read the source code as">
+    <button type="button" aria-pressed={calls} onClick={calls ? undefined : onToggle}>
+      Calls
+    </button>
+    <button type="button" aria-pressed={!calls} onClick={calls ? onToggle : undefined}>
+      Files
+    </button>
+  </div>
+);
+
+interface CallChapterProps {
+  context: ChapterContext;
+  onOpenFile(path: string): void;
+  onToggle(): void;
+}
+
+/** The source code as the calls between the functions that changed. */
+const CallChapter: FC<CallChapterProps> = ({ context, onOpenFile, onToggle }) => (
+  <div className="review-body calls-body">
+    <section className="review-main call-scroll">
+      <Intro context={context}>
+        <ViewSwitch calls onToggle={onToggle} />
+      </Intro>
+      <CallGraphView
+        review={context.review}
+        files={context.chapter.files}
+        diffStyle={context.diffStyle}
+        wrap={context.wrap}
+        onOpenFile={onOpenFile}
+      />
+      <NextChapter context={context} />
+    </section>
+  </div>
+);
+
+/** The source chapter opens on its calls; every chapter can be read file by file. */
 const FileChapter: FC<FileChapterProps> = ({ context }) => {
+  const [calls, toggleCalls] = useSwitch('calls', true);
+  const { chapter, viewer } = context;
+  if (chapter.id === 'code' && calls) {
+    const openFile = (path: string) => {
+      toggleCalls();
+      // The files' list mounts first; then it can scroll.
+      setTimeout(() => viewer.current?.scrollTo({ type: 'item', id: path, align: 'start' }), 100);
+    };
+    return <CallChapter context={context} onOpenFile={openFile} onToggle={toggleCalls} />;
+  }
+  return <FilesChapter context={context} onToggle={chapter.id === 'code' ? toggleCalls : null} />;
+};
+
+interface FilesChapterProps {
+  context: ChapterContext;
+  /** Switches the source chapter back to its calls; null for the other chapters. */
+  onToggle: (() => void) | null;
+}
+
+const FilesChapter: FC<FilesChapterProps> = ({ context, onToggle }) => {
   const { review, chapter, viewer, viewed, diffStyle } = context;
   const folded = foldedChapters.has(chapter.id);
   // Generated files read best by what wrote them.
@@ -260,6 +324,7 @@ const FileChapter: FC<FileChapterProps> = ({ context }) => {
           wrap={context.wrap}
           header={
             <Intro context={context}>
+              {onToggle ? <ViewSwitch calls={false} onToggle={onToggle} /> : null}
               {chapter.id === 'generated' ? <GeneratedSummary context={context} /> : null}
             </Intro>
           }
