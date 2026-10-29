@@ -6,10 +6,19 @@ BETTER_AUTH_SECRET=REPLACE_WITH_GENERATED_SECRET
 FIELD_KEY=REPLACE_WITH_GENERATED_KEY
 
 # The consumer token of the controlplane gatekeeper, which names the relays and admits devices to them. `pnpm dev` uses
-# the local one (apps/controlplane/gatekeeper: `pnpm local:up` and `pnpm dev`). `pnpm dev:staging` uses staging's, and
-# reads secrets from .dev.vars.staging instead of this file: copy this file there, with staging's token from
-# 1Password (gatekeeper_staging_consumer_token).
+# the local one (apps/controlplane/gatekeeper: `pnpm local:up` and `pnpm dev`). `pnpm dev:staging` uses staging's, as its
+# `local` consumer, and reads secrets from .dev.vars.staging instead of this file: copy this file there, with that
+# token from 1Password (gatekeeper_staging_local_consumer_token).
 GATEKEEPER_TOKEN=local-consumer-token
+
+# Optional: give MediaMTX gateways hostnames under a domain you control, `<gateway>.<organisation>.<domain>`, pointed
+# at the agent running each, with Let's Encrypt certificates for them. Needs the domain's Cloudflare zone and a token
+# that may edit its DNS records, and an ACME account key: one ES256 JWK with the private `d`, generated with:
+# node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(({kty,crv,x,y,d})=>console.log(JSON.stringify({kty,crv,x,y,d})))"
+# The domain and zone are text bindings, set from the environment; the directory defaults to Let's Encrypt's staging
+# environment, whose certificates browsers do not trust: deployments set the production directory.
+# CLOUDFLARE_API_TOKEN=…
+# ACME_ACCOUNT_KEY={"kty":"EC","crv":"P-256",…}
 
 # Text bindings are not read from this file: override the checked-in development defaults from the environment,
 # e.g. `APP_URL=… pnpm dev`.
@@ -17,3 +26,6 @@ GATEKEEPER_TOKEN=local-consumer-token
 # WEB_ORIGINS=http://localhost:5173
 # GATEKEEPER_URL=http://localhost:5176
 # OTP_DELIVERY=log
+# GATEWAY_DOMAIN=conservationtv.net
+# CLOUDFLARE_ZONE_ID=…
+# ACME_DIRECTORY_URL=https://acme-v02.api.letsencrypt.org/directory

@@ -4,10 +4,12 @@ export { ApiErrorSchema, type ApiError } from '@conservationtv/versioned-api/ser
 export { RelaySchema, type Relay } from './topology/iroh.ts';
 export {
   MediamtxAuthSchema,
+  MediamtxTlsSchema,
   PlannedPublisherSchema,
   PublishedRenditionSchema,
   PublisherConnectSchema,
   type MediamtxAuth,
+  type MediamtxTls,
   type PlannedPublisher,
   type PublishedRendition,
   type PublisherConnect

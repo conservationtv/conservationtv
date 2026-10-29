@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { cameraOrigin } from '../../cameras/drivers.ts';
-import { agents, gateways } from '../../db/schema.ts';
+import { agents, deviceAddresses, gateways, organisations } from '../../db/schema.ts';
 import { useDB } from '../../db/transaction.ts';
 import { useEnvironment } from '../../env/env.ts';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
@@ -8,9 +8,6 @@ import type { Rendition } from '../../topology/settings.ts';
 import type { MediamtxAuth, PathSource } from './types.ts';
 
 // The steps of planning a device's configuration (src/configuration/plan/index.ts).
-
-/** Records why something is left out of the configuration, or only partly in it. */
-export type Diagnose = (message: string) => void;
 
 // Reading the topology.
 
@@ -35,6 +32,32 @@ export async function selectLocalGateway(device: AuthenticatedDevice) {
     .orderBy(gateways.id)
     .limit(1);
   return gateway?.id;
+}
+
+/** The gateway and the names its hostname is made from (src/gateways/certificates.ts). */
+export async function selectGatewayIdentity(gatewayId: string) {
+  const db = useDB({ trusted: true });
+  const [row] = await db
+    .select({
+      id: gateways.id,
+      organisationId: gateways.organisationId,
+      name: gateways.name,
+      organisationName: organisations.name
+    })
+    .from(gateways)
+    .innerJoin(organisations, eq(organisations.id, gateways.organisationId))
+    .where(eq(gateways.id, gatewayId));
+  return row!;
+}
+
+/** The address the agent last reported its default route leaves by, where its gateway's hostname should point. */
+export async function selectPreferredAddress(deviceId: string) {
+  const db = useDB({ trusted: true });
+  const [row] = await db
+    .select({ address: deviceAddresses.address })
+    .from(deviceAddresses)
+    .where(and(eq(deviceAddresses.deviceId, deviceId), eq(deviceAddresses.preferred, true)));
+  return row?.address;
 }
 
 /** Which exposures an agent delivers: its own MediaMTX gateway's, unless pinned to another device, and those pinned to it. */
@@ -90,13 +113,13 @@ export async function selectGatewayKinds(organisationId: string) {
 /** Where one rendition of an exposure comes from on this agent: a URL to pull, or a path its MediaMTX already serves. */
 export type Feed = PathSource;
 
-/** A camera's renditions, each pulled from where its driver says; the ones it cannot produce are diagnosed. */
-export function cameraFeeds(exposure: ExposureInput, camera: CameraInput, diagnose: Diagnose) {
+/** A camera's renditions, each pulled from where its driver says; the ones it cannot produce are left out. */
+export function cameraFeeds(exposure: ExposureInput, camera: CameraInput) {
   const feeds = new Map<Rendition, Feed>();
   for (const rendition of exposure.renditions) {
     const url = cameraOrigin(camera.settings, camera.credentials ?? undefined, rendition);
-    if (url === undefined) diagnose(`The camera cannot produce ${rendition}, and nothing transcodes yet`);
-    else feeds.set(rendition, { url });
+    // Nothing transcodes yet.
+    if (url !== undefined) feeds.set(rendition, { url });
   }
   return feeds;
 }

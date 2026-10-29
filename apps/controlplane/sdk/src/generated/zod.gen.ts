@@ -43,7 +43,7 @@ export const PostGrantsExchangeBodySchema = z.object({
     }),
     requested_capabilities: z.object({
         moq: z.object({
-            root: z.string().max(256),
+            root: z.string().max(223),
             publish: z.array(z.union([z.literal(''), z.string().max(256)])).max(32),
             subscribe: z.array(z.union([z.literal(''), z.string().max(256)])).max(32)
         }).optional(),

@@ -29,6 +29,13 @@ export type MediamtxAuth = {
     audience: string;
 };
 
+export type MediamtxTls = {
+    hostname: string;
+    certificate: string;
+    privateKey: string;
+    notAfter: string;
+};
+
 export type Publisher = {
     exposureId: string;
     connect: PublisherConnect;
@@ -4279,6 +4286,7 @@ export type GetDeviceConfigurationResponses = {
         mediamtx: {
             gatewayId: string;
             auth: MediamtxAuth;
+            tls?: MediamtxTls;
         };
         paths: Array<{
             name: string;
@@ -4291,10 +4299,6 @@ export type GetDeviceConfigurationResponses = {
             };
         }>;
         publishers: Array<Publisher>;
-        diagnostics: Array<{
-            subject: string;
-            message: string;
-        }>;
     };
 };
 

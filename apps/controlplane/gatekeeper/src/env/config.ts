@@ -1,7 +1,7 @@
 import { arkenv } from '@arkenv/standard';
 import { z } from 'zod';
 import { connectLazily } from '../db/client.ts';
-import { EndpointIdSchema } from '../grants/identifiers.ts';
+import { ConsumerNamespaceSchema, EndpointIdSchema } from '../grants/identifiers.ts';
 import { loadMoqKeyring, type MoqKeyring } from '../moq/keys.ts';
 import type { Clock, Environment } from './env.ts';
 
@@ -10,10 +10,17 @@ import type { Clock, Environment } from './env.ts';
  */
 export const config = {
   /**
-   * The environment's one consumer credential, presented as a bearer token to exchange grants. Whoever holds it is
-   * trusted with the environment's relays. Empty matches nothing, so no grant is exchanged.
+   * The environment's consumers, each trusted with its relays: a token, presented as a bearer token to exchange
+   * grants, and the namespace its MoQ roots are placed beneath. An empty list admits no exchange.
    */
-  CONSUMER_TOKEN: z.string(),
+  CONSUMERS: z
+    .array(z.strictObject({ namespace: ConsumerNamespaceSchema, token: z.string().min(1) }))
+    .refine(consumers => new Set(consumers.map(consumer => consumer.namespace)).size === consumers.length, {
+      message: 'Duplicate consumer namespace'
+    })
+    .refine(consumers => new Set(consumers.map(consumer => consumer.token)).size === consumers.length, {
+      message: 'Duplicate consumer token'
+    }),
   /** Endpoint IDs never admitted to the Iroh relay, as a JSON array. */
   DENIED_IROH_ENDPOINTS: z.array(EndpointIdSchema),
   /** The environment-specific ceiling on issued credential lifetimes, in seconds. */

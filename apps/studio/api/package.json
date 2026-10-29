@@ -23,8 +23,7 @@
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate && umbrella generate --role studio_app",
-    "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx scripts/seed-local.ts"
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@arkenv/standard": "catalog:",
@@ -35,6 +34,10 @@
     "@conservationtv/store": "workspace:*",
     "@conservationtv/umbrella": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",
+    "@peculiar/asn1-csr": "2.10.0",
+    "@peculiar/asn1-ecc": "2.10.0",
+    "@peculiar/asn1-schema": "2.10.0",
+    "@peculiar/asn1-x509": "2.10.0",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "4.13.8",
@@ -52,7 +55,6 @@
     "auth": "1.7.7",
     "cf": "^1.0.0-beta.5",
     "drizzle-kit": "catalog:",
-    "tsx": "4.23.15",
     "typescript": "catalog:",
     "vite": "^8.3.0"
   }

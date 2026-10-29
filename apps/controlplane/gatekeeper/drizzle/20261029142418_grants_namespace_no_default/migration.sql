@@ -1,0 +1,1 @@
+ALTER TABLE "grants" ALTER COLUMN "namespace" DROP DEFAULT;

@@ -7,11 +7,16 @@ import { createAuth, type Auth } from '../auth/auth.ts';
 import { otpDelivery } from '../auth/otp.ts';
 import type { Cache } from '../cache/cache.ts';
 import { connectLazily } from '../db/client.ts';
+import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
 // Building the environment loads the database schema, Better Auth and the authorization client. It is kept apart from
 // src/env/env.ts, which only declares it, so that anything (encrypted columns included) can use the environment store
 // without importing the schema back.
+
+/** A text binding that may be left empty, which Workers text bindings are rather than unset. */
+const optionalText = <Schema extends z.ZodType>(schema: Schema) =>
+  z.preprocess(value => (value === '' ? undefined : value), schema.optional());
 
 /**
  * The deployment's text bindings and secrets: under `nodejs_compat` they are also `process.env`, which ArkEnv reads.
@@ -32,6 +37,18 @@ export const config = {
   GATEKEEPER_URL: z.url(),
   /** The consumer token of the gatekeeper's environment, which trusts whoever holds it with its relays. */
   GATEKEEPER_TOKEN: z.string().min(1),
+  /**
+   * The zone MediaMTX gateways get hostnames in, `<gateway>.<organisation>.<GATEWAY_DOMAIN>`, with certificates for
+   * them; see src/gateways/certificates.ts. Unset (or empty), gateways get neither. Set, the rest of this group is
+   * required.
+   */
+  GATEWAY_DOMAIN: optionalText(z.string().regex(/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/u, 'a bare domain name')),
+  /** The Cloudflare zone GATEWAY_DOMAIN is served from, and a token that may edit its DNS records. */
+  CLOUDFLARE_ZONE_ID: optionalText(z.string().min(1)),
+  CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
+  /** The ACME directory certificates come from, and the account key, one ES256 JWK with its private `d`. */
+  ACME_DIRECTORY_URL: optionalText(z.url()),
+  ACME_ACCOUNT_KEY: z.string().min(1).optional(),
   /** Only logging exists; see src/auth/otp.ts. */
   OTP_DELIVERY: z.literal('log'),
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -63,6 +80,9 @@ export const services = (variables: Variables, bindings: Bindings) => {
     A Worker cannot share I/O between requests, so this runs once per request, and every client
     that connects opens on first use: requests that never touch storage never open a connection.
   */
+
+  /** Hostnames and certificates for MediaMTX gateways, when GATEWAY_DOMAIN is set. */
+  const gatewayCertificates: CertificateIssuer | undefined = certificateIssuer(variables);
 
   /** The control plane that names the relays and admits devices to them. */
   const gatekeeper = (() => {
@@ -113,6 +133,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
     auth,
     cache: bindings.cache,
     gatekeeper,
+    gatewayCertificates,
     close: () => Promise.all([admin.close(), app.close()])
   };
 };

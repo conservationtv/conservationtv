@@ -50,7 +50,7 @@ The `staging` and `prod` environments each hold `PULUMI_CONFIG_PASSPHRASE`, `PUL
 
 Secrets reach gatekeeper only with a release. After rotating one here, release to apply it. Uploads keep secrets that are not in the file.
 
-The consumer token is generated per stack (`consumerTokenGeneration`, starting at 1) and released as `CONSUMER_TOKEN`; read it with `pulumi stack output gatekeeperConsumerToken --show-secrets`. Prod's goes to production services' `GATEKEEPER_TOKEN`; staging's lives in 1Password for trusted developers. To rotate, increment `consumerTokenGeneration`, release, and give its holders the new value: there is no overlap.
+Each stack lists its consumers in `consumers`, a map from namespace to token generation (starting at 1): `prod` for prod, and `staging`, `local` (developers' machines) and `preview` for staging. Gatekeeper receives them as `CONSUMERS` and places each consumer's MoQ roots beneath its namespace, so consumers sharing the relays can use the same paths. Read a token with `pulumi stack output gatekeeperConsumerTokens --show-secrets`. The consumer named after the stack is that stack's studio's `GATEKEEPER_TOKEN`; staging's `local` token lives in 1Password for trusted developers. To rotate one, increment its generation, release, and give its holders the new value: there is no overlap.
 
 MoQ calls `/relays/moq/admission` with its generated relay key as HTTP Basic credentials. Iroh calls `/relays/iroh/admission` with its generated bearer token. There is only one MoQ node, so its static peer list is empty. Gatekeeper receives no node list.
 

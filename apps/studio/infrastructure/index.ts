@@ -11,25 +11,44 @@ const appUrl = `https://${apiDomain}`;
 const webDomain = config.require('webDomain');
 // The web app's origin: the API trusts it, and hosts the device approval page there.
 const webOrigin = `https://${webDomain}`;
-// Account-wide names: prod keeps the bare names, other stacks (staging) are suffixed with their name.
-const accountName = (name: string) => (stack === 'prod' ? name : `${name}-${stack}`);
+// Account-wide names: prod keeps the bare names, other stacks (staging, preview) are suffixed with their name.
+const accountNameOf = (owner: string, name: string) => (owner === 'prod' ? name : `${name}-${owner}`);
+const accountName = (name: string) => accountNameOf(stack, name);
 const apiWorkerName = accountName('studio-api');
 const webWorkerName = accountName('studio-web');
-const databaseName = accountName('studio');
 const accountId = cloudflare.getZoneOutput({ zoneId }).account.id;
+
+// A stack may be a clone of another (`cloneOf`): the preview stack clones staging. A clone shares that stack's
+// controlplane and secrets, and its database is a branch of that stack's, restored from it as of `restorePoint`.
+const cloneOf = config.get('cloneOf');
+
+// This stack's own last outputs, which an unset `apiVersion`, `webVersion` or `restorePoint` falls back to.
+const previousOutputs = new pulumi.StackReference(`${pulumi.getOrganization()}/${pulumi.getProject()}/${stack}`);
+// SAFETY: callers name one of this stack's own outputs, exported below with the shape they read it as (or absent
+// before the first update).
+const previousOutput = async <T>(output: string) =>
+  (await previousOutputs.getOutputDetails(output)).value as T | undefined;
 
 /** What this stack reads of the controlplane stack's `gatekeeper` output. */
 interface ControlplaneGatekeeper {
   domain: string;
 }
 
-// The controlplane stack of the same name: its gatekeeper names the relays and admits devices to them, and trusts
-// whoever holds its consumer token. Its `pulumi up` must have run first.
-const controlplane = new pulumi.StackReference(`${pulumi.getOrganization()}/controlplane/${stack}`);
+// The controlplane stack of the same name (a clone's source's): its gatekeeper names the relays and admits devices to
+// them, and trusts whoever holds its consumer token. Its `pulumi up` must have run first.
+const controlplane = new pulumi.StackReference(`${pulumi.getOrganization()}/controlplane/${cloneOf ?? stack}`);
 // SAFETY: the controlplane stack exports `gatekeeper` with its domain.
 const controlplaneGatekeeper = controlplane.requireOutput('gatekeeper') as pulumi.Output<ControlplaneGatekeeper>;
 const gatekeeperUrl = pulumi.interpolate`https://${controlplaneGatekeeper.domain}`;
-const gatekeeperToken = controlplane.requireOutput('gatekeeperConsumerToken');
+// SAFETY: the controlplane stack exports each consumer's token by namespace, and names this stack's consumer after it.
+const gatekeeperTokens = controlplane.requireOutput('gatekeeperConsumerTokens') as pulumi.Output<
+  Record<string, string>
+>;
+const gatekeeperToken = gatekeeperTokens.apply(tokens => {
+  const token = tokens[stack];
+  if (token === undefined) throw new Error(`The controlplane stack has no ${stack} consumer`);
+  return token;
+});
 
 // The studio API's Worker and the resources its versions bind. Versions are uploaded from the API's build; this stack
 // routes traffic to the one tagged `apiVersion` once that is set.
@@ -52,30 +71,68 @@ const cache = new cloudflare.WorkersKvNamespace('studio-api-cache', {
   title: accountName('studio-api-cache')
 });
 
-// The studio's PlanetScale Postgres database in London, beside gatekeeper's. Creating its main branch creates the
-// database. PS-5, the default, runs as HA (a primary and two replicas): the provider cannot choose single-node.
-// TimescaleDB must be enabled in the cluster's configuration before the first migration; see the README.
+/** What this stack reads of its own `database` output. */
+interface DeployedDatabase {
+  restorePoint?: string;
+}
+
+// A clone's database is restored as of `restorePoint`, which must be at least five minutes old. Each preview release
+// sets it to then; otherwise this keeps the point restored now, so a plain `pulumi up` never restores the clone again.
+const restorePoint = cloneOf
+  ? (config.get('restorePoint') ?? (await previousOutput<DeployedDatabase>('database'))?.restorePoint)
+  : undefined;
+if (cloneOf && !restorePoint) throw new Error(`Set restorePoint: the time to restore ${cloneOf}'s database as of`);
+
 const planetscaleOrganization = config.require('planetscaleOrganization');
-const database = new planetscale.PostgresBranch(
-  'studio-database',
-  {
-    organization: planetscaleOrganization,
-    database: databaseName,
-    name: 'main',
-    region: 'aws-eu-west-2',
-    clusterSize: config.get('databaseClusterSize') ?? 'PS_5_AWS_X86',
-    deletionProtected: true
-  },
-  { protect: true }
-);
+const databaseBranch = cloneOf
+  ? // A development branch (PS-DEV, single-node) of the source's database, restored from its main branch. A new
+    // restore point replaces it: deleted first, since the new branch takes the same name. Its roles and the KV cache
+    // are its own, but the data is the source's, sealed under the source's `FIELD_KEY` (below). The restore does not
+    // carry the cluster's parameters, and setting any resets the rest to PlanetScale's defaults, so TimescaleDB is
+    // preloaded here; see the README.
+    new planetscale.PostgresBranch(
+      'studio-database-clone',
+      {
+        organization: planetscaleOrganization,
+        database: accountNameOf(cloneOf, 'studio'),
+        name: stack,
+        parentBranch: 'main',
+        restorePoint,
+        region: 'aws-eu-west-2',
+        clusterSize: config.get('databaseClusterSize') ?? 'PS_DEV_AWS_X86',
+        parameters: { pgconf: { shared_preload_libraries: 'timescaledb' } },
+        deletionProtected: false
+      },
+      { deleteBeforeReplace: true }
+    )
+  : // The studio's PlanetScale Postgres database in London, beside gatekeeper's. Creating its main branch creates the
+    // database. PS-5, the default, runs as HA (a primary and two replicas): the provider cannot choose single-node.
+    // TimescaleDB must be enabled in the cluster's configuration before the first migration; see the README.
+    new planetscale.PostgresBranch(
+      'studio-database',
+      {
+        organization: planetscaleOrganization,
+        database: accountName('studio'),
+        name: 'main',
+        region: 'aws-eu-west-2',
+        clusterSize: config.get('databaseClusterSize') ?? 'PS_5_AWS_X86',
+        deletionProtected: true
+      },
+      { protect: true }
+    );
+// A branch's roles go with it, so a restored clone needs new ones.
 const databaseRole = (name: string, inheritedRoles: string[]) =>
-  new planetscale.PostgresBranchRole(`studio-database-${name}`, {
-    organization: planetscaleOrganization,
-    database: database.database,
-    branch: database.name,
-    name,
-    inheritedRoles
-  });
+  new planetscale.PostgresBranchRole(
+    `studio-database-${name}`,
+    {
+      organization: planetscaleOrganization,
+      database: databaseBranch.database,
+      branch: databaseBranch.name,
+      name,
+      inheritedRoles
+    },
+    { replaceWith: [databaseBranch] }
+  );
 // Umbrella needs two roles. The owning role runs migrations, so it owns every table, and serves Better Auth and grants.
 // Request sessions log in as the application role, which holds nothing of its own: after migrating, the release makes
 // it a member of `studio_app`, which the migrations create and grant to, so row-level security applies to everything it
@@ -101,9 +158,31 @@ const hyperdrive = (name: string, role: planetscale.PostgresBranchRole) =>
 const adminHyperdrive = hyperdrive('admin', adminRole);
 const appHyperdrive = hyperdrive('app', appRole);
 
-const betterAuthSecret = new random.RandomBytes('better-auth-secret', { length: 32 });
-// Every encrypted column is sealed under this key, and nothing re-seals them yet: replacing it loses that data.
-const fieldKey = new random.RandomBytes('field-key', { length: 32 }, { protect: true });
+/** The secrets a stack generates for itself, and a clone shares with its source. */
+interface OwnSecrets {
+  BETTER_AUTH_SECRET: string;
+  FIELD_KEY: string;
+}
+
+const generateSecrets = (): pulumi.Output<OwnSecrets> => {
+  const betterAuthSecret = new random.RandomBytes('better-auth-secret', { length: 32 });
+  // Every encrypted column is sealed under this key, and nothing re-seals them yet: replacing it loses that data.
+  const fieldKey = new random.RandomBytes('field-key', { length: 32 }, { protect: true });
+  return pulumi.output({ BETTER_AUTH_SECRET: betterAuthSecret.base64, FIELD_KEY: fieldKey.base64 });
+};
+// A clone's data is its source's, so it needs the source's `FIELD_KEY`: that stack's `pulumi up` must have run first.
+const cloneSource = cloneOf
+  ? new pulumi.StackReference(`${pulumi.getOrganization()}/${pulumi.getProject()}/${cloneOf}`)
+  : undefined;
+const ownSecrets = cloneSource
+  ? // SAFETY: the source stack is this program's, which exports `apiSecrets` with these among them.
+    (cloneSource.requireOutput('apiSecrets') as pulumi.Output<OwnSecrets>).apply(
+      ({ BETTER_AUTH_SECRET, FIELD_KEY }) => ({
+        BETTER_AUTH_SECRET,
+        FIELD_KEY
+      })
+    )
+  : generateSecrets();
 
 /** What this stack reads of its own `api` and `web` outputs. */
 interface DeployedWorker {
@@ -114,11 +193,7 @@ interface DeployedWorker {
 // `apiVersion` and `webVersion` for each release; otherwise this keeps the versions deployed now, read from the stack's
 // last outputs, so a plain `pulumi up` never rolls either back or removes its deployment. Each is unset before its
 // Worker's first upload, which needs the Worker and the bindings above to exist.
-const previousOutputs = new pulumi.StackReference(`${pulumi.getOrganization()}/${pulumi.getProject()}/${stack}`);
-const deployedTag = async (output: 'api' | 'web') =>
-  // SAFETY: `api` and `web` are this stack's own outputs, exported below with this shape (or absent before the first
-  // update).
-  ((await previousOutputs.getOutputDetails(output)).value as DeployedWorker | undefined)?.versionTag;
+const deployedTag = async (output: 'api' | 'web') => (await previousOutput<DeployedWorker>(output))?.versionTag;
 
 /** Routes all of `worker`'s traffic to its version tagged `tag`, serves it on `hostname`, and returns the version's id. */
 const deploy = (name: string, worker: cloudflare.Worker, hostname: string, tag: string) => {
@@ -169,11 +244,15 @@ export const web = {
   apiUrl: appUrl
 };
 /** Every studio API secret binding, uploaded with each version through `--secrets-file`. */
-export const apiSecrets = pulumi.secret({
-  BETTER_AUTH_SECRET: betterAuthSecret.base64,
-  FIELD_KEY: fieldKey.base64,
-  GATEKEEPER_TOKEN: gatekeeperToken
-});
+export const apiSecrets = pulumi.secret(
+  pulumi.all([ownSecrets, gatekeeperToken]).apply(([secrets, token]) => ({ ...secrets, GATEKEEPER_TOKEN: token }))
+);
+/** The database's PlanetScale name and branch, and a clone's restore point. */
+export const database = {
+  name: databaseBranch.database,
+  branch: databaseBranch.name,
+  restorePoint
+};
 /** The PostgreSQL role the application role logs in as, which the release makes a member of `studio_app`. */
 export const databaseAppRole = appRole.baseUsername;
 /** The owning role's `DATABASE_URL`, for `pnpm db:migrate` and making the application role a member of `studio_app`. */

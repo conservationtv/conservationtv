@@ -66,6 +66,17 @@ export default defineConfig({
       GATEKEEPER_URL: bindings.text(stack?.gatekeeperUrl ?? process.env.GATEKEEPER_URL ?? 'http://localhost:5176'),
       /** The control plane environment's consumer token; see .dev.vars.example. */
       GATEKEEPER_TOKEN: bindings.secret(),
+      /**
+       * Optional: the zone MediaMTX gateways get hostnames and certificates in, its Cloudflare zone, and the ACME
+       * directory; see .dev.vars.example. Empty text leaves gateways without hostnames. Their secrets,
+       * `CLOUDFLARE_API_TOKEN` and `ACME_ACCOUNT_KEY`, are not declared here: every declared secret must be uploaded
+       * with each version, and these are only set beside `GATEWAY_DOMAIN`.
+       */
+      GATEWAY_DOMAIN: bindings.text(process.env.GATEWAY_DOMAIN ?? ''),
+      CLOUDFLARE_ZONE_ID: bindings.text(process.env.CLOUDFLARE_ZONE_ID ?? ''),
+      ACME_DIRECTORY_URL: bindings.text(
+        process.env.ACME_DIRECTORY_URL ?? 'https://acme-staging-v02.api.letsencrypt.org/directory'
+      ),
       /** How sign-in codes reach people. Only `log` exists; a deployment needs an email provider first. */
       OTP_DELIVERY: bindings.text('log')
     }

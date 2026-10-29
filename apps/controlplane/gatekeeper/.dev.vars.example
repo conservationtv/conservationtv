@@ -3,8 +3,9 @@
 # node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(({kty,crv,x,y,d})=>console.log(JSON.stringify({active_kid:'local-1',keys:[{kty,crv,x,y,d,alg:'ES256',kid:'local-1'}]})))"
 MOQ_SIGNING_KEYS='{"active_kid":"…","keys":[…]}'
 
-# The consumer token, which the studio API presents as GATEKEEPER_TOKEN.
-CONSUMER_TOKEN=local-consumer-token
+# The consumers: the local studio API presents its token as GATEKEEPER_TOKEN, and its MoQ roots are placed beneath
+# its namespace.
+CONSUMERS='[{"namespace":"local","token":"local-consumer-token"}]'
 # The relays' callback credentials, and MoQ's peer credential (unused with one local relay).
 IROH_RELAY_TOKEN=local-iroh-relay-token
 MOQ_RELAY_TOKEN=local-moq-relay-token

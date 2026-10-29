@@ -5,10 +5,12 @@ import { auth } from './builders/auth.ts';
 import { paths } from './builders/paths.ts';
 import { publishers } from './builders/publishers.ts';
 import { server } from './builders/server.ts';
+import { tls } from './builders/tls.ts';
 import type { MediamtxPaths } from './paths.ts';
+import type { TlsFiles } from './tls.ts';
 
 // The config MediaMTX serves, assembled by the steps in builders/ from where its servers listen, the paths the spec
-// names, the exposures it publishes and who it admits.
+// names, the exposures it publishes, who it admits and the certificate it serves TLS with.
 
 /** Where MediaMTX's own HTTP servers listen, and the agent's beside them, such as `127.0.0.1:9997`. */
 export interface MediamtxAddresses {
@@ -47,9 +49,11 @@ export interface MediamtxServing {
   auth?: MediamtxAuth;
   /** Absent when it publishes nothing. */
   publishing?: MoqPublishing;
+  /** The certificate it serves TLS with (tls.ts); absent, it serves everything in the clear. */
+  tls?: TlsFiles;
 }
 
-export const mediamtxConfig = pipeline(server, paths, publishers, auth);
+export const mediamtxConfig = pipeline(server, paths, publishers, auth, tls);
 
 /** The config file's text. Throws if the config is unfit to serve, naming what made it so. */
 export async function renderConfig(params: MediamtxAddresses & MediamtxServing): Promise<string> {

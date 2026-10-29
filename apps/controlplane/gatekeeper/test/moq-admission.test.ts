@@ -60,7 +60,7 @@ async function admission(session: SessionEvent, authorization: string | undefine
 describe('MoQ relay auth callout', () => {
   it('grants the token at its root, bounded by its expiry and revalidated', async () => {
     const token = await moqToken();
-    const result = await admission({ path: '/app-a/t_92/room_71', query: `jwt=${token}` });
+    const result = await admission({ path: '/test/app-a/t_92/room_71', query: `jwt=${token}` });
     expect(result).toEqual({
       status: 200,
       body: {
@@ -75,36 +75,38 @@ describe('MoQ relay auth callout', () => {
 
   it('reads a type 0 SETUP token', async () => {
     const value = base64url.encode(await moqToken());
-    const result = await admission({ path: '/app-a/t_92/room_71', token: { kind: 0, value } });
+    const result = await admission({ path: '/test/app-a/t_92/room_71', token: { kind: 0, value } });
     expect(result.status).toBe(200);
   });
 
   it.each([
-    ['beneath the root, inside a pattern', '/app-a/t_92/room_71/camera', ['**']],
-    ['above the root', '/app-a', ['t_92/room_71/camera/**']],
-    ['at the root with surrounding slashes', '/app-a/t_92/room_71/', ['camera/**']]
+    ['beneath the root, inside a pattern', '/test/app-a/t_92/room_71/camera', ['**']],
+    ['above the root', '/test/app-a', ['t_92/room_71/camera/**']],
+    ['at the root with surrounding slashes', '/test/app-a/t_92/room_71/', ['camera/**']]
   ])('scopes patterns to a path %s', async (_name, path, publish) => {
     const result = await admission({ path, query: `jwt=${await moqToken()}` });
     expect(result).toMatchObject({ status: 200, body: { publish } });
   });
 
   it.each([
-    ['beside the root', '/app-b/room'],
-    ['beneath the root where nothing is granted', '/app-a/t_92/room_71/screen'],
-    ['that is not canonical', '/app-a/t_92/../room_71']
+    ['beside the root', '/test/app-b/room'],
+    ['beneath the root where nothing is granted', '/test/app-a/t_92/room_71/screen'],
+    ['that is not canonical', '/test/app-a/t_92/../room_71'],
+    ['at the requested root, outside the namespace', '/app-a/t_92/room_71'],
+    ["at the same root in another consumer's namespace", '/other/app-a/t_92/room_71']
   ])('refuses a path %s', async (_name, path) => {
     const result = await admission({ path, query: `jwt=${await moqToken()}` });
     expect(result).toMatchObject({ status: 403, body: { error: 'access_denied' } });
   });
 
   it('refuses a session without a token', async () => {
-    expect((await admission({ path: '/app-a/t_92/room_71' })).status).toBe(403);
+    expect((await admission({ path: '/test/app-a/t_92/room_71' })).status).toBe(403);
   });
 
   it('refuses a SETUP token and ?jwt= that disagree', async () => {
     const [first, second] = [await moqToken(), await moqToken()];
     const token = { kind: 0, value: base64url.encode(first) };
-    expect((await admission({ path: '/app-a/t_92/room_71', query: `jwt=${second}`, token })).status).toBe(403);
+    expect((await admission({ path: '/test/app-a/t_92/room_71', query: `jwt=${second}`, token })).status).toBe(403);
   });
 
   it('refuses malformed SETUP and JWT encodings', async () => {
@@ -114,7 +116,7 @@ describe('MoQ relay auth callout', () => {
 
   it('refuses token types other than out-of-band', async () => {
     const token = { kind: 1, value: base64url.encode(await moqToken()) };
-    expect((await admission({ path: '/app-a/t_92/room_71', token })).status).toBe(403);
+    expect((await admission({ path: '/test/app-a/t_92/room_71', token })).status).toBe(403);
   });
 
   it('refuses a token the control plane did not sign', async () => {
@@ -131,7 +133,7 @@ describe('MoQ relay auth callout', () => {
 
   it('refuses an expired token on revalidation', async () => {
     const token = await moqToken(2);
-    const session = { event: 'revalidate' as const, path: '/app-a/t_92/room_71', query: `jwt=${token}` };
+    const session = { event: 'revalidate' as const, path: '/test/app-a/t_92/room_71', query: `jwt=${token}` };
     expect((await admission(session)).status).toBe(200);
     await expect.poll(async () => (await admission(session)).status, { timeout: 5_000 }).toBe(403);
   });
@@ -140,7 +142,7 @@ describe('MoQ relay auth callout', () => {
     const { grant_id, credentials } = await exchange();
     const session = {
       event: 'revalidate' as const,
-      path: '/app-a/t_92/room_71',
+      path: '/test/app-a/t_92/room_71',
       query: `jwt=${credentials.moq?.token}`
     };
     expect((await admission(session)).status).toBe(200);
@@ -149,7 +151,7 @@ describe('MoQ relay auth callout', () => {
   });
 
   it('accepts any username but requires the relay key as the Basic password', async () => {
-    const session = { path: '/app-a/t_92/room_71', query: `jwt=${await moqToken()}` };
+    const session = { path: '/test/app-a/t_92/room_71', query: `jwt=${await moqToken()}` };
     expect((await admission(session, basic(MOQ_RELAY_TOKEN, 'relay-2'))).status).toBe(200);
     for (const authorization of [
       '',
@@ -165,7 +167,10 @@ describe('MoQ relay auth callout', () => {
   });
 
   it('acknowledges the end of a session', async () => {
-    expect(await admission({ event: 'end', path: '/app-a/t_92/room_71' })).toEqual({ status: 204, body: undefined });
+    expect(await admission({ event: 'end', path: '/test/app-a/t_92/room_71' })).toEqual({
+      status: 204,
+      body: undefined
+    });
   });
 
   it('rejects requests that are not moq-auth requests', async () => {

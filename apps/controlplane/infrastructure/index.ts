@@ -84,12 +84,34 @@ const moqClusterToken = new random.RandomBytes('moq-cluster-token', {
   keepers: { generation: config.get('clusterTokenGeneration') ?? '1' }
 });
 const irohToken = new random.RandomBytes('iroh-token', { length: 32 });
-// The environment's one consumer credential: whoever holds it may exchange grants for this stack's relays. To rotate,
-// increment consumerTokenGeneration, release, and hand the new value to its holders; there is no overlap.
-const consumerToken = new random.RandomBytes('consumer-token', {
-  length: 32,
-  keepers: { generation: config.get('consumerTokenGeneration') ?? '1' }
-});
+// The environment's consumers, by namespace: each holds its own token to exchange grants for this stack's relays, and
+// gatekeeper places its MoQ roots beneath its namespace so consumers sharing the relays never meet. The consumer named
+// after the stack is the stack's own studio; staging also has `local` (developers' machines) and `preview`. Each value is
+// the token's generation: to rotate one, increment it, release, and hand the new value to its holders; there is no
+// overlap.
+const consumerGenerations = config.requireObject<Record<string, number>>('consumers');
+for (const [namespace, generation] of Object.entries(consumerGenerations)) {
+  if (!/^[a-z0-9-]{1,32}$/.test(namespace)) {
+    throw new Error(`Consumer namespace ${namespace} is not one lowercase segment`);
+  }
+  if (!Number.isInteger(generation) || generation < 1) {
+    throw new Error(`Consumer ${namespace}'s generation must be a positive integer`);
+  }
+}
+const consumerTokens = Object.fromEntries(
+  Object.entries(consumerGenerations).map(([namespace, generation]) => [
+    namespace,
+    new random.RandomBytes(
+      `consumer-token-${namespace}`,
+      { length: 32, keepers: { generation: String(generation) } },
+      // The stack's own consumer keeps the token the single-consumer stack generated.
+      { aliases: namespace === stack ? [{ name: 'consumer-token' }] : [] }
+    ).hex
+  ])
+);
+const consumers = pulumi
+  .all(consumerTokens)
+  .apply(tokens => JSON.stringify(Object.entries(tokens).map(([namespace, token]) => ({ namespace, token }))));
 
 const moq = new MoqRelayCluster('moq-relay', {
   relays: [{ machine: moqMachine, hostname: moqHostname }],
@@ -238,10 +260,10 @@ export const gatekeeperSecrets = pulumi.secret({
   MOQ_RELAY_TOKEN: moqRelayToken.hex,
   MOQ_CLUSTER_TOKEN: moqClusterToken.hex,
   IROH_RELAY_TOKEN: irohToken.hex,
-  CONSUMER_TOKEN: consumerToken.hex
+  CONSUMERS: consumers
 });
-/** The consumer token, which the environment's consumers present as GATEKEEPER_TOKEN. */
-export const gatekeeperConsumerToken = pulumi.secret(consumerToken.hex);
+/** Each consumer's token by namespace, which that consumer presents as GATEKEEPER_TOKEN. */
+export const gatekeeperConsumerTokens = pulumi.secret(consumerTokens);
 /** Gatekeeper's `DATABASE_URL` for `pnpm db:migrate`. */
 export const gatekeeperMigrationUrl = pulumi
   .all([

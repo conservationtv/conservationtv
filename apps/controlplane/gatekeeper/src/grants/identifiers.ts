@@ -6,16 +6,32 @@ import { z } from 'zod';
 const SEGMENT = /^(?!\.{1,2}$)[A-Za-z0-9._~-]{1,64}$/;
 const MAX_PATH_LENGTH = 256;
 const MAX_PATH_DEPTH = 16;
+const MAX_NAMESPACE_LENGTH = 32;
+
+const canonicalPath = (maxLength: number, maxDepth: number) =>
+  z
+    .string()
+    .max(maxLength)
+    .refine(path => {
+      const segments = path.split('/');
+      return segments.length <= maxDepth && segments.every(segment => SEGMENT.test(segment));
+    }, 'Expected a canonical slash-separated path');
 
 /** `app-a/t_92/room_71`: slash-separated, no empty, `.` or `..` segments, no leading or trailing slash, no wildcards. */
-export const MoqPathSchema = z
-  .string()
-  .max(MAX_PATH_LENGTH)
-  .refine(path => {
-    const segments = path.split('/');
-    return segments.length <= MAX_PATH_DEPTH && segments.every(segment => SEGMENT.test(segment));
-  }, 'Expected a canonical slash-separated path');
+export const MoqPathSchema = canonicalPath(MAX_PATH_LENGTH, MAX_PATH_DEPTH);
 export type MoqPath = z.output<typeof MoqPathSchema>;
+
+/**
+ * A consumer's namespace, such as `staging`, `local` or `preview`: one lowercase path segment. Gatekeeper places each
+ * consumer's MoQ roots beneath it, so consumers sharing an environment's relays can use the same paths.
+ */
+export const ConsumerNamespaceSchema = z
+  .string()
+  .regex(new RegExp(`^[a-z0-9-]{1,${MAX_NAMESPACE_LENGTH}}$`), 'Expected lowercase letters, digits and hyphens');
+export type ConsumerNamespace = z.output<typeof ConsumerNamespaceSchema>;
+
+/** The root a consumer asks for, a canonical path with room left for the namespace segment gatekeeper prefixes. */
+export const MoqRootSchema = canonicalPath(MAX_PATH_LENGTH - MAX_NAMESPACE_LENGTH - 1, MAX_PATH_DEPTH - 1);
 
 /** A publish or subscribe entry relative to the grant's root. The empty string authorises the whole root. */
 export const MoqRelativePathSchema = z.union([z.literal(''), MoqPathSchema]);

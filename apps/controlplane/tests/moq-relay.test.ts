@@ -1,5 +1,5 @@
 import type { Grant } from '@conservationtv/controlplane-sdk';
-import { exampleGrant, grants, MOQ_CLUSTER_TOKEN } from '@conservationtv/gatekeeper/testing';
+import { CONSUMER_NAMESPACE, exampleGrant, grants, MOQ_CLUSTER_TOKEN } from '@conservationtv/gatekeeper/testing';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { type GatekeeperServer, startGatekeeper } from './support/gatekeeper.ts';
@@ -8,7 +8,8 @@ import { type StartedRelay, startMoqRelay, startMoqPeers } from './support/relay
 // moq-relay asks gatekeeper about every session. Its one-shot HTTP routes (`/announced`) are sessions too, so a plain
 // HTTP client drives the full callout: relay → gatekeeper → grant or refusal → relay's answer to the client.
 
-const ROOM = 'app-a/t_92/room_71';
+/** The example grant's root, as the credential names it: beneath the consumer's namespace. */
+const ROOM = `${CONSUMER_NAMESPACE}/app-a/t_92/room_71`;
 
 const gatekeeper: GatekeeperServer = await startGatekeeper();
 const relay: StartedRelay = await startMoqRelay(gatekeeper);
@@ -70,6 +71,8 @@ describe('moq-relay auth callout', () => {
   it('refuses a path outside the token root', async () => {
     const { credentials } = await issueGrant();
     expect((await announced('app-b/room', credentials.moq?.token)).status).toBe(401);
+    // The requested root itself is outside the consumer's namespace.
+    expect((await announced('app-a/t_92/room_71', credentials.moq?.token)).status).toBe(401);
   });
 
   it('refuses a token whose grant has been revoked', async () => {
