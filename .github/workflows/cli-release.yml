@@ -61,14 +61,13 @@ jobs:
       - name: Pack
         run: pnpm pack --pack-destination "$RUNNER_TEMP/cli"
 
-      # npm publishes the tarball, from outside the repository: the workspace's devEngines admits only pnpm. It uses
-      # trusted publishing (npm 11.5.1 or later) once npmjs.com trusts this workflow, and otherwise the `NPM_TOKEN`
-      # secret, which the first publish needs: npm trusts a workflow only for a package that already exists.
+      # npm publishes the tarball, from outside the repository: the workspace's devEngines admits only pnpm. It
+      # authenticates only by trusted publishing (npm 11.5.1 or later), so npmjs.com must trust this workflow for the
+      # package: npm trusts a workflow only for a package that exists, so the first version is published by hand.
       - name: Publish
         working-directory: ${{ runner.temp }}/cli
         env:
           DIST_TAG: ${{ steps.version.outputs.dist-tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           npm install --global npm@^11.5.1
           npm publish ./*.tgz --provenance --access public --tag "$DIST_TAG"
