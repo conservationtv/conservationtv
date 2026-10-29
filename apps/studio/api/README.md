@@ -133,22 +133,6 @@ cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECR
 pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
 ```
 
-To try delivery end to end, seed a topology against the running API: an organisation with a network, its active agent
-running a MediaMTX gateway, an Axis camera, and a stream from it exposed on the LAN at every rendition, and from there
-to the conservation.tv relay, published by the agent: each rendition by the moq CLI, which the agent installs and
-MediaMTX runs, and joined by the agent into the one broadcast readers watch. The relay needs a gatekeeper to issue its
-tokens, so run `pnpm dev:staging`. The account is
-`SEED_EMAIL`'s, which then signs in by emailed code as ever; the camera's credentials go to the API, encrypted, and are
-never written to disk. It prints the agent's `AGENT_SECRET_KEY` and `STUDIO_API_URL`: run the agent
-(`apps/agent/runner`, `pnpm start`) with them, and it asks for its configuration (`deviceConfiguration.get`) and runs
-MediaMTX to serve it. The agent admits MediaMTX's readers on its own machine as they are, and others by tokens the
-API signs with the agent's own identity, which the agent checks without asking anyone.
-
-```sh
-SEED_EMAIL=you@example.com SEED_CAMERA_HOST=http://192.168.1.10 SEED_CAMERA_USERNAME=root SEED_CAMERA_PASSWORD=… \
-  pnpm --filter @conservationtv/studio-api db:seed
-```
-
 Gatekeeper names the relays and admits devices to them, so the API always runs against one. `pnpm dev` uses the local
 controlplane's (see [gatekeeper's README](../../controlplane/gatekeeper/README.md#develop)), with `.dev.vars`'s
 `GATEKEEPER_TOKEN=local-consumer-token`. `pnpm dev:staging` uses staging's instead, and reads its secrets from
