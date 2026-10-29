@@ -9,8 +9,11 @@ export const grants = pgTable(
   'grants',
   {
     id: text('id').primaryKey(),
-    /** The consumer that exchanged it. `subject` is that consumer's own label, unique only within its namespace. */
-    namespace: text('namespace').notNull(),
+    /**
+     * The consumer that exchanged it. `subject` is that consumer's own label, unique only within its namespace.
+     * The empty default only serves grants from versions before namespaces; drop it once none are serving.
+     */
+    namespace: text('namespace').notNull().default(''),
     subject: text('subject').notNull(),
     /** The root the MoQ token was signed for, beneath the namespace. */
     moqRoot: text('moq_root'),
