@@ -15,10 +15,17 @@ import { useScope } from './scope.js';
 
 const SessionSchema = z.object({
   env: z.enum(ENVIRONMENTS),
+  /** A `local` login's own API, from `ctv login --url`, in place of `pnpm dev`'s. */
+  url: z.url().optional(),
   token: z.string().min(1),
   email: z.string().optional()
 });
 export type Session = z.output<typeof SessionSchema>;
+
+/** The studio API a session signed in to. */
+export function sessionApiUrl(session: Session): string {
+  return session.url ?? apiUrlOf(session.env);
+}
 
 const DeviceSchema = z.object({
   id: z.string(),
@@ -83,10 +90,10 @@ export function writeCredentials(credentials: Credentials): void {
   chmodSync(path, 0o600);
 }
 
-/** The session signed in to `env` as `email`, by id, if there is one. */
-export function findSession(credentials: Credentials, env: Environment, email: string | undefined) {
+/** The session signed in to the API at `apiUrl` as `email`, by id, if there is one. */
+export function findSession(credentials: Credentials, apiUrl: string, email: string | undefined) {
   const sessions = Object.entries(credentials.sessions);
-  const found = sessions.find(([, session]) => session.env === env && session.email === email);
+  const found = sessions.find(([, session]) => sessionApiUrl(session) === apiUrl && session.email === email);
   return found?.[0];
 }
 
@@ -128,7 +135,7 @@ export function activeProfile(credentials: Credentials): Active | undefined {
   const profile = credentials.profiles[name];
   if (profile === undefined) throw new LoginError(`There is no profile named "${name}": see \`ctv profiles list\`.`);
   const session = credentials.sessions[profile.session]!;
-  const apiUrl = apiUrlOf(session.env);
+  const apiUrl = sessionApiUrl(session);
   return { name, profile, session, apiUrl };
 }
 

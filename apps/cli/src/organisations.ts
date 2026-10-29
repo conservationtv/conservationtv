@@ -1,6 +1,6 @@
 import { cancel, isCancel, select } from '@clack/prompts';
 import type { Client } from '@conservationtv/studio-sdk';
-import type { Credentials, Device } from './credentials.js';
+import { sessionApiUrl, type Credentials, type Device } from './credentials.js';
 import { LoginError } from './errors.js';
 
 /** An organisation, or anything else `choose` offers: a profile is offered by its name, as `id`. */
@@ -74,6 +74,7 @@ export interface DeviceSummary {
 export interface ProfileSummary {
   name: string;
   env: string;
+  api: string;
   email: string | undefined;
   organisationId: string;
   organisation: string;
@@ -85,9 +86,11 @@ export function summarise(name: string, credentials: Credentials): ProfileSummar
   const profile = credentials.profiles[name]!;
   const session = credentials.sessions[profile.session]!;
   const device = profile.device;
+  const api = sessionApiUrl(session);
   return {
     name,
     env: session.env,
+    api,
     email: session.email,
     organisationId: profile.organisationId,
     organisation: profile.organisationName,

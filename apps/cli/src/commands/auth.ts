@@ -27,12 +27,29 @@ async function firstDevice(apiUrl: string, token: string, requested: string | un
   return { organisation, device };
 }
 
+/** Where a login signs in: an environment, and for `local`, optionally an API other than `pnpm dev`'s. */
+interface Target {
+  env?: Environment | undefined;
+  url?: string | undefined;
+}
+
+/** `--url` alone means `local`, and neither means prod; `--url` with any other environment is a mistake. */
+function resolveTarget({ env, url }: Target) {
+  const resolved = env ?? (url === undefined ? 'prod' : 'local');
+  if (url !== undefined && resolved !== 'local') throw new LoginError('--url is only for --env local.');
+  // Without a trailing slash, so the same API always reads the same and a later login to it replaces this one.
+  const custom = url?.replace(/\/+$/, '');
+  const apiUrl = custom ?? apiUrlOf(resolved);
+  return { env: resolved, url: custom, apiUrl };
+}
+
 /**
- * The device flow against `env`, then the session's browser device in an organisation: a new profile, which becomes
- * current. Other logins stay; one to the same account and environment is replaced, and signed out with its devices.
+ * The device flow against the target's API, then the session's browser device in an organisation: a new profile,
+ * which becomes current. Other logins stay; one to the same account and API is replaced, and signed out with its
+ * devices.
  */
-async function login(env: Environment, requested: string | undefined) {
-  const apiUrl = apiUrlOf(env);
+async function login(target: Target, requested: string | undefined) {
+  const { env, url, apiUrl } = resolveTarget(target);
   const session = await authorize(apiUrl);
   // A session that can't get a profile is signed out again rather than left open.
   await using unfinished = new AsyncDisposableStack();
@@ -41,14 +58,14 @@ async function login(env: Environment, requested: string | undefined) {
   unfinished.move();
 
   const stored = readCredentials();
-  const replaced = findSession(stored, env, session.email);
+  const replaced = findSession(stored, apiUrl, session.email);
   const previous = replaced === undefined ? undefined : stored.sessions[replaced];
   const remaining = replaced === undefined ? stored : withoutSession(stored, replaced);
   const sessionId = crypto.randomUUID();
   const name = profileName(remaining, env, organisation.name);
   const profile = { session: sessionId, organisationId: organisation.id, organisationName: organisation.name, device };
   const credentials: Credentials = {
-    sessions: { ...remaining.sessions, [sessionId]: { env, ...session } },
+    sessions: { ...remaining.sessions, [sessionId]: { env, url, ...session } },
     profiles: { ...remaining.profiles, [name]: profile },
     current: name
   };
@@ -82,11 +99,17 @@ export const loginCommand = Cli.create('login', {
   options: z.object({
     env: z
       .enum(ENVIRONMENTS)
-      .default('prod')
-      .describe('The studio API to sign in to: `local` is `pnpm dev`, the others are its deployed stacks'),
+      .optional()
+      .describe(
+        'The studio API to sign in to: `local` is `pnpm dev`, the others are its deployed stacks; prod by default'
+      ),
+    url: z
+      .url()
+      .optional()
+      .describe("For `local` only, which it implies: the API's URL, when it isn't `pnpm dev`'s on localhost"),
     organisation: z.string().optional().describe('The organisation to start in, by id or name; asked for when omitted')
   }),
-  run: ({ options }) => login(options.env, options.organisation)
+  run: ({ options }) => login(options, options.organisation)
 });
 
 export const logoutCommand = Cli.create('logout', {
