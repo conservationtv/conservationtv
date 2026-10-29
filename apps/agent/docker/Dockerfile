@@ -13,12 +13,14 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --store-dir /pnpm/store --filter @conservationtv/agent-runner... \
  && pnpm --filter @conservationtv/agent-runner build
-# The image's whole filesystem: the bundle, and iroh, the one dependency left external for its native addon, with
-# only its loader and the addon itself. The bundle imports the loader as @number0/iroh, which may be an alias; the
-# loader requires its addon by the addon package's own name. Node ships with debug symbols; stripping them saves a
-# tenth of the image.
+# The image's whole filesystem: the bundle, the database migrations it applies on start, and iroh, the one dependency
+# left external for its native addon, with only its loader and the addon itself; and apart, an empty data directory for
+# the agent to own. The bundle imports the loader as @number0/iroh, which may be an alias; the loader requires its
+# addon by the addon package's own name. Node ships with debug symbols; stripping them saves a tenth of the image.
 RUN mkdir -p /out/app/node_modules/@number0/iroh \
  && cp apps/agent/runner/dist/index.js /out/app/ \
+ && cp -R apps/agent/core/drizzle /out/app/drizzle \
+ && mkdir -p /out-data \
  && echo '{"type":"module"}' > /out/app/package.json \
  && iroh=$(cd apps/agent/core && node -p "require('node:path').dirname(require.resolve('@number0/iroh/package.json'))") \
  && addon=$(echo "$iroh"-linux-*) \
@@ -35,7 +37,12 @@ RUN mkdir -p /out/app/node_modules/@number0/iroh \
 # Nothing but Node, the C and C++ runtimes it links against, and the agent: no shell, no package manager.
 FROM scratch
 COPY --from=build /out /
+# Everything the agent keeps across restarts, owned by the user it runs as. Mount a volume here to keep it across
+# containers too.
+COPY --from=build --chown=1000:1000 /out-data /data
 ENV NODE_ENV=production
+ENV AGENT_DATA_DIR=/data
+ENV AGENT_MIGRATIONS_DIR=/app/drizzle
 WORKDIR /app
 # Node's own user in the official images, by number: there is no /etc/passwd to name it.
 USER 1000:1000

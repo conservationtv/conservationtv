@@ -2,6 +2,8 @@
 
 import * as z from 'zod';
 
+import { GetLogsQuerySchema, GetMetricsBySeriesIdPathSchema, GetMetricsBySeriesIdQuerySchema, GetMetricsQuerySchema } from './zod.gen.js';
+
 export const StatusGetParamsSchema = z.object({});
 
 export type StatusGetParams = z.infer<typeof StatusGetParamsSchema>;
@@ -13,3 +15,27 @@ export type SystemGetParams = z.infer<typeof SystemGetParamsSchema>;
 export const SystemSpecParamsSchema = z.object({});
 
 export type SystemSpecParams = z.infer<typeof SystemSpecParamsSchema>;
+
+export const MetricListParamsSchema = z.object({
+    name: GetMetricsQuerySchema.shape.name.optional().describe('Only series of this metric.')
+});
+
+export type MetricListParams = z.infer<typeof MetricListParamsSchema>;
+
+export const MetricGetParamsSchema = z.object({
+    seriesId: GetMetricsBySeriesIdPathSchema.shape.seriesId.nonoptional().describe('The series.'),
+    from: GetMetricsBySeriesIdQuerySchema.shape.from.nonoptional().describe('Points observed at or after this time.'),
+    to: GetMetricsBySeriesIdQuerySchema.shape.to.optional().describe('Points observed before this time; now by default.'),
+    step: GetMetricsBySeriesIdQuerySchema.shape.step.optional().describe('Seconds per bucket, at least; widened so the range has at most 1000 buckets.')
+});
+
+export type MetricGetParams = z.infer<typeof MetricGetParamsSchema>;
+
+export const LogListParamsSchema = z.object({
+    limit: GetLogsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
+    before: GetLogsQuerySchema.shape.before.optional().describe('Only lines before this one, by id, to page back.'),
+    level: GetLogsQuerySchema.shape.level.optional().describe('Only lines at least this severe.'),
+    category: GetLogsQuerySchema.shape.category.optional().describe('Only lines from this logger category or those beneath it, such as `agent.mediamtx`.')
+});
+
+export type LogListParams = z.infer<typeof LogListParamsSchema>;

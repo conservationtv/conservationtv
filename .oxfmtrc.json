@@ -26,6 +26,7 @@
     "apps/controlplane/infrastructure/sdks/**",
     "apps/controlplane/gatekeeper/drizzle/**",
     "apps/agent/core/contracts/**",
+    "apps/agent/core/drizzle/**",
     "apps/agent/sdk/src/generated/**",
     "apps/agent/sdk/src/versions/**",
     "apps/agent/cli/src/generated/**",
