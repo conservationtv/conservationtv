@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
-import { AdoptedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
+import { AttachedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
 import { MediamtxAuthSchema, type DeviceIdentity, type MediamtxAuth } from '@conservationtv/studio-sdk';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
@@ -26,7 +26,7 @@ export type StreamsSpec = z.output<typeof StreamsSpecSchema>;
 
 /** The room the runtime is given to run MediaMTX in, and the releases it runs. */
 export interface MediamtxRuntimeOptions extends MediamtxAddresses {
-  /** A directory of its own: vendored binaries under `binaries/`, and MediaMTX's config, pidfile and log. */
+  /** A directory of its own: vendored binaries under `binaries/`, and MediaMTX's config, log and pidfile. */
   directory: string;
   /** The MediaMTX release to run. */
   binary: MediamtxManifest;
@@ -52,20 +52,19 @@ interface AuthAnswering {
 }
 
 /**
- * The `streams` key, fulfilled by MediaMTX as a process of its own, outliving the agent, from a binary the runtime
- * vendors itself. Its options name a release, with a download and a checksum for each platform; the runtime installs
- * it into its own directory, writes the config beside it and has `AdoptedProcess` run it for that install: a MediaMTX
- * left by an earlier agent is adopted if it came from the install the options now name, and replaced otherwise, so a
- * changed spec is a reload in place while an agent with a new release replaces the process. Only removing the key,
- * through `finalize`, stops MediaMTX.
+ * The `streams` key, fulfilled by MediaMTX as the agent's own child, from a binary the runtime vendors itself. Its
+ * options name a release, with a download and a checksum for each platform; the runtime installs it into its own
+ * directory, writes the config beside it and has `AttachedProcess` run it for that install. A changed spec is a reload
+ * in place, since MediaMTX re-reads its config file whenever it is written.
  *
- * Beside it, in the agent: the answers to MediaMTX's authentication requests (auth.ts), and the joined broadcast of
- * each exposure it publishes (joiner.ts). Both stop with the agent, while MediaMTX goes on.
+ * MediaMTX lives and dies with the agent, as do the answers to its authentication requests (auth.ts) and the joined
+ * broadcast of each exposure it publishes (joiner.ts): none of them is any use without the others. An agent restart
+ * starts MediaMTX afresh.
  */
 export class MediamtxRuntime {
   readonly status$ = new BehaviorSubject<MediamtxStatus>(STOPPED);
   private readonly binaries: BinaryStore;
-  private readonly process: AdoptedProcess;
+  private readonly process: AttachedProcess;
   private readonly watching: Subscription[];
   private readonly configFile: string;
   private answering: AuthAnswering | undefined;
@@ -73,7 +72,7 @@ export class MediamtxRuntime {
 
   constructor(private readonly options: MediamtxRuntimeOptions) {
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
-    this.process = new AdoptedProcess(options.directory, { name: 'mediamtx', probe: isMediamtxAlive });
+    this.process = new AttachedProcess(options.directory, { name: 'mediamtx', probe: isMediamtxAlive });
     this.watching = [this.process.status$.subscribe(status => this.update(status))];
     this.configFile = join(options.directory, 'mediamtx.yml');
   }
@@ -120,8 +119,8 @@ export class MediamtxRuntime {
   }
 
   /**
-   * Stops MediaMTX, whichever binary it came from, including one left running by an earlier agent. Then removes the
-   * vendored binaries too: removing the key removes everything it put there.
+   * Stops MediaMTX, including one orphaned by an agent killed outright. Then removes the vendored binaries too:
+   * removing the key removes everything it put there.
    */
   async finalize(): Promise<void> {
     this.joiner.close();
@@ -131,10 +130,7 @@ export class MediamtxRuntime {
     this.update({ version: null });
   }
 
-  /**
-   * The agent is stopping. MediaMTX is left running for the next agent to adopt; the watching, joining and answering
-   * stop, so until then MediaMTX admits no one and its publishers' broadcasts go unjoined.
-   */
+  /** The agent is stopping, and MediaMTX goes with it, along with the joining and answering. */
   dispose(): void {
     for (const subscription of this.watching) subscription.unsubscribe();
     this.joiner.close();
@@ -152,7 +148,7 @@ export class MediamtxRuntime {
 
   /**
    * Writes the config before MediaMTX reads it, or re-reads it: a running MediaMTX reloads its file whenever it is
-   * written, so one already serving this config is left undisturbed.
+   * written, so it is only written when it has changed.
    */
   private async writeConfig(spec: StreamsSpec, moq: Installed | undefined): Promise<void> {
     await mkdir(this.options.directory, { recursive: true });

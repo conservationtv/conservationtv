@@ -1,14 +1,14 @@
-import { spawn } from 'node:child_process';
-import { mkdir, open, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { type ResultPromise, execa } from 'execa';
 import psList from 'ps-list';
 import { BehaviorSubject } from 'rxjs';
 import treeKill from 'tree-kill';
 
-// A process of its own, outliving the agent: started detached, with its log on a file, and found again through a
-// pidfile in a directory of its own. What it was started for is recorded beside the pid as a key, so the next agent
-// knows whether what it finds running is what the spec now asks for.
+// A process that is the agent's own child, living and dying with it: started with its log on a file in a directory
+// of its own, watched through its exit, and stopped when the agent stops. Its pid is recorded only so that the next
+// agent can stop one orphaned by an agent killed outright.
 
 /** How a runtime's process is told apart from any other, probed, and asked to stop. */
 export interface ProcessDefinition {
@@ -24,14 +24,14 @@ export interface ProcessDefinition {
 export interface Run {
   /**
    * What the process is started for: an install's id, or that and the config's revision for a process that can't
-   * reload. A process found running is adopted if it was started for the same key, and replaced otherwise.
+   * reload. The process running is kept for the same key, and replaced for another.
    */
   key: string;
   binary: string;
   args: string[];
   /** The directory to run in; the process's own if not given. */
   cwd?: string;
-  /** Run once the process answers, whether started, adopted or restarted, and before `ensure` resolves. */
+  /** Run once the process answers, whether already running, started or restarted, and before `ensure` resolves. */
   configure?(signal: AbortSignal): Promise<void>;
 }
 
@@ -49,7 +49,6 @@ export const STOPPED: ProcessStatus = { state: 'stopped', pid: null, restarts: 0
 const PROBE_TIMEOUT_MS = 1_000;
 const READY_TIMEOUT_MS = 10_000;
 const STOP_GRACE_MS = 5_000;
-const WATCH_INTERVAL_MS = 1_000;
 const RESTART_BASE_MS = 1_000;
 const RESTART_MAX_MS = 30_000;
 const REVIVE_TIMEOUT_MS = 30_000;
@@ -132,33 +131,36 @@ export function describe(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }
 
-/** The process being watched, and what it was started for. */
-interface Current {
+/** The process this agent started, what it was started for, and whether it has exited yet. */
+interface Child {
+  process: ResultPromise;
   pid: number;
   key: string;
+  exited: boolean;
 }
 
 /**
- * A process that outlives the agent, adopted when found and replaced when it isn't what is wanted. `ensure` has a
- * process from a `Run`'s key up and answering: the one being watched, one left running by an earlier agent whose
- * recorded key is the same, or a new one, anything else found being stopped first. When the agent stops, the process
- * carries on: `dispose` only stops watching. Only `stop` stops the process, including one left by an earlier agent.
+ * A process that is the agent's own child. `ensure` has a process from a `Run`'s key up and answering: the one
+ * running, if it was started for the same key, or a new one in its place. `stop` and `dispose` both stop it, and if
+ * the agent exits, execa's `cleanup` takes it along, so the next agent starts afresh.
  *
- * A process the agent didn't start can't be waited on, so it is watched by checking every second that its pid is
- * still alive. If it has died, it is started again after a backoff, and the status says so.
+ * Nothing runs when an agent is killed outright (SIGKILL, out of memory), so its process is orphaned. The pid is
+ * recorded in a pidfile for that case alone: the next agent stops the orphan before starting its own, and refuses to
+ * start while anything else answers in its place.
+ *
+ * The process is watched through its exit: the moment it exits unexpectedly, it is started again after a backoff,
+ * and the status says so.
  */
-export class AdoptedProcess {
+export class AttachedProcess {
   readonly status$ = new BehaviorSubject<ProcessStatus>(STOPPED);
-  /** Where the process's pid is kept; its key is recorded beside it, and its log written beside that. */
+  /** Where the process's pid is kept, for an orphan's sake; its log is written beside it. */
   readonly pidfile: string;
-  private readonly keyfile: string;
   private readonly log: string;
   private readonly serially = exclusive();
-  private current: Current | undefined = undefined;
+  private child: Child | undefined = undefined;
   /** What should be running; `undefined` once stopped. */
   private wanted: Run | undefined = undefined;
   private crashes = 0;
-  private watching: ReturnType<typeof setInterval> | undefined = undefined;
   private restart: ReturnType<typeof setTimeout> | undefined = undefined;
   private disposed = false;
 
@@ -167,7 +169,6 @@ export class AdoptedProcess {
     private readonly definition: ProcessDefinition
   ) {
     this.pidfile = join(directory, `${definition.name}.pid`);
-    this.keyfile = join(directory, `${definition.name}.key`);
     this.log = join(directory, `${definition.name}.log`);
   }
 
@@ -177,120 +178,94 @@ export class AdoptedProcess {
     return this.serially(() => this.serve(run, signal));
   }
 
-  /** Stops the process, whatever it was started for, including one left running by an earlier agent. */
+  /** Stops the process, including one orphaned by an agent killed outright. */
   stop(): Promise<void> {
     this.wanted = undefined;
     clearTimeout(this.restart);
-    clearInterval(this.watching);
     return this.serially(async () => {
-      const pid = this.current?.pid ?? (await findProcess(this.pidfile, this.definition));
-      this.current = undefined;
-      if (pid !== undefined) await stopProcess(pid, this.definition);
+      await this.halt();
+      const orphan = await findProcess(this.pidfile, this.definition);
+      if (orphan !== undefined) await stopProcess(orphan, this.definition);
       await rm(this.pidfile, { force: true });
-      await rm(this.keyfile, { force: true });
       this.update({ state: 'stopped', pid: null, lastError: null });
     });
   }
 
-  /** The agent is stopping. The process is left running for the next agent to adopt; only the watching stops. */
+  /** The agent is stopping, and the process goes with it. */
   dispose(): void {
     this.disposed = true;
     clearTimeout(this.restart);
-    clearInterval(this.watching);
+    const child = this.child;
+    this.child = undefined;
+    child?.process.kill();
     this.status$.complete();
   }
 
   private async serve(run: Run, signal: AbortSignal): Promise<number> {
-    const pid = await this.running(run, signal);
+    const current = this.child;
+    const pid = current !== undefined && current.key === run.key ? current.pid : await this.replace(run, signal);
     await run.configure?.(signal);
     this.crashes = 0;
     this.update({ state: 'running', pid, lastError: null });
     return pid;
   }
 
-  /** The pid of a process from `run`'s key that is up. */
-  private async running(run: Run, signal: AbortSignal): Promise<number> {
-    const current = this.current;
-    if (current !== undefined && current.key === run.key && alive(current.pid)) return current.pid;
-    // Whatever else is up, the one being watched or one left running by an earlier agent, is adopted if it was
-    // started for this key and nobody is watching it yet, and stopped otherwise, so the new one can take its ports.
-    this.current = undefined;
-    clearInterval(this.watching);
-    const found = current !== undefined && alive(current.pid) ? current.pid : await this.find();
-    if (found !== undefined) {
-      if (current === undefined && (await this.recorded()) === run.key) return this.adopt(found, run.key);
-      await stopProcess(found, this.definition);
-    }
-    await mkdir(this.directory, { recursive: true });
-    // Recorded before the process starts: if the agent is killed in between, the next one finds a process started for
-    // this key, or none at all. Either way it does the right thing.
-    await writeFile(this.keyfile, run.key);
-    const pid = await this.spawn(run, signal);
-    return this.adopt(pid, run.key);
+  /** Stops the process running, if any, so the new one can take its ports, then starts one from `run`. */
+  private async replace(run: Run, signal: AbortSignal): Promise<number> {
+    await this.halt();
+    return this.spawn(run, signal);
   }
 
-  private adopt(pid: number, key: string): number {
-    this.current = { pid, key };
-    this.watch(pid);
-    return pid;
-  }
-
-  /**
-   * Starts the process detached, logging to its file through a descriptor of its own: writing through pipes to the
-   * agent would keep the agent alive, and break the process's output once it exits. Resolves once it answers.
-   */
   private async spawn(run: Run, signal: AbortSignal): Promise<number> {
     this.update({ state: 'starting', pid: null });
-    const log = await open(this.log, 'a');
-    const cwd = run.cwd ?? this.directory;
-    const subprocess = spawn(run.binary, run.args, { cwd, detached: true, stdio: ['ignore', log.fd, log.fd] });
-    subprocess.unref();
-    // Listen before awaiting anything else: `spawn` or `error` fires on the next tick.
-    const started = new Promise<Error | undefined>(resolve => {
-      subprocess.once('spawn', () => resolve(undefined));
-      subprocess.once('error', resolve);
+    // An agent that died hard never got to stop its process, so stop that one first. If something else still
+    // answers, refuse to start, rather than quietly drive a process this agent doesn't own while its own fails to bind.
+    const stale = await findProcess(this.pidfile, this.definition);
+    if (stale !== undefined) await stopProcess(stale, this.definition);
+    if (await answering(this.definition))
+      throw new Error(`Something else is answering in place of ${this.definition.name}`);
+    await mkdir(this.directory, { recursive: true });
+    const log = { file: this.log, append: true };
+    // `reject: false`: an exit is reported through `exited`, never as an unhandled rejection.
+    const subprocess = execa(run.binary, run.args, {
+      cwd: run.cwd ?? this.directory,
+      stdin: 'ignore',
+      stdout: log,
+      stderr: log,
+      cleanup: true,
+      killDescendants: true,
+      forceKillAfterDelay: STOP_GRACE_MS,
+      reject: false
     });
-    await log.close();
-    const failed = await started;
-    if (failed !== undefined) throw failed;
     const pid = subprocess.pid;
-    if (pid === undefined) throw new Error(`${this.definition.name} could not be started`);
+    if (pid === undefined) {
+      const result = await subprocess;
+      throw new Error(`${this.definition.name} could not be started: ${result.message ?? 'no pid'}`);
+    }
+    const child: Child = { process: subprocess, pid, key: run.key, exited: false };
+    this.child = child;
+    void subprocess.then(result => this.exited(child, result.exitCode, result.signal));
     await writeFile(this.pidfile, String(pid));
     try {
-      await ready(this.definition, signal, () => !alive(pid));
+      await ready(this.definition, signal, () => child.exited);
       return pid;
     } catch (error) {
       // Half started: don't leave it behind.
-      await stopProcess(pid, this.definition);
+      await this.halt();
       throw error;
     }
   }
 
-  private find(): Promise<number | undefined> {
-    return findProcess(this.pidfile, this.definition);
-  }
-
-  private recorded(): Promise<string | undefined> {
-    return readFile(this.keyfile, 'utf8').catch(() => undefined);
-  }
-
-  /** Checks every second that the process is still alive; if it has died, starts it again after a backoff. */
-  private watch(pid: number): void {
-    clearInterval(this.watching);
-    this.watching = setInterval(() => {
-      if (alive(pid) || this.current?.pid !== pid) return;
-      clearInterval(this.watching);
-      this.current = undefined;
-      this.died(`process ${pid} died`);
-    }, WATCH_INTERVAL_MS);
-    this.watching.unref();
-  }
-
-  private died(lastError: string): void {
+  /** The process exited. If nobody asked it to, start it again after a backoff. */
+  private exited(child: Child, code: number | undefined, signal: string | undefined): void {
+    child.exited = true;
+    if (child !== this.child) return;
+    this.child = undefined;
     const run = this.wanted;
     if (run === undefined || this.disposed) return;
     this.crashes++;
     const { restarts } = this.status$.getValue();
+    const lastError = `exited unexpectedly (${signal ?? `code ${code}`})`;
     this.update({ state: 'crashed', pid: null, restarts: restarts + 1, lastError });
     this.restart = setTimeout(() => this.revive(run), restartDelay(this.crashes));
   }
@@ -306,6 +281,21 @@ export class AdoptedProcess {
       this.update({ state: 'crashed', lastError: describe(error) });
       this.restart = setTimeout(() => this.revive(run), restartDelay(this.crashes));
     });
+  }
+
+  /**
+   * Stops the process this agent started: asks it to stop as defined, or with SIGTERM, then kills it and anything it
+   * started if it hasn't gone within the grace period.
+   */
+  private async halt(): Promise<void> {
+    const child = this.child;
+    this.child = undefined;
+    if (child === undefined || child.exited) return;
+    if (this.definition.stop !== undefined) await this.definition.stop(child.pid).catch(() => undefined);
+    else child.process.kill('SIGTERM');
+    await Promise.race([child.process, delay(STOP_GRACE_MS)]);
+    if (!child.exited) child.process.kill('SIGKILL');
+    await child.process;
   }
 
   private update(change: Partial<ProcessStatus>): void {

@@ -23,7 +23,7 @@ export interface CaddyOptions {
   binary: string;
   /** Where its admin API listens, such as `localhost:2999`. Each runtime needs its own. */
   admin: string;
-  /** A directory of its own, for its boot config, and its pidfile and log when it runs detached. */
+  /** A directory of its own, for its boot config, pidfile and log. */
   directory: string;
 }
 

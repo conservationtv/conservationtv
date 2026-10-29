@@ -1,39 +1,42 @@
 # @conservationtv/converge/process
 
-A process that outlives the agent, for runtimes in the adopt-existing style: started detached with its log on a
-file, found again through a pidfile, adopted when it is what the spec asks for and replaced when it isn't.
+A process that is the agent's own child, living and dying with it: started with its log on a file, watched through
+its exit, restarted after a crash, and stopped when the agent stops.
 
 ```ts
-import { AdoptedProcess } from '@conservationtv/converge/process';
+import { AttachedProcess } from '@conservationtv/converge/process';
 
-const caddy = new AdoptedProcess(directory, {
-  name: 'caddy', // what `ps` calls it, so a reused pid isn't mistaken for it
+const caddy = new AttachedProcess(directory, {
+  name: 'caddy', // what `ps` calls it, so a reused pid isn't mistaken for an orphan
   probe: signal => admin.alive(signal), // up and answering?
   stop: () => admin.stop() // a graceful ask; SIGTERM if left out, and a kill after the grace period either way
 });
 
-// Up, answering and configured: the one being watched, one an earlier agent left that was started for the same key,
-// or a new one, anything else found being stopped first.
+// Up, answering and configured: the one running if it was started for the same key, or a new one in its place.
 const pid = await caddy.ensure(
   { key: installed.id, binary: installed.path, args: ['run'], configure: signal => admin.load(spec, signal) },
   signal
 );
 caddy.status$; // { state, pid, restarts, lastError }
-caddy.dispose(); // the agent is stopping: stop watching, leave the process running
-await caddy.stop(); // the key is removed: stop the process, even one left by an earlier agent
+caddy.dispose(); // the agent is stopping: the process goes with it
+await caddy.stop(); // the key is removed: stop the process
 ```
 
-**The key** is what adoption is judged by. It is recorded in the process's directory before the process starts, so an
-agent killed in between still leaves the next one doing the right thing. Use the install's id for a binary that
-reloads its config itself, and that with the config's revision for one that doesn't; `configure` runs after every
-start, adoption and restart, for config that is loaded over an API.
+**The key** says when the process has to be replaced. Use the install's id for a binary that reloads its config
+itself, and that with the config's revision for one that doesn't; `configure` runs after every `ensure` and restart,
+for config that is loaded over an API.
 
-**Watching.** A process the agent didn't start can't be waited on, so its pid is checked every second. If it has
-died, it is started again after a backoff that doubles from a second to thirty, and the status says so.
+**Matched lifecycle.** The process is started with [execa](https://github.com/sindresorhus/execa), with `cleanup`
+and `killDescendants`, so it goes when the agent exits, and the next agent starts afresh. Nothing runs when an agent
+is killed outright (`SIGKILL`, out of memory), so its pid is recorded for that case alone: the next agent stops the
+orphan before starting its own, and refuses to start while something else answers the probe in its place.
 
-**The directory** holds `<name>.pid`, `<name>.key` and `<name>.log`, and is the process's working directory unless the
-run names another. The pieces are exported for runtimes that own their process another way: `findProcess`,
-`stopProcess`, `ready`, `answering`, `alive`, `restartDelay`, `exclusive` and `describe`.
+**Watching.** An unexpected exit is noticed at once, and the process is started again after a backoff that doubles
+from a second to thirty. The status says so, with the exit code or signal.
 
-See [`examples/caddy`](../../examples/README.md): `adopted.ts` on `AdoptedProcess`, `managed.ts` adding the binary,
-and `attached.ts` owning its child through execa but sharing the pieces.
+**The directory** holds `<name>.pid` and `<name>.log`, and is the process's working directory unless the run names
+another. The pieces are exported for runtimes that own their process another way: `findProcess`, `stopProcess`,
+`ready`, `answering`, `alive`, `restartDelay`, `exclusive` and `describe`.
+
+See [`examples/caddy`](../../examples/README.md): `attached.ts` on `AttachedProcess`, and `managed.ts` adding the
+binary.
