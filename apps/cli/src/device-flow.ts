@@ -74,8 +74,8 @@ async function showApproval(auth: AuthClient, code: DeviceCode): Promise<string>
 }
 
 /** The OAuth device flow: show a code, then wait while the person approves it in the web app. */
-export async function authorize(): Promise<Session> {
-  const auth = authClient();
+export async function authorize(apiUrl: string): Promise<Session> {
+  const auth = authClient(apiUrl);
   const { data: code, error } = await auth.device.code({ client_id: CLIENT_ID });
   if (error) throw new LoginError(`The API refused to start a device login (HTTP ${error.status}).`);
   const url = code.verification_uri_complete ?? code.verification_uri;
@@ -86,7 +86,7 @@ export async function authorize(): Promise<Session> {
 }
 
 /** Revoke a session on the API, which also removes its browser devices. */
-export async function signOut(token: string): Promise<void> {
-  const auth = authClient();
+export async function signOut(apiUrl: string, token: string): Promise<void> {
+  const auth = authClient(apiUrl);
   await auth.signOut({ fetchOptions: bearer(token) });
 }
