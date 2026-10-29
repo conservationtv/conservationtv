@@ -680,6 +680,18 @@ importers:
       '@conservationtv/versioned-api':
         specifier: workspace:*
         version: link:../../../packages/versioned-api
+      '@peculiar/asn1-csr':
+        specifier: 2.10.0
+        version: 2.10.0
+      '@peculiar/asn1-ecc':
+        specifier: 2.10.0
+        version: 2.10.0
+      '@peculiar/asn1-schema':
+        specifier: 2.10.0
+        version: 2.10.0
+      '@peculiar/asn1-x509':
+        specifier: 2.10.0
+        version: 2.10.0
       better-auth:
         specifier: 'catalog:'
         version: 1.7.7(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.17)(vitest@3.2.6(@types/debug@4.1.13)(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.0))

@@ -107,6 +107,29 @@
           "audience"
         ]
       },
+      "MediamtxTls": {
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string"
+          },
+          "certificate": {
+            "type": "string"
+          },
+          "privateKey": {
+            "type": "string"
+          },
+          "notAfter": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hostname",
+          "certificate",
+          "privateKey",
+          "notAfter"
+        ]
+      },
       "Publisher": {
         "type": "object",
         "properties": {
@@ -9993,7 +10016,7 @@
         "operationId": "deviceConfiguration.get",
         "x-operation-version": 1,
         "summary": "Read the signing device's configuration",
-        "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+        "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
         "responses": {
           "200": {
             "description": "The configuration",
@@ -10028,6 +10051,9 @@
                             },
                             "auth": {
                               "$ref": "#/components/schemas/MediamtxAuth"
+                            },
+                            "tls": {
+                              "$ref": "#/components/schemas/MediamtxTls"
                             }
                           },
                           "required": [
@@ -10089,32 +10115,13 @@
                           "items": {
                             "$ref": "#/components/schemas/Publisher"
                           }
-                        },
-                        "diagnostics": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "subject": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "subject",
-                              "message"
-                            ]
-                          }
                         }
                       },
                       "required": [
                         "state",
                         "mediamtx",
                         "paths",
-                        "publishers",
-                        "diagnostics"
+                        "publishers"
                       ]
                     }
                   ]
@@ -24351,6 +24358,29 @@
               "audience"
             ]
           },
+          "MediamtxTls": {
+            "type": "object",
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "certificate": {
+                "type": "string"
+              },
+              "privateKey": {
+                "type": "string"
+              },
+              "notAfter": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hostname",
+              "certificate",
+              "privateKey",
+              "notAfter"
+            ]
+          },
           "Rendition": {
             "type": "string",
             "enum": [
@@ -24439,7 +24469,7 @@
             "operationId": "deviceConfiguration.get",
             "x-operation-version": 1,
             "summary": "Read the signing device's configuration",
-            "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so. `diagnostics` says what the topology asks for that the configuration leaves out, and why. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+            "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
             "responses": {
               "200": {
                 "description": "The configuration",
@@ -24474,6 +24504,9 @@
                                 },
                                 "auth": {
                                   "$ref": "#/components/schemas/MediamtxAuth"
+                                },
+                                "tls": {
+                                  "$ref": "#/components/schemas/MediamtxTls"
                                 }
                               },
                               "required": [
@@ -24535,32 +24568,13 @@
                               "items": {
                                 "$ref": "#/components/schemas/Publisher"
                               }
-                            },
-                            "diagnostics": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "subject": {
-                                    "type": "string"
-                                  },
-                                  "message": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "subject",
-                                  "message"
-                                ]
-                              }
                             }
                           },
                           "required": [
                             "state",
                             "mediamtx",
                             "paths",
-                            "publishers",
-                            "diagnostics"
+                            "publishers"
                           ]
                         }
                       ]

@@ -2,7 +2,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AdoptedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
-import { MediamtxAuthSchema, type DeviceIdentity, type MediamtxAuth } from '@conservationtv/studio-sdk';
+import {
+  MediamtxAuthSchema,
+  MediamtxTlsSchema,
+  type DeviceIdentity,
+  type MediamtxAuth
+} from '@conservationtv/studio-sdk';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
 import { type MediamtxManifest, mediamtxBinary } from './binaries/mediamtx.ts';
@@ -12,6 +17,7 @@ import { type MediamtxAddresses, MoqPublisherSchema, renderConfig } from './conf
 import { isMediamtxAlive } from './control.ts';
 import { BroadcastJoiner } from './joiner.ts';
 import { MediamtxPathsSchema } from './paths.ts';
+import { removeTlsFiles, writeTlsFiles, type TlsFiles } from './tls.ts';
 
 /** The streams to serve, who may read and publish them, and the exposures to publish from them. */
 export const StreamsSpecSchema = z.object({
@@ -20,13 +26,15 @@ export const StreamsSpecSchema = z.object({
   /** Admit readers and publishers on this machine, and others only by tokens the studio API signs as this agent for this gateway; without it, anyone. */
   auth: MediamtxAuthSchema.optional(),
   /** Exposures to publish to MoQ relays from what is served: each rendition run by MediaMTX, joined by the agent. */
-  publishers: z.array(MoqPublisherSchema).default([])
+  publishers: z.array(MoqPublisherSchema).default([]),
+  /** The certificate to serve TLS with, for the gateway's hostname; without it, everything is served in the clear. */
+  tls: MediamtxTlsSchema.optional()
 });
 export type StreamsSpec = z.output<typeof StreamsSpecSchema>;
 
 /** The room the runtime is given to run MediaMTX in, and the releases it runs. */
 export interface MediamtxRuntimeOptions extends MediamtxAddresses {
-  /** A directory of its own: vendored binaries under `binaries/`, and MediaMTX's config, pidfile and log. */
+  /** A directory of its own: vendored binaries under `binaries/`, certificates under `tls/`, and MediaMTX's config, pidfile and log. */
   directory: string;
   /** The MediaMTX release to run. */
   binary: MediamtxManifest;
@@ -68,6 +76,7 @@ export class MediamtxRuntime {
   private readonly process: AdoptedProcess;
   private readonly watching: Subscription[];
   private readonly configFile: string;
+  private readonly tlsDirectory: string;
   private answering: AuthAnswering | undefined;
   private readonly joiner = new BroadcastJoiner();
 
@@ -76,6 +85,7 @@ export class MediamtxRuntime {
     this.process = new AdoptedProcess(options.directory, { name: 'mediamtx', probe: isMediamtxAlive });
     this.watching = [this.process.status$.subscribe(status => this.update(status))];
     this.configFile = join(options.directory, 'mediamtx.yml');
+    this.tlsDirectory = join(options.directory, 'tls');
   }
 
   /**
@@ -128,6 +138,7 @@ export class MediamtxRuntime {
     await this.process.stop();
     await this.answer(undefined);
     await this.binaries.clear();
+    await removeTlsFiles(this.tlsDirectory);
     this.update({ version: null });
   }
 
@@ -158,9 +169,19 @@ export class MediamtxRuntime {
     await mkdir(this.options.directory, { recursive: true });
     const { paths, auth, publishers } = spec;
     const publishing = moq === undefined ? undefined : { moq: moq.path, publishers };
-    const config = await renderConfig({ ...this.options, paths, auth, publishing });
+    const tls = await this.writeTls(spec);
+    const config = await renderConfig({ ...this.options, paths, auth, publishing, tls });
     const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
     if (written !== config) await writeFile(this.configFile, config);
+  }
+
+  /** The certificate's files, written for MediaMTX to read, or none, with any earlier certificate's removed. */
+  private async writeTls(spec: StreamsSpec): Promise<TlsFiles | undefined> {
+    if (spec.tls === undefined) {
+      await removeTlsFiles(this.tlsDirectory);
+      return undefined;
+    }
+    return writeTlsFiles(this.tlsDirectory, spec.tls);
   }
 
   private update(change: Partial<MediamtxStatus>): void {

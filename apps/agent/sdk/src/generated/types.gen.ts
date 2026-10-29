@@ -206,6 +206,12 @@ export type GetSystemSpecResponses = {
                 issuer: string;
                 audience: string;
             };
+            tls?: {
+                hostname: string;
+                certificate: string;
+                privateKey: string;
+                notAfter: string;
+            };
         };
         metrics?: {
             intervalMs: number;

@@ -43,6 +43,12 @@ export const SystemSchema = z.object({
         auth: z.object({
             issuer: z.string(),
             audience: z.string()
+        }).optional(),
+        tls: z.object({
+            hostname: z.string(),
+            certificate: z.string(),
+            privateKey: z.string(),
+            notAfter: z.string()
         }).optional()
     }).optional(),
     metrics: z.object({

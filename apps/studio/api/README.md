@@ -101,18 +101,23 @@ update its own row; a different account's row is simply absent. Only Better Auth
 `authorization.access(admin)`, and a request that never grants opens no admin connection. Umbrella needs two database roles, so there are two Hyperdrive
 bindings:
 
-| Binding              | Kind       | Purpose                                                                                                              |
-| -------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
-| `HYPERDRIVE_ADMIN`   | Hyperdrive | the owning role: migrations, Better Auth, grants                                                                     |
-| `HYPERDRIVE_APP`     | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                                                     |
-| `CACHE`              | KV         | the key-value cache: device request nonces                                                                           |
-| `BETTER_AUTH_SECRET` | secret     | Better Auth's signing secret                                                                                         |
-| `FIELD_KEY`          | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
-| `APP_URL`            | text       | where the API is served; Better Auth's base URL                                                                      |
-| `WEB_ORIGINS`        | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` and is the passkey relying party |
-| `OTP_DELIVERY`       | text       | `log` only, see above                                                                                                |
-| `GATEKEEPER_URL`     | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
-| `GATEKEEPER_TOKEN`   | secret     | that control plane environment's token for this consumer, whose MoQ paths it places beneath the consumer's namespace |
+| Binding                | Kind       | Purpose                                                                                                              |
+| ---------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `HYPERDRIVE_ADMIN`     | Hyperdrive | the owning role: migrations, Better Auth, grants                                                                     |
+| `HYPERDRIVE_APP`       | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                                                     |
+| `CACHE`                | KV         | the key-value cache: device request nonces                                                                           |
+| `BETTER_AUTH_SECRET`   | secret     | Better Auth's signing secret                                                                                         |
+| `FIELD_KEY`            | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
+| `APP_URL`              | text       | where the API is served; Better Auth's base URL                                                                      |
+| `WEB_ORIGINS`          | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` and is the passkey relying party |
+| `OTP_DELIVERY`         | text       | `log` only, see above                                                                                                |
+| `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
+| `GATEKEEPER_TOKEN`     | secret     | that control plane environment's token for this consumer, whose MoQ paths it places beneath the consumer's namespace |
+| `GATEWAY_DOMAIN`       | text       | optional: the zone MediaMTX gateways get hostnames and certificates in, see below                                    |
+| `CLOUDFLARE_ZONE_ID`   | text       | with `GATEWAY_DOMAIN`: its Cloudflare zone                                                                           |
+| `CLOUDFLARE_API_TOKEN` | secret     | with `GATEWAY_DOMAIN`: a token that may edit that zone's DNS records                                                 |
+| `ACME_DIRECTORY_URL`   | text       | with `GATEWAY_DOMAIN`: the ACME directory certificates come from (Let's Encrypt)                                     |
+| `ACME_ACCOUNT_KEY`     | secret     | with `GATEWAY_DOMAIN`: the ACME account key, one ES256 JWK with its private `d`                                      |
 
 The application role is `studio_app` in every environment, created by the `application_role` migration. Locally,
 `docker/init.sql` creates it as a login role first; deployed, PlanetScale's login role is made a member of it (see
@@ -300,6 +305,27 @@ every rendition as a track of one broadcast. Publishers connect the same way, by
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
 for it.
+
+#### Gateway hostnames and certificates
+
+With `GATEWAY_DOMAIN` set, each MediaMTX gateway an agent runs gets a hostname, `<gateway>.<organisation>.<domain>`,
+and a certificate for it (`gateway_certificate`, `src/gateways/certificates.ts`), so readers and publishers on the
+network reach it by name over TLS (RTSPS, RTMPS, HTTPS for HLS and WebRTC) and browsers treat it as a secure origin.
+The domain is bought for this alone and not shared with the app. The labels come from the gateway's and organisation's
+names (letters and digits, lowercase, anything else a hyphen), chosen the first time and kept, so renaming either
+changes nothing; a gateway whose plain hostname another already has gets part of its ID in its label. The hostname's A
+record, in the domain's Cloudflare zone (`src/gateways/dns.ts`), follows the address the active agent reports its
+default route leaves by (`device_address`), so the name moves with the agent. Public DNS, private address: Cloudflare
+serves the name and never the traffic.
+
+Certificates come from an ACME authority by DNS-01 (`src/gateways/acme.ts`, a minimal RFC 8555 client over `jose` and
+WebCrypto): the challenge token goes in a TXT record the API creates and removes. The private key is generated here,
+stored encrypted and hidden from request sessions, and handed only to the agent running the gateway, in its
+configuration (`deviceConfiguration.get`, under `mediamtx.tls`), with the chain and the hostname. All of it happens
+while the agent asks for its configuration, after the plan's transaction: the first ask with a new gateway, and any ask
+within 48 hours of the certificate expiring, waits the tens of seconds the authority takes. A failed attempt is recorded
+(`attempted_at`, `error`) and not repeated for ten minutes, so the authority's rate limits hold and the asks between
+stay quick; the agent keeps the certificate it had until it expires. Nothing runs in the background.
 
 ### Device authentication
 

@@ -58,21 +58,29 @@ export const PlannedPublisherSchema = z
   .meta({ id: 'Publisher' });
 export type PlannedPublisher = z.output<typeof PlannedPublisherSchema>;
 
-/** Something the topology asks for that the device's configuration leaves out, and why. */
-export interface Diagnostic {
-  /** What it is about, as reports name subjects: `exposure:<id>` or `gateway:<id>`. */
-  subject: string;
-  message: string;
-}
-
 /** How a MediaMTX checks a token: signed by the agent's own identity, issued by this API, for its gateway. */
 export const MediamtxAuthSchema = z.object({ issuer: z.string(), audience: z.string() }).meta({ id: 'MediamtxAuth' });
 export type MediamtxAuth = z.output<typeof MediamtxAuthSchema>;
 
-/** The MediaMTX gateway the device runs, and how it admits readers and publishers: by tokens this API signs as it. */
+/** The hostname the gateway is reached at on its network, and the certificate its MediaMTX serves TLS with. */
+export const MediamtxTlsSchema = z
+  .object({
+    hostname: z.string().describe('The hostname the certificate is for, which clients on the network use.'),
+    certificate: z.string().describe('The PEM chain, the certificate first.'),
+    privateKey: z.string().describe('The PEM private key, PKCS#8.'),
+    notAfter: z.iso.datetime().describe('When the certificate expires; the studio API renews it before then.')
+  })
+  .meta({ id: 'MediamtxTls' });
+export type MediamtxTls = z.output<typeof MediamtxTlsSchema>;
+
+/**
+ * The MediaMTX gateway the device runs, how it admits readers and publishers (by tokens this API signs as it), and
+ * the hostname and certificate it serves TLS with, when the deployment issues them (src/gateways/certificates.ts).
+ */
 export interface MediamtxConfiguration {
   gatewayId: string;
   auth: MediamtxAuth;
+  tls?: MediamtxTls;
 }
 
 /** A device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. */
@@ -86,7 +94,6 @@ export interface ActiveConfiguration {
   mediamtx: MediamtxConfiguration;
   paths: PlannedPath[];
   publishers: PlannedPublisher[];
-  diagnostics: Diagnostic[];
 }
 
 export type PlannedConfiguration = IdleConfiguration | ActiveConfiguration;
