@@ -39,12 +39,27 @@ const gatekeeperToken = gatekeeperTokens.apply(tokens => {
   return token;
 });
 
+// The API's traces (see the README's Tracing section). `apiTraceDestination` names the account's OTLP destination for
+// Sentry, which only the dashboard or API can create; until it is set, traces stay in Cloudflare. A caller's
+// `traceparent` is continued only with `acceptTraceContext`, which needs the account's trace propagation feature.
+const apiTraceDestination = config.get('apiTraceDestination');
+const acceptTraceContext = config.getBoolean('acceptTraceContext') ?? false;
+
 // The studio API's Worker and the resources its versions bind. Versions are uploaded from the API's build; this stack
 // routes traffic to the one tagged `apiVersion` once that is set.
 const apiWorker = new cloudflare.Worker('studio-api', {
   accountId,
   name: apiWorkerName,
-  observability: { enabled: true },
+  observability: {
+    enabled: true,
+    traces: {
+      enabled: true,
+      headSamplingRate: config.getNumber('apiTraceSampleRate') ?? 1,
+      destinations: apiTraceDestination ? [apiTraceDestination] : [],
+      // `accept` continues any caller's context unverified; `authenticated` is not available yet.
+      propagationPolicy: acceptTraceContext ? 'accept' : undefined
+    }
+  },
   subdomain: { enabled: false }
 });
 // The web app's Worker. Its versions carry the app's build as static assets and serve the configuration it reads at
