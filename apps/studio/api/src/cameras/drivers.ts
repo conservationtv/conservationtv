@@ -80,8 +80,11 @@ function axisResolution(resolutions: Resolution[], maxWidth: number) {
  * Audio is AAC, which RTMP carries to MoQ publishers, though MediaMTX's WebRTC cannot send it.
  */
 function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | undefined, rendition: Rendition) {
-  // Its RTSP server is on the same host, on RTSP's own port. Built anew: a web URL's scheme cannot become `rtsp:`.
-  const url = new URL(`rtsp://${new URL(settings.host).hostname}/axis-media/media.amp`);
+  // Its RTSP server is on the same host, on RTSP's own port, under the same base path (a simulator serves several
+  // cameras, each under its own). Built anew: a web URL's scheme cannot become `rtsp:`.
+  const host = new URL(settings.host);
+  const base = host.pathname.replace(/\/+$/u, '');
+  const url = new URL(`rtsp://${host.hostname}${base}/axis-media/media.amp`);
   url.searchParams.set('videocodec', 'h264');
   url.searchParams.set('audiocodec', 'aac');
   if (rendition !== 'default') {
