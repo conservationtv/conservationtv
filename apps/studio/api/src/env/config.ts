@@ -14,13 +14,13 @@ import type { Background, Clock, Environment } from './env.ts';
 // src/env/env.ts, which only declares it, so that anything (encrypted columns included) can use the environment store
 // without importing the schema back.
 
-/**
- * The deployment's text bindings and secrets: under `nodejs_compat` they are also `process.env`, which ArkEnv reads.
- */
 /** A text binding that may be left empty, which Workers text bindings are rather than unset. */
 const optionalText = <Schema extends z.ZodType>(schema: Schema) =>
   z.preprocess(value => (value === '' ? undefined : value), schema.optional());
 
+/**
+ * The deployment's text bindings and secrets: under `nodejs_compat` they are also `process.env`, which ArkEnv reads.
+ */
 export const config = {
   /** Where the API is served: Better Auth's base URL. */
   APP_URL: z.url(),
