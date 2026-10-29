@@ -34,7 +34,9 @@ const app = new Hono({ router: operationRouter })
         return environment.variables.WEB_ORIGINS.includes(origin) ? origin : null;
       },
       credentials: true,
-      allowHeaders: ['Authorization', 'Content-Type', 'Operation-Version'],
+      // The web app's Sentry SDK sends its trace context to the API: the W3C `traceparent`, and Sentry's own
+      // `sentry-trace` and `baggage` alongside it.
+      allowHeaders: ['Authorization', 'Content-Type', 'Operation-Version', 'traceparent', 'sentry-trace', 'baggage'],
       exposeHeaders: ['Operation-Version']
     })
   )

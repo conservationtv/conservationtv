@@ -6,7 +6,7 @@
 export default {
   fetch(_request, env) {
     // The shape the app parses: StudioConfigSchema in ../../src/lib/config.ts.
-    const config = { apiUrl: env.API_URL };
+    const config = { apiUrl: env.API_URL, sentry: env.SENTRY ?? undefined };
     return new Response(`globalThis.studioConfig = ${JSON.stringify(config)};\n`, {
       headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-cache' }
     });
