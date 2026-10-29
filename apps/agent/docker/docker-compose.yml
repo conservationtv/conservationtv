@@ -14,6 +14,8 @@ services:
       STUDIO_API_URL:
       # The agent's identity, as hex: its device's secret key in the studio, or for `direct`, any (`pnpm keygen`).
       AGENT_SECRET_KEY: ${AGENT_SECRET_KEY:?Set AGENT_SECRET_KEY to the agent's secret key}
+      # JSON moving any of MediaMTX's ports from its own, such as {"rtsp":9554}, when the host has one in use.
+      AGENT_MEDIAMTX_PORTS:
       SHUTDOWN_DELAY_MS: 10000
     # Longer than SHUTDOWN_DELAY_MS, so close-with-grace's own deadline ends the process rather than Docker's SIGKILL.
     stop_grace_period: 15s

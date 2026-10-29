@@ -1,5 +1,6 @@
 import { createStore } from '@conservationtv/store';
 import type { Peers } from './admission.ts';
+import type { MediamtxPorts } from './runtimes/mediamtx/ports.ts';
 
 interface BaseConfiguration {
   name: string;
@@ -15,6 +16,8 @@ interface BaseConfiguration {
    * relay. Without it, every peer is served and may connect directly.
    */
   peers?: Peers;
+  /** The ports MediaMTX listens on, when MediaMTX's own will not do: another program has one, say. */
+  mediamtxPorts?: MediamtxPorts;
 }
 
 /** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */

@@ -15,10 +15,10 @@ import { z } from 'zod';
 //
 // MediaMTX lives and dies with the agent (runtime.ts), so it is never running without these answers.
 
-/** Where on `authHttp` the agent answers. */
+/** Where on its loopback port (`ports.auth`, ports.ts) the agent answers. */
 export const MEDIAMTX_AUTH_PATH = '/mediamtx/auth';
 
-/** Where on `authHttp` the agent serves the JWKS of its identity. */
+/** Where on its loopback port (`ports.auth`, ports.ts) the agent serves the JWKS of its identity. */
 export const MEDIAMTX_JWKS_PATH = '/mediamtx/jwks';
 
 /** What MediaMTX asks about: who is doing what, to which path, and whatever credentials they offered. */

@@ -168,6 +168,7 @@ export const GetSystemSpecResponseSchema = z.object({
             connect: z.string(),
             broadcast: z.string()
         })),
+        gatewayId: z.string().optional(),
         auth: z.object({
             issuer: z.string(),
             audience: z.string()

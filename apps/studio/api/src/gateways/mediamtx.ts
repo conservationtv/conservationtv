@@ -5,7 +5,9 @@ import { agents, devices, gateways } from '../db/schema.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { useEnvironment } from '../env/env.ts';
+import { registeredEndpointUrls } from '../services/gateway-endpoints.ts';
 import type { Rendition } from '../topology/settings.ts';
+import { MEDIAMTX_PROTOCOLS, type MediamtxProtocol } from './mediamtx-protocols.ts';
 import { CONNECTION_LIFETIME_SECONDS, provider, type ConnectionAction, type ConnectionRequest } from './provider.ts';
 
 // MediaMTX gateways admit connections by JWTs this API signs with the identity of the agent running the gateway: the
@@ -13,11 +15,11 @@ import { CONNECTION_LIFETIME_SECONDS, provider, type ConnectionAction, type Conn
 // against on its own (apps/agent/core/src/runtimes/mediamtx/auth.ts), with nothing to fetch from here. A token is
 // issued by `<APP_URL>`, for the gateway's ID as its audience, and admits one action on one path, at only the gateway
 // it was issued for. The agent also admits readers on its own machine without one. A MediaMTX run any other way can
-// check them itself (`authMethod: jwt`) against the JWKS the agent serves. The gateway's settings say where each of
-// its protocols' servers listens, as its network reaches them.
-
-const MEDIAMTX_PROTOCOLS = ['webrtc', 'rtsp', 'rtsps', 'rtmp', 'rtmps', 'hls'] as const;
-type MediamtxProtocol = (typeof MEDIAMTX_PROTOCOLS)[number];
+// check them itself (`authMethod: jwt`) against the JWKS the agent serves.
+//
+// Where each of its protocols' servers listens is what the agent running it registered (src/services/gateway-endpoints.ts)
+// from what its MediaMTX actually listens on. The gateway's settings may override a protocol's, for a reverse proxy in
+// front of it, say.
 
 /** How gateway tokens are signed: by the agent's Ed25519 identity, as JOSE names it. */
 const GATEWAY_SIGNING_ALGORITHM = 'EdDSA';
@@ -27,12 +29,30 @@ const GATEWAY_SIGNING_ALGORITHM = 'EdDSA';
 const INGEST = { webrtc: 'paths', rtsp: 'paths', rtsps: 'paths', rtmp: 'paths', rtmps: 'paths' } as const;
 const EGRESS = { ...INGEST, hls: 'paths' } as const;
 
-/** Where each of the gateway's protocols' servers listens, as its network reaches them. */
-const MediamtxSettingsSchema = z.strictObject({ urls: z.partialRecord(z.enum(MEDIAMTX_PROTOCOLS), z.url()) });
+/**
+ * Where the gateway's protocols' servers listen, as its network reaches them, in place of what the agent running it
+ * registered: none, to use those.
+ */
+const MediamtxSettingsSchema = z.strictObject({
+  urls: z.partialRecord(z.enum(MEDIAMTX_PROTOCOLS), z.url()).default({})
+});
 export type MediamtxSettings = z.output<typeof MediamtxSettingsSchema>;
 
 /** The MediaMTX path an exposure's rendition is served at: the configuration builders name it the same. */
 export const mediamtxPath = (exposureId: string, rendition: Rendition) => `${exposureId}/${rendition}`;
+
+/**
+ * The URL of the protocol's server: the settings' override, or what the agent running the gateway registered, read by
+ * trusted code. `gateway_unavailable` with neither, as while no agent runs it.
+ */
+async function serverUrl(request: ConnectionRequest, protocol: MediamtxProtocol, settings: MediamtxSettings) {
+  const override = settings.urls[protocol];
+  if (override !== undefined) return override;
+  const registered = await trustedTransaction(() => registeredEndpointUrls(request.organisationId, request.gatewayId));
+  const url = registered.get(protocol);
+  if (url === undefined) throw new ApiFailure('gateway_unavailable', { cause: `No ${protocol} server is registered` });
+  return url;
+}
 
 /** Where to read or publish the path by the protocol, under its server's URL. */
 function endpoint(protocol: MediamtxProtocol, base: string, path: string, action: ConnectionAction) {
@@ -96,9 +116,7 @@ export const mediamtx = provider.organisation({
   settings: MediamtxSettingsSchema,
   connect: async request => {
     const { protocol } = request;
-    const { urls } = request.settings;
-    const base = urls[protocol];
-    if (base === undefined) throw new ApiFailure('gateway_unavailable', { cause: `No ${protocol} URL is configured` });
+    const base = await serverUrl(request, protocol, request.settings);
     // Every MediaMTX protocol carries `paths`, so the request always names its rendition.
     const path = mediamtxPath(request.exposure.id, request.rendition!);
     const url = endpoint(protocol, base, path, request.action);

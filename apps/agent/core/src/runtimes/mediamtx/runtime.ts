@@ -10,17 +10,22 @@ import {
 } from '@conservationtv/studio-sdk';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
+import { lanAddresses } from '../addresses.ts';
 import { type MediamtxManifest, mediamtxBinary } from './binaries/mediamtx.ts';
 import { type MoqManifest, moqBinary } from './binaries/moq.ts';
 import { createMediamtxAuthApp, serveMediamtxAuth } from './auth.ts';
-import { type MediamtxAddresses, MoqPublisherSchema, renderConfig } from './config.ts';
+import { type MediamtxListening, MoqPublisherSchema, renderConfig } from './config.ts';
 import { isMediamtxAlive } from './control.ts';
+import { type EndpointRegistration, type RealisedEndpoint, realisedEndpoints } from './endpoints.ts';
 import { BroadcastJoiner } from './joiner.ts';
 import { MediamtxPathsSchema } from './paths.ts';
+import { loopback } from './ports.ts';
 import { removeTlsFiles, writeTlsFiles, type TlsFiles } from './tls.ts';
 
 /** The streams to serve, who may read and publish them, and the exposures to publish from them. */
 export const StreamsSpecSchema = z.object({
+  /** The gateway MediaMTX serves as, whose endpoints are registered with the studio API while it serves. */
+  gatewayId: z.string().optional(),
   /** The paths to serve, each delivering an exposure. None, without `auth`, serves any path. */
   paths: MediamtxPathsSchema.default([]),
   /** Admit readers and publishers on this machine, and others only by tokens the studio API signs as this agent for this gateway; without it, anyone. */
@@ -33,7 +38,7 @@ export const StreamsSpecSchema = z.object({
 export type StreamsSpec = z.output<typeof StreamsSpecSchema>;
 
 /** The room the runtime is given to run MediaMTX in, and the releases it runs. */
-export interface MediamtxRuntimeOptions extends MediamtxAddresses {
+export interface MediamtxRuntimeOptions extends MediamtxListening {
   /** A directory of its own: vendored binaries under `binaries/`, certificates under `tls/`, and MediaMTX's config, log and pidfile. */
   directory: string;
   /** The MediaMTX release to run. */
@@ -42,6 +47,8 @@ export interface MediamtxRuntimeOptions extends MediamtxAddresses {
   moq: MoqManifest;
   /** The agent's identity, which the tokens MediaMTX admits by are signed as. */
   identity: DeviceIdentity;
+  /** Where the gateway's endpoints are registered with the studio API while MediaMTX serves it (endpoints.ts). */
+  registration: EndpointRegistration;
 }
 
 export interface MediamtxStatus extends ProcessStatus {
@@ -67,7 +74,8 @@ interface AuthAnswering {
  *
  * MediaMTX lives and dies with the agent, as do the answers to its authentication requests (auth.ts) and the joined
  * broadcast of each exposure it publishes (joiner.ts): none of them is any use without the others. An agent restart
- * starts MediaMTX afresh.
+ * starts MediaMTX afresh. Once it serves, where its servers are reached is registered with the studio API as the
+ * gateway's endpoints (endpoints.ts), for as long as it keeps running.
  */
 export class MediamtxRuntime {
   readonly status$ = new BehaviorSubject<MediamtxStatus>(STOPPED);
@@ -89,7 +97,8 @@ export class MediamtxRuntime {
 
   /**
    * Installs the release the options name if need be, answers its authentication requests, has a MediaMTX from it
-   * serving the config, then joins its publishers' broadcasts. Resolves once MediaMTX is serving.
+   * serving the config, then joins its publishers' broadcasts and registers its endpoints. Resolves once MediaMTX is
+   * serving.
    */
   async execute(spec: StreamsSpec, signal: AbortSignal): Promise<void> {
     const { binary, directory } = this.options;
@@ -103,6 +112,7 @@ export class MediamtxRuntime {
       signal
     );
     this.joiner.set(spec.publishers);
+    await this.register(spec);
     await this.binaries.prune(installed, { spare: 1 });
     if (moq !== undefined) await this.binaries.prune(moq, { spare: 1 });
   }
@@ -117,7 +127,7 @@ export class MediamtxRuntime {
     this.answering = undefined;
     if (auth === undefined) return;
     const app = createMediamtxAuthApp(auth, this.options.identity);
-    const close = await serveMediamtxAuth(this.options.authHttp, app);
+    const close = await serveMediamtxAuth(loopback(this.options.ports.auth), app);
     this.answering = { auth, close };
   }
 
@@ -133,6 +143,7 @@ export class MediamtxRuntime {
    * removing the key removes everything it put there.
    */
   async finalize(): Promise<void> {
+    await this.options.registration.withdraw();
     this.joiner.close();
     await this.process.stop();
     await this.answer(undefined);
@@ -148,6 +159,31 @@ export class MediamtxRuntime {
     void this.answering?.close();
     this.process.dispose();
     this.status$.complete();
+  }
+
+  /**
+   * Registers the spec's gateway's endpoints, renewed while MediaMTX serves, or withdraws them when it names none. The
+   * hostname is the certificate's, if the spec has one.
+   */
+  private async register(spec: StreamsSpec): Promise<void> {
+    const { registration } = this.options;
+    if (spec.gatewayId === undefined) return registration.withdraw();
+    const hostname = spec.tls?.hostname;
+    registration.register(spec.gatewayId, () => this.realised(hostname));
+  }
+
+  /**
+   * Where MediaMTX's servers are reached as it serves now: at the gateway's hostname with TLS, or at the address the
+   * agent prefers without. None while it is not running, or the agent has no address to give.
+   */
+  private async realised(hostname: string | undefined): Promise<RealisedEndpoint[]> {
+    const { state } = this.process.status$.getValue();
+    if (state !== 'running') return [];
+    const { ports } = this.options;
+    if (hostname !== undefined) return realisedEndpoints(ports, hostname, true);
+    const [preferred] = await lanAddresses();
+    if (preferred === undefined) return [];
+    return realisedEndpoints(ports, preferred.address, false);
   }
 
   /** Downloads and checks the release the options name, which the status reports while it lasts. */

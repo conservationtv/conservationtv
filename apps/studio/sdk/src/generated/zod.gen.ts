@@ -342,6 +342,15 @@ export const DeviceAddressSchema = z.object({
     }))
 });
 
+export const GatewayEndpointSchema = z.object({
+    endpoints: z.array(z.object({
+        protocol: z.string(),
+        url: z.string(),
+        registeredAt: z.string(),
+        expiresAt: z.string()
+    }))
+});
+
 export const WhoamiSchema = z.object({
     id: z.string(),
     organisationId: z.string(),
@@ -1233,6 +1242,31 @@ export const PatchOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.object(
     description: 'The updated gateway'
 });
 
+export const GetOrganisationsByIdGatewaysByGatewayIdEndpointsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    gatewayId: z.union([
+        z.enum(['conservationtv']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ])
+});
+
+/**
+ * The endpoints, by protocol
+ */
+export const GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponseSchema = z.object({
+    endpoints: z.array(z.object({
+        protocol: z.string(),
+        url: z.string(),
+        deviceId: z.string(),
+        registeredAt: z.string(),
+        expiresAt: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The endpoints, by protocol'
+});
+
 export const GetOrganisationsByIdStreamsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
@@ -1845,6 +1879,34 @@ export const PutDeviceAddressesBodySchema = z.object({
  * The addresses as stored
  */
 export const PutDeviceAddressesResponseSchema = DeviceAddressSchema;
+
+export const PutGatewayEndpointsBodySchema = z.object({
+    gatewayId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The MediaMTX gateway the device runs, as its configuration names it.'
+    }),
+    endpoints: z.array(z.object({
+        protocol: z.enum([
+            'webrtc',
+            'rtsp',
+            'rtsps',
+            'rtmp',
+            'rtmps',
+            'hls'
+        ]).register(z.globalRegistry, {
+            description: 'The protocol its server speaks.'
+        }),
+        url: z.url().register(z.globalRegistry, {
+            description: 'The server\'s base URL, as a reader on the gateway\'s network reaches it: `rtsps://<host>:8322`, say. Paths go under it.'
+        })
+    })).max(6).register(z.globalRegistry, {
+        description: 'One per protocol its MediaMTX serves, in no order. Empty to withdraw them, as an agent does on stopping.'
+    })
+});
+
+/**
+ * The endpoints as stored, with when they expire
+ */
+export const PutGatewayEndpointsResponseSchema = GatewayEndpointSchema;
 
 /**
  * The signing device

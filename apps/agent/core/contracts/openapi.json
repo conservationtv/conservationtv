@@ -828,6 +828,9 @@
                             ]
                           }
                         },
+                        "gatewayId": {
+                          "type": "string"
+                        },
                         "auth": {
                           "type": "object",
                           "properties": {
@@ -1844,6 +1847,9 @@
                         "broadcast"
                       ]
                     }
+                  },
+                  "gatewayId": {
+                    "type": "string"
                   },
                   "auth": {
                     "type": "object",
