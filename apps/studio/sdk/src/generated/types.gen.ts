@@ -336,6 +336,15 @@ export type DeviceAddress = {
     }>;
 };
 
+export type GatewayEndpoint = {
+    endpoints: Array<{
+        protocol: string;
+        url: string;
+        registeredAt: string;
+        expiresAt: string;
+    }>;
+};
+
 export type Whoami = {
     id: string;
     organisationId: string;
@@ -2800,6 +2809,64 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdResponses = {
 
 export type PatchOrganisationsByIdGatewaysByGatewayIdResponse = PatchOrganisationsByIdGatewaysByGatewayIdResponses[keyof PatchOrganisationsByIdGatewaysByGatewayIdResponses];
 
+export type GetOrganisationsByIdGatewaysByGatewayIdEndpointsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The gateway.
+         */
+        gatewayId: 'conservationtv' | string;
+    };
+    query?: never;
+    url: '/organisations/{id}/gateways/{gatewayId}/endpoints';
+};
+
+export type GetOrganisationsByIdGatewaysByGatewayIdEndpointsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdGatewaysByGatewayIdEndpointsError = GetOrganisationsByIdGatewaysByGatewayIdEndpointsErrors[keyof GetOrganisationsByIdGatewaysByGatewayIdEndpointsErrors];
+
+export type GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses = {
+    /**
+     * The endpoints, by protocol
+     */
+    200: {
+        endpoints: Array<{
+            protocol: string;
+            url: string;
+            deviceId: string;
+            registeredAt: string;
+            expiresAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponse = GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses[keyof GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses];
+
 export type GetOrganisationsByIdStreamsData = {
     body?: never;
     path: {
@@ -4358,6 +4425,65 @@ export type PutDeviceAddressesResponses = {
 };
 
 export type PutDeviceAddressesResponse = PutDeviceAddressesResponses[keyof PutDeviceAddressesResponses];
+
+export type PutGatewayEndpointsData = {
+    body: {
+        /**
+         * The MediaMTX gateway the device runs, as its configuration names it.
+         */
+        gatewayId: string;
+        /**
+         * One per protocol its MediaMTX serves, in no order. Empty to withdraw them, as an agent does on stopping.
+         */
+        endpoints: Array<{
+            /**
+             * The protocol its server speaks.
+             */
+            protocol: 'webrtc' | 'rtsp' | 'rtsps' | 'rtmp' | 'rtmps' | 'hls';
+            /**
+             * The server's base URL, as a reader on the gateway's network reaches it: `rtsps://<host>:8322`, say. Paths go under it.
+             */
+            url: string;
+        }>;
+    };
+    path?: never;
+    query?: never;
+    url: '/gateway-endpoints';
+};
+
+export type PutGatewayEndpointsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutGatewayEndpointsError = PutGatewayEndpointsErrors[keyof PutGatewayEndpointsErrors];
+
+export type PutGatewayEndpointsResponses = {
+    /**
+     * The endpoints as stored, with when they expire
+     */
+    200: GatewayEndpoint;
+};
+
+export type PutGatewayEndpointsResponse = PutGatewayEndpointsResponses[keyof PutGatewayEndpointsResponses];
 
 export type GetWhoamiData = {
     body?: never;

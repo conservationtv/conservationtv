@@ -202,6 +202,7 @@ export type GetSystemSpecResponses = {
                 connect: string;
                 broadcast: string;
             }>;
+            gatewayId?: string;
             auth?: {
                 issuer: string;
                 audience: string;

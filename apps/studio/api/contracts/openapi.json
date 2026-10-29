@@ -1348,6 +1348,40 @@
           "addresses"
         ]
       },
+      "GatewayEndpoint": {
+        "type": "object",
+        "properties": {
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "protocol": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "registeredAt": {
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "protocol",
+                "url",
+                "registeredAt",
+                "expiresAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "endpoints"
+        ]
+      },
       "Whoami": {
         "type": "object",
         "properties": {
@@ -6733,6 +6767,148 @@
         ]
       }
     },
+    "/organisations/{id}/gateways/{gatewayId}/endpoints": {
+      "get": {
+        "operationId": "organisations.gateways.listEndpoints",
+        "x-operation-version": 1,
+        "summary": "List where a gateway's servers are reached",
+        "description": "One base URL per protocol, as the agent running the gateway registered them (`gatewayEndpoints.replace`) from what its MediaMTX actually listens on, by protocol. Only the network's active agent's count, and only until they expire, which they do soon after it stops. An exposure's rendition is served under each at `<exposure>/<rendition>`. Empty while no agent runs the gateway, and for a built-in gateway, which registers none.",
+        "responses": {
+          "200": {
+            "description": "The endpoints, by protocol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "endpoints": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "protocol": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "deviceId": {
+                            "type": "string"
+                          },
+                          "registeredAt": {
+                            "type": "string"
+                          },
+                          "expiresAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "protocol",
+                          "url",
+                          "deviceId",
+                          "registeredAt",
+                          "expiresAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "endpoints"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "gatewayId",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "conservationtv"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              ]
+            },
+            "required": true,
+            "description": "The gateway."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
     "/organisations/{id}/streams": {
       "get": {
         "operationId": "organisations.streams.list",
@@ -10274,6 +10450,134 @@
                 },
                 "required": [
                   "addresses"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/gateway-endpoints": {
+      "put": {
+        "operationId": "gatewayEndpoints.replace",
+        "x-operation-version": 1,
+        "summary": "Replace the endpoints of the signing agent's gateway",
+        "description": "Where each protocol's server of the MediaMTX gateway the signing agent runs is reached, as its MediaMTX actually listens: one base URL per protocol, whose scheme is the protocol's (`http` or `https` for HLS and WebRTC). They replace whatever it registered before, whole, and hold for 2 minutes unless registered again, which agents do while they run. `connect` builds its URLs from them, and members read them with `organisations.gateways.listEndpoints`. Refused, as `conflict`, unless the agent is the active agent on the gateway's network. An empty list withdraws them, always accepted. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`.",
+        "responses": {
+          "200": {
+            "description": "The endpoints as stored, with when they expire",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayEndpoint"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the current state of the resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gatewayId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "The MediaMTX gateway the device runs, as its configuration names it."
+                  },
+                  "endpoints": {
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "protocol": {
+                          "type": "string",
+                          "enum": [
+                            "webrtc",
+                            "rtsp",
+                            "rtsps",
+                            "rtmp",
+                            "rtmps",
+                            "hls"
+                          ],
+                          "description": "The protocol its server speaks."
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri",
+                          "description": "The server's base URL, as a reader on the gateway's network reaches it: `rtsps://<host>:8322`, say. Paths go under it."
+                        }
+                      },
+                      "required": [
+                        "protocol",
+                        "url"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "One per protocol its MediaMTX serves, in no order. Empty to withdraw them, as an agent does on stopping."
+                  }
+                },
+                "required": [
+                  "gatewayId",
+                  "endpoints"
                 ],
                 "additionalProperties": false
               }
@@ -18568,6 +18872,199 @@
               "error_description"
             ]
           },
+          "Gateway": {
+            "type": "object",
+            "properties": {
+              "endpoints": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "deviceId": {
+                      "type": "string"
+                    },
+                    "registeredAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "protocol",
+                    "url",
+                    "deviceId",
+                    "registeredAt",
+                    "expiresAt"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "endpoints"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/gateways/{gatewayId}/endpoints": {
+          "get": {
+            "operationId": "organisations.gateways.listEndpoints",
+            "x-operation-version": 1,
+            "summary": "List where a gateway's servers are reached",
+            "description": "One base URL per protocol, as the agent running the gateway registered them (`gatewayEndpoints.replace`) from what its MediaMTX actually listens on, by protocol. Only the network's active agent's count, and only until they expire, which they do soon after it stops. An exposure's rendition is served under each at `<exposure>/<rendition>`. Empty while no agent runs the gateway, and for a built-in gateway, which registers none.",
+            "responses": {
+              "200": {
+                "description": "The endpoints, by protocol",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Gateway"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "gatewayId",
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "conservationtv"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  ]
+                },
+                "required": true,
+                "description": "The gateway."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
           "__schema0": {
             "anyOf": [
               {
@@ -24811,6 +25308,218 @@
                     },
                     "required": [
                       "addresses"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "GatewayEndpoint": {
+            "type": "object",
+            "properties": {
+              "endpoints": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "protocol": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "registeredAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "protocol",
+                    "url",
+                    "registeredAt",
+                    "expiresAt"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "endpoints"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/gateway-endpoints": {
+          "put": {
+            "operationId": "gatewayEndpoints.replace",
+            "x-operation-version": 1,
+            "summary": "Replace the endpoints of the signing agent's gateway",
+            "description": "Where each protocol's server of the MediaMTX gateway the signing agent runs is reached, as its MediaMTX actually listens: one base URL per protocol, whose scheme is the protocol's (`http` or `https` for HLS and WebRTC). They replace whatever it registered before, whole, and hold for 2 minutes unless registered again, which agents do while they run. `connect` builds its URLs from them, and members read them with `organisations.gateways.listEndpoints`. Refused, as `conflict`, unless the agent is the active agent on the gateway's network. An empty list withdraws them, always accepted. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`.",
+            "responses": {
+              "200": {
+                "description": "The endpoints as stored, with when they expire",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/GatewayEndpoint"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "409": {
+                "description": "The change conflicts with the current state of the resource",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "gatewayId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "The MediaMTX gateway the device runs, as its configuration names it."
+                      },
+                      "endpoints": {
+                        "maxItems": 6,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "protocol": {
+                              "type": "string",
+                              "enum": [
+                                "webrtc",
+                                "rtsp",
+                                "rtsps",
+                                "rtmp",
+                                "rtmps",
+                                "hls"
+                              ],
+                              "description": "The protocol its server speaks."
+                            },
+                            "url": {
+                              "type": "string",
+                              "format": "uri",
+                              "description": "The server's base URL, as a reader on the gateway's network reaches it: `rtsps://<host>:8322`, say. Paths go under it."
+                            }
+                          },
+                          "required": [
+                            "protocol",
+                            "url"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "description": "One per protocol its MediaMTX serves, in no order. Empty to withdraw them, as an agent does on stopping."
+                      }
+                    },
+                    "required": [
+                      "gatewayId",
+                      "endpoints"
                     ],
                     "additionalProperties": false
                   }

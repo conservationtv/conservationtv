@@ -7,19 +7,15 @@ import { publishers } from './builders/publishers.ts';
 import { server } from './builders/server.ts';
 import { tls } from './builders/tls.ts';
 import type { MediamtxPaths } from './paths.ts';
+import type { MediamtxPorts } from './ports.ts';
 import type { TlsFiles } from './tls.ts';
 
-// The config MediaMTX serves, assembled by the steps in builders/ from where its servers listen, the paths the spec
-// names, the exposures it publishes, who it admits and the certificate it serves TLS with.
+// The config MediaMTX serves, assembled by the steps in builders/ from the ports its servers listen on, the paths the
+// spec names, the exposures it publishes, who it admits and the certificate it serves TLS with.
 
-/** Where MediaMTX's own HTTP servers listen, and the agent's beside them, such as `127.0.0.1:9997`. */
-export interface MediamtxAddresses {
-  /** The control API. */
-  api: string;
-  /** The metrics page. */
-  metrics: string;
-  /** Where the agent answers MediaMTX's authentication requests (auth.ts). */
-  authHttp: string;
+/** The ports MediaMTX's servers listen on, and the agent's beside them (ports.ts). */
+export interface MediamtxListening {
+  ports: MediamtxPorts;
 }
 
 /**
@@ -56,7 +52,7 @@ export interface MediamtxServing {
 export const mediamtxConfig = pipeline(server, paths, publishers, auth, tls);
 
 /** The config file's text. Throws if the config is unfit to serve, naming what made it so. */
-export async function renderConfig(params: MediamtxAddresses & MediamtxServing): Promise<string> {
+export async function renderConfig(params: MediamtxListening & MediamtxServing): Promise<string> {
   const { config, diagnostics } = await mediamtxConfig.render(params);
   const errors = diagnostics.filter(diagnostic => diagnostic.severity === 'error');
   if (errors.length > 0) {

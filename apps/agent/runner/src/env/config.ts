@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { arkenv } from '@arkenv/standard';
-import { Agent, PeersSchema } from '@conservationtv/agent-api';
+import { Agent, MediamtxPortsSchema, PeersSchema } from '@conservationtv/agent-api';
 import { z } from 'zod';
 
 /** The runner's settings, from the environment. */
@@ -31,6 +31,17 @@ export const config = {
    * and may connect directly.
    */
   AGENT_PEERS_FILE: z.string().min(1).optional(),
+  /**
+   * JSON moving any of the ports MediaMTX listens on from its own, such as `{"rtsp":9554,"api":9897}`, when another
+   * program has one or a second agent shares the machine: `rtsp`, `rtp`, `rtcp`, `rtsps`, `srtp`, `srtcp`, `rtmp`,
+   * `rtmps`, `hls`, `webrtc`, `webrtcUdp`, `srt`, and on loopback `api`, `metrics` and `auth`. The agent registers
+   * where it listens with the studio API, so nothing else needs telling.
+   */
+  AGENT_MEDIAMTX_PORTS: z
+    .string()
+    .min(1)
+    .transform(text => MediamtxPortsSchema.parse(JSON.parse(text)))
+    .optional(),
   /** How long in-flight requests get to finish after a shutdown signal before the process exits anyway. */
   SHUTDOWN_DELAY_MS: z.coerce.number().int().positive().default(10_000)
 };
@@ -56,8 +67,9 @@ export const services = (variables: Variables) => {
       const json: unknown = JSON.parse(text);
       return PeersSchema.parse(json);
     })();
+    const mediamtxPorts = variables.AGENT_MEDIAMTX_PORTS;
     if (variables.AGENT_MODE === 'direct') {
-      return new Agent({ type: 'direct', name, secretKey, directory, peers });
+      return new Agent({ type: 'direct', name, secretKey, directory, peers, mediamtxPorts });
     }
 
     if (variables.STUDIO_API_URL === undefined) {
@@ -70,6 +82,7 @@ export const services = (variables: Variables) => {
       secretKey,
       directory,
       peers,
+      mediamtxPorts,
       studioUrl: variables.STUDIO_API_URL
     });
   })();

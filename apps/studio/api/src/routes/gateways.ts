@@ -5,6 +5,7 @@ import { transaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { BUILTIN_GATEWAY_IDS, builtinGateways, GATEWAY_KIND_IDS, isBuiltinGateway } from '../gateways/index.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
+import { listGatewayEndpoints } from '../services/gateway-endpoints.ts';
 import { createGateway, deleteGateway, getGateway, listGateways, updateGateway } from '../services/gateways.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import {
@@ -132,6 +133,37 @@ export default new Hono()
       const row = await transaction(() => getGateway(id, gatewayId));
       if (!row) throw new ApiFailure('not_found');
       return c.json(row, 200);
+    }
+  )
+  .get(
+    '/:gatewayId/endpoints',
+    describeRoute({
+      operationId: 'organisations.gateways.listEndpoints',
+      ...operationVersion(1),
+      summary: "List where a gateway's servers are reached",
+      description:
+        "One base URL per protocol, as the agent running the gateway registered them (`gatewayEndpoints.replace`) from what its MediaMTX actually listens on, by protocol. Only the network's active agent's count, and only until they expire, which they do soon after it stops. An exposure's rendition is served under each at `<exposure>/<rendition>`. Empty while no agent runs the gateway, and for a built-in gateway, which registers none.",
+      responses: {
+        200: { description: 'The endpoints, by protocol' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', GatewayParamsSchema),
+    async c => {
+      const { id, gatewayId } = c.req.valid('param');
+      c.header('Cache-Control', 'no-store');
+      if (isBuiltinGateway(gatewayId)) return c.json({ endpoints: [] }, 200);
+      const endpoints = await transaction(async () => {
+        const gateway = await getGateway(id, gatewayId);
+        if (!gateway) throw new ApiFailure('not_found');
+        return listGatewayEndpoints(id, gatewayId);
+      });
+      return c.json({ endpoints }, 200);
     }
   )
   .patch(

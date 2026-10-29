@@ -18,6 +18,8 @@ import { join } from 'node:path';
 import { controller, converge } from '@conservationtv/converge';
 import { MachineRuntime, MachineSpecSchema } from './runtimes/machine.ts';
 import {
+  DEFAULT_MEDIAMTX_PORTS,
+  EndpointRegistration,
   MEDIAMTX_MANIFEST,
   MOQ_MANIFEST,
   MediamtxMetricsRuntime,
@@ -25,6 +27,7 @@ import {
   MetricsSpecSchema,
   StreamsSpecSchema,
   createMediamtxClient,
+  loopback,
   withMediamtxClient
 } from './runtimes/mediamtx/index.ts';
 import { watchStudioConfiguration } from './studio-configuration.ts';
@@ -36,7 +39,13 @@ export {
   type ConservationTvConfiguration,
   type DirectConfiguration
 } from './config.ts';
-export { MediamtxPathsSchema, type MediamtxPath, type MediamtxPaths } from './runtimes/mediamtx/index.ts';
+export {
+  MediamtxPathsSchema,
+  MediamtxPortsSchema,
+  type MediamtxPath,
+  type MediamtxPaths,
+  type MediamtxPorts
+} from './runtimes/mediamtx/index.ts';
 
 /** Every request arrives over iroh, from a peer the QUIC handshake authenticated: `peer` is its endpoint id. */
 export interface AgentBindings {
@@ -56,28 +65,26 @@ const app = new Hono<AgentEnv>({ router: operationRouter })
   .notFound(handleNotFound)
   .onError(handleError);
 
-/** Where MediaMTX's control API listens. */
-const MEDIAMTX_API = '127.0.0.1:9997';
-
-/** Where MediaMTX's metrics page listens. */
-const MEDIAMTX_METRICS = '127.0.0.1:9998';
-
 const logger = getLogger(['agent']);
 
 /** The agent's runtimes, by the key of the spec each converges to. */
-function controllers(config: ConservationTvConfiguration, identity: DeviceIdentity) {
+function controllers(
+  config: ConservationTvConfiguration,
+  identity: DeviceIdentity,
+  registration: EndpointRegistration
+) {
   const machine = new MachineRuntime(config);
+  const ports = config.mediamtxPorts ?? DEFAULT_MEDIAMTX_PORTS;
   // The streams and their metrics, both fulfilled by MediaMTX.
   const streams = new MediamtxRuntime({
     directory: join(config.directory, 'mediamtx'),
     binary: MEDIAMTX_MANIFEST,
     moq: MOQ_MANIFEST,
     identity,
-    api: MEDIAMTX_API,
-    metrics: MEDIAMTX_METRICS,
-    authHttp: '127.0.0.1:9996'
+    ports,
+    registration
   });
-  const metrics = new MediamtxMetricsRuntime(config, MEDIAMTX_METRICS);
+  const metrics = new MediamtxMetricsRuntime(config, loopback(ports.metrics));
 
   // const control = new ControlRuntime(config);
 
@@ -113,6 +120,7 @@ export type AgentControllers = ReturnType<typeof controllers>;
 export class Agent {
   private server: IrohHttpServer | undefined = undefined;
   private system: AgentSystem | undefined = undefined;
+  private registration: EndpointRegistration | undefined = undefined;
 
   constructor(readonly config: AgentConfiguration) {}
 
@@ -129,14 +137,21 @@ export class Agent {
 
     const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
     const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
-    const mediamtx = createMediamtxClient(MEDIAMTX_API);
-    await withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config, identity)));
+    const ports = config.mediamtxPorts ?? DEFAULT_MEDIAMTX_PORTS;
+    const mediamtx = createMediamtxClient(loopback(ports.api));
+    const registration = new EndpointRegistration(studio);
+    this.registration = registration;
+    await withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config, identity, registration)));
   }
 
   /** Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs in scope for both. */
-  private async serve(config: ConservationTvConfiguration, identity: DeviceIdentity) {
+  private async serve(
+    config: ConservationTvConfiguration,
+    identity: DeviceIdentity,
+    registration: EndpointRegistration
+  ) {
     this.system = await converge({
-      controllers: controllers(config, identity),
+      controllers: controllers(config, identity, registration),
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },
@@ -191,10 +206,13 @@ export class Agent {
   }
 
   /**
-   * Stop accepting, close connections, wait for in-flight requests to settle, and close the endpoint. Then stop the
-   * runtimes.
+   * Withdraw the gateway's endpoints, so readers are no longer sent here. Stop accepting, close connections, wait for
+   * in-flight requests to settle, and close the endpoint. Then stop the runtimes.
    */
   async stop() {
+    const registration = this.registration;
+    this.registration = undefined;
+    await registration?.close();
     const server = this.server;
     this.server = undefined;
     await server?.[Symbol.asyncDispose]();

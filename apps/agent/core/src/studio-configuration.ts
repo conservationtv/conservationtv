@@ -7,8 +7,9 @@ import { useStudio } from './studio.ts';
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
 //
 //   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device);
-//   2. turns that into the spec for its streams: the paths it names, as they are, the certificate it names for the
-//      gateway's hostname, and each publisher it names, with where to publish from
+//   2. turns that into the spec for its streams: the gateway it runs, whose endpoints it registers while it serves, the
+//      paths it names, as they are, the certificate it names for the gateway's hostname, and each publisher it names,
+//      with where to publish from
 //      `organisations.streams.exposures.connect`; and for its metrics: what each path delivers;
 //   3. hands both to converge as the `streams` and `metrics` keys, each of which changes what runs only when its
 //      spec changed.
@@ -87,8 +88,8 @@ async function studioSpecs(
     }
   }
   const { paths } = configuration;
-  const { auth, tls } = configuration.mediamtx;
-  const streams: StreamsSpec = { paths, auth, tls, publishers };
+  const { gatewayId, auth, tls } = configuration.mediamtx;
+  const streams: StreamsSpec = { gatewayId, paths, auth, tls, publishers };
   const attributions = paths.map(({ name, exposureId, rendition }) => ({ name, exposureId, rendition }));
   const metrics: MetricsSpec = { intervalMs: METRICS_INTERVAL_MS, paths: attributions };
   return { streams, metrics };

@@ -102,10 +102,15 @@ export const relations = defineRelations(schema, r => ({
   gateways: {
     organisation: r.one.organisations({ from: r.gateways.organisationId, to: r.organisations.id }),
     network: r.one.networks({ from: r.gateways.networkId, to: r.networks.id }),
-    certificate: r.one.gatewayCertificates({ from: r.gateways.id, to: r.gatewayCertificates.gatewayId })
+    certificate: r.one.gatewayCertificates({ from: r.gateways.id, to: r.gatewayCertificates.gatewayId }),
+    endpoints: r.many.gatewayEndpoints({ from: r.gateways.id, to: r.gatewayEndpoints.gatewayId })
   },
   gatewayCertificates: {
     gateway: r.one.gateways({ from: r.gatewayCertificates.gatewayId, to: r.gateways.id })
+  },
+  gatewayEndpoints: {
+    gateway: r.one.gateways({ from: r.gatewayEndpoints.gatewayId, to: r.gateways.id }),
+    device: r.one.devices({ from: r.gatewayEndpoints.deviceId, to: r.devices.id })
   },
   browsers: {
     organisation: r.one.organisations({ from: r.browsers.organisationId, to: r.organisations.id }),
