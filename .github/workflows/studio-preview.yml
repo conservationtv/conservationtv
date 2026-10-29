@@ -2,14 +2,18 @@ name: studio-preview
 run-name: 'studio-preview #${{ inputs.pr }}'
 
 # Releases a pull request to the one preview stack (studio.preview.conservation.tv), on a fresh clone of staging's
-# database: `gh workflow run studio-preview -f pr=<number>`. Each release replaces the last, whichever pull request it
-# was for, and comments on the pull request it releases.
+# database: `gh workflow run studio-preview -f pr=<number> -f sha=<head commit>`. Each release replaces the last,
+# whichever pull request it was for, and comments on the pull request it releases.
 on:
   workflow_dispatch:
     inputs:
       pr:
         description: The pull request to preview
         type: number
+        required: true
+      sha:
+        description: The pull request's head commit, which the release is pinned to
+        type: string
         required: true
 
 # One preview at a time; a newer request waits rather than cancelling a restore or apply in progress.
@@ -23,8 +27,9 @@ permissions:
 jobs:
   # The release runs the pull request's code with the preview environment's secrets, so only a maintainer (the
   # repository's maintain or admin role, who can merge) may release one, and only this repository's own branches are
-  # previewed, never a fork's. Whoever dispatches vouches for the head as it is now: the release is pinned to it. The
-  # preview environment admits only main's workflows, so this check cannot be edited away on a branch.
+  # previewed, never a fork's. Whoever dispatches vouches for the head they name, so the release is pinned to it and
+  # refused if the head has moved since, even while this run waited its turn. The preview environment admits only
+  # main's workflows, so this check cannot be edited away on a branch.
   resolve:
     runs-on: ubuntu-latest
     outputs:
@@ -34,6 +39,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ inputs.pr }}
+          SHA: ${{ inputs.sha }}
           ACTOR: ${{ github.triggering_actor }}
         run: |
           role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$ACTOR/permission" --jq .role_name)
@@ -41,11 +47,12 @@ jobs:
             admin | maintain) ;;
             *) echo "::error::$ACTOR is $role here; only maintainers release previews"; exit 1 ;;
           esac
-          read -r state cross sha < <(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" \
+          read -r state cross head < <(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" \
             --json state,isCrossRepository,headRefOid --jq '"\(.state) \(.isCrossRepository) \(.headRefOid)"')
           if [ "$state" != OPEN ]; then echo "::error::#$PR is $state, not open"; exit 1; fi
           if [ "$cross" != false ]; then echo "::error::#$PR is from a fork, which is never previewed"; exit 1; fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if [ "$head" != "$SHA" ]; then echo "::error::#$PR's head is $head, not $SHA as dispatched"; exit 1; fi
+          echo "sha=$head" >> "$GITHUB_OUTPUT"
 
   release:
     needs: resolve
