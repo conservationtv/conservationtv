@@ -75,7 +75,7 @@ export interface ProfileSummary {
   name: string;
   env: string;
   api: string;
-  email: string | undefined;
+  email: string;
   organisationId: string;
   organisation: string;
   device: DeviceSummary;

@@ -49,7 +49,7 @@ async function use(requested: string | undefined) {
   if (entries.length === 0) throw new LoginError('There are no profiles: run `ctv login` first.');
   const choices = entries.map(([name, profile]) => {
     const session = credentials.sessions[profile.session]!;
-    return { id: name, name: `${profile.organisationName} as ${session.email ?? 'unknown'} on ${session.env}` };
+    return { id: name, name: `${profile.organisationName} as ${session.email} on ${session.env}` };
   });
   const choice = { requested, message: 'Switch to which profile?', how: 'a profile argument' };
   const chosen = await choose(choices, choice);

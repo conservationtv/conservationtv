@@ -18,7 +18,7 @@ const SessionSchema = z.object({
   /** A `local` login's own API, from `ctv login --url`, in place of `pnpm dev`'s. */
   url: z.url().optional(),
   token: z.string().min(1),
-  email: z.string().optional()
+  email: z.string()
 });
 export type Session = z.output<typeof SessionSchema>;
 
@@ -91,7 +91,7 @@ export function writeCredentials(credentials: Credentials): void {
 }
 
 /** The session signed in to the API at `apiUrl` as `email`, by id, if there is one. */
-export function findSession(credentials: Credentials, apiUrl: string, email: string | undefined) {
+export function findSession(credentials: Credentials, apiUrl: string, email: string) {
   const sessions = Object.entries(credentials.sessions);
   const found = sessions.find(([, session]) => sessionApiUrl(session) === apiUrl && session.email === email);
   return found?.[0];
