@@ -1,5 +1,6 @@
 import { buildCli as buildStudioCli } from '@conservationtv/studio-cli';
 import { Cli } from 'incur';
+import packageJson from '../package.json' with { type: 'json' };
 import { apiUrlOf, studioClient } from './api.js';
 import { agentCommand } from './commands/agent.js';
 import { loginCommand, logoutCommand } from './commands/auth.js';
@@ -10,6 +11,7 @@ import { GlobalsSchema, scoped } from './scope.js';
 
 const cli = Cli.create('ctv', {
   description: 'The conservation.tv CLI: the studio API, and agents over iroh',
+  version: packageJson.version,
   format: 'json',
   globals: GlobalsSchema
 })

@@ -1,0 +1,73 @@
+name: cli-release
+
+# Publishes the CLI (apps/cli) to npm as @conservationtv/cli when a GitHub release tagged `cli-v<version>` is
+# published. The tag must match the version in apps/cli/package.json, so bump that in a pull request first. A
+# prerelease version, such as 0.2.0-beta.1, is published under the `next` dist-tag rather than `latest`.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: startsWith(github.event.release.tag_name, 'cli-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # npm's trusted publishing exchanges the workflow's OIDC token for a publish token, and signs provenance with it.
+      id-token: write
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+    defaults:
+      run:
+        working-directory: apps/cli
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Check the tag matches the package version
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "cli-v$version" ]; then
+            echo "::error title=Version mismatch::The release is tagged $TAG, but apps/cli/package.json is at $version: tag it cli-v$version, or bump the package first."
+            exit 1
+          fi
+          case "$version" in
+            *-*) echo "dist-tag=next" >> "$GITHUB_OUTPUT" ;;
+            *) echo "dist-tag=latest" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      # pnpm packs with publishConfig applied (the bundle as the bin) and workspace and catalog versions resolved.
+      - name: Pack
+        run: pnpm pack --pack-destination "$RUNNER_TEMP/cli"
+
+      # npm publishes the tarball, from outside the repository: the workspace's devEngines admits only pnpm. It
+      # authenticates only by trusted publishing (npm 11.5.1 or later), so npmjs.com must trust this workflow for the
+      # package: npm trusts a workflow only for a package that exists, so the first version is published by hand.
+      - name: Publish
+        working-directory: ${{ runner.temp }}/cli
+        env:
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
+        run: |
+          npm install --global npm@^11.5.1
+          npm publish ./*.tgz --provenance --access public --tag "$DIST_TAG"

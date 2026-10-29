@@ -1,1 +1,3 @@
 node_modules/
+# The bundle `pnpm build` publishes.
+dist/
