@@ -206,16 +206,16 @@ export class Agent {
   }
 
   /**
-   * Withdraw the gateway's endpoints, so readers are no longer sent here. Stop accepting, close connections, wait for
-   * in-flight requests to settle, and close the endpoint. Then stop the runtimes.
+   * Stop accepting, close connections, wait for in-flight requests to settle, and close the endpoint, while withdrawing
+   * the gateway's endpoints so readers are no longer sent here, for as long as that may take (endpoints.ts). Then stop
+   * the runtimes.
    */
   async stop() {
     const registration = this.registration;
     this.registration = undefined;
-    await registration?.close();
     const server = this.server;
     this.server = undefined;
-    await server?.[Symbol.asyncDispose]();
+    await Promise.all([registration?.close(), server?.[Symbol.asyncDispose]()]);
     const system = this.system;
     this.system = undefined;
     await system?.stop();

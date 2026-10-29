@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import type { MediamtxPorts } from './ports.ts';
@@ -9,12 +10,16 @@ import type { MediamtxPorts } from './ports.ts';
 //
 // A registration is a lease, which the studio API lets lapse unless it is renewed, so the agent renews it every
 // `RENEW_EVERY_MS` while its MediaMTX serves, and withdraws it when that stops: when the agent is no longer to run the
-// gateway, and when the agent stops. An agent that dies outright leaves it to lapse.
+// gateway, and when the agent stops. Withdrawing on stopping is a courtesy, given `CLOSE_WITHIN_MS` so a slow studio API
+// never holds up the rest of shutdown; an agent that runs out of time, or dies outright, leaves its lease to lapse.
 
 const logger = getLogger(['agent', 'mediamtx', 'endpoints']);
 
 /** How often a registration is renewed: well within the lease the studio API grants. */
 const RENEW_EVERY_MS = 30_000;
+
+/** How long withdrawing on stopping may take, behind any renewal in flight, before the lease is left to lapse. */
+const CLOSE_WITHIN_MS = 2_000;
 
 /** A protocol the gateway serves, and the base URL of its server. */
 export interface RealisedEndpoint {
@@ -80,10 +85,19 @@ export class EndpointRegistration {
     return this.enqueue(() => this.replace(this.registered, []));
   }
 
-  /** Withdraw for good: the agent is stopping. */
-  close(): Promise<void> {
+  /**
+   * Withdraw for good: the agent is stopping. Resolves once withdrawn, or after `CLOSE_WITHIN_MS` whether or not it
+   * has been, leaving the lease to lapse.
+   */
+  async close(): Promise<void> {
     this.closed = true;
-    return this.withdraw();
+    const deadline = new AbortController();
+    const timeout = sleep(CLOSE_WITHIN_MS, undefined, { signal: deadline.signal }).then(
+      () => logger.warn('Withdrawing the endpoints took too long; their lease will lapse'),
+      () => undefined
+    );
+    await Promise.race([this.withdraw(), timeout]);
+    deadline.abort();
   }
 
   private enqueue(step: () => Promise<void>): Promise<void> {
