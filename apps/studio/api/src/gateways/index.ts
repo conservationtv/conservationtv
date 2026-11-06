@@ -1,10 +1,9 @@
-import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
 import type { Credentials, Settings } from '../topology/settings.ts';
 import { cloudflareMoq } from './cloudflare-moq.ts';
 import { conservationtv } from './conservationtv.ts';
 import { mediamtx } from './mediamtx.ts';
-import type { GatewayProvider, OrganisationProvider, RetiredGateway } from './provider.ts';
+import type { GatewayProvider, OrganisationProvider } from './provider.ts';
 
 // Every gateway provider (src/gateways/provider.ts), and so every gateway this API connects callers to.
 
@@ -67,21 +66,6 @@ export function checkGatewaySettings(kind: string, settings: Settings) {
 export function checkGatewayCredentials(kind: string, settings: Settings, credentials: Credentials | null) {
   const provider = gatewayKind(kind);
   return provider.checkCredentials(settings, credentials);
-}
-
-/**
- * Releases what an organisation's gateway's provider made for it, once the gateway is removed, in the background: a
- * failure is logged, and leaves behind only what the provider would have released.
- */
-export function retireGateway(kind: string, gateway: RetiredGateway) {
-  if (!Object.hasOwn(GATEWAY_KINDS, kind)) return;
-  const provider = gatewayKind(kind);
-  if (provider.retire === undefined) return;
-  const environment = useEnvironment();
-  const retiring = provider.retire(gateway).catch(error => {
-    console.warn(JSON.stringify({ event: 'gateway_retire_failed', gatewayId: gateway.id, kind, cause: String(error) }));
-  });
-  environment.background(retiring);
 }
 
 /** A built-in gateway as the gateway routes return it, in the shape of an organisation's own. */

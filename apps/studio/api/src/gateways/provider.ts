@@ -162,16 +162,6 @@ interface OrganisationProviderDefinition<
   credentials?: CredentialsSchema;
   /** Confirms the service behind the gateway takes the credentials, refusing them as `invalid_credentials`. */
   verify?: (settings: z.output<SettingsSchema>, credentials: z.output<CredentialsSchema>) => Promise<void>;
-  /** Releases what the provider made for a gateway, once it is removed: absent when it made nothing. */
-  retire?: (gateway: RetiredGateway<z.output<SettingsSchema>, z.output<CredentialsSchema>>) => Promise<void>;
-}
-
-/** A gateway that has been removed, with what it was registered with. */
-export interface RetiredGateway<GatewaySettings = Settings, GatewayCredentials = Credentials | null> {
-  organisationId: string;
-  id: string;
-  settings: GatewaySettings;
-  credentials: GatewayCredentials;
 }
 
 interface BuiltinProviderDefinition<
@@ -201,8 +191,6 @@ export interface OrganisationProvider extends GatewayProvider {
    * takes none, and otherwise missing or malformed ones, or ones the service behind it refuses. Checked settings only.
    */
   checkCredentials: (settings: Settings, credentials: Credentials | null) => Promise<void>;
-  /** Absent when the provider makes nothing for a gateway; does nothing for one registered unfit for its kind. */
-  retire?: (gateway: RetiredGateway) => Promise<void>;
 }
 
 export interface BuiltinProvider<Kind extends string = string> extends GatewayProvider {
@@ -252,7 +240,7 @@ export const provider = {
   >(
     definition: OrganisationProviderDefinition<Ingest, Egress, SettingsSchema, CredentialsSchema>
   ): OrganisationProvider {
-    const { name, ingest, egress, settings: schema, credentials: credentialsSchema, verify, retire } = definition;
+    const { name, ingest, egress, settings: schema, credentials: credentialsSchema, verify } = definition;
     return {
       name,
       ingest,
@@ -273,18 +261,6 @@ export const provider = {
         const checked = schema.parse(settings);
         await verify(checked, parsed.data);
       },
-      retire:
-        retire === undefined
-          ? undefined
-          : async gateway => {
-              // A gateway registered before its kind changed what it takes has nothing this provider can release.
-              const settings = schema.safeParse(gateway.settings);
-              // SAFETY: without a credentials schema, CredentialsSchema is its default, z.ZodNull, and so is this.
-              const credentialsParser = (credentialsSchema ?? z.null()) as z.ZodType<z.output<CredentialsSchema>>;
-              const credentials = credentialsParser.safeParse(gateway.credentials);
-              if (!settings.success || !credentials.success) return;
-              await retire({ ...gateway, settings: settings.data, credentials: credentials.data });
-            },
       connect: connector(definition, settings => {
         // Settings were checked when they were written; a gateway that fails now predates a change to its kind.
         const parsed = schema.safeParse(settings);

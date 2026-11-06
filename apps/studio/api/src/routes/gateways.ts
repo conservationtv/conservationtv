@@ -1,17 +1,10 @@
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { transaction, trustedTransaction } from '../db/transaction.ts';
+import { transaction } from '../db/transaction.ts';
 import { connectStats } from '../gateways/connect.ts';
-import { selectGatewaySecrets } from '../gateways/secrets.ts';
 import { ApiFailure } from '../errors.ts';
-import {
-  BUILTIN_GATEWAY_IDS,
-  builtinGateways,
-  GATEWAY_KIND_IDS,
-  isBuiltinGateway,
-  retireGateway
-} from '../gateways/index.ts';
+import { BUILTIN_GATEWAY_IDS, builtinGateways, GATEWAY_KIND_IDS, isBuiltinGateway } from '../gateways/index.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
 import { listGatewayEndpoints } from '../services/gateway-endpoints.ts';
 import { createGateway, deleteGateway, getGateway, listGateways, updateGateway } from '../services/gateways.ts';
@@ -243,18 +236,7 @@ export default new Hono()
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
-      // What its provider needs to release what it made goes with the row, so it is read first, by trusted code.
-      const secrets = await trustedTransaction(() => selectGatewaySecrets(id, gatewayId));
-      const removed = await transaction(() => deleteGateway(id, gatewayId));
-      if (secrets !== undefined) {
-        const retired = {
-          organisationId: id,
-          id: removed.id,
-          settings: secrets.settings,
-          credentials: secrets.credentials
-        };
-        retireGateway(removed.kind, retired);
-      }
+      await transaction(() => deleteGateway(id, gatewayId));
       return c.body(null, 204);
     }
   )

@@ -1,15 +1,15 @@
 import { z } from 'zod';
 import { ApiFailure } from '../errors.ts';
 
-// Cloudflare's MoQ relays (https://developers.cloudflare.com/moq/), through the account API
+// The tokens of Cloudflare's MoQ relays (https://developers.cloudflare.com/moq/), through the account API
 // (https://developers.cloudflare.com/api/resources/moq): a relay is an isolated scope of namespaces on Cloudflare's
 // network, and a token admits a session to the whole relay, to publish, subscribe or both. Cloudflare alone mints
-// tokens, shows each one's secret once, holds at most 10 per relay, and revokes them by `jti`. The API is in beta, and
-// Cloudflare says it will change.
+// tokens, shows each one's secret once, holds at most 10 per relay, and revokes them by `jti`. Relays themselves are
+// made and removed by their account's owners, not here. The API is in beta, and Cloudflare says it will change.
 
 const API = 'https://api.cloudflare.com/client/v4';
 
-/** An organisation's account, which its gateways' relays are made in, and an API token that may manage its MoQ relays. */
+/** An organisation's account, which its gateway's relay is in, and an API token that may manage its MoQ relays. */
 export interface CloudflareMoqAccount {
   accountId: string;
   token: string;
@@ -25,9 +25,6 @@ const EnvelopeSchema = z.object({
   result: z.unknown()
 });
 type Envelope = z.output<typeof EnvelopeSchema>;
-
-const RelaySchema = z.object({ uid: z.string().min(1), name: z.string(), created: z.string() });
-export type Relay = z.output<typeof RelaySchema>;
 
 /** A token as Cloudflare lists it; `secret` only in the response that minted it. */
 const TokenSchema = z.object({
@@ -49,15 +46,6 @@ type IssuedTokens = z.output<typeof IssuedTokensSchema>;
 const IssuersSchema = z.object({ issuers: IssuedTokensSchema });
 type Issuers = z.output<typeof IssuersSchema>;
 
-/** A relay as making it returns it, with the tokens Cloudflare minted it. */
-const CreatedRelaySchema = RelaySchema.extend({ issuers: IssuedTokensSchema });
-export type CreatedRelay = z.output<typeof CreatedRelaySchema>;
-
-/** What making a relay is asked with. */
-interface RelayRequest {
-  name: string;
-}
-
 /** What minting a token is asked with: `expires` RFC 3339. */
 interface TokenRequest {
   operations: readonly MoqOperation[];
@@ -71,7 +59,7 @@ async function call<Schema extends z.ZodType>(
   method: string,
   path: string,
   schema: Schema,
-  body?: RelayRequest | TokenRequest
+  body?: TokenRequest
 ): Promise<z.output<Schema>> {
   const response = await fetch(`${API}/accounts/${account.accountId}/moq/relays${path}`, {
     method,
@@ -86,36 +74,6 @@ async function call<Schema extends z.ZodType>(
       ? `${response.status} ${response.statusText}`
       : envelope.errors.map(error => `${error.code} ${error.message}`).join('; ');
   throw new ApiFailure('gateway_unavailable', { cause: `Cloudflare MoQ refused ${method} ${path}: ${reasons}` });
-}
-
-/** How many relays to ask for at once. Cloudflare may send fewer, so only an empty page ends the listing. */
-const RELAYS_PER_PAGE = 100;
-
-/** The account's relays by this name, oldest first: every page, by the `created` cursor Cloudflare pages them by. */
-export async function relaysNamed(account: CloudflareMoqAccount, name: string): Promise<Relay[]> {
-  const named: Relay[] = [];
-  let after: string | undefined = undefined;
-  for (;;) {
-    const query = new URLSearchParams({ per_page: String(RELAYS_PER_PAGE), asc: 'true' });
-    if (after !== undefined) query.set('created_after', after);
-    const page = await call(account, 'GET', `?${query}`, z.array(RelaySchema));
-    const last = page.at(-1);
-    if (last === undefined) return named;
-    named.push(...page.filter(relay => relay.name === name));
-    after = last.created;
-  }
-}
-
-/**
- * A new relay by this name. Cloudflare mints it two tokens of its own (publish and subscribe, and subscribe only),
- * which are returned so they can be revoked.
- */
-export function createRelay(account: CloudflareMoqAccount, name: string): Promise<CreatedRelay> {
-  return call(account, 'POST', '', CreatedRelaySchema, { name });
-}
-
-export async function deleteRelay(account: CloudflareMoqAccount, relayId: string): Promise<void> {
-  await call(account, 'DELETE', `/${relayId}`, z.unknown());
 }
 
 /** A token admitting a session to the relay for the operations until `expires`, labelled; with its secret. */

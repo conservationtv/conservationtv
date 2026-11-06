@@ -306,23 +306,23 @@ every rendition as a track of one broadcast. Publishers connect the same way, by
 #### Cloudflare MoQ gateways
 
 A `cloudflare-moq` gateway is a [Cloudflare MoQ relay](https://developers.cloudflare.com/moq/) in the organisation's
-own Cloudflare account. It is published to and read by MoQ, like the built-in `conservationtv` relay. An administrator
-registers it with:
+own Cloudflare account. It is published to and read by MoQ, like the built-in `conservationtv` relay. The organisation
+makes and manages the relay in Cloudflare itself; this API only mints tokens for it. An administrator registers the
+gateway with:
 
-- `settings: { accountId }`;
+- `settings: { accountId, relayId }`;
 - `credentials: { apiToken }`, an account API token that may manage MoQ relays.
 
-The API checks the token by listing the account's relays, and refuses one Cloudflare rejects with 422
+The API checks the token by listing the relay's tokens, and refuses one Cloudflare rejects with 422
 `invalid_credentials`.
 
 Cloudflare's tokens work differently from gatekeeper's: they admit a session to a whole relay, only Cloudflare can mint
 them (at most 10 per relay), and they travel as the URL's path. So `src/gateways/cloudflare-moq.ts`:
 
-- **Relay.** Makes the gateway's relay, `ctv-<gateway>`, the first time anyone connects to it, and deletes it in the
-  background when the gateway is removed.
 - **Tokens.** Keeps two tokens in the gateway's `provider_state`, encrypted: publish+subscribe for its publishers, and
-  subscribe-only for its readers. Each lives a day and is replaced once half of that is gone. Any other token on the
-  relay is revoked, and so is any expired one.
+  subscribe-only for its readers. Each lives a day and is replaced once half of that is gone. Its tokens are labelled
+  `ctv-*`, and only those are revoked, once expired. The organisation's own tokens on the relay are left alone, but they
+  count against its 10.
 - **Connecting.** Answers `connect` with:
   - `relay`: the draft-16 relay URL;
   - `path`: the token, with no separate `token` field;
@@ -334,10 +334,8 @@ exposures.
 
 A reader keeps a relay-wide token until it expires, so a removed member can be locked out only after up to a day.
 
-Changing a gateway's kind, settings or credentials clears its `provider_state`:
-
-- **Same account:** the relay is found again by its name, and fresh tokens are minted.
-- **Another account, or a kind change away from `cloudflare-moq`:** the old relay is left behind in the old account.
+Changing a gateway's kind, settings or credentials clears its `provider_state`, so fresh tokens are minted for whatever
+relay it then names. Tokens already minted stay valid until they expire. Removing a gateway leaves its relay as it is.
 
 Cloudflare's relays speak IETF moq-transport (draft-14 and draft-16), which the agent's moq CLI and `@moq/net`
 negotiate. They publish no traffic stats. They refuse WebSocket, so the agent's joiner reaches them only through its

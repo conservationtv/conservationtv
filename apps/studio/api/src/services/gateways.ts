@@ -142,18 +142,13 @@ export async function updateGateway(organisationId: string, gatewayId: string, c
   return row;
 }
 
-/**
- * Remove the gateway: `forbidden` or `not_found` when the write reaches no row, `in_use` while exposures use it.
- * Returns what it was, so its provider can release what it made for it once the removal commits.
- */
+/** Remove the gateway: `forbidden` or `not_found` when the write reaches no row, `in_use` while exposures use it. */
 export async function deleteGateway(organisationId: string, gatewayId: string) {
   const db = useDB();
   const deleted = await db
     .delete(gateways)
     .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId)))
-    .returning({ id: gateways.id, kind: gateways.kind });
-  const [removed] = deleted;
-  if (removed === undefined) throw await unchanged(gateways.id, gatewayId);
+    .returning({ id: gateways.id });
+  if (deleted.length === 0) throw await unchanged(gateways.id, gatewayId);
   await checkGatewayUnused(gatewayId);
-  return removed;
 }
