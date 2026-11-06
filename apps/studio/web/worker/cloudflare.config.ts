@@ -29,7 +29,7 @@ export default defineConfig({
     },
     env: {
       /** The studio API, which the app calls with credentials. */
-      API_URL: bindings.text(stack?.apiUrl ?? process.env.API_URL ?? 'http://localhost:5175')
+      API_URL: bindings.text(stack?.apiUrl ?? process.env.API_URL ?? 'http://localhost:6421')
     }
   }
 });

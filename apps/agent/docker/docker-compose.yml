@@ -10,7 +10,7 @@ services:
       # `conservationtv` asks the studio API for its sessions; `direct` uses n0's relays and address lookup.
       # Each passed through from the host when set there, so the runner's defaults apply otherwise.
       AGENT_MODE:
-      # For `conservationtv`, reachable from the container: on the host, http://host.docker.internal:5175.
+      # For `conservationtv`, reachable from the container: on the host, http://host.docker.internal:6421.
       STUDIO_API_URL:
       # The agent's identity, as hex: its device's secret key in the studio, or for `direct`, any (`pnpm keygen`).
       AGENT_SECRET_KEY: ${AGENT_SECRET_KEY:?Set AGENT_SECRET_KEY to the agent's secret key}

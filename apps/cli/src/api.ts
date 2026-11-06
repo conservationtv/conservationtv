@@ -8,7 +8,7 @@ export type Environment = (typeof ENVIRONMENTS)[number];
 
 /** Each environment's studio API: `pnpm dev`, or the stack's `apiDomain`. */
 const API_URLS = {
-  local: 'http://localhost:5175',
+  local: 'http://localhost:6421',
   preview: 'https://api.studio.preview.conservation.tv',
   staging: 'https://api.studio.staging.conservation.tv',
   prod: 'https://api.studio.conservation.tv'

@@ -23,7 +23,7 @@ const devConfig: Plugin = {
   apply: 'serve',
   configureServer(server) {
     server.middlewares.use('/config.js', (_request, response) => {
-      const config = { apiUrl: process.env.API_URL ?? 'http://localhost:5175' };
+      const config = { apiUrl: process.env.API_URL ?? 'http://localhost:6421' };
       response.setHeader('content-type', 'text/javascript; charset=utf-8');
       response.setHeader('cache-control', 'no-cache');
       response.end(`globalThis.studioConfig = ${JSON.stringify(config)};\n`);
@@ -33,6 +33,10 @@ const devConfig: Plugin = {
 
 export default defineConfig({
   plugins: [tailwindcss(), reactCompiler, reactRouter(), devConfig],
+  // The dev servers sit on 6420 up, not Vite's defaults from 5173, which every other Vite project on the machine
+  // takes by turn: a route to a port (devnet's, for the tailnet) must always reach this app and not whichever
+  // project started first. The API is 6421, the gatekeeper 6422 and the review tool 6423.
+  server: { port: 6420 },
   // Pre-bundle every route's dependencies at startup, including those the shared UI package's components bring in.
   // Discovered lazily instead, the first visit to a route re-bundles mid-session and reloads, and a page holding the
   // old bundle can end up with two copies of React.

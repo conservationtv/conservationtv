@@ -135,7 +135,7 @@ pnpm install
 pnpm --filter @conservationtv/studio-api db:up       # docker-compose Postgres 18 with TimescaleDB on :5434, with both roles
 pnpm --filter @conservationtv/studio-api db:migrate
 cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECRET and FIELD_KEY
-pnpm --filter @conservationtv/studio-api dev         # http://localhost:5175
+pnpm --filter @conservationtv/studio-api dev         # http://localhost:6421
 ```
 
 Gatekeeper names the relays and admits devices to them, so the API always runs against one. `pnpm dev` uses the local
@@ -152,11 +152,11 @@ the returned session cookie:
 ```sh
 pnpm --filter @conservationtv/cli cli login && pnpm --filter @conservationtv/cli cli account get v1
 
-curl -X POST localhost:5175/auth/email-otp/send-verification-otp -H 'content-type: application/json' \
-  -H 'origin: http://localhost:5173' -d '{"email":"you@example.com","type":"sign-in"}'
-curl -c jar -X POST localhost:5175/auth/sign-in/email-otp -H 'content-type: application/json' \
-  -H 'origin: http://localhost:5173' -d '{"email":"you@example.com","otp":"<code>"}'
-curl -b jar localhost:5175/account
+curl -X POST localhost:6421/auth/email-otp/send-verification-otp -H 'content-type: application/json' \
+  -H 'origin: http://localhost:6420' -d '{"email":"you@example.com","type":"sign-in"}'
+curl -c jar -X POST localhost:6421/auth/sign-in/email-otp -H 'content-type: application/json' \
+  -H 'origin: http://localhost:6420' -d '{"email":"you@example.com","otp":"<code>"}'
+curl -b jar localhost:6421/account
 ```
 
 Schema changes: edit the tables in `src/db/schemas/` (`src/db/schema.ts` exports everything drizzle-kit migrates), then `pnpm db:generate` (drizzle-kit, then `umbrella generate --role studio_app` for the

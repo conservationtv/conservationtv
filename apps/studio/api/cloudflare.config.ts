@@ -53,17 +53,17 @@ export default defineConfig({
        * Where this API is served: Better Auth's base URL. The environment can override
        * the localhost default, e.g. to serve dev over Tailscale for testing on a phone.
        */
-      APP_URL: bindings.text(stack?.appUrl ?? process.env.APP_URL ?? 'http://localhost:5175'),
+      APP_URL: bindings.text(stack?.appUrl ?? process.env.APP_URL ?? 'http://localhost:6421'),
       /**
        * Comma-separated browser origins allowed to call the API with credentials; the first is the studio web app.
        * Overridable from the environment, as APP_URL is.
        */
-      WEB_ORIGINS: bindings.text(stack?.webOrigins.join(',') ?? process.env.WEB_ORIGINS ?? 'http://localhost:5173'),
+      WEB_ORIGINS: bindings.text(stack?.webOrigins.join(',') ?? process.env.WEB_ORIGINS ?? 'http://localhost:6420'),
       /**
        * The control plane that names the relays and admits devices to them: the local controlplane's gatekeeper
        * (apps/controlplane/gatekeeper) unless the environment overrides it, as `pnpm dev:staging` does.
        */
-      GATEKEEPER_URL: bindings.text(stack?.gatekeeperUrl ?? process.env.GATEKEEPER_URL ?? 'http://localhost:5176'),
+      GATEKEEPER_URL: bindings.text(stack?.gatekeeperUrl ?? process.env.GATEKEEPER_URL ?? 'http://localhost:6422'),
       /** The control plane environment's consumer token; see .dev.vars.example. */
       GATEKEEPER_TOKEN: bindings.secret(),
       /**

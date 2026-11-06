@@ -186,14 +186,14 @@ A cron trigger (every 15 minutes) purges leases that expired over a day ago. Gra
 ## Develop
 
 The local environment runs everything on this machine: Postgres and both relays in docker compose, gatekeeper's dev
-server on the host, which the relays call back to through `host.docker.internal:5176`.
+server on the host, which the relays call back to through `host.docker.internal:6422`.
 
 ```sh
 pnpm install
 pnpm --filter @conservationtv/gatekeeper local:up     # Postgres on :5433, iroh-relay on :3340, moq-relay on :4433/:4443
 pnpm --filter @conservationtv/gatekeeper db:migrate
 cp .dev.vars.example .dev.vars                       # then generate MOQ_SIGNING_KEYS as it describes
-pnpm --filter @conservationtv/gatekeeper dev         # http://localhost:5176
+pnpm --filter @conservationtv/gatekeeper dev         # http://localhost:6422
 pnpm --filter @conservationtv/gatekeeper test        # builds Worker, then tests in workerd; needs db:up
 ```
 
@@ -230,7 +230,7 @@ initialises every client that uses some configuration.
 pnpm --filter @conservationtv/gatekeeper generate             # contracts/openapi.json from routes + handler types
 pnpm --filter @conservationtv/controlplane-sdk generate
 pnpm --filter @conservationtv/controlplane-cli generate
-GATEKEEPER_URL=http://localhost:5176 GATEKEEPER_TOKEN=local-consumer-token pnpm --filter @conservationtv/controlplane-cli \
+GATEKEEPER_URL=http://localhost:6422 GATEKEEPER_TOKEN=local-consumer-token pnpm --filter @conservationtv/controlplane-cli \
   cli grants exchange v1 --subject cli:me --requested_capabilities '{"iroh":{"endpoint_id":"<id>","action":"connect"}}' \
   --expires_in 300
 ```
