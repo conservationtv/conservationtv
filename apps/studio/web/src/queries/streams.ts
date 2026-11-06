@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
+import { Batcher } from '@/lib/batcher';
 
 /** How far back a stream card's chart reads, and the bucket it reads it in. */
 export const CHART_WINDOW_MS = 3 * 60 * 60 * 1000;
@@ -81,9 +82,35 @@ export const subjectStateListQueryOptions = (organisationId: string) =>
     refetchInterval: 30_000
   });
 
+/** What a metric read shares across the subjects it asks about. */
+interface MetricFilter {
+  organisationId: string;
+  names: string[];
+  range: MetricRange;
+}
+
+/** Metric reads made together, as a page's charts make them, sent as one request across their subjects. */
+const metricBatcher = new Batcher({
+  request: async ({ organisationId, names, range }: MetricFilter, subjectIds: string[]) => {
+    const result = await api.organisations.subjects.metrics.query.v1({
+      id: organisationId,
+      subjectIds,
+      names,
+      from: range.from,
+      to: range.to,
+      step: CHART_STEP_SECONDS
+    });
+    if (result instanceof Error) throw result;
+    return result.series;
+  },
+  getId: series => series.subjectId,
+  maxIds: 100
+});
+
 /**
  * Every series of any of the metrics about any of the subjects, one per subject, reporter, unit and set of dimensions,
- * each with its points over the range in the chart's buckets.
+ * each with its points over the range in the chart's buckets. Read in a batch with other subjects' reads of the same
+ * metrics over the same range.
  */
 export const metricQueryQueryOptions = (
   organisationId: string,
@@ -93,18 +120,7 @@ export const metricQueryQueryOptions = (
 ) =>
   queryOptions({
     queryKey: ['subjects', organisationId, 'metrics', subjectIds, names, range.from, range.to] as const,
-    queryFn: async () => {
-      const result = await api.organisations.subjects.metrics.query.v1({
-        id: organisationId,
-        subjectIds,
-        names,
-        from: range.from,
-        to: range.to,
-        step: CHART_STEP_SECONDS
-      });
-      if (result instanceof Error) throw result;
-      return result.series;
-    }
+    queryFn: () => metricBatcher.load({ organisationId, names, range }, subjectIds)
   });
 
 /** How long before a read connection's credential expires to ask for a fresh one. */
