@@ -137,9 +137,9 @@ function planActiveAgent(input: PlanningInput): ActiveConfiguration {
         }
         return feeds;
       }
-      // Only a camera can be pulled from.
+      // Only a camera can be pulled from, and only while it is enabled.
       const camera = stream.sourceDevice?.camera;
-      if (!camera) return feeds;
+      if (!camera || camera.state !== 'enabled') return feeds;
       return cameraFeeds(exposure, camera);
     };
 

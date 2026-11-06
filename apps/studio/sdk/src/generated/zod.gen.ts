@@ -142,6 +142,11 @@ export const CameraSchema = z.object({
             url: z.string()
         })
     ]),
+    state: z.enum([
+        'enabled',
+        'locked',
+        'disabled'
+    ]),
     device: z.object({
         name: z.string(),
         createdAt: z.string(),
@@ -864,6 +869,11 @@ export const GetOrganisationsByIdCamerasResponseSchema = z.object({
                 url: z.string()
             })
         ]),
+        state: z.enum([
+            'enabled',
+            'locked',
+            'disabled'
+        ]),
         device: z.object({
             name: z.string(),
             createdAt: z.string(),
@@ -902,7 +912,14 @@ export const PostOrganisationsByIdCamerasBodySchema = z.object({
         password: z.string().max(256)
     }).register(z.globalRegistry, {
         description: 'How to authenticate to the camera. Write-only: never returned.'
-    }).optional()
+    }).optional(),
+    state: z.enum([
+        'enabled',
+        'locked',
+        'disabled'
+    ]).register(z.globalRegistry, {
+        description: 'Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.'
+    }).optional().default('enabled')
 });
 
 export const PostOrganisationsByIdCamerasPathSchema = z.object({
@@ -963,7 +980,14 @@ export const PatchOrganisationsByIdCamerasByCameraIdBodySchema = z.object({
         password: z.string().max(256)
     }).register(z.globalRegistry, {
         description: 'How to authenticate to the camera. Write-only: never returned.'
-    }).nullish()
+    }).nullish(),
+    state: z.enum([
+        'enabled',
+        'locked',
+        'disabled'
+    ]).register(z.globalRegistry, {
+        description: 'Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.'
+    }).optional()
 });
 
 export const PatchOrganisationsByIdCamerasByCameraIdPathSchema = z.object({

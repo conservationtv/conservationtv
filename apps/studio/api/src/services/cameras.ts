@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import type { CameraCredentials, CameraSettings } from '../cameras/drivers.ts';
+import type { CameraState } from '../cameras/states.ts';
 import { cameras } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
@@ -12,19 +13,21 @@ import { unchanged } from '../topology/transaction.ts';
 export interface NewCamera {
   settings: CameraSettings;
   credentials?: CameraCredentials;
+  state?: CameraState;
 }
 
 export interface CameraChanges {
   settings?: CameraSettings;
   /** `null` clears them. */
   credentials?: CameraCredentials | null;
+  state?: CameraState;
 }
 
 /** The organisation's cameras, oldest first, each with its device. */
 export function listCameras(organisationId: string) {
   const db = useDB();
   return db.query.cameras.findMany({
-    columns: { id: true, settings: true },
+    columns: { id: true, settings: true, state: true },
     with: {
       device: {
         columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
@@ -39,7 +42,7 @@ export function listCameras(organisationId: string) {
 export function getCamera(organisationId: string, cameraId: string) {
   const db = useDB();
   return db.query.cameras.findFirst({
-    columns: { id: true, settings: true },
+    columns: { id: true, settings: true, state: true },
     with: {
       device: {
         columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
@@ -52,17 +55,21 @@ export function getCamera(organisationId: string, cameraId: string) {
 /** Make the device a camera. */
 export async function createCamera(organisationId: string, cameraId: string, payload: NewCamera) {
   const db = useDB();
-  await db
-    .insert(cameras)
-    .values({ id: cameraId, organisationId, settings: payload.settings, credentials: payload.credentials });
+  await db.insert(cameras).values({
+    id: cameraId,
+    organisationId,
+    settings: payload.settings,
+    credentials: payload.credentials,
+    state: payload.state
+  });
 }
 
-/** Replace the camera's settings, or its credentials: `forbidden` or `not_found` when the write reaches no row. */
+/** Replace the camera's settings, its credentials, or its state: `forbidden` or `not_found` when the write reaches no row. */
 export async function updateCamera(organisationId: string, cameraId: string, changes: CameraChanges) {
   const db = useDB();
   const updated = await db
     .update(cameras)
-    .set({ settings: changes.settings, credentials: changes.credentials })
+    .set({ settings: changes.settings, credentials: changes.credentials, state: changes.state })
     .where(and(eq(cameras.organisationId, organisationId), eq(cameras.id, cameraId)))
     .returning({ id: cameras.id });
   if (updated.length === 0) throw await unchanged(cameras.id, cameraId);

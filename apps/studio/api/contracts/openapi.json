@@ -495,6 +495,14 @@
               }
             ]
           },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "locked",
+              "disabled"
+            ]
+          },
           "device": {
             "anyOf": [
               {
@@ -549,6 +557,7 @@
         "required": [
           "id",
           "settings",
+          "state",
           "device"
         ]
       },
@@ -4529,6 +4538,14 @@
                               }
                             ]
                           },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "enabled",
+                              "locked",
+                              "disabled"
+                            ]
+                          },
                           "device": {
                             "anyOf": [
                               {
@@ -4583,6 +4600,7 @@
                         "required": [
                           "id",
                           "settings",
+                          "state",
                           "device"
                         ]
                       }
@@ -4657,7 +4675,7 @@
         "operationId": "organisations.cameras.create",
         "x-operation-version": 1,
         "summary": "Add a camera",
-        "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.",
+        "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams. It starts `enabled` unless a `state` is given.",
         "responses": {
           "201": {
             "description": "The new camera",
@@ -4839,6 +4857,16 @@
                     ],
                     "additionalProperties": false,
                     "description": "How to authenticate to the camera. Write-only: never returned."
+                  },
+                  "state": {
+                    "default": "enabled",
+                    "type": "string",
+                    "enum": [
+                      "enabled",
+                      "locked",
+                      "disabled"
+                    ],
+                    "description": "Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it."
                   }
                 },
                 "required": [
@@ -4954,7 +4982,7 @@
         "operationId": "organisations.cameras.update",
         "x-operation-version": 1,
         "summary": "Update a camera",
-        "description": "Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.",
+        "description": "Administrators only. Replaces its `settings` whole, its `credentials` when given (`null` clears them; credentials are never returned), and its `state`. Its name and network are changed under `/devices`, with the same ID.",
         "responses": {
           "200": {
             "description": "The updated camera",
@@ -5134,6 +5162,15 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "enabled",
+                      "locked",
+                      "disabled"
+                    ],
+                    "description": "Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it."
                   }
                 },
                 "additionalProperties": false
@@ -15543,6 +15580,14 @@
                         }
                       ]
                     },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "enabled",
+                        "locked",
+                        "disabled"
+                      ]
+                    },
                     "device": {
                       "anyOf": [
                         {
@@ -15597,6 +15642,7 @@
                   "required": [
                     "id",
                     "settings",
+                    "state",
                     "device"
                   ]
                 }
@@ -15779,6 +15825,14 @@
                   }
                 ]
               },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "enabled",
+                  "locked",
+                  "disabled"
+                ]
+              },
               "device": {
                 "anyOf": [
                   {
@@ -15833,6 +15887,7 @@
             "required": [
               "id",
               "settings",
+              "state",
               "device"
             ]
           }
@@ -15844,7 +15899,7 @@
             "operationId": "organisations.cameras.create",
             "x-operation-version": 1,
             "summary": "Add a camera",
-            "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.",
+            "description": "Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams. It starts `enabled` unless a `state` is given.",
             "responses": {
               "201": {
                 "description": "The new camera",
@@ -16036,6 +16091,16 @@
                         ],
                         "additionalProperties": false,
                         "description": "How to authenticate to the camera. Write-only: never returned."
+                      },
+                      "state": {
+                        "default": "enabled",
+                        "type": "string",
+                        "enum": [
+                          "enabled",
+                          "locked",
+                          "disabled"
+                        ],
+                        "description": "Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it."
                       }
                     },
                     "required": [
@@ -16136,6 +16201,14 @@
                   }
                 ]
               },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "enabled",
+                  "locked",
+                  "disabled"
+                ]
+              },
               "device": {
                 "anyOf": [
                   {
@@ -16190,6 +16263,7 @@
             "required": [
               "id",
               "settings",
+              "state",
               "device"
             ]
           }
@@ -16386,6 +16460,14 @@
                   }
                 ]
               },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "enabled",
+                  "locked",
+                  "disabled"
+                ]
+              },
               "device": {
                 "anyOf": [
                   {
@@ -16440,6 +16522,7 @@
             "required": [
               "id",
               "settings",
+              "state",
               "device"
             ]
           }
@@ -16451,7 +16534,7 @@
             "operationId": "organisations.cameras.update",
             "x-operation-version": 1,
             "summary": "Update a camera",
-            "description": "Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.",
+            "description": "Administrators only. Replaces its `settings` whole, its `credentials` when given (`null` clears them; credentials are never returned), and its `state`. Its name and network are changed under `/devices`, with the same ID.",
             "responses": {
               "200": {
                 "description": "The updated camera",
@@ -16641,6 +16724,15 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "enabled",
+                          "locked",
+                          "disabled"
+                        ],
+                        "description": "Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it."
                       }
                     },
                     "additionalProperties": false

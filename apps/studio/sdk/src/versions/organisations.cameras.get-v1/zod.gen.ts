@@ -20,6 +20,11 @@ export const CameraSchema = z.object({
             url: z.string()
         })
     ]),
+    state: z.enum([
+        'enabled',
+        'locked',
+        'disabled'
+    ]),
     device: z.object({
         name: z.string(),
         createdAt: z.string(),
