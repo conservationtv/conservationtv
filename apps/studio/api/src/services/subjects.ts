@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, like, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, like, lt, sql } from 'drizzle-orm';
 import { logRecords, metricPoints, metricSeries, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 
@@ -19,6 +19,12 @@ export interface MetricSeriesFilter {
 }
 
 /** A time range, read in buckets of `step` seconds. */
+/** Which series to read across subjects: those of any of these metrics about any of these subjects. */
+export interface MetricQuery {
+  subjectIds: string[];
+  names: string[];
+}
+
 export interface BucketRange {
   from: Date;
   to: Date;
@@ -220,4 +226,73 @@ export function listMetricPoints(organisationId: string, seriesId: string, range
     )
     .groupBy(bucket)
     .orderBy(bucket);
+}
+
+/**
+ * The series of any of the metrics about any of the subjects, each with its points in the range as
+ * `listMetricPoints` buckets them: by subject, name, then oldest first.
+ */
+export async function queryMetrics(organisationId: string, query: MetricQuery, range: BucketRange) {
+  const db = useDB();
+  const series = await db
+    .select({
+      id: metricSeries.id,
+      subjectId: metricSeries.subjectId,
+      name: metricSeries.name,
+      reporterId: metricSeries.reporterId,
+      unit: metricSeries.unit,
+      dimensions: metricSeries.dimensions,
+      createdAt: metricSeries.createdAt
+    })
+    .from(metricSeries)
+    .where(
+      and(
+        eq(metricSeries.organisationId, organisationId),
+        inArray(metricSeries.subjectId, query.subjectIds),
+        inArray(metricSeries.name, query.names)
+      )
+    )
+    .orderBy(asc(metricSeries.subjectId), asc(metricSeries.name), asc(metricSeries.createdAt));
+  if (series.length === 0) return [];
+  const points = await bucketedPoints(
+    organisationId,
+    series.map(({ id }) => id),
+    range
+  );
+  return series.map(row => ({ ...row, points: points.get(row.id) ?? [] }));
+}
+
+/** Every one of the series' points in the range, bucketed as `listMetricPoints` does, by series. */
+async function bucketedPoints(organisationId: string, seriesIds: string[], range: BucketRange) {
+  const db = useDB();
+  const step = sql.raw(String(Math.trunc(range.step)));
+  const bucket = sql`time_bucket(make_interval(secs => ${step}), ${metricPoints.observedAt})`;
+  const rows = await db
+    .select({
+      seriesId: metricPoints.seriesId,
+      at: bucket.mapWith(metricPoints.observedAt),
+      min: sql<number>`min(${metricPoints.min})`,
+      max: sql<number>`max(${metricPoints.max})`,
+      avg: sql<number>`sum(${metricPoints.avg} * ${metricPoints.count}) / sum(${metricPoints.count})`,
+      last: sql<number>`last(${metricPoints.last}, ${metricPoints.observedAt})`,
+      count: sql<number>`sum(${metricPoints.count})::integer`
+    })
+    .from(metricPoints)
+    .where(
+      and(
+        eq(metricPoints.organisationId, organisationId),
+        inArray(metricPoints.seriesId, seriesIds),
+        gte(metricPoints.observedAt, range.from),
+        lt(metricPoints.observedAt, range.to)
+      )
+    )
+    .groupBy(metricPoints.seriesId, bucket)
+    .orderBy(metricPoints.seriesId, bucket);
+  const bySeries = new Map<string, Omit<(typeof rows)[number], 'seriesId'>[]>();
+  for (const { seriesId, ...point } of rows) {
+    const list = bySeries.get(seriesId) ?? [];
+    list.push(point);
+    bySeries.set(seriesId, list);
+  }
+  return bySeries;
 }

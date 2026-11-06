@@ -81,37 +81,29 @@ export const subjectStateListQueryOptions = (organisationId: string) =>
     refetchInterval: 30_000
   });
 
-/** A subject's series of one metric, one per reporter, unit and set of dimensions. */
-export const metricSeriesQueryOptions = (organisationId: string, subjectId: string, name: string) =>
-  queryOptions({
-    queryKey: ['subjects', organisationId, subjectId, 'series', name] as const,
-    queryFn: async () => {
-      const result = await api.organisations.subjects.metrics.list.v1({ id: organisationId, subjectId, name });
-      if (result instanceof Error) throw result;
-      return result.series;
-    }
-  });
-
-/** A series' points over a range, in the chart's buckets. */
-export const metricPointsQueryOptions = (
+/**
+ * Every series of any of the metrics about any of the subjects, one per subject, reporter, unit and set of dimensions,
+ * each with its points over the range in the chart's buckets.
+ */
+export const metricQueryQueryOptions = (
   organisationId: string,
-  subjectId: string,
-  seriesId: string,
+  subjectIds: string[],
+  names: string[],
   range: MetricRange
 ) =>
   queryOptions({
-    queryKey: ['subjects', organisationId, subjectId, 'points', seriesId, range.from, range.to] as const,
+    queryKey: ['subjects', organisationId, 'metrics', subjectIds, names, range.from, range.to] as const,
     queryFn: async () => {
-      const result = await api.organisations.subjects.metrics.get.v1({
+      const result = await api.organisations.subjects.metrics.query.v1({
         id: organisationId,
-        subjectId,
-        seriesId,
+        subjectIds,
+        names,
         from: range.from,
         to: range.to,
         step: CHART_STEP_SECONDS
       });
       if (result instanceof Error) throw result;
-      return result.points;
+      return result.series;
     }
   });
 

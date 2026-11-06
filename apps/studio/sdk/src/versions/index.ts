@@ -58,6 +58,7 @@ export * from './organisations.streams.recorders.create-v1/index.js';
 export * from './organisations.streams.recorders.update-v1/index.js';
 export * from './organisations.streams.recorders.delete-v1/index.js';
 export * from './organisations.subjects.states.list-v1/index.js';
+export * from './organisations.subjects.metrics.query-v1/index.js';
 export * from './organisations.subjects.state-v1/index.js';
 export * from './organisations.subjects.observations.list-v1/index.js';
 export * from './organisations.subjects.metrics.list-v1/index.js';

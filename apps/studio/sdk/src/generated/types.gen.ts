@@ -267,6 +267,28 @@ export type State = {
     }>;
 };
 
+export type Metric = {
+    from: string;
+    to: string;
+    step: number;
+    points: Array<{
+        at: string;
+        min: number;
+        max: number;
+        avg: number;
+        last: number;
+        count: number;
+    }>;
+    id: string;
+    name: string;
+    reporterId: string;
+    unit: string | null;
+    dimensions: {
+        [key: string]: string;
+    };
+    createdAt: string;
+};
+
 export type Subject = {
     subjectId: string;
     state: {
@@ -306,28 +328,6 @@ export type Observation = {
             [key: string]: unknown;
         };
     }>;
-};
-
-export type Metric = {
-    from: string;
-    to: string;
-    step: number;
-    points: Array<{
-        at: string;
-        min: number;
-        max: number;
-        avg: number;
-        last: number;
-        count: number;
-    }>;
-    id: string;
-    name: string;
-    reporterId: string;
-    unit: string | null;
-    dimensions: {
-        [key: string]: string;
-    };
-    createdAt: string;
 };
 
 export type Log = {
@@ -3838,6 +3838,92 @@ export type GetOrganisationsByIdSubjectsStatesResponses = {
 };
 
 export type GetOrganisationsByIdSubjectsStatesResponse = GetOrganisationsByIdSubjectsStatesResponses[keyof GetOrganisationsByIdSubjectsStatesResponses];
+
+export type PostOrganisationsByIdSubjectsMetricsQueryData = {
+    body: {
+        /**
+         * Series about any of these subjects.
+         */
+        subjectIds: Array<string>;
+        /**
+         * Series of any of these metrics.
+         */
+        names: Array<string>;
+        /**
+         * Points observed at or after this time.
+         */
+        from: string;
+        /**
+         * Points observed before this time; now by default.
+         */
+        to?: string;
+        /**
+         * Seconds per bucket, at least; widened so the range has at most 1000 buckets.
+         */
+        step?: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/subjects/metrics/query';
+};
+
+export type PostOrganisationsByIdSubjectsMetricsQueryErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdSubjectsMetricsQueryError = PostOrganisationsByIdSubjectsMetricsQueryErrors[keyof PostOrganisationsByIdSubjectsMetricsQueryErrors];
+
+export type PostOrganisationsByIdSubjectsMetricsQueryResponses = {
+    /**
+     * The range, and the series with their points
+     */
+    200: {
+        series: Array<{
+            points: Array<{
+                at: string;
+                min: number;
+                max: number;
+                avg: number;
+                last: number;
+                count: number;
+            }>;
+            id: string;
+            subjectId: string;
+            name: string;
+            reporterId: string;
+            unit: string | null;
+            dimensions: {
+                [key: string]: string;
+            };
+            createdAt: string;
+        }>;
+        from: string;
+        to: string;
+        step: number;
+    };
+};
+
+export type PostOrganisationsByIdSubjectsMetricsQueryResponse = PostOrganisationsByIdSubjectsMetricsQueryResponses[keyof PostOrganisationsByIdSubjectsMetricsQueryResponses];
 
 export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
     body?: never;

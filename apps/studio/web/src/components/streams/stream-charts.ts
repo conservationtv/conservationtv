@@ -1,20 +1,13 @@
 import { startTransition, useEffect, useState } from 'react';
-import { useSuspenseQueries } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { BitrateRow } from '@/components/streams/stream-chart';
 import { useOrganisationId } from '@/hooks/use-organisation';
-import {
-  CHART_STEP_SECONDS,
-  CHART_WINDOW_MS,
-  metricPointsQueryOptions,
-  metricSeriesQueryOptions,
-  type MetricRange
-} from '@/queries/streams';
+import { CHART_STEP_SECONDS, CHART_WINDOW_MS, metricQueryQueryOptions, type MetricRange } from '@/queries/streams';
 
 // What a stream card charts over the window: the bitrate coming in from the camera (its first exposure's ingest), what
 // its exposures send out to the network (LAN egress), what reaches the internet (what the MoQ relays received, as they
-// count it). Every series is found in one round, then every series' points read in the next, so the chart arrives
-// whole.
+// count it). One read across the stream's exposures returns every series with its points, so the chart arrives whole.
 
 // The agent's metrics, as @conservationtv/reports names them: its MediaMTX paths' (pathMetrics), and what the relays
 // carry of what it publishes (relayMetrics).
@@ -50,21 +43,9 @@ export function useStreamChart(stream: ChartedStream) {
   const chartWindow = useChartWindow();
   const range = toRange(chartWindow.from, chartWindow.to);
 
-  const seriesAsks = seriesAsksOf(stream);
-  const seriesQueries = useSuspenseQueries({
-    queries: seriesAsks.map(ask => metricSeriesQueryOptions(organisationId, `exposure:${ask.exposureId}`, ask.metric))
-  });
-  const pointsAsks = seriesAsks.flatMap((ask, index) =>
-    (seriesQueries[index]?.data ?? []).map(series => pointsAskOf(ask, series, range))
-  );
-  const pointsQueries = useSuspenseQueries({
-    queries: pointsAsks.map(ask =>
-      metricPointsQueryOptions(organisationId, `exposure:${ask.exposureId}`, ask.seriesId, ask.range)
-    )
-  });
-
-  const answered = pointsAsks.map((ask, index) => ({ ask, points: pointsQueries[index]?.data ?? [] }));
-  return { chart: chartOf(answered, chartWindow), chartWindow };
+  const subjectIds = stream.exposures.map(({ id }) => `exposure:${id}`);
+  const { data: series } = useSuspenseQuery(metricQueryQueryOptions(organisationId, subjectIds, METRICS, range));
+  return { chart: chartOf(stream, series, chartWindow), chartWindow };
 }
 
 /**
@@ -85,62 +66,29 @@ function latestBucket(): number {
   return Math.floor(Date.now() / step) * step;
 }
 
-type Metric = typeof INGEST_BITRATE | typeof LAN_EGRESS_BITRATE | typeof INTERNET_EGRESS_BITRATE;
+const METRICS = [INGEST_BITRATE, LAN_EGRESS_BITRATE, INTERNET_EGRESS_BITRATE];
 
-/** A series to look for: one metric about one of the stream's exposures. */
-interface SeriesAsk {
-  exposureId: string;
-  metric: Metric;
-}
-
-/** Points to read: one series of one of the stream's exposures, over a range. */
-interface PointsAsk {
-  exposureId: string;
-  seriesId: string;
-  reporterId: string;
-  metric: Metric;
-  range: MetricRange;
-}
-
+/** A series as the chart reads it: what it measures, about which exposure, who reported it, and its points. */
 interface ReportedSeries {
-  id: string;
+  subjectId: string;
+  name: string;
   reporterId: string;
-}
-
-/**
- * The ingest of the stream's first exposure, the one the camera feeds, and of every exposure what it sends to the
- * network and the internet.
- */
-function seriesAsksOf(stream: ChartedStream): SeriesAsk[] {
-  const root = stream.exposures.find(exposure => !exposure.upstreamExposureId);
-  const ingest: SeriesAsk[] = root ? [{ exposureId: root.id, metric: INGEST_BITRATE }] : [];
-  const perExposure = stream.exposures.flatMap(({ id }): SeriesAsk[] => [
-    { exposureId: id, metric: LAN_EGRESS_BITRATE },
-    { exposureId: id, metric: INTERNET_EGRESS_BITRATE }
-  ]);
-  return [...ingest, ...perExposure];
-}
-
-/** A series' points over the window. */
-function pointsAskOf(ask: SeriesAsk, series: ReportedSeries, range: MetricRange): PointsAsk {
-  return { exposureId: ask.exposureId, seriesId: series.id, reporterId: series.reporterId, metric: ask.metric, range };
-}
-
-interface AnsweredPoints {
-  ask: PointsAsk;
   points: Point[];
 }
 
-/** The stream's chart, from the points read for it. */
-function chartOf(answered: AnsweredPoints[], chartWindow: ChartWindow): StreamChartData {
-  const reported = (metric: Metric) =>
-    answered
-      .filter(({ ask }) => ask.metric === metric)
-      .map(({ ask, points }) => ({ reporterId: ask.reporterId, points }));
+/**
+ * The stream's chart, from its series: the ingest of its first exposure, the one the camera feeds, and of every
+ * exposure what it sends to the network and the internet.
+ */
+function chartOf(stream: ChartedStream, series: ReportedSeries[], chartWindow: ChartWindow): StreamChartData {
+  const root = stream.exposures.find(exposure => !exposure.upstreamExposureId);
+  const ingest = series.filter(
+    ({ name, subjectId }) => name === INGEST_BITRATE && subjectId === `exposure:${root?.id}`
+  );
   const totals: BitrateTotals = {
-    ingress: totalBitrate(reported(INGEST_BITRATE)),
-    lanEgress: totalBitrate(reported(LAN_EGRESS_BITRATE)),
-    internetEgress: totalBitrate(reported(INTERNET_EGRESS_BITRATE))
+    ingress: totalBitrate(ingest),
+    lanEgress: totalBitrate(series.filter(({ name }) => name === LAN_EGRESS_BITRATE)),
+    internetEgress: totalBitrate(series.filter(({ name }) => name === INTERNET_EGRESS_BITRATE))
   };
   return { rows: bitrateRows(chartWindow, totals) };
 }
