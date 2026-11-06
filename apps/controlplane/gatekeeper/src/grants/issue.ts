@@ -5,6 +5,7 @@ import { useConsumer } from './consumer.ts';
 import { newId } from '../ids.ts';
 import { signMoqToken } from '../moq/tokens.ts';
 import { type Grant, type IrohRequest, type MoqRequest, PROTOCOL_MAX_LIFETIME_SECONDS } from './grant.ts';
+import { STATS_PREFIX } from './identifiers.ts';
 
 export interface MoqCredential {
   /** The relay to dial. Any relay in the cluster admits the token, since each asks gatekeeper. */
@@ -80,6 +81,12 @@ async function moqCredential(issuance: Issuance, moq: MoqRequest, root: string):
   return { relay, root, token, expires_at: timestamp(issuance.expiresAt) };
 }
 
+/** The relay root a MoQ capability is for: its root beneath the consumer's namespace, or the stats published for it. */
+function moqRootOf(namespace: string, moq: MoqRequest): string {
+  const root = `${namespace}/${moq.root}`;
+  return moq.stats ? `${STATS_PREFIX}/${root}` : root;
+}
+
 /** The grant audit record, the MoQ token and the Iroh lease succeed or fail together. */
 export async function issueCredentials(grant: Grant): Promise<GrantExchangeResult> {
   const environment = useEnvironment();
@@ -88,8 +95,9 @@ export async function issueCredentials(grant: Grant): Promise<GrantExchangeResul
   const issuedAt = new Date(now);
   const expiresAt = new Date(now + lifetimeSeconds(grant) * 1000);
   const { moq, iroh } = grant.requested_capabilities;
-  // Consumers sharing the relays may ask for the same root; each gets its own beneath its namespace.
-  const moqRoot = moq && `${consumer.namespace}/${moq.root}`;
+  // Consumers sharing the relays may ask for the same root; each gets its own beneath its namespace. Stats for it are
+  // where the relays publish them, grouped by the namespace and the root's first segment (packages/fleet's relayApp).
+  const moqRoot = moq && moqRootOf(consumer.namespace, moq);
   const issuance = { grant, grantId: newId('grt', now), issuedAt, expiresAt };
   const db = await environment.database();
   return db.transaction(async tx => {

@@ -9,12 +9,35 @@ export type Error = {
     error_description: string;
 };
 
+export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+
 export type Stream = {
     streams: Array<{
-        id: string;
         name: string;
-        sourceDeviceId: string | null;
+        id: string;
         createdAt: string;
+        sourceDeviceId: string | null;
+        exposures: Array<{
+            params: {
+                [key: string]: unknown;
+            };
+            id: string;
+            createdAt: string;
+            gatewayId: string;
+            renditions: Array<Rendition>;
+            publisherDeviceId: string | null;
+            upstreamExposureId: string | null;
+        }>;
+        recorders: Array<{
+            params: {
+                [key: string]: unknown;
+            };
+            id: string;
+            createdAt: string;
+            kind: string;
+            exposureId: string;
+            rendition: Rendition;
+        }>;
     }>;
 };
 
@@ -53,7 +76,7 @@ export type GetOrganisationsByIdStreamsError = GetOrganisationsByIdStreamsErrors
 
 export type GetOrganisationsByIdStreamsResponses = {
     /**
-     * The streams, oldest first
+     * The streams, oldest first, each with its exposures and recorders, oldest first
      */
     200: Stream;
 };

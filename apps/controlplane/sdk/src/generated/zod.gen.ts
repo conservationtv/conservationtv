@@ -45,7 +45,8 @@ export const PostGrantsExchangeBodySchema = z.object({
         moq: z.object({
             root: z.string().max(223),
             publish: z.array(z.union([z.literal(''), z.string().max(256)])).max(32),
-            subscribe: z.array(z.union([z.literal(''), z.string().max(256)])).max(32)
+            subscribe: z.array(z.union([z.literal(''), z.string().max(256)])).max(32),
+            stats: z.boolean().optional().default(false)
         }).optional(),
         iroh: z.object({
             endpoint_id: z.string().regex(/^[0-9a-f]{64}$/),

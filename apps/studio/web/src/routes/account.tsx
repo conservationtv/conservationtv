@@ -1,6 +1,6 @@
-import type { FC } from 'react';
+import { Suspense, type FC } from 'react';
 import { useForm } from '@tanstack/react-form';
-import { useQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import type { Account } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
@@ -20,40 +20,31 @@ import { Spinner } from '@conservationtv/ui/components/spinner';
 import { FormError } from '@/components/common/form-error';
 import type { Route } from './+types/account';
 import { Panel } from '@/components/common/panel';
-import { queryClient } from '@/lib/query-client';
-import { requireSession } from '@/lib/route-guards';
 import { AccountNameSchema, PasskeyNameSchema, type AccountNameInput, type PasskeyNameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
-import { accountQueries, useUpdateAccount } from '@/queries/account';
-import { passkeyQueries, useAddPasskey, useDeletePasskey, type ListedPasskey } from '@/queries/passkeys';
+import { accountQueryOptions, useUpdateAccount } from '@/queries/account';
+import { passkeyListQueryOptions, useAddPasskey, useDeletePasskey, type ListedPasskey } from '@/queries/passkeys';
 import { useSignOut } from '@/queries/session';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Your account · conservation.tv studio' }];
 
-/** Signed-in only. The account loads before the page renders; the passkey list starts loading alongside. */
-export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  await requireSession(request);
-  // Start the passkey list without waiting on it; a failure shows on the page, not here.
-  queryClient.query(passkeyQueries.list()).catch(() => {});
-  await queryClient.query({ ...accountQueries.current(), staleTime: 'static' });
-  return null;
-}
-
-/** The signed-in account, read and edited through the studio API, and its passkeys, managed through Better Auth. */
+/**
+ * The signed-in account, read and edited through the studio API, and its passkeys, managed through Better Auth. The
+ * passkeys load in their own boundary, so the account shows without waiting for them.
+ */
 const AccountRoute: FC = () => {
   const navigate = useNavigate();
-  const account = useQuery(accountQueries.current());
+  const accountQuery = useSuspenseQuery(accountQueryOptions());
+  const account = accountQuery.data;
   const signOut = useSignOut();
   return (
     <Panel title="Your account">
-      {account.data ? (
-        // Keyed so the form starts from the stored name again after a save elsewhere.
-        <ProfileForm key={account.data.name} account={account.data} />
-      ) : (
-        <FormError error={account.error} />
-      )}
+      {/* Keyed so the form starts from the stored name again after a save elsewhere. */}
+      <ProfileForm key={account.name} account={account} />
       <Separator />
-      {account.data && <Passkeys email={account.data.email} />}
+      <Suspense fallback={<Spinner className="text-muted-foreground" />}>
+        <Passkeys email={account.email} />
+      </Suspense>
       <Separator />
       <Button
         variant="outline"
@@ -110,14 +101,12 @@ interface PasskeysProps {
 
 /** Register this device as a passkey for signing in later, and remove passkeys that are no longer wanted. */
 const Passkeys: FC<PasskeysProps> = ({ email }) => {
-  const passkeys = useQuery(passkeyQueries.list());
+  const passkeys = useSuspenseQuery(passkeyListQueryOptions());
   const remove = useDeletePasskey();
   return (
     <FieldSet>
       <FieldLegend>Passkeys</FieldLegend>
-      {passkeys.isPending ? (
-        <Spinner className="text-muted-foreground" />
-      ) : passkeys.data?.length ? (
+      {passkeys.data.length ? (
         <ItemGroup>
           {passkeys.data.map(passkey => (
             <PasskeyRow
@@ -136,7 +125,6 @@ const Passkeys: FC<PasskeysProps> = ({ email }) => {
           </EmptyHeader>
         </Empty>
       )}
-      <FormError error={passkeys.error} />
       <FormError error={remove.error} />
       <AddPasskeyForm email={email} />
     </FieldSet>

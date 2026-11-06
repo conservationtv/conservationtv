@@ -78,3 +78,20 @@ export async function moqToken(subject: string, path: string, publish: boolean, 
     throw new ApiFailure('gateway_unavailable', { cause: 'Gatekeeper issued no MoQ token' });
   return credential;
 }
+
+/**
+ * A read-only token for the relays' traffic stats about `root`: gatekeeper roots it where the relays publish them for
+ * this environment's consumer, `.stats/<namespace>/<root>`, so it reaches no other consumer's or root's traffic.
+ */
+export async function moqStatsToken(subject: string, root: string, lifetimeSeconds: number) {
+  const request: GrantRequest = {
+    subject,
+    requested_capabilities: { moq: { root, publish: [], subscribe: [''], stats: true } },
+    expires_in: lifetimeSeconds
+  };
+  const result = await exchange(request, 'gateway_unavailable');
+  const credential = result.credentials.moq;
+  if (credential === undefined)
+    throw new ApiFailure('gateway_unavailable', { cause: 'Gatekeeper issued no MoQ stats token' });
+  return credential;
+}

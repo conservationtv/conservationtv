@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, like, lt, sql } from 'drizzle-orm';
 import { logRecords, metricPoints, metricSeries, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 
@@ -16,6 +16,12 @@ export interface HistoryPage {
 export interface MetricSeriesFilter {
   /** Only series of this metric. */
   name?: string;
+}
+
+/** Which series to read across subjects: those of any of these metrics about any of these subjects. */
+export interface MetricQuery {
+  subjectIds: string[];
+  names: string[];
 }
 
 /** A time range, read in buckets of `step` seconds. */
@@ -42,6 +48,39 @@ export async function getSubjectState(organisationId: string, subjectId: string)
     .from(subjectStates)
     .where(and(eq(subjectStates.organisationId, organisationId), eq(subjectStates.subjectId, subjectId)));
   return row;
+}
+
+export interface SubjectStateFilter {
+  /** Only subjects of this kind: the part of their ID before the colon, such as `exposure`. */
+  kind?: string;
+}
+
+/**
+ * Every subject's combined state in the organisation, as the state consumer last derived it, by subject ID: one row per
+ * subject it has derived a state for.
+ */
+export function listSubjectStates(organisationId: string, filter: SubjectStateFilter) {
+  const db = useDB();
+  return db
+    .select({
+      subjectId: subjectStates.subjectId,
+      health: subjectStates.health,
+      state: subjectStates.state,
+      freshness: sql<'fresh' | 'stale'>`case when ${subjectStates.expiresAt} > now() then 'fresh' else 'stale' end`,
+      observedAt: subjectStates.observedAt,
+      expiresAt: subjectStates.expiresAt,
+      computedAt: subjectStates.computedAt,
+      contributingReporterIds: subjectStates.contributingReporterIds,
+      evidenceReportIds: subjectStates.evidenceReportIds
+    })
+    .from(subjectStates)
+    .where(
+      and(
+        eq(subjectStates.organisationId, organisationId),
+        filter.kind === undefined ? undefined : like(subjectStates.subjectId, `${filter.kind}:%`)
+      )
+    )
+    .orderBy(asc(subjectStates.subjectId));
 }
 
 /** Each reporter's opinion of the subject, oldest reporter first. */
@@ -157,18 +196,59 @@ export async function getMetricSeries(organisationId: string, subjectId: string,
   return row;
 }
 
+/** The series' points in the range, oldest first, bucketed as `bucketedPoints` buckets them. */
+export async function listMetricPoints(organisationId: string, seriesId: string, range: BucketRange) {
+  const points = await bucketedPoints(organisationId, [seriesId], range);
+  return points.get(seriesId) ?? [];
+}
+
 /**
- * The series' points in the range, oldest first, in buckets of `step` seconds: each bucket's least and greatest
- * values, the mean weighted by samples, the last value and how many samples it summarises. A bucket with no points is
- * absent.
+ * The series of any of the metrics about any of the subjects, each with its points in the range as
+ * `bucketedPoints` buckets them: by subject, name, then oldest first.
  */
-export function listMetricPoints(organisationId: string, seriesId: string, range: BucketRange) {
+export async function queryMetrics(organisationId: string, query: MetricQuery, range: BucketRange) {
+  const db = useDB();
+  const series = await db
+    .select({
+      id: metricSeries.id,
+      subjectId: metricSeries.subjectId,
+      name: metricSeries.name,
+      reporterId: metricSeries.reporterId,
+      unit: metricSeries.unit,
+      dimensions: metricSeries.dimensions,
+      createdAt: metricSeries.createdAt
+    })
+    .from(metricSeries)
+    .where(
+      and(
+        eq(metricSeries.organisationId, organisationId),
+        inArray(metricSeries.subjectId, query.subjectIds),
+        inArray(metricSeries.name, query.names)
+      )
+    )
+    .orderBy(asc(metricSeries.subjectId), asc(metricSeries.name), asc(metricSeries.createdAt));
+  if (series.length === 0) return [];
+  const points = await bucketedPoints(
+    organisationId,
+    series.map(({ id }) => id),
+    range
+  );
+  return series.map(row => ({ ...row, points: points.get(row.id) ?? [] }));
+}
+
+/**
+ * The series' points in the range, by series, each oldest first in buckets of `step` seconds: each bucket's least and
+ * greatest values, the mean weighted by samples, the last value and how many samples it summarises. A bucket with no
+ * points is absent.
+ */
+async function bucketedPoints(organisationId: string, seriesIds: string[], range: BucketRange) {
   const db = useDB();
   // `step` is an integer, written into the query so GROUP BY can match the bucket expression.
   const step = sql.raw(String(Math.trunc(range.step)));
   const bucket = sql`time_bucket(make_interval(secs => ${step}), ${metricPoints.observedAt})`;
-  return db
+  const rows = await db
     .select({
+      seriesId: metricPoints.seriesId,
       at: bucket.mapWith(metricPoints.observedAt),
       min: sql<number>`min(${metricPoints.min})`,
       max: sql<number>`max(${metricPoints.max})`,
@@ -180,11 +260,18 @@ export function listMetricPoints(organisationId: string, seriesId: string, range
     .where(
       and(
         eq(metricPoints.organisationId, organisationId),
-        eq(metricPoints.seriesId, seriesId),
+        inArray(metricPoints.seriesId, seriesIds),
         gte(metricPoints.observedAt, range.from),
         lt(metricPoints.observedAt, range.to)
       )
     )
-    .groupBy(bucket)
-    .orderBy(bucket);
+    .groupBy(metricPoints.seriesId, bucket)
+    .orderBy(metricPoints.seriesId, bucket);
+  const bySeries = new Map<string, Omit<(typeof rows)[number], 'seriesId'>[]>();
+  for (const { seriesId, ...point } of rows) {
+    const list = bySeries.get(seriesId) ?? [];
+    list.push(point);
+    bySeries.set(seriesId, list);
+  }
+  return bySeries;
 }

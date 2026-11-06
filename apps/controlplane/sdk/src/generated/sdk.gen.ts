@@ -68,6 +68,7 @@ export class Grants extends HeyApiClient {
                 root: string;
                 publish: Array<'' | string>;
                 subscribe: Array<'' | string>;
+                stats?: boolean;
             };
             iroh?: {
                 endpoint_id: string;

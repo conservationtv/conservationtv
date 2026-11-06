@@ -3,6 +3,7 @@ export {
   MetricSummarySchema,
   machineMetrics,
   pathMetrics,
+  relayMetrics,
   summarise,
   type MetricDefinition,
   type MetricDimensions,

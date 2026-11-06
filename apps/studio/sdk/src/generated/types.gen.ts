@@ -56,6 +56,11 @@ export type PublishedRendition = {
     path: string;
 };
 
+export type StatsConnect = {
+    id: string;
+    gatewayId: string;
+};
+
 export type Health = {
     status: 'ok';
 };
@@ -187,6 +192,14 @@ export type Gateway = {
     }>;
 };
 
+export type Stat = {
+    protocol: 'moq';
+    relay: string;
+    path: string;
+    token?: string;
+    expiresAt?: string;
+};
+
 export type Stream = {
     exposures: Array<{
         id: string;
@@ -238,6 +251,44 @@ export type Recorder = {
     createdAt: string;
 };
 
+export type State = {
+    states: Array<{
+        subjectId: string;
+        health: string;
+        state: {
+            [key: string]: unknown;
+        };
+        freshness: 'fresh' | 'stale';
+        observedAt: string;
+        expiresAt: string;
+        computedAt: string;
+        contributingReporterIds: Array<string>;
+        evidenceReportIds: Array<string>;
+    }>;
+};
+
+export type Metric = {
+    from: string;
+    to: string;
+    step: number;
+    points: Array<{
+        at: string;
+        min: number;
+        max: number;
+        avg: number;
+        last: number;
+        count: number;
+    }>;
+    id: string;
+    name: string;
+    reporterId: string;
+    unit: string | null;
+    dimensions: {
+        [key: string]: string;
+    };
+    createdAt: string;
+};
+
 export type Subject = {
     subjectId: string;
     state: {
@@ -277,28 +328,6 @@ export type Observation = {
             [key: string]: unknown;
         };
     }>;
-};
-
-export type Metric = {
-    from: string;
-    to: string;
-    step: number;
-    points: Array<{
-        at: string;
-        min: number;
-        max: number;
-        avg: number;
-        last: number;
-        count: number;
-    }>;
-    id: string;
-    name: string;
-    reporterId: string;
-    unit: string | null;
-    dimensions: {
-        [key: string]: string;
-    };
-    createdAt: string;
 };
 
 export type Log = {
@@ -2877,6 +2906,60 @@ export type GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses = {
 
 export type GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponse = GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses[keyof GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses];
 
+export type PostOrganisationsByIdGatewaysByGatewayIdStatsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The gateway.
+         */
+        gatewayId: 'conservationtv' | string;
+    };
+    query?: never;
+    url: '/organisations/{id}/gateways/{gatewayId}/stats';
+};
+
+export type PostOrganisationsByIdGatewaysByGatewayIdStatsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The gateway publishes no traffic stats through this API: only built-in MoQ relays do, and no organisation's own gateway
+     */
+    422: Error;
+    /**
+     * The database is unavailable, or the gateway is not configured or cannot issue credentials right now
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdGatewaysByGatewayIdStatsError = PostOrganisationsByIdGatewaysByGatewayIdStatsErrors[keyof PostOrganisationsByIdGatewaysByGatewayIdStatsErrors];
+
+export type PostOrganisationsByIdGatewaysByGatewayIdStatsResponses = {
+    /**
+     * Where to read the stats
+     */
+    200: Stat;
+};
+
+export type PostOrganisationsByIdGatewaysByGatewayIdStatsResponse = PostOrganisationsByIdGatewaysByGatewayIdStatsResponses[keyof PostOrganisationsByIdGatewaysByGatewayIdStatsResponses];
+
 export type GetOrganisationsByIdStreamsData = {
     body?: never;
     path: {
@@ -2912,14 +2995,35 @@ export type GetOrganisationsByIdStreamsError = GetOrganisationsByIdStreamsErrors
 
 export type GetOrganisationsByIdStreamsResponses = {
     /**
-     * The streams, oldest first
+     * The streams, oldest first, each with its exposures and recorders, oldest first
      */
     200: {
         streams: Array<{
-            id: string;
             name: string;
-            sourceDeviceId: string | null;
+            id: string;
             createdAt: string;
+            sourceDeviceId: string | null;
+            exposures: Array<{
+                params: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                createdAt: string;
+                gatewayId: string;
+                renditions: Array<Rendition>;
+                publisherDeviceId: string | null;
+                upstreamExposureId: string | null;
+            }>;
+            recorders: Array<{
+                params: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                createdAt: string;
+                kind: string;
+                exposureId: string;
+                rendition: Rendition;
+            }>;
         }>;
     };
 };
@@ -3688,6 +3792,139 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse
 
 export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse = PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses];
 
+export type GetOrganisationsByIdSubjectsStatesData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: {
+        /**
+         * Only subjects of this kind: the part of their ID before the colon.
+         */
+        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'external';
+    };
+    url: '/organisations/{id}/subjects/states';
+};
+
+export type GetOrganisationsByIdSubjectsStatesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsStatesError = GetOrganisationsByIdSubjectsStatesErrors[keyof GetOrganisationsByIdSubjectsStatesErrors];
+
+export type GetOrganisationsByIdSubjectsStatesResponses = {
+    /**
+     * The states, by subject ID
+     */
+    200: State;
+};
+
+export type GetOrganisationsByIdSubjectsStatesResponse = GetOrganisationsByIdSubjectsStatesResponses[keyof GetOrganisationsByIdSubjectsStatesResponses];
+
+export type PostOrganisationsByIdSubjectsMetricsQueryData = {
+    body: {
+        /**
+         * Series about any of these subjects.
+         */
+        subjectIds: Array<string>;
+        /**
+         * Series of any of these metrics.
+         */
+        names: Array<string>;
+        /**
+         * Points observed at or after this time.
+         */
+        from: string;
+        /**
+         * Points observed before this time; now by default.
+         */
+        to?: string;
+        /**
+         * Seconds per bucket, at least; widened so the range has at most 1000 buckets.
+         */
+        step?: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/subjects/metrics/query';
+};
+
+export type PostOrganisationsByIdSubjectsMetricsQueryErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdSubjectsMetricsQueryError = PostOrganisationsByIdSubjectsMetricsQueryErrors[keyof PostOrganisationsByIdSubjectsMetricsQueryErrors];
+
+export type PostOrganisationsByIdSubjectsMetricsQueryResponses = {
+    /**
+     * The range, and the series with their points
+     */
+    200: {
+        series: Array<{
+            points: Array<{
+                at: string;
+                min: number;
+                max: number;
+                avg: number;
+                last: number;
+                count: number;
+            }>;
+            id: string;
+            subjectId: string;
+            name: string;
+            reporterId: string;
+            unit: string | null;
+            dimensions: {
+                [key: string]: string;
+            };
+            createdAt: string;
+        }>;
+        from: string;
+        to: string;
+        step: number;
+    };
+};
+
+export type PostOrganisationsByIdSubjectsMetricsQueryResponse = PostOrganisationsByIdSubjectsMetricsQueryResponses[keyof PostOrganisationsByIdSubjectsMetricsQueryResponses];
+
 export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
     body?: never;
     path: {
@@ -4376,6 +4613,7 @@ export type GetDeviceConfigurationResponses = {
             };
         }>;
         publishers: Array<Publisher>;
+        stats: Array<StatsConnect>;
     };
 };
 

@@ -52,6 +52,9 @@ export const connectionRefused = errorResponse(
 export const unsupportedConnection = errorResponse(
   "Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen"
 );
+export const unsupportedStats = errorResponse(
+  "The gateway publishes no traffic stats through this API: only built-in MoQ relays do, and no organisation's own gateway"
+);
 export const gatewayUnavailable = errorResponse(
   'The database is unavailable, or the gateway is not configured or cannot issue credentials right now'
 );

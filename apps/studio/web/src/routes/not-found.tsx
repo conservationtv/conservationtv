@@ -1,10 +1,9 @@
-import { redirect } from 'react-router';
+import type { FC } from 'react';
+import { Navigate } from 'react-router';
 
 /** Unknown paths go home, as before. */
-export function clientLoader() {
-  throw redirect('/');
-}
+const NotFoundRoute: FC = () => {
+  return <Navigate to="/" replace />;
+};
 
-export default function NotFoundRoute() {
-  return null;
-}
+export default NotFoundRoute;

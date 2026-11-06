@@ -54,8 +54,27 @@ export const pathMetrics = {
   ready: { name: 'path.ready', unit: 'boolean', label: 'Ready' },
   readers: { name: 'path.readers', unit: 'readers', label: 'Readers' },
   ingestBitrate: { name: 'path.ingest.bitrate', unit: 'bits/s', label: 'Ingest bitrate' },
-  egressBitrate: { name: 'path.egress.bitrate', unit: 'bits/s', label: 'Egress bitrate' },
+  /** What the path sends to readers on the network: every reader but the agent's own MoQ publishers. */
+  lanEgressBitrate: { name: 'path.egress.lan.bitrate', unit: 'bits/s', label: 'LAN egress bitrate' },
+  /**
+   * What the path hands the agent's MoQ publishers, reading it over loopback for a relay. They read all of it for as
+   * long as they run, so this is not what reaches the relay: that is `relay.ingest.bitrate`.
+   */
+  publisherEgressBitrate: { name: 'path.egress.publisher.bitrate', unit: 'bits/s', label: 'Publisher egress bitrate' },
   ingestFrameErrors: { name: 'path.ingest.frame_errors', unit: 'frames/s', label: 'Ingest frame errors' }
+} as const satisfies Record<string, MetricDefinition>;
+
+/**
+ * What a MoQ relay carries of an exposure the agent publishes there, as the relay counts it in the traffic stats it
+ * publishes: about the exposure, summed over its broadcasts and the relay's nodes.
+ */
+export const relayMetrics = {
+  /** What the relay received of the exposure: what actually left the agent for the internet. */
+  ingestBitrate: { name: 'relay.ingest.bitrate', unit: 'bits/s', label: 'Relay ingest bitrate' },
+  /** What the relay sent on to the exposure's viewers. */
+  egressBitrate: { name: 'relay.egress.bitrate', unit: 'bits/s', label: 'Relay egress bitrate' },
+  /** Sessions watching the exposure: of its broadcasts, the most watched. */
+  viewers: { name: 'relay.viewers', unit: 'sessions', label: 'Relay viewers' }
 } as const satisfies Record<string, MetricDefinition>;
 
 /** The machine an agent runs on, and the agent itself, about the agent's device: one sample each per interval. */

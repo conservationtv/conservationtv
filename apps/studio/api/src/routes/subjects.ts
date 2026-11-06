@@ -1,4 +1,4 @@
-import { SubjectIdSchema } from '@conservationtv/reports';
+import { SUBJECT_KINDS, SubjectIdSchema } from '@conservationtv/reports';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
@@ -13,7 +13,9 @@ import {
   listMetricPoints,
   listMetricSeries,
   listObservations,
-  listReporterOpinions
+  listReporterOpinions,
+  listSubjectStates,
+  queryMetrics
 } from '../services/subjects.ts';
 import {
   invalidRequest,
@@ -42,25 +44,120 @@ export type SeriesParams = z.output<typeof SeriesParamsSchema>;
 /** The most buckets one read of a series returns. */
 const MAX_BUCKETS = 1000;
 
-const PointsQuerySchema = z
-  .object({
-    from: z.iso.datetime({ offset: true }).describe('Points observed at or after this time.'),
-    to: z.iso.datetime({ offset: true }).optional().describe('Points observed before this time; now by default.'),
-    step: z.coerce
-      .number()
-      .int()
-      .min(10)
-      .max(31 * 24 * 60 * 60)
-      .optional()
-      .describe(`Seconds per bucket, at least; widened so the range has at most ${MAX_BUCKETS} buckets.`)
-  })
-  .refine(({ from, to }) => to === undefined || Date.parse(from) < Date.parse(to), '`from` is before `to`.');
+const rangeFields = {
+  from: z.iso.datetime({ offset: true }).describe('Points observed at or after this time.'),
+  to: z.iso.datetime({ offset: true }).optional().describe('Points observed before this time; now by default.'),
+  step: z.coerce
+    .number()
+    .int()
+    .min(10)
+    .max(31 * 24 * 60 * 60)
+    .optional()
+    .describe(`Seconds per bucket, at least; widened so the range has at most ${MAX_BUCKETS} buckets.`)
+};
+/** A requested range: from, and optionally until. */
+interface RequestedRange {
+  from: string;
+  to?: string;
+}
+const rangeInOrder = ({ from, to }: RequestedRange) => to === undefined || Date.parse(from) < Date.parse(to);
+const PointsQuerySchema = z.object(rangeFields).refine(rangeInOrder, '`from` is before `to`.');
 export type PointsQuery = z.output<typeof PointsQuerySchema>;
+
+/** The most subjects, and metrics, one query across subjects reads. */
+const MAX_QUERIED_SUBJECTS = 100;
+const MAX_QUERIED_METRICS = 20;
+
+const MetricQuerySchema = z
+  .strictObject({
+    subjectIds: z
+      .array(SubjectIdSchema)
+      .min(1)
+      .max(MAX_QUERIED_SUBJECTS)
+      .describe('Series about any of these subjects.'),
+    names: z
+      .array(z.string().min(1).max(200))
+      .min(1)
+      .max(MAX_QUERIED_METRICS)
+      .describe('Series of any of these metrics.'),
+    ...rangeFields
+  })
+  .refine(rangeInOrder, '`from` is before `to`.');
+export type MetricQuery = z.output<typeof MetricQuerySchema>;
+
+/** A read's range, its step widened so the range has at most MAX_BUCKETS buckets. */
+function bucketRangeOf(query: PointsQuery) {
+  const environment = useEnvironment();
+  const from = new Date(query.from);
+  const to = query.to === undefined ? new Date(environment.clock()) : new Date(query.to);
+  const range = Math.ceil((to.getTime() - from.getTime()) / 1000);
+  const step = Math.max(query.step ?? 60, Math.ceil(range / MAX_BUCKETS));
+  return { from, to, step };
+}
 
 // What devices report about a subject, in the principal's request session: members read it all (src/services/subjects.ts).
 // A subject is a string, so there is nothing to create or delete. Reports themselves are only ever written by signed
 // ingestion (/reports), and opinions and subject state by the state consumer.
+const SubjectKindSchema = z
+  .enum([...SUBJECT_KINDS, 'external'])
+  .describe('Only subjects of this kind: the part of their ID before the colon.');
+export type SubjectKind = z.output<typeof SubjectKindSchema>;
+
 export default new Hono()
+  .get(
+    '/states',
+    describeRoute({
+      operationId: 'organisations.subjects.states.list',
+      ...operationVersion(1),
+      summary: "List the organisation's subjects' current states",
+      description:
+        "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
+      responses: {
+        200: { description: 'The states, by subject ID' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    validator('query', z.object({ kind: SubjectKindSchema.optional() })),
+    async c => {
+      const { id } = c.req.valid('param');
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listSubjectStates(id, filter));
+      c.header('Cache-Control', 'no-store');
+      return c.json({ states: rows }, 200);
+    }
+  )
+  .post(
+    '/metrics/query',
+    describeRoute({
+      operationId: 'organisations.subjects.metrics.query',
+      ...operationVersion(1),
+      summary: 'Read metric series across subjects over a time range',
+      description: `Every series of any of \`names\` about any of \`subjectIds\`, by subject, then name, each with its points from \`from\` until \`to\` bucketed as \`organisations.subjects.metrics.get\` buckets them. Subjects and metrics nothing was reported about are absent. At most ${MAX_QUERIED_SUBJECTS} subjects and ${MAX_QUERIED_METRICS} metrics; the step is widened so the range has at most ${MAX_BUCKETS} buckets, and returned.`,
+      responses: {
+        200: { description: 'The range, and the series with their points' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    validator('json', MetricQuerySchema),
+    async c => {
+      const { id } = c.req.valid('param');
+      const { subjectIds, names, ...query } = c.req.valid('json');
+      const range = bucketRangeOf(query);
+      const series = await transaction(() => queryMetrics(id, { subjectIds, names }, range));
+      c.header('Cache-Control', 'no-store');
+      return c.json({ ...range, series }, 200);
+    }
+  )
   .get(
     '/:subjectId/state',
     describeRoute({
@@ -168,11 +265,7 @@ export default new Hono()
     async c => {
       const { id, subjectId, seriesId } = c.req.valid('param');
       const query = c.req.valid('query');
-      const environment = useEnvironment();
-      const from = new Date(query.from);
-      const to = query.to === undefined ? new Date(environment.clock()) : new Date(query.to);
-      const range = Math.ceil((to.getTime() - from.getTime()) / 1000);
-      const step = Math.max(query.step ?? 60, Math.ceil(range / MAX_BUCKETS));
+      const { from, to, step } = bucketRangeOf(query);
       const result = await transaction(async () => {
         const series = await getMetricSeries(id, subjectId, seriesId);
         if (!series) throw new ApiFailure('not_found');

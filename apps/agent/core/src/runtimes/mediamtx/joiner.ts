@@ -8,9 +8,14 @@ const logger = getLogger(['agent', 'mediamtx', 'joiner']);
 // Each rendition of a published exposure is a broadcast of its own under the exposure's path, which the moq CLI
 // publishes (config.ts): `{organisation}/{exposure}/{rendition}`. Readers watch one broadcast, `{exposure path}/live.hang`,
 // so the agent publishes that too, with nothing in it but a catalog joining the renditions': each of its tracks is
-// listed where it already is, by its rendition's broadcast (`broadcast`, relative to the joined broadcast) and its name
-// there (`track`), so no media passes through the agent. Every rendition broadcast names its tracks alike, so they are
-// listed under the rendition's name instead, and the audio, the same in every rendition, only once.
+// listed where it already is, by its rendition's broadcast (`broadcast`, relative to the joined broadcast), so no media
+// passes through the agent, and the audio, the same in every rendition, only once.
+//
+// A hang catalog keys each rendition by the name of the track to subscribe to, and has no other field for it: a reader
+// subscribes to that key in the rendition's `broadcast`. So the joined catalog keys every track by its own name. The moq
+// CLI names every rendition broadcast's tracks alike (`0.flv-v`), so of renditions whose tracks share a name only the
+// first, in the publisher's order, is listed: an exposure's other renditions are not reachable through the joined
+// broadcast until their tracks are named apart.
 //
 // The joined catalog follows the renditions': it is rewritten whenever one of theirs changes, and keeps a rendition's
 // last catalog while its publisher restarts.
@@ -34,29 +39,29 @@ interface RenditionCatalog {
   catalog: Catalog;
 }
 
-/** The joined catalog's entry for a track of a rendition broadcast: its config, and where to find it. */
-function reference(rendition: string, track: string, config: TrackConfig) {
-  return { ...config, broadcast: `./${rendition}`, track };
+/** The joined catalog's entry for a track of a rendition broadcast: its config, and the broadcast to find it in. */
+function reference(rendition: string, config: TrackConfig) {
+  return { ...config, broadcast: `./${rendition}` };
 }
 
-/** Each rendition's video, by the rendition's name, and the track's too should it have several. */
+/** Every rendition's video tracks, each by its own name; of tracks sharing a name, the first rendition's. */
 function joinedVideo(catalogs: RenditionCatalog[]): Tracks {
   const renditions: Tracks['renditions'] = {};
   for (const { rendition, catalog } of catalogs) {
-    // Every track of every rendition, keyed so no two collide though their names do.
-    const tracks = Object.entries(catalog.video?.renditions ?? {});
-    for (const [track, config] of tracks) {
-      renditions[tracks.length === 1 ? rendition : `${rendition}.${track}`] = reference(rendition, track, config);
+    // Each of the rendition's video tracks, unless an earlier rendition already listed one by that name.
+    for (const [track, config] of Object.entries(catalog.video?.renditions ?? {})) {
+      if (Object.hasOwn(renditions, track)) continue;
+      renditions[track] = reference(rendition, config);
     }
   }
   return { renditions };
 }
 
-/** The audio of the first rendition that has any, which is every rendition's. */
+/** The audio of the first rendition that has any, which is every rendition's, by its track's own name. */
 function joinedAudio(catalogs: RenditionCatalog[]): Tracks | undefined {
   for (const { rendition, catalog } of catalogs) {
     const [first] = Object.entries(catalog.audio?.renditions ?? {});
-    if (first !== undefined) return { renditions: { audio: reference(rendition, first[0], first[1]) } };
+    if (first !== undefined) return { renditions: { [first[0]]: reference(rendition, first[1]) } };
   }
   return undefined;
 }
@@ -69,7 +74,14 @@ export function joinCatalogs(catalogs: RenditionCatalog[]): Catalog {
   return joined;
 }
 
-/** A rendition broadcast's catalog, as it is published: undefined until it first is, then its latest. */
+/** How long to wait before subscribing to a rendition's catalog again, after a subscription failed or ended. */
+const RESUBSCRIBE_MS = 1_000;
+
+/**
+ * A rendition broadcast's catalog, as it is published: undefined until it first is, then its latest. A subscription
+ * that fails or ends, as when the rendition's publisher restarts, is made again after `RESUBSCRIBE_MS`, keeping the
+ * last catalog meanwhile, until the join closes.
+ */
 function followCatalog(
   effect: Moq.Signals.Effect,
   consumed: Moq.Origin.Producer,
@@ -81,38 +93,69 @@ function followCatalog(
   effect.run(following => {
     const active = following.get(request.active);
     if (active === undefined) return;
-    const track = active.track(CATALOG_TRACK).subscribe({ priority: 0 });
-    following.cleanup(() => track.close());
     following.spawn(async () => {
-      // Each group is one version of the catalog.
-      for (
-        let group = await following.race(track.recvGroup());
-        group;
-        group = await following.race(track.recvGroup())
-      ) {
-        const catalog = CatalogSchema.safeParse(await following.race(group.readJson()));
-        if (catalog.success) latest.set(catalog.data);
+      for (;;) {
+        await readCatalogs(following, active, latest);
+        // Torn down while waiting (the join closed, or the broadcast went): stop; otherwise subscribe again.
+        const waited = await following.race(
+          new Promise<true>(resolve => setTimeout(() => resolve(true), RESUBSCRIBE_MS))
+        );
+        if (waited === undefined) return;
       }
     });
   });
   return latest;
 }
 
-/** Writes the catalog `track` describes its broadcast by, a new group whenever `catalog` reads differently. */
+/** Reads one subscription to a broadcast's catalog into `latest`, each group a version, until it fails or ends. */
+async function readCatalogs(
+  following: Moq.Signals.Effect,
+  broadcast: Moq.Broadcast.Consumer,
+  latest: Moq.Signals.Signal<Catalog | undefined>
+): Promise<void> {
+  const track = broadcast.track(CATALOG_TRACK).subscribe({ priority: 0 });
+  try {
+    for (let group = await following.race(track.recvGroup()); group; group = await following.race(track.recvGroup())) {
+      const catalog = CatalogSchema.safeParse(await following.race(group.readJson()));
+      if (catalog.success) latest.set(catalog.data);
+    }
+  } catch (error) {
+    logger.debug('A rendition catalog subscription ended: {error}', { error });
+  } finally {
+    track.close();
+  }
+}
+
+/**
+ * How often the joined catalog is written again unchanged. A group stops being served a few seconds after it is
+ * written (seen on moq-relay 0.17: a catalog written once reaches subscribers for about three seconds, then never), so a
+ * viewer arriving later only gets a catalog if a recent one exists.
+ */
+const CATALOG_REFRESH_MS = 2_000;
+
+/**
+ * Writes the catalog `track` describes its broadcast by: a new group whenever `catalog` reads differently, and the
+ * latest again every `CATALOG_REFRESH_MS`, so one is always fresh enough to reach a new viewer.
+ */
 function writeCatalog(
   effect: Moq.Signals.Effect,
   track: Moq.Track.Producer,
   catalog: (watching: Moq.Signals.Effect) => Catalog
 ): void {
   let written = '';
+  const write = (text: string) => {
+    const group = track.appendGroup();
+    group.writeString(text);
+    group.close();
+  };
   effect.run(watching => {
     const text = JSON.stringify(catalog(watching));
     if (text === written) return;
     written = text;
-    const group = track.appendGroup();
-    group.writeString(text);
-    group.close();
+    write(text);
   });
+  const refresh = setInterval(() => write(written), CATALOG_REFRESH_MS);
+  effect.cleanup(() => clearInterval(refresh));
 }
 
 /**

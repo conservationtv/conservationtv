@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { transaction } from '../db/transaction.ts';
+import { connectStats } from '../gateways/connect.ts';
 import { ApiFailure } from '../errors.ts';
 import { BUILTIN_GATEWAY_IDS, builtinGateways, GATEWAY_KIND_IDS, isBuiltinGateway } from '../gateways/index.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
@@ -10,13 +11,16 @@ import { createGateway, deleteGateway, getGateway, listGateways, updateGateway }
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import {
   forbidden,
+  gatewayUnavailable,
   inUse,
   invalidGateway,
   invalidRequest,
+  noCaller,
   notFound,
   operationVersion,
   unauthenticated,
   unavailable,
+  unsupportedStats,
   validator,
   versionMismatch
 } from './openapi.ts';
@@ -232,5 +236,32 @@ export default new Hono()
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
       await transaction(() => deleteGateway(id, gatewayId));
       return c.body(null, 204);
+    }
+  )
+  .post(
+    '/:gatewayId/stats',
+    describeRoute({
+      operationId: 'organisations.gateways.stats.connect',
+      ...operationVersion(1),
+      summary: "Read a gateway's traffic stats",
+      description:
+        "Where to read what the gateway's relays carry of the organisation's broadcasts, with the short-lived, read-only credential that admits the caller there: dial `relay` at `path`, presenting `token` as the URL's `jwt` query parameter. Each relay node announces a broadcast beneath it, `node/<node>`, whose `subscriber.json` track holds what the node received and `publisher.json` what it sent, each a JSON object of cumulative counters (`bytes`, `frames`, `broadcasts_started`, `broadcasts_ended`, …) by broadcast path. Ask again before `expiresAt`. Only built-in MoQ relays publish stats. Members read, signed in, and the organisation's devices with an RFC 9421 HTTP Message Signature by their own identity.",
+      responses: {
+        200: { description: 'Where to read the stats' },
+        400: invalidRequest,
+        401: noCaller,
+        404: notFound,
+        412: versionMismatch,
+        422: unsupportedStats,
+        503: gatewayUnavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', GatewayParamsSchema),
+    async c => {
+      const { id, gatewayId } = c.req.valid('param');
+      const connection = await connectStats(id, gatewayId);
+      c.header('Cache-Control', 'no-store');
+      return c.json(connection, 200);
     }
   );

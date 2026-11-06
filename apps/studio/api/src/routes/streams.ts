@@ -102,9 +102,10 @@ export default new Hono()
       operationId: 'organisations.streams.list',
       ...operationVersion(1),
       summary: "List an organisation's streams",
-      description: 'Empty for organisations you are not a member of.',
+      description:
+        'Each with its exposures and recorders, as `organisations.streams.get` reads one. Empty for organisations you are not a member of.',
       responses: {
-        200: { description: 'The streams, oldest first' },
+        200: { description: 'The streams, oldest first, each with its exposures and recorders, oldest first' },
         400: invalidRequest,
         401: unauthenticated,
         412: versionMismatch,

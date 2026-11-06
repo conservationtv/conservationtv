@@ -8,10 +8,12 @@ export {
   PlannedPublisherSchema,
   PublishedRenditionSchema,
   PublisherConnectSchema,
+  StatsConnectSchema,
   type MediamtxAuth,
   type MediamtxTls,
   type PlannedPublisher,
   type PublishedRendition,
-  type PublisherConnect
+  type PublisherConnect,
+  type StatsConnect
 } from './configuration/plan/types.ts';
 export { RenditionSchema, type Rendition } from './topology/settings.ts';

@@ -1,6 +1,7 @@
-import type { FC } from 'react';
+import { Suspense, type FC } from 'react';
 import { GearIcon, PushPinSimpleIcon, SignOutIcon, UserCircleGearIcon } from '@phosphor-icons/react';
 import { NavLink, Outlet } from 'react-router';
+import { Spinner } from '@conservationtv/ui/components/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@conservationtv/ui/components/tooltip';
 
 export const AppLayout: FC = () => {
@@ -66,8 +67,10 @@ export const AppLayout: FC = () => {
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-background border-border border shadow-[0_0_12px_0_var(--custom-surface-shadow)]">
-        {/* Route pages fill this pane and own their scrolling regions. */}
-        <Outlet />
+        {/* Route pages fill this pane and own their scrolling regions. The rail stays while they load. */}
+        <Suspense fallback={<Spinner className="m-auto size-6 text-muted-foreground" />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

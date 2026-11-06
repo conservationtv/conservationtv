@@ -43,6 +43,11 @@ export type PublishedRendition = {
     path: string;
 };
 
+export type StatsConnect = {
+    id: string;
+    gatewayId: string;
+};
+
 export type GetDeviceConfigurationData = {
     body?: never;
     path?: never;
@@ -91,6 +96,7 @@ export type GetDeviceConfigurationResponses = {
             };
         }>;
         publishers: Array<Publisher>;
+        stats: Array<StatsConnect>;
     };
 };
 

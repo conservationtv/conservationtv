@@ -4,6 +4,9 @@ import { noInlineObjectTypeRule } from "./rules/no-inline-object-type.ts";
 import { noNullishAssignmentRule } from "./rules/no-nullish-assignment.ts";
 import { noObjectFreezeRule } from "./rules/no-object-freeze.ts";
 import { noPrivateClassFieldsRule } from "./rules/no-private-class-fields.ts";
+import { noRouteLoaderRule } from "./rules/no-route-loader.ts";
+import { parallelSuspenseQueriesRule } from "./rules/parallel-suspense-queries.ts";
+import { queryOptionsDeclarationRule } from "./rules/query-options-declaration.ts";
 import { requireComplexityCommentRule } from "./rules/require-complexity-comment.ts";
 import { requireFcComponentRule } from "./rules/require-fc-component.ts";
 import { requirePascalCaseSchemaNameRule } from "./rules/require-pascal-case-schema-name.ts";
@@ -17,6 +20,9 @@ const housePlugin = eslintCompatPlugin({
     "no-nullish-assignment": noNullishAssignmentRule,
     "no-object-freeze": noObjectFreezeRule,
     "no-private-class-fields": noPrivateClassFieldsRule,
+    "no-route-loader": noRouteLoaderRule,
+    "parallel-suspense-queries": parallelSuspenseQueriesRule,
+    "query-options-declaration": queryOptionsDeclarationRule,
     "require-complexity-comment": requireComplexityCommentRule,
     "require-fc-component": requireFcComponentRule,
     "require-pascal-case-schema-name": requirePascalCaseSchemaNameRule,

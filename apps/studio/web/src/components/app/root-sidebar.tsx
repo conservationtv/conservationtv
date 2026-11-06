@@ -21,6 +21,7 @@ import {
 
 import { NavMain } from '@/components/blocks/sidebar-07/nav-main';
 import { NavProjects } from '@/components/blocks/sidebar-07/nav-projects';
+import { useOrganisation } from '@/hooks/use-organisation';
 
 // Placeholder navigation, carried over from the sidebar-07 preview until the real sections exist.
 const navMain = [
@@ -75,8 +76,12 @@ const projects = [
   { name: 'Travel', url: '#', icon: <MapTrifoldIcon /> }
 ];
 
-/** The home page's section navigation: a fixed column that doesn't collapse. Needs a SidebarProvider above it. */
+/**
+ * An organisation's section navigation: a fixed column that doesn't collapse, named for the organisation it's in. Needs
+ * a SidebarProvider and the organisation layout above it.
+ */
 export const RootSidebar: FC = () => {
+  const organisation = useOrganisation();
   return (
     <Sidebar collapsible="none" className="min-h-0 border-r border-border">
       <SidebarContent>
@@ -94,7 +99,7 @@ export const RootSidebar: FC = () => {
           <SidebarMenuItem>
             <SidebarMenuButton>
               <BuildingsIcon />
-              <span className="font-medium">Alveus Sanctuary</span>
+              <span className="font-medium">{organisation.name}</span>
               <CaretUpDownIcon className="ml-auto" />
             </SidebarMenuButton>
           </SidebarMenuItem>

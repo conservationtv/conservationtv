@@ -5,7 +5,8 @@ import { transaction, trustedTransaction, useDB } from '../db/transaction.ts';
 import { useDevice } from '../middleware/device.ts';
 import { usePrincipal } from '../middleware/principal.ts';
 import { BUILTIN_GATEWAYS, gatewayProvider, isBuiltinGateway } from './index.ts';
-import type { ConnectionAction, ConnectionDetails, RequestedConnection } from './provider.ts';
+import type { ConnectionAction, ConnectionDetails, RequestedConnection, StatsConnection } from './provider.ts';
+import { getOrganisation } from '../services/organisations.ts';
 
 // Who may connect to an exposure, and which provider gives them its connection details. Members read, signed in.
 // Devices connect for what they publish: a device publishes the exposures it is the pinned publisher of (a browser
@@ -115,4 +116,23 @@ export async function connectExposure(location: ExposureLocation, ask: Connectio
   const { gateway, ...target } = await callerConnection(location, ask.action);
   const provider = gatewayProvider(gateway.id, gateway.kind);
   return provider.connect({ ...target, gatewayId: gateway.id, ...ask }, gateway.settings);
+}
+
+/**
+ * Where the caller reads a gateway's traffic stats about the organisation: its devices, and its members, decided in
+ * their request session so row-level security decides membership. `not_found` for an organisation the caller is not
+ * in, and `unsupported_gateway` for a gateway that publishes no stats, as no organisation's own gateway does.
+ */
+export async function connectStats(organisationId: string, gatewayId: string): Promise<StatsConnection> {
+  const caller = usePrincipal();
+  if (caller.kind === 'device') {
+    const device = useDevice();
+    if (device.organisationId !== organisationId) throw new ApiFailure('not_found');
+  } else {
+    const organisation = await transaction(() => getOrganisation(organisationId));
+    if (!organisation) throw new ApiFailure('not_found');
+  }
+  const stats = isBuiltinGateway(gatewayId) ? BUILTIN_GATEWAYS[gatewayId].stats : undefined;
+  if (!stats) throw new ApiFailure('unsupported_gateway');
+  return stats({ organisationId, subject: `${caller.kind}:${caller.id}` });
 }

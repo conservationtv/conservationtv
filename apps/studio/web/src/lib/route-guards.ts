@@ -1,14 +1,12 @@
-import { redirect } from 'react-router';
+/** The sign-in page, coming back to this location afterwards. */
+export function signInPath(location: SignInReturn): string {
+  return `/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`;
+}
 
-import { queryClient } from '@/lib/query-client';
-import { sessionQueries } from '@/queries/session';
-
-/** For a clientLoader: the signed-in session, or a redirect to sign in that comes back to this URL. */
-export async function requireSession(request: Request) {
-  const session = await queryClient.query({ ...sessionQueries.current(), staleTime: 'static' });
-  if (session) return session;
-  const url = new URL(request.url);
-  throw redirect(`/sign-in?redirect=${encodeURIComponent(url.pathname + url.search)}`);
+/** Where a page is, to come back to after signing in. */
+export interface SignInReturn {
+  pathname: string;
+  search: string;
 }
 
 /** Where to go after signing in: the `redirect` query parameter, kept on this site. */
