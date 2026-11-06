@@ -1,6 +1,6 @@
 # Proposal: a Cloudflare MoQ gateway
 
-Status: implemented in this branch, unverified against a live Cloudflare relay.
+Status: implemented in this branch. A smoke test against a live Cloudflare relay found one blocker (the joiner, below).
 
 ## How publishing works today
 
@@ -103,14 +103,29 @@ path: <token>, broadcast: '<exposure>/live.hang', expiresAt }` with no `token` f
 
 ## Risks and open questions
 
-- **Live verification.** This is unverified against a live relay. To test it, publish to a gateway on staging, then
-  check that:
-  - the moq CLI negotiates `moqt-16` over WebTransport with a path-only token;
-  - draft-16's PUBLISH_NAMESPACE / SUBSCRIBE_NAMESPACE coverage is enough for the joiner's announced-broadcast
-    `request`. The feature matrix lists SUBSCRIBE_NAMESPACE as supported on draft-16 and unsupported on draft-14;
-  - `@moq/watch` plays a nested `<exposure>/live.hang`;
-  - catalog groups keep reaching late subscribers, because no FETCH is supported. The joiner rewrites the catalog
-    every 2 s, which should cover this.
+- **Smoke test (2026-11-06).** I tested the moq CLI 0.14.7 binary the agent ships against an existing relay. The
+  test used two 3-hour tokens minted through the API, with the same response shape the provider parses. Both tokens
+  were revoked afterwards.
+  - **Works.** A token in the URL path is accepted over WebTransport, and `moqt-16` is negotiated (`connected
+version=moq-transport-16`).
+  - **Works.** An FLV test pattern was published as `smoke-exp/default`. A second session with a subscribe-only token
+    exported it back by name and received the catalog, even though that session joined 6 s late. It read 14 s of
+    continuous H.264.
+  - **Blocker: no WebSocket.** Cloudflare refuses WebSocket (`wss://` and an HTTP upgrade both return 403). The
+    agent's joiner runs `@moq/net` on Node, which has no WebTransport, so it falls back to WebSocket. The joiner
+    therefore can't connect, and `<exposure>/live.hang` would never be published. The fix is either:
+    - a WebTransport implementation for Node, such as `@fails-components/webtransport` installed as the global
+      `WebTransport` (a native dependency in the agent's packaging);
+    - or skipping the join on Cloudflare, so readers subscribe to a rendition broadcast directly.
+  - **Interop bug: audio stops.** About every 10 groups, Cloudflare ends its upstream subscription to the audio track
+    with PUBLISH_DONE `closed, code=0`. It then subscribes again, and sometimes sends a FETCH. The audio track here
+    has one AAC frame per group, so ~43 groups/s. Every re-subscribe uses a new request ID, and audio stopped after
+    about 6 s, consistent with running out of request IDs (MAX_REQUEST_ID support is partial). Video, at 1 group/s,
+    was unaffected. The publisher never closed the track, so this looks like a relay behaviour to report to
+    Cloudflare or moq-dev.
+  - **Not tested yet:** announcement discovery (the joiner's `request(…, { announced: true })` over
+    SUBSCRIBE_NAMESPACE), `@moq/watch` playing a nested `<exposure>/live.hang` in a browser, and the studio API path
+    end to end.
 - **Revocation lag.** A removed member, or a device that is no longer the pinned publisher, stays admitted until its
   token expires (≤ 24 h). Cloudflare checks the token only when a session opens, so revoking a token doesn't end
   sessions already open. Shorter lifetimes would narrow this at the cost of more mints.
@@ -118,6 +133,6 @@ path: <token>, broadcast: '<exposure>/live.hang', expiresAt }` with no `token` f
 - **Kind changes.** Changing a gateway's kind away from `cloudflare-moq` leaves its relay behind. The relay is deleted
   only when the gateway is removed.
 - **Beta API drift.** Response shapes are parsed leniently (`cloudflare-moq-api.ts`), and a refusal surfaces as
-  `gateway_unavailable` with Cloudflare's errors as the cause. `GET /moq/relays` pagination isn't documented, and only
-  the first page is read.
+  `gateway_unavailable` with Cloudflare's errors as the cause. `GET /moq/relays` is read page by page, by its
+  `created_after` cursor, until a page comes back empty.
 - **The preview player.** The studio web's preview still plays only the `conservationtv` exposure.

@@ -36,7 +36,7 @@ const EnvelopeSchema = z.object({
 });
 type Envelope = z.output<typeof EnvelopeSchema>;
 
-const RelaySchema = z.object({ uid: z.string().min(1), name: z.string() });
+const RelaySchema = z.object({ uid: z.string().min(1), name: z.string(), created: z.string() });
 export type Relay = z.output<typeof RelaySchema>;
 
 /** A token as Cloudflare lists it; `secret` only in the response that minted it. */
@@ -98,10 +98,22 @@ async function call<Schema extends z.ZodType>(
   throw new ApiFailure('gateway_unavailable', { cause: `Cloudflare MoQ refused ${method} ${path}: ${reasons}` });
 }
 
-/** The account's relays by this name, oldest first as Cloudflare lists them. */
+/** How many relays to ask for at once. Cloudflare may send fewer, so only an empty page ends the listing. */
+const RELAYS_PER_PAGE = 100;
+
+/** The account's relays by this name, oldest first: every page, by the `created` cursor Cloudflare pages them by. */
 export async function relaysNamed(account: CloudflareMoqAccount, name: string): Promise<Relay[]> {
-  const relays = await call(account, 'GET', '', z.array(RelaySchema));
-  return relays.filter(relay => relay.name === name);
+  const named: Relay[] = [];
+  let after: string | undefined = undefined;
+  for (;;) {
+    const query = new URLSearchParams({ per_page: String(RELAYS_PER_PAGE), asc: 'true' });
+    if (after !== undefined) query.set('created_after', after);
+    const page = await call(account, 'GET', `?${query}`, z.array(RelaySchema));
+    const last = page.at(-1);
+    if (last === undefined) return named;
+    named.push(...page.filter(relay => relay.name === name));
+    after = last.created;
+  }
 }
 
 /**
