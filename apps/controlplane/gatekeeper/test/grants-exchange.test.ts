@@ -75,6 +75,14 @@ describe('successful exchange', () => {
     expect(decodePayload(credentials.moq?.token ?? '')).toMatchObject({ subscribe: ['**'] });
   });
 
+  it("roots a stats grant at the relays' stats for the root beneath the namespace", async () => {
+    const moq = { root: 'app-a', publish: [], subscribe: [''], stats: true };
+    const response = await worker.exchange({ ...exampleGrant(), requested_capabilities: { moq } });
+    const { credentials } = GrantExchangeResultSchema.parse(await response.json());
+    expect(credentials.moq?.root).toBe('.stats/test/app-a');
+    expect(decodePayload(credentials.moq?.token ?? '')).toMatchObject({ root: '.stats/test/app-a', publish: [] });
+  });
+
   it('clamps the credential lifetime to the environment ceiling', async () => {
     const grant = { ...exampleGrant(), expires_in: 86_400 };
     const response = await worker.exchange(grant);
@@ -184,6 +192,15 @@ describe('grant schema', () => {
     const grant = exampleGrant();
     grant.requested_capabilities.moq.root = Array.from({ length: 16 }, () => 'a').join('/');
     await expectError(await worker.exchange(grant), 400, 'invalid_request');
+  });
+
+  it('rejects a stats grant that publishes', async () => {
+    const moq = { root: 'app-a', publish: ['camera'], subscribe: [''], stats: true };
+    await expectError(
+      await worker.exchange({ ...exampleGrant(), requested_capabilities: { moq } }),
+      400,
+      'invalid_request'
+    );
   });
 
   it('rejects a subject with spaces', async () => {

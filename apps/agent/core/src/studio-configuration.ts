@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import type { MetricsSpec, MoqPublisher, StreamsSpec } from './runtimes/mediamtx/index.ts';
+import type { RelayStatsSource } from './runtimes/mediamtx/runtime.ts';
 import { useStudio } from './studio.ts';
 
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
@@ -10,7 +11,8 @@ import { useStudio } from './studio.ts';
 //   2. turns that into the spec for its streams: the gateway it runs, whose endpoints it registers while it serves, the
 //      paths it names, as they are, the certificate it names for the gateway's hostname, and each publisher it names,
 //      with where to publish from
-//      `organisations.streams.exposures.connect`; and for its metrics: what each path delivers;
+//      `organisations.streams.exposures.connect`, and where to read the relays' stats of what they carry from
+//      `organisations.gateways.stats.connect`; and for its metrics: what each path delivers;
 //   3. hands both to converge as the `streams` and `metrics` keys, each of which changes what runs only when its
 //      spec changed.
 //
@@ -46,7 +48,7 @@ export type ApplyStudioSpecs = (specs: StudioSpecs | undefined) => Promise<void>
  */
 export async function watchStudioConfiguration(signal: AbortSignal, apply: ApplyStudioSpecs): Promise<void> {
   const studio = useStudio();
-  const connections: Connections = new Map();
+  const connections: Connections = { publish: new Map(), stats: new Map() };
   while (!signal.aborted) {
     try {
       const configuration = await askConfiguration(studio);
@@ -81,15 +83,24 @@ async function studioSpecs(
   for (const { exposureId, connect: ask, layout, renditions } of configuration.publishers) {
     // One whose credentials cannot be had is left out, and tried again next time.
     try {
-      const connect = await publishTarget(studio, connections, ask);
+      const connect = await publishTarget(studio, connections.publish, ask);
       publishers.push({ exposureId, ...connect, layout, renditions });
     } catch (error) {
       logger.error('Publisher {exposureId} is unavailable: {error}', { exposureId, error });
     }
   }
+  const stats: RelayStatsSource[] = [];
+  for (const ask of configuration.stats) {
+    // A gateway whose stats cannot be read is left out, and tried again next time: publishing goes on regardless.
+    try {
+      stats.push({ connect: await statsTarget(studio, connections.stats, ask) });
+    } catch (error) {
+      logger.error('The stats of gateway {gatewayId} are unavailable: {error}', { gatewayId: ask.gatewayId, error });
+    }
+  }
   const { paths } = configuration;
   const { gatewayId, auth, tls } = configuration.mediamtx;
-  const streams: StreamsSpec = { gatewayId, paths, auth, tls, publishers };
+  const streams: StreamsSpec = { gatewayId, paths, auth, tls, publishers, stats };
   const attributions = paths.map(({ name, exposureId, rendition }) => ({ name, exposureId, rendition }));
   const metrics: MetricsSpec = { intervalMs: METRICS_INTERVAL_MS, paths: attributions };
   return { streams, metrics };
@@ -101,8 +112,20 @@ type DeviceConfiguration = Exclude<Awaited<ReturnType<Client['deviceConfiguratio
 /** The connection details `connect` returns, whichever protocol. */
 type Connection = Exclude<Awaited<ReturnType<Client['organisations']['streams']['exposures']['connect']['v1']>>, Error>;
 
-/** Connections from `connect` to publish each exposure by MoQ, by its ID, kept until shortly before they expire. */
-type Connections = Map<string, Connection>;
+/** Where `stats.connect` says to read a gateway's traffic stats. */
+type StatsConnection = Exclude<
+  Awaited<ReturnType<Client['organisations']['gateways']['stats']['connect']['v1']>>,
+  Error
+>;
+
+/**
+ * The credentials kept between asks, each until shortly before it expires: from `connect`, to publish each exposure,
+ * by its ID; and from `stats.connect`, to read each gateway's stats, by the gateway's ID.
+ */
+interface Connections {
+  publish: Map<string, Connection>;
+  stats: Map<string, StatsConnection>;
+}
 
 /** The configuration of an agent that runs nothing. */
 interface IdleConfiguration {
@@ -117,7 +140,7 @@ type PublisherConnect = Exclude<DeviceConfiguration, IdleConfiguration>['publish
  * reads, and the broadcast under it. Asks `connect` again when what is kept expires within `RENEW_BEFORE_MS`; throws
  * if it refuses, or the exposure is not published by MoQ.
  */
-async function publishTarget(studio: Client, connections: Connections, ask: PublisherConnect) {
+async function publishTarget(studio: Client, connections: Connections['publish'], ask: PublisherConnect) {
   let connection = connections.get(ask.exposureId);
   const expiresAt = connection?.expiresAt === undefined ? Infinity : Date.parse(connection.expiresAt);
   if (connection === undefined || expiresAt - Date.now() < RENEW_BEFORE_MS) {
@@ -130,4 +153,25 @@ async function publishTarget(studio: Client, connections: Connections, ask: Publ
   const url = new URL(connection.path, connection.relay);
   if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
   return { connect: url.href, broadcast: connection.broadcast };
+}
+
+/** The `stats.connect` ask the configuration gives for where to read a gateway's traffic stats. */
+type StatsConnect = Exclude<DeviceConfiguration, IdleConfiguration>['stats'][number];
+
+/**
+ * Where to read the gateway's traffic stats: the relay URL to dial at the stats path, carrying its token as `?jwt=`.
+ * Asks `stats.connect` again when what is kept expires within `RENEW_BEFORE_MS`; throws if it refuses.
+ */
+async function statsTarget(studio: Client, connections: Connections['stats'], ask: StatsConnect) {
+  let connection = connections.get(ask.gatewayId);
+  const expiresAt = connection?.expiresAt === undefined ? Infinity : Date.parse(connection.expiresAt);
+  if (connection === undefined || expiresAt - Date.now() < RENEW_BEFORE_MS) {
+    const renewed = await studio.organisations.gateways.stats.connect.v1(ask);
+    if (renewed instanceof Error) throw renewed;
+    connections.set(ask.gatewayId, renewed);
+    connection = renewed;
+  }
+  const url = new URL(connection.path, connection.relay);
+  if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
+  return url.href;
 }

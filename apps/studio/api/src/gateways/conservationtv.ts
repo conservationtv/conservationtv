@@ -1,4 +1,4 @@
-import { moqToken } from '../gatekeeper/grants.ts';
+import { moqStatsToken, moqToken } from '../gatekeeper/grants.ts';
 import { CONNECTION_LIFETIME_SECONDS, provider } from './provider.ts';
 
 // The built-in conservation.tv gateway: the MoQ relay gatekeeper names, which admits a connection by a token from
@@ -24,6 +24,17 @@ export const conservationtv = provider.builtin({
       relay: credential.relay,
       path: credential.root,
       broadcast: MOQ_BROADCAST,
+      token: credential.token,
+      expiresAt: credential.expires_at
+    };
+  },
+  // The relays' stats for everything the organisation's exposures broadcast, beneath its path.
+  stats: async request => {
+    const credential = await moqStatsToken(request.subject, request.organisationId, CONNECTION_LIFETIME_SECONDS);
+    return {
+      protocol: 'moq',
+      relay: credential.relay,
+      path: credential.root,
       token: credential.token,
       expiresAt: credential.expires_at
     };

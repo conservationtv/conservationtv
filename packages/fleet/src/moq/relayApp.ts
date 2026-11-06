@@ -134,6 +134,13 @@ export function moqRelayApp(args: MoqRelayAppArgs): ComposeApp {
   };
 }
 
+/**
+ * How many leading path segments the relay's stats are also grouped by: a consumer's namespace and the organisation
+ * beneath it (`staging/<organisation>`), so each organisation's traffic is a broadcast of its own,
+ * `.stats/<namespace>/<organisation>/node/<node>`, which gatekeeper can grant without granting anyone else's.
+ */
+const statsDepth = 2;
+
 /** The relay configuration. Carries no credentials: the auth URL travels in the environment, the cluster token in a file. */
 export function renderMoqRelayToml(nodeId: string, hostname: string, peers: string[]): string {
   const listen = JSON.stringify(`[::]:${publicPort}`);
@@ -160,6 +167,7 @@ token = ${JSON.stringify(containerClusterTokenPath)}
 [stats]
 enabled = true
 node = ${JSON.stringify(nodeId)}
+depth = ${statsDepth}
 
 [internal]
 listen = "127.0.0.1:${internalPort}"

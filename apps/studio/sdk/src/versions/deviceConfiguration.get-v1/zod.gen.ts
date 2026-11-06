@@ -46,6 +46,11 @@ export const PublisherSchema = z.object({
     renditions: z.array(PublishedRenditionSchema)
 });
 
+export const StatsConnectSchema = z.object({
+    id: z.string(),
+    gatewayId: z.string()
+});
+
 /**
  * The configuration
  */
@@ -73,6 +78,7 @@ export const GetDeviceConfigurationResponseSchema = z.union([
                 })
             ])
         })),
-        publishers: z.array(PublisherSchema)
+        publishers: z.array(PublisherSchema),
+        stats: z.array(StatsConnectSchema)
     })
 ]);

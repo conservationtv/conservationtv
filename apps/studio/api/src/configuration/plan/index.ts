@@ -154,5 +154,17 @@ function planActiveAgent(input: PlanningInput): ActiveConfiguration {
     for (const exposure of stream.exposures) plan(exposure);
   }
 
-  return { state: 'active', mediamtx: { gatewayId: input.gatewayId, auth }, paths, publishers };
+  const stats = statsGateways(input, publishers).map(gatewayId => ({ id: input.organisationId, gatewayId }));
+  return { state: 'active', mediamtx: { gatewayId: input.gatewayId, auth }, paths, publishers, stats };
+}
+
+/** The gateways the agent publishes to whose relays publish the traffic stats of what they carry, each once. */
+function statsGateways(input: PlanningInput, publishers: PlannedPublisher[]): string[] {
+  const published = new Set(publishers.map(publisher => publisher.exposureId));
+  const gateways = input.streams
+    .flatMap(stream => stream.exposures)
+    .filter(exposure => published.has(exposure.id))
+    .map(exposure => exposure.gatewayId)
+    .filter(gatewayId => gatewayProvider(gatewayId, input.gatewayKinds.get(gatewayId) ?? '').stats !== undefined);
+  return [...new Set(gateways)];
 }

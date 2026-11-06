@@ -263,6 +263,10 @@
                                 }
                               ]
                             }
+                          },
+                          "stats": {
+                            "default": false,
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -551,6 +555,10 @@
                                     }
                                   ]
                                 }
+                              },
+                              "stats": {
+                                "default": false,
+                                "type": "boolean"
                               }
                             },
                             "required": [

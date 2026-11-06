@@ -33,6 +33,17 @@ export type ConsumerNamespace = z.output<typeof ConsumerNamespaceSchema>;
 /** The root a consumer asks for, a canonical path with room left for the namespace segment gatekeeper prefixes. */
 export const MoqRootSchema = canonicalPath(MAX_PATH_LENGTH - MAX_NAMESPACE_LENGTH - 1, MAX_PATH_DEPTH - 1);
 
+/** Where the relays publish their traffic stats: a segment of its own before the namespace. */
+export const STATS_PREFIX = '.stats';
+
+/** Whether a root leaves room for the stats prefix too, so the stats root gatekeeper builds from it is still canonical. */
+export function fitsStatsPrefix(root: string): boolean {
+  const extra = STATS_PREFIX.length + 1;
+  return (
+    root.split('/').length <= MAX_PATH_DEPTH - 2 && root.length <= MAX_PATH_LENGTH - MAX_NAMESPACE_LENGTH - 1 - extra
+  );
+}
+
 /** A publish or subscribe entry relative to the grant's root. The empty string authorises the whole root. */
 export const MoqRelativePathSchema = z.union([z.literal(''), MoqPathSchema]);
 export type MoqRelativePath = z.output<typeof MoqRelativePathSchema>;

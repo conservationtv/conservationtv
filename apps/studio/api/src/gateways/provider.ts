@@ -120,6 +120,28 @@ interface ProviderDefinition<Ingest extends string, Egress extends string, Gatew
   /** How readers read it. */
   egress: Carriages<Egress>;
   connect: (request: ProviderRequest<Ingest, Egress, GatewaySettings>) => Promise<ConnectionFor<Ingest | Egress>>;
+  /** Where to read the gateway's traffic stats about an organisation, for a gateway that publishes them. */
+  stats?: (request: StatsRequest) => Promise<StatsConnection>;
+}
+
+/** Stats asked for: an organisation's, for a caller. */
+export interface StatsRequest {
+  organisationId: string;
+  /** Who the credentials are for, recorded by gateways that audit them: `user:<id>` or `device:<id>`. */
+  subject: string;
+}
+
+/**
+ * Where to read a MoQ relay's traffic stats about an organisation: dial `relay` at `path`, presenting `token`, and every
+ * relay node's stats broadcast is announced beneath it, `node/<node>`, with `publisher.json` (what the node sent) and
+ * `subscriber.json` (what it received), each a JSON object of cumulative counters by broadcast path.
+ */
+export interface StatsConnection {
+  protocol: 'moq';
+  relay: string;
+  path: string;
+  token?: string;
+  expiresAt?: string;
 }
 
 interface OrganisationProviderDefinition<
@@ -146,6 +168,8 @@ export interface GatewayProvider {
   ingest: Carriages<string>;
   egress: Carriages<string>;
   connect: (request: RequestedConnection, settings: Settings) => Promise<ConnectionDetails>;
+  /** Absent for a gateway that publishes no traffic stats. */
+  stats?: (request: StatsRequest) => Promise<StatsConnection>;
 }
 
 export interface OrganisationProvider extends GatewayProvider {
@@ -216,7 +240,7 @@ export const provider = {
   builtin<const Kind extends string, const Ingest extends string, const Egress extends string>(
     definition: BuiltinProviderDefinition<Kind, Ingest, Egress>
   ): BuiltinProvider<Kind> {
-    const { name, kind, ingest, egress } = definition;
-    return { name, kind, ingest, egress, connect: connector(definition, settings => settings) };
+    const { name, kind, ingest, egress, stats } = definition;
+    return { name, kind, ingest, egress, stats, connect: connector(definition, settings => settings) };
   }
 };

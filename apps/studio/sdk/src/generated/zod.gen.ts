@@ -65,6 +65,11 @@ export const PublisherSchema = z.object({
     renditions: z.array(PublishedRenditionSchema)
 });
 
+export const StatsConnectSchema = z.object({
+    id: z.string(),
+    gatewayId: z.string()
+});
+
 export const HealthSchema = z.object({
     status: z.literal('ok')
 });
@@ -215,6 +220,14 @@ export const GatewaySchema = z.object({
         })]))
 });
 
+export const StatSchema = z.object({
+    protocol: z.literal('moq'),
+    relay: z.string(),
+    path: z.string(),
+    token: z.string().optional(),
+    expiresAt: z.string().optional()
+});
+
 export const StreamSchema = z.object({
     exposures: z.array(z.object({
         id: z.string(),
@@ -256,6 +269,20 @@ export const RecorderSchema = z.object({
     kind: z.string(),
     params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
+});
+
+export const StateSchema = z.object({
+    states: z.array(z.object({
+        subjectId: z.string(),
+        health: z.string(),
+        state: z.record(z.string(), z.unknown()),
+        freshness: z.enum(['fresh', 'stale']),
+        observedAt: z.string(),
+        expiresAt: z.string(),
+        computedAt: z.string(),
+        contributingReporterIds: z.array(z.string()),
+        evidenceReportIds: z.array(z.string())
+    }))
 });
 
 export const SubjectSchema = z.object({
@@ -1291,6 +1318,21 @@ export const GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponseSchema = z.
     description: 'The endpoints, by protocol'
 });
 
+export const PostOrganisationsByIdGatewaysByGatewayIdStatsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    gatewayId: z.union([
+        z.enum(['conservationtv']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ])
+});
+
+/**
+ * Where to read the stats
+ */
+export const PostOrganisationsByIdGatewaysByGatewayIdStatsResponseSchema = StatSchema;
+
 export const GetOrganisationsByIdStreamsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
@@ -1298,17 +1340,34 @@ export const GetOrganisationsByIdStreamsPathSchema = z.object({
 });
 
 /**
- * The streams, oldest first
+ * The streams, oldest first, each with its exposures and recorders, oldest first
  */
 export const GetOrganisationsByIdStreamsResponseSchema = z.object({
     streams: z.array(z.object({
-        id: z.string(),
         name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
         sourceDeviceId: z.string().nullable(),
-        createdAt: z.string()
+        exposures: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            gatewayId: z.string(),
+            renditions: z.array(RenditionSchema),
+            publisherDeviceId: z.string().nullable(),
+            upstreamExposureId: z.string().nullable()
+        })),
+        recorders: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            kind: z.string(),
+            exposureId: z.string(),
+            rendition: RenditionSchema
+        }))
     }))
 }).register(z.globalRegistry, {
-    description: 'The streams, oldest first'
+    description: 'The streams, oldest first, each with its exposures and recorders, oldest first'
 });
 
 export const PostOrganisationsByIdStreamsBodySchema = z.object({
@@ -1589,6 +1648,30 @@ export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSch
  * The updated recorder
  */
 export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponseSchema = RecorderSchema;
+
+export const GetOrganisationsByIdSubjectsStatesPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+export const GetOrganisationsByIdSubjectsStatesQuerySchema = z.object({
+    kind: z.enum([
+        'network',
+        'device',
+        'agent',
+        'stream',
+        'exposure',
+        'external'
+    ]).register(z.globalRegistry, {
+        description: 'Only subjects of this kind: the part of their ID before the colon.'
+    }).optional()
+});
+
+/**
+ * The states, by subject ID
+ */
+export const GetOrganisationsByIdSubjectsStatesResponseSchema = StateSchema;
 
 export const GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -1878,7 +1961,8 @@ export const GetDeviceConfigurationResponseSchema = z.union([
                 })
             ])
         })),
-        publishers: z.array(PublisherSchema)
+        publishers: z.array(PublisherSchema),
+        stats: z.array(StatsConnectSchema)
     })
 ]);
 

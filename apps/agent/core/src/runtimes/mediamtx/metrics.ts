@@ -13,7 +13,12 @@ import { type PathIndex, type PathTarget, PathAttributionsSchema, pathIndexOf } 
 // as a dimension, or, while the spec names no paths, about the agent's device with the path as the `path` dimension. A
 // path the spec does not name is not reported. A path missing from a read counts as not ready with nothing flowing, so
 // one that stops mid-interval shows in that interval's summary; one missing for a whole interval is not reported.
-// Per-session and per-protocol samples are not shipped.
+//
+// What a path sends is split by who reads it. The agent's MoQ publishers read each path they publish over RTMP from
+// loopback (builders/publishers.ts), all of it for as long as they run, so those readers' bytes are its publisher
+// egress, and everything else it sends, to any other reader, its LAN egress. What actually reaches the relay is the
+// relay's to count (relay-traffic.ts). Per-session and per-protocol samples are
+// not shipped.
 
 /** How often to report the streams' metrics, and what each path's are about. */
 export const MetricsSpecSchema = z.object({
@@ -41,14 +46,22 @@ interface PathSamples {
   ready: number[];
   readers: number[];
   ingestBitrate: number[];
-  egressBitrate: number[];
+  lanEgressBitrate: number[];
+  publisherEgressBitrate: number[];
   frameErrors: number[];
 }
 
-/** A read of the metrics page: each path's reading, at a time. */
+/** One of the agent's MoQ publishers reading a path: the path, and the bytes sent it so far on this connection. */
+interface PublisherReading {
+  path: string;
+  outboundBytes: number;
+}
+
+/** A read of the metrics page, at a time: each path's reading, and each publisher connection's, by its ID. */
 interface Read {
   at: number;
   paths: Map<string, PathReading>;
+  publishers: Map<string, PublisherReading>;
 }
 
 /** The per-path samples a reading is made from, by the field each adds to. */
@@ -76,6 +89,41 @@ function readingsOf(samples: PrometheusSample[]): Map<string, PathReading> {
   return paths;
 }
 
+/** Whether a connection's remote address is this machine's loopback, as the agent's own publishers' are. */
+function isLoopback(remoteAddr: string | undefined): boolean {
+  return remoteAddr !== undefined && (remoteAddr.startsWith('127.') || remoteAddr.startsWith('[::1]'));
+}
+
+/** Each of the agent's MoQ publishers' connections: RTMP readers from loopback, by connection ID. */
+function publishersOf(samples: PrometheusSample[]): Map<string, PublisherReading> {
+  const publishers = new Map<string, PublisherReading>();
+  for (const sample of samples) {
+    // A reading RTMP connection from loopback is one of the agent's publishers; every other connection is a reader on
+    // the network, counted with the path's total.
+    const { id, path, remoteAddr, state } = sample.labels;
+    if (sample.deprecated || sample.name !== 'rtmp_conns_outbound_bytes' || state !== 'read') continue;
+    if (id === undefined || path === undefined || !isLoopback(remoteAddr)) continue;
+    publishers.set(id, { path, outboundBytes: sample.value });
+  }
+  return publishers;
+}
+
+/**
+ * How many bits a second each path sent its publishers between two reads. A connection counts from zero when the
+ * previous read did not have it, as one opened since; one whose count went back was reset, and gives no rate.
+ */
+function publisherRates(read: Read, previous: Read, seconds: number): Map<string, number> {
+  const rates = new Map<string, number>();
+  for (const [id, reading] of read.publishers) {
+    // Each connection adds what it moved to its path's rate: from zero if it is new, nothing if its count went back.
+    const before = previous.publishers.get(id)?.outboundBytes ?? 0;
+    const moved = reading.outboundBytes - before;
+    if (moved < 0) continue;
+    rates.set(reading.path, (rates.get(reading.path) ?? 0) + (moved * 8) / seconds);
+  }
+  return rates;
+}
+
 /** Sample how fast a running total moved between two reads, a second, times `scale`. */
 function addRate(into: number[], current: number, previous: number, seconds: number, scale: number): void {
   // A total that went back was reset, as on a restart, so this read gives no rate.
@@ -83,12 +131,63 @@ function addRate(into: number[], current: number, previous: number, seconds: num
   if (moved >= 0) into.push((moved * scale) / seconds);
 }
 
+/**
+ * Sample what a path sent between two reads, split by who read it: `publishers`, the rate its publishers read, and the
+ * rest of its total, the LAN. A total that went back gives neither, as a reset.
+ */
+function addEgress(
+  samples: PathSamples,
+  reading: PathReading,
+  before: PathReading,
+  seconds: number,
+  publishers: number
+): void {
+  const moved = reading.outboundBytes - before.outboundBytes;
+  if (moved < 0) return;
+  const total = (moved * 8) / seconds;
+  samples.publisherEgressBitrate.push(Math.min(publishers, total));
+  samples.lanEgressBitrate.push(Math.max(total - publishers, 0));
+}
+
+/** A path with no samples yet this interval. */
+function emptySamples(): PathSamples {
+  return {
+    ready: [],
+    readers: [],
+    ingestBitrate: [],
+    lanEgressBitrate: [],
+    publisherEgressBitrate: [],
+    frameErrors: []
+  };
+}
+
+/** The time between two reads, and how fast each path sent its publishers over it. */
+interface MovedSince {
+  seconds: number;
+  toPublishers: Map<string, number>;
+}
+
+/** Undefined for the first read, which has nothing to move from. */
+function movedSince(read: Read, previous: Read | undefined): MovedSince | undefined {
+  if (previous === undefined) return undefined;
+  const seconds = (read.at - previous.at) / 1000;
+  return { seconds, toPublishers: publisherRates(read, previous, seconds) };
+}
+
+/** Sample how fast a path's counters moved since the previous read had it. */
+function addRates(samples: PathSamples, path: string, reading: PathReading, before: PathReading, since: MovedSince) {
+  addRate(samples.ingestBitrate, reading.inboundBytes, before.inboundBytes, since.seconds, 8);
+  addEgress(samples, reading, before, since.seconds, since.toPublishers.get(path) ?? 0);
+  addRate(samples.frameErrors, reading.framesInError, before.framesInError, since.seconds, 1);
+}
+
 /** Sample a path missing from a read: it has stopped, so nothing is ready, read or flowing. */
 function addStopped(samples: PathSamples): void {
   samples.ready.push(0);
   samples.readers.push(0);
   samples.ingestBitrate.push(0);
-  samples.egressBitrate.push(0);
+  samples.lanEgressBitrate.push(0);
+  samples.publisherEgressBitrate.push(0);
   samples.frameErrors.push(0);
 }
 
@@ -103,8 +202,10 @@ function metricsOf(samples: PathSamples, dimensions: Record<string, string>): Me
   ];
   if (samples.ingestBitrate.length > 0)
     metrics.push(summary(pathMetrics.ingestBitrate, samples.ingestBitrate, dimensions));
-  if (samples.egressBitrate.length > 0)
-    metrics.push(summary(pathMetrics.egressBitrate, samples.egressBitrate, dimensions));
+  if (samples.lanEgressBitrate.length > 0)
+    metrics.push(summary(pathMetrics.lanEgressBitrate, samples.lanEgressBitrate, dimensions));
+  if (samples.publisherEgressBitrate.length > 0)
+    metrics.push(summary(pathMetrics.publisherEgressBitrate, samples.publisherEgressBitrate, dimensions));
   if (samples.frameErrors.length > 0)
     metrics.push(summary(pathMetrics.ingestFrameErrors, samples.frameErrors, dimensions));
   return metrics;
@@ -232,7 +333,7 @@ export class MediamtxMetricsRuntime {
       const text = await response.text();
       const samples = parseMetrics(text);
       const now = new Date();
-      this.record({ at: now.getTime(), paths: readingsOf(samples) });
+      this.record({ at: now.getTime(), paths: readingsOf(samples), publishers: publishersOf(samples) });
       this.update({ lastScrapedAt: now.toISOString(), samples: samples.length });
     } catch (error) {
       this.update({ lastError: error instanceof Error ? error.message : String(error) });
@@ -242,24 +343,15 @@ export class MediamtxMetricsRuntime {
   /** Add a read's samples to each path's interval, and keep it for the next read's rates. */
   private record(read: Read): void {
     const previous = this.previous;
+    const since = movedSince(read, previous);
     for (const [path, reading] of read.paths) {
       // A path in the read samples its state and readers, and its rates when the previous read had it too.
-      const samples = this.interval.get(path) ?? {
-        ready: [],
-        readers: [],
-        ingestBitrate: [],
-        egressBitrate: [],
-        frameErrors: []
-      };
+      const samples = this.interval.get(path) ?? emptySamples();
       this.interval.set(path, samples);
       samples.ready.push(reading.ready > 0 ? 1 : 0);
       samples.readers.push(reading.readers);
       const before = previous?.paths.get(path);
-      if (previous === undefined || before === undefined) continue;
-      const seconds = (read.at - previous.at) / 1000;
-      addRate(samples.ingestBitrate, reading.inboundBytes, before.inboundBytes, seconds, 8);
-      addRate(samples.egressBitrate, reading.outboundBytes, before.outboundBytes, seconds, 8);
-      addRate(samples.frameErrors, reading.framesInError, before.framesInError, seconds, 1);
+      if (since !== undefined && before !== undefined) addRates(samples, path, reading, before, since);
     }
     // A path seen this interval but missing from the read has stopped.
     for (const [path, samples] of this.interval) if (!read.paths.has(path)) addStopped(samples);

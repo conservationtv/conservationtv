@@ -82,7 +82,8 @@ function controllers(
     moq: MOQ_MANIFEST,
     identity,
     ports,
-    registration
+    registration,
+    config
   });
   const metrics = new MediamtxMetricsRuntime(config, loopback(ports.metrics));
 
@@ -155,7 +156,7 @@ export class Agent {
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },
-          streams: { paths: [], publishers: [] },
+          streams: { paths: [], publishers: [], stats: [] },
           metrics: { intervalMs: 60_000, paths: [] }
         };
         return spec;

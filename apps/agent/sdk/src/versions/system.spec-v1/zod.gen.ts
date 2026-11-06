@@ -40,6 +40,9 @@ export const SystemSchema = z.object({
             connect: z.string(),
             broadcast: z.string()
         })),
+        stats: z.array(z.object({
+            connect: z.string()
+        })),
         gatewayId: z.string().optional(),
         auth: z.object({
             issuer: z.string(),

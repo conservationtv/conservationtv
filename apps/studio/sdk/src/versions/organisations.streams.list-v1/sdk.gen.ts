@@ -51,7 +51,7 @@ export class Streams extends HeyApiClient {
     /**
      * List an organisation's streams
      *
-     * Empty for organisations you are not a member of.
+     * Each with its exposures and recorders, as `organisations.streams.get` reads one. Empty for organisations you are not a member of.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;

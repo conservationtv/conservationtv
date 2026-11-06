@@ -7,12 +7,36 @@ export const ErrorSchema = z.object({
     error_description: z.string()
 });
 
+export const RenditionSchema = z.enum([
+    'default',
+    'data_saver',
+    'balanced',
+    'quality'
+]);
+
 export const StreamSchema = z.object({
     streams: z.array(z.object({
-        id: z.string(),
         name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
         sourceDeviceId: z.string().nullable(),
-        createdAt: z.string()
+        exposures: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            gatewayId: z.string(),
+            renditions: z.array(RenditionSchema),
+            publisherDeviceId: z.string().nullable(),
+            upstreamExposureId: z.string().nullable()
+        })),
+        recorders: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            kind: z.string(),
+            exposureId: z.string(),
+            rendition: RenditionSchema
+        }))
     }))
 });
 
@@ -23,6 +47,6 @@ export const GetOrganisationsByIdStreamsPathSchema = z.object({
 });
 
 /**
- * The streams, oldest first
+ * The streams, oldest first, each with its exposures and recorders, oldest first
  */
 export const GetOrganisationsByIdStreamsResponseSchema = StreamSchema;

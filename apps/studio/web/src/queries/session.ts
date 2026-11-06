@@ -9,23 +9,19 @@ import {
 import { z } from 'zod';
 import { withoutPasskeys, withSignIn, type KnownAccount } from '@/lib/known-device';
 import { PasskeyError } from '@/lib/passkey-error';
-import { apiQueries } from '@/queries/api';
-import { passkeyQueries } from '@/queries/passkeys';
-import { thisDeviceQueries, updateKnownAccounts } from '@/queries/this-device';
+import { passkeyOfferQueryOptions } from '@/queries/passkeys';
+import { updateKnownAccounts } from '@/queries/this-device';
 
-export const sessionQueries = {
-  all: () => ['session'] as const,
-  /** The signed-in session and user, or null when signed out. */
-  current: () =>
-    queryOptions({
-      queryKey: [...sessionQueries.all(), 'current'] as const,
-      queryFn: () => authClient.getSession(),
-      staleTime: 60_000
-    })
-};
+/** The signed-in session and user, or null when signed out. */
+export const sessionQueryOptions = () =>
+  queryOptions({
+    queryKey: ['session', 'current'] as const,
+    queryFn: () => authClient.getSession(),
+    staleTime: 60_000
+  });
 
-/** Queries that don't depend on who is signed in, kept when the session changes. */
-const accountIndependent = new Set<unknown>([sessionQueries.all()[0], thisDeviceQueries.all()[0], apiQueries.all()[0]]);
+/** The first key segments of queries that don't depend on who is signed in, kept when the session changes. */
+const accountIndependent = new Set<unknown>(['session', 'this-device', 'api']);
 
 /**
  * Every sign-in or sign-out changes who the API sees, so it drops the cached account data: the next account's
@@ -36,7 +32,7 @@ export function useSessionChanged() {
   const queryClient = useQueryClient();
   return () => {
     queryClient.removeQueries({ predicate: query => !accountIndependent.has(query.queryKey[0]) });
-    return queryClient.invalidateQueries({ queryKey: sessionQueries.all() });
+    return queryClient.invalidateQueries({ queryKey: ['session'] });
   };
 }
 
@@ -72,7 +68,7 @@ export function useSignInWithCode() {
     mutationFn: async ({ email, otp }: EmailCode): Promise<CodeSignIn> => {
       const { user } = await authClient.signIn.emailOtp({ email, otp });
       await updateKnownAccounts(client, accounts => withSignIn(accounts, user.email));
-      const offerPasskey = await client.query({ ...passkeyQueries.offer(), staleTime: 0 });
+      const offerPasskey = await client.query({ ...passkeyOfferQueryOptions(), staleTime: 0 });
       return { email: user.email, offerPasskey };
     }
   });

@@ -58,6 +58,13 @@ export const PlannedPublisherSchema = z
   .meta({ id: 'Publisher' });
 export type PlannedPublisher = z.output<typeof PlannedPublisherSchema>;
 
+/**
+ * The `stats.connect` ask (`organisations.gateways.stats.connect`) for where to read what a gateway's relays carry of
+ * the organisation's broadcasts: one for each gateway the agent publishes to that publishes stats.
+ */
+export const StatsConnectSchema = z.object({ id: z.string(), gatewayId: z.string() }).meta({ id: 'StatsConnect' });
+export type StatsConnect = z.output<typeof StatsConnectSchema>;
+
 /** How a MediaMTX checks a token: signed by the agent's own identity, issued by this API, for its gateway. */
 export const MediamtxAuthSchema = z.object({ issuer: z.string(), audience: z.string() }).meta({ id: 'MediamtxAuth' });
 export type MediamtxAuth = z.output<typeof MediamtxAuthSchema>;
@@ -94,6 +101,8 @@ export interface ActiveConfiguration {
   mediamtx: MediamtxConfiguration;
   paths: PlannedPath[];
   publishers: PlannedPublisher[];
+  /** Where to read the traffic stats of the gateways it publishes to, for those that publish them. */
+  stats: StatsConnect[];
 }
 
 export type PlannedConfiguration = IdleConfiguration | ActiveConfiguration;

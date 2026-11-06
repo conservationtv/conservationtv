@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
-import { useQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
 import { Field, FieldGroup } from '@conservationtv/ui/components/field';
@@ -11,13 +11,11 @@ import { PanelBody } from '@/components/common/panel';
 import { SignInFrame } from '@/components/auth/sign-in-frame';
 import { SignIn } from '@/components/auth/sign-in';
 import { Step, Steps } from '@/components/common/steps';
-import { queryClient } from '@/lib/query-client';
 import { DeviceCodeSchema, type DeviceCodeInput } from '@/forms/schemas';
 import { OtpField } from '@/forms/otp-field';
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { useAnswerDevice, type DeviceDecision } from '@/queries/device';
-import { sessionQueries } from '@/queries/session';
-import { thisDeviceQueries } from '@/queries/this-device';
+import { sessionQueryOptions } from '@/queries/session';
 
 interface DecisionMeta {
   decision: DeviceDecision;
@@ -29,18 +27,12 @@ interface DecisionMeta {
  */
 export const meta: Route.MetaFunction = () => [{ title: 'Connect a device · conservation.tv studio' }];
 
-/** Signed out is fine here: the page offers sign-in itself, then the approval form. */
-export async function clientLoader() {
-  await Promise.all([
-    queryClient.query({ ...sessionQueries.current(), staleTime: 'static' }),
-    queryClient.query({ ...thisDeviceQueries.accounts(), staleTime: 'static' })
-  ]);
-  return null;
-}
-
-/** One card for the whole page: signing in slides on to the approval form, which slides on to the outcome. */
+/**
+ * One card for the whole page: signing in slides on to the approval form, which slides on to the outcome. Signed out
+ * is fine here: the page offers sign-in itself, then the approval form.
+ */
 const DeviceRoute: FC = () => {
-  const { data: session } = useQuery(sessionQueries.current());
+  const { data: session } = useSuspenseQuery(sessionQueryOptions());
   return (
     <SignInFrame>
       <Steps active={session ? 'approve' : 'sign-in'}>

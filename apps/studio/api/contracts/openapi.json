@@ -201,6 +201,21 @@
           "path"
         ]
       },
+      "StatsConnect": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "gatewayId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "gatewayId"
+        ]
+      },
       "Health": {
         "type": "object",
         "properties": {
@@ -782,6 +797,32 @@
           "gateways"
         ]
       },
+      "Stat": {
+        "type": "object",
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "const": "moq"
+          },
+          "relay": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "relay",
+          "path"
+        ]
+      },
       "Stream": {
         "type": "object",
         "properties": {
@@ -988,6 +1029,71 @@
           "kind",
           "params",
           "createdAt"
+        ]
+      },
+      "State": {
+        "type": "object",
+        "properties": {
+          "states": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "subjectId": {
+                  "type": "string"
+                },
+                "health": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "freshness": {
+                  "type": "string",
+                  "enum": [
+                    "fresh",
+                    "stale"
+                  ]
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "type": "string"
+                },
+                "computedAt": {
+                  "type": "string"
+                },
+                "contributingReporterIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "evidenceReportIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "subjectId",
+                "health",
+                "state",
+                "freshness",
+                "observedAt",
+                "expiresAt",
+                "computedAt",
+                "contributingReporterIds",
+                "evidenceReportIds"
+              ]
+            }
+          }
+        },
+        "required": [
+          "states"
         ]
       },
       "Subject": {
@@ -6946,15 +7052,132 @@
         ]
       }
     },
+    "/organisations/{id}/gateways/{gatewayId}/stats": {
+      "post": {
+        "operationId": "organisations.gateways.stats.connect",
+        "x-operation-version": 1,
+        "summary": "Read a gateway's traffic stats",
+        "description": "Where to read what the gateway's relays carry of the organisation's broadcasts, with the short-lived, read-only credential that admits the caller there: dial `relay` at `path`, presenting `token` as the URL's `jwt` query parameter. Each relay node announces a broadcast beneath it, `node/<node>`, whose `subscriber.json` track holds what the node received and `publisher.json` what it sent, each a JSON object of cumulative counters (`bytes`, `frames`, `broadcasts_started`, `broadcasts_ended`, …) by broadcast path. Ask again before `expiresAt`. Only built-in MoQ relays publish stats. Members read, signed in, and the organisation's devices with an RFC 9421 HTTP Message Signature by their own identity.",
+        "responses": {
+          "200": {
+            "description": "Where to read the stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stat"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The gateway publishes no traffic stats through this API: only built-in MoQ relays do, and no organisation's own gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable, or the gateway is not configured or cannot issue credentials right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "gatewayId",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "conservationtv"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              ]
+            },
+            "required": true,
+            "description": "The gateway."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
     "/organisations/{id}/streams": {
       "get": {
         "operationId": "organisations.streams.list",
         "x-operation-version": 1,
         "summary": "List an organisation's streams",
-        "description": "Empty for organisations you are not a member of.",
+        "description": "Each with its exposures and recorders, as `organisations.streams.get` reads one. Empty for organisations you are not a member of.",
         "responses": {
           "200": {
-            "description": "The streams, oldest first",
+            "description": "The streams, oldest first, each with its exposures and recorders, oldest first",
             "content": {
               "application/json": {
                 "schema": {
@@ -6965,10 +7188,13 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "name": {
+                            "type": "string"
+                          },
                           "id": {
                             "type": "string"
                           },
-                          "name": {
+                          "createdAt": {
                             "type": "string"
                           },
                           "sourceDeviceId": {
@@ -6981,15 +7207,105 @@
                               }
                             ]
                           },
-                          "createdAt": {
-                            "type": "string"
+                          "exposures": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "params": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "createdAt": {
+                                  "type": "string"
+                                },
+                                "gatewayId": {
+                                  "type": "string"
+                                },
+                                "renditions": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/Rendition"
+                                  }
+                                },
+                                "publisherDeviceId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "upstreamExposureId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "params",
+                                "id",
+                                "createdAt",
+                                "gatewayId",
+                                "renditions",
+                                "publisherDeviceId",
+                                "upstreamExposureId"
+                              ]
+                            }
+                          },
+                          "recorders": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "params": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "createdAt": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string"
+                                },
+                                "exposureId": {
+                                  "type": "string"
+                                },
+                                "rendition": {
+                                  "$ref": "#/components/schemas/Rendition"
+                                }
+                              },
+                              "required": [
+                                "params",
+                                "id",
+                                "createdAt",
+                                "kind",
+                                "exposureId",
+                                "rendition"
+                              ]
+                            }
                           }
                         },
                         "required": [
-                          "id",
                           "name",
+                          "id",
+                          "createdAt",
                           "sourceDeviceId",
-                          "createdAt"
+                          "exposures",
+                          "recorders"
                         ]
                       }
                     }
@@ -8780,6 +9096,98 @@
         ]
       }
     },
+    "/organisations/{id}/subjects/states": {
+      "get": {
+        "operationId": "organisations.subjects.states.list",
+        "x-operation-version": 1,
+        "summary": "List the organisation's subjects' current states",
+        "description": "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
+        "responses": {
+          "200": {
+            "description": "The states, by subject ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/State"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "network",
+                "device",
+                "agent",
+                "stream",
+                "exposure",
+                "external"
+              ]
+            },
+            "description": "Only subjects of this kind: the part of their ID before the colon."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
     "/organisations/{id}/subjects/{subjectId}/state": {
       "get": {
         "operationId": "organisations.subjects.state",
@@ -10229,7 +10637,7 @@
         "operationId": "deviceConfiguration.get",
         "x-operation-version": 1,
         "summary": "Read the signing device's configuration",
-        "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+        "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
         "responses": {
           "200": {
             "description": "The configuration",
@@ -10328,13 +10736,20 @@
                           "items": {
                             "$ref": "#/components/schemas/Publisher"
                           }
+                        },
+                        "stats": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/StatsConnect"
+                          }
                         }
                       },
                       "required": [
                         "state",
                         "mediamtx",
                         "paths",
-                        "publishers"
+                        "publishers",
+                        "stats"
                       ]
                     }
                   ]
@@ -19624,6 +20039,206 @@
               "error_description"
             ]
           },
+          "Stat": {
+            "type": "object",
+            "properties": {
+              "protocol": {
+                "type": "string",
+                "const": "moq"
+              },
+              "relay": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string"
+              },
+              "expiresAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "protocol",
+              "relay",
+              "path"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/gateways/{gatewayId}/stats": {
+          "post": {
+            "operationId": "organisations.gateways.stats.connect",
+            "x-operation-version": 1,
+            "summary": "Read a gateway's traffic stats",
+            "description": "Where to read what the gateway's relays carry of the organisation's broadcasts, with the short-lived, read-only credential that admits the caller there: dial `relay` at `path`, presenting `token` as the URL's `jwt` query parameter. Each relay node announces a broadcast beneath it, `node/<node>`, whose `subscriber.json` track holds what the node received and `publisher.json` what it sent, each a JSON object of cumulative counters (`bytes`, `frames`, `broadcasts_started`, `broadcasts_ended`, …) by broadcast path. Ask again before `expiresAt`. Only built-in MoQ relays publish stats. Members read, signed in, and the organisation's devices with an RFC 9421 HTTP Message Signature by their own identity.",
+            "responses": {
+              "200": {
+                "description": "Where to read the stats",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Stat"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "422": {
+                "description": "The gateway publishes no traffic stats through this API: only built-in MoQ relays do, and no organisation's own gateway",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable, or the gateway is not configured or cannot issue credentials right now",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "gatewayId",
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "conservationtv"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  ]
+                },
+                "required": true,
+                "description": "The gateway."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
           "Stream": {
             "type": "object",
             "properties": {
@@ -19632,10 +20247,13 @@
                 "items": {
                   "type": "object",
                   "properties": {
+                    "name": {
+                      "type": "string"
+                    },
                     "id": {
                       "type": "string"
                     },
-                    "name": {
+                    "createdAt": {
                       "type": "string"
                     },
                     "sourceDeviceId": {
@@ -19648,15 +20266,105 @@
                         }
                       ]
                     },
-                    "createdAt": {
-                      "type": "string"
+                    "exposures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "gatewayId": {
+                            "type": "string"
+                          },
+                          "renditions": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Rendition"
+                            }
+                          },
+                          "publisherDeviceId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "upstreamExposureId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "gatewayId",
+                          "renditions",
+                          "publisherDeviceId",
+                          "upstreamExposureId"
+                        ]
+                      }
+                    },
+                    "recorders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "exposureId": {
+                            "type": "string"
+                          },
+                          "rendition": {
+                            "$ref": "#/components/schemas/Rendition"
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "kind",
+                          "exposureId",
+                          "rendition"
+                        ]
+                      }
                     }
                   },
                   "required": [
-                    "id",
                     "name",
+                    "id",
+                    "createdAt",
                     "sourceDeviceId",
-                    "createdAt"
+                    "exposures",
+                    "recorders"
                   ]
                 }
               }
@@ -19673,10 +20381,10 @@
             "operationId": "organisations.streams.list",
             "x-operation-version": 1,
             "summary": "List an organisation's streams",
-            "description": "Empty for organisations you are not a member of.",
+            "description": "Each with its exposures and recorders, as `organisations.streams.get` reads one. Empty for organisations you are not a member of.",
             "responses": {
               "200": {
-                "description": "The streams, oldest first",
+                "description": "The streams, oldest first, each with its exposures and recorders, oldest first",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -22529,6 +23237,211 @@
               "error_description"
             ]
           },
+          "State": {
+            "type": "object",
+            "properties": {
+              "states": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "freshness": {
+                      "type": "string",
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "computedAt": {
+                      "type": "string"
+                    },
+                    "contributingReporterIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidenceReportIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "subjectId",
+                    "health",
+                    "state",
+                    "freshness",
+                    "observedAt",
+                    "expiresAt",
+                    "computedAt",
+                    "contributingReporterIds",
+                    "evidenceReportIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "states"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/states": {
+          "get": {
+            "operationId": "organisations.subjects.states.list",
+            "x-operation-version": 1,
+            "summary": "List the organisation's subjects' current states",
+            "description": "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
+            "responses": {
+              "200": {
+                "description": "The states, by subject ID",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/State"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "query",
+                "name": "kind",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "network",
+                    "device",
+                    "agent",
+                    "stream",
+                    "exposure",
+                    "external"
+                  ]
+                },
+                "description": "Only subjects of this kind: the part of their ID before the colon."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
           "Subject": {
             "type": "object",
             "properties": {
@@ -25049,6 +25962,21 @@
               "rendition",
               "path"
             ]
+          },
+          "StatsConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "gatewayId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "gatewayId"
+            ]
           }
         }
       },
@@ -25058,7 +25986,7 @@
             "operationId": "deviceConfiguration.get",
             "x-operation-version": 1,
             "summary": "Read the signing device's configuration",
-            "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+            "description": "What the signing device runs, derived from the topology whenever it asks. `state` is `idle` for a device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. It is `active` for a network's active agent, with the MediaMTX gateway on its network (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, and the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
             "responses": {
               "200": {
                 "description": "The configuration",
@@ -25157,13 +26085,20 @@
                               "items": {
                                 "$ref": "#/components/schemas/Publisher"
                               }
+                            },
+                            "stats": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/StatsConnect"
+                              }
                             }
                           },
                           "required": [
                             "state",
                             "mediamtx",
                             "paths",
-                            "publishers"
+                            "publishers",
+                            "stats"
                           ]
                         }
                       ]

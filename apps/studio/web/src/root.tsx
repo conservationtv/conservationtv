@@ -1,4 +1,4 @@
-import type { ReactNode, FC } from 'react';
+import { Suspense, type ReactNode, type FC } from 'react';
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { MotionConfig } from 'motion/react';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -11,16 +11,15 @@ import { Panel } from '@/components/common/panel';
 import { ThemeProvider } from '@/components/app/theme-provider';
 import { THEME_STORAGE_KEY, themeScript } from '@/hooks/use-theme';
 import { queryClient } from '@/lib/query-client';
-import { apiQueries } from '@/queries/api';
+import { apiHandshakeQueryOptions } from '@/queries/api';
 
 /**
- * Negotiate the SDK's operation versions before any route loads data. This is middleware rather than the root's
- * clientLoader because a route chain's loaders run in parallel, while middleware finishes before any of them starts.
- * Queries and mutations only run after the first navigation, so nothing else needs to wait for it.
+ * Negotiate the SDK's operation versions before any page reads data: middleware finishes before the route renders, so
+ * every page's queries and mutations run after it.
  */
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async (_args, next) => {
-    await queryClient.query({ ...apiQueries.handshake(), staleTime: 'static' });
+    await queryClient.query({ ...apiHandshakeQueryOptions(), staleTime: 'static' });
     await next();
   }
 ];
@@ -73,7 +72,10 @@ const App: FC = () => {
         <TooltipProvider>
           {/* Animations drop their movement for anyone who has asked their system for reduced motion. */}
           <MotionConfig reducedMotion="user">
-            <Outlet />
+            {/* Pages suspend while their queries load; a page wanting its own placeholder sets a boundary inside. */}
+            <Suspense fallback={<HydrateFallback />}>
+              <Outlet />
+            </Suspense>
           </MotionConfig>
         </TooltipProvider>
       </ThemeProvider>
@@ -84,7 +86,7 @@ const App: FC = () => {
 
 export default App;
 
-/** Shown from index.html until the app has loaded and the first route's clientLoader has finished. */
+/** Shown from index.html until the app has loaded, and while a page's first queries load. */
 export const HydrateFallback: FC = () => {
   return (
     // On the app's warm canvas, like the sign-in screens it usually hands over to.

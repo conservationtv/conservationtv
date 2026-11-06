@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, like, lt, sql } from 'drizzle-orm';
 import { logRecords, metricPoints, metricSeries, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 
@@ -42,6 +42,39 @@ export async function getSubjectState(organisationId: string, subjectId: string)
     .from(subjectStates)
     .where(and(eq(subjectStates.organisationId, organisationId), eq(subjectStates.subjectId, subjectId)));
   return row;
+}
+
+export interface SubjectStateFilter {
+  /** Only subjects of this kind: the part of their ID before the colon, such as `exposure`. */
+  kind?: string;
+}
+
+/**
+ * Every subject's combined state in the organisation, as the state consumer last derived it, by subject ID: one row per
+ * subject it has derived a state for.
+ */
+export function listSubjectStates(organisationId: string, filter: SubjectStateFilter) {
+  const db = useDB();
+  return db
+    .select({
+      subjectId: subjectStates.subjectId,
+      health: subjectStates.health,
+      state: subjectStates.state,
+      freshness: sql<'fresh' | 'stale'>`case when ${subjectStates.expiresAt} > now() then 'fresh' else 'stale' end`,
+      observedAt: subjectStates.observedAt,
+      expiresAt: subjectStates.expiresAt,
+      computedAt: subjectStates.computedAt,
+      contributingReporterIds: subjectStates.contributingReporterIds,
+      evidenceReportIds: subjectStates.evidenceReportIds
+    })
+    .from(subjectStates)
+    .where(
+      and(
+        eq(subjectStates.organisationId, organisationId),
+        filter.kind === undefined ? undefined : like(subjectStates.subjectId, `${filter.kind}:%`)
+      )
+    )
+    .orderBy(asc(subjectStates.subjectId));
 }
 
 /** Each reporter's opinion of the subject, oldest reporter first. */

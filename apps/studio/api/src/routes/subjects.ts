@@ -1,4 +1,4 @@
-import { SubjectIdSchema } from '@conservationtv/reports';
+import { SUBJECT_KINDS, SubjectIdSchema } from '@conservationtv/reports';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
@@ -13,7 +13,8 @@ import {
   listMetricPoints,
   listMetricSeries,
   listObservations,
-  listReporterOpinions
+  listReporterOpinions,
+  listSubjectStates
 } from '../services/subjects.ts';
 import {
   invalidRequest,
@@ -60,7 +61,39 @@ export type PointsQuery = z.output<typeof PointsQuerySchema>;
 // What devices report about a subject, in the principal's request session: members read it all (src/services/subjects.ts).
 // A subject is a string, so there is nothing to create or delete. Reports themselves are only ever written by signed
 // ingestion (/reports), and opinions and subject state by the state consumer.
+const SubjectKindSchema = z
+  .enum([...SUBJECT_KINDS, 'external'])
+  .describe('Only subjects of this kind: the part of their ID before the colon.');
+export type SubjectKind = z.output<typeof SubjectKindSchema>;
+
 export default new Hono()
+  .get(
+    '/states',
+    describeRoute({
+      operationId: 'organisations.subjects.states.list',
+      ...operationVersion(1),
+      summary: "List the organisation's subjects' current states",
+      description:
+        "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
+      responses: {
+        200: { description: 'The states, by subject ID' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    validator('query', z.object({ kind: SubjectKindSchema.optional() })),
+    async c => {
+      const { id } = c.req.valid('param');
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listSubjectStates(id, filter));
+      c.header('Cache-Control', 'no-store');
+      return c.json({ states: rows }, 200);
+    }
+  )
   .get(
     '/:subjectId/state',
     describeRoute({

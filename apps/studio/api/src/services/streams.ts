@@ -52,19 +52,32 @@ export interface RecorderChanges {
   params?: Settings;
 }
 
-/** The organisation's streams, oldest first. */
+/** The organisation's streams, oldest first, each with its exposures and recorders, oldest first. */
 export function listStreams(organisationId: string) {
   const db = useDB();
-  return db
-    .select({
-      id: streams.id,
-      name: streams.name,
-      sourceDeviceId: streams.sourceDeviceId,
-      createdAt: streams.createdAt
-    })
-    .from(streams)
-    .where(eq(streams.organisationId, organisationId))
-    .orderBy(streams.id);
+  return db.query.streams.findMany({
+    columns: { id: true, name: true, sourceDeviceId: true, createdAt: true },
+    with: {
+      exposures: {
+        columns: {
+          id: true,
+          gatewayId: true,
+          renditions: true,
+          publisherDeviceId: true,
+          upstreamExposureId: true,
+          params: true,
+          createdAt: true
+        },
+        orderBy: { id: 'asc' }
+      },
+      recorders: {
+        columns: { id: true, exposureId: true, rendition: true, kind: true, params: true, createdAt: true },
+        orderBy: { id: 'asc' }
+      }
+    },
+    where: { organisationId },
+    orderBy: { id: 'asc' }
+  });
 }
 
 /** The stream, if it is visible. */

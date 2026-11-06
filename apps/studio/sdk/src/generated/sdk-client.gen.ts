@@ -2,14 +2,14 @@
 
 import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient70 } from '../versions/deviceAddresses.replace-v1/sdk.gen.js';
-import { BaseClient as BaseClient69 } from '../versions/deviceConfiguration.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient71 } from '../versions/gatewayEndpoints.replace-v1/sdk.gen.js';
-import { BaseClient as BaseClient65 } from '../versions/invitations.accept-v1/sdk.gen.js';
-import { BaseClient as BaseClient66 } from '../versions/invitations.decline-v1/sdk.gen.js';
-import { BaseClient as BaseClient64 } from '../versions/invitations.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient63 } from '../versions/invitations.listMine-v1/sdk.gen.js';
-import { BaseClient as BaseClient68 } from '../versions/irohSessions.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient72 } from '../versions/deviceAddresses.replace-v1/sdk.gen.js';
+import { BaseClient as BaseClient71 } from '../versions/deviceConfiguration.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient73 } from '../versions/gatewayEndpoints.replace-v1/sdk.gen.js';
+import { BaseClient as BaseClient67 } from '../versions/invitations.accept-v1/sdk.gen.js';
+import { BaseClient as BaseClient68 } from '../versions/invitations.decline-v1/sdk.gen.js';
+import { BaseClient as BaseClient66 } from '../versions/invitations.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient65 } from '../versions/invitations.listMine-v1/sdk.gen.js';
+import { BaseClient as BaseClient70 } from '../versions/irohSessions.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient36 } from '../versions/organisations.agents.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient39 } from '../versions/organisations.agents.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient37 } from '../versions/organisations.agents.get-v1/sdk.gen.js';
@@ -34,6 +34,7 @@ import { BaseClient as BaseClient45 } from '../versions/organisations.gateways.d
 import { BaseClient as BaseClient42 } from '../versions/organisations.gateways.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient40 } from '../versions/organisations.gateways.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient43 } from '../versions/organisations.gateways.listEndpoints-v1/sdk.gen.js';
+import { BaseClient as BaseClient46 } from '../versions/organisations.gateways.stats.connect-v1/sdk.gen.js';
 import { BaseClient as BaseClient44 } from '../versions/organisations.gateways.update-v1/sdk.gen.js';
 import { BaseClient as BaseClient6 } from '../versions/organisations.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient16 } from '../versions/organisations.invitations.cancel-v1/sdk.gen.js';
@@ -51,26 +52,27 @@ import { BaseClient as BaseClient19 } from '../versions/organisations.networks.g
 import { BaseClient as BaseClient17 } from '../versions/organisations.networks.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient22 } from '../versions/organisations.networks.setActiveAgent-v1/sdk.gen.js';
 import { BaseClient as BaseClient20 } from '../versions/organisations.networks.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient47 } from '../versions/organisations.streams.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient50 } from '../versions/organisations.streams.delete-v1/sdk.gen.js';
-import { BaseClient as BaseClient54 } from '../versions/organisations.streams.exposures.connect-v1/sdk.gen.js';
-import { BaseClient as BaseClient51 } from '../versions/organisations.streams.exposures.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient53 } from '../versions/organisations.streams.exposures.delete-v1/sdk.gen.js';
-import { BaseClient as BaseClient52 } from '../versions/organisations.streams.exposures.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient48 } from '../versions/organisations.streams.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient46 } from '../versions/organisations.streams.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient55 } from '../versions/organisations.streams.recorders.create-v1/sdk.gen.js';
-import { BaseClient as BaseClient57 } from '../versions/organisations.streams.recorders.delete-v1/sdk.gen.js';
-import { BaseClient as BaseClient56 } from '../versions/organisations.streams.recorders.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient49 } from '../versions/organisations.streams.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient62 } from '../versions/organisations.subjects.logs.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient61 } from '../versions/organisations.subjects.metrics.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient60 } from '../versions/organisations.subjects.metrics.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient59 } from '../versions/organisations.subjects.observations.list-v1/sdk.gen.js';
-import { BaseClient as BaseClient58 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
+import { BaseClient as BaseClient48 } from '../versions/organisations.streams.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient51 } from '../versions/organisations.streams.delete-v1/sdk.gen.js';
+import { BaseClient as BaseClient55 } from '../versions/organisations.streams.exposures.connect-v1/sdk.gen.js';
+import { BaseClient as BaseClient52 } from '../versions/organisations.streams.exposures.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient54 } from '../versions/organisations.streams.exposures.delete-v1/sdk.gen.js';
+import { BaseClient as BaseClient53 } from '../versions/organisations.streams.exposures.update-v1/sdk.gen.js';
+import { BaseClient as BaseClient49 } from '../versions/organisations.streams.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient47 } from '../versions/organisations.streams.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient56 } from '../versions/organisations.streams.recorders.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient58 } from '../versions/organisations.streams.recorders.delete-v1/sdk.gen.js';
+import { BaseClient as BaseClient57 } from '../versions/organisations.streams.recorders.update-v1/sdk.gen.js';
+import { BaseClient as BaseClient50 } from '../versions/organisations.streams.update-v1/sdk.gen.js';
+import { BaseClient as BaseClient64 } from '../versions/organisations.subjects.logs.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient63 } from '../versions/organisations.subjects.metrics.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient62 } from '../versions/organisations.subjects.metrics.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient61 } from '../versions/organisations.subjects.observations.list-v1/sdk.gen.js';
+import { BaseClient as BaseClient60 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
+import { BaseClient as BaseClient59 } from '../versions/organisations.subjects.states.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient67 } from '../versions/reports.submit-v1/sdk.gen.js';
-import { BaseClient as BaseClient72 } from '../versions/whoami.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient69 } from '../versions/reports.submit-v1/sdk.gen.js';
+import { BaseClient as BaseClient74 } from '../versions/whoami.get-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -145,62 +147,68 @@ export class Client extends ClientCore {
             get: this.versioned('organisations.gateways.get', { v1: BaseClient42 }),
             listEndpoints: this.versioned('organisations.gateways.listEndpoints', { v1: BaseClient43 }),
             update: this.versioned('organisations.gateways.update', { v1: BaseClient44 }),
-            delete: this.versioned('organisations.gateways.delete', { v1: BaseClient45 })
+            delete: this.versioned('organisations.gateways.delete', { v1: BaseClient45 }),
+            stats: {
+                connect: this.versioned('organisations.gateways.stats.connect', { v1: BaseClient46 })
+            }
         },
         streams: {
-            list: this.versioned('organisations.streams.list', { v1: BaseClient46 }),
-            create: this.versioned('organisations.streams.create', { v1: BaseClient47 }),
-            get: this.versioned('organisations.streams.get', { v1: BaseClient48 }),
-            update: this.versioned('organisations.streams.update', { v1: BaseClient49 }),
-            delete: this.versioned('organisations.streams.delete', { v1: BaseClient50 }),
+            list: this.versioned('organisations.streams.list', { v1: BaseClient47 }),
+            create: this.versioned('organisations.streams.create', { v1: BaseClient48 }),
+            get: this.versioned('organisations.streams.get', { v1: BaseClient49 }),
+            update: this.versioned('organisations.streams.update', { v1: BaseClient50 }),
+            delete: this.versioned('organisations.streams.delete', { v1: BaseClient51 }),
             exposures: {
-                create: this.versioned('organisations.streams.exposures.create', { v1: BaseClient51 }),
-                update: this.versioned('organisations.streams.exposures.update', { v1: BaseClient52 }),
-                delete: this.versioned('organisations.streams.exposures.delete', { v1: BaseClient53 }),
-                connect: this.versioned('organisations.streams.exposures.connect', { v1: BaseClient54 })
+                create: this.versioned('organisations.streams.exposures.create', { v1: BaseClient52 }),
+                update: this.versioned('organisations.streams.exposures.update', { v1: BaseClient53 }),
+                delete: this.versioned('organisations.streams.exposures.delete', { v1: BaseClient54 }),
+                connect: this.versioned('organisations.streams.exposures.connect', { v1: BaseClient55 })
             },
             recorders: {
-                create: this.versioned('organisations.streams.recorders.create', { v1: BaseClient55 }),
-                update: this.versioned('organisations.streams.recorders.update', { v1: BaseClient56 }),
-                delete: this.versioned('organisations.streams.recorders.delete', { v1: BaseClient57 })
+                create: this.versioned('organisations.streams.recorders.create', { v1: BaseClient56 }),
+                update: this.versioned('organisations.streams.recorders.update', { v1: BaseClient57 }),
+                delete: this.versioned('organisations.streams.recorders.delete', { v1: BaseClient58 })
             }
         },
         subjects: {
-            state: this.versioned('organisations.subjects.state', { v1: BaseClient58 }),
+            states: {
+                list: this.versioned('organisations.subjects.states.list', { v1: BaseClient59 })
+            },
+            state: this.versioned('organisations.subjects.state', { v1: BaseClient60 }),
             observations: {
-                list: this.versioned('organisations.subjects.observations.list', { v1: BaseClient59 })
+                list: this.versioned('organisations.subjects.observations.list', { v1: BaseClient61 })
             },
             metrics: {
-                list: this.versioned('organisations.subjects.metrics.list', { v1: BaseClient60 }),
-                get: this.versioned('organisations.subjects.metrics.get', { v1: BaseClient61 })
+                list: this.versioned('organisations.subjects.metrics.list', { v1: BaseClient62 }),
+                get: this.versioned('organisations.subjects.metrics.get', { v1: BaseClient63 })
             },
             logs: {
-                list: this.versioned('organisations.subjects.logs.list', { v1: BaseClient62 })
+                list: this.versioned('organisations.subjects.logs.list', { v1: BaseClient64 })
             }
         }
     };
     readonly invitations = {
-        listMine: this.versioned('invitations.listMine', { v1: BaseClient63 }),
-        get: this.versioned('invitations.get', { v1: BaseClient64 }),
-        accept: this.versioned('invitations.accept', { v1: BaseClient65 }),
-        decline: this.versioned('invitations.decline', { v1: BaseClient66 })
+        listMine: this.versioned('invitations.listMine', { v1: BaseClient65 }),
+        get: this.versioned('invitations.get', { v1: BaseClient66 }),
+        accept: this.versioned('invitations.accept', { v1: BaseClient67 }),
+        decline: this.versioned('invitations.decline', { v1: BaseClient68 })
     };
     readonly reports = {
-        submit: this.versioned('reports.submit', { v1: BaseClient67 })
+        submit: this.versioned('reports.submit', { v1: BaseClient69 })
     };
     readonly irohSessions = {
-        create: this.versioned('irohSessions.create', { v1: BaseClient68 })
+        create: this.versioned('irohSessions.create', { v1: BaseClient70 })
     };
     readonly deviceConfiguration = {
-        get: this.versioned('deviceConfiguration.get', { v1: BaseClient69 })
+        get: this.versioned('deviceConfiguration.get', { v1: BaseClient71 })
     };
     readonly deviceAddresses = {
-        replace: this.versioned('deviceAddresses.replace', { v1: BaseClient70 })
+        replace: this.versioned('deviceAddresses.replace', { v1: BaseClient72 })
     };
     readonly gatewayEndpoints = {
-        replace: this.versioned('gatewayEndpoints.replace', { v1: BaseClient71 })
+        replace: this.versioned('gatewayEndpoints.replace', { v1: BaseClient73 })
     };
     readonly whoami = {
-        get: this.versioned('whoami.get', { v1: BaseClient72 })
+        get: this.versioned('whoami.get', { v1: BaseClient74 })
     };
 }

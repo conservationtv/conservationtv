@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query';
 
 import { isSignedInStandIn } from '@/lib/signed-in-stand-in';
 
@@ -16,6 +16,15 @@ const pins: Pin[] = [
   { to: '/account', label: 'Your settings' }
 ];
 
+/** The pins, after a stand-in pause; signed out, there's nothing to load, so the answer is known and doesn't wait. */
+const pinsStandInQueryOptions = (signedIn: boolean) =>
+  queryOptions<Pin[] | null>({
+    queryKey: ['about', 'pins-stand-in', signedIn] as const,
+    queryFn: () => new Promise(resolve => setTimeout(() => resolve(pins), DELAY_MS)),
+    initialData: signedIn ? undefined : null,
+    staleTime: Infinity
+  });
+
 /**
  * The signed-in person's pinned links, or null for anyone signed out. Whether someone is signed in is a local check, so
  * signed out it answers straight away; signed in, it suspends while the pins load (a stand-in pause). Settles once per
@@ -23,11 +32,6 @@ const pins: Pin[] = [
  */
 export function usePinsStandIn() {
   const signedIn = isSignedInStandIn();
-  return useSuspenseQuery<Pin[] | null>({
-    queryKey: ['about', 'pins-stand-in', signedIn] as const,
-    queryFn: () => new Promise(resolve => setTimeout(() => resolve(pins), DELAY_MS)),
-    // Signed out, there's nothing to load: the answer is already known, so it doesn't suspend.
-    initialData: signedIn ? undefined : null,
-    staleTime: Infinity
-  }).data;
+  const pinsQuery = useSuspenseQuery(pinsStandInQueryOptions(signedIn));
+  return pinsQuery.data;
 }

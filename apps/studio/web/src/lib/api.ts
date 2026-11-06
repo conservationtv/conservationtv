@@ -4,7 +4,7 @@ import { API_URL } from './auth-client';
 
 /**
  * The generated studio SDK, sending the session cookie. Versioned operations need the handshake, which the root
- * route's middleware completes before any loader runs; see apiQueries.handshake.
+ * route's middleware completes before any page renders; see apiHandshakeQueryOptions.
  */
 export const api = new Client({
   baseUrl: API_URL,

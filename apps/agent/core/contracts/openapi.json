@@ -828,6 +828,20 @@
                             ]
                           }
                         },
+                        "stats": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "connect": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "connect"
+                            ]
+                          }
+                        },
                         "gatewayId": {
                           "type": "string"
                         },
@@ -872,7 +886,8 @@
                       },
                       "required": [
                         "paths",
-                        "publishers"
+                        "publishers",
+                        "stats"
                       ]
                     },
                     "metrics": {
@@ -1848,6 +1863,20 @@
                       ]
                     }
                   },
+                  "stats": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "connect": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "connect"
+                      ]
+                    }
+                  },
                   "gatewayId": {
                     "type": "string"
                   },
@@ -1892,7 +1921,8 @@
                 },
                 "required": [
                   "paths",
-                  "publishers"
+                  "publishers",
+                  "stats"
                 ]
               },
               "metrics": {
