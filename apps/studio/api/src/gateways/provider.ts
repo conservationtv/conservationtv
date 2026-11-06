@@ -20,15 +20,18 @@ export type ConnectionAction = z.output<typeof ConnectionActionSchema>;
 export type Carriage = 'paths' | 'tracks';
 type Carriages<Protocol extends string> = Readonly<Record<Protocol, Carriage>>;
 
-/** Connecting to a MoQ relay: dial `relay` at `path`, presenting `token`. */
+/** Connecting to a MoQ relay: dial `relay` at `path`, presenting `token` as `?jwt=`. */
 export interface MoqConnection {
   protocol: 'moq';
   relay: string;
-  /** Where on the relay the exposure's broadcasts are, which the token is scoped to: dial `relay` at it. */
+  /**
+   * Where on the relay to dial: where the exposure's broadcasts are, which the token is scoped to, or on a relay that
+   * reads its credential from the path (Cloudflare's), the credential itself.
+   */
   path: string;
   /** The exposure's broadcast under `path`, whose catalogue lists every rendition as a track. */
   broadcast: string;
-  /** Absent when the relay admits every connection. */
+  /** Absent when the relay admits every connection, or reads its credential from `path`. */
   token?: string;
   /** When the token stops admitting connections; ask again before then. */
   expiresAt?: string;
@@ -151,6 +154,14 @@ interface OrganisationProviderDefinition<
 > extends ProviderDefinition<Ingest, Egress, z.output<SettingsSchema>> {
   /** What an organisation registers a gateway of this kind with, checked whenever its settings change. */
   settings: SettingsSchema;
+  /** Releases what the provider made for a gateway, once it is removed: absent when it made nothing. */
+  retire?: (gateway: RetiredGateway) => Promise<void>;
+}
+
+/** A gateway that has been removed. */
+export interface RetiredGateway {
+  organisationId: string;
+  id: string;
 }
 
 interface BuiltinProviderDefinition<
@@ -175,6 +186,8 @@ export interface GatewayProvider {
 export interface OrganisationProvider extends GatewayProvider {
   /** Refuses settings a gateway of this kind cannot be registered with, as `invalid_settings`. */
   checkSettings: (settings: Settings) => void;
+  /** Absent when the provider makes nothing for a gateway. */
+  retire?: (gateway: RetiredGateway) => Promise<void>;
 }
 
 export interface BuiltinProvider<Kind extends string = string> extends GatewayProvider {
@@ -219,11 +232,12 @@ export const provider = {
   organisation<const Ingest extends string, const Egress extends string, SettingsSchema extends z.ZodType>(
     definition: OrganisationProviderDefinition<Ingest, Egress, SettingsSchema>
   ): OrganisationProvider {
-    const { name, ingest, egress, settings: schema } = definition;
+    const { name, ingest, egress, settings: schema, retire } = definition;
     return {
       name,
       ingest,
       egress,
+      retire,
       checkSettings: settings => {
         const parsed = schema.safeParse(settings);
         if (!parsed.success) throw new ApiFailure('invalid_settings', { cause: parsed.error });

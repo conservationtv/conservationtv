@@ -57,7 +57,7 @@ export class Gateways extends HeyApiClient {
         id: string;
         gatewayId: 'conservationtv' | string;
         name?: string;
-        kind?: 'mediamtx';
+        kind?: 'mediamtx' | 'cloudflare-moq';
         networkId?: string | null;
         settings?: {
             [key: string]: Schema0;

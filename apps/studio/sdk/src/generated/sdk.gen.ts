@@ -784,7 +784,7 @@ export class Gateways extends HeyApiClient {
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         name: string;
-        kind: 'mediamtx';
+        kind: 'mediamtx' | 'cloudflare-moq';
         networkId?: string | null;
         settings?: {
             [key: string]: Schema0;
@@ -852,7 +852,7 @@ export class Gateways extends HeyApiClient {
         id: string;
         gatewayId: 'conservationtv' | string;
         name?: string;
-        kind?: 'mediamtx';
+        kind?: 'mediamtx' | 'cloudflare-moq';
         networkId?: string | null;
         settings?: {
             [key: string]: Schema0;

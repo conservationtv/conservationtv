@@ -1,5 +1,7 @@
+import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
 import type { Settings } from '../topology/settings.ts';
+import { cloudflareMoq } from './cloudflare-moq.ts';
 import { conservationtv } from './conservationtv.ts';
 import { mediamtx } from './mediamtx.ts';
 import type { GatewayProvider, OrganisationProvider } from './provider.ts';
@@ -13,7 +15,10 @@ import type { GatewayProvider, OrganisationProvider } from './provider.ts';
 export const BUILTIN_GATEWAYS = { conservationtv };
 
 /** The kinds of gateway organisations register, by kind: the only kinds there are. */
-export const GATEWAY_KINDS = { mediamtx } satisfies Record<string, OrganisationProvider>;
+export const GATEWAY_KINDS = { mediamtx, 'cloudflare-moq': cloudflareMoq } satisfies Record<
+  string,
+  OrganisationProvider
+>;
 
 /** An object's keys, as the non-empty tuple `z.enum` takes. */
 function keysOf<Registry extends Record<string, GatewayProvider>>(registry: Registry) {
@@ -53,6 +58,21 @@ export function gatewayProvider(gatewayId: string, kind: string): GatewayProvide
 export function checkGatewaySettings(kind: string, settings: Settings) {
   const provider = gatewayKind(kind);
   provider.checkSettings(settings);
+}
+
+/**
+ * Releases what an organisation's gateway's provider made for it, once the gateway is removed, in the background: a
+ * failure is logged, and leaves behind only what the provider would have released.
+ */
+export function retireGateway(organisationId: string, gatewayId: string, kind: string) {
+  if (!Object.hasOwn(GATEWAY_KINDS, kind)) return;
+  const provider = gatewayKind(kind);
+  if (provider.retire === undefined) return;
+  const environment = useEnvironment();
+  const retiring = provider.retire({ organisationId, id: gatewayId }).catch(error => {
+    console.warn(JSON.stringify({ event: 'gateway_retire_failed', gatewayId, kind, cause: String(error) }));
+  });
+  environment.background(retiring);
 }
 
 /** A built-in gateway as the gateway routes return it, in the shape of an organisation's own. */

@@ -34,7 +34,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway implementation, such as `mediamtx`.
          */
-        kind?: 'mediamtx';
+        kind?: 'mediamtx' | 'cloudflare-moq';
         /**
          * A network of the organisation, or null for the internet.
          */

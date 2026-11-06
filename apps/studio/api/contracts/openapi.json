@@ -6343,7 +6343,8 @@
                   "kind": {
                     "type": "string",
                     "enum": [
-                      "mediamtx"
+                      "mediamtx",
+                      "cloudflare-moq"
                     ],
                     "description": "The gateway implementation, such as `mediamtx`."
                   },
@@ -6753,7 +6754,8 @@
                   "kind": {
                     "type": "string",
                     "enum": [
-                      "mediamtx"
+                      "mediamtx",
+                      "cloudflare-moq"
                     ],
                     "description": "The gateway implementation, such as `mediamtx`."
                   },
@@ -19296,7 +19298,8 @@
                       "kind": {
                         "type": "string",
                         "enum": [
-                          "mediamtx"
+                          "mediamtx",
+                          "cloudflare-moq"
                         ],
                         "description": "The gateway implementation, such as `mediamtx`."
                       },
@@ -20031,7 +20034,8 @@
                       "kind": {
                         "type": "string",
                         "enum": [
-                          "mediamtx"
+                          "mediamtx",
+                          "cloudflare-moq"
                         ],
                         "description": "The gateway implementation, such as `mediamtx`."
                       },

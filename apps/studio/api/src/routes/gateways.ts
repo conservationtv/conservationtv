@@ -4,7 +4,13 @@ import { z } from 'zod';
 import { transaction } from '../db/transaction.ts';
 import { connectStats } from '../gateways/connect.ts';
 import { ApiFailure } from '../errors.ts';
-import { BUILTIN_GATEWAY_IDS, builtinGateways, GATEWAY_KIND_IDS, isBuiltinGateway } from '../gateways/index.ts';
+import {
+  BUILTIN_GATEWAY_IDS,
+  builtinGateways,
+  GATEWAY_KIND_IDS,
+  isBuiltinGateway,
+  retireGateway
+} from '../gateways/index.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
 import { listGatewayEndpoints } from '../services/gateway-endpoints.ts';
 import { createGateway, deleteGateway, getGateway, listGateways, updateGateway } from '../services/gateways.ts';
@@ -234,7 +240,8 @@ export default new Hono()
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
-      await transaction(() => deleteGateway(id, gatewayId));
+      const removed = await transaction(() => deleteGateway(id, gatewayId));
+      retireGateway(id, removed.id, removed.kind);
       return c.body(null, 204);
     }
   )

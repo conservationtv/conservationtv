@@ -101,23 +101,25 @@ update its own row; a different account's row is simply absent. Only Better Auth
 `authorization.access(admin)`, and a request that never grants opens no admin connection. Umbrella needs two database roles, so there are two Hyperdrive
 bindings:
 
-| Binding                | Kind       | Purpose                                                                                                              |
-| ---------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
-| `HYPERDRIVE_ADMIN`     | Hyperdrive | the owning role: migrations, Better Auth, grants                                                                     |
-| `HYPERDRIVE_APP`       | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                                                     |
-| `CACHE`                | KV         | the key-value cache: device request nonces                                                                           |
-| `BETTER_AUTH_SECRET`   | secret     | Better Auth's signing secret                                                                                         |
-| `FIELD_KEY`            | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
-| `APP_URL`              | text       | where the API is served; Better Auth's base URL                                                                      |
-| `WEB_ORIGINS`          | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` and is the passkey relying party |
-| `OTP_DELIVERY`         | text       | `log` only, see above                                                                                                |
-| `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
-| `GATEKEEPER_TOKEN`     | secret     | that control plane environment's token for this consumer, whose MoQ paths it places beneath the consumer's namespace |
-| `GATEWAY_DOMAIN`       | text       | optional: the zone MediaMTX gateways get hostnames and certificates in, see below                                    |
-| `CLOUDFLARE_ZONE_ID`   | text       | with `GATEWAY_DOMAIN`: its Cloudflare zone                                                                           |
-| `CLOUDFLARE_API_TOKEN` | secret     | with `GATEWAY_DOMAIN`: a token that may edit that zone's DNS records                                                 |
-| `ACME_DIRECTORY_URL`   | text       | with `GATEWAY_DOMAIN`: the ACME directory certificates come from (Let's Encrypt)                                     |
-| `ACME_ACCOUNT_KEY`     | secret     | with `GATEWAY_DOMAIN`: the ACME account key, one ES256 JWK with its private `d`                                      |
+| Binding                     | Kind       | Purpose                                                                                                              |
+| --------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `HYPERDRIVE_ADMIN`          | Hyperdrive | the owning role: migrations, Better Auth, grants                                                                     |
+| `HYPERDRIVE_APP`            | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                                                     |
+| `CACHE`                     | KV         | the key-value cache: device request nonces                                                                           |
+| `BETTER_AUTH_SECRET`        | secret     | Better Auth's signing secret                                                                                         |
+| `FIELD_KEY`                 | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
+| `APP_URL`                   | text       | where the API is served; Better Auth's base URL                                                                      |
+| `WEB_ORIGINS`               | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` and is the passkey relying party |
+| `OTP_DELIVERY`              | text       | `log` only, see above                                                                                                |
+| `GATEKEEPER_URL`            | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
+| `GATEKEEPER_TOKEN`          | secret     | that control plane environment's token for this consumer, whose MoQ paths it places beneath the consumer's namespace |
+| `GATEWAY_DOMAIN`            | text       | optional: the zone MediaMTX gateways get hostnames and certificates in, see below                                    |
+| `CLOUDFLARE_ZONE_ID`        | text       | with `GATEWAY_DOMAIN`: its Cloudflare zone                                                                           |
+| `CLOUDFLARE_API_TOKEN`      | secret     | with `GATEWAY_DOMAIN`: a token that may edit that zone's DNS records                                                 |
+| `ACME_DIRECTORY_URL`        | text       | with `GATEWAY_DOMAIN`: the ACME directory certificates come from (Let's Encrypt)                                     |
+| `ACME_ACCOUNT_KEY`          | secret     | with `GATEWAY_DOMAIN`: the ACME account key, one ES256 JWK with its private `d`                                      |
+| `CLOUDFLARE_MOQ_ACCOUNT_ID` | text       | optional: the Cloudflare account `cloudflare-moq` gateways get their relays in; unset, they admit no one             |
+| `CLOUDFLARE_MOQ_API_TOKEN`  | secret     | with `CLOUDFLARE_MOQ_ACCOUNT_ID`: an account API token that may manage its MoQ relays                                |
 
 The application role is `studio_app` in every environment, created by the `application_role` migration. Locally,
 `docker/init.sql` creates it as a login role first; deployed, PlanetScale's login role is made a member of it (see
@@ -271,8 +273,8 @@ organisation revokes every grant at it. Device routes run their queries with
 ### Gateways and exposures
 
 A `gateway` is somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` is one
-of the gateway providers (`src/gateways/`): only `mediamtx` so far, on a network, which that network's active agent
-runs, so it fails over with the agent. The provider decides how a publisher delivers to it (its ingest protocols) and
+of the gateway providers (`src/gateways/`): `mediamtx`, on a network, which that network's active agent runs, so it
+fails over with the agent; or `cloudflare-moq`, on the internet, a Cloudflare MoQ relay of its own (see below). The provider decides how a publisher delivers to it (its ingest protocols) and
 how readers read it (its egress protocols), and the `settings` it is registered with, such as where its servers
 listen (422 `invalid_settings` otherwise).
 
@@ -302,6 +304,25 @@ Readers choose a protocol when they connect (`…/exposures/{exposureId}/connect
 protocols. One that carries a rendition per connection (RTSP, WebRTC, HLS: each a MediaMTX path of its own,
 `{exposureId}/{rendition}`) needs one chosen when the exposure offers several (422 `rendition_required`); MoQ carries
 every rendition as a track of one broadcast. Publishers connect the same way, by an ingest protocol.
+
+#### Cloudflare MoQ gateways
+
+A `cloudflare-moq` gateway is a [Cloudflare MoQ relay](https://developers.cloudflare.com/moq/) in the deployment's
+account (`CLOUDFLARE_MOQ_ACCOUNT_ID`), published to and read by MoQ like the built-in `conservationtv` relay, and
+registered with no settings. Cloudflare's tokens admit a session to a whole relay, are minted only by Cloudflare (at
+most 10 per relay) and travel as the URL's path, so `src/gateways/cloudflare-moq.ts`:
+
+- makes each gateway a relay of its own, `ctv-<gateway>`, the first time anyone connects to it, and deletes it (in the
+  background) when the gateway is removed;
+- keeps two tokens per gateway in `cloudflare_moq_relay`, encrypted: publish-and-subscribe for its publishers,
+  subscribe-only for its readers, each living a day and replaced once half of that is gone, and revokes any other
+  token on the relay, or one that has expired;
+- answers `connect` with the draft-16 relay URL as `relay`, the token as `path` and no `token`, and the exposure's
+  broadcast as `<exposure>/live.hang`, beside its rendition broadcasts `<exposure>/<rendition>`.
+
+Cloudflare's relays speak IETF moq-transport (draft-14 and draft-16), which the agent's moq CLI and `@moq/net`
+negotiate; they publish no traffic stats. A reader holds a relay-wide token until it expires, so removing a member
+takes up to a day to lock them out. Changing a gateway's kind away from `cloudflare-moq` leaves its relay behind.
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
 for it.

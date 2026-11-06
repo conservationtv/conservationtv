@@ -20,10 +20,10 @@ export interface MediamtxListening {
 
 /**
  * An exposure the agent publishes to a MoQ relay, from renditions its own MediaMTX serves. Each rendition is a
- * broadcast of its own under the exposure's path, which MediaMTX runs the moq CLI for, pulling it over RTMP from
+ * broadcast of its own beside the joined one (`renditionBroadcast`), which MediaMTX runs the moq CLI for, pulling it over RTMP from
  * loopback. The agent joins them (joiner.ts) into the one broadcast readers watch, whose catalog names each rendition's
- * tracks in its own broadcast. `connect` carries its token as `?jwt=`, so new credentials are a changed config, which
- * restarts the CLI.
+ * tracks in its own broadcast. `connect` carries its token (as `?jwt=`, or as its path on Cloudflare's relays), so new
+ * credentials are a changed config, which restarts the CLI.
  */
 export const MoqPublisherSchema = PublisherSchema.extend({
   /** The relay URL to dial, with the exposure's path and token, in place of the `connect` ask it came from. */
@@ -32,6 +32,16 @@ export const MoqPublisherSchema = PublisherSchema.extend({
   broadcast: z.string().min(1)
 }).strict();
 export type MoqPublisher = z.output<typeof MoqPublisherSchema>;
+
+/**
+ * A rendition's own broadcast: beside the joined one, so the joined catalog's `./<rendition>` names it. Under the
+ * relay path, that is the rendition alone where the joined broadcast is `live.hang`, and `<exposure>/<rendition>` on a
+ * relay whose path names no exposure, such as Cloudflare's, where it is `<exposure>/live.hang`.
+ */
+export function renditionBroadcast(publisher: Pick<MoqPublisher, 'broadcast'>, rendition: string): string {
+  const slash = publisher.broadcast.lastIndexOf('/');
+  return slash === -1 ? rendition : `${publisher.broadcast.slice(0, slash + 1)}${rendition}`;
+}
 
 /** The exposures MediaMTX publishes, and the moq CLI, installed, that they run. */
 export interface MoqPublishing {
