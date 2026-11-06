@@ -18,13 +18,13 @@ export interface MetricSeriesFilter {
   name?: string;
 }
 
-/** A time range, read in buckets of `step` seconds. */
 /** Which series to read across subjects: those of any of these metrics about any of these subjects. */
 export interface MetricQuery {
   subjectIds: string[];
   names: string[];
 }
 
+/** A time range, read in buckets of `step` seconds. */
 export interface BucketRange {
   from: Date;
   to: Date;
@@ -196,41 +196,15 @@ export async function getMetricSeries(organisationId: string, subjectId: string,
   return row;
 }
 
-/**
- * The series' points in the range, oldest first, in buckets of `step` seconds: each bucket's least and greatest
- * values, the mean weighted by samples, the last value and how many samples it summarises. A bucket with no points is
- * absent.
- */
-export function listMetricPoints(organisationId: string, seriesId: string, range: BucketRange) {
-  const db = useDB();
-  // `step` is an integer, written into the query so GROUP BY can match the bucket expression.
-  const step = sql.raw(String(Math.trunc(range.step)));
-  const bucket = sql`time_bucket(make_interval(secs => ${step}), ${metricPoints.observedAt})`;
-  return db
-    .select({
-      at: bucket.mapWith(metricPoints.observedAt),
-      min: sql<number>`min(${metricPoints.min})`,
-      max: sql<number>`max(${metricPoints.max})`,
-      avg: sql<number>`sum(${metricPoints.avg} * ${metricPoints.count}) / sum(${metricPoints.count})`,
-      last: sql<number>`last(${metricPoints.last}, ${metricPoints.observedAt})`,
-      count: sql<number>`sum(${metricPoints.count})::integer`
-    })
-    .from(metricPoints)
-    .where(
-      and(
-        eq(metricPoints.organisationId, organisationId),
-        eq(metricPoints.seriesId, seriesId),
-        gte(metricPoints.observedAt, range.from),
-        lt(metricPoints.observedAt, range.to)
-      )
-    )
-    .groupBy(bucket)
-    .orderBy(bucket);
+/** The series' points in the range, oldest first, bucketed as `bucketedPoints` buckets them. */
+export async function listMetricPoints(organisationId: string, seriesId: string, range: BucketRange) {
+  const points = await bucketedPoints(organisationId, [seriesId], range);
+  return points.get(seriesId) ?? [];
 }
 
 /**
  * The series of any of the metrics about any of the subjects, each with its points in the range as
- * `listMetricPoints` buckets them: by subject, name, then oldest first.
+ * `bucketedPoints` buckets them: by subject, name, then oldest first.
  */
 export async function queryMetrics(organisationId: string, query: MetricQuery, range: BucketRange) {
   const db = useDB();
@@ -262,9 +236,14 @@ export async function queryMetrics(organisationId: string, query: MetricQuery, r
   return series.map(row => ({ ...row, points: points.get(row.id) ?? [] }));
 }
 
-/** Every one of the series' points in the range, bucketed as `listMetricPoints` does, by series. */
+/**
+ * The series' points in the range, by series, each oldest first in buckets of `step` seconds: each bucket's least and
+ * greatest values, the mean weighted by samples, the last value and how many samples it summarises. A bucket with no
+ * points is absent.
+ */
 async function bucketedPoints(organisationId: string, seriesIds: string[], range: BucketRange) {
   const db = useDB();
+  // `step` is an integer, written into the query so GROUP BY can match the bucket expression.
   const step = sql.raw(String(Math.trunc(range.step)));
   const bucket = sql`time_bucket(make_interval(secs => ${step}), ${metricPoints.observedAt})`;
   const rows = await db

@@ -233,7 +233,8 @@ function metricsOf(samples: ExposureSamples): Metric[] {
 
 /**
  * Follow the stats at `url` into `counters`: every node's broadcast announced beneath it, until stopped. A node's
- * counters are kept by the relay it is on and its path, so a renewed token's connection continues them.
+ * counters are kept by the relay it is on and its path, so a renewed token's connection continues them; a node no
+ * longer followed, retracted or with its source stopped, leaves them.
  */
 function followStats(url: string, counters: Counters): () => void {
   const effect = new Moq.Signals.Effect();
@@ -264,15 +265,22 @@ function followStats(url: string, counters: Counters): () => void {
   return () => effect.close();
 }
 
-/** Follow one node's broadcast: each role's track into `counters`, for as long as the broadcast is there. */
+/**
+ * Follow one node's broadcast: each role's track into `counters`, for as long as the broadcast is there. Stopped, it
+ * takes the node's counters with it, unless another follower of the node (a renewed token's) has written them since.
+ */
 function followNode(consumed: Moq.Origin.Producer, path: Moq.Path.Valid, node: string, counters: Counters): () => void {
   const effect = new Moq.Signals.Effect();
   const request = consumed.request(path, { announced: true });
-  effect.cleanup(() => request.close());
+  const roles = new Map<Role, Traffic>();
+  effect.cleanup(() => {
+    request.close();
+    if (counters.get(node) === roles) counters.delete(node);
+  });
   effect.run(following => {
     const active = following.get(request.active);
     if (active === undefined) return;
-    for (const role of ROLES) following.spawn(() => followRole(following, active, role, node, counters));
+    for (const role of ROLES) following.spawn(() => followRole(following, active, role, node, roles, counters));
   });
   return () => effect.close();
 }
@@ -283,11 +291,11 @@ async function followRole(
   broadcast: Moq.Broadcast.Consumer,
   role: Role,
   node: string,
+  roles: Map<Role, Traffic>,
   counters: Counters
 ): Promise<void> {
   for (;;) {
     await readTraffic(following, broadcast, role, traffic => {
-      const roles = counters.get(node) ?? new Map<Role, Traffic>();
       roles.set(role, traffic);
       counters.set(node, roles);
     });
