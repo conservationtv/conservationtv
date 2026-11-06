@@ -32,7 +32,7 @@ cli.use(async (context, next) => {
 const token = process.env.GATEKEEPER_TOKEN;
 const client = () =>
   new Client({
-    baseUrl: process.env.GATEKEEPER_URL ?? 'http://localhost:5176',
+    baseUrl: process.env.GATEKEEPER_URL ?? 'http://localhost:6422',
     auth: token === undefined ? undefined : bearer(token)
   });
 await buildCli(cli, client).serve();

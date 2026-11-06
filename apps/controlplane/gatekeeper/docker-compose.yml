@@ -1,5 +1,5 @@
 # Local stand-ins: Postgres for the PlanetScale database production reaches through Hyperdrive, and (with the `relays`
-# profile, `pnpm local:up`) the MoQ and Iroh relays, calling back to the gatekeeper dev server on the host's :5176.
+# profile, `pnpm local:up`) the MoQ and Iroh relays, calling back to the gatekeeper dev server on the host's :6422.
 # Their credentials are the local ones in .dev.vars.example.
 services:
   postgres:
@@ -54,7 +54,7 @@ services:
     profiles: [relays]
     image: alpine/socat:1.8.1.3
     network_mode: service:moq-relay
-    command: ['TCP-LISTEN:4440,fork,reuseaddr,bind=127.0.0.1', 'TCP:host.docker.internal:5176']
+    command: ['TCP-LISTEN:4440,fork,reuseaddr,bind=127.0.0.1', 'TCP:host.docker.internal:6422']
 
 volumes:
   gatekeeper-postgres-18:

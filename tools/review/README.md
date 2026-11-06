@@ -61,14 +61,14 @@ Changes are taken only from this site's own pages (their `Origin`), and only on 
 
 The OAuth app is `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, with its callback URL at
 `https://review.tools.conservation.tv/api/auth/callback`. GitHub sends only to the callback URL it has, so signing in
-locally needs a second app whose callback is `http://localhost:5177/api/auth/callback`. Without them the tool only
+locally needs a second app whose callback is `http://localhost:6423/api/auth/callback`. Without them the tool only
 reads.
 
 ## Development
 
 ```sh
 cp .dev.vars.example .dev.vars   # and set GITHUB_TOKEN and the OAuth app's, or leave them empty
-pnpm dev                         # http://localhost:5177
+pnpm dev                         # http://localhost:6423
 pnpm typecheck
 ```
 

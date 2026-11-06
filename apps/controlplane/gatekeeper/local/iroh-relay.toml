@@ -6,4 +6,4 @@ enable_quic_addr_discovery = false
 enable_metrics = false
 
 [access.http]
-url = "http://host.docker.internal:5176/relays/iroh/admission"
+url = "http://host.docker.internal:6422/relays/iroh/admission"

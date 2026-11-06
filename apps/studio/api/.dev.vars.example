@@ -22,9 +22,9 @@ GATEKEEPER_TOKEN=local-consumer-token
 
 # Text bindings are not read from this file: override the checked-in development defaults from the environment,
 # e.g. `APP_URL=… pnpm dev`.
-# APP_URL=http://localhost:5175
-# WEB_ORIGINS=http://localhost:5173
-# GATEKEEPER_URL=http://localhost:5176
+# APP_URL=http://localhost:6421
+# WEB_ORIGINS=http://localhost:6420
+# GATEKEEPER_URL=http://localhost:6422
 # OTP_DELIVERY=log
 # GATEWAY_DOMAIN=conservationtv.net
 # CLOUDFLARE_ZONE_ID=…
