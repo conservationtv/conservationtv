@@ -10,7 +10,8 @@ export const GatewayUpdateV1ParamsSchema = z.object({
     name: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.name.optional().describe('The gateway name.'),
     kind: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.kind.optional().describe('The gateway implementation, such as `mediamtx`.'),
     networkId: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    settings: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.'),
+    credentials: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.credentials.optional()
 });
 
 export type GatewayUpdateV1Params = z.infer<typeof GatewayUpdateV1ParamsSchema>;

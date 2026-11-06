@@ -18,6 +18,7 @@ import { type MediamtxListening, MoqPublisherSchema, renderConfig } from './conf
 import { isMediamtxAlive } from './control.ts';
 import { type EndpointRegistration, type RealisedEndpoint, realisedEndpoints } from './endpoints.ts';
 import { BroadcastJoiner } from './joiner.ts';
+import { installWebTransport } from './webtransport.ts';
 import { RelayTrafficReporter } from './relay-traffic.ts';
 import type { AgentConfiguration } from '../../config.ts';
 import { MediamtxPathsSchema } from './paths.ts';
@@ -123,6 +124,8 @@ export class MediamtxRuntime {
       { key: installed.id, binary: installed.path, args: [this.configFile], cwd: directory },
       signal
     );
+    // Before anything dials a relay, so the joiner and the stats followers reach relays that take only WebTransport.
+    await installWebTransport();
     this.joiner.set(spec.publishers);
     this.traffic.set(
       spec.stats.map(({ connect }) => connect),

@@ -493,8 +493,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('create', { description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.' }).command('v1', {
-        description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.',
+    })).command(Cli.create('create', { description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, the `settings` it is registered with, and the `credentials`, never returned, it authenticates to the service behind it with, such as a `cloudflare-moq` gateway\'s API token, which that service is asked to accept.' }).command('v1', {
+        description: 'Add a gateway\n\nAdministrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, the `settings` it is registered with, and the `credentials`, never returned, it authenticates to the service behind it with, such as a `cloudflare-moq` gateway\'s API token, which that service is asked to accept.',
         options: cliOptions(GatewayCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -529,8 +529,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.' }).command('v1', {
-        description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.',
+    })).command(Cli.create('update', { description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind, as are `credentials` (`null` clears them; credentials are never returned). A new `kind` takes only the credentials given with it.' }).command('v1', {
+        description: 'Update a gateway\n\nAdministrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind, as are `credentials` (`null` clears them; credentials are never returned). A new `kind` takes only the credentials given with it.',
         options: cliOptions(GatewayUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

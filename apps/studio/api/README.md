@@ -271,8 +271,8 @@ organisation revokes every grant at it. Device routes run their queries with
 ### Gateways and exposures
 
 A `gateway` is somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` is one
-of the gateway providers (`src/gateways/`): only `mediamtx` so far, on a network, which that network's active agent
-runs, so it fails over with the agent. The provider decides how a publisher delivers to it (its ingest protocols) and
+of the gateway providers (`src/gateways/`): `mediamtx`, on a network, which that network's active agent runs, so it
+fails over with the agent; or `cloudflare-moq`, on the internet, a Cloudflare MoQ relay in the organisation's own account (see below). The provider decides how a publisher delivers to it (its ingest protocols) and
 how readers read it (its egress protocols), and the `settings` it is registered with, such as where its servers
 listen (422 `invalid_settings` otherwise).
 
@@ -302,6 +302,44 @@ Readers choose a protocol when they connect (`…/exposures/{exposureId}/connect
 protocols. One that carries a rendition per connection (RTSP, WebRTC, HLS: each a MediaMTX path of its own,
 `{exposureId}/{rendition}`) needs one chosen when the exposure offers several (422 `rendition_required`); MoQ carries
 every rendition as a track of one broadcast. Publishers connect the same way, by an ingest protocol.
+
+#### Cloudflare MoQ gateways
+
+A `cloudflare-moq` gateway is a [Cloudflare MoQ relay](https://developers.cloudflare.com/moq/) in the organisation's
+own Cloudflare account. It is published to and read by MoQ, like the built-in `conservationtv` relay. The organisation
+makes and manages the relay in Cloudflare itself; this API only mints tokens for it. An administrator registers the
+gateway with:
+
+- `settings: { accountId, relayId }`;
+- `credentials: { apiToken }`, an account API token that may manage MoQ relays.
+
+The API checks the token by listing the relay's tokens, and refuses one Cloudflare rejects with 422
+`invalid_credentials`.
+
+Cloudflare's tokens work differently from gatekeeper's: they admit a session to a whole relay, only Cloudflare can mint
+them (at most 10 per relay), and they travel as the URL's path. So `src/gateways/cloudflare-moq.ts`:
+
+- **Tokens.** Keeps two tokens in the gateway's `provider_state`, encrypted: publish+subscribe for its publishers, and
+  subscribe-only for its readers. Each lives a day and is replaced once half of that is gone. Its tokens are labelled
+  `ctv-*`, and only those are revoked, once expired. The organisation's own tokens on the relay are left alone, but they
+  count against its 10.
+- **Connecting.** Answers `connect` with:
+  - `relay`: the draft-16 relay URL;
+  - `path`: the token, with no separate `token` field;
+  - `broadcast`: `<exposure>/live.hang`, beside the rendition broadcasts `<exposure>/<rendition>`.
+
+Organisations are kept apart by their own accounts. Within a gateway, its exposures share one relay, so a device
+publishing one of them could publish over another's broadcasts. A gateway's publishers are trusted with each other's
+exposures.
+
+A reader keeps a relay-wide token until it expires, so a removed member can be locked out only after up to a day.
+
+Changing a gateway's kind, settings or credentials clears its `provider_state`, so fresh tokens are minted for whatever
+relay it then names. Tokens already minted stay valid until they expire. Removing a gateway leaves its relay as it is.
+
+Cloudflare's relays speak IETF moq-transport (draft-14 and draft-16), which the agent's moq CLI and `@moq/net`
+negotiate. They publish no traffic stats. They refuse WebSocket, so the agent's joiner reaches them only through its
+HTTP/3 WebTransport polyfill, which the Alpine agent image lacks.
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
 for it.

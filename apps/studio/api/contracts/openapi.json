@@ -65,6 +65,37 @@
           }
         ]
       },
+      "__schema1": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema1"
+            }
+          },
+          {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema1"
+            }
+          }
+        ]
+      },
       "Rendition": {
         "type": "string",
         "enum": [
@@ -6201,7 +6232,7 @@
         "operationId": "organisations.gateways.create",
         "x-operation-version": 1,
         "summary": "Add a gateway",
-        "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.",
+        "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, the `settings` it is registered with, and the `credentials`, never returned, it authenticates to the service behind it with, such as a `cloudflare-moq` gateway's API token, which that service is asked to accept.",
         "responses": {
           "201": {
             "description": "The new gateway",
@@ -6294,7 +6325,7 @@
             }
           },
           "422": {
-            "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
+            "description": "The network does not exist or belongs to another organisation, or the settings or credentials are not what the gateway's kind takes",
             "content": {
               "application/json": {
                 "schema": {
@@ -6343,7 +6374,8 @@
                   "kind": {
                     "type": "string",
                     "enum": [
-                      "mediamtx"
+                      "mediamtx",
+                      "cloudflare-moq"
                     ],
                     "description": "The gateway implementation, such as `mediamtx`."
                   },
@@ -6372,6 +6404,17 @@
                       "$ref": "#/components/schemas/__schema0"
                     },
                     "description": "Settings validated by the implementation that reads them."
+                  },
+                  "credentials": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/__schema1"
+                    },
+                    "description": "Secrets validated by the gateway's kind; written, never returned."
                   }
                 },
                 "required": [
@@ -6580,7 +6623,7 @@
         "operationId": "organisations.gateways.update",
         "x-operation-version": 1,
         "summary": "Update a gateway",
-        "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.",
+        "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind, as are `credentials` (`null` clears them; credentials are never returned). A new `kind` takes only the credentials given with it.",
         "responses": {
           "200": {
             "description": "The updated gateway",
@@ -6683,7 +6726,7 @@
             }
           },
           "422": {
-            "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
+            "description": "The network does not exist or belongs to another organisation, or the settings or credentials are not what the gateway's kind takes",
             "content": {
               "application/json": {
                 "schema": {
@@ -6753,7 +6796,8 @@
                   "kind": {
                     "type": "string",
                     "enum": [
-                      "mediamtx"
+                      "mediamtx",
+                      "cloudflare-moq"
                     ],
                     "description": "The gateway implementation, such as `mediamtx`."
                   },
@@ -6780,6 +6824,24 @@
                       "$ref": "#/components/schemas/__schema0"
                     },
                     "description": "Settings validated by the implementation that reads them."
+                  },
+                  "credentials": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/components/schemas/__schema1"
+                        },
+                        "description": "Secrets validated by the gateway's kind; written, never returned."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "additionalProperties": false
@@ -19133,6 +19195,37 @@
               }
             ]
           },
+          "__schema1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/__schema1"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/__schema1"
+                }
+              }
+            ]
+          },
           "Gateway": {
             "type": "object",
             "properties": {
@@ -19184,7 +19277,7 @@
             "operationId": "organisations.gateways.create",
             "x-operation-version": 1,
             "summary": "Add a gateway",
-            "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.",
+            "description": "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, the `settings` it is registered with, and the `credentials`, never returned, it authenticates to the service behind it with, such as a `cloudflare-moq` gateway's API token, which that service is asked to accept.",
             "responses": {
               "201": {
                 "description": "The new gateway",
@@ -19237,7 +19330,7 @@
                 }
               },
               "422": {
-                "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
+                "description": "The network does not exist or belongs to another organisation, or the settings or credentials are not what the gateway's kind takes",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -19296,7 +19389,8 @@
                       "kind": {
                         "type": "string",
                         "enum": [
-                          "mediamtx"
+                          "mediamtx",
+                          "cloudflare-moq"
                         ],
                         "description": "The gateway implementation, such as `mediamtx`."
                       },
@@ -19325,6 +19419,17 @@
                           "$ref": "#/components/schemas/__schema0"
                         },
                         "description": "Settings validated by the implementation that reads them."
+                      },
+                      "credentials": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "additionalProperties": {
+                          "$ref": "#/components/schemas/__schema1"
+                        },
+                        "description": "Secrets validated by the gateway's kind; written, never returned."
                       }
                     },
                     "required": [
@@ -19837,6 +19942,37 @@
               }
             ]
           },
+          "__schema1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/__schema1"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/__schema1"
+                }
+              }
+            ]
+          },
           "Gateway": {
             "type": "object",
             "properties": {
@@ -19888,7 +20024,7 @@
             "operationId": "organisations.gateways.update",
             "x-operation-version": 1,
             "summary": "Update a gateway",
-            "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.",
+            "description": "Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind, as are `credentials` (`null` clears them; credentials are never returned). A new `kind` takes only the credentials given with it.",
             "responses": {
               "200": {
                 "description": "The updated gateway",
@@ -19951,7 +20087,7 @@
                 }
               },
               "422": {
-                "description": "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads",
+                "description": "The network does not exist or belongs to another organisation, or the settings or credentials are not what the gateway's kind takes",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -20031,7 +20167,8 @@
                       "kind": {
                         "type": "string",
                         "enum": [
-                          "mediamtx"
+                          "mediamtx",
+                          "cloudflare-moq"
                         ],
                         "description": "The gateway implementation, such as `mediamtx`."
                       },
@@ -20058,6 +20195,24 @@
                           "$ref": "#/components/schemas/__schema0"
                         },
                         "description": "Settings validated by the implementation that reads them."
+                      },
+                      "credentials": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string",
+                              "maxLength": 120
+                            },
+                            "additionalProperties": {
+                              "$ref": "#/components/schemas/__schema1"
+                            },
+                            "description": "Secrets validated by the gateway's kind; written, never returned."
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     },
                     "additionalProperties": false

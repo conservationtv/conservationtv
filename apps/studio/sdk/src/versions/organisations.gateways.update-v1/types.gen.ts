@@ -13,6 +13,10 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
 
+export type Schema1 = string | number | boolean | null | Array<Schema1> | {
+    [key: string]: Schema1;
+};
+
 export type Gateway = {
     id: string;
     builtin: boolean;
@@ -34,7 +38,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         /**
          * The gateway implementation, such as `mediamtx`.
          */
-        kind?: 'mediamtx';
+        kind?: 'mediamtx' | 'cloudflare-moq';
         /**
          * A network of the organisation, or null for the internet.
          */
@@ -45,6 +49,9 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdData = {
         settings?: {
             [key: string]: Schema0;
         };
+        credentials?: {
+            [key: string]: Schema1;
+        } | null;
     };
     path: {
         /**
@@ -82,7 +89,7 @@ export type PatchOrganisationsByIdGatewaysByGatewayIdErrors = {
      */
     412: Error;
     /**
-     * The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads
+     * The network does not exist or belongs to another organisation, or the settings or credentials are not what the gateway's kind takes
      */
     422: Error;
     /**

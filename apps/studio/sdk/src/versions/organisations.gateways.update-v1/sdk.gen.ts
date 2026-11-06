@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, Schema0 } from './types.gen.js';
+import type { PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, Schema0, Schema1 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -51,17 +51,20 @@ export class Gateways extends HeyApiClient {
     /**
      * Update a gateway
      *
-     * Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.
+     * Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind, as are `credentials` (`null` clears them; credentials are never returned). A new `kind` takes only the credentials given with it.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         gatewayId: 'conservationtv' | string;
         name?: string;
-        kind?: 'mediamtx';
+        kind?: 'mediamtx' | 'cloudflare-moq';
         networkId?: string | null;
         settings?: {
             [key: string]: Schema0;
         };
+        credentials?: {
+            [key: string]: Schema1;
+        } | null;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
@@ -69,7 +72,8 @@ export class Gateways extends HeyApiClient {
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'settings' }
+                    { in: 'body', key: 'settings' },
+                    { in: 'body', key: 'credentials' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdGatewaysByGatewayIdErrors, ThrowOnError>({
             url: '/organisations/{id}/gateways/{gatewayId}',

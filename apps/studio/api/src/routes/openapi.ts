@@ -28,7 +28,7 @@ export const invalidReference = errorResponse(
   'A referenced resource does not exist, is not visible to this account, or belongs to another organisation'
 );
 export const invalidGateway = errorResponse(
-  "The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads"
+  "The network does not exist or belongs to another organisation, or the settings or credentials are not what the gateway's kind takes"
 );
 export const invalidExposureReference = errorResponse(
   'A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not'

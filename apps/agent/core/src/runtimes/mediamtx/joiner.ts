@@ -1,13 +1,13 @@
 import { getLogger } from '@logtape/logtape';
 import * as Moq from '@moq/net';
 import { z } from 'zod';
-import type { MoqPublisher } from './config.ts';
+import { renditionBroadcast, type MoqPublisher } from './config.ts';
 
 const logger = getLogger(['agent', 'mediamtx', 'joiner']);
 
-// Each rendition of a published exposure is a broadcast of its own under the exposure's path, which the moq CLI
-// publishes (config.ts): `{organisation}/{exposure}/{rendition}`. Readers watch one broadcast, `{exposure path}/live.hang`,
-// so the agent publishes that too, with nothing in it but a catalog joining the renditions': each of its tracks is
+// Each rendition of a published exposure is a broadcast of its own, which the moq CLI publishes beside the one readers
+// watch (config.ts): `{rendition}` beside `live.hang` under the exposure's path on the conservation.tv relay, and
+// `{exposure}/{rendition}` beside `{exposure}/live.hang` on a Cloudflare relay. The agent publishes the watched one too, with nothing in it but a catalog joining the renditions': each of its tracks is
 // listed where it already is, by its rendition's broadcast (`broadcast`, relative to the joined broadcast), so no media
 // passes through the agent, and the audio, the same in every rendition, only once.
 //
@@ -85,10 +85,10 @@ const RESUBSCRIBE_MS = 1_000;
 function followCatalog(
   effect: Moq.Signals.Effect,
   consumed: Moq.Origin.Producer,
-  rendition: string
+  broadcast: string
 ): Moq.Signals.Getter<Catalog | undefined> {
   const latest = new Moq.Signals.Signal<Catalog | undefined>(undefined);
-  const request = consumed.request(Moq.Path.from(rendition), { announced: true });
+  const request = consumed.request(Moq.Path.from(broadcast), { announced: true });
   effect.cleanup(() => request.close());
   effect.run(following => {
     const active = following.get(request.active);
@@ -184,10 +184,10 @@ function joinBroadcast(publisher: MoqPublisher): () => void {
   });
 
   // In the publisher's order, so the joined catalog lists the renditions as it does.
-  const followed = publisher.renditions.map(({ rendition }) => ({
-    rendition,
-    catalog: followCatalog(effect, consumed, rendition)
-  }));
+  const followed = publisher.renditions.map(({ rendition }) => {
+    const broadcast = renditionBroadcast(publisher, rendition);
+    return { rendition, catalog: followCatalog(effect, consumed, broadcast) };
+  });
   writeCatalog(effect, broadcast.createTrack(CATALOG_TRACK), watching =>
     joinCatalogs(
       followed.flatMap(({ rendition, catalog }) => {

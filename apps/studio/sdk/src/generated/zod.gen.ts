@@ -15,6 +15,14 @@ export const Schema0Schema = z.union([
     z.record(z.string(), z.lazy((): any => Schema0Schema))
 ]).nullable();
 
+export const Schema1Schema = z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.array(z.lazy((): any => Schema1Schema)),
+    z.record(z.string(), z.lazy((): any => Schema1Schema))
+]).nullable();
+
 /**
  * A quality the stream is delivered at.
  */
@@ -1174,13 +1182,16 @@ export const PostOrganisationsByIdGatewaysBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The gateway name.'
     }),
-    kind: z.enum(['mediamtx']).register(z.globalRegistry, {
+    kind: z.enum(['mediamtx', 'cloudflare-moq']).register(z.globalRegistry, {
         description: 'The gateway implementation, such as `mediamtx`.'
     }),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
     settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
         description: 'Settings validated by the implementation that reads them.'
-    }).optional().default({})
+    }).optional().default({}),
+    credentials: z.record(z.string(), Schema1Schema).register(z.globalRegistry, {
+        description: 'Secrets validated by the gateway\'s kind; written, never returned.'
+    }).optional()
 });
 
 export const PostOrganisationsByIdGatewaysPathSchema = z.object({
@@ -1259,13 +1270,16 @@ export const PatchOrganisationsByIdGatewaysByGatewayIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The gateway name.'
     }).optional(),
-    kind: z.enum(['mediamtx']).register(z.globalRegistry, {
+    kind: z.enum(['mediamtx', 'cloudflare-moq']).register(z.globalRegistry, {
         description: 'The gateway implementation, such as `mediamtx`.'
     }).optional(),
     networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     settings: z.record(z.string(), Schema0Schema).register(z.globalRegistry, {
         description: 'Settings validated by the implementation that reads them.'
-    }).optional()
+    }).optional(),
+    credentials: z.record(z.string(), Schema1Schema).register(z.globalRegistry, {
+        description: 'Secrets validated by the gateway\'s kind; written, never returned.'
+    }).nullish()
 });
 
 export const PatchOrganisationsByIdGatewaysByGatewayIdPathSchema = z.object({

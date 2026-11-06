@@ -1,5 +1,6 @@
 import { ApiFailure } from '../errors.ts';
-import type { Settings } from '../topology/settings.ts';
+import type { Credentials, Settings } from '../topology/settings.ts';
+import { cloudflareMoq } from './cloudflare-moq.ts';
 import { conservationtv } from './conservationtv.ts';
 import { mediamtx } from './mediamtx.ts';
 import type { GatewayProvider, OrganisationProvider } from './provider.ts';
@@ -13,7 +14,10 @@ import type { GatewayProvider, OrganisationProvider } from './provider.ts';
 export const BUILTIN_GATEWAYS = { conservationtv };
 
 /** The kinds of gateway organisations register, by kind: the only kinds there are. */
-export const GATEWAY_KINDS = { mediamtx } satisfies Record<string, OrganisationProvider>;
+export const GATEWAY_KINDS = { mediamtx, 'cloudflare-moq': cloudflareMoq } satisfies Record<
+  string,
+  OrganisationProvider
+>;
 
 /** An object's keys, as the non-empty tuple `z.enum` takes. */
 function keysOf<Registry extends Record<string, GatewayProvider>>(registry: Registry) {
@@ -53,6 +57,15 @@ export function gatewayProvider(gatewayId: string, kind: string): GatewayProvide
 export function checkGatewaySettings(kind: string, settings: Settings) {
   const provider = gatewayKind(kind);
   provider.checkSettings(settings);
+}
+
+/**
+ * Refuses credentials an organisation's gateway of this kind cannot authenticate with (`invalid_credentials`), or a
+ * kind there is no provider for (`unsupported_gateway`). Its settings must already have been checked.
+ */
+export function checkGatewayCredentials(kind: string, settings: Settings, credentials: Credentials | null) {
+  const provider = gatewayKind(kind);
+  return provider.checkCredentials(settings, credentials);
 }
 
 /** A built-in gateway as the gateway routes return it, in the shape of an organisation's own. */

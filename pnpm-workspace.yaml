@@ -44,6 +44,9 @@ allowBuilds:
   better-sqlite3: false
   cpu-features: false
   esbuild: true
+  # The agent's HTTP/3 WebTransport (apps/agent/core/src/runtimes/mediamtx/webtransport.ts): its install fetches the
+  # prebuilt addon, or builds it where there is none, and fails without harm where it cannot, being optional.
+  '@fails-components/webtransport-transport-http3-quiche': true
   protobufjs: true
   ssh2: false
   workerd: true
