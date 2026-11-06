@@ -8,7 +8,8 @@ export const CameraUpdateV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
     settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
-    credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional()
+    credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional(),
+    state: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.state.optional().describe('Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.')
 });
 
 export type CameraUpdateV1Params = z.infer<typeof CameraUpdateV1ParamsSchema>;

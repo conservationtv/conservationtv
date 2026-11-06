@@ -361,8 +361,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('create', { description: 'Add a camera\n\nAdministrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.' }).command('v1', {
-        description: 'Add a camera\n\nAdministrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.',
+    })).command(Cli.create('create', { description: 'Add a camera\n\nAdministrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams. It starts `enabled` unless a `state` is given.' }).command('v1', {
+        description: 'Add a camera\n\nAdministrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams. It starts `enabled` unless a `state` is given.',
         options: cliOptions(CameraCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -397,8 +397,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('update', { description: 'Update a camera\n\nAdministrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.' }).command('v1', {
-        description: 'Update a camera\n\nAdministrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.',
+    })).command(Cli.create('update', { description: 'Update a camera\n\nAdministrators only. Replaces its `settings` whole, its `credentials` when given (`null` clears them; credentials are never returned), and its `state`. Its name and network are changed under `/devices`, with the same ID.' }).command('v1', {
+        description: 'Update a camera\n\nAdministrators only. Replaces its `settings` whole, its `credentials` when given (`null` clears them; credentials are never returned), and its `state`. Its name and network are changed under `/devices`, with the same ID.',
         options: cliOptions(CameraUpdateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

@@ -19,6 +19,7 @@ export type Camera = {
         driver: 'rtsp';
         url: string;
     };
+    state: 'enabled' | 'locked' | 'disabled';
     device: {
         name: string;
         createdAt: string;
@@ -46,6 +47,10 @@ export type PatchOrganisationsByIdCamerasByCameraIdData = {
             username: string;
             password: string;
         } | null;
+        /**
+         * Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.
+         */
+        state?: 'enabled' | 'locked' | 'disabled';
     };
     path: {
         /**

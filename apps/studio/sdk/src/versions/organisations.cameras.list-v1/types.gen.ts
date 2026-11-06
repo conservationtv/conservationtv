@@ -20,6 +20,7 @@ export type Camera = {
             driver: 'rtsp';
             url: string;
         };
+        state: 'enabled' | 'locked' | 'disabled';
         device: {
             name: string;
             createdAt: string;

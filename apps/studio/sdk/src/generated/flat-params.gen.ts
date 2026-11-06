@@ -201,7 +201,8 @@ export const CameraCreateParamsSchema = z.object({
     name: PostOrganisationsByIdCamerasBodySchema.shape.name.nonoptional().describe('The device name.'),
     networkId: PostOrganisationsByIdCamerasBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
     settings: PostOrganisationsByIdCamerasBodySchema.shape.settings.nonoptional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
-    credentials: PostOrganisationsByIdCamerasBodySchema.shape.credentials.optional().describe('How to authenticate to the camera. Write-only: never returned.')
+    credentials: PostOrganisationsByIdCamerasBodySchema.shape.credentials.optional().describe('How to authenticate to the camera. Write-only: never returned.'),
+    state: PostOrganisationsByIdCamerasBodySchema.shape.state.optional().describe('Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.')
 });
 
 export type CameraCreateParams = z.infer<typeof CameraCreateParamsSchema>;
@@ -224,7 +225,8 @@ export const CameraUpdateParamsSchema = z.object({
     id: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     cameraId: PatchOrganisationsByIdCamerasByCameraIdPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
     settings: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.settings.optional().describe('What the camera is registered with: its `driver`, and what that driver reads.'),
-    credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional()
+    credentials: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.credentials.optional(),
+    state: PatchOrganisationsByIdCamerasByCameraIdBodySchema.shape.state.optional().describe('Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.')
 });
 
 export type CameraUpdateParams = z.infer<typeof CameraUpdateParamsSchema>;

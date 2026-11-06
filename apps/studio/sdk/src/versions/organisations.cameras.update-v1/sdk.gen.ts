@@ -51,7 +51,7 @@ export class Cameras extends HeyApiClient {
     /**
      * Update a camera
      *
-     * Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.
+     * Administrators only. Replaces its `settings` whole, its `credentials` when given (`null` clears them; credentials are never returned), and its `state`. Its name and network are changed under `/devices`, with the same ID.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -68,12 +68,14 @@ export class Cameras extends HeyApiClient {
             username: string;
             password: string;
         } | null;
+        state?: 'enabled' | 'locked' | 'disabled';
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'cameraId' },
                     { in: 'body', key: 'settings' },
-                    { in: 'body', key: 'credentials' }
+                    { in: 'body', key: 'credentials' },
+                    { in: 'body', key: 'state' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, ThrowOnError>({
             url: '/organisations/{id}/cameras/{cameraId}',

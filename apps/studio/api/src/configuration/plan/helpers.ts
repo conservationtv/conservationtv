@@ -81,7 +81,7 @@ export function selectStreams(agentId: string, gatewayId: string) {
     with: {
       sourceDevice: {
         columns: { kind: true },
-        with: { camera: { columns: { settings: true, credentials: true } } }
+        with: { camera: { columns: { settings: true, credentials: true, state: true } } }
       },
       exposures: {
         columns: { id: true, gatewayId: true, upstreamExposureId: true, renditions: true },

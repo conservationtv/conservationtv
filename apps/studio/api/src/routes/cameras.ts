@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
 import { CameraCredentialsSchema, CameraSettingsSchema } from '../cameras/drivers.ts';
+import { CAMERA_STATES } from '../cameras/states.ts';
 import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
@@ -26,6 +27,10 @@ const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisat
 export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 const CameraParamsSchema = OrganisationParamsSchema.extend({ cameraId: z.uuid().describe('The camera.') });
 export type CameraParams = z.output<typeof CameraParamsSchema>;
+const CameraStateSchema = z
+  .enum(CAMERA_STATES)
+  .describe('Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.');
+export type CameraState = z.output<typeof CameraStateSchema>;
 
 // An organisation's cameras, in the principal's request session: members read them, administrators manage them. A
 // camera is a device (src/db/schemas/cameras.ts): it is created and removed with its device, and its device's name and
@@ -62,7 +67,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Add a camera',
       description:
-        'Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.',
+        'Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams. It starts `enabled` unless a `state` is given.',
       responses: {
         201: { description: 'The new camera' },
         400: invalidRequest,
@@ -81,7 +86,8 @@ export default new Hono()
         name: DeviceNameSchema,
         networkId: NetworkReferenceSchema.default(null),
         settings: CameraSettingsSchema,
-        credentials: CameraCredentialsSchema.optional()
+        credentials: CameraCredentialsSchema.optional(),
+        state: CameraStateSchema.default('enabled')
       })
     ),
     async c => {
@@ -92,7 +98,11 @@ export default new Hono()
       const row = await trustedTransaction(async () => {
         await requireDevicePermission(id, principal.id, 'create');
         const device = await createDevice(id, { kind: 'camera', name: body.name, networkId: body.networkId });
-        await createCamera(id, device.id, { settings: body.settings, credentials: body.credentials });
+        await createCamera(id, device.id, {
+          settings: body.settings,
+          credentials: body.credentials,
+          state: body.state
+        });
         const camera = await getCamera(id, device.id);
         return camera!;
       });
@@ -132,7 +142,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a camera',
       description:
-        'Administrators only. Replaces its `settings` whole, and its `credentials` when given (`null` clears them); credentials are never returned. Its name and network are changed under `/devices`, with the same ID.',
+        'Administrators only. Replaces its `settings` whole, its `credentials` when given (`null` clears them; credentials are never returned), and its `state`. Its name and network are changed under `/devices`, with the same ID.',
       responses: {
         200: { description: 'The updated camera' },
         400: invalidRequest,
@@ -150,7 +160,8 @@ export default new Hono()
       z
         .strictObject({
           settings: CameraSettingsSchema.optional(),
-          credentials: CameraCredentialsSchema.nullable().optional()
+          credentials: CameraCredentialsSchema.nullable().optional(),
+          state: CameraStateSchema.optional()
         })
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
     ),

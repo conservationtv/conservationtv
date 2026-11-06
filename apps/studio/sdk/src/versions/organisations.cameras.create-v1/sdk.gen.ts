@@ -51,7 +51,7 @@ export class Cameras extends HeyApiClient {
     /**
      * Add a camera
      *
-     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams.
+     * Administrators only. Creates the camera’s device, with a new Ed25519 identity, and the camera: its `settings` name the driver that reads it, and its `credentials`, never returned, how to authenticate to its streams. It starts `enabled` unless a `state` is given.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -69,13 +69,15 @@ export class Cameras extends HeyApiClient {
             username: string;
             password: string;
         };
+        state?: 'enabled' | 'locked' | 'disabled';
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'networkId' },
                     { in: 'body', key: 'settings' },
-                    { in: 'body', key: 'credentials' }
+                    { in: 'body', key: 'credentials' },
+                    { in: 'body', key: 'state' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdCamerasErrors, ThrowOnError>({
             url: '/organisations/{id}/cameras',
