@@ -1,6 +1,6 @@
 import type { CodeViewItem, DiffLineAnnotation, FileDiffMetadata, SelectedLineRange } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions } from '@pierre/diffs/react';
-import { useMemo, useRef, useState, type FC, type ReactNode, type RefObject } from 'react';
+import { useRef, useState, type FC, type ReactNode, type RefObject } from 'react';
 import type { Review, ReviewFile } from '../../shared/review.ts';
 import { fullDiff, isBinary, isMoved, loadSides } from '../diffs.ts';
 import type { Drafts } from '../drafts.ts';
@@ -77,8 +77,8 @@ interface DiffListProps {
 export const DiffList: FC<DiffListProps> = props => {
   const { review, entries, viewer, viewed, drafts, diffStyle, wrap, header, footer } = props;
   const [states, setStates] = useState<Record<string, EntryState>>({});
-  const threads = useMemo(() => Map.groupBy(review.threads, thread => thread.path), [review.threads]);
-  const pending = useMemo(() => Map.groupBy(drafts.all, draft => draft.path), [drafts.all]);
+  const threads = Map.groupBy(review.threads, thread => thread.path);
+  const pending = Map.groupBy(drafts.all, draft => draft.path);
   const signedIn = Boolean(useSession()?.viewer);
   // The comment being written, and what is written of it: kept here, as its line can scroll out of view and back.
   const [target, setTarget] = useState<LineTarget | null>(null);

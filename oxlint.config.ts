@@ -1,8 +1,29 @@
 import { defineConfig } from 'oxlint';
 
+/**
+ * React Compiler (both React apps' vite.config.ts) memoises components, values and callbacks itself, so hand-written
+ * memoisation only adds dependency lists to keep right. Banning the named imports also refuses `import * as React`,
+ * so house code imports React's exports by name; the property ban catches `React.useMemo` through a default import.
+ */
+const compilerMemoisation = {
+  names: ['useMemo', 'useCallback', 'memo'],
+  message: 'React Compiler memoises for you: write the plain value, function or component instead.'
+};
+
+const restrictedMemoisation = {
+  name: 'react',
+  importNames: compilerMemoisation.names,
+  message: compilerMemoisation.message
+};
+
 /** The repository's own style and the anti-slop checks, for code written here. */
 const houseRules = {
   'init-declarations': ['error', 'always'],
+  'no-restricted-imports': ['error', { paths: [restrictedMemoisation] }],
+  'no-restricted-properties': [
+    'error',
+    ...compilerMemoisation.names.map(property => ({ object: 'React', property, message: compilerMemoisation.message }))
+  ],
   complexity: ['error', 10],
   'house/no-inline-object-type': 'error',
   'house/no-nullish-assignment': 'error',
@@ -43,6 +64,32 @@ const vendoredFiles = [
   'apps/studio/web/src/components/blocks/**',
   'apps/studio/web/src/components/app/theme-provider.tsx'
 ];
+
+/**
+ * The studio web app reads data by suspending: each query is a module-level `…QueryOptions` function with a literal
+ * key, read at render with the suspense hooks under a Suspense boundary, independent ones together in
+ * `useSuspenseQueries`; pages take their IDs from their `params` prop and export no loaders. Any other way in (a
+ * non-suspense hook, a loader) is an exception that needs explicit approval, recorded on its disable comment.
+ */
+const studioWebDataRules = {
+  'no-restricted-imports': [
+    'error',
+    {
+      paths: [
+        restrictedMemoisation,
+        {
+          name: '@tanstack/react-query',
+          importNames: ['useQuery', 'useQueries', 'useInfiniteQuery'],
+          message:
+            'Suspend instead: useSuspenseQuery, useSuspenseQueries or useSuspenseInfiniteQuery under a Suspense boundary. Anything else needs explicit approval.'
+        }
+      ]
+    }
+  ],
+  'house/no-route-loader': 'error',
+  'house/parallel-suspense-queries': 'error',
+  'house/query-options-declaration': 'error'
+} as const;
 
 /** The React apps and the components they share. */
 const reactFiles = ['apps/studio/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}', 'tools/review/src/app/**/*.{ts,tsx}'];
@@ -103,6 +150,8 @@ export default defineConfig({
   ],
   rules: houseRules,
   overrides: [
+    // Before the vendored files' override, which switches house rules off again for the copied-in shadcn code.
+    { files: ['apps/studio/web/src/**/*.{ts,tsx}'], rules: studioWebDataRules },
     { files: vendoredFiles, rules: withoutHouseRules },
     {
       // The rules of eslint-plugin-react-hooks' `recommended-latest` (hooks and React Compiler) and
