@@ -163,31 +163,6 @@ grant insert, delete on "camera" to "studio_app";
 --> statement-breakpoint
 grant update ("settings", "credentials", "state") on "camera" to "studio_app";
 --> statement-breakpoint
-alter table "cloudflare_moq_relay" enable row level security;
---> statement-breakpoint
-create function "authz:cloudflareMoqRelays:select:0"()
-    returns setof uuid language sql stable security definer set search_path = pg_catalog, public, pg_temp as $authz$ select case when "authz_role_assignments"."scope_name" = 'organisation'
-    then "authz_role_assignments"."scope_id"::uuid end from "authz_role_assignments" where "authz_role_assignments"."principal_kind" = current_setting('authz.principal_kind', true) and "authz_role_assignments"."principal_id" = current_setting('authz.principal_id', true)
-    and (("authz_role_assignments"."starts_at" is null or "authz_role_assignments"."starts_at" <= statement_timestamp()) and
-    ("authz_role_assignments"."expires_at" is null or "authz_role_assignments"."expires_at" > statement_timestamp())) and "authz_role_assignments"."scope_name" = 'organisation'
-    and ("authz_role_assignments"."resource", "authz_role_assignments"."role") in (('cloudflareMoqRelays', 'reader'), ('@shared', 'organisationMember'), ('@shared', 'organisationAdmin')) $authz$;
---> statement-breakpoint
-create policy "authz_select" on "cloudflare_moq_relay" for select using (("organisation_id" = any(array(select "authz:cloudflareMoqRelays:select:0"()))));
---> statement-breakpoint
-create function "authz:cloudflareMoqRelays:immutable"() returns trigger language plpgsql as $authz$
-    begin
-      if coalesce(current_setting('authz.principal_kind', true), '') <> '' and (new."organisation_id" is distinct from old."organisation_id") then
-        raise exception 'Immutable access column on %', tg_table_name using errcode = '42501';
-      end if;
-      return new;
-    end $authz$;
---> statement-breakpoint
-create trigger "authz_immutable" before update on "cloudflare_moq_relay" for each row execute function "authz:cloudflareMoqRelays:immutable"();
---> statement-breakpoint
-revoke all on "cloudflare_moq_relay" from "studio_app";
---> statement-breakpoint
-grant select ("organisation_id", "gateway_id", "relay_id", "publish_expires_at", "subscribe_expires_at", "created_at") on "cloudflare_moq_relay" to "studio_app";
---> statement-breakpoint
 alter table "device_address" enable row level security;
 --> statement-breakpoint
 create function "authz:deviceAddresses:select:0"()
@@ -425,11 +400,11 @@ create trigger "authz_immutable" before update on "gateway" for each row execute
 --> statement-breakpoint
 revoke all on "gateway" from "studio_app";
 --> statement-breakpoint
-grant select on "gateway" to "studio_app";
+grant select ("id", "organisation_id", "name", "kind", "network_id", "settings", "created_at") on "gateway" to "studio_app";
 --> statement-breakpoint
 grant insert, delete on "gateway" to "studio_app";
 --> statement-breakpoint
-grant update ("name", "kind", "network_id", "settings") on "gateway" to "studio_app";
+grant update ("name", "kind", "network_id", "settings", "credentials", "provider_state") on "gateway" to "studio_app";
 --> statement-breakpoint
 alter table "log_record" enable row level security;
 --> statement-breakpoint

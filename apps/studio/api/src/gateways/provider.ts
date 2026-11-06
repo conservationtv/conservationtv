@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiFailure } from '../errors.ts';
-import type { ExposureParams, Rendition, Settings } from '../topology/settings.ts';
+import type { Credentials, ExposureParams, Rendition, Settings } from '../topology/settings.ts';
 
 // A gateway provider is everything this API knows about one kind of gateway: what it is called, how a publisher
 // delivers an exposure to it (its ingest protocols) and how readers read it (its egress protocols), what an
@@ -150,18 +150,28 @@ export interface StatsConnection {
 interface OrganisationProviderDefinition<
   Ingest extends string,
   Egress extends string,
-  SettingsSchema extends z.ZodType
+  SettingsSchema extends z.ZodType,
+  CredentialsSchema extends z.ZodType
 > extends ProviderDefinition<Ingest, Egress, z.output<SettingsSchema>> {
   /** What an organisation registers a gateway of this kind with, checked whenever its settings change. */
   settings: SettingsSchema;
+  /**
+   * The secrets a gateway of this kind authenticates to the service behind it with, written by administrators and
+   * never returned: required whenever they are written. Absent for a kind that takes none, which refuses any.
+   */
+  credentials?: CredentialsSchema;
+  /** Confirms the service behind the gateway takes the credentials, refusing them as `invalid_credentials`. */
+  verify?: (settings: z.output<SettingsSchema>, credentials: z.output<CredentialsSchema>) => Promise<void>;
   /** Releases what the provider made for a gateway, once it is removed: absent when it made nothing. */
-  retire?: (gateway: RetiredGateway) => Promise<void>;
+  retire?: (gateway: RetiredGateway<z.output<SettingsSchema>, z.output<CredentialsSchema>>) => Promise<void>;
 }
 
-/** A gateway that has been removed. */
-export interface RetiredGateway {
+/** A gateway that has been removed, with what it was registered with. */
+export interface RetiredGateway<GatewaySettings = Settings, GatewayCredentials = Credentials | null> {
   organisationId: string;
   id: string;
+  settings: GatewaySettings;
+  credentials: GatewayCredentials;
 }
 
 interface BuiltinProviderDefinition<
@@ -186,7 +196,12 @@ export interface GatewayProvider {
 export interface OrganisationProvider extends GatewayProvider {
   /** Refuses settings a gateway of this kind cannot be registered with, as `invalid_settings`. */
   checkSettings: (settings: Settings) => void;
-  /** Absent when the provider makes nothing for a gateway. */
+  /**
+   * Refuses credentials a gateway of this kind cannot authenticate with, as `invalid_credentials`: any for a kind that
+   * takes none, and otherwise missing or malformed ones, or ones the service behind it refuses. Checked settings only.
+   */
+  checkCredentials: (settings: Settings, credentials: Credentials | null) => Promise<void>;
+  /** Absent when the provider makes nothing for a gateway; does nothing for one registered unfit for its kind. */
   retire?: (gateway: RetiredGateway) => Promise<void>;
 }
 
@@ -228,20 +243,48 @@ function connector<Ingest extends string, Egress extends string, GatewaySettings
 }
 
 export const provider = {
-  /** A kind of gateway organisations register, with settings of their own. */
-  organisation<const Ingest extends string, const Egress extends string, SettingsSchema extends z.ZodType>(
-    definition: OrganisationProviderDefinition<Ingest, Egress, SettingsSchema>
+  /** A kind of gateway organisations register, with settings of their own, and credentials when it takes them. */
+  organisation<
+    const Ingest extends string,
+    const Egress extends string,
+    SettingsSchema extends z.ZodType,
+    CredentialsSchema extends z.ZodType = z.ZodNull
+  >(
+    definition: OrganisationProviderDefinition<Ingest, Egress, SettingsSchema, CredentialsSchema>
   ): OrganisationProvider {
-    const { name, ingest, egress, settings: schema, retire } = definition;
+    const { name, ingest, egress, settings: schema, credentials: credentialsSchema, verify, retire } = definition;
     return {
       name,
       ingest,
       egress,
-      retire,
       checkSettings: settings => {
         const parsed = schema.safeParse(settings);
         if (!parsed.success) throw new ApiFailure('invalid_settings', { cause: parsed.error });
       },
+      checkCredentials: async (settings, credentials) => {
+        // A kind without a schema takes none; one with a schema needs them in its shape, then the service's say-so.
+        if (credentialsSchema === undefined) {
+          if (credentials !== null) throw new ApiFailure('invalid_credentials', { cause: 'This kind takes none' });
+          return;
+        }
+        const parsed = credentialsSchema.safeParse(credentials);
+        if (!parsed.success) throw new ApiFailure('invalid_credentials', { cause: parsed.error });
+        if (verify === undefined) return;
+        const checked = schema.parse(settings);
+        await verify(checked, parsed.data);
+      },
+      retire:
+        retire === undefined
+          ? undefined
+          : async gateway => {
+              // A gateway registered before its kind changed what it takes has nothing this provider can release.
+              const settings = schema.safeParse(gateway.settings);
+              // SAFETY: without a credentials schema, CredentialsSchema is its default, z.ZodNull, and so is this.
+              const credentialsParser = (credentialsSchema ?? z.null()) as z.ZodType<z.output<CredentialsSchema>>;
+              const credentials = credentialsParser.safeParse(gateway.credentials);
+              if (!settings.success || !credentials.success) return;
+              await retire({ ...gateway, settings: settings.data, credentials: credentials.data });
+            },
       connect: connector(definition, settings => {
         // Settings were checked when they were written; a gateway that fails now predates a change to its kind.
         const parsed = schema.safeParse(settings);

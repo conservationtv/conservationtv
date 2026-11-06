@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "27464a35-5487-478d-9d0c-fa510cd9ed95",
+  "id": "d2765a1c-32d8-4b62-8067-468efb5e4e23",
   "prevIds": [
     "eed52786-6e3d-4d99-b2ee-19d716caee4c"
   ],
@@ -123,12 +123,6 @@
     {
       "isRlsEnabled": false,
       "name": "gateway_endpoint",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "cloudflare_moq_relay",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1821,6 +1815,32 @@
       "table": "gateway"
     },
     {
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "credentials",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "gateway"
+    },
+    {
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "provider_state",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "gateway"
+    },
+    {
       "type": "timestamp",
       "typeSchema": null,
       "notNull": true,
@@ -2066,110 +2086,6 @@
       "entityType": "columns",
       "schema": "public",
       "table": "gateway_endpoint"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "organisation_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "gateway_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "relay_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "type": "bytea",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "publish_token",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "publish_expires_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "type": "bytea",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "subscribe_token",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "subscribe_expires_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "type": "timestamp",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
     },
     {
       "type": "uuid",
@@ -4300,42 +4216,6 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "cloudflare_moq_relay_organisation_id_organisation_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organisation_id",
-        "gateway_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "gateway",
-      "columnsTo": [
-        "organisation_id",
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "cloudflare_moq_relay_gateway_fk",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "cloudflare_moq_relay"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "organisation_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "organisation",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
       "name": "exposure_organisation_id_organisation_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -4827,16 +4707,6 @@
       "name": "gateway_certificate_pkey",
       "schema": "public",
       "table": "gateway_certificate",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "gateway_id"
-      ],
-      "nameExplicit": false,
-      "name": "cloudflare_moq_relay_pkey",
-      "schema": "public",
-      "table": "cloudflare_moq_relay",
       "entityType": "pks"
     },
     {

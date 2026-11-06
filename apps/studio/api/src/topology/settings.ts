@@ -9,6 +9,19 @@ export const SettingsSchema = z
   .describe('Settings validated by the implementation that reads them.');
 export type Settings = z.output<typeof SettingsSchema>;
 
+/**
+ * Secrets a gateway's kind authenticates to the service behind it with, such as an API token: written by
+ * administrators, kept encrypted, and never returned.
+ */
+export const CredentialsSchema = z
+  .record(z.string().max(120), z.json())
+  .describe("Secrets validated by the gateway's kind; written, never returned.");
+export type Credentials = z.output<typeof CredentialsSchema>;
+
+/** What a gateway's provider keeps for itself between connections, such as what it made at the service behind it. */
+export const ProviderStateSchema = z.record(z.string(), z.json());
+export type ProviderState = z.output<typeof ProviderStateSchema>;
+
 /** A managed network, or `null` for the public internet. */
 export const NetworkReferenceSchema = z
   .uuid()

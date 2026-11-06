@@ -19,8 +19,6 @@ GATEKEEPER_TOKEN=local-consumer-token
 # environment, whose certificates browsers do not trust: deployments set the production directory.
 # CLOUDFLARE_API_TOKEN=…
 # ACME_ACCOUNT_KEY={"kty":"EC","crv":"P-256",…}
-# Optional: an account API token that may manage CLOUDFLARE_MOQ_ACCOUNT_ID's MoQ relays, for `cloudflare-moq` gateways.
-# CLOUDFLARE_MOQ_API_TOKEN=…
 
 # Text bindings are not read from this file: override the checked-in development defaults from the environment,
 # e.g. `APP_URL=… pnpm dev`.
@@ -31,4 +29,3 @@ GATEKEEPER_TOKEN=local-consumer-token
 # GATEWAY_DOMAIN=conservationtv.net
 # CLOUDFLARE_ZONE_ID=…
 # ACME_DIRECTORY_URL=https://acme-v02.api.letsencrypt.org/directory
-# CLOUDFLARE_MOQ_ACCOUNT_ID=…

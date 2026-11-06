@@ -1,9 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { gateways } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
-import { checkGatewaySettings } from '../gateways/index.ts';
+import { checkGatewayCredentials, checkGatewaySettings } from '../gateways/index.ts';
 import { checkGatewayUnused } from '../topology/exposures.ts';
-import type { Settings } from '../topology/settings.ts';
+import type { Credentials, Settings } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 
 // An organisation's own gateways. The built-in gateways (src/gateways/index.ts) are the deployment's, never rows, so
@@ -20,6 +20,8 @@ export interface NewGateway {
   kind: string;
   networkId: string | null;
   settings: Settings;
+  /** Absent for a kind that takes none. */
+  credentials?: Credentials;
 }
 
 export interface GatewayChanges {
@@ -27,6 +29,8 @@ export interface GatewayChanges {
   kind?: string;
   networkId?: string | null;
   settings?: Settings;
+  /** Replaces them; `null` clears them. A new kind takes only what is given with it. */
+  credentials?: Credentials | null;
 }
 
 /** The organisation's gateways, oldest first. */
@@ -70,9 +74,13 @@ export async function getGateway(organisationId: string, gatewayId: string) {
   return row;
 }
 
-/** Add a gateway: `invalid_settings` or `unsupported_gateway` if its kind cannot take its settings. */
+/**
+ * Add a gateway: `invalid_settings`, `invalid_credentials` or `unsupported_gateway` if its kind cannot take its
+ * settings or credentials. Its credentials are written, but never read back here: request sessions cannot select them.
+ */
 export async function createGateway(organisationId: string, payload: NewGateway) {
   const db = useDB();
+  const credentials = payload.credentials ?? null;
   const [row] = await db
     .insert(gateways)
     .values({
@@ -80,7 +88,8 @@ export async function createGateway(organisationId: string, payload: NewGateway)
       name: payload.name,
       kind: payload.kind,
       networkId: payload.networkId,
-      settings: payload.settings
+      settings: payload.settings,
+      credentials
     })
     .returning({
       id: gateways.id,
@@ -92,18 +101,29 @@ export async function createGateway(organisationId: string, payload: NewGateway)
       createdAt: gateways.createdAt
     });
   checkGatewaySettings(row!.kind, row!.settings);
+  await checkGatewayCredentials(row!.kind, row!.settings, credentials);
   return row!;
 }
 
 /**
  * Change the gateway: `forbidden` or `not_found` when the write reaches no row, and its kind's refusal when a change to
- * its kind or settings leaves them unfit.
+ * its kind, settings or credentials leaves them unfit. A new kind replaces the credentials with those given with it,
+ * none if none are. Whatever its provider kept for it is cleared when any of those change, since it was made with them.
  */
 export async function updateGateway(organisationId: string, gatewayId: string, changes: GatewayChanges) {
   const db = useDB();
+  const credentials = changes.kind === undefined ? changes.credentials : (changes.credentials ?? null);
+  const remade = changes.kind !== undefined || changes.settings !== undefined || credentials !== undefined;
   const [row] = await db
     .update(gateways)
-    .set({ name: changes.name, kind: changes.kind, networkId: changes.networkId, settings: changes.settings })
+    .set({
+      name: changes.name,
+      kind: changes.kind,
+      networkId: changes.networkId,
+      settings: changes.settings,
+      credentials,
+      providerState: remade ? null : undefined
+    })
     .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId)))
     .returning({
       id: gateways.id,
@@ -117,6 +137,8 @@ export async function updateGateway(organisationId: string, gatewayId: string, c
   if (!row) throw await unchanged(gateways.id, gatewayId);
   // Only a change to what its kind reads, the kind itself or its settings, can make them unfit.
   if (changes.kind !== undefined || changes.settings !== undefined) checkGatewaySettings(row.kind, row.settings);
+  // Stored credentials cannot be read back here, so only those written now are checked.
+  if (credentials !== undefined) await checkGatewayCredentials(row.kind, row.settings, credentials);
   return row;
 }
 

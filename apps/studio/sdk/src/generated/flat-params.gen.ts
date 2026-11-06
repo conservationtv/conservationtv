@@ -287,7 +287,8 @@ export const GatewayCreateParamsSchema = z.object({
     name: PostOrganisationsByIdGatewaysBodySchema.shape.name.nonoptional().describe('The gateway name.'),
     kind: PostOrganisationsByIdGatewaysBodySchema.shape.kind.nonoptional().describe('The gateway implementation, such as `mediamtx`.'),
     networkId: PostOrganisationsByIdGatewaysBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    settings: PostOrganisationsByIdGatewaysBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PostOrganisationsByIdGatewaysBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.'),
+    credentials: PostOrganisationsByIdGatewaysBodySchema.shape.credentials.optional().describe('Secrets validated by the gateway\'s kind; written, never returned.')
 });
 
 export type GatewayCreateParams = z.infer<typeof GatewayCreateParamsSchema>;
@@ -312,7 +313,8 @@ export const GatewayUpdateParamsSchema = z.object({
     name: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.name.optional().describe('The gateway name.'),
     kind: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.kind.optional().describe('The gateway implementation, such as `mediamtx`.'),
     networkId: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.networkId.optional().describe('A network of the organisation, or null for the internet.'),
-    settings: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.')
+    settings: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.settings.optional().describe('Settings validated by the implementation that reads them.'),
+    credentials: PatchOrganisationsByIdGatewaysByGatewayIdBodySchema.shape.credentials.optional()
 });
 
 export type GatewayUpdateParams = z.infer<typeof GatewayUpdateParamsSchema>;

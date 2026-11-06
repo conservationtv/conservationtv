@@ -32,6 +32,10 @@ const categories = {
     status: 422,
     description: 'The settings are not what a gateway of that kind is registered with.'
   },
+  invalid_credentials: {
+    status: 422,
+    description: 'The credentials are not what a gateway of that kind takes, or the service they are for refused them.'
+  },
   exposure_cycle: { status: 409, description: 'The upstream exposure would lead back to this exposure.' },
   invalid_report: { status: 400, description: 'The report batch has a report observed in the future.' },
   invalid_signature: { status: 401, description: 'The request signature could not be verified.' },

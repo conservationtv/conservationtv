@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { Variables } from '../env/config.ts';
 import { ApiFailure } from '../errors.ts';
 
 // Cloudflare's MoQ relays (https://developers.cloudflare.com/moq/), through the account API
@@ -10,19 +9,10 @@ import { ApiFailure } from '../errors.ts';
 
 const API = 'https://api.cloudflare.com/client/v4';
 
-/** The account relays are made in, and an API token that may manage its MoQ relays. */
+/** An organisation's account, which its gateways' relays are made in, and an API token that may manage its MoQ relays. */
 export interface CloudflareMoqAccount {
   accountId: string;
   token: string;
-}
-
-/** The account the deployment configures, or none without CLOUDFLARE_MOQ_ACCOUNT_ID; throws if it lacks the token. */
-export function cloudflareMoqAccount(variables: Variables): CloudflareMoqAccount | undefined {
-  const accountId = variables.CLOUDFLARE_MOQ_ACCOUNT_ID;
-  if (accountId === undefined) return undefined;
-  const token = variables.CLOUDFLARE_MOQ_API_TOKEN;
-  if (token === undefined) throw new Error('CLOUDFLARE_MOQ_API_TOKEN must be set when CLOUDFLARE_MOQ_ACCOUNT_ID is');
-  return { accountId, token };
 }
 
 /** What a relay token admits its session to. */

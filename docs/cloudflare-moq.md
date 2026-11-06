@@ -53,48 +53,74 @@ negotiate by ALPN and offer `moqt-16` and `moq-00` (draft-14) beside moq-lite, s
 
 ## Design
 
-The new organisation gateway kind is **`cloudflare-moq`** (`apps/studio/api/src/gateways/cloudflare-moq.ts`). It is
-registered like `mediamtx`, with `networkId: null` and settings `{}`. Its ingest and egress are both
-`{ moq: 'tracks' }`, so the configuration planner already makes agents publish to it with no planner changes.
+The new organisation gateway kind is **`cloudflare-moq`** (`apps/studio/api/src/gateways/cloudflare-moq.ts`). In the
+topology, a gateway is a relay: `conservationtv` is one whose relay and credentials come from the deployment, through
+gatekeeper. A `cloudflare-moq` gateway is one the organisation owns, so its relay and credentials live on the gateway
+itself. Its ingest and egress are both `{ moq: 'tracks' }`, so the configuration planner already makes agents publish to
+it with no planner changes.
 
-- **A relay per gateway.** Tokens can't be scoped to a path, so a relay must never hold more than one gateway's
-  exposures. The first `connect` creates the relay named `ctv-<gatewayId>`, or finds it by that name if a failed
-  attempt already created it. The relay is recorded in `cloudflare_moq_relay`. Removing the gateway deletes every relay
-  by that name in the background (`retire`, a new optional provider hook).
+- **The organisation's own account.** An administrator registers the gateway with `networkId: null` and two fields:
+  - `settings: { accountId }`, plain like every gateway's settings;
+  - `credentials: { apiToken }`, an account API token that may manage MoQ relays.
+
+  `credentials` is a new hidden column on `gateway`, encrypted like `camera.credentials`. It is written by
+  administrators, never returned, and unreadable by request sessions. Providers declare what credentials they take,
+  and a provider can verify them. This one lists the account's relays and refuses a token Cloudflare rejects with
+  `422 invalid_credentials`. A kind that declares none refuses any. Organisations are kept apart by their own
+  accounts; nothing is configured per deployment.
+
+- **The gateway is its relay.** The first `connect` creates the relay named `ctv-<gatewayId>`, or finds it by that name
+  if a failed attempt already created it. Removing the gateway deletes every relay by that name in the background
+  (`retire`, a new optional provider hook). Cloudflare tokens can't be scoped to a path, so a device publishing one of
+  the gateway's exposures could publish over another's broadcasts. Within an organisation's gateway, its publishers
+  are trusted with each other's exposures.
 - **Two shared tokens per gateway.** The 10-token cap rules out a token per connection, so each gateway holds two:
   - publish+subscribe, for publishers, because the joiner reads back the rendition catalogs;
   - subscribe-only, for readers.
 
-  Both are stored encrypted (`encrypted()` columns, hidden from request sessions). Each lives 24 hours. It is replaced
-  once less than 12 hours remain, so a holder renewing 10 minutes before expiry always gets a fresh one. A replaced
-  token stays valid until it expires. Minting runs under a per-gateway advisory lock, so concurrent callers share one
-  mint. After each mint, any token not labelled `ctv-*` is revoked, and so is any expired token. That covers the two
-  tokens Cloudflare mints with a new relay. At most about 4 tokens exist at a time.
+  They are kept with the relay's ID in `provider_state`, a second hidden, encrypted column on `gateway` that only trusted
+  provider code writes. Each lives 24 hours. It is replaced once less than 12 hours remain, so a holder renewing 10
+  minutes before expiry always gets a fresh one. A replaced token stays valid until it expires. Minting runs under a
+  per-gateway advisory lock, so concurrent callers share one mint. After each mint, any token not labelled `ctv-*` is
+  revoked, and so is any expired token. That covers the two tokens Cloudflare mints with a new relay. At most about 4
+  tokens exist at a time.
+
+  Changing the gateway's kind, settings or credentials clears `provider_state`. In the same account, the relay is found
+  again by name. A new kind takes only the credentials given with it.
 
 - **The token travels in the path.** `connect` answers `{ relay: 'https://draft-16.cloudflare.mediaoverquic.com/',
 path: <token>, broadcast: '<exposure>/live.hang', expiresAt }` with no `token` field. The agent and the web client
   already build `new URL(path, relay)` and only add `?jwt=` when a token is present, so neither changes. The
   `MoqConnection.path` documentation now says some relays read their credential from the path.
-- **Broadcasts are named under the exposure.** A Cloudflare relay has no path prefix per connection. The agent
-  therefore publishes each rendition broadcast _beside_ the joined one: `renditionBroadcast()` in
-  `apps/agent/core/src/runtimes/mediamtx/config.ts`. On `conservationtv` this changes nothing, because the joined
-  broadcast is `live.hang` and the renditions stay at `<rendition>`. On Cloudflare the joined broadcast is
-  `<exposure>/live.hang` and the renditions are `<exposure>/<rendition>`. hang resolves `./<rendition>` against the
-  catalog's own broadcast as a sibling (`Path.tryResolve`), so the joined catalog is unchanged.
-- **Deployment.** The account comes from `CLOUDFLARE_MOQ_ACCOUNT_ID` (text) and `CLOUDFLARE_MOQ_API_TOKEN` (secret),
-  an account token allowed to manage MoQ relays. It is separate from the DNS token. When they are unset,
-  `cloudflare-moq` gateways answer `503 gateway_unavailable`.
+- **Broadcasts are named under the exposure.** A Cloudflare relay has no path prefix per connection, and the gateway's
+  exposures share it. The agent therefore publishes each rendition broadcast _beside_ the joined one:
+  `renditionBroadcast()` in `apps/agent/core/src/runtimes/mediamtx/config.ts`.
+  - On `conservationtv` this changes nothing: the joined broadcast is `live.hang` and the renditions stay at
+    `<rendition>`.
+  - On Cloudflare the joined broadcast is `<exposure>/live.hang` and the renditions are `<exposure>/<rendition>`.
+
+  hang resolves `./<rendition>` against the catalog's own broadcast as a sibling (`Path.tryResolve`), so the joined
+  catalog is unchanged.
+
+- **WebTransport in the agent.** The relays refuse WebSocket, so the agent installs an HTTP/3 WebTransport polyfill for
+  Node (see the smoke test below).
 - **No stats.** The provider has no `stats`, so the planner asks for none and the streams page shows no relay traffic
   for these gateways.
 
 ### Alternatives considered
 
-- **A built-in `cloudflare` gateway.** One deployment-wide relay would hand every organisation's readers a token for
-  every other organisation's streams. A built-in gateway with a relay per organisation would work, but it gives
-  organisations no choice. It also creates relays for every organisation that never uses one.
-- **Bring your own relay.** An organisation would paste its own relay's tokens into settings. Settings are plain JSON
-  that members read, so this needs a secret-settings mechanism. The tokens would also live up to a year, with no
-  rotation unless they hand over an API token too. This could be revisited as a second kind.
+- **A deployment-owned account.** The first version made relays in one account configured per deployment
+  (`CLOUDFLARE_MOQ_ACCOUNT_ID`). That put every organisation's relays and tokens in an account the organisation doesn't
+  own, and its isolation rested on our relay naming.
+- **A relay per exposure.** This would scope each publish token to one exposure, as gatekeeper's `<org>/<exposure>`
+  root does, but it multiplies relays. One relay per organisation's gateway was preferred, with its publishers trusted
+  with each other's exposures.
+- **An organisation-level Cloudflare connection.** This would be a separate table of connected accounts that gateways
+  refer to. The gateway already is the relay in the topology, so its credentials and state belong on it.
+- **A provider-specific table.** The first version had `cloudflare_moq_relay`. Generic hidden `credentials` and
+  `provider_state` columns on `gateway` serve any provider instead.
+- **OAuth.** Cloudflare now offers self-managed OAuth clients, but it isn't confirmed whether their scopes cover MoQ
+  relays. An OAuth refresh token would fit the same `credentials` column later.
 - **Fronting Cloudflare with gatekeeper.** Gatekeeper can't admit Cloudflare sessions, because Cloudflare has no auth
   callout. Gatekeeper could only proxy token minting, which adds a hop and changes nothing about the scope.
 - **Upstream federation.** Cloudflare relays can pull from `config.upstreams` (a `moqt://` or `https://` URL). Our
@@ -146,8 +172,8 @@ version=moq-transport-16`).
   token expires (≤ 24 h). Cloudflare checks the token only when a session opens, so revoking a token doesn't end
   sessions already open. Shorter lifetimes would narrow this at the cost of more mints.
 - **Tokens in URLs.** Cloudflare warns that path tokens reach access logs. These tokens are relay-wide and shared.
-- **Kind changes.** Changing a gateway's kind away from `cloudflare-moq` leaves its relay behind. The relay is deleted
-  only when the gateway is removed.
+- **Account and kind changes.** Moving a gateway to another account, or changing its kind away from `cloudflare-moq`,
+  leaves the old relay in the old account. A relay is deleted only when its gateway is removed.
 - **Beta API drift.** Response shapes are parsed leniently (`cloudflare-moq-api.ts`), and a refusal surfaces as
   `gateway_unavailable` with Cloudflare's errors as the cause. `GET /moq/relays` is read page by page, by its
   `created_after` cursor, until a page comes back empty.

@@ -8,7 +8,6 @@ import { otpDelivery } from '../auth/otp.ts';
 import type { Cache } from '../cache/cache.ts';
 import { connectLazily } from '../db/client.ts';
 import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
-import { cloudflareMoqAccount, type CloudflareMoqAccount } from '../gateways/cloudflare-moq-api.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
 // Building the environment loads the database schema, Better Auth and the authorization client. It is kept apart from
@@ -50,12 +49,6 @@ export const config = {
   /** The ACME directory certificates come from, and the account key, one ES256 JWK with its private `d`. */
   ACME_DIRECTORY_URL: optionalText(z.url()),
   ACME_ACCOUNT_KEY: z.string().min(1).optional(),
-  /**
-   * The Cloudflare account `cloudflare-moq` gateways get their MoQ relays in (src/gateways/cloudflare-moq.ts), and a
-   * token that may manage its MoQ relays. Unset (or empty), those gateways admit no one; set, both are required.
-   */
-  CLOUDFLARE_MOQ_ACCOUNT_ID: optionalText(z.string().min(1)),
-  CLOUDFLARE_MOQ_API_TOKEN: z.string().min(1).optional(),
   /** Only logging exists; see src/auth/otp.ts. */
   OTP_DELIVERY: z.literal('log'),
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -90,9 +83,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
 
   /** Hostnames and certificates for MediaMTX gateways, when GATEWAY_DOMAIN is set. */
   const gatewayCertificates: CertificateIssuer | undefined = certificateIssuer(variables);
-
-  /** Where `cloudflare-moq` gateways' relays are made, when CLOUDFLARE_MOQ_ACCOUNT_ID is set. */
-  const cloudflareMoq: CloudflareMoqAccount | undefined = cloudflareMoqAccount(variables);
 
   /** The control plane that names the relays and admits devices to them. */
   const gatekeeper = (() => {
@@ -144,7 +134,6 @@ export const services = (variables: Variables, bindings: Bindings) => {
     cache: bindings.cache,
     gatekeeper,
     gatewayCertificates,
-    cloudflareMoq,
     close: () => Promise.all([admin.close(), app.close()])
   };
 };

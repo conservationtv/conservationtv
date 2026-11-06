@@ -3,7 +3,7 @@
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from '../../generated/client/index.js';
 
 import { client } from './client.gen.js';
-import type { PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, Schema0 } from './types.gen.js';
+import type { PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, Schema0, Schema1 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -51,7 +51,7 @@ export class Gateways extends HeyApiClient {
     /**
      * Add a gateway
      *
-     * Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.
+     * Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, the `settings` it is registered with, and the `credentials`, never returned, it authenticates to the service behind it with, such as a `cloudflare-moq` gateway's API token, which that service is asked to accept.
      */
     public create<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -61,13 +61,17 @@ export class Gateways extends HeyApiClient {
         settings?: {
             [key: string]: Schema0;
         };
+        credentials?: {
+            [key: string]: Schema1;
+        };
     }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdGatewaysErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'body', key: 'name' },
                     { in: 'body', key: 'kind' },
                     { in: 'body', key: 'networkId' },
-                    { in: 'body', key: 'settings' }
+                    { in: 'body', key: 'settings' },
+                    { in: 'body', key: 'credentials' }
                 ] }]);
         return (options?.client ?? this.client).post<PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdGatewaysErrors, ThrowOnError>({
             url: '/organisations/{id}/gateways',

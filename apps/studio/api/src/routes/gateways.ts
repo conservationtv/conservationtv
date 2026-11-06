@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { transaction } from '../db/transaction.ts';
+import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { connectStats } from '../gateways/connect.ts';
+import { selectGatewaySecrets } from '../gateways/secrets.ts';
 import { ApiFailure } from '../errors.ts';
 import {
   BUILTIN_GATEWAY_IDS,
@@ -14,7 +15,7 @@ import {
 import { requirePrincipal } from '../middleware/principal.ts';
 import { listGatewayEndpoints } from '../services/gateway-endpoints.ts';
 import { createGateway, deleteGateway, getGateway, listGateways, updateGateway } from '../services/gateways.ts';
-import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
+import { CredentialsSchema, NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
 import {
   forbidden,
   gatewayUnavailable,
@@ -84,7 +85,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Add a gateway',
       description:
-        'Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, and the `settings` it is registered with.',
+        "Administrators only. Somewhere streams are delivered to: on a network, or (`networkId` null) the internet. Its `kind` decides the protocols it is published to and read by, the `settings` it is registered with, and the `credentials`, never returned, it authenticates to the service behind it with, such as a `cloudflare-moq` gateway's API token, which that service is asked to accept.",
       responses: {
         201: { description: 'The new gateway' },
         400: invalidRequest,
@@ -103,7 +104,8 @@ export default new Hono()
         name: GatewayNameSchema,
         kind: GatewayKindSchema,
         networkId: NetworkReferenceSchema.default(null),
-        settings: SettingsSchema.default({})
+        settings: SettingsSchema.default({}),
+        credentials: CredentialsSchema.optional()
       })
     ),
     async c => {
@@ -183,7 +185,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Update a gateway',
       description:
-        'Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind.',
+        'Administrators only, and never a built-in gateway. Changes only the fields given; `settings` are replaced whole, and checked against its kind, as are `credentials` (`null` clears them; credentials are never returned). A new `kind` takes only the credentials given with it.',
       responses: {
         200: { description: 'The updated gateway' },
         400: invalidRequest,
@@ -204,7 +206,8 @@ export default new Hono()
           name: GatewayNameSchema.optional(),
           kind: GatewayKindSchema.optional(),
           networkId: NetworkReferenceSchema.optional(),
-          settings: SettingsSchema.optional()
+          settings: SettingsSchema.optional(),
+          credentials: CredentialsSchema.nullable().optional()
         })
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
     ),
@@ -240,8 +243,18 @@ export default new Hono()
     async c => {
       const { id, gatewayId } = c.req.valid('param');
       if (isBuiltinGateway(gatewayId)) throw new ApiFailure('forbidden');
+      // What its provider needs to release what it made goes with the row, so it is read first, by trusted code.
+      const secrets = await trustedTransaction(() => selectGatewaySecrets(id, gatewayId));
       const removed = await transaction(() => deleteGateway(id, gatewayId));
-      retireGateway(id, removed.id, removed.kind);
+      if (secrets !== undefined) {
+        const retired = {
+          organisationId: id,
+          id: removed.id,
+          settings: secrets.settings,
+          credentials: secrets.credentials
+        };
+        retireGateway(removed.kind, retired);
+      }
       return c.body(null, 204);
     }
   )

@@ -13,6 +13,10 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
 
+export type Schema1 = string | number | boolean | null | Array<Schema1> | {
+    [key: string]: Schema1;
+};
+
 export type Gateway = {
     id: string;
     builtin: boolean;
@@ -45,6 +49,12 @@ export type PostOrganisationsByIdGatewaysData = {
         settings?: {
             [key: string]: Schema0;
         };
+        /**
+         * Secrets validated by the gateway's kind; written, never returned.
+         */
+        credentials?: {
+            [key: string]: Schema1;
+        };
     };
     path: {
         /**
@@ -74,7 +84,7 @@ export type PostOrganisationsByIdGatewaysErrors = {
      */
     412: Error;
     /**
-     * The network does not exist or belongs to another organisation, or the settings are not what the gateway's kind reads
+     * The network does not exist or belongs to another organisation, or the settings or credentials are not what the gateway's kind takes
      */
     422: Error;
     /**
