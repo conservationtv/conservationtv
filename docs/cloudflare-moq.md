@@ -1,6 +1,6 @@
 # Proposal: a Cloudflare MoQ gateway
 
-Status: implemented in this branch. A smoke test against a live Cloudflare relay found one blocker (the joiner, below).
+Status: implemented in this branch, and smoke-tested against a live Cloudflare relay, agent joiner included. The Alpine Docker image can't join Cloudflare relays yet (below).
 
 ## How publishing works today
 
@@ -111,21 +111,37 @@ version=moq-transport-16`).
   - **Works.** An FLV test pattern was published as `smoke-exp/default`. A second session with a subscribe-only token
     exported it back by name and received the catalog, even though that session joined 6 s late. It read 14 s of
     continuous H.264.
-  - **Blocker: no WebSocket.** Cloudflare refuses WebSocket (`wss://` and an HTTP upgrade both return 403). The
-    agent's joiner runs `@moq/net` on Node, which has no WebTransport, so it falls back to WebSocket. The joiner
-    therefore can't connect, and `<exposure>/live.hang` would never be published. The fix is either:
-    - a WebTransport implementation for Node, such as `@fails-components/webtransport` installed as the global
-      `WebTransport` (a native dependency in the agent's packaging);
-    - or skipping the join on Cloudflare, so readers subscribe to a rendition broadcast directly.
+  - **No WebSocket, fixed with a polyfill.** Cloudflare refuses WebSocket: `wss://` and an HTTP upgrade both return 403. The agent's joiner runs `@moq/net` on Node, which has no WebTransport and so falls back to WebSocket. The
+    agent therefore now installs `@fails-components/webtransport` as the global `WebTransport`
+    (`apps/agent/core/src/runtimes/mediamtx/webtransport.ts`). It runs over HTTP/3 through the native addon
+    `@fails-components/webtransport-transport-http3-quiche`, an optional dependency.
+    - **Joiner verified.** In a second run, the agent's own `BroadcastJoiner` ran over the polyfill against the same
+      relay. It:
+      - connected over WebTransport;
+      - saw the CLI's `smoke/default` announced through SUBSCRIBE_NAMESPACE;
+      - subscribed to that broadcast's catalog;
+      - published the joined `smoke/live.hang`.
+
+      A separate subscribe-only session then exported `smoke/live.hang`, which resolved `./default` to
+      `smoke/default`, and got H.264 and AAC.
+
+    - **Where the addon is available.** It has prebuilt binaries for macOS (arm64, x64), glibc Linux (arm64, x64) and
+      Windows (x64), and none for musl. In the Alpine image, its install fails (no prebuild, and no `git` to build
+      one), pnpm skips the optional package, and both imports fail with `ERR_MODULE_NOT_FOUND`. The agent then keeps
+      dialling over WebSocket. That reaches the conservation.tv relay as before, but not Cloudflare. Moving the image
+      to a glibc base would fix this.
+    - **Certificate checks.** The polyfill checks the server's chain in JavaScript: the hostname, the validity
+      dates, each link's signature, and that the chain ends at one of Node's root CAs. It also logs that this check
+      is experimental. It never checks that an issuing certificate is a CA, so the agent wraps the check to require
+      basicConstraints `CA:true` above the leaf. Cloudflare's chain (GTS WE1, then GTS Root R4) passes.
   - **Interop bug: audio stops.** About every 10 groups, Cloudflare ends its upstream subscription to the audio track
     with PUBLISH_DONE `closed, code=0`. It then subscribes again, and sometimes sends a FETCH. The audio track here
     has one AAC frame per group, so ~43 groups/s. Every re-subscribe uses a new request ID, and audio stopped after
     about 6 s, consistent with running out of request IDs (MAX_REQUEST_ID support is partial). Video, at 1 group/s,
     was unaffected. The publisher never closed the track, so this looks like a relay behaviour to report to
     Cloudflare or moq-dev.
-  - **Not tested yet:** announcement discovery (the joiner's `request(…, { announced: true })` over
-    SUBSCRIBE_NAMESPACE), `@moq/watch` playing a nested `<exposure>/live.hang` in a browser, and the studio API path
-    end to end.
+  - **Not tested yet:** `@moq/watch` playing a nested `<exposure>/live.hang` in a browser, and the studio API path end
+    to end.
 - **Revocation lag.** A removed member, or a device that is no longer the pinned publisher, stays admitted until its
   token expires (≤ 24 h). Cloudflare checks the token only when a session opens, so revoking a token doesn't end
   sessions already open. Shorter lifetimes would narrow this at the cost of more mints.

@@ -321,7 +321,8 @@ most 10 per relay) and travel as the URL's path, so `src/gateways/cloudflare-moq
   broadcast as `<exposure>/live.hang`, beside its rendition broadcasts `<exposure>/<rendition>`.
 
 Cloudflare's relays speak IETF moq-transport (draft-14 and draft-16), which the agent's moq CLI and `@moq/net`
-negotiate; they publish no traffic stats. A reader holds a relay-wide token until it expires, so removing a member
+negotiate; they publish no traffic stats. They refuse WebSocket, so the agent's joiner reaches them only through its
+HTTP/3 WebTransport polyfill, which the Alpine agent image lacks. A reader holds a relay-wide token until it expires, so removing a member
 takes up to a day to lock them out. Changing a gateway's kind away from `cloudflare-moq` leaves its relay behind.
 
 There are no stored configuration revisions: a device's configuration is to be derived from the topology when it asks
