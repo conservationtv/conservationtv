@@ -43,7 +43,10 @@ const sidebarItemClassName =
 /** The header's links: the sidebar item's look, scaled up to suit the page, in medium weight. */
 const headerLinkClassName = cn(sidebarItemClassName, 'h-9 px-3 text-sm font-medium');
 
-/** The account menu fades in from just off to the right once the pins have loaded, the same quick ease-out the sign-in screens use. */
+/**
+ * The account menu fades in from just off to the right once the session (and any pins) have loaded, the same quick
+ * ease-out the sign-in screens use.
+ */
 const menuEntrance: Transition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] };
 
 /** Seconds between the heading rising in and the paragraph after it. */
@@ -77,14 +80,14 @@ const syncCloudDrift = (node: HTMLDivElement | null) => {
 
 /**
  * Across the top right: the app rail's pinned links and the account link for someone signed in, or a way to sign in for
- * anyone else. Signed in, it suspends while the pins load (see usePinsStandIn), then fades in whole; signed out, the
- * answer is there from the start, so it is too.
+ * anyone else. It suspends while the session loads, and signed in while the pins load too (see usePinsStandIn), then
+ * fades in whole.
  */
 const AccountMenu: FC = () => {
   const pins = usePinsStandIn();
   return (
     <motion.div
-      initial={pins ? { opacity: 0, x: 8 } : false}
+      initial={{ opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={menuEntrance}
       className="flex items-center gap-2"
@@ -157,7 +160,7 @@ const AboutRoute: FC = () => {
             <span className="text-lg leading-none font-semibold tracking-tight">conservation.tv</span>
           </div>
           <nav aria-label="Sections" className="flex gap-0.5">
-            <NavLink to="/about" className={headerLinkClassName}>
+            <NavLink to="/" className={headerLinkClassName}>
               <span>About</span>
             </NavLink>
             <a href="#" className={headerLinkClassName}>

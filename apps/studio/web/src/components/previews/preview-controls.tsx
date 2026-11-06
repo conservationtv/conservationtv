@@ -6,9 +6,10 @@ import { Button } from '@conservationtv/ui/components/button';
 import { buttonVariants } from '@conservationtv/ui/lib/button-variants';
 import { cn } from '@conservationtv/ui/lib/utils';
 import { useTheme } from '@/hooks/use-theme';
+import { appHomePath } from '@/lib/route-guards';
 
 const previews = [
-  { to: '/', label: 'App', title: 'App layout' },
+  { to: appHomePath, label: 'App', title: 'App layout' },
   {
     to: '/sidebar-07',
     label: 'Icons',
