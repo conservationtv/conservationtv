@@ -33,8 +33,8 @@ export interface StreamCardChartProps {
   stream: ChartedStream;
 }
 
-/** The stream's bitrate and incidents, once all of them have loaded. */
+/** The stream's bitrates, once all of them have loaded. */
 export const StreamCardChart: FC<StreamCardChartProps> = ({ stream }) => {
   const { chart, chartWindow } = useStreamChart(stream);
-  return <StreamChart rows={chart.rows} incidents={chart.incidents} from={chartWindow.from} to={chartWindow.to} />;
+  return <StreamChart rows={chart.rows} from={chartWindow.from} to={chartWindow.to} />;
 };

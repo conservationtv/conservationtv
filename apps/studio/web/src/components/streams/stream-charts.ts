@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useState } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 
-import type { BitrateRow, Incident } from '@/components/streams/stream-chart';
+import type { BitrateRow } from '@/components/streams/stream-chart';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import {
   CHART_STEP_SECONDS,
@@ -13,15 +13,14 @@ import {
 
 // What a stream card charts over the window: the bitrate coming in from the camera (its first exposure's ingest), what
 // its exposures send out to the network (LAN egress), what reaches the internet (what the MoQ relays received, as they
-// count it), and the stretches any of its exposures was down. Every series is found in one round, then every series' points read in the next, so the chart
-// arrives whole.
+// count it). Every series is found in one round, then every series' points read in the next, so the chart arrives
+// whole.
 
 // The agent's metrics, as @conservationtv/reports names them: its MediaMTX paths' (pathMetrics), and what the relays
 // carry of what it publishes (relayMetrics).
 const INGEST_BITRATE = 'path.ingest.bitrate';
 const LAN_EGRESS_BITRATE = 'path.egress.lan.bitrate';
 const INTERNET_EGRESS_BITRATE = 'relay.ingest.bitrate';
-const READY = 'path.ready';
 
 /** The time the charts cover, in milliseconds. */
 interface ChartWindow {
@@ -32,7 +31,6 @@ interface ChartWindow {
 /** One stream's chart. */
 interface StreamChartData {
   rows: BitrateRow[];
-  incidents: Incident[];
 }
 
 interface ExposureLink {
@@ -87,7 +85,7 @@ function latestBucket(): number {
   return Math.floor(Date.now() / step) * step;
 }
 
-type Metric = typeof INGEST_BITRATE | typeof LAN_EGRESS_BITRATE | typeof INTERNET_EGRESS_BITRATE | typeof READY;
+type Metric = typeof INGEST_BITRATE | typeof LAN_EGRESS_BITRATE | typeof INTERNET_EGRESS_BITRATE;
 
 /** A series to look for: one metric about one of the stream's exposures. */
 interface SeriesAsk {
@@ -111,15 +109,14 @@ interface ReportedSeries {
 
 /**
  * The ingest of the stream's first exposure, the one the camera feeds, and of every exposure what it sends to the
- * network and the internet, and its readiness.
+ * network and the internet.
  */
 function seriesAsksOf(stream: ChartedStream): SeriesAsk[] {
   const root = stream.exposures.find(exposure => !exposure.upstreamExposureId);
   const ingest: SeriesAsk[] = root ? [{ exposureId: root.id, metric: INGEST_BITRATE }] : [];
   const perExposure = stream.exposures.flatMap(({ id }): SeriesAsk[] => [
     { exposureId: id, metric: LAN_EGRESS_BITRATE },
-    { exposureId: id, metric: INTERNET_EGRESS_BITRATE },
-    { exposureId: id, metric: READY }
+    { exposureId: id, metric: INTERNET_EGRESS_BITRATE }
   ]);
   return [...ingest, ...perExposure];
 }
@@ -140,18 +137,12 @@ function chartOf(answered: AnsweredPoints[], chartWindow: ChartWindow): StreamCh
     answered
       .filter(({ ask }) => ask.metric === metric)
       .map(({ ask, points }) => ({ reporterId: ask.reporterId, points }));
-  const readiness = answered
-    .filter(({ ask }) => ask.metric === READY)
-    .map(({ ask, points }) => ({ exposureId: ask.exposureId, points }));
   const totals: BitrateTotals = {
     ingress: totalBitrate(reported(INGEST_BITRATE)),
     lanEgress: totalBitrate(reported(LAN_EGRESS_BITRATE)),
     internetEgress: totalBitrate(reported(INTERNET_EGRESS_BITRATE))
   };
-  return {
-    rows: bitrateRows(chartWindow, totals),
-    incidents: mergeIncidents(downBuckets(readiness), chartWindow.to)
-  };
+  return { rows: bitrateRows(chartWindow, totals) };
 }
 
 interface Point {
@@ -208,44 +199,6 @@ function bitrateRows(chartWindow: ChartWindow, totals: BitrateTotals) {
   return rows;
 }
 
-/** One readiness series' points, and the exposure whose path it measures. */
-interface ExposureReadiness {
-  exposureId: string;
-  points: Point[];
-}
-
-/**
- * The buckets in which an exposure was down: none of its paths (one per rendition, and per reporter) was ready
- * throughout. A rendition that is never ready, because nothing produces it, is not an outage while another is ready;
- * a bucket nothing was reported in is a gap in the line, not an incident.
- */
-function downBuckets(readiness: ExposureReadiness[]): number[] {
-  const best = new Map<string, number>();
-  for (const { exposureId, points } of readiness) {
-    // Each exposure's bucket keeps its readiest path.
-    for (const point of points) {
-      const key = `${exposureId} ${Date.parse(point.at)}`;
-      best.set(key, Math.max(best.get(key) ?? 0, point.avg));
-    }
-  }
-  return [...best].filter(([, ready]) => ready < 1).map(([key]) => Number(key.split(' ')[1]));
-}
-
 function toRange(from: number, to: number): MetricRange {
   return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
-}
-
-/** Not-ready buckets as stretches of time, neighbouring buckets joined; one reaching the window's end is ongoing. */
-function mergeIncidents(bucketStarts: number[], windowEnd: number): Incident[] {
-  const step = CHART_STEP_SECONDS * 1000;
-  const incidents: Incident[] = [];
-  for (const start of [...new Set(bucketStarts)].sort((a, b) => a - b)) {
-    const previous = incidents.at(-1);
-    if (previous && start <= previous.to) previous.to = start + step;
-    else incidents.push({ from: start, to: start + step, ongoing: false });
-  }
-  return incidents.map(incident => {
-    const to = Math.min(incident.to, windowEnd);
-    return { ...incident, to, ongoing: to >= windowEnd - step };
-  });
 }

@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { z } from 'zod';
-import { Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceDot, XAxis, YAxis } from 'recharts';
+import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
@@ -16,37 +16,29 @@ export interface BitrateRow {
   internetEgress?: number;
 }
 
-/** A stretch of time some exposure of the stream was not ready; `ongoing` when it runs to now. */
-export interface Incident {
-  from: number;
-  to: number;
-  ongoing: boolean;
-}
-
 const chartConfig = {
   ingress: { label: 'From camera', color: 'var(--chart-1)' },
   lanEgress: { label: 'To network', color: 'var(--chart-2)' },
   internetEgress: { label: 'To internet', color: 'var(--chart-3)' }
 } satisfies ChartConfig;
 
-/** Headroom above the highest point, where incident markers sit, before the scale's top is rounded up to a tidy value. */
+/** Headroom above the highest point, before the scale's top is rounded up to a tidy value. */
 const HEADROOM = 1.2;
 /** The axes' labels, smaller than the card's text. */
 const AXIS_TICK = { fontSize: 10 };
 
 export interface StreamChartProps {
   rows: BitrateRow[];
-  incidents: Incident[];
   from: number;
   to: number;
 }
 
 /**
- * The stream's bitrates as a sparkline, with incidents shaded over it: in from the camera as a filled area behind, out
+ * The stream's bitrates as a sparkline: in from the camera as a filled area behind, out
  * to the network dotted, and out to the internet dashed on top. What goes to the internet usually matches what comes
  * in, so it is drawn as a darker line riding the area's edge rather than a second line of the same kind over the first.
  */
-export const StreamChart: FC<StreamChartProps> = ({ rows, incidents, from, to }) => {
+export const StreamChart: FC<StreamChartProps> = ({ rows, from, to }) => {
   const highest = rows.reduce(
     (most, row) => Math.max(most, row.ingress ?? 0, row.lanEgress ?? 0, row.internetEgress ?? 0),
     0
@@ -77,21 +69,6 @@ export const StreamChart: FC<StreamChartProps> = ({ rows, incidents, from, to })
           tickLine={false}
           width={52}
         />
-        {incidents.map(incident => (
-          <ReferenceArea
-            key={incident.from}
-            x1={incident.from}
-            x2={incident.to}
-            y1={0}
-            y2={top}
-            ifOverflow="hidden"
-            fill={incident.ongoing ? 'var(--custom-error-interval)' : 'var(--custom-warning-fill)'}
-            fillOpacity={incident.ongoing ? 0.12 : 0.2}
-            stroke={incident.ongoing ? 'var(--custom-error-interval)' : 'none'}
-            strokeDasharray="3 3"
-            strokeOpacity={0.8}
-          />
-        ))}
         <ChartTooltip
           cursor={{ strokeDasharray: '2 2' }}
           content={
@@ -143,18 +120,6 @@ export const StreamChart: FC<StreamChartProps> = ({ rows, incidents, from, to })
           dot={false}
           isAnimationActive={false}
         />
-        {incidents.map(incident => (
-          <ReferenceDot
-            key={incident.from}
-            x={incident.from}
-            y={top}
-            r={5}
-            ifOverflow="visible"
-            fill="var(--background)"
-            stroke={incident.ongoing ? 'var(--custom-error-marker)' : 'var(--custom-warning)'}
-            strokeWidth={1.5}
-          />
-        ))}
       </ComposedChart>
     </ChartContainer>
   );
