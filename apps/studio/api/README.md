@@ -132,11 +132,16 @@ grants table. Umbrella refuses to run request sessions on a connection that coul
 
 ```sh
 pnpm install
-pnpm --filter @conservationtv/studio-api db:up       # docker-compose Postgres 18 with TimescaleDB on :5434, with both roles
+pnpm --filter @conservationtv/studio-api db:up       # Postgres 18/TimescaleDB on :5434, PgBouncer on :6434
 pnpm --filter @conservationtv/studio-api db:migrate
 cp .dev.vars.example .dev.vars                       # then set BETTER_AUTH_SECRET and FIELD_KEY
 pnpm --filter @conservationtv/studio-api dev         # http://localhost:6421
 ```
+
+Local Hyperdrive bindings pass connections through without pooling. Both API database roles therefore connect via
+PgBouncer on `:6434`, which uses transaction pooling with up to 10 Postgres connections per role and 20 in total.
+Migrations and schema tooling connect directly to Postgres on `:5434`. `db:up` starts and waits for both services;
+`db:down` stops both. The PgBouncer user list contains only the fixed local development credentials from this stack.
 
 Gatekeeper names the relays and admits devices to them, so the API always runs against one. `pnpm dev` uses the local
 controlplane's (see [gatekeeper's README](../../controlplane/gatekeeper/README.md#develop)), with `.dev.vars`'s

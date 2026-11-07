@@ -1,11 +1,11 @@
 import { bindings, defineConfig } from 'cf/config';
 import { z } from 'zod';
-import { LOCAL_ADMIN_DATABASE_URL, LOCAL_APP_DATABASE_URL } from './src/db/local.ts';
+import { LOCAL_POOLED_ADMIN_DATABASE_URL, LOCAL_POOLED_APP_DATABASE_URL } from './src/db/local.ts';
 import * as entrypoint from './src/index.ts' with { type: 'cf-worker' };
 
 // The Worker name, bindings and text bindings for uploaded versions come from the studio Pulumi stack
 // (../infrastructure): set STACK_OUTPUT_JSON to its `pulumi stack output --json` when uploading. Local development uses
-// the docker-compose database through both bindings, as the two Postgres roles umbrella needs, and the environment's
+// the docker-compose PgBouncer through both bindings, as the two Postgres roles umbrella needs, and the environment's
 // text bindings over the localhost defaults. The custom domain is applied by that stack.
 const StackOutputsSchema = z.object({
   api: z.object({
@@ -36,12 +36,12 @@ export default defineConfig({
       /** The owning role: migrations, Better Auth's tables, and grant management. Never used for request queries. */
       HYPERDRIVE_ADMIN: bindings.hyperdrive({
         id: stack?.adminHyperdriveId ?? placeholderHyperdriveIds.admin,
-        dev: { connectionString: LOCAL_ADMIN_DATABASE_URL }
+        dev: { connectionString: LOCAL_POOLED_ADMIN_DATABASE_URL }
       }),
       /** The application role request sessions run as; row-level security applies to everything it does. */
       HYPERDRIVE_APP: bindings.hyperdrive({
         id: stack?.appHyperdriveId ?? placeholderHyperdriveIds.app,
-        dev: { connectionString: LOCAL_APP_DATABASE_URL }
+        dev: { connectionString: LOCAL_POOLED_APP_DATABASE_URL }
       }),
       /** The key-value cache (src/cache.ts): device request nonces and report idempotency. Local in development. */
       CACHE: bindings.kv({ id: stack?.cacheId ?? placeholderCacheId }),

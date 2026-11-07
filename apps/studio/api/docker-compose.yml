@@ -1,4 +1,4 @@
-# Local stand-in for the Postgres database that production reaches through Hyperdrive. The init script creates the
+# Local stand-in for the Postgres database and Hyperdrive's transaction pool. The init script creates the
 # application login role that request sessions use; the owning role is the one Postgres creates for the database.
 # Postgres 18 or newer: tables default their IDs with the built-in uuidv7(). TimescaleDB's Apache-licensed build, as
 # PlanetScale ships it, for metric points; preloaded on the command line so an existing volume gets it too.
@@ -18,6 +18,22 @@ services:
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U studio -d studio']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.25.2-p0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:6434:5432'
+    volumes:
+      - ./docker/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./docker/pgbouncer-users.txt:/etc/pgbouncer/userlist.txt:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'PGPASSWORD=studio psql -h 127.0.0.1 -U studio -d studio -c "SELECT 1" >/dev/null']
       interval: 2s
       timeout: 5s
       retries: 15
