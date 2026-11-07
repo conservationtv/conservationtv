@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { GearIcon, SignInIcon, UserCircleGearIcon } from '@phosphor-icons/react';
+import { CloudSlashIcon, GearIcon, SignInIcon, UserCircleGearIcon } from '@phosphor-icons/react';
 import { motion, type Transition } from 'motion/react';
 import { NavLink } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
@@ -81,11 +81,26 @@ const syncCloudDrift = (node: HTMLDivElement | null) => {
 /**
  * Across the top right: a way to sign in, there from the first paint, or for someone signed in, the app rail's pinned
  * links and the account link. Nothing waits on the session: once it and the pins have loaded (see usePinsStandIn), the
- * signed-in menu fades in in place of the sign-in button.
+ * signed-in menu fades in in place of the sign-in button. If the studio can't be reached, a status saying so fades in
+ * there instead, and the rest of the page carries on.
  */
 const AccountMenu: FC = () => {
-  const pins = usePinsStandIn();
-  if (!pins) {
+  const menu = usePinsStandIn();
+  if (menu.status === 'offline') {
+    return (
+      <motion.p
+        role="status"
+        initial={{ opacity: 0, x: 8 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={menuEntrance}
+        className="flex h-9 items-center gap-2 rounded-full bg-background/60 px-4 text-sm font-medium text-muted-foreground backdrop-blur-md"
+      >
+        <CloudSlashIcon className="size-4" aria-hidden="true" />
+        Studio is currently offline
+      </motion.p>
+    );
+  }
+  if (menu.status === 'signed-out') {
     return (
       <nav aria-label="Account" className="flex gap-0.5">
         <Button
@@ -108,7 +123,7 @@ const AccountMenu: FC = () => {
       className="flex items-center gap-2"
     >
       <nav aria-label="Pinned" className="flex gap-0.5">
-        {pins.map(({ to, label }) => (
+        {menu.pins.map(({ to, label }) => (
           <Tooltip key={label}>
             <TooltipTrigger>
               <NavLink to={to} className={navLinkClassName}>

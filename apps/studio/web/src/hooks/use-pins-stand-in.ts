@@ -27,12 +27,33 @@ const pinsStandInQueryOptions = () =>
   });
 
 /**
- * The signed-in person's pinned links, once both the session and the pins have loaded; undefined until then, and for
- * anyone signed out. Never suspends, so the about page shows straight away.
+ * What the about page's account menu shows. Signed out covers the session still loading, so sign-in is there straight
+ * away; offline is a session (or pins) request that failed, after its retries.
  */
-export function usePinsStandIn() {
+export type AccountMenuState = SignedOutMenu | OfflineMenu | SignedInMenu;
+
+export interface SignedOutMenu {
+  status: 'signed-out';
+}
+
+export interface OfflineMenu {
+  status: 'offline';
+}
+
+export interface SignedInMenu {
+  status: 'signed-in';
+  pins: Pin[];
+}
+
+/**
+ * The account menu's state: signed in once both the session and the pins have loaded. Never suspends or throws, so the
+ * about page shows straight away and still shows with the studio API down.
+ */
+export function usePinsStandIn(): AccountMenuState {
   const sessionQuery = useQuery(sessionQueryOptions());
   const signedIn = Boolean(sessionQuery.data);
   const pinsQuery = useQuery({ ...pinsStandInQueryOptions(), enabled: signedIn });
-  return signedIn ? pinsQuery.data : undefined;
+  if (sessionQuery.isError || pinsQuery.isError) return { status: 'offline' };
+  if (signedIn && pinsQuery.data) return { status: 'signed-in', pins: pinsQuery.data };
+  return { status: 'signed-out' };
 }
