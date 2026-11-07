@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { Suspense, type FC } from 'react';
 import {
   BookOpenIcon,
   BuildingsIcon,
@@ -16,7 +16,8 @@ import {
   SidebarFooter,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
+  SidebarMenuSkeleton
 } from '@conservationtv/ui/components/sidebar';
 
 import { NavMain } from '@/components/blocks/sidebar-07/nav-main';
@@ -81,7 +82,6 @@ const projects = [
  * a SidebarProvider and the organisation layout above it.
  */
 export const RootSidebar: FC = () => {
-  const organisation = useOrganisation();
   return (
     <Sidebar collapsible="none" className="min-h-0 border-r border-border">
       <SidebarContent>
@@ -97,14 +97,25 @@ export const RootSidebar: FC = () => {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <BuildingsIcon />
-              <span className="font-medium">{organisation.name}</span>
-              <CaretUpDownIcon className="ml-auto" />
-            </SidebarMenuButton>
+            {/* Only this item waits on the organisation; the rest of the sidebar is already there. */}
+            <Suspense fallback={<SidebarMenuSkeleton showIcon />}>
+              <OrganisationMenuButton />
+            </Suspense>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
+  );
+};
+
+/** The organisation the sidebar is in, by name. Suspends until the organisation has loaded. */
+const OrganisationMenuButton: FC = () => {
+  const organisation = useOrganisation();
+  return (
+    <SidebarMenuButton>
+      <BuildingsIcon />
+      <span className="font-medium">{organisation.name}</span>
+      <CaretUpDownIcon className="ml-auto" />
+    </SidebarMenuButton>
   );
 };

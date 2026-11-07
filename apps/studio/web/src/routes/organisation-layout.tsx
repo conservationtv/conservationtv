@@ -1,5 +1,5 @@
 import { Suspense, type FC } from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { usePrefetchQuery } from '@tanstack/react-query';
 import { Outlet } from 'react-router';
 import { ScrollArea } from '@conservationtv/ui/components/scroll-area';
 import { SidebarProvider } from '@conservationtv/ui/components/sidebar';
@@ -12,11 +12,11 @@ import { organisationQueryOptions } from '@/queries/organisations';
 
 /**
  * An organisation's section sidebar beside its pages, and the organisation everything under it is in
- * (`useOrganisationId`, `useOrganisation`). The organisation is read first, so everything under this layout is in one
- * the account can see; one it can't fails here, not in each page.
+ * (`useOrganisationId`, `useOrganisation`). The organisation starts loading here but isn't waited on: the sidebar and
+ * pages render straight away, and only what reads the organisation suspends, under its own boundary.
  */
 const OrganisationLayout: FC<Route.ComponentProps> = ({ params }) => {
-  useSuspenseQuery(organisationQueryOptions(params.organisationId));
+  usePrefetchQuery(organisationQueryOptions(params.organisationId));
   return (
     <OrganisationContext value={params.organisationId}>
       {/* The provider's wrapper is the row itself: sized to the pane rather than the viewport. */}
