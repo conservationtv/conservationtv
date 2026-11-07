@@ -20,8 +20,5 @@ export default [
   ]),
   route('sign-in', './routes/sign-in.tsx'),
   route('device', './routes/device.tsx'),
-  route('sidebar-07', './routes/sidebar-07.tsx'),
-  route('sidebar-09', './routes/sidebar-09.tsx'),
-  route('sidebar-16', './routes/sidebar-16.tsx'),
   route('*', './routes/not-found.tsx')
 ] satisfies RouteConfig;
