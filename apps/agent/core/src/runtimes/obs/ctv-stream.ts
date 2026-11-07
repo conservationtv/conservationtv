@@ -22,8 +22,19 @@ const logger = getLogger(['agent', 'obs', 'ctv-stream']);
 const RENEW_BEFORE_MS = 10 * 60_000;
 const RETRY_MS = 60_000;
 
-/** How stale a group may get before `moq` skips it: RTMP is unpaced, so this bounds the buffering. */
-const MAX_AGE = '500ms';
+/**
+ * How stale a group may get before `moq` skips it: RTMP is unpaced, so this bounds what `moq` buffers. Low, as the
+ * relay is on the same machine as OBS and the stream is live: skipping beats falling behind.
+ */
+const MAX_AGE = '100ms';
+
+/**
+ * FFmpeg's options for opening the relay, as OBS passes them on (`ffmpeg_options`): ask the relay to buffer as little
+ * as it can (`rtmp_buffer`, in milliseconds), and decide the streams from the first packets rather than probing for
+ * seconds. Checked against `moq export rtmp`: H.264 and AAC are still both found. With `buffering_mb` 0, OBS also opens
+ * it with FFmpeg's `nobuffer` flag and keeps no network buffer of its own.
+ */
+const FFMPEG_OPTIONS = 'rtmp_buffer=100 probesize=32768 analyzeduration=0';
 
 type CtvStreamSource = Parameters<NonNullable<ObsSourcePlugin<typeof CtvStream>['create']>>[0];
 type CtvStreamProps = CtvStreamSource['props'];
@@ -57,13 +68,19 @@ export function ctvStreamObs(options: CtvStreamObsOptions): ObsSourcePlugin<type
   };
 }
 
-/** A media source playing what the relay serves; it reconnects quickly when the relay restarts. */
+/**
+ * A media source playing what the relay serves with as little delay as it can: no buffering of its own, FFmpeg asked
+ * for none either, decoded in hardware where it can be. It reconnects quickly when the relay restarts.
+ */
 function relayInput(broadcast: string, address: string): ObsInput {
   return {
     kind: 'ffmpeg_source',
     settings: {
       input: `rtmp://${address}/live/${encodeURIComponent(broadcast)}`,
       is_local_file: false,
+      buffering_mb: 0,
+      ffmpeg_options: FFMPEG_OPTIONS,
+      hw_decode: true,
       reconnect_delay_sec: 1,
       restart_on_activate: false,
       close_when_inactive: false
