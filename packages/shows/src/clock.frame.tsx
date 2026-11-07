@@ -2,6 +2,8 @@ import { useEffect, useState, type FC } from 'react';
 import { frame } from '@strangecyan/vignette/frame';
 import { z } from 'zod';
 
+import { outline } from './outline.ts';
+
 // A clock, as a frame: a page vignette places as a source (a browser source in OBS, an iframe in the studio) that
 // keeps its own time. Frames run in the page, so unlike shows they may hold state and run timers: the show only says
 // which time zone. The page is built by `vignette bundle` beside the font it is set in (`assets/fonts/Nunito.woff2`),
@@ -26,7 +28,7 @@ const ClockParamsSchema = z.object({
 });
 export type ClockParams = z.output<typeof ClockParamsSchema>;
 
-/** The time in `timeZone`, right-aligned in white Nunito, ticking each second. */
+/** The time in `timeZone`, right-aligned in white Nunito outlined in black, ticking each second. */
 const ClockView: FC<ClockParams> = ({ timeZone }) => {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -51,7 +53,8 @@ const ClockView: FC<ClockParams> = ({ timeZone }) => {
           fontSize: '48px',
           fontVariantNumeric: 'tabular-nums',
           color: '#ffffff',
-          textShadow: '0 2px 8px rgba(0, 0, 0, 0.6)',
+          // The same black outline as the cameras' names, at the big camera's width.
+          textShadow: outline(4),
           whiteSpace: 'nowrap'
         }}
       >

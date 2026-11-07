@@ -3,6 +3,7 @@ import { Color, Frame, Layer, Scene, Show, Text } from '@strangecyan/vignette';
 
 import { Clock } from './clock.frame.tsx';
 import { CtvStream } from './ctv-stream.ts';
+import { outline } from './outline.ts';
 
 // An organisation's broadcast: up to six cameras on a grid of thirds, one double size in the top right, three down the
 // left and two below the big one, filled in that order with the streams the studio API chooses (src/shows in the studio
@@ -45,26 +46,6 @@ const CLOCK_PLACEMENT = { position: 'absolute', top: 0, right: 0, width: 480, he
 const LABEL_HEIGHT = 48;
 const LABEL_FONT_SIZE = 26;
 const LABEL_OUTLINE = 2;
-
-/** The eight directions a label's outline is drawn in, as unit offsets. */
-const OUTLINE_DIRECTIONS = [
-  [-1, -1],
-  [0, -1],
-  [1, -1],
-  [-1, 0],
-  [1, 0],
-  [-1, 1],
-  [0, 1],
-  [1, 1]
-] as const;
-
-/**
- * A black outline `width` pixels thick, as text shadows: text has no stroke the targets all render, so a hard-edged
- * shadow in each of eight directions draws one around every letter.
- */
-function outline(width: number): string {
-  return OUTLINE_DIRECTIONS.map(([x, y]) => `${String(x * width)}px ${String(y * width)}px 0 #000000`).join(', ');
-}
 
 /** One cell of the grid of thirds: 640 by 360, the canvas's shape a third the size. */
 const CELL = { width: CANVAS.width / 3, height: CANVAS.height / 3 };
