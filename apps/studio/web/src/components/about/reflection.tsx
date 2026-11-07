@@ -40,34 +40,40 @@ const readTime = (): Time => (document.documentElement.classList.contains('dark'
 /** The pre-rendered page can't know the theme, so it has no video, only the still that about-hero.css picks. */
 const readTimeOnServer = () => null;
 
+/** The first frame, standing in until a video plays: about-hero.css picks day or night from the theme class. */
+const ReflectionStill: FC = () => <div className="about-hero-reflection-still absolute inset-0" />;
+
 interface ReflectionVideoProps {
   sources: ReflectionSources;
-  /** Called once the video's first frame has painted, so the still behind it can go. */
-  onPlaying: () => void;
 }
 
 /**
  * Safari only plays transparency in HEVC, and the other browsers only in VP9 WebM, so the browser picks: only Safari
- * plays QuickTime, so it takes the HEVC and everyone else falls through to the WebM.
+ * plays QuickTime, so it takes the HEVC and everyone else falls through to the WebM. Each mount shows the still until
+ * its own first frame has painted.
  */
-const ReflectionVideo: FC<ReflectionVideoProps> = ({ sources, onPlaying }) => {
+const ReflectionVideo: FC<ReflectionVideoProps> = ({ sources }) => {
+  const [playing, setPlaying] = useState(false);
   return (
-    <video
-      autoPlay
-      muted
-      loop
-      playsInline
-      preload="metadata"
-      className="absolute inset-0 h-full w-full object-cover"
-      onCanPlay={async () => {
-        // A beat for the first frame to paint, so swapping out the still doesn't flash.
-        await new Promise(resolve => setTimeout(resolve, 100));
-        onPlaying();
-      }}
-    >
-      <source src={sources.hevc} type='video/quicktime; codecs="hvc1"' />
-      <source src={sources.webm} type="video/webm" />
-    </video>
+    <>
+      {!playing && <ReflectionStill />}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 h-full w-full object-cover"
+        onCanPlay={async () => {
+          // A beat for the first frame to paint, so swapping out the still doesn't flash.
+          await new Promise(resolve => setTimeout(resolve, 100));
+          setPlaying(true);
+        }}
+      >
+        <source src={sources.hevc} type='video/quicktime; codecs="hvc1"' />
+        <source src={sources.webm} type="video/webm" />
+      </video>
+    </>
   );
 };
 
@@ -84,7 +90,6 @@ export interface ReflectionProps {
  */
 export const Reflection: FC<ReflectionProps> = ({ className }) => {
   const time = useSyncExternalStore(subscribeToTheme, readTime, readTimeOnServer);
-  const [playing, setPlaying] = useState<Time | null>(null);
   return (
     <div
       aria-hidden
@@ -94,8 +99,7 @@ export const Reflection: FC<ReflectionProps> = ({ className }) => {
         '--about-hero-reflection-night': `url(${NIGHT.image})`
       }}
     >
-      {(time === null || playing !== time) && <div className="about-hero-reflection-still absolute inset-0" />}
-      {time && <ReflectionVideo key={time} sources={SOURCES[time]} onPlaying={() => setPlaying(time)} />}
+      {time ? <ReflectionVideo key={time} sources={SOURCES[time]} /> : <ReflectionStill />}
     </div>
   );
 };
