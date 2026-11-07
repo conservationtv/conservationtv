@@ -366,6 +366,10 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  apps/agent/runner/data/obs/binaries/obs/33.0.1-3d6b2eedeb564166/OBS.app/Contents/PlugIns/rtmp-services.plugin/Contents/Resources: {}
+
+  apps/agent/runner/data/obs/home/Library/Application Support/obs-studio/plugin_config/rtmp-services: {}
+
   apps/agent/sdk:
     dependencies:
       '@conservationtv/versioned-api':
@@ -1070,6 +1074,9 @@ importers:
       '@strangecyan/vignette':
         specifier: 2.0.0
         version: 2.0.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      react-dom:
+        specifier: ^19.3.0
+        version: 19.3.0(react@19.3.0)
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -1083,6 +1090,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      vite:
+        specifier: ^8
+        version: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
 
   packages/store:
     devDependencies:

@@ -1,11 +1,15 @@
 import { BROADCAST_CAMERAS, type BroadcastState } from '@conservationtv/shows';
-import type { Serve } from '@strangecyan/vignette';
+import { AssetManifestSchema, type AssetManifest, type Serve } from '@strangecyan/vignette';
 import { listStreams } from '../services/streams.ts';
 import type { BuiltinGatewayId } from '../gateways/index.ts';
 
-/** What a broadcast is composed from: its state, and where the API serves what targets fetch for it. */
+/**
+ * What a broadcast is composed from: its state, the assets of the show's bundle (its fonts), and where what targets
+ * fetch for it is served.
+ */
 export interface Presentation {
   state: BroadcastState;
+  assets: AssetManifest;
   serve: Serve;
 }
 
@@ -13,7 +17,10 @@ export interface Presentation {
 export interface Broadcast {
   /** Set what the broadcast is composed from: compose it, and send it to everyone following it. */
   setComposition(presentation: Presentation): Promise<void>;
-  /** Hand a WebSocket upgrade to the broadcast, to follow it: 404 until it has been composed. */
+  /**
+   * Hand a WebSocket upgrade to the broadcast, to follow it, or a frame page's request for its source's stream
+   * (`…/stream?source=`, as server-sent events): 404 until it has been composed.
+   */
   fetch(request: Request): Promise<Response>;
 }
 
@@ -34,7 +41,7 @@ export async function shuffledComposition(organisationId: string): Promise<Broad
   const streams = await listStreams(organisationId);
   const cameras = streams.flatMap(stream => {
     const exposure = stream.exposures.find(candidate => candidate.gatewayId === MOQ_GATEWAY);
-    return exposure ? [{ organisationId, streamId: stream.id, exposureId: exposure.id }] : [];
+    return exposure ? [{ organisationId, streamId: stream.id, exposureId: exposure.id, name: stream.name }] : [];
   });
   return { cameras: shuffled(cameras).slice(0, BROADCAST_CAMERAS) };
 }
@@ -49,11 +56,29 @@ function shuffled<Value>(values: readonly Value[]): Value[] {
   return result;
 }
 
+/** Where the studio web app serves the show's bundle (`vignette bundle`, packages/shows): its frame page and assets. */
+const BUNDLE_PATH = '/show/';
+
 /**
- * Where the API serves what the broadcast's targets fetch. Only `assets` for now, and nothing is served there yet: the
- * broadcast names no assets, but vignette asks for the location whenever a show places text, whose `font` may name
- * one (changesbyjames/vignette#28). Targets fetch only what the manifest lists, and it lists nothing.
+ * Where what the broadcast's targets fetch is served: the bundle's assets and frame page by the studio web app, and the
+ * stream a frame page follows (narrowed to its own source) by this API, at the organisation's broadcast.
  */
-export function broadcastServe(organisationId: string, apiUrl: string): Serve {
-  return { assets: new URL(`/organisations/${organisationId}/show/assets/`, apiUrl).href };
+export function broadcastServe(organisationId: string, apiUrl: string, webOrigin: string): Serve {
+  const bundle = new URL(BUNDLE_PATH, webOrigin);
+  return {
+    assets: new URL('assets/', bundle).href,
+    frames: new URL('frames.html', bundle).href,
+    stream: new URL(`/organisations/${organisationId}/show/stream`, apiUrl).href
+  };
+}
+
+/**
+ * The manifest of the bundle's assets, as the web app serves it beside them, so the composition names the fonts it
+ * serves now. Throws when it cannot be read.
+ */
+export async function broadcastAssets(webOrigin: string): Promise<AssetManifest> {
+  const url = new URL('assets.json', new URL(BUNDLE_PATH, webOrigin));
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`The show's assets could not be read from ${url.href}: HTTP ${response.status}`);
+  return AssetManifestSchema.parse(await response.json());
 }

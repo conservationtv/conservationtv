@@ -1,3 +1,6 @@
 node_modules/
 build/
 .react-router/
+
+# Built by `pnpm --filter @conservationtv/shows bundle`: the show's frame page and its assets.
+public/show/
