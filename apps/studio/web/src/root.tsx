@@ -14,12 +14,14 @@ import { queryClient } from '@/lib/query-client';
 import { apiHandshakeQueryOptions } from '@/queries/api';
 
 /**
- * Negotiate the SDK's operation versions before any page reads data: middleware finishes before the route renders, so
- * every page's queries and mutations run after it.
+ * Start negotiating the SDK's operation versions without waiting on it, so pages that read no data (the homepage)
+ * render even when the API is slow or down. Versioned calls wait for the handshake in flight, so each page's queries
+ * suspend, and fail into their error boundaries, on it. A failed handshake isn't cached; the next navigation retries.
  */
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async (_args, next) => {
-    await queryClient.query({ ...apiHandshakeQueryOptions(), staleTime: 'static' });
+    // prefetchQuery swallows the failure; it reaches the queries waiting on it instead.
+    void queryClient.prefetchQuery({ ...apiHandshakeQueryOptions(), staleTime: 'static' });
     await next();
   }
 ];
