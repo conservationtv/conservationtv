@@ -1,4 +1,4 @@
-import { Suspense, type FC } from 'react';
+import type { FC } from 'react';
 import { GearIcon, SignInIcon, UserCircleGearIcon } from '@phosphor-icons/react';
 import { motion, type Transition } from 'motion/react';
 import { NavLink } from 'react-router';
@@ -44,7 +44,7 @@ const sidebarItemClassName =
 const headerLinkClassName = cn(sidebarItemClassName, 'h-9 px-3 text-sm font-medium');
 
 /**
- * The account menu fades in from just off to the right once the session (and any pins) have loaded, the same quick
+ * The account menu fades in from just off to the right once the session and pins have loaded, the same quick
  * ease-out the sign-in screens use.
  */
 const menuEntrance: Transition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] };
@@ -79,12 +79,27 @@ const syncCloudDrift = (node: HTMLDivElement | null) => {
 };
 
 /**
- * Across the top right: the app rail's pinned links and the account link for someone signed in, or a way to sign in for
- * anyone else. It suspends while the session loads, and signed in while the pins load too (see usePinsStandIn), then
- * fades in whole.
+ * Across the top right: a way to sign in, there from the first paint, or for someone signed in, the app rail's pinned
+ * links and the account link. Nothing waits on the session: once it and the pins have loaded (see usePinsStandIn), the
+ * signed-in menu fades in in place of the sign-in button.
  */
 const AccountMenu: FC = () => {
   const pins = usePinsStandIn();
+  if (!pins) {
+    return (
+      <nav aria-label="Account" className="flex gap-0.5">
+        <Button
+          size="lg"
+          nativeButton={false}
+          render={<NavLink to="/sign-in" />}
+          className="h-9 rounded-full px-4 text-sm"
+        >
+          <SignInIcon aria-hidden="true" />
+          Sign in
+        </Button>
+      </nav>
+    );
+  }
   return (
     <motion.div
       initial={{ opacity: 0, x: 8 }}
@@ -92,44 +107,28 @@ const AccountMenu: FC = () => {
       transition={menuEntrance}
       className="flex items-center gap-2"
     >
-      {pins ? (
-        <>
-          <nav aria-label="Pinned" className="flex gap-0.5">
-            {pins.map(({ to, label }) => (
-              <Tooltip key={label}>
-                <TooltipTrigger>
-                  <NavLink to={to} className={navLinkClassName}>
-                    <GearIcon className="size-4" aria-hidden="true" />
-                  </NavLink>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">{label}</TooltipContent>
-              </Tooltip>
-            ))}
-          </nav>
-          <Separator
-            orientation="vertical"
-            className="bg-sidebar-foreground/40 data-vertical:h-5 data-vertical:self-auto"
-          />
-          <nav aria-label="Account" className="flex gap-0.5">
-            <NavLink to="/account" className={headerLinkClassName}>
-              <UserCircleGearIcon aria-hidden="true" />
-              <span>My account</span>
-            </NavLink>
-          </nav>
-        </>
-      ) : (
-        <nav aria-label="Account" className="flex gap-0.5">
-          <Button
-            size="lg"
-            nativeButton={false}
-            render={<NavLink to="/sign-in" />}
-            className="h-9 rounded-full px-4 text-sm"
-          >
-            <SignInIcon aria-hidden="true" />
-            Sign in
-          </Button>
-        </nav>
-      )}
+      <nav aria-label="Pinned" className="flex gap-0.5">
+        {pins.map(({ to, label }) => (
+          <Tooltip key={label}>
+            <TooltipTrigger>
+              <NavLink to={to} className={navLinkClassName}>
+                <GearIcon className="size-4" aria-hidden="true" />
+              </NavLink>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </nav>
+      <Separator
+        orientation="vertical"
+        className="bg-sidebar-foreground/40 data-vertical:h-5 data-vertical:self-auto"
+      />
+      <nav aria-label="Account" className="flex gap-0.5">
+        <NavLink to="/account" className={headerLinkClassName}>
+          <UserCircleGearIcon aria-hidden="true" />
+          <span>My account</span>
+        </NavLink>
+      </nav>
     </motion.div>
   );
 };
@@ -171,11 +170,7 @@ const AboutRoute: FC = () => {
             </a>
           </nav>
         </div>
-
-        {/* Nothing shows there while any pins load; then the whole menu fades in. */}
-        <Suspense fallback={null}>
-          <AccountMenu />
-        </Suspense>
+        <AccountMenu />
       </header>
 
       <div className="overflow-clip min-[100rem]:rounded-t-3xl">

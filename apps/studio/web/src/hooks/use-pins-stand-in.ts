@@ -1,4 +1,6 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query';
+// The about page's account menu doesn't suspend, so the page never waits on the session (approved exception).
+// oxlint-disable-next-line no-restricted-imports
+import { queryOptions, useQuery } from '@tanstack/react-query';
 
 import { sessionQueryOptions } from '@/queries/session';
 
@@ -16,22 +18,21 @@ const pins: Pin[] = [
   { to: '/account', label: 'Your settings' }
 ];
 
-/** The pins, after a stand-in pause; signed out, there's nothing to load, so the answer is known and doesn't wait. */
-const pinsStandInQueryOptions = (signedIn: boolean) =>
-  queryOptions<Pin[] | null>({
-    queryKey: ['about', 'pins-stand-in', signedIn] as const,
+/** The pins, after a stand-in pause. */
+const pinsStandInQueryOptions = () =>
+  queryOptions<Pin[]>({
+    queryKey: ['about', 'pins-stand-in'] as const,
     queryFn: () => new Promise(resolve => setTimeout(() => resolve(pins), DELAY_MS)),
-    initialData: signedIn ? undefined : null,
     staleTime: Infinity
   });
 
 /**
- * The signed-in person's pinned links, or null for anyone signed out. Suspends while the session loads; signed in, it
- * then suspends again while the pins load (still a stand-in pause).
+ * The signed-in person's pinned links, once both the session and the pins have loaded; undefined until then, and for
+ * anyone signed out. Never suspends, so the about page shows straight away.
  */
 export function usePinsStandIn() {
-  const sessionQuery = useSuspenseQuery(sessionQueryOptions());
+  const sessionQuery = useQuery(sessionQueryOptions());
   const signedIn = Boolean(sessionQuery.data);
-  const pinsQuery = useSuspenseQuery(pinsStandInQueryOptions(signedIn));
-  return pinsQuery.data;
+  const pinsQuery = useQuery({ ...pinsStandInQueryOptions(), enabled: signedIn });
+  return signedIn ? pinsQuery.data : undefined;
 }
