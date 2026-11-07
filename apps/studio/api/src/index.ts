@@ -9,7 +9,8 @@ export default {
       admin: env.HYPERDRIVE_ADMIN.connectionString,
       app: env.HYPERDRIVE_APP.connectionString,
       cache: kvCache(env.CACHE),
-      background: task => ctx.waitUntil(task)
+      background: task => ctx.waitUntil(task),
+      assets: env.ASSETS
     });
     try {
       return await withEnvironment(environment, () => app.fetch(request));
