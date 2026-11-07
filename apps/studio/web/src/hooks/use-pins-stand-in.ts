@@ -1,6 +1,8 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query';
+// The about page's account menu doesn't suspend, so the page never waits on the session (approved exception).
+// oxlint-disable-next-line no-restricted-imports
+import { queryOptions, useQuery } from '@tanstack/react-query';
 
-import { isSignedInStandIn } from '@/lib/signed-in-stand-in';
+import { sessionQueryOptions } from '@/queries/session';
 
 /** How long the stand-in waits, in milliseconds: about as long as fetching the pins takes. */
 const DELAY_MS = 200;
@@ -16,22 +18,42 @@ const pins: Pin[] = [
   { to: '/account', label: 'Your settings' }
 ];
 
-/** The pins, after a stand-in pause; signed out, there's nothing to load, so the answer is known and doesn't wait. */
-const pinsStandInQueryOptions = (signedIn: boolean) =>
-  queryOptions<Pin[] | null>({
-    queryKey: ['about', 'pins-stand-in', signedIn] as const,
+/** The pins, after a stand-in pause. */
+const pinsStandInQueryOptions = () =>
+  queryOptions<Pin[]>({
+    queryKey: ['about', 'pins-stand-in'] as const,
     queryFn: () => new Promise(resolve => setTimeout(() => resolve(pins), DELAY_MS)),
-    initialData: signedIn ? undefined : null,
     staleTime: Infinity
   });
 
 /**
- * The signed-in person's pinned links, or null for anyone signed out. Whether someone is signed in is a local check, so
- * signed out it answers straight away; signed in, it suspends while the pins load (a stand-in pause). Settles once per
- * page load.
+ * What the about page's account menu shows. Signed out covers the session still loading, so sign-in is there straight
+ * away; offline is a session (or pins) request that failed, after its retries.
  */
-export function usePinsStandIn() {
-  const signedIn = isSignedInStandIn();
-  const pinsQuery = useSuspenseQuery(pinsStandInQueryOptions(signedIn));
-  return pinsQuery.data;
+export type AccountMenuState = SignedOutMenu | OfflineMenu | SignedInMenu;
+
+export interface SignedOutMenu {
+  status: 'signed-out';
+}
+
+export interface OfflineMenu {
+  status: 'offline';
+}
+
+export interface SignedInMenu {
+  status: 'signed-in';
+  pins: Pin[];
+}
+
+/**
+ * The account menu's state: signed in once both the session and the pins have loaded. Never suspends or throws, so the
+ * about page shows straight away and still shows with the studio API down.
+ */
+export function usePinsStandIn(): AccountMenuState {
+  const sessionQuery = useQuery(sessionQueryOptions());
+  const signedIn = Boolean(sessionQuery.data);
+  const pinsQuery = useQuery({ ...pinsStandInQueryOptions(), enabled: signedIn });
+  if (sessionQuery.isError || pinsQuery.isError) return { status: 'offline' };
+  if (signedIn && pinsQuery.data) return { status: 'signed-in', pins: pinsQuery.data };
+  return { status: 'signed-out' };
 }
