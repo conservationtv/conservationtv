@@ -27,7 +27,7 @@ const MOQ_GATEWAY: BuiltinGatewayId = 'conservationtv';
 
 /**
  * A composition for the organisation's broadcast, from its streams as the caller sees them: those delivered to
- * conservation.tv, each at its first exposure there, in a random order, as many as there are quarters, maybe none.
+ * conservation.tv, each at its first exposure there, in a random order, as many as there are slots, maybe none.
  * Random only while it is set by a temporary button; choosing cameras is what a show's controls will do.
  */
 export async function shuffledComposition(organisationId: string): Promise<BroadcastState> {

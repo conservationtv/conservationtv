@@ -15,7 +15,7 @@ const SOURCES = [CtvStreamView];
 
 /**
  * The organisation's broadcast, as the studio API composes it (apps/studio/api/src/shows): followed live and rendered
- * by vignette's React target. For now it shows up to four cameras in quarters, chosen at random from the streams
+ * by vignette's React target. For now it shows up to six cameras, one big and five small, chosen at random from the streams
  * delivered to conservation.tv each time someone presses Compose; until then there is nothing to follow.
  */
 const ShowRoute: FC<Route.ComponentProps> = ({ params }) => {
@@ -25,7 +25,8 @@ const ShowRoute: FC<Route.ComponentProps> = ({ params }) => {
         <div className="flex flex-col gap-2">
           <h1 className="text-custom-21 font-semibold text-foreground">Show</h1>
           <p className="max-w-2xl text-custom-13 leading-(--leading-custom-body) text-custom-text-secondary">
-            The organisation’s broadcast, live: up to four of its streams delivered to conservation.tv, in quarters.
+            The organisation’s broadcast, live: up to six of its streams delivered to conservation.tv, one large and
+            five small.
           </p>
         </div>
         <ComposeButton organisationId={params.organisationId} />
