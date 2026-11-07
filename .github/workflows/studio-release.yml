@@ -91,7 +91,13 @@ jobs:
           echo "::add-mask::$database_url"
           export PGSSLROOTCERT=system
           sql() { psql "$database_url" -v ON_ERROR_STOP=1 -At -c "$1"; }
-          if ! sql 'show shared_preload_libraries' | grep -qw timescaledb; then
+          # Reading the setting first, on its own, so a refused connection is reported as one rather than as the
+          # setting missing.
+          if ! libraries=$(sql 'show shared_preload_libraries'); then
+            echo "::error title=Cannot connect to the database::psql failed; see its error above (a full branch refuses connections)"
+            exit 1
+          fi
+          if ! grep -qw timescaledb <<<"$libraries"; then
             echo "::error title=TimescaleDB is not preloaded::Add timescaledb to the branch's shared_preload_libraries in PlanetScale"
             exit 1
           fi

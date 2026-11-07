@@ -153,7 +153,10 @@ const hyperdrive = (name: string, role: planetscale.PostgresBranchRole) =>
       user: role.username,
       password: role.password
     },
-    caching: { disabled: true }
+    caching: { disabled: true },
+    // Hyperdrive keeps the connections it opens, idle, for reuse: unbounded, the two configs fill the branch's 25
+    // (22 for non-superusers), leaving none for the release's migrations. Both together stay well under that.
+    originConnectionLimit: 8
   });
 const adminHyperdrive = hyperdrive('admin', adminRole);
 const appHyperdrive = hyperdrive('app', appRole);
