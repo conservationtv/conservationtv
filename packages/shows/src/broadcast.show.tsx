@@ -5,12 +5,13 @@ import { Clock } from './clock.frame.tsx';
 import { CtvStream } from './ctv-stream.ts';
 
 // An organisation's broadcast: up to six cameras on a grid of thirds, one double size in the top right, three down the
-// left and two below the big one, filled in that order with the streams the studio API chooses (src/shows in the
-// studio API), the rest left black; or a note that there is nothing to show. Each camera has its stream's name across
-// its top, and a clock in Central Time sits in the top right corner, both set in Nunito (`assets/fonts/Nunito.woff2`,
-// from the bundle `vignette bundle` builds beside the clock's page). A show is a pure function of its state: it is
-// composed afresh for each change, in a Durable Object that hibernates between them, so it holds no state and starts
-// nothing (the lint rules for `*.show.tsx` refuse hooks and timers); the clock keeps time in its own page.
+// left and two below the big one, filled in that order with the streams the studio API chooses (src/shows in the studio
+// API), the rest left black; or a note that there is nothing to show. Each camera has its stream's name centred across
+// its top, outlined in black, and a clock in Central Time sits in the top right corner, both set in Nunito
+// (`assets/fonts/Nunito.woff2`, from the bundle `vignette bundle` builds beside the clock's page). A show is a pure
+// function of its state: it is composed afresh for each change, in a Durable Object that hibernates between them, so it
+// holds no state and starts nothing (the lint rules for `*.show.tsx` refuse hooks and timers); the clock keeps time in
+// its own page.
 
 /** A camera: which exposure of which stream to watch, and the stream's name to label it with. */
 export interface BroadcastCamera {
@@ -40,9 +41,30 @@ const CLOCK_TIME_ZONE = 'America/Chicago';
 /** Where the clock sits: the top right corner, over the big camera's label. */
 const CLOCK_PLACEMENT = { position: 'absolute', top: 0, right: 0, width: 480, height: 96 } as const;
 
-/** A label's height and type size in a one-cell slot; a bigger slot scales both by its span. */
+/** A label's height, type size and outline width in a one-cell slot; a bigger slot scales them by its span. */
 const LABEL_HEIGHT = 48;
 const LABEL_FONT_SIZE = 26;
+const LABEL_OUTLINE = 2;
+
+/** The eight directions a label's outline is drawn in, as unit offsets. */
+const OUTLINE_DIRECTIONS = [
+  [-1, -1],
+  [0, -1],
+  [1, -1],
+  [-1, 0],
+  [1, 0],
+  [-1, 1],
+  [0, 1],
+  [1, 1]
+] as const;
+
+/**
+ * A black outline `width` pixels thick, as text shadows: text has no stroke the targets all render, so a hard-edged
+ * shadow in each of eight directions draws one around every letter.
+ */
+function outline(width: number): string {
+  return OUTLINE_DIRECTIONS.map(([x, y]) => `${String(x * width)}px ${String(y * width)}px 0 #000000`).join(', ');
+}
 
 /** One cell of the grid of thirds: 640 by 360, the canvas's shape a third the size. */
 const CELL = { width: CANVAS.width / 3, height: CANVAS.height / 3 };
@@ -128,7 +150,7 @@ interface CameraSlotProps {
 /**
  * One camera in its slot, with its stream's name across its top. Its layers and sources are named for its stream, so a
  * stream that moves to another slot keeps playing where it moved, at its new size, rather than its player being
- * replaced. The label is a translucent strip with the name inset on it, sized for the slot.
+ * replaced. The label is the name centred across the top, white with a black outline, sized for the slot.
  */
 const CameraSlot: FC<CameraSlotProps> = ({ camera, index }) => {
   const id = `camera-${camera.streamId}`;
@@ -146,12 +168,6 @@ const CameraSlot: FC<CameraSlotProps> = ({ camera, index }) => {
         />
       </Layer>
       <Layer
-        id={`label-strip-${camera.streamId}`}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: labelHeight }}
-      >
-        <Color color="#00000080" />
-      </Layer>
-      <Layer
         id={`label-${camera.streamId}`}
         style={{ position: 'absolute', top: 0, left: 16 * span, right: 16 * span, height: labelHeight }}
       >
@@ -163,6 +179,8 @@ const CameraSlot: FC<CameraSlotProps> = ({ camera, index }) => {
             fontWeight: 700,
             fontSize: LABEL_FONT_SIZE * span,
             color: '#ffffff',
+            textShadow: outline(LABEL_OUTLINE * span),
+            textAlign: 'center',
             verticalAlign: 'middle',
             textWrap: 'nowrap',
             maxLines: 1
