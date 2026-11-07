@@ -37,6 +37,15 @@ The generated files are trusted on the strength of `signoff/generated`: `pnpm si
 API document, SDK and CLI and signs off only if nothing changed, so a green signoff on the head commit means each
 generated file is what its generator writes. Read the generator's input instead.
 
+## Calls
+
+The source chapter opens on its calls: the functions, methods, routes and call-built values that are new or changed,
+as trees of the calls between them. Each tree starts where the change is entered, from an unchanged function that calls
+into it when there is one, and opening a call shows that function's own diff. It is read from syntax alone with
+`@babel/parser`, in the browser, from both sides of each TypeScript and JavaScript file: a call is matched to a
+changed function by the name it is written with (`this.x` within its class or object), so calls through variables,
+imports under another name or dynamic dispatch are not followed. **Files** shows the chapter file by file.
+
 ## API contracts
 
 Each changed `contracts/openapi.json` is compared at the merge base and the head with
