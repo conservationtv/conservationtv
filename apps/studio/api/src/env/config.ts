@@ -69,6 +69,13 @@ export interface Bindings {
   app: string;
   cache: Cache;
   background: Background;
+  /** The Worker's static assets: the published OpenAPI document. */
+  assets: StaticAssets;
+}
+
+/** Static assets as the `ASSETS` binding serves them: a request in, the matching file (or a 304) out. */
+export interface StaticAssets {
+  fetch(request: Request): Promise<Response>;
 }
 
 export const services = (variables: Variables, bindings: Bindings) => {
@@ -132,6 +139,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
     session,
     auth,
     cache: bindings.cache,
+    assets: bindings.assets,
     gatekeeper,
     gatewayCertificates,
     close: () => Promise.all([admin.close(), app.close()])

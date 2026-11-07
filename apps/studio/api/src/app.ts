@@ -1,8 +1,7 @@
-import { OperationRouter, PUBLISHED_DOCUMENT_PATH, servePublishedDocument } from '@conservationtv/versioned-api/server';
-import { Hono } from 'hono';
+import { OperationRouter, PUBLISHED_DOCUMENT_PATH } from '@conservationtv/versioned-api/server';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { describeRoute } from 'hono-openapi';
-import document from '../contracts/openapi.json' with { type: 'json' };
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import account from './routes/account.ts';
 import agents from './routes/agents.ts';
@@ -23,6 +22,18 @@ import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
 import whoami from './routes/whoami.ts';
 import { useEnvironment } from './env/env.ts';
+
+/**
+ * The published OpenAPI document, from the Worker's static assets (contracts/openapi.json). The asset server answers
+ * `If-None-Match` itself with its own entity tag, so an unchanged document is a 304 with no body. Copied into a new
+ * Response so the CORS middleware can add its headers.
+ */
+const servePublishedDocument = async (c: Context) => {
+  const environment = useEnvironment();
+  const url = new URL(PUBLISHED_DOCUMENT_PATH, c.req.url);
+  const asset = await environment.assets.fetch(new Request(url, { headers: c.req.raw.headers }));
+  return new Response(asset.body, asset);
+};
 
 export const operationRouter = new OperationRouter();
 
@@ -66,7 +77,7 @@ const app = new Hono({ router: operationRouter })
   .route('/gateway-endpoints', gatewayEndpoints)
   // Fetched by gateways, with no session.
   .route('/whoami', whoami)
-  .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
+  .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument)
   .notFound(handleNotFound)
   .onError(handleError);
 

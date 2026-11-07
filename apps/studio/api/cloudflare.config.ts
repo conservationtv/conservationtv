@@ -32,7 +32,13 @@ export default defineConfig({
     compatibilityDate: '2026-09-25',
     compatibilityFlags: ['nodejs_compat'],
     entrypoint,
+    // contracts/ (see vite.config.ts) as static assets, for the published OpenAPI document. Every request still goes to
+    // the Worker first, so the document is served through its CORS policy: browsers fetch it cross-origin, revalidating
+    // with If-None-Match, which needs a preflight.
+    assets: { runWorkerFirst: true },
     env: {
+      /** The static assets: contracts/openapi.json, served by src/app.ts at /openapi.json. */
+      ASSETS: bindings.assets(),
       /** The owning role: migrations, Better Auth's tables, and grant management. Never used for request queries. */
       HYPERDRIVE_ADMIN: bindings.hyperdrive({
         id: stack?.adminHyperdriveId ?? placeholderHyperdriveIds.admin,
