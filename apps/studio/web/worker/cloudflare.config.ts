@@ -23,7 +23,8 @@ export default defineConfig({
     compatibilityDate: '2026-09-25',
     entrypoint,
     // The app's build. index.html is the pre-rendered homepage, so the Worker answers every other page with the plain
-    // shell, __spa-fallback.html, instead of the assets' own single-page fallback; it serves /config.js too.
+    // shell, __spa-fallback.html, instead of the assets' own single-page fallback, and any other missing file with a 404;
+    // it serves /config.js too.
     assets: {
       notFoundHandling: 'none',
       runWorkerFirst: ['/config.js']
