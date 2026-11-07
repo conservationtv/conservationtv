@@ -15,8 +15,8 @@ import { apiHandshakeQueryOptions } from '@/queries/api';
 
 /**
  * Start negotiating the SDK's operation versions without waiting on it, so pages that read no data (the homepage)
- * render even when the API is slow or down. Versioned calls wait for the handshake in flight, so each page's queries
- * suspend, and fail into their error boundaries, on it. A failed handshake isn't cached; the next navigation retries.
+ * render even when the API is slow or down. A versioned call made before a handshake succeeds joins the one in flight,
+ * or starts another, so each page's queries suspend on it, retry it, and fail into their own error boundaries.
  */
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async (_args, next) => {
@@ -88,7 +88,10 @@ const App: FC = () => {
 
 export default App;
 
-/** Shown from index.html until the app has loaded, and while a page's first queries load. */
+/**
+ * Shown from __spa-fallback.html, which answers every page but the pre-rendered homepage, until the app has loaded,
+ * and while a page's first queries load.
+ */
 export const HydrateFallback: FC = () => {
   return (
     // On the app's warm canvas, like the sign-in screens it usually hands over to.
