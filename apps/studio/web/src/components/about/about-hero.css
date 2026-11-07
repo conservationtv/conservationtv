@@ -1,8 +1,7 @@
 /*
  * The hero's sky: a warm, pinkish dawn gradient fading out over the ground into the page behind, and clouds drifting
- * north-north-east across it. The page sets how long a loop of the drift takes (`--cloud-drift-duration`) and starts
- * it from where the wall clock says it should be (`--cloud-drift-phase`), so the clouds carry on from where they were
- * rather than jumping back each time the page loads. Held still for anyone who prefers reduced motion.
+ * north-north-east across it, starting from the same place on every load: the homepage is pre-rendered, so starting
+ * mid-loop would make the clouds jump once the app loads. Held still for anyone who prefers reduced motion.
  */
 .about-hero-sky {
   background: linear-gradient(
@@ -54,8 +53,7 @@
   z-index: -1;
   pointer-events: none;
   background-image: var(--about-hero-clouds-image);
-  animation: about-hero-drift var(--cloud-drift-duration) linear infinite;
-  animation-delay: calc(-1 * var(--cloud-drift-phase, 0s));
+  animation: about-hero-drift 120s linear infinite;
   background-repeat: repeat;
   background-size: 80em;
 }
