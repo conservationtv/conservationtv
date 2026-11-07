@@ -18,6 +18,8 @@ export interface ProcessDefinition {
   probe(signal: AbortSignal): Promise<boolean>;
   /** Asks the process to stop gracefully; SIGTERM if not given. Killing it if it doesn't go is handled. */
   stop?(pid: number): Promise<void>;
+  /** How long it may take to answer once started, in milliseconds: 10 seconds if not given. */
+  readyTimeoutMs?: number;
 }
 
 /** What is to run. */
@@ -31,6 +33,8 @@ export interface Run {
   args: string[];
   /** The directory to run in; the process's own if not given. */
   cwd?: string;
+  /** Variables to set in its environment, on top of the agent's own. */
+  env?: Record<string, string>;
   /** Run once the process answers, whether already running, started or restarted, and before `ensure` resolves. */
   configure?(signal: AbortSignal): Promise<void>;
 }
@@ -75,7 +79,7 @@ export function answering(definition: ProcessDefinition): Promise<boolean> {
 
 /** Waits until the process answers, giving up if `signal` aborts, `gone()` says it died, or it takes too long. */
 export async function ready(definition: ProcessDefinition, signal: AbortSignal, gone: () => boolean): Promise<void> {
-  const deadline = Date.now() + READY_TIMEOUT_MS;
+  const deadline = Date.now() + (definition.readyTimeoutMs ?? READY_TIMEOUT_MS);
   while (!(await answering(definition))) {
     signal.throwIfAborted();
     if (gone()) throw new Error(`${definition.name} exited before it was ready`);
@@ -229,6 +233,7 @@ export class AttachedProcess {
     // `reject: false`: an exit is reported through `exited`, never as an unhandled rejection.
     const subprocess = execa(run.binary, run.args, {
       cwd: run.cwd ?? this.directory,
+      env: run.env,
       stdin: 'ignore',
       stdout: log,
       stderr: log,

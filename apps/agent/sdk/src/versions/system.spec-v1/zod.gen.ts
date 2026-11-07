@@ -62,6 +62,12 @@ export const SystemSchema = z.object({
             name: z.string(),
             rendition: z.string().optional()
         }))
+    }).optional(),
+    obs: z.object({
+        show: z.object({
+            id: z.string(),
+            url: z.string()
+        })
     }).optional()
 });
 

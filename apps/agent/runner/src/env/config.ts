@@ -42,6 +42,11 @@ export const config = {
     .min(1)
     .transform(text => MediamtxPortsSchema.parse(JSON.parse(text)))
     .optional(),
+  /**
+   * The port the agent's OBS serves obs-websocket on, when OBS's own (4455) is taken, such as by another OBS on the
+   * machine. Only matters for an agent that is a show's output.
+   */
+  AGENT_OBS_WEBSOCKET_PORT: z.coerce.number().int().min(1).max(65_535).optional(),
   /** How long in-flight requests get to finish after a shutdown signal before the process exits anyway. */
   SHUTDOWN_DELAY_MS: z.coerce.number().int().positive().default(10_000)
 };
@@ -68,8 +73,9 @@ export const services = (variables: Variables) => {
       return PeersSchema.parse(json);
     })();
     const mediamtx = { ports: variables.AGENT_MEDIAMTX_PORTS };
+    const obsWebsocketPort = variables.AGENT_OBS_WEBSOCKET_PORT;
     if (variables.AGENT_MODE === 'direct') {
-      return new Agent({ type: 'direct', name, secretKey, directory, peers, mediamtx });
+      return new Agent({ type: 'direct', name, secretKey, directory, peers, mediamtx, obsWebsocketPort });
     }
 
     if (variables.STUDIO_API_URL === undefined) {
@@ -83,6 +89,7 @@ export const services = (variables: Variables) => {
       directory,
       peers,
       mediamtx,
+      obsWebsocketPort,
       studioUrl: variables.STUDIO_API_URL
     });
   })();

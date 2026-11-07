@@ -24,6 +24,11 @@ interface BaseConfiguration {
   peers?: Peers;
   /** How the agent runs MediaMTX; without it, as its own child on MediaMTX's own ports. */
   mediamtx?: MediamtxSettings;
+  /**
+   * The port the agent's OBS serves obs-websocket on, on this machine, when its own (4455) will not do: another OBS
+   * there has it, say. Only for an agent that is a show's output.
+   */
+  obsWebsocketPort?: number;
 }
 
 /** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */

@@ -48,6 +48,32 @@ export type StatsConnect = {
     gatewayId: string;
 };
 
+export type DeviceConfiguration = {
+    mediamtx?: {
+        gatewayId: string;
+        auth: MediamtxAuth;
+        tls?: MediamtxTls;
+        paths: Array<{
+            name: string;
+            exposureId: string;
+            rendition: Rendition;
+            source: {
+                url: string;
+            } | {
+                path: string;
+            };
+        }>;
+        publishers: Array<Publisher>;
+        stats: Array<StatsConnect>;
+    };
+    obs?: {
+        show: {
+            id: string;
+            url: string;
+        };
+    };
+};
+
 export type GetDeviceConfigurationData = {
     body?: never;
     path?: never;
@@ -76,28 +102,7 @@ export type GetDeviceConfigurationResponses = {
     /**
      * The configuration
      */
-    200: {
-        state: 'idle';
-    } | {
-        state: 'active';
-        mediamtx: {
-            gatewayId: string;
-            auth: MediamtxAuth;
-            tls?: MediamtxTls;
-        };
-        paths: Array<{
-            name: string;
-            exposureId: string;
-            rendition: Rendition;
-            source: {
-                url: string;
-            } | {
-                path: string;
-            };
-        }>;
-        publishers: Array<Publisher>;
-        stats: Array<StatsConnect>;
-    };
+    200: DeviceConfiguration;
 };
 
 export type GetDeviceConfigurationResponse = GetDeviceConfigurationResponses[keyof GetDeviceConfigurationResponses];

@@ -2,14 +2,14 @@
 
 import { BaseClient as BaseClient2 } from '../versions/account.get-v1/sdk.gen.js';
 import { BaseClient as BaseClient3 } from '../versions/account.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient73 } from '../versions/deviceAddresses.replace-v1/sdk.gen.js';
-import { BaseClient as BaseClient72 } from '../versions/deviceConfiguration.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient74 } from '../versions/gatewayEndpoints.replace-v1/sdk.gen.js';
-import { BaseClient as BaseClient68 } from '../versions/invitations.accept-v1/sdk.gen.js';
-import { BaseClient as BaseClient69 } from '../versions/invitations.decline-v1/sdk.gen.js';
-import { BaseClient as BaseClient67 } from '../versions/invitations.get-v1/sdk.gen.js';
-import { BaseClient as BaseClient66 } from '../versions/invitations.listMine-v1/sdk.gen.js';
-import { BaseClient as BaseClient71 } from '../versions/irohSessions.create-v1/sdk.gen.js';
+import { BaseClient as BaseClient76 } from '../versions/deviceAddresses.replace-v1/sdk.gen.js';
+import { BaseClient as BaseClient75 } from '../versions/deviceConfiguration.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient77 } from '../versions/gatewayEndpoints.replace-v1/sdk.gen.js';
+import { BaseClient as BaseClient71 } from '../versions/invitations.accept-v1/sdk.gen.js';
+import { BaseClient as BaseClient72 } from '../versions/invitations.decline-v1/sdk.gen.js';
+import { BaseClient as BaseClient70 } from '../versions/invitations.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient69 } from '../versions/invitations.listMine-v1/sdk.gen.js';
+import { BaseClient as BaseClient74 } from '../versions/irohSessions.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient36 } from '../versions/organisations.agents.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient39 } from '../versions/organisations.agents.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient37 } from '../versions/organisations.agents.get-v1/sdk.gen.js';
@@ -52,6 +52,9 @@ import { BaseClient as BaseClient19 } from '../versions/organisations.networks.g
 import { BaseClient as BaseClient17 } from '../versions/organisations.networks.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient22 } from '../versions/organisations.networks.setActiveAgent-v1/sdk.gen.js';
 import { BaseClient as BaseClient20 } from '../versions/organisations.networks.update-v1/sdk.gen.js';
+import { BaseClient as BaseClient68 } from '../versions/organisations.show.output.delete-v1/sdk.gen.js';
+import { BaseClient as BaseClient66 } from '../versions/organisations.show.output.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient67 } from '../versions/organisations.show.output.set-v1/sdk.gen.js';
 import { BaseClient as BaseClient48 } from '../versions/organisations.streams.create-v1/sdk.gen.js';
 import { BaseClient as BaseClient51 } from '../versions/organisations.streams.delete-v1/sdk.gen.js';
 import { BaseClient as BaseClient55 } from '../versions/organisations.streams.exposures.connect-v1/sdk.gen.js';
@@ -72,8 +75,8 @@ import { BaseClient as BaseClient64 } from '../versions/organisations.subjects.o
 import { BaseClient as BaseClient63 } from '../versions/organisations.subjects.state-v1/sdk.gen.js';
 import { BaseClient as BaseClient59 } from '../versions/organisations.subjects.states.list-v1/sdk.gen.js';
 import { BaseClient as BaseClient7 } from '../versions/organisations.update-v1/sdk.gen.js';
-import { BaseClient as BaseClient70 } from '../versions/reports.submit-v1/sdk.gen.js';
-import { BaseClient as BaseClient75 } from '../versions/whoami.get-v1/sdk.gen.js';
+import { BaseClient as BaseClient73 } from '../versions/reports.submit-v1/sdk.gen.js';
+import { BaseClient as BaseClient78 } from '../versions/whoami.get-v1/sdk.gen.js';
 import { createClient, mergeHeaders } from './client/index.js';
 import { ClientCore } from '@conservationtv/versioned-api/client';
 
@@ -187,30 +190,37 @@ export class Client extends ClientCore {
             logs: {
                 list: this.versioned('organisations.subjects.logs.list', { v1: BaseClient65 })
             }
+        },
+        show: {
+            output: {
+                get: this.versioned('organisations.show.output.get', { v1: BaseClient66 }),
+                set: this.versioned('organisations.show.output.set', { v1: BaseClient67 }),
+                delete: this.versioned('organisations.show.output.delete', { v1: BaseClient68 })
+            }
         }
     };
     readonly invitations = {
-        listMine: this.versioned('invitations.listMine', { v1: BaseClient66 }),
-        get: this.versioned('invitations.get', { v1: BaseClient67 }),
-        accept: this.versioned('invitations.accept', { v1: BaseClient68 }),
-        decline: this.versioned('invitations.decline', { v1: BaseClient69 })
+        listMine: this.versioned('invitations.listMine', { v1: BaseClient69 }),
+        get: this.versioned('invitations.get', { v1: BaseClient70 }),
+        accept: this.versioned('invitations.accept', { v1: BaseClient71 }),
+        decline: this.versioned('invitations.decline', { v1: BaseClient72 })
     };
     readonly reports = {
-        submit: this.versioned('reports.submit', { v1: BaseClient70 })
+        submit: this.versioned('reports.submit', { v1: BaseClient73 })
     };
     readonly irohSessions = {
-        create: this.versioned('irohSessions.create', { v1: BaseClient71 })
+        create: this.versioned('irohSessions.create', { v1: BaseClient74 })
     };
     readonly deviceConfiguration = {
-        get: this.versioned('deviceConfiguration.get', { v1: BaseClient72 })
+        get: this.versioned('deviceConfiguration.get', { v1: BaseClient75 })
     };
     readonly deviceAddresses = {
-        replace: this.versioned('deviceAddresses.replace', { v1: BaseClient73 })
+        replace: this.versioned('deviceAddresses.replace', { v1: BaseClient76 })
     };
     readonly gatewayEndpoints = {
-        replace: this.versioned('gatewayEndpoints.replace', { v1: BaseClient74 })
+        replace: this.versioned('gatewayEndpoints.replace', { v1: BaseClient77 })
     };
     readonly whoami = {
-        get: this.versioned('whoami.get', { v1: BaseClient75 })
+        get: this.versioned('whoami.get', { v1: BaseClient78 })
     };
 }

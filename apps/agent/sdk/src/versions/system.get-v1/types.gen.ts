@@ -102,6 +102,30 @@ export type System = {
             attempt: number;
         };
     };
+    obs: {
+        runtime: {
+            version: string | null;
+            installing: boolean;
+            show: string | null;
+            phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
+            state: 'running' | 'stopped' | 'starting' | 'crashed';
+            pid: number | null;
+            restarts: number;
+            lastError: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
 };
 
 export type GetSystemData = {
