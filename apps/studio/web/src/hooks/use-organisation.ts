@@ -18,7 +18,10 @@ export function useOrganisationId(): string {
   return use(OrganisationContext) ?? outsideOrganisation();
 }
 
-/** The organisation this is rendered in. The layout has loaded it before rendering anything below, so this is cached. */
+/**
+ * The organisation this is rendered in. Suspends until it has loaded (the layout starts it loading), so put a boundary
+ * around just the part that reads it.
+ */
 export function useOrganisation() {
   const organisationId = useOrganisationId();
   const organisationQuery = useSuspenseQuery(organisationQueryOptions(organisationId));
