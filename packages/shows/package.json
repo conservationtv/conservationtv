@@ -1,0 +1,26 @@
+{
+  "name": "@conservationtv/shows",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Broadcast shows described with @strangecyan/vignette, and the source kinds they place: composed by the studio API's show host, rendered by the studio web app.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ctv-stream": "./src/ctv-stream.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@strangecyan/vignette": "2.0.0",
+    "zod": "4.6.5"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "^19.3.0",
+    "typescript": "catalog:"
+  }
+}

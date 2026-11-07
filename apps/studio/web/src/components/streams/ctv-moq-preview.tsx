@@ -1,7 +1,8 @@
-import { Suspense, useEffect, useRef, type FC, type ReactNode } from 'react';
+import { Suspense, type FC, type ReactNode } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Skeleton } from '@conservationtv/ui/components/skeleton';
 
+import { MoqPlayer } from '@/components/streams/moq-player';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { moqReadQueryOptions, streamListQueryOptions } from '@/queries/streams';
 
@@ -55,47 +56,7 @@ const PreviewConnection: FC<PreviewConnectionProps> = ({ streamId, exposureId })
   const readQuery = useSuspenseQuery(moqReadQueryOptions(organisationId, streamId, exposureId));
   const read = readQuery.data;
   if ('failure' in read) return <PreviewNote>Preview unavailable: {read.failure}</PreviewNote>;
-  return <PreviewPlayer url={read.url} broadcast={read.broadcast} />;
-};
-
-interface PreviewPlayerProps {
-  url: string;
-  broadcast: string;
-}
-
-/** Plays the broadcast into a canvas, reconnecting when the credential in its URL is renewed. */
-const PreviewPlayer: FC<PreviewPlayerProps> = ({ url, broadcast }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    // The player is loaded only once one mounts, so the page doesn't carry it until a preview plays.
-    let release: (() => void) | undefined = undefined;
-    let unmounted = false;
-    void import('@moq/watch').then(Watch => {
-      if (unmounted) return;
-      const connection = new Watch.Net.Connection({ url: new URL(url), enabled: true });
-      const player = new Watch.Player({
-        origin: connection.origin,
-        probe: connection.probe,
-        name: Watch.Net.Path.from(broadcast),
-        canvas,
-        enabled: true,
-        muted: true,
-        // Keep downloading and drawing video off screen and in a background tab, rather than pausing until it's seen.
-        visible: 'always'
-      });
-      release = () => {
-        player.close();
-        connection.close();
-      };
-    });
-    return () => {
-      unmounted = true;
-      release?.();
-    };
-  }, [url, broadcast]);
-  return <canvas ref={canvasRef} className="aspect-video w-full rounded-lg bg-muted" />;
+  return <MoqPlayer url={read.url} broadcast={read.broadcast} className="aspect-video w-full rounded-lg bg-muted" />;
 };
 
 interface PreviewNoteProps {

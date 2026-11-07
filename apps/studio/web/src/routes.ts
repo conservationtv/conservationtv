@@ -12,7 +12,9 @@ export default [
         // An organisation's section sidebar, around its pages: everything under it is in that organisation.
         route(':organisationId', './routes/organisation-layout.tsx', [
           index('./routes/organisation-home.tsx'),
-          route('streams', './routes/streams.tsx')
+          route('streams', './routes/streams.tsx'),
+          // The organisation's broadcast, composed by the studio API and followed live.
+          route('show', './routes/show.tsx')
         ])
       ])
     ]),

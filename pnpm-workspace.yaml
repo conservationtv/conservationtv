@@ -59,3 +59,4 @@ minimumReleaseAgeExclude:
   - '@strangecyan/iroh@1.1.0-relayed.1'
   - '@strangecyan/iroh-http-core@0.3.0'
   - '@strangecyan/iroh-http-node@0.3.0'
+  - '@strangecyan/vignette@2.0.0'

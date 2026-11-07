@@ -1,0 +1,18 @@
+{
+  // Consumed from source: the studio API's Worker and the web app bundle it with Vite. This project only type-checks,
+  // without Node's types, as shows run in a Durable Object and their source kinds in a browser.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
+    "types": [],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

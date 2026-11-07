@@ -1,4 +1,4 @@
-import { bindings, defineConfig } from 'cf/config';
+import { bindings, defineConfig, exports } from 'cf/config';
 import { z } from 'zod';
 import { LOCAL_POOLED_ADMIN_DATABASE_URL, LOCAL_POOLED_APP_DATABASE_URL } from './src/db/local.ts';
 import * as entrypoint from './src/index.ts' with { type: 'cf-worker' };
@@ -25,10 +25,12 @@ const stack: StackOutputs['api'] | undefined = process.env.STACK_OUTPUT_JSON
   ? StackOutputsSchema.parse(JSON.parse(process.env.STACK_OUTPUT_JSON)).api
   : undefined;
 
+/** Each stack's own Worker: `studio-api` for prod, `studio-api-<stack>` otherwise. */
+const workerName = stack?.workerName ?? 'studio-api';
+
 export default defineConfig({
   worker: {
-    /** Each stack's own Worker: `studio-api` for prod, `studio-api-<stack>` otherwise. */
-    name: stack?.workerName ?? 'studio-api',
+    name: workerName,
     compatibilityDate: '2026-09-25',
     compatibilityFlags: ['nodejs_compat'],
     entrypoint,
@@ -36,6 +38,10 @@ export default defineConfig({
     // the Worker first, so the document is served through its CORS policy: browsers fetch it cross-origin, revalidating
     // with If-None-Match, which needs a preflight.
     assets: { runWorkerFirst: true },
+    exports: {
+      /** Each organisation's broadcast, composed and followed over WebSockets; see src/shows/host.ts. */
+      ShowHost: exports.durableObject({ storage: 'sqlite' })
+    },
     env: {
       /** The static assets: contracts/openapi.json, served by src/app.ts at /openapi.json. */
       ASSETS: bindings.assets(),
@@ -51,6 +57,8 @@ export default defineConfig({
       }),
       /** The key-value cache (src/cache.ts): device request nonces and report idempotency. Local in development. */
       CACHE: bindings.kv({ id: stack?.cacheId ?? placeholderCacheId }),
+      /** The broadcasts' Durable Objects, one per organisation by its ID; declared under `exports` above. */
+      SHOW_HOST: bindings.durableObject({ worker: workerName, exportName: 'ShowHost' }),
       /** Better Auth's signing secret; see .dev.vars.example. */
       BETTER_AUTH_SECRET: bindings.secret(),
       /** The master key for encrypted columns and blind indexes; see .dev.vars.example. */
