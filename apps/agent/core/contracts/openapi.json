@@ -326,6 +326,16 @@
                       }
                     ]
                   },
+                  "servingVersion": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "installing": {
                     "type": "boolean"
                   },
@@ -364,6 +374,7 @@
                 },
                 "required": [
                   "version",
+                  "servingVersion",
                   "installing",
                   "state",
                   "pid",
@@ -1357,6 +1368,16 @@
                           }
                         ]
                       },
+                      "servingVersion": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "installing": {
                         "type": "boolean"
                       },
@@ -1395,6 +1416,7 @@
                     },
                     "required": [
                       "version",
+                      "servingVersion",
                       "installing",
                       "state",
                       "pid",

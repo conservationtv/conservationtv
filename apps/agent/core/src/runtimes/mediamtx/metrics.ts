@@ -89,20 +89,25 @@ function readingsOf(samples: PrometheusSample[]): Map<string, PathReading> {
   return paths;
 }
 
-/** Whether a connection's remote address is this machine's loopback, as the agent's own publishers' are. */
-function isLoopback(remoteAddr: string | undefined): boolean {
+/**
+ * Whether a reading RTMP connection is one of the agent's MoQ publishers rather than a reader on the network. The
+ * publishers are the only RTMP readers on MediaMTX's own machine (builders/publishers.ts), so for now that is told by
+ * the connection coming from loopback. This is the one place that says so: telling them apart some other way only
+ * changes this.
+ */
+function isAgentPublisher(remoteAddr: string | undefined): boolean {
   return remoteAddr !== undefined && (remoteAddr.startsWith('127.') || remoteAddr.startsWith('[::1]'));
 }
 
-/** Each of the agent's MoQ publishers' connections: RTMP readers from loopback, by connection ID. */
+/** Each of the agent's MoQ publishers' connections (`isAgentPublisher`), by connection ID. */
 function publishersOf(samples: PrometheusSample[]): Map<string, PublisherReading> {
   const publishers = new Map<string, PublisherReading>();
   for (const sample of samples) {
-    // A reading RTMP connection from loopback is one of the agent's publishers; every other connection is a reader on
-    // the network, counted with the path's total.
+    // A reading RTMP connection that is one of the agent's publishers counts as publisher egress; every other
+    // connection is a reader on the network, counted with the path's total.
     const { id, path, remoteAddr, state } = sample.labels;
     if (sample.deprecated || sample.name !== 'rtmp_conns_outbound_bytes' || state !== 'read') continue;
-    if (id === undefined || path === undefined || !isLoopback(remoteAddr)) continue;
+    if (id === undefined || path === undefined || !isAgentPublisher(remoteAddr)) continue;
     publishers.set(id, { path, outboundBytes: sample.value });
   }
   return publishers;
@@ -265,12 +270,12 @@ export class MediamtxMetricsRuntime {
   private ticking = false;
   private reporting = false;
 
-  /** @param address Where the metrics page listens, such as `127.0.0.1:9998`. */
+  /** @param url The metrics page, such as `http://127.0.0.1:9998/metrics` (`reach.metrics`, reach.ts). */
   constructor(
     private readonly config: AgentConfiguration,
-    address: string
+    url: string
   ) {
-    this.url = `http://${address}/metrics`;
+    this.url = url;
     this.reporter = new MetricReporter(config);
   }
 

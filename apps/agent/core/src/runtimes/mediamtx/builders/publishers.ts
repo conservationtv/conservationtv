@@ -1,15 +1,15 @@
 import { MediamtxConfigBuilder } from '@conservationtv/mediamtx';
 import type { PublishedRendition } from '@conservationtv/studio-sdk';
 import type { MediamtxListening, MediamtxServing, MoqPublisher } from '../config.ts';
-import { loopback } from '../ports.ts';
 
 /**
- * A rendition's publisher: the moq CLI pulling it from this MediaMTX over RTMP, as a reader on loopback, which needs no
- * token (auth.ts), and publishing it as its own broadcast. MediaMTX runs it directly: none of its arguments has a space.
+ * A rendition's publisher: the moq CLI pulling it from this MediaMTX over RTMP (`rtmp`, from reach.ts), as a reader
+ * on the same machine, which needs no token (auth.ts), and publishing it as its own broadcast. MediaMTX runs it
+ * directly: none of its arguments has a space.
  */
-function publisherCommand(publisher: MoqPublisher, rendition: PublishedRendition, moq: string, rtmp: number) {
+function publisherCommand(publisher: MoqPublisher, rendition: PublishedRendition, moq: string, rtmp: string) {
   const publish = [moq, '--connect', publisher.connect, 'import', '--broadcast', rendition.rendition];
-  return [...publish, 'rtmp', '--connect', `rtmp://${loopback(rtmp)}/${rendition.path}`].join(' ');
+  return [...publish, 'rtmp', '--connect', `${rtmp}/${rendition.path}`].join(' ');
 }
 
 /**
@@ -19,7 +19,7 @@ function publisherCommand(publisher: MoqPublisher, rendition: PublishedRendition
 export const publishers = new MediamtxConfigBuilder<MediamtxListening & MediamtxServing>((serving, config) => {
   if (serving.publishing === undefined) return;
   const { moq } = serving.publishing;
-  const { rtmp } = serving.ports;
+  const { rtmp } = serving.reach;
   for (const publisher of serving.publishing.publishers) {
     for (const rendition of publisher.renditions) {
       config.paths[`_publish/${publisher.exposureId}/${rendition.rendition}`] = {

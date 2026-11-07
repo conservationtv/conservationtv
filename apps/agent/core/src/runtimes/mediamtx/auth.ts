@@ -38,6 +38,15 @@ type Permissions = z.output<typeof PermissionsSchema>;
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
+/**
+ * Whether what MediaMTX asked about comes from someone trusted as they are, without a token: anything on MediaMTX's own
+ * machine, which already has the cameras' credentials and the agent's identity. MediaMTX runs beside the agent, so
+ * that is anything from loopback. This is the one place that says who is trusted so: a MediaMTX elsewhere changes it.
+ */
+function isTrustedLocally(request: AuthRequest): boolean {
+  return LOOPBACK.has(request.ip);
+}
+
 /** The token offered: as a bearer token or the password, or in the URL's query, as `jwt` or `token`. */
 function offeredToken(request: AuthRequest) {
   const query = new URLSearchParams(request.query);
@@ -53,7 +62,7 @@ type JwksKeys = ReturnType<typeof createLocalJWKSet>;
 
 /** Whether MediaMTX should admit what it asked about: anything from this machine, or what a token admits. */
 async function admits(request: AuthRequest, auth: MediamtxAuth, keys: JwksKeys): Promise<boolean> {
-  if (LOOPBACK.has(request.ip)) return true;
+  if (isTrustedLocally(request)) return true;
   const token = offeredToken(request);
   if (token === '') return false;
   const { payload } = await jwtVerify(token, keys, { issuer: auth.issuer, audience: auth.audience });

@@ -63,6 +63,7 @@ export const SystemSchema = z.object({
     streams: z.object({
         runtime: z.object({
             version: z.string().nullable(),
+            servingVersion: z.string().nullable(),
             installing: z.boolean(),
             state: z.enum([
                 'running',

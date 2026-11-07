@@ -61,6 +61,7 @@ export type System = {
     streams: {
         runtime: {
             version: string | null;
+            servingVersion: string | null;
             installing: boolean;
             state: 'running' | 'stopped' | 'starting' | 'crashed';
             pid: number | null;

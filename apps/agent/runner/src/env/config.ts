@@ -67,9 +67,9 @@ export const services = (variables: Variables) => {
       const json: unknown = JSON.parse(text);
       return PeersSchema.parse(json);
     })();
-    const mediamtxPorts = variables.AGENT_MEDIAMTX_PORTS;
+    const mediamtx = { ports: variables.AGENT_MEDIAMTX_PORTS };
     if (variables.AGENT_MODE === 'direct') {
-      return new Agent({ type: 'direct', name, secretKey, directory, peers, mediamtxPorts });
+      return new Agent({ type: 'direct', name, secretKey, directory, peers, mediamtx });
     }
 
     if (variables.STUDIO_API_URL === undefined) {
@@ -82,7 +82,7 @@ export const services = (variables: Variables) => {
       secretKey,
       directory,
       peers,
-      mediamtxPorts,
+      mediamtx,
       studioUrl: variables.STUDIO_API_URL
     });
   })();

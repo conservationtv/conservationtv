@@ -8,22 +8,24 @@ import { server } from './builders/server.ts';
 import { tls } from './builders/tls.ts';
 import type { MediamtxPaths } from './paths.ts';
 import type { MediamtxPorts } from './ports.ts';
+import type { MediamtxReach } from './reach.ts';
 import type { TlsFiles } from './tls.ts';
 
 // The config MediaMTX serves, assembled by the steps in builders/ from the ports its servers listen on, the paths the
 // spec names, the exposures it publishes, who it admits and the certificate it serves TLS with.
 
-/** The ports MediaMTX's servers listen on, and the agent's beside them (ports.ts). */
+/** Where MediaMTX's servers and the agent's listen (ports.ts), and how they reach each other (reach.ts). */
 export interface MediamtxListening {
   ports: MediamtxPorts;
+  reach: MediamtxReach;
 }
 
 /**
  * An exposure the agent publishes to a MoQ relay, from renditions its own MediaMTX serves. Each rendition is a
  * broadcast of its own under the exposure's path, which MediaMTX runs the moq CLI for, pulling it over RTMP from
- * loopback. The agent joins them (joiner.ts) into the one broadcast readers watch, whose catalog names each rendition's
- * tracks in its own broadcast. `connect` carries its token as `?jwt=`, so new credentials are a changed config, which
- * restarts the CLI.
+ * MediaMTX itself (`reach.rtmp`). The agent joins them (joiner.ts) into the one broadcast readers watch, whose catalog
+ * names each rendition's tracks in its own broadcast. `connect` carries its token as `?jwt=`, so new credentials are a
+ * changed config, which restarts the CLI.
  */
 export const MoqPublisherSchema = PublisherSchema.extend({
   /** The relay URL to dial, with the exposure's path and token, in place of the `connect` ask it came from. */
