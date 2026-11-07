@@ -78,6 +78,18 @@
   background-image: var(--about-hero-landscape-night);
 }
 
+/*
+ * The reflection's first frame, standing in until its video plays (see reflection.tsx): chosen here from the theme
+ * class rather than by the page, which is pre-rendered without knowing the theme, so night never starts from day.
+ */
+.about-hero-reflection-still {
+  background: var(--about-hero-reflection-day) center / cover no-repeat;
+}
+
+.dark .about-hero-reflection-still {
+  background-image: var(--about-hero-reflection-night);
+}
+
 @keyframes about-hero-drift {
   from {
     background-position: 0 0;
