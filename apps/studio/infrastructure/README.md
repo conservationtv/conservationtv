@@ -78,7 +78,8 @@ read from its own last outputs, so a `pulumi up` from a workstation never rolls 
 ### The web app's configuration
 
 The web app's build is the same for every stack. Its Worker ([`../web/worker`](../web/worker)) serves the build as
-static assets, answering unknown paths with `index.html`, and serves the stack's configuration for it as `/config.js`,
+static assets, with `index.html` the pre-rendered homepage. It answers a page load of any other path with the app's
+shell, `__spa-fallback.html`, and any other request for a missing file with a 404, and serves the stack's configuration for it as `/config.js`,
 which the document loads before the app (see `src/lib/config.ts` there). That configuration is the `web` output, bound
 to each version as text, so it changes only with a release and rolls back with one. In development, the web app's
 Vite server answers `/config.js` instead, from `API_URL` in the environment or the local API.

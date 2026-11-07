@@ -27,8 +27,6 @@ declare module 'react' {
     /** The landscape by day, and by night for the dark theme; see about-hero.css. */
     '--about-hero-landscape-day'?: string;
     '--about-hero-landscape-night'?: string;
-    /** How long a loop of the clouds' drift takes; see about-hero.css. */
-    '--cloud-drift-duration'?: string;
   }
 }
 
@@ -52,9 +50,6 @@ const menuEntrance: Transition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] };
 /** Seconds between the heading rising in and the paragraph after it. */
 const TEXT_STAGGER_SECONDS = 0.12;
 
-/** Seconds per loop of the clouds' drift, handed to about-hero.css as `--cloud-drift-duration`. */
-const CLOUD_DRIFT_DURATION_SECONDS = 120;
-
 export const meta: Route.MetaFunction = () => [
   { title: 'About · conservation.tv' },
   {
@@ -69,14 +64,6 @@ export const meta: Route.MetaFunction = () => [
  * aren't among them: each has a day and a night version, and which one shows depends on the theme.
  */
 export const links: Route.LinksFunction = () => [{ rel: 'preload', as: 'image', href: cloudsImage }];
-
-/** Starts the clouds where the wall clock puts them in their loop, so they drift on across reloads; see about-hero.css. */
-const syncCloudDrift = (node: HTMLDivElement | null) => {
-  // React hands the ref null as the element detaches; there is nothing to sync then.
-  if (!node) return;
-  const phase = (Date.now() % (CLOUD_DRIFT_DURATION_SECONDS * 1000)) / 1000;
-  node.style.setProperty('--cloud-drift-phase', `${phase}s`);
-};
 
 /**
  * Across the top right: a way to sign in, there from the first paint, or for someone signed in, the app rail's pinned
@@ -194,11 +181,7 @@ const AboutRoute: FC = () => {
           <NightStars className="pointer-events-none absolute inset-0 z-0 hidden size-full dark:block" />
 
           <div
-            ref={syncCloudDrift}
-            style={{
-              '--about-hero-clouds-image': `url(${cloudsImage})`,
-              '--cloud-drift-duration': `${CLOUD_DRIFT_DURATION_SECONDS}s`
-            }}
+            style={{ '--about-hero-clouds-image': `url(${cloudsImage})` }}
             className="about-hero-clouds z-0 flex w-full flex-col pt-24 pb-15 min-[100rem]:pt-16"
           >
             <div className="relative z-10 mb-[min(10vw,160px)] flex flex-col items-center gap-4 px-6">

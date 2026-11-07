@@ -76,7 +76,7 @@ export type VersionedOperation<Id extends string, Versions extends OperationVers
   readonly [Key in VersionKeys<Versions>]: CallFor<Id, Versions, Key>;
 };
 
-/** An operation call returns this error before a successful handshake; the version getter still throws it. */
+/** An operation's version getter throws this before a handshake succeeds; a call handshakes itself instead. */
 export class HandshakeRequiredError extends Error {
   readonly operationId: string;
 
@@ -135,7 +135,8 @@ export abstract class ClientCore extends ClientTransport {
 
   /**
    * Reads all versions of each versioned operation the server serves from its published OpenAPI document. Call before
-   * any versioned operation, and again to refresh. Rejects with HandshakeError on failure.
+   * any versioned operation, and again to refresh. Rejects with HandshakeError on failure. A versioned call made before
+   * one has succeeded handshakes itself, joining one in flight, so callers can start it without awaiting it.
    * Versionless operations don't need it.
    */
   handshake(): Promise<void> {
@@ -237,6 +238,8 @@ export abstract class ClientCore extends ClientTransport {
     method: BoundMethod,
     args: unknown[]
   ): Promise<OperationOutcome> {
+    // Until one succeeds, every call handshakes, joining one in flight; its HandshakeError becomes this call's result.
+    if (!this.negotiated) await this.handshake();
     const negotiated = this.versionOf(operationId);
     if (!this.available.get(operationId)?.includes(version))
       return new OperationVersionUnavailableError(operationId, version, negotiated);

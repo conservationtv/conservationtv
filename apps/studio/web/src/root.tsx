@@ -14,12 +14,14 @@ import { queryClient } from '@/lib/query-client';
 import { apiHandshakeQueryOptions } from '@/queries/api';
 
 /**
- * Negotiate the SDK's operation versions before any page reads data: middleware finishes before the route renders, so
- * every page's queries and mutations run after it.
+ * Start negotiating the SDK's operation versions without waiting on it, so pages that read no data (the homepage)
+ * render even when the API is slow or down. A versioned call made before a handshake succeeds joins the one in flight,
+ * or starts another, so each page's queries suspend on it, retry it, and fail into their own error boundaries.
  */
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async (_args, next) => {
-    await queryClient.query({ ...apiHandshakeQueryOptions(), staleTime: 'static' });
+    // prefetchQuery swallows the failure; it reaches the queries waiting on it instead.
+    void queryClient.prefetchQuery({ ...apiHandshakeQueryOptions(), staleTime: 'static' });
     await next();
   }
 ];
@@ -86,7 +88,10 @@ const App: FC = () => {
 
 export default App;
 
-/** Shown from index.html until the app has loaded, and while a page's first queries load. */
+/**
+ * Shown from __spa-fallback.html, which answers every page but the pre-rendered homepage, until the app has loaded,
+ * and while a page's first queries load.
+ */
 export const HydrateFallback: FC = () => {
   return (
     // On the app's warm canvas, like the sign-in screens it usually hands over to.
