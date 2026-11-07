@@ -76,6 +76,12 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setThemeState] = React.useState<Theme>(() => {
+    // The build pre-renders the homepage in Node, where there is no storage. Nothing on it renders the theme, so the
+    // browser's first render, which reads the stored choice, still matches it; the pre-paint script set the class.
+    if (import.meta.env.SSR) {
+      return defaultTheme
+    }
+
     const storedTheme = localStorage.getItem(storageKey)
     if (isTheme(storedTheme)) {
       return storedTheme
