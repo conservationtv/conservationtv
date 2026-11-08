@@ -14,7 +14,7 @@ import { useEnvironment } from '../env/env.ts';
 // Devices connect for what they publish: a device publishes the exposures it is the pinned publisher of (a browser
 // publishing directly is one), and reads the upstreams of those. Nothing else is published: exposures without a
 // pinned publisher wait for the configuration builders to choose one. A show's output (src/db/schemas/shows.ts) also
-// reads what the show currently places, as its object says (src/shows/host.ts), to play it in OBS.
+// reads what the show currently places, as its object says (src/shows/host.tsx), to play it in OBS.
 
 /** An exposure, by where its connections are made: `organisations/{organisationId}/streams/{streamId}/exposures/{exposureId}`. */
 export interface ExposureLocation {
