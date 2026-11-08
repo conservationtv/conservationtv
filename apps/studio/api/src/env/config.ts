@@ -69,7 +69,7 @@ export interface Bindings {
   /** Where the application role connects: the `HYPERDRIVE_APP` binding. */
   app: string;
   cache: Cache;
-  /** Each organisation's broadcast: the `SHOW_HOST` binding's objects (src/shows/host.ts). */
+  /** Each organisation's broadcast: the Worker's own `ShowHost` objects, through `ctx.exports` (src/shows/host.tsx). */
   broadcasts: Broadcasts;
   background: Background;
   /** The Worker's static assets: the published OpenAPI document. */

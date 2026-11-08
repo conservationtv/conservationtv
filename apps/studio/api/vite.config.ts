@@ -11,7 +11,8 @@ import { defineConfig } from 'vite';
 // startup. Dynamic imports are still evaluated lazily, inside the one file.
 //
 // contracts/ is the Worker's static assets, so the published OpenAPI document ships beside the bundle rather than in
-// it. contracts/.assetsignore keeps the frozen snapshots beside it out of the upload.
+// it, as does the show's bundle (contracts/show/, built by `pnpm bundle:show`). contracts/.assetsignore keeps the
+// frozen snapshots beside them out of the upload.
 //
 // Startup: a cold start parses and evaluates the whole bundle, so it is minified (keeping function and class names, for
 // readable stack traces), and three dependencies the Worker never runs are swapped for stubs that throw if called

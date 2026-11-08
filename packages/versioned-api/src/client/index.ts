@@ -20,7 +20,8 @@ export {
   type ResultCall,
   type SdkClass,
   type SdkClassArgs,
-  type SdkMethod
+  type SdkMethod,
+  type WebSocketAddress
 } from './transport.js';
 export {
   ClientCore,

@@ -20,12 +20,13 @@ interface Branch {
   children: Map<string, Branch>;
   versions?: OperationVersion[];
   versionless?: boolean;
+  webSocket?: boolean;
 }
 
 /**
  * Generates Client: the supplied BaseClient's operation tree. A versioned operation maps its versions to the
  * BaseClient generated from the spec that defines it (this job's for `current`, `../versions/<operationId>-vN` otherwise); a
- * versionless one is this job's BaseClient method. The generated fetch client (`createClient`, `mergeHeaders`) is
+ * versionless one is this job's BaseClient method, or for a WebSocket the address it would be sent to. The generated fetch client (`createClient`, `mergeHeaders`) is
  * handed to the runtime as the `http` field. Runs in the job for the current spec; tested with Hey API 0.99.0.
  */
 export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
@@ -77,7 +78,11 @@ export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
       if (branch.versions == null) branch.versions = [];
       branch.versions.push(operation);
     }
-    for (const operation of plugin.config.operations.versionless) leaf(operation.operationId).versionless = true;
+    for (const operation of plugin.config.operations.versionless) {
+      const branch = leaf(operation.operationId);
+      branch.versionless = true;
+      branch.webSocket = operation.webSocket;
+    }
 
     const operationCall = (operationId: string, versions: OperationVersion[]) => {
       const sdks = $.object();
@@ -86,8 +91,10 @@ export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
       }
       return $('this').attr('versioned').call($.literal(operationId), sdks);
     };
-    const versionlessCall = (operationId: string) =>
-      $('this').attr('versionless').call($.literal(operationId), $(base));
+    const versionlessCall = (operationId: string, webSocket: boolean) =>
+      $('this')
+        .attr(webSocket ? 'webSocket' : 'versionless')
+        .call($.literal(operationId), $(base));
     type Expression =
       | ReturnType<typeof $.object>
       | ReturnType<typeof operationCall>
@@ -96,7 +103,9 @@ export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
       // A leaf is an operation (versioned or not); anything else is a namespace object of its children.
       if (branch.versions || branch.versionless) {
         if (branch.children.size) throw new Error(`operationId is also a namespace: ${operationId}`);
-        return branch.versions ? operationCall(operationId, branch.versions) : versionlessCall(operationId);
+        return branch.versions
+          ? operationCall(operationId, branch.versions)
+          : versionlessCall(operationId, branch.webSocket ?? false);
       }
       const object = $.object().pretty();
       for (const [part, child] of branch.children) object.prop(part, toExpression(`${operationId}.${part}`, child));

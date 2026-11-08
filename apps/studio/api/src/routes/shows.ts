@@ -18,7 +18,8 @@ import {
   unauthenticated,
   unavailable,
   validator,
-  versionMismatch
+  versionMismatch,
+  webSocket
 } from './openapi.ts';
 
 const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisation.') });
@@ -27,24 +28,19 @@ const OutputDeviceSchema = z.uuid().describe("The agent that drives OBS for the 
 export type OutputDevice = z.output<typeof OutputDeviceSchema>;
 
 // An organisation's broadcast (src/shows), its show for now: a show's ID is its organisation's. It is followed as a
-// vignette stream over a WebSocket (src/shows/host.ts), by members signed in by their session cookie and by the agent
-// it goes out through, signed as its device. Those routes are hidden, not operations of the versioned API: a browser
-// cannot send the handshake's headers with a WebSocket. Following it changes nothing; only setting its composition
-// does, which for now is a temporary command composing it from the organisation's streams. Where it goes out is an
-// operation.
+// vignette stream over a WebSocket (src/shows/host.tsx), by members signed in by their session cookie and by the agent
+// it goes out through, signed as its device. Following it changes nothing; only setting its composition does, which
+// for now is a temporary command composing it from the organisation's streams. Both are versionless operations:
+// following is a WebSocket, which the SDK gives the address of (`webSocket`), and composing will give way to a show's
+// controls. Where it goes out is a versioned operation.
 // A frame page (packages/shows' `*.frame.tsx`, as OBS or an iframe opens it) follows its own source over a WebSocket
-// too, with no session at all, so that socket serves frame sources only (src/shows/host.ts).
-
-/**
- * Refuse callers other than the studio's pages, and members of other organisations (`not_found`). A browser sends
- * cookies with a WebSocket from any page, and CORS does not apply to one. Runs in the request's transaction.
- */
-async function requireMember(origin: string | undefined, organisationId: string) {
-  const environment = useEnvironment();
-  if (origin === undefined || !environment.variables.WEB_ORIGINS.includes(origin)) throw new ApiFailure('forbidden');
-  const organisation = await getOrganisation(organisationId);
-  if (!organisation) throw new ApiFailure('not_found');
-}
+// too, with no session at all, so that socket serves frame sources only (src/shows/host.tsx). The show's bundle names
+// that address (src/shows/broadcast.ts), so it is no operation: its route is hidden.
+// The broadcast's object does not run under row-level security, so the routes that reach it for a member first read
+// the organisation as the caller: members of other organisations get `not_found`.
+// Cross-site requests are left to Better Auth's session cookie, which is `SameSite=Lax`: no other site's page can send
+// it with a WebSocket handshake or a POST. Same-site pages can, and a WebSocket has no CORS to keep them from reading
+// it, so this relies on every host under conservation.tv being ours, gateways' included.
 
 /** Refuse any device but the one the show goes out through (`not_found`), as trusted code. */
 async function requireOutput(showId: string) {
@@ -54,17 +50,40 @@ async function requireOutput(showId: string) {
 }
 
 export default new Hono()
-  .get('/', describeRoute({ hide: true }), requirePrincipal, validator('param', OrganisationParamsSchema), async c => {
-    const { id } = c.req.valid('param');
-    if (c.req.header('Upgrade') !== 'websocket') return c.text('Expected a WebSocket', 426);
-    const principal = usePrincipal();
-    const origin = c.req.header('Origin');
-    if (principal.kind === 'device') await requireOutput(id);
-    else await transaction(() => requireMember(origin, id));
-    const environment = useEnvironment();
-    const broadcast = environment.broadcasts.get(id);
-    return broadcast.fetch(c.req.raw);
-  })
+  .get(
+    '/',
+    describeRoute({
+      operationId: 'organisations.show.follow',
+      ...webSocket(),
+      summary: "Follow the organisation's broadcast",
+      description:
+        "A WebSocket, sent the broadcast as a vignette stream: its setup and latest update first, then each update as it is composed. Followed by the organisation's members, and by the agent it goes out through, signed as its device. Refused until the broadcast has been composed.",
+      responses: {
+        101: { description: 'Following the broadcast' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        426: { description: 'The request is not a WebSocket handshake' },
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    async c => {
+      const { id } = c.req.valid('param');
+      if (c.req.header('Upgrade') !== 'websocket') return c.text('Expected a WebSocket', 426);
+      const principal = usePrincipal();
+      if (principal.kind === 'device') {
+        await requireOutput(id);
+      } else {
+        const organisation = await transaction(() => getOrganisation(id));
+        if (!organisation) throw new ApiFailure('not_found');
+      }
+      const environment = useEnvironment();
+      const broadcast = environment.broadcasts.get(id);
+      return broadcast.fetch(c.req.raw);
+    }
+  )
   .get('/stream', describeRoute({ hide: true }), validator('param', OrganisationParamsSchema), async c => {
     const { id } = c.req.valid('param');
     if (c.req.header('Upgrade') !== 'websocket') return c.text('Expected a WebSocket', 426);
@@ -72,24 +91,34 @@ export default new Hono()
     const broadcast = environment.broadcasts.get(id);
     return broadcast.fetch(c.req.raw);
   })
-  // Temporary: composes the broadcast from the organisation's streams, as the caller sees them, in a random order.
+  // Temporary, until a show has controls.
   .post(
     '/compose',
-    describeRoute({ hide: true }),
+    describeRoute({
+      operationId: 'organisations.show.compose',
+      summary: "Compose the organisation's broadcast",
+      description:
+        "Composes the broadcast from the organisation's streams, as the caller sees them, in a random order. Everyone following it is sent the result as its next update. Temporary, until a show has controls.",
+      responses: {
+        204: { description: 'Composed' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        503: unavailable
+      }
+    }),
     requirePrincipal,
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const origin = c.req.header('Origin');
       const state = await transaction(async () => {
-        await requireMember(origin, id);
+        const organisation = await getOrganisation(id);
+        if (!organisation) throw new ApiFailure('not_found');
         return shuffledComposition(id);
       });
       const environment = useEnvironment();
-      // The studio web app serves the show's bundle: the first of its origins is the app itself.
-      const [webOrigin] = environment.variables.WEB_ORIGINS;
-      const bundle = await broadcastBundle(webOrigin);
-      const serve = broadcastServe(id, environment.variables.APP_URL, webOrigin);
+      const bundle = await broadcastBundle(environment.assets, environment.variables.APP_URL);
+      const serve = broadcastServe(id, environment.variables.APP_URL);
       const broadcast = environment.broadcasts.get(id);
       await broadcast.setComposition({ state, ...bundle, serve });
       return c.body(null, 204);

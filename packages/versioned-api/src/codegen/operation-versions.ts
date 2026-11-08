@@ -16,6 +16,7 @@ export type Parameter = z.output<typeof ParameterSchema>;
 const SpecOperationSchema = z.looseObject({
   operationId: z.string().optional(),
   'x-operation-version': z.int().positive().optional(),
+  'x-websocket': z.literal(true).optional(),
   summary: z.string().optional(),
   description: z.string().optional(),
   parameters: z.array(ParameterSchema).optional(),
@@ -54,6 +55,8 @@ export interface SpecEntry {
   description: string;
   /** Whether the generated SDK method takes parameters before its options. */
   hasParams: boolean;
+  /** Whether clients connect to it as a WebSocket, so the SDK gives its address instead of sending it. */
+  webSocket: boolean;
 }
 
 /** A frozen operation contract, generated once under its stable operation/version identity. */
@@ -147,15 +150,16 @@ interface EntryContext {
 function entryOf(context: EntryContext, path: string, item: PathItem, method: Method): SpecEntry | undefined {
   const operation = SpecOperationSchema.optional().parse(item[method]);
   if (!operation) return undefined;
-  const { operationId, 'x-operation-version': version } = operation;
+  const { operationId, 'x-operation-version': version, 'x-websocket': webSocket = false } = operation;
   if (!operationId) throw new Error(`${context.source}: missing operationId on ${method.toUpperCase()} ${path}`);
+  if (webSocket && version !== undefined) throw new Error(`${context.source}: WebSocket ${operationId} is versioned`);
   if (context.catalogued && version !== undefined) return undefined;
   if (version !== undefined)
     operation.parameters = operation.parameters?.filter(parameter => !isSelectorHeader(parameter));
   item[method] = operation;
   const key = `${method.toUpperCase()} ${path}`;
   const { source, file, document } = context;
-  return { operationId, version, key, source, file, document, ...summary(item, operation) };
+  return { operationId, version, key, source, file, document, webSocket, ...summary(item, operation) };
 }
 
 interface EntrySummary {

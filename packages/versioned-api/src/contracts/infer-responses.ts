@@ -32,6 +32,7 @@ interface OpenApiResponse {
 interface Operation {
   operationId?: string;
   'x-operation-version'?: number;
+  'x-websocket'?: true;
   responses?: Record<string, OpenApiResponse>;
 }
 
@@ -298,7 +299,8 @@ function describeEndpoint({ spec, checker, convert }: Describer, route: string, 
   // `$get` on `/notes/:id` is the spec's `get` on `/notes/{id}`. Routes left out of the spec stay out.
   const name = method.name.slice(1);
   const operation = isMethod(name) ? spec.paths?.[route.replace(/:(\w+)/g, '{$1}')]?.[name] : undefined;
-  if (!operation || operation['x-operation-version'] !== undefined) return [];
+  // A WebSocket's handshake has no body to infer, and its handler hands back whatever upgraded it.
+  if (!operation || operation['x-operation-version'] !== undefined || operation['x-websocket']) return [];
   const bodies: JsonBody[] = [];
   const label = `${name.toUpperCase()} ${route}`;
   for (const [status, outputs] of outputsByStatus(checker, label, checker.getTypeOfSymbol(method))) {

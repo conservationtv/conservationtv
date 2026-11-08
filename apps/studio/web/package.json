@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter @conservationtv/shows bundle && react-router dev",
-    "dev:staging": "pnpm --filter @conservationtv/shows bundle && react-router dev",
-    "build": "react-router typegen && tsc -b && pnpm --filter @conservationtv/shows bundle && react-router build",
+    "dev": "react-router dev",
+    "dev:staging": "react-router dev",
+    "build": "react-router typegen && tsc -b && react-router build",
     "lint": "oxlint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "react-router typegen && tsc -b",
