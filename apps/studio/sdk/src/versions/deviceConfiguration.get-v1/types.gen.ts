@@ -79,8 +79,8 @@ export type DeviceConfiguration = {
             keyframeSeconds: number;
         };
         forwards: Array<{
+            organisationId: string;
             channelId: string;
-            ingest: string;
         }>;
     };
 };

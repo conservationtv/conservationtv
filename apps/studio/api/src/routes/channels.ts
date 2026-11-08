@@ -16,6 +16,7 @@ import { requirePrincipal, usePrincipal, useUser } from '../middleware/principal
 import {
   createRtmpChannel,
   deleteChannel,
+  getChannel,
   listChannels,
   getChannelCredentials,
   saveChannelCredentials,
@@ -153,6 +154,32 @@ export default new Hono()
       await environment.cache.put(connectStateKey(state), JSON.stringify(remembered), CONNECT_STATE_SECONDS);
       c.header('Cache-Control', 'no-store');
       return c.json({ url }, 200);
+    }
+  )
+  .get(
+    '/:channelId',
+    describeRoute({
+      operationId: 'organisations.channels.get',
+      ...operationVersion(1),
+      summary: 'Read a channel',
+      description: 'Without its credentials, which the studio never shows. `not_found` unless you are a member.',
+      responses: {
+        200: { description: 'The channel' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', ChannelParamsSchema),
+    async c => {
+      const { id, channelId } = c.req.valid('param');
+      const row = await transaction(() => getChannel(id, channelId));
+      if (!row) throw new ApiFailure('not_found');
+      c.header('Cache-Control', 'no-store');
+      return c.json(row, 200);
     }
   )
   .patch(

@@ -123,11 +123,10 @@ export interface ObsOutput {
   keyframeSeconds: number;
 }
 
-/** A channel the program goes out to, and the request its ingest (server URL and stream key) is read by, signed. */
+/** A channel the program goes out to: its ingest (server URL and stream key) is read with `organisations.channels.ingest`. */
 export interface ObsForward {
+  organisationId: string;
   channelId: string;
-  /** The `organisations.channels.ingest` URL, POSTed signed as the device. */
-  ingest: string;
 }
 
 /** What a device runs: each runtime it is to run, by its key. A runtime left out is one it doesn't. */

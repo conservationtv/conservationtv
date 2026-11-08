@@ -103,29 +103,32 @@ One encoding has to satisfy Twitch, every other forward, and the slate, because 
 
 ## 3. Connected channels in the studio API
 
-A table of the destinations an organisation's shows go out to:
+Built (first version) as two tables, so the stream key sits under a role of its own:
 
 ```
-connected_channel
-  id, organisation_id, kind ('twitch'), name,
-  external_id (Twitch broadcaster id), external_login,
-  credentials  -- encrypted (src/db/encrypted.ts): access + refresh tokens, scopes, expiry
-  created_at
-show_channel  (show_id, channel_id)   -- which channels a show forwards to
+channel             id, organisation_id, kind ('twitch' | 'rtmp'), name,
+                    external_id (Twitch broadcaster id), external_login, enabled, created_at
+channel_credential  channel_id, organisation_id,
+                    credentials  -- encrypted (src/db/encrypted.ts): OAuth tokens and expiry, or RTMP URL + key
+                    updated_at
 ```
 
-- **Connect.** `organisations.channels.connect` starts Twitch's OAuth authorization-code flow (scope
-  `channel:read:stream_key`, and later `channel:manage:broadcast` to set title/category); the callback stores the
-  tokens encrypted and the broadcaster's id and login. Refresh on use.
-- **Key on demand.** The plan never carries a key. The `obs` section names its forwards as asks, like `connect` asks
-  today: `forwards: [{ channelId }]`. The runtime calls `organisations.channels.ingest` (device-signed, allowed for the
-  show's output), which uses the stored token to read the stream key (Helix `GET /streams/key`) and picks an ingest
-  (`https://ingest.twitch.tv/ingests`, or MediaMTX's `ingest.global-contribute.live-video.net`), returning
-  `rtmps://…/app` and the key. The runtime puts
-  it in the program MediaMTX's config, and asks again if Twitch rejects the key (it was reset) or periodically.
-- **Kinds.** `twitch` first; `youtube` (Data API live streams), `rtmp` (custom URL + key, entered by hand) and
-  `conservationtv` (forward over MoQ to the organisation's own relay) fit the same shape: a kind, credentials, and an
-  `ingest` that yields a `forward` destination.
+- **Who reads a key.** `channel_credential` is readable (and refreshable) only by `channelBroadcaster`: included in
+  `organisationAdmin`, and granted to a show's output device for as long as it is the output (`syncBroadcasters`,
+  after `organisations.show.output.set`/`delete`). Members see `channel` rows, never credentials; no trusted code
+  reads a key. The studio UI never shows one.
+- **Connect.** `organisations.channels.twitch.authorize` starts Twitch's OAuth authorization-code flow (scope
+  `channel:read:stream_key`, state in the cache for 10 minutes); `/channels/twitch/callback` stores the tokens and the
+  broadcaster, then returns to the studio's channels page. `organisations.channels.create` adds an RTMP(S) destination
+  by hand. Needs `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` and the app's redirect URL `<APP_URL>/channels/twitch/callback`.
+- **Key on demand.** The plan never carries a key: `obs.forwards` is `[{ organisationId, channelId }]` for each enabled
+  channel. The runtime calls `organisations.channels.ingest` (device-signed; row-level security admits only a
+  `channelBroadcaster`), which for Twitch refreshes the tokens if due and reads the key from Helix, returning
+  `rtmps://ingest.global-contribute.live-video.net/app` and the key. The runtime keeps it in memory and in the program
+  MediaMTX's config (mode 0600), and asks again every 30 minutes.
+- **Later:** `show_channel` (which channels a show forwards to, once shows aren't one per organisation), `youtube`,
+  `conservationtv` (MoQ to the organisation's relay), a rendered slate in place of MediaMTX's offline segment, and
+  reporting "on slate" and each forward's state.
 
 ## 4. Configuration, end to end
 

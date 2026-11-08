@@ -97,13 +97,9 @@ async function planObs(device: AuthenticatedDevice): Promise<ObsConfiguration | 
   if (planned === undefined) return undefined;
   const { output, channels } = planned;
   const environment = useEnvironment();
-  const { APP_URL } = environment.variables;
   // A show is its organisation's broadcast for now, so it is followed at the organisation's (src/routes/shows.ts).
-  const url = new URL(`/organisations/${output.organisationId}/show`, APP_URL);
-  const forwards = channels.map(channel => {
-    const ingest = new URL(`/organisations/${output.organisationId}/channels/${channel.id}/ingest`, APP_URL);
-    return { channelId: channel.id, ingest: ingest.href };
-  });
+  const url = new URL(`/organisations/${output.organisationId}/show`, environment.variables.APP_URL);
+  const forwards = channels.map(channel => ({ organisationId: output.organisationId, channelId: channel.id }));
   return { show: { id: output.showId, url: url.href }, output: PROGRAM_OUTPUT, forwards };
 }
 

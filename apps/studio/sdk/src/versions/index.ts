@@ -70,6 +70,7 @@ export * from './organisations.show.output.delete-v1/index.js';
 export * from './organisations.channels.list-v1/index.js';
 export * from './organisations.channels.create-v1/index.js';
 export * from './organisations.channels.twitch.authorize-v1/index.js';
+export * from './organisations.channels.get-v1/index.js';
 export * from './organisations.channels.update-v1/index.js';
 export * from './organisations.channels.delete-v1/index.js';
 export * from './organisations.channels.ingest-v1/index.js';

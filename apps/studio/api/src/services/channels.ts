@@ -44,6 +44,16 @@ export function listChannels(organisationId: string) {
   return db.select(listed).from(channels).where(eq(channels.organisationId, organisationId)).orderBy(channels.id);
 }
 
+/** The channel, if it is visible. */
+export async function getChannel(organisationId: string, channelId: string) {
+  const db = useDB();
+  const [row] = await db
+    .select(listed)
+    .from(channels)
+    .where(and(eq(channels.organisationId, organisationId), eq(channels.id, channelId)));
+  return row;
+}
+
 /** Add an RTMP(S) destination entered by hand. */
 export async function createRtmpChannel(organisationId: string, payload: NewRtmpChannel) {
   const db = useDB();

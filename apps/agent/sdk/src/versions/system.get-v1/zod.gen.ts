@@ -132,6 +132,26 @@ export const SystemSchema = z.object({
                 'disconnected',
                 'disposed'
             ]).nullable(),
+            streaming: z.enum([
+                'starting',
+                'streaming',
+                'reconnecting'
+            ]).nullable(),
+            program: z.object({
+                forwards: z.array(z.string()),
+                cameras: z.record(z.string(), z.object({
+                    fallback: z.boolean()
+                })),
+                state: z.enum([
+                    'running',
+                    'stopped',
+                    'starting',
+                    'crashed'
+                ]),
+                pid: z.number().nullable(),
+                restarts: z.number(),
+                lastError: z.string().nullable()
+            }).nullable(),
             state: z.enum([
                 'running',
                 'stopped',

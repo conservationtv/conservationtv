@@ -351,16 +351,13 @@ export type Output = {
 };
 
 export type Channel = {
-    channels: Array<{
-        id: string;
-        kind: 'twitch' | 'rtmp';
-        name: string;
-        externalId: string | null;
-        externalLogin: string | null;
-        enabled: boolean;
-        createdAt: string;
-    }>;
-    twitch: boolean;
+    id: string;
+    kind: 'twitch' | 'rtmp';
+    name: string;
+    externalId: string | null;
+    externalLogin: string | null;
+    enabled: boolean;
+    createdAt: string;
 };
 
 export type Twitch = {
@@ -411,8 +408,8 @@ export type DeviceConfiguration = {
             keyframeSeconds: number;
         };
         forwards: Array<{
+            organisationId: string;
             channelId: string;
-            ingest: string;
         }>;
     };
 };
@@ -4458,7 +4455,18 @@ export type GetOrganisationsByIdChannelsResponses = {
     /**
      * The channels
      */
-    200: Channel;
+    200: {
+        channels: Array<{
+            id: string;
+            kind: 'twitch' | 'rtmp';
+            name: string;
+            externalId: string | null;
+            externalLogin: string | null;
+            enabled: boolean;
+            createdAt: string;
+        }>;
+        twitch: boolean;
+    };
 };
 
 export type GetOrganisationsByIdChannelsResponse = GetOrganisationsByIdChannelsResponses[keyof GetOrganisationsByIdChannelsResponses];
@@ -4517,15 +4525,7 @@ export type PostOrganisationsByIdChannelsResponses = {
     /**
      * The new channel
      */
-    201: {
-        id: string;
-        kind: 'twitch' | 'rtmp';
-        name: string;
-        externalId: string | null;
-        externalLogin: string | null;
-        enabled: boolean;
-        createdAt: string;
-    };
+    201: Channel;
 };
 
 export type PostOrganisationsByIdChannelsResponse = PostOrganisationsByIdChannelsResponses[keyof PostOrganisationsByIdChannelsResponses];
@@ -4634,6 +4634,56 @@ export type DeleteOrganisationsByIdChannelsByChannelIdResponses = {
 
 export type DeleteOrganisationsByIdChannelsByChannelIdResponse = DeleteOrganisationsByIdChannelsByChannelIdResponses[keyof DeleteOrganisationsByIdChannelsByChannelIdResponses];
 
+export type GetOrganisationsByIdChannelsByChannelIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The channel.
+         */
+        channelId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels/{channelId}';
+};
+
+export type GetOrganisationsByIdChannelsByChannelIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdChannelsByChannelIdError = GetOrganisationsByIdChannelsByChannelIdErrors[keyof GetOrganisationsByIdChannelsByChannelIdErrors];
+
+export type GetOrganisationsByIdChannelsByChannelIdResponses = {
+    /**
+     * The channel
+     */
+    200: Channel;
+};
+
+export type GetOrganisationsByIdChannelsByChannelIdResponse = GetOrganisationsByIdChannelsByChannelIdResponses[keyof GetOrganisationsByIdChannelsByChannelIdResponses];
+
 export type PatchOrganisationsByIdChannelsByChannelIdData = {
     body: {
         /**
@@ -4692,15 +4742,7 @@ export type PatchOrganisationsByIdChannelsByChannelIdResponses = {
     /**
      * The channel
      */
-    200: {
-        id: string;
-        kind: 'twitch' | 'rtmp';
-        name: string;
-        externalId: string | null;
-        externalLogin: string | null;
-        enabled: boolean;
-        createdAt: string;
-    };
+    200: Channel;
 };
 
 export type PatchOrganisationsByIdChannelsByChannelIdResponse = PatchOrganisationsByIdChannelsByChannelIdResponses[keyof PatchOrganisationsByIdChannelsByChannelIdResponses];

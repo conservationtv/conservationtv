@@ -359,16 +359,13 @@ export const OutputSchema = z.object({
 });
 
 export const ChannelSchema = z.object({
-    channels: z.array(z.object({
-        id: z.string(),
-        kind: z.enum(['twitch', 'rtmp']),
-        name: z.string(),
-        externalId: z.string().nullable(),
-        externalLogin: z.string().nullable(),
-        enabled: z.boolean(),
-        createdAt: z.string()
-    })),
-    twitch: z.boolean()
+    id: z.string(),
+    kind: z.enum(['twitch', 'rtmp']),
+    name: z.string(),
+    externalId: z.string().nullable(),
+    externalLogin: z.string().nullable(),
+    enabled: z.boolean(),
+    createdAt: z.string()
 });
 
 export const TwitchSchema = z.object({
@@ -422,8 +419,8 @@ export const DeviceConfigurationSchema = z.object({
             keyframeSeconds: z.number()
         }),
         forwards: z.array(z.object({
-            channelId: z.string(),
-            ingest: z.string()
+            organisationId: z.string(),
+            channelId: z.string()
         }))
     }).optional()
 });
@@ -1960,7 +1957,20 @@ export const GetOrganisationsByIdChannelsPathSchema = z.object({
 /**
  * The channels
  */
-export const GetOrganisationsByIdChannelsResponseSchema = ChannelSchema;
+export const GetOrganisationsByIdChannelsResponseSchema = z.object({
+    channels: z.array(z.object({
+        id: z.string(),
+        kind: z.enum(['twitch', 'rtmp']),
+        name: z.string(),
+        externalId: z.string().nullable(),
+        externalLogin: z.string().nullable(),
+        enabled: z.boolean(),
+        createdAt: z.string()
+    })),
+    twitch: z.boolean()
+}).register(z.globalRegistry, {
+    description: 'The channels'
+});
 
 export const PostOrganisationsByIdChannelsBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
@@ -1983,17 +1993,7 @@ export const PostOrganisationsByIdChannelsPathSchema = z.object({
 /**
  * The new channel
  */
-export const PostOrganisationsByIdChannelsResponseSchema = z.object({
-    id: z.string(),
-    kind: z.enum(['twitch', 'rtmp']),
-    name: z.string(),
-    externalId: z.string().nullable(),
-    externalLogin: z.string().nullable(),
-    enabled: z.boolean(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The new channel'
-});
+export const PostOrganisationsByIdChannelsResponseSchema = ChannelSchema;
 
 export const PostOrganisationsByIdChannelsTwitchAuthorizePathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -2022,6 +2022,20 @@ export const DeleteOrganisationsByIdChannelsByChannelIdResponseSchema = z.void()
     description: 'Removed'
 });
 
+export const GetOrganisationsByIdChannelsByChannelIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    channelId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The channel.'
+    })
+});
+
+/**
+ * The channel
+ */
+export const GetOrganisationsByIdChannelsByChannelIdResponseSchema = ChannelSchema;
+
 export const PatchOrganisationsByIdChannelsByChannelIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'What the channel is called in the studio.'
@@ -2043,17 +2057,7 @@ export const PatchOrganisationsByIdChannelsByChannelIdPathSchema = z.object({
 /**
  * The channel
  */
-export const PatchOrganisationsByIdChannelsByChannelIdResponseSchema = z.object({
-    id: z.string(),
-    kind: z.enum(['twitch', 'rtmp']),
-    name: z.string(),
-    externalId: z.string().nullable(),
-    externalLogin: z.string().nullable(),
-    enabled: z.boolean(),
-    createdAt: z.string()
-}).register(z.globalRegistry, {
-    description: 'The channel'
-});
+export const PatchOrganisationsByIdChannelsByChannelIdResponseSchema = ChannelSchema;
 
 export const PostOrganisationsByIdChannelsByChannelIdIngestPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {

@@ -14,7 +14,9 @@ export default [
           index('./routes/organisation-home.tsx'),
           route('streams', './routes/streams.tsx'),
           // The organisation's broadcast, composed by the studio API and followed live.
-          route('show', './routes/show.tsx')
+          route('show', './routes/show.tsx'),
+          // Where the broadcast goes out to: Twitch channels and RTMP destinations.
+          route('channels', './routes/channels.tsx')
         ])
       ])
     ]),

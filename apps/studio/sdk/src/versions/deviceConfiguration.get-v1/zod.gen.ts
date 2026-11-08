@@ -85,8 +85,8 @@ export const DeviceConfigurationSchema = z.object({
             keyframeSeconds: z.number()
         }),
         forwards: z.array(z.object({
-            channelId: z.string(),
-            ingest: z.string()
+            organisationId: z.string(),
+            channelId: z.string()
         }))
     }).optional()
 });
