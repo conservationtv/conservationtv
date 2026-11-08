@@ -19,7 +19,7 @@ import { z } from 'zod';
 // output: x264 at a constant bitrate, keyframes every `keyframeSeconds`, AAC 48 kHz stereo, streaming to the program
 // MediaMTX (program.ts), whose fallback has the same tracks. OBS never sees a channel's stream key. The collection is
 // written when missing or sceneless, with one empty scene to start on: OBS keeps it, and vignette's target owns the
-// scenes it adds.
+// scenes it adds, putting the show's `activeScene` on program once it has (packages/shows/src/broadcast.show.tsx).
 
 /** How OBS is started for an install: the executable, its arguments, where it runs, and its environment. */
 export interface ObsLaunch {
