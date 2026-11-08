@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { AttachedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
 import { type AlwaysAvailableTrack, type MediamtxConfig, toYaml } from '@conservationtv/mediamtx';
 import { BehaviorSubject } from 'rxjs';
+import { z } from 'zod';
 
 // The program MediaMTX: a MediaMTX of the obs runtime's own, between OBS and everything it sends or plays, so OBS can
 // come and go without anyone downstream noticing (docs/obs-agent.md):
@@ -66,6 +67,10 @@ export interface ProgramStatus extends ProcessStatus {
 
 const STOPPED: ProgramStatus = { ...PROCESS_STOPPED, forwards: [], cameras: {} };
 
+/** The part of MediaMTX's path status the relays are probed by. */
+const PathOnlineSchema = z.object({ online: z.boolean().default(false) });
+export type PathOnline = z.output<typeof PathOnlineSchema>;
+
 /** A camera path's name for a source: MediaMTX names take letters, digits and `_-.~` only. */
 export function cameraPath(sourceId: string): string {
   return `cams/${sourceId.replaceAll(/[^\w.~-]/gu, '_')}`;
@@ -114,6 +119,22 @@ export class ProgramMediamtx {
   /** Where a camera's relay pushes and OBS plays from. */
   cameraUrl(sourceId: string): string {
     return `rtmp://127.0.0.1:${String(this.ports.rtmp)}/${cameraPath(sourceId)}`;
+  }
+
+  /**
+   * Whether something publishes to the source's path now: MediaMTX's `online`, which, unlike `ready`, stays false
+   * while the path only plays its offline segment. False if MediaMTX doesn't answer, or has no such path.
+   */
+  async publishing(sourceId: string, signal: AbortSignal): Promise<boolean> {
+    const url = `http://127.0.0.1:${String(this.ports.api)}/v3/paths/get/${cameraPath(sourceId)}`;
+    try {
+      const response = await fetch(url, { signal });
+      if (!response.ok) return false;
+      const path = PathOnlineSchema.parse(await response.json());
+      return path.online;
+    } catch {
+      return false;
+    }
   }
 
   /** Has MediaMTX running, from `binary` (an install's ID as `key`), with the config written first. */

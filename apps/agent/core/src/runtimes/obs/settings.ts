@@ -1,6 +1,7 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { z } from 'zod';
 
 // Where OBS keeps its configuration, and what the agent writes there before each launch. The agent owns this OBS, so
 // its configuration is the agent's alone, never the user's own OBS's:
@@ -17,7 +18,8 @@ import { dirname, join } from 'node:path';
 // OBS is launched with (`--profile`, `--collection`). The profile is rewritten before every launch from the plan's
 // output: x264 at a constant bitrate, keyframes every `keyframeSeconds`, AAC 48 kHz stereo, streaming to the program
 // MediaMTX (program.ts), whose fallback has the same tracks. OBS never sees a channel's stream key. The collection is
-// written only if it is missing: OBS keeps it, and vignette's target owns the scenes in it.
+// written when missing or sceneless, with one empty scene to start on: OBS keeps it, and vignette's target owns the
+// scenes it adds.
 
 /** How OBS is started for an install: the executable, its arguments, where it runs, and its environment. */
 export interface ObsLaunch {
@@ -181,20 +183,36 @@ export async function writeObsProfile(config: string, output: ObsOutput, target:
   await writeCollection(join(config, 'basic', 'scenes', `${OBS_COLLECTION}.json`));
 }
 
-/** An empty scene collection, for OBS to keep from then on. */
+/** The scene a collection starts with: OBS needs a current scene, or obs-websocket crashes reading its name. */
+const BASE_SCENE = 'Scene';
+
+/** A collection's scenes, as far as the agent reads it. */
+const CollectionSchema = z.object({ scene_order: z.array(z.unknown()).default([]) }).loose();
+export type Collection = z.output<typeof CollectionSchema>;
+
+/**
+ * The collection with one empty scene, current in both preview and program, for OBS to keep from then on. Written
+ * when missing, and again when it has no scenes: an OBS that loads a collection with none has no current scene, and
+ * obs-websocket then crashes OBS (a null name in `strlen`) as soon as a client asks for the program scene.
+ */
 async function writeCollection(file: string): Promise<void> {
-  const exists = await access(file).then(
-    () => true,
-    () => false
-  );
-  if (exists) return;
+  const text = await readFile(file, 'utf8').catch(() => undefined);
+  const kept = text === undefined ? undefined : CollectionSchema.safeParse(JSON.parse(text));
+  if (kept?.success && kept.data.scene_order.length > 0) return;
   await mkdir(dirname(file), { recursive: true });
+  const scene = {
+    id: 'scene',
+    versioned_id: 'scene',
+    name: BASE_SCENE,
+    uuid: randomUUID(),
+    settings: { items: [], id_counter: 0, custom_size: false }
+  };
   const collection = {
     name: OBS_COLLECTION,
-    current_scene: '',
-    current_program_scene: '',
-    scene_order: [],
-    sources: []
+    current_scene: BASE_SCENE,
+    current_program_scene: BASE_SCENE,
+    scene_order: [{ name: BASE_SCENE }],
+    sources: [scene]
   };
   await writeFile(file, JSON.stringify(collection, null, 2));
 }

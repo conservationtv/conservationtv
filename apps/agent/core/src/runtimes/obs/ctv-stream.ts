@@ -231,8 +231,12 @@ class Relay {
     private readonly options: CtvStreamObsOptions,
     private readonly sourceId: string
   ) {
-    // A push has nothing to probe: running is all it says. MediaMTX's log says whether it publishes.
-    this.process = new AttachedProcess(join(options.directory, sourceId), { name: 'moq', probe: async () => true });
+    // Ready once MediaMTX has the push: before it starts, nothing publishes there, so nothing else is taken for it.
+    this.process = new AttachedProcess(join(options.directory, sourceId), {
+      name: 'moq',
+      probe: signal => options.program.publishing(sourceId, signal),
+      readyTimeoutMs: 30_000
+    });
   }
 
   /** Serve the exposure `props` name: with a new session if it is another exposure, as it is the first time. */
