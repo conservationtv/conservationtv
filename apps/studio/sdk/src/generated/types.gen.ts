@@ -350,6 +350,23 @@ export type Output = {
     createdAt: string;
 };
 
+export type Channel = {
+    channels: Array<{
+        id: string;
+        kind: 'twitch' | 'rtmp';
+        name: string;
+        externalId: string | null;
+        externalLogin: string | null;
+        enabled: boolean;
+        createdAt: string;
+    }>;
+    twitch: boolean;
+};
+
+export type Twitch = {
+    url: string;
+};
+
 export type Report = {
     accepted: number;
 };
@@ -386,6 +403,17 @@ export type DeviceConfiguration = {
             id: string;
             url: string;
         };
+        output: {
+            width: number;
+            height: number;
+            fps: number;
+            bitrateKbps: number;
+            keyframeSeconds: number;
+        };
+        forwards: Array<{
+            channelId: string;
+            ingest: string;
+        }>;
     };
 };
 
@@ -4392,6 +4420,347 @@ export type PutOrganisationsByIdShowOutputResponses = {
 };
 
 export type PutOrganisationsByIdShowOutputResponse = PutOrganisationsByIdShowOutputResponses[keyof PutOrganisationsByIdShowOutputResponses];
+
+export type GetOrganisationsByIdChannelsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels';
+};
+
+export type GetOrganisationsByIdChannelsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdChannelsError = GetOrganisationsByIdChannelsErrors[keyof GetOrganisationsByIdChannelsErrors];
+
+export type GetOrganisationsByIdChannelsResponses = {
+    /**
+     * The channels
+     */
+    200: Channel;
+};
+
+export type GetOrganisationsByIdChannelsResponse = GetOrganisationsByIdChannelsResponses[keyof GetOrganisationsByIdChannelsResponses];
+
+export type PostOrganisationsByIdChannelsData = {
+    body: {
+        /**
+         * What the channel is called in the studio.
+         */
+        name: string;
+        /**
+         * The RTMP(S) server URL, with its application, such as `rtmps://ingest.global-contribute.live-video.net/app`.
+         */
+        url: string;
+        /**
+         * The stream key the server gave.
+         */
+        key: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels';
+};
+
+export type PostOrganisationsByIdChannelsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChannelsError = PostOrganisationsByIdChannelsErrors[keyof PostOrganisationsByIdChannelsErrors];
+
+export type PostOrganisationsByIdChannelsResponses = {
+    /**
+     * The new channel
+     */
+    201: {
+        id: string;
+        kind: 'twitch' | 'rtmp';
+        name: string;
+        externalId: string | null;
+        externalLogin: string | null;
+        enabled: boolean;
+        createdAt: string;
+    };
+};
+
+export type PostOrganisationsByIdChannelsResponse = PostOrganisationsByIdChannelsResponses[keyof PostOrganisationsByIdChannelsResponses];
+
+export type PostOrganisationsByIdChannelsTwitchAuthorizeData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels/twitch/authorize';
+};
+
+export type PostOrganisationsByIdChannelsTwitchAuthorizeErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * This deployment cannot connect channels of that kind: Twitch needs a Twitch application configured
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChannelsTwitchAuthorizeError = PostOrganisationsByIdChannelsTwitchAuthorizeErrors[keyof PostOrganisationsByIdChannelsTwitchAuthorizeErrors];
+
+export type PostOrganisationsByIdChannelsTwitchAuthorizeResponses = {
+    /**
+     * Where to send the browser
+     */
+    200: Twitch;
+};
+
+export type PostOrganisationsByIdChannelsTwitchAuthorizeResponse = PostOrganisationsByIdChannelsTwitchAuthorizeResponses[keyof PostOrganisationsByIdChannelsTwitchAuthorizeResponses];
+
+export type DeleteOrganisationsByIdChannelsByChannelIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The channel.
+         */
+        channelId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels/{channelId}';
+};
+
+export type DeleteOrganisationsByIdChannelsByChannelIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdChannelsByChannelIdError = DeleteOrganisationsByIdChannelsByChannelIdErrors[keyof DeleteOrganisationsByIdChannelsByChannelIdErrors];
+
+export type DeleteOrganisationsByIdChannelsByChannelIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdChannelsByChannelIdResponse = DeleteOrganisationsByIdChannelsByChannelIdResponses[keyof DeleteOrganisationsByIdChannelsByChannelIdResponses];
+
+export type PatchOrganisationsByIdChannelsByChannelIdData = {
+    body: {
+        /**
+         * What the channel is called in the studio.
+         */
+        name?: string;
+        /**
+         * Whether the broadcast goes out to it.
+         */
+        enabled?: boolean;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The channel.
+         */
+        channelId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels/{channelId}';
+};
+
+export type PatchOrganisationsByIdChannelsByChannelIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdChannelsByChannelIdError = PatchOrganisationsByIdChannelsByChannelIdErrors[keyof PatchOrganisationsByIdChannelsByChannelIdErrors];
+
+export type PatchOrganisationsByIdChannelsByChannelIdResponses = {
+    /**
+     * The channel
+     */
+    200: {
+        id: string;
+        kind: 'twitch' | 'rtmp';
+        name: string;
+        externalId: string | null;
+        externalLogin: string | null;
+        enabled: boolean;
+        createdAt: string;
+    };
+};
+
+export type PatchOrganisationsByIdChannelsByChannelIdResponse = PatchOrganisationsByIdChannelsByChannelIdResponses[keyof PatchOrganisationsByIdChannelsByChannelIdResponses];
+
+export type PostOrganisationsByIdChannelsByChannelIdIngestData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The channel.
+         */
+        channelId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels/{channelId}/ingest';
+};
+
+export type PostOrganisationsByIdChannelsByChannelIdIngestErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The channel could not be reached: Twitch refused or did not answer
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChannelsByChannelIdIngestError = PostOrganisationsByIdChannelsByChannelIdIngestErrors[keyof PostOrganisationsByIdChannelsByChannelIdIngestErrors];
+
+export type PostOrganisationsByIdChannelsByChannelIdIngestResponses = {
+    /**
+     * The ingest
+     */
+    200: {
+        url: string;
+        key: string;
+    };
+};
+
+export type PostOrganisationsByIdChannelsByChannelIdIngestResponse = PostOrganisationsByIdChannelsByChannelIdIngestResponses[keyof PostOrganisationsByIdChannelsByChannelIdIngestResponses];
 
 export type GetInvitationsData = {
     body?: never;

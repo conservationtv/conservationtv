@@ -71,6 +71,17 @@ export type DeviceConfiguration = {
             id: string;
             url: string;
         };
+        output: {
+            width: number;
+            height: number;
+            fps: number;
+            bitrateKbps: number;
+            keyframeSeconds: number;
+        };
+        forwards: Array<{
+            channelId: string;
+            ingest: string;
+        }>;
     };
 };
 

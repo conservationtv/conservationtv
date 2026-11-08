@@ -108,6 +108,26 @@ export interface ObsShow {
  */
 export interface ObsConfiguration {
   show: ObsShow;
+  /** What OBS encodes the program as: what Twitch takes, and what the program's fallback slate is encoded as. */
+  output: ObsOutput;
+  /** Where the program goes out to: each of the organisation's enabled channels. */
+  forwards: ObsForward[];
+}
+
+/** How the program is encoded: H.264 at a constant bitrate with AAC-LC 48 kHz stereo audio, as Twitch takes. */
+export interface ObsOutput {
+  width: number;
+  height: number;
+  fps: number;
+  bitrateKbps: number;
+  keyframeSeconds: number;
+}
+
+/** A channel the program goes out to, and the request its ingest (server URL and stream key) is read by, signed. */
+export interface ObsForward {
+  channelId: string;
+  /** The `organisations.channels.ingest` URL, POSTed signed as the device. */
+  ingest: string;
 }
 
 /** What a device runs: each runtime it is to run, by its key. A runtime left out is one it doesn't. */

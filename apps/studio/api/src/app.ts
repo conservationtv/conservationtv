@@ -7,6 +7,8 @@ import account from './routes/account.ts';
 import agents from './routes/agents.ts';
 import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
+import channelCallbacks from './routes/channel-callbacks.ts';
+import channels from './routes/channels.ts';
 import deviceAddresses from './routes/device-addresses.ts';
 import deviceConfiguration from './routes/device-configuration.ts';
 import devices from './routes/devices.ts';
@@ -71,6 +73,9 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/subjects', subjects)
   // The organisation's broadcast, followed over a WebSocket rather than called.
   .route('/organisations/:id/show', shows)
+  // Where the broadcast goes out to, and Twitch's return from connecting one (a browser navigation).
+  .route('/organisations/:id/channels', channels)
+  .route('/channels', channelCallbacks)
   .route('/invitations', invitations)
   // Signed by agents rather than signed in: no session.
   .route('/reports', reports)

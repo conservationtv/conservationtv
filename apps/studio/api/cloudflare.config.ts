@@ -87,6 +87,11 @@ export default defineConfig({
        * with each version, and these are only set beside `GATEWAY_DOMAIN`.
        */
       GATEWAY_DOMAIN: bindings.text(process.env.GATEWAY_DOMAIN ?? ''),
+      /**
+       * Optional: the Twitch application channels are connected through. Its secret, `TWITCH_CLIENT_SECRET`, is not
+       * declared, as with the gateway secrets above; set it beside this (.dev.vars locally).
+       */
+      TWITCH_CLIENT_ID: bindings.text(process.env.TWITCH_CLIENT_ID ?? ''),
       CLOUDFLARE_ZONE_ID: bindings.text(process.env.CLOUDFLARE_ZONE_ID ?? ''),
       ACME_DIRECTORY_URL: bindings.text(
         process.env.ACME_DIRECTORY_URL ?? 'https://acme-staging-v02.api.letsencrypt.org/directory'
