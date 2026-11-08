@@ -40,7 +40,7 @@ export default defineConfig({
     // served at frames.html, as its sources name it, rather than redirected to a path without the extension.
     assets: { runWorkerFirst: true, htmlHandling: 'none' },
     exports: {
-      /** Each organisation's broadcast, composed and followed over WebSockets; see src/shows/host.ts. */
+      /** Each organisation's broadcast, composed and followed over WebSockets; see src/shows/host.tsx. */
       ShowHost: exports.durableObject({ storage: 'sqlite' })
     },
     env: {

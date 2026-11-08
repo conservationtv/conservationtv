@@ -23,4 +23,4 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 // The Durable Object classes the Worker declares (cloudflare.config.ts).
-export { ShowHost } from './shows/host.ts';
+export { ShowHost } from './shows/host.tsx';

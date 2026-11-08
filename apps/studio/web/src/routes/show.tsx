@@ -62,7 +62,7 @@ interface BroadcastStageProps {
 }
 
 /**
- * Where to follow the organisation's broadcast: the API's show object (apps/studio/api/src/shows/host.ts), as a
+ * Where to follow the organisation's broadcast: the API's show object (apps/studio/api/src/shows/host.tsx), as a
  * WebSocket, which `<Stream>` follows by its scheme. Every connection is sent setup and the latest update first, so
  * `<Stream>` simply redials with backoff when it drops (or is refused, before the first Compose). The session cookie
  * travels with the upgrade, as with every call to the API, and the browser sends this page's origin, which the API

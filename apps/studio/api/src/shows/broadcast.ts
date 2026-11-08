@@ -23,7 +23,7 @@ export interface ShowBundle {
   frameBuild?: string;
 }
 
-/** An organisation's broadcast, as request handling reaches it: its object (src/shows/host.ts), by RPC. */
+/** An organisation's broadcast, as request handling reaches it: its object (src/shows/host.tsx), by RPC. */
 export interface Broadcast {
   /** Set what the broadcast is composed from: compose it, and send it to everyone following it. */
   setComposition(presentation: Presentation): Promise<void>;
