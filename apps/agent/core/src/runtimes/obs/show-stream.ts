@@ -1,7 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import type { DeviceIdentity } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
-import { createAsyncQueue, StreamMessageSchema, type StreamMessage } from '@strangecyan/vignette';
+import { createAsyncQueue, type Snapshot, StreamMessageSchema, type StreamMessage } from '@strangecyan/vignette';
 
 // The show an OBS output follows, as a vignette stream: the studio API's show object (apps/studio/api/src/shows)
 // sends one JSON stream message per WebSocket frame, the bootstrap (setup, then the latest update) first on every
@@ -29,14 +29,18 @@ const INITIAL_DELAY_MS = 500;
 const MAXIMUM_DELAY_MS = 10_000;
 
 /**
- * The show at `url` (its `https:` or `http:` address, as the configuration gives it), for a target to follow. Each
- * iteration opens its own socket; stopping iteration closes it.
+ * The show at `url` (its `https:` or `http:` address, as the configuration gives it), for a target to follow, with each
+ * snapshot passed to `onSnapshot` as it goes by. Each iteration opens its own socket; stopping iteration closes it.
  */
-export function showStream(url: string, identity: DeviceIdentity): AsyncIterable<StreamMessage> {
+export function showStream(
+  url: string,
+  identity: DeviceIdentity,
+  onSnapshot: (snapshot: Snapshot) => void
+): AsyncIterable<StreamMessage> {
   return {
     [Symbol.asyncIterator]: () => {
       const stop = new AbortController();
-      const messages = follow(url, identity, stop.signal);
+      const messages = follow(url, identity, onSnapshot, stop.signal);
       return {
         next: () => messages.next(),
         return: () => {
@@ -52,7 +56,12 @@ export function showStream(url: string, identity: DeviceIdentity): AsyncIterable
  * Every message from the show, redialling whenever the socket closes, until `signal` aborts. The wait before each
  * redial doubles while connections deliver nothing (a show not composed yet is refused), and starts over once one does.
  */
-async function* follow(url: string, identity: DeviceIdentity, signal: AbortSignal): AsyncGenerator<StreamMessage> {
+async function* follow(
+  url: string,
+  identity: DeviceIdentity,
+  onSnapshot: (snapshot: Snapshot) => void,
+  signal: AbortSignal
+): AsyncGenerator<StreamMessage> {
   let attempt = 0;
   while (!signal.aborted) {
     // One connection: pass its messages on; then, unless stopping, wait longer the more connections in a row failed.
@@ -60,6 +69,7 @@ async function* follow(url: string, identity: DeviceIdentity, signal: AbortSigna
     try {
       for await (const message of connection(url, identity, signal)) {
         delivered = true;
+        if (message.kind === 'update') onSnapshot(message.snapshot);
         yield message;
       }
     } catch (error) {

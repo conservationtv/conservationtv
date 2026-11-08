@@ -183,8 +183,11 @@ export async function writeObsProfile(config: string, output: ObsOutput, target:
   await writeCollection(join(config, 'basic', 'scenes', `${OBS_COLLECTION}.json`));
 }
 
-/** The scene a collection starts with: OBS needs a current scene, or obs-websocket crashes reading its name. */
-const BASE_SCENE = 'Scene';
+/**
+ * The scene a collection starts with: OBS needs a current scene, or obs-websocket crashes reading its name. Empty, so
+ * never what goes out: the streaming watchdog takes OBS off it whenever it finds it on program (streaming.ts).
+ */
+export const BASE_SCENE = 'Scene';
 
 /** A collection's scenes, as far as the agent reads it. */
 const CollectionSchema = z.object({ scene_order: z.array(z.unknown()).default([]) }).loose();

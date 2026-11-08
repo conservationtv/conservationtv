@@ -3,7 +3,7 @@ import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AttachedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
 import type { Client, DeviceIdentity } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
-import type { Target, TargetPhase } from '@strangecyan/vignette';
+import type { Snapshot, Target, TargetPhase } from '@strangecyan/vignette';
 import { obsTarget } from '@strangecyan/vignette/obs';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
@@ -129,6 +129,8 @@ export class ObsRuntime {
   private readonly watching: Subscription[];
   private following: Following | undefined = undefined;
   private watchdog: StreamingWatchdog | undefined = undefined;
+  /** The OBS scene the followed show is on, as its latest snapshot says: what the watchdog keeps on program. */
+  private programScene: string | undefined = undefined;
   private forwards: ObsSpec['forwards'] = [];
   private refresh: ReturnType<typeof setTimeout> | undefined = undefined;
 
@@ -211,7 +213,8 @@ export class ObsRuntime {
   /** The watchdog keeping OBS streaming, made once with the password it connects with. */
   private watch(password: string): void {
     if (this.watchdog !== undefined) return;
-    const watchdog = new StreamingWatchdog(`ws://127.0.0.1:${String(this.options.websocketPort)}`, password);
+    const url = `ws://127.0.0.1:${String(this.options.websocketPort)}`;
+    const watchdog = new StreamingWatchdog(url, password, () => this.programScene);
     this.watching.push(watchdog.state$.subscribe(streaming => this.update({ streaming })));
     watchdog.start();
     this.watchdog = watchdog;
@@ -244,7 +247,10 @@ export class ObsRuntime {
       dir: join(directory, 'vignette'),
       sources: [ctvStreamObs({ studio, moq, program: this.program, directory: join(directory, 'relays') })]
     });
-    const stop = target.follow(showStream(show.url, identity));
+    const stream = showStream(show.url, identity, snapshot => {
+      this.programScene = programSceneOf(snapshot);
+    });
+    const stop = target.follow(stream);
     const watching = target.subscribe(() => this.update({ phase: target.status.phase }));
     this.following = { show, target, stop, watching };
     this.update({ show: show.id, phase: target.status.phase });
@@ -257,6 +263,7 @@ export class ObsRuntime {
     following.watching();
     following.stop();
     void following.target.dispose();
+    this.programScene = undefined;
     this.update({ show: null, phase: null });
   }
 
@@ -284,6 +291,15 @@ export class ObsRuntime {
   private update(changes: Partial<ObsStatus>): void {
     this.status$.next({ ...this.status$.value, ...changes });
   }
+}
+
+/**
+ * The OBS scene a snapshot goes out on: its active scene, or its first when it names none, by vignette's name for it
+ * (`vignette/<show>/<scene>`, which `@strangecyan/vignette/obs` doesn't export). Undefined for a show with no scenes.
+ */
+function programSceneOf(snapshot: Snapshot): string | undefined {
+  const scene = snapshot.activeScene ?? snapshot.scenes[0]?.id;
+  return scene === undefined ? undefined : `vignette/${snapshot.id}/${scene}`;
 }
 
 /** Logs a channel's ingest failing, for a promise's `catch`: the forward keeps the ingest it last had. */
