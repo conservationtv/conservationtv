@@ -1255,6 +1255,138 @@ button {
   display: none;
 }
 
+/* The source code as calls between what changed */
+
+.view-switch {
+  margin-bottom: 0.25rem;
+}
+
+.calls-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.call-scroll {
+  overflow-y: auto;
+  padding: 0 1rem 6rem;
+}
+
+.call-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+}
+
+.call-summary .muted {
+  margin-left: 0.6rem;
+}
+
+.call-summary .call-status:not(:first-child) {
+  margin-left: 0.6rem;
+}
+
+.call-tree,
+.call-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.call-tree > .call {
+  margin-bottom: 0.9rem;
+}
+
+.call-children {
+  margin-left: 0.55rem;
+  padding-left: 1.1rem;
+  border-left: 1px solid var(--border-strong);
+}
+
+.call-children > .call {
+  position: relative;
+}
+
+/* The elbow from the tree's line into each call. */
+.call-children > .call::before {
+  content: '';
+  position: absolute;
+  left: -1.1rem;
+  top: 0.95rem;
+  width: 0.9rem;
+  border-top: 1px solid var(--border-strong);
+}
+
+.call-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.call-row:hover,
+.call-row[aria-expanded='true'] {
+  background: var(--bg-subtle);
+}
+
+.call-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.call-where {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.call-status {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  border: 1.5px solid var(--muted);
+}
+
+.call-new {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.call-changed {
+  background: #d29922;
+  border-color: #d29922;
+}
+
+.call-diff {
+  margin: 0.25rem 0 0.6rem 1.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.call-extra h3 {
+  font-size: 13px;
+  margin: 1.5rem 0 0.4rem;
+}
+
+.call-extra ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 13px;
+}
+
 /* An operation as API reference */
 
 .api-docs {
