@@ -366,10 +366,6 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  apps/agent/runner/data/obs/binaries/obs/33.0.1-3d6b2eedeb564166/OBS.app/Contents/PlugIns/rtmp-services.plugin/Contents/Resources: {}
-
-  apps/agent/runner/data/obs/home/Library/Application Support/obs-studio/plugin_config/rtmp-services: {}
-
   apps/agent/sdk:
     dependencies:
       '@conservationtv/versioned-api':
@@ -700,8 +696,8 @@ importers:
         specifier: 2.10.0
         version: 2.10.0
       '@strangecyan/vignette':
-        specifier: 2.0.0
-        version: 2.0.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: 2.1.0
+        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       better-auth:
         specifier: 'catalog:'
         version: 1.7.7(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.17)(vitest@3.2.6(@types/debug@4.1.13)(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.0))
@@ -866,8 +862,8 @@ importers:
         specifier: 13.3.0
         version: 13.3.0
       '@strangecyan/vignette':
-        specifier: 2.0.0
-        version: 2.0.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: 2.1.0
+        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@tanstack/react-form':
         specifier: 1.33.5
         version: 1.33.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1072,8 +1068,8 @@ importers:
   packages/shows:
     dependencies:
       '@strangecyan/vignette':
-        specifier: 2.0.0
-        version: 2.0.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: 2.1.0
+        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       react-dom:
         specifier: ^19.3.0
         version: 19.3.0(react@19.3.0)
@@ -4282,8 +4278,8 @@ packages:
     resolution: {integrity: sha512-o1+r+WD3kdl9oii0DhOp9iNZq2FKSSto3rsRh/3kFLwhOKe7TOpS2RZRe0bDoTwbScy+Lup8fa5Hb9LPiKr/yA==}
     engines: {node: '>= 20.3.0'}
 
-  '@strangecyan/vignette@2.0.0':
-    resolution: {integrity: sha512-W3AmzGXWVjhTbM0EQ08N/INSRFqM2z0NyOL/3wcTEmIARRmxiUoJM+c1D5uJwhSEAwseLeI4WQrHv0JMceyHYQ==}
+  '@strangecyan/vignette@2.1.0':
+    resolution: {integrity: sha512-Z1sqeHvCZ0BawFkwRasjg8Xl8squIae56xICzB3he4wmgduM6tfbRkpNvyq7IypInkBKmV7Y1PcD0ihs4JCIbQ==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -11083,7 +11079,7 @@ snapshots:
       '@strangecyan/iroh-linux-x64-musl': 1.1.0-relayed.1
       '@strangecyan/iroh-win32-x64-msvc': 1.1.0-relayed.1
 
-  '@strangecyan/vignette@2.0.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
+  '@strangecyan/vignette@2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
     dependencies:
       obs-websocket-js: 5.0.8(supports-color@10.2.2)
       react: 19.3.0

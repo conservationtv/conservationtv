@@ -13,7 +13,7 @@
     "bundle": "vignette bundle src/broadcast.show.tsx --out ../../apps/studio/web/public/show"
   },
   "dependencies": {
-    "@strangecyan/vignette": "2.0.0",
+    "@strangecyan/vignette": "2.1.0",
     "zod": "4.6.5",
     "react-dom": "^19.3.0"
   },
