@@ -1,7 +1,7 @@
 import { errorResponse } from '@conservationtv/versioned-api/server';
 
 // The studio API's descriptions of the family's shared failure responses.
-export { operationVersion, validator, versionMismatch } from '@conservationtv/versioned-api/server';
+export { operationVersion, validator, versionMismatch, webSocket } from '@conservationtv/versioned-api/server';
 
 export const invalidRequest = errorResponse('The request is malformed');
 export const unauthenticated = errorResponse('No signed-in session was presented');

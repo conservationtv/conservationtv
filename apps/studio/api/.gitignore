@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# Built by `pnpm bundle:show` (packages/shows): the show's frame page and its assets, served from the static assets.
+contracts/show/
 .cloudflare/
 .wrangler/
 .dev.vars*

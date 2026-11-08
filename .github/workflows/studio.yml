@@ -10,6 +10,7 @@ on:
       - apps/studio/web/**
       - apps/controlplane/sdk/**
       - packages/reports/**
+      - packages/shows/**
       - packages/store/**
       - packages/ui/**
       - packages/umbrella/**

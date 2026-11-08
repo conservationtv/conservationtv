@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "bundle": "vignette bundle src/broadcast.show.tsx --out ../../apps/studio/web/public/show"
+    "bundle": "vignette bundle src/broadcast.show.tsx --out ../../apps/studio/api/contracts/show"
   },
   "dependencies": {
     "@strangecyan/vignette": "2.1.0",

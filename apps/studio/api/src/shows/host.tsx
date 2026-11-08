@@ -10,7 +10,6 @@ import {
   type StreamMessage
 } from '@strangecyan/vignette';
 import yoga from '@strangecyan/vignette/yoga.wasm';
-import { createElement } from 'react';
 import type { Presentation } from './broadcast.ts';
 
 // One organisation's broadcast (packages/shows), composed here and followed over hibernating WebSockets. Its
@@ -56,7 +55,7 @@ function layoutEngine() {
 /** The broadcast composed from `presentation`, its first snapshot at `revision`. */
 async function composeBroadcast(presentation: Presentation, revision: number): Promise<Bootstrap> {
   const engine = await layoutEngine();
-  const element = createElement(Broadcast, { state: presentation.state });
+  const element = <Broadcast state={presentation.state} />;
   const { assets, serve, frameBuild } = presentation;
   const composer = compose(element, { revision, assets, serve, frameBuild, layout: engine });
   try {
@@ -67,7 +66,9 @@ async function composeBroadcast(presentation: Presentation, revision: number): P
 }
 
 /** Whether two plain values are the same data. */
-const same = <Value>(left: Value, right: Value) => JSON.stringify(left) === JSON.stringify(right);
+function same<Value>(left: Value, right: Value) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
 
 /**
  * What a socket already following `previous` is sent for `next`: the update, after the setup if that changed. A setup

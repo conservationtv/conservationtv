@@ -24,17 +24,17 @@ import shows from './routes/shows.ts';
 import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
 import whoami from './routes/whoami.ts';
+import { SHOW_BUNDLE_PATH } from './shows/broadcast.ts';
 import { useEnvironment } from './env/env.ts';
 
 /**
- * The published OpenAPI document, from the Worker's static assets (contracts/openapi.json). The asset server answers
- * `If-None-Match` itself with its own entity tag, so an unchanged document is a 304 with no body. Copied into a new
- * Response so the CORS middleware can add its headers.
+ * The requested file from the Worker's static assets (contracts/): the published OpenAPI document, or the show's
+ * bundle. The asset server answers `If-None-Match` itself with its own entity tag, so an unchanged file is a 304 with
+ * no body. Copied into a new Response so the CORS middleware can add its headers.
  */
-const servePublishedDocument = async (c: Context) => {
+const serveStaticAsset = async (c: Context) => {
   const environment = useEnvironment();
-  const url = new URL(PUBLISHED_DOCUMENT_PATH, c.req.url);
-  const asset = await environment.assets.fetch(new Request(url, { headers: c.req.raw.headers }));
+  const asset = await environment.assets.fetch(new Request(c.req.url, { headers: c.req.raw.headers }));
   return new Response(asset.body, asset);
 };
 
@@ -85,7 +85,10 @@ const app = new Hono({ router: operationRouter })
   .route('/gateway-endpoints', gatewayEndpoints)
   // Fetched by gateways, with no session.
   .route('/whoami', whoami)
-  .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument)
+  .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), serveStaticAsset)
+  // The show's bundle (`pnpm bundle:show`, packages/shows): the frame page OBS and the studio open, and the fonts the
+  // show is set in, which the studio web app fetches cross-origin.
+  .get(`${SHOW_BUNDLE_PATH}*`, describeRoute({ hide: true }), serveStaticAsset)
   .notFound(handleNotFound)
   .onError(handleError);
 

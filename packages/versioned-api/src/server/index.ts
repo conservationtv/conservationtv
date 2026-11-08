@@ -13,8 +13,10 @@ export {
   strictJsonBody,
   validator,
   versionMismatch,
+  webSocket,
   type DescribedResponse,
-  type OperationVersionExtension
+  type OperationVersionExtension,
+  type WebSocketExtension
 } from './openapi.js';
 export { ApiErrorSchema, type ApiError } from './schemas.js';
 export {
