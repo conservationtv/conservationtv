@@ -1,6 +1,6 @@
 import { FileDiff } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState, type FC } from 'react';
+import { useState, type FC } from 'react';
 import type { Review, ReviewFile } from '../../shared/review.ts';
 import type { CallGraph, CallNode, Status } from '../calls/graph.ts';
 import { loadCallGraph, unitDiff } from '../calls/load.ts';
@@ -44,7 +44,7 @@ interface UnitDiffProps {
 
 /** The whole unit, its changes marked; one that did not change is shown as it is. */
 const UnitDiffView: FC<UnitDiffProps> = ({ node, diffStyle, wrap }) => {
-  const diff = useMemo(() => unitDiff(node.unit), [node.unit]);
+  const diff = unitDiff(node.unit);
   return (
     <div className="call-diff">
       <FileDiff
