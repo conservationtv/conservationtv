@@ -57,8 +57,6 @@ export default defineConfig({
       }),
       /** The key-value cache (src/cache.ts): device request nonces and report idempotency. Local in development. */
       CACHE: bindings.kv({ id: stack?.cacheId ?? placeholderCacheId }),
-      /** The broadcasts' Durable Objects, one per organisation by its ID; declared under `exports` above. */
-      SHOW_HOST: bindings.durableObject({ worker: workerName, exportName: 'ShowHost' }),
       /** Better Auth's signing secret; see .dev.vars.example. */
       BETTER_AUTH_SECRET: bindings.secret(),
       /** The master key for encrypted columns and blind indexes; see .dev.vars.example. */
