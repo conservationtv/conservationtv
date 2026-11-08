@@ -1,7 +1,5 @@
 import { MediamtxConfigBuilder } from '@conservationtv/mediamtx';
-import { MEDIAMTX_AUTH_PATH } from '../auth.ts';
 import type { MediamtxListening, MediamtxServing } from '../config.ts';
-import { loopback } from '../ports.ts';
 
 /**
  * Readers and publishers admitted by the agent (auth.ts): those on this machine as they are, and the rest only by a
@@ -11,6 +9,6 @@ import { loopback } from '../ports.ts';
 export const auth = new MediamtxConfigBuilder<MediamtxListening & MediamtxServing>((serving, config) => {
   if (serving.auth === undefined) return;
   config.authMethod = 'http';
-  config.authHTTPAddress = `http://${loopback(serving.ports.auth)}${MEDIAMTX_AUTH_PATH}`;
+  config.authHTTPAddress = serving.reach.authCallback;
   config.authHTTPExclude = [{ action: 'api' }, { action: 'metrics' }, { action: 'pprof' }];
 });

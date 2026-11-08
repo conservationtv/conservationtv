@@ -5,7 +5,7 @@ import { serve, type Admission, type IncomingPeer, type IrohHttpServer } from '@
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import document from '../contracts/openapi.json' with { type: 'json' };
-import { type AgentConfiguration, type ConservationTvConfiguration } from './config.ts';
+import { type AgentConfiguration, type ConservationTvConfiguration, type MediamtxSettings } from './config.ts';
 import { decide } from './admission.ts';
 import { connectWithEndpoint, createEndpoint } from './iroh.ts';
 import { handleError, handleNotFound } from './middleware/errors.ts';
@@ -27,8 +27,10 @@ import {
   MetricsSpecSchema,
   StreamsSpecSchema,
   createMediamtxClient,
-  loopback,
-  withMediamtxClient
+  localReach,
+  withMediamtxClient,
+  type MediamtxPorts,
+  type MediamtxReach
 } from './runtimes/mediamtx/index.ts';
 import { watchStudioConfiguration } from './studio-configuration.ts';
 
@@ -37,7 +39,8 @@ export {
   useConfig,
   type AgentConfiguration,
   type ConservationTvConfiguration,
-  type DirectConfiguration
+  type DirectConfiguration,
+  type MediamtxSettings
 } from './config.ts';
 export {
   MediamtxPathsSchema,
@@ -67,14 +70,27 @@ const app = new Hono<AgentEnv>({ router: operationRouter })
 
 const logger = getLogger(['agent']);
 
+/** Where MediaMTX listens, and how it and the agent reach each other: decided once, here, for everything else. */
+interface MediamtxSetup {
+  ports: MediamtxPorts;
+  reach: MediamtxReach;
+}
+
+/** MediaMTX as the agent's own child, on the configured ports or its own, reached on loopback. */
+function mediamtxSetup(settings: MediamtxSettings | undefined): MediamtxSetup {
+  const ports = settings?.ports ?? DEFAULT_MEDIAMTX_PORTS;
+  return { ports, reach: localReach(ports) };
+}
+
 /** The agent's runtimes, by the key of the spec each converges to. */
 function controllers(
   config: ConservationTvConfiguration,
   identity: DeviceIdentity,
-  registration: EndpointRegistration
+  registration: EndpointRegistration,
+  mediamtx: MediamtxSetup
 ) {
   const machine = new MachineRuntime(config);
-  const ports = config.mediamtxPorts ?? DEFAULT_MEDIAMTX_PORTS;
+  const { ports, reach } = mediamtx;
   // The streams and their metrics, both fulfilled by MediaMTX.
   const streams = new MediamtxRuntime({
     directory: join(config.directory, 'mediamtx'),
@@ -82,10 +98,11 @@ function controllers(
     moq: MOQ_MANIFEST,
     identity,
     ports,
+    reach,
     registration,
     config
   });
-  const metrics = new MediamtxMetricsRuntime(config, loopback(ports.metrics));
+  const metrics = new MediamtxMetricsRuntime(config, reach.metrics);
 
   // const control = new ControlRuntime(config);
 
@@ -138,21 +155,24 @@ export class Agent {
 
     const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
     const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
-    const ports = config.mediamtxPorts ?? DEFAULT_MEDIAMTX_PORTS;
-    const mediamtx = createMediamtxClient(loopback(ports.api));
+    const setup = mediamtxSetup(config.mediamtx);
+    const mediamtx = createMediamtxClient(setup.reach.api);
     const registration = new EndpointRegistration(studio);
     this.registration = registration;
-    await withStudio(studio, () => withMediamtxClient(mediamtx, () => this.serve(config, identity, registration)));
+    await withStudio(studio, () =>
+      withMediamtxClient(mediamtx, () => this.serve(config, identity, registration, setup))
+    );
   }
 
   /** Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs in scope for both. */
   private async serve(
     config: ConservationTvConfiguration,
     identity: DeviceIdentity,
-    registration: EndpointRegistration
+    registration: EndpointRegistration,
+    mediamtx: MediamtxSetup
   ) {
     this.system = await converge({
-      controllers: controllers(config, identity, registration),
+      controllers: controllers(config, identity, registration, mediamtx),
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },

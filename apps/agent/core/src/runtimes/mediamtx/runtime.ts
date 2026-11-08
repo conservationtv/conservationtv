@@ -8,6 +8,7 @@ import {
   type DeviceIdentity,
   type MediamtxAuth
 } from '@conservationtv/studio-sdk';
+import { getLogger } from '@logtape/logtape';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
 import { lanAddresses } from '../addresses.ts';
@@ -15,14 +16,18 @@ import { type MediamtxManifest, mediamtxBinary } from './binaries/mediamtx.ts';
 import { type MoqManifest, moqBinary } from './binaries/moq.ts';
 import { createMediamtxAuthApp, serveMediamtxAuth } from './auth.ts';
 import { type MediamtxListening, MoqPublisherSchema, renderConfig } from './config.ts';
-import { isMediamtxAlive } from './control.ts';
+import { isMediamtxAlive, mediamtxVersion } from './control.ts';
 import { type EndpointRegistration, type RealisedEndpoint, realisedEndpoints } from './endpoints.ts';
 import { BroadcastJoiner } from './joiner.ts';
 import { RelayTrafficReporter } from './relay-traffic.ts';
 import type { AgentConfiguration } from '../../config.ts';
 import { MediamtxPathsSchema } from './paths.ts';
-import { loopback } from './ports.ts';
 import { removeTlsFiles, writeTlsFiles, type TlsFiles } from './tls.ts';
+
+const logger = getLogger(['agent', 'mediamtx']);
+
+/** How long asking MediaMTX whether it is serving, or which version it is, may take. */
+const SERVING_PROBE_TIMEOUT_MS = 2_000;
 
 /** Where to read a relay's traffic stats: the URL to dial, carrying its token as `?jwt=`. */
 const RelayStatsSourceSchema = z.object({ connect: z.url() });
@@ -64,11 +69,16 @@ export interface MediamtxRuntimeOptions extends MediamtxListening {
 export interface MediamtxStatus extends ProcessStatus {
   /** The version of MediaMTX running, or being started. */
   version: string | null;
+  /**
+   * The version the MediaMTX serving says it is, once it serves: `version`, unless what answers is another release,
+   * whose config the agent's may not fit.
+   */
+  servingVersion: string | null;
   /** Whether a binary is being downloaded and checked. */
   installing: boolean;
 }
 
-const STOPPED: MediamtxStatus = { ...PROCESS_STOPPED, version: null, installing: false };
+const STOPPED: MediamtxStatus = { ...PROCESS_STOPPED, version: null, servingVersion: null, installing: false };
 
 /** The answering of MediaMTX's authentication requests (auth.ts): by which `auth`, and how to stop it. */
 interface AuthAnswering {
@@ -102,7 +112,12 @@ export class MediamtxRuntime {
     this.traffic = new RelayTrafficReporter(options.config);
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
     this.process = new AttachedProcess(options.directory, { name: 'mediamtx', probe: isMediamtxAlive });
-    this.watching = [this.process.status$.subscribe(status => this.update(status))];
+    this.watching = [
+      // A MediaMTX that is not running says nothing about its version.
+      this.process.status$.subscribe(status =>
+        this.update(status.state === 'running' ? status : { ...status, servingVersion: null })
+      )
+    ];
     this.configFile = join(options.directory, 'mediamtx.yml');
     this.tlsDirectory = join(options.directory, 'tls');
   }
@@ -118,11 +133,13 @@ export class MediamtxRuntime {
     this.update({ version: installed.version });
     const moq = await this.installMoq(spec, signal);
     await this.answer(spec.auth);
-    await this.writeConfig(spec, moq);
+    const config = await this.render(spec, moq);
+    await this.applyConfig(config);
     await this.process.ensure(
       { key: installed.id, binary: installed.path, args: [this.configFile], cwd: directory },
       signal
     );
+    await this.checkVersion(installed.version, signal);
     this.joiner.set(spec.publishers);
     this.traffic.set(
       spec.stats.map(({ connect }) => connect),
@@ -143,7 +160,7 @@ export class MediamtxRuntime {
     this.answering = undefined;
     if (auth === undefined) return;
     const app = createMediamtxAuthApp(auth, this.options.identity);
-    const close = await serveMediamtxAuth(loopback(this.options.ports.auth), app);
+    const close = await serveMediamtxAuth(this.options.reach.authListen, app);
     this.answering = { auth, close };
   }
 
@@ -166,7 +183,20 @@ export class MediamtxRuntime {
     await this.answer(undefined);
     await this.binaries.clear();
     await removeTlsFiles(this.tlsDirectory);
-    this.update({ version: null });
+    this.update({ version: null, servingVersion: null });
+  }
+
+  /**
+   * Reports the version the MediaMTX serving says it is, warning when it is not the release installed: the config is
+   * written for that release (packages/mediamtx), and another may read it differently.
+   */
+  private async checkVersion(installed: string, signal: AbortSignal): Promise<void> {
+    const probe = AbortSignal.any([signal, AbortSignal.timeout(SERVING_PROBE_TIMEOUT_MS)]);
+    const serving = await mediamtxVersion(probe).catch(() => undefined);
+    this.update({ servingVersion: serving ?? null });
+    if (serving !== undefined && serving !== installed) {
+      logger.warn('MediaMTX says it is {serving}, but {installed} was installed', { serving, installed });
+    }
   }
 
   /** The agent is stopping, and MediaMTX goes with it, along with the joining and answering. */
@@ -192,16 +222,25 @@ export class MediamtxRuntime {
 
   /**
    * Where MediaMTX's servers are reached as it serves now: at the gateway's hostname with TLS, or at the address the
-   * agent prefers without. None while it is not running, or the agent has no address to give.
+   * agent prefers without. None while it is not serving, or the agent has no address to give.
    */
   private async realised(hostname: string | undefined): Promise<RealisedEndpoint[]> {
-    const { state } = this.process.status$.getValue();
-    if (state !== 'running') return [];
+    if (!(await this.serving())) return [];
     const { ports } = this.options;
     if (hostname !== undefined) return realisedEndpoints(ports, hostname, true);
     const [preferred] = await lanAddresses();
     if (preferred === undefined) return [];
     return realisedEndpoints(ports, preferred.address, false);
+  }
+
+  /**
+   * Whether MediaMTX is serving, as its control API answers: what readers would find, whatever the agent believes it
+   * started. Nothing else answers in its place while the agent runs it (converge's AttachedProcess refuses to start
+   * then), so an answer is from this agent's MediaMTX.
+   */
+  private serving(): Promise<boolean> {
+    const signal = AbortSignal.timeout(SERVING_PROBE_TIMEOUT_MS);
+    return isMediamtxAlive(signal).catch(() => false);
   }
 
   /** Downloads and checks the release the options name, which the status reports while it lasts. */
@@ -211,16 +250,21 @@ export class MediamtxRuntime {
     return this.binaries.install(mediamtxBinary, binary, signal).finally(() => this.update({ installing: false }));
   }
 
-  /**
-   * Writes the config before MediaMTX reads it, or re-reads it: a running MediaMTX reloads its file whenever it is
-   * written, so it is only written when it has changed.
-   */
-  private async writeConfig(spec: StreamsSpec, moq: Installed | undefined): Promise<void> {
-    await mkdir(this.options.directory, { recursive: true });
+  /** The config MediaMTX is to serve for `spec`, with the files it names (its certificate's) written for it to read. */
+  private async render(spec: StreamsSpec, moq: Installed | undefined): Promise<string> {
     const { paths, auth, publishers } = spec;
     const publishing = moq === undefined ? undefined : { moq: moq.path, publishers };
     const tls = await this.writeTls(spec);
-    const config = await renderConfig({ ...this.options, paths, auth, publishing, tls });
+    return renderConfig({ ...this.options, paths, auth, publishing, tls });
+  }
+
+  /**
+   * Has MediaMTX serve `config`. Nothing else knows how it gets there. Today that means writing it to the file
+   * MediaMTX is started with, which a running MediaMTX reloads whenever it is written, so it is only written when it
+   * has changed.
+   */
+  private async applyConfig(config: string): Promise<void> {
+    await mkdir(this.options.directory, { recursive: true });
     const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
     if (written !== config) await writeFile(this.configFile, config);
   }
