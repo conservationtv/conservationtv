@@ -18,28 +18,28 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 // its composition does, which for now is a temporary command that composes it from the organisation's streams.
 // A frame page (packages/shows' `*.frame.tsx`, as OBS or an iframe opens it) follows its own source over a WebSocket
 // too, with no session at all, so that socket serves frame sources only (src/shows/host.ts).
-
-/**
- * Refuse callers other than the studio's pages, and members of other organisations (`not_found`). A browser sends
- * cookies with a WebSocket from any page, and CORS does not apply to one. Runs in the request's transaction.
- */
-async function requireMember(origin: string | undefined, organisationId: string) {
-  const environment = useEnvironment();
-  if (origin === undefined || !environment.variables.WEB_ORIGINS.includes(origin)) throw new ApiFailure('forbidden');
-  const organisation = await getOrganisation(organisationId);
-  if (!organisation) throw new ApiFailure('not_found');
-}
+// The broadcast's object does not run under row-level security, so the routes that reach it for a member first read
+// the organisation as the caller: members of other organisations get `not_found`.
+// Cross-site requests are left to Better Auth's session cookie, which is `SameSite=Lax`: no other site's page can send
+// it with a WebSocket handshake or a POST. Same-site pages can, and a WebSocket has no CORS to keep them from reading
+// it, so this relies on every host under conservation.tv being ours, gateways' included.
 
 export default new Hono()
-  .get('/', describeRoute({ hide: true }), requirePrincipal, validator('param', OrganisationParamsSchema), async c => {
-    const { id } = c.req.valid('param');
-    if (c.req.header('Upgrade') !== 'websocket') return c.text('Expected a WebSocket', 426);
-    const origin = c.req.header('Origin');
-    await transaction(() => requireMember(origin, id));
-    const environment = useEnvironment();
-    const broadcast = environment.broadcasts.get(id);
-    return broadcast.fetch(c.req.raw);
-  })
+  .get(
+    '/',
+    describeRoute({ hide: true }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    async c => {
+      const { id } = c.req.valid('param');
+      if (c.req.header('Upgrade') !== 'websocket') return c.text('Expected a WebSocket', 426);
+      const organisation = await transaction(() => getOrganisation(id));
+      if (!organisation) throw new ApiFailure('not_found');
+      const environment = useEnvironment();
+      const broadcast = environment.broadcasts.get(id);
+      return broadcast.fetch(c.req.raw);
+    }
+  )
   .get('/stream', describeRoute({ hide: true }), validator('param', OrganisationParamsSchema), async c => {
     const { id } = c.req.valid('param');
     if (c.req.header('Upgrade') !== 'websocket') return c.text('Expected a WebSocket', 426);
@@ -55,9 +55,9 @@ export default new Hono()
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
-      const origin = c.req.header('Origin');
       const state = await transaction(async () => {
-        await requireMember(origin, id);
+        const organisation = await getOrganisation(id);
+        if (!organisation) throw new ApiFailure('not_found');
         return shuffledComposition(id);
       });
       const environment = useEnvironment();
