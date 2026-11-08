@@ -1,6 +1,7 @@
 import { BROADCAST_CAMERAS, type BroadcastState } from '@conservationtv/shows';
 import { AssetManifestSchema, FramesJsonSchema, type AssetManifest, type Serve } from '@strangecyan/vignette';
 import { listStreams } from '../services/streams.ts';
+import type { StaticAssets } from '../env/config.ts';
 import type { BuiltinGatewayId } from '../gateways/index.ts';
 
 /**
@@ -13,7 +14,7 @@ export interface Presentation extends ShowBundle {
 }
 
 /**
- * The show's bundle, as the studio web app serves it: its assets (the fonts), and the build of its frame page's code,
+ * The show's bundle, as this API serves it from its static assets: its assets (the fonts), and the build of its frame page's code,
  * which vignette stamps on every frame source so an open frame page reloads when it changes. No build for a show
  * without frames.
  */
@@ -65,16 +66,16 @@ function shuffled<Value>(values: readonly Value[]): Value[] {
   return result;
 }
 
-/** Where the studio web app serves the show's bundle (`vignette bundle`, packages/shows): its frame page and assets. */
-const BUNDLE_PATH = '/show/';
+/** Where this API serves the show's bundle (`pnpm bundle:show`, packages/shows) from its static assets (contracts/). */
+export const SHOW_BUNDLE_PATH = '/show/';
 
 /**
- * Where what the broadcast's targets fetch is served: the bundle's assets and frame page by the studio web app, and the
- * stream a frame page follows (narrowed to its own source) by this API, at the organisation's broadcast. The stream is
- * a WebSocket (`wss:`, or `ws:` for a local API on `http:`), which is how a frame page knows to follow it by one.
+ * Where what the broadcast's targets fetch is served, all by this API: the bundle's assets and frame page, and the
+ * stream a frame page follows (narrowed to its own source), at the organisation's broadcast. The stream is a WebSocket
+ * (`wss:`, or `ws:` for a local API on `http:`), which is how a frame page knows to follow it by one.
  */
-export function broadcastServe(organisationId: string, apiUrl: string, webOrigin: string): Serve {
-  const bundle = new URL(BUNDLE_PATH, webOrigin);
+export function broadcastServe(organisationId: string, apiUrl: string): Serve {
+  const bundle = new URL(SHOW_BUNDLE_PATH, apiUrl);
   const stream = new URL(`/organisations/${organisationId}/show/stream`, apiUrl);
   stream.protocol = stream.protocol === 'https:' ? 'wss:' : 'ws:';
   return {
@@ -85,26 +86,28 @@ export function broadcastServe(organisationId: string, apiUrl: string, webOrigin
 }
 
 /**
- * The bundle as the web app serves it now: the manifest of its assets (`assets.json`), so the composition names the
+ * The bundle in the Worker's static assets: the manifest of its assets (`assets.json`), so the composition names the
  * fonts it serves, and its frame build (`frames.json`; none if it is missing or has none). Throws when either cannot
- * be read.
+ * be read. The asset server ignores the URL's origin, so the API's own stands in for it.
  */
-export async function broadcastBundle(webOrigin: string): Promise<ShowBundle> {
-  const [assets, frames] = await Promise.all([
-    bundleFile(webOrigin, 'assets.json'),
-    bundleFile(webOrigin, 'frames.json')
+export async function broadcastBundle(assets: StaticAssets, apiUrl: string): Promise<ShowBundle> {
+  const [manifestFile, framesFile] = await Promise.all([
+    bundleFile(assets, apiUrl, 'assets.json'),
+    bundleFile(assets, apiUrl, 'frames.json')
   ]);
-  if (assets === undefined) throw new Error(`The show's assets.json is not served from ${webOrigin}`);
-  const manifest = AssetManifestSchema.parse(await assets.json());
-  const { build } = frames === undefined ? {} : FramesJsonSchema.parse(await frames.json());
+  if (manifestFile === undefined)
+    throw new Error("The show's assets.json is not in the static assets: run `pnpm bundle:show`");
+  const manifest = AssetManifestSchema.parse(await manifestFile.json());
+  const { build } = framesFile === undefined ? {} : FramesJsonSchema.parse(await framesFile.json());
   return build === undefined ? { assets: manifest } : { assets: manifest, frameBuild: build };
 }
 
-/** One of the bundle's files, as the web app serves it: `undefined` if it serves none. Throws for any other failure. */
-async function bundleFile(webOrigin: string, name: string): Promise<Response | undefined> {
-  const url = new URL(name, new URL(BUNDLE_PATH, webOrigin));
-  const response = await fetch(url);
+/** One of the bundle's files from the static assets: `undefined` if there is none. Throws for any other failure. */
+async function bundleFile(assets: StaticAssets, apiUrl: string, name: string): Promise<Response | undefined> {
+  const url = new URL(name, new URL(SHOW_BUNDLE_PATH, apiUrl));
+  const response = await assets.fetch(new Request(url));
   if (response.status === 404) return undefined;
-  if (!response.ok) throw new Error(`The show's ${name} could not be read from ${url.href}: HTTP ${response.status}`);
+  if (!response.ok)
+    throw new Error(`The show's ${name} could not be read from the static assets: HTTP ${response.status}`);
   return response;
 }

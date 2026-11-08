@@ -61,10 +61,8 @@ export default new Hono()
         return shuffledComposition(id);
       });
       const environment = useEnvironment();
-      // The studio web app serves the show's bundle: the first of its origins is the app itself.
-      const [webOrigin] = environment.variables.WEB_ORIGINS;
-      const bundle = await broadcastBundle(webOrigin);
-      const serve = broadcastServe(id, environment.variables.APP_URL, webOrigin);
+      const bundle = await broadcastBundle(environment.assets, environment.variables.APP_URL);
+      const serve = broadcastServe(id, environment.variables.APP_URL);
       const broadcast = environment.broadcasts.get(id);
       await broadcast.setComposition({ state, ...bundle, serve });
       return c.body(null, 204);
