@@ -26,7 +26,7 @@ import { removeTlsFiles, writeTlsFiles, type TlsFiles } from './tls.ts';
 
 const logger = getLogger(['agent', 'mediamtx']);
 
-/** How long asking MediaMTX whether it is serving, before registering its endpoints, may take. */
+/** How long asking MediaMTX whether it is serving, or which version it is, may take. */
 const SERVING_PROBE_TIMEOUT_MS = 2_000;
 
 /** Where to read a relay's traffic stats: the URL to dial, carrying its token as `?jwt=`. */
@@ -191,7 +191,8 @@ export class MediamtxRuntime {
    * written for that release (packages/mediamtx), and another may read it differently.
    */
   private async checkVersion(installed: string, signal: AbortSignal): Promise<void> {
-    const serving = await mediamtxVersion(signal).catch(() => undefined);
+    const probe = AbortSignal.any([signal, AbortSignal.timeout(SERVING_PROBE_TIMEOUT_MS)]);
+    const serving = await mediamtxVersion(probe).catch(() => undefined);
     this.update({ servingVersion: serving ?? null });
     if (serving !== undefined && serving !== installed) {
       logger.warn('MediaMTX says it is {serving}, but {installed} was installed', { serving, installed });
