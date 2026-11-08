@@ -6,7 +6,7 @@ import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
 import { getOrganisation } from '../services/organisations.ts';
-import { broadcastAssets, broadcastServe, shuffledComposition } from '../shows/broadcast.ts';
+import { broadcastBundle, broadcastServe, shuffledComposition } from '../shows/broadcast.ts';
 import { validator } from './openapi.ts';
 
 const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisation.') });
@@ -16,8 +16,8 @@ export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 // the versioned API: a browser cannot send the handshake's headers with a WebSocket, so the routes are hidden, as
 // Better Auth's are. Members follow it, signed in by their session cookie. Following it changes nothing; only setting
 // its composition does, which for now is a temporary command that composes it from the organisation's streams.
-// A frame page (packages/shows' `*.frame.tsx`, as OBS or an iframe opens it) follows its own source's stream with no
-// session at all, so that stream serves frame sources only (src/shows/host.ts).
+// A frame page (packages/shows' `*.frame.tsx`, as OBS or an iframe opens it) follows its own source over a WebSocket
+// too, with no session at all, so that socket serves frame sources only (src/shows/host.ts).
 
 /**
  * Refuse callers other than the studio's pages, and members of other organisations (`not_found`). A browser sends
@@ -42,6 +42,7 @@ export default new Hono()
   })
   .get('/stream', describeRoute({ hide: true }), validator('param', OrganisationParamsSchema), async c => {
     const { id } = c.req.valid('param');
+    if (c.req.header('Upgrade') !== 'websocket') return c.text('Expected a WebSocket', 426);
     const environment = useEnvironment();
     const broadcast = environment.broadcasts.get(id);
     return broadcast.fetch(c.req.raw);
@@ -62,10 +63,10 @@ export default new Hono()
       const environment = useEnvironment();
       // The studio web app serves the show's bundle: the first of its origins is the app itself.
       const [webOrigin] = environment.variables.WEB_ORIGINS;
-      const assets = await broadcastAssets(webOrigin);
+      const bundle = await broadcastBundle(webOrigin);
       const serve = broadcastServe(id, environment.variables.APP_URL, webOrigin);
       const broadcast = environment.broadcasts.get(id);
-      await broadcast.setComposition({ state, assets, serve });
+      await broadcast.setComposition({ state, ...bundle, serve });
       return c.body(null, 204);
     }
   );

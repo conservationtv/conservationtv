@@ -2,11 +2,9 @@ import { DurableObject } from 'cloudflare:workers';
 import { Broadcast } from '@conservationtv/shows';
 import {
   compose,
-  createAsyncQueue,
-  encodeStreamMessageSse,
+  encodeStreamMessage,
   loadYoga,
   sourceStream,
-  type AsyncQueue,
   type Bootstrap,
   type LayoutEngine,
   type StreamMessage
@@ -15,17 +13,20 @@ import yoga from '@strangecyan/vignette/yoga.wasm';
 import { createElement } from 'react';
 import type { Presentation } from './broadcast.ts';
 
-// One organisation's broadcast (packages/shows), composed here and followed by every target over a WebSocket. Its
+// One organisation's broadcast (packages/shows), composed here and followed over hibernating WebSockets. Its
 // composition (the state the show is composed from) belongs to the object, and changes only when it is set: setting it
-// composes the show, keeps the result (what a new client is sent first: setup, then the latest update) in storage, and
-// sends the update to every socket. Following it changes nothing: a socket is sent what was kept, after hibernation
-// included, and refused until there is something. The object keeps no composer, as hibernating would drop it.
-// Targets never send anything back.
+// composes the show, keeps the result (what a new socket is sent first: setup, then the latest update) in storage, and
+// sends what changed to every socket. Following it changes nothing: a socket is sent what was kept, and refused until
+// there is something. Targets never send anything back.
 //
-// A frame page (a clock, say) follows only its own source, by server-sent events: it is a page OBS or an iframe
-// opens, which can't sign or carry a session, so this is the one way in that is open. It serves frame sources only,
-// whose params are what the page shows anyway, never the rest of the show. An open stream keeps the object awake, as
-// any request does.
+// Two kinds of socket follow it, told apart by their tag. A member's (the studio's stage) follows the whole broadcast,
+// signed in by its session. A frame page's (a clock, say, as OBS or an iframe opens it) follows only its own source,
+// with no session, since such a page can't carry one: it is accepted only for a frame source the composition places,
+// and sent that source alone (vignette's `sourceStream`), whose params are what the page shows anyway, never the rest of
+// the show. Its source is kept on the socket, so it survives hibernation.
+//
+// Everything hibernates: the object keeps nothing in memory between events (no composer, no list of followers), and no
+// open request keeps it awake. The sockets are the runtime's, found again by tag whenever there is something to send.
 
 /** What the object keeps: what the broadcast was last composed from, and what that composed to. */
 interface Composed {
@@ -34,6 +35,15 @@ interface Composed {
 }
 
 const COMPOSED_KEY = 'composed';
+
+/** The tags of the two kinds of socket: a member following the broadcast, and a frame page following its source. */
+const MEMBER = 'member';
+const FRAME = 'frame';
+
+/** What a frame page's socket carries through hibernation: the source it follows. */
+interface FrameAttachment {
+  source: string;
+}
 
 /** Yoga, compiled once per isolate: Workers cannot compile wasm at runtime, so it is imported as a module. */
 let layout: Promise<LayoutEngine> | undefined = undefined;
@@ -47,17 +57,14 @@ function layoutEngine() {
 async function composeBroadcast(presentation: Presentation, revision: number): Promise<Bootstrap> {
   const engine = await layoutEngine();
   const element = createElement(Broadcast, { state: presentation.state });
-  const { assets, serve } = presentation;
-  const composer = compose(element, { revision, assets, serve, layout: engine });
+  const { assets, serve, frameBuild } = presentation;
+  const composer = compose(element, { revision, assets, serve, frameBuild, layout: engine });
   try {
     return await composer.bootstrap();
   } finally {
     composer.dispose();
   }
 }
-
-/** A stream message as a socket carries it: one JSON text frame each. */
-const encode = (message: StreamMessage) => JSON.stringify(message);
 
 /** Whether two plain values are the same data. */
 const same = <Value>(left: Value, right: Value) => JSON.stringify(left) === JSON.stringify(right);
@@ -85,8 +92,14 @@ async function recompose(ctx: DurableObjectState, presentation: Presentation): P
   return changes(previous?.bootstrap, bootstrap);
 }
 
-function sendAll(socket: WebSocket, messages: readonly string[]): void {
-  for (const message of messages) socket.send(message);
+/** `messages` narrowed to one source, as a frame page follows it: the setup, and the update holding only that source. */
+async function narrowed(messages: readonly StreamMessage[], source: string): Promise<string[]> {
+  async function* batch() {
+    yield* messages;
+  }
+  const result: string[] = [];
+  for await (const message of sourceStream(batch(), source)) result.push(encodeStreamMessage(message));
+  return result;
 }
 
 /** Whether the composition places a frame source with this ID: the only sources a frame page may follow. */
@@ -94,80 +107,74 @@ function placesFrame(composed: Composed, sourceId: string): boolean {
   return composed.bootstrap[1].snapshot.sources.some(source => source.id === sourceId && source.kind === 'frame');
 }
 
-/** `messages` as a body of server-sent events; `closed` runs when the page goes. */
-function serverSentEvents(messages: AsyncIterable<StreamMessage>, closed: () => void): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  const iterator = messages[Symbol.asyncIterator]();
-  return new ReadableStream({
-    async pull(controller) {
-      const next = await iterator.next();
-      if (next.done) controller.close();
-      else controller.enqueue(encoder.encode(encodeStreamMessageSse(next.value)));
-    },
-    async cancel() {
-      closed();
-      await iterator.return?.();
-    }
-  });
+function sendAll(socket: WebSocket, messages: readonly string[]): void {
+  for (const message of messages) socket.send(message);
+}
+
+/** The source a frame page's socket follows, as it was accepted with. */
+function frameSource(socket: WebSocket): string {
+  // SAFETY: every socket tagged FRAME is accepted by `followFrame`, which attaches a FrameAttachment.
+  return (socket.deserializeAttachment() as FrameAttachment).source;
 }
 
 export class ShowHost extends DurableObject<Env> {
-  /** The frame pages following their sources now: kept in memory, as each is an open request. */
-  private readonly frames = new Set<AsyncQueue<StreamMessage>>();
-
-  /** Set the broadcast's composition (see `recompose`). Compositions are set one at a time, so revisions only go up. */
+  /**
+   * Set the broadcast's composition (see `recompose`), and send what changed: members the whole of it, each frame page
+   * its own source's part. Compositions are set one at a time, so revisions only go up.
+   */
   async setComposition(presentation: Presentation): Promise<void> {
     await this.ctx.blockConcurrencyWhile(async () => {
       const messages = await recompose(this.ctx, presentation);
-      const frames = messages.map(encode);
-      for (const socket of this.ctx.getWebSockets()) sendAll(socket, frames);
-      for (const queue of this.frames) for (const message of messages) queue.push(message);
+      if (messages.length === 0) return;
+      const whole = messages.map(encodeStreamMessage);
+      for (const socket of this.ctx.getWebSockets(MEMBER)) sendAll(socket, whole);
+      // Narrowed once per source, however many pages follow it.
+      const bySource = new Map<string, Promise<string[]>>();
+      for (const socket of this.ctx.getWebSockets(FRAME)) {
+        const source = frameSource(socket);
+        let part = bySource.get(source);
+        if (part === undefined) bySource.set(source, (part = narrowed(messages, source)));
+        sendAll(socket, await part);
+      }
     });
-  }
-
-  /** A target following the broadcast by WebSocket, or a frame page its source by server-sent events. */
-  async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname.endsWith('/stream')) return this.frameStream(url);
-    return this.follow(request);
-  }
-
-  /** A socket following the broadcast: sent what a new client needs, and accepted for hibernation. 404 until composed. */
-  private async follow(request: Request): Promise<Response> {
-    if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
-    const composed = await this.ctx.storage.get<Composed>(COMPOSED_KEY);
-    if (!composed) return new Response('The broadcast has not been composed', { status: 404 });
-    const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair);
-    this.ctx.acceptWebSocket(server!);
-    sendAll(server!, composed.bootstrap.map(encode));
-    return new Response(null, { status: 101, webSocket: client });
   }
 
   /**
-   * The stream of the frame source `?source=` names, as vignette's frame page follows it: its bootstrap, then each
-   * change to that source. 404 for anything but a frame source the composition places.
+   * A WebSocket following the broadcast: a member's, or a frame page's following the source `?source=` names
+   * (`…/stream`). Sent what a new socket needs, and accepted for hibernation. 404 until composed.
    */
-  private async frameStream(url: URL): Promise<Response> {
-    const sourceId = url.searchParams.get('source');
+  async fetch(request: Request): Promise<Response> {
+    if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
+    const url = new URL(request.url);
     const composed = await this.ctx.storage.get<Composed>(COMPOSED_KEY);
+    if (url.pathname.endsWith('/stream')) return this.followFrame(composed, url.searchParams.get('source'));
+    if (!composed) return new Response('The broadcast has not been composed', { status: 404 });
+    const [client, server] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(server!, [MEMBER]);
+    sendAll(server!, composed.bootstrap.map(encodeStreamMessage));
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  /** A frame page's socket, sent its source's bootstrap: setup, then the update narrowed to it. */
+  private async followFrame(composed: Composed | undefined, sourceId: string | null): Promise<Response> {
     if (!composed || sourceId === null || !placesFrame(composed, sourceId)) {
       return new Response('No such frame source', { status: 404 });
     }
-    const queue = createAsyncQueue<StreamMessage>();
-    for (const message of composed.bootstrap) queue.push(message);
-    this.frames.add(queue);
-    const body = serverSentEvents(sourceStream(queue, sourceId), () => {
-      this.frames.delete(queue);
-      queue.close();
-    });
-    return new Response(body, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' } });
+    const [client, server] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(server!, [FRAME]);
+    server!.serializeAttachment({ source: sourceId } satisfies FrameAttachment);
+    sendAll(server!, await narrowed(composed.bootstrap, sourceId));
+    return new Response(null, { status: 101, webSocket: client });
   }
 
   /** Targets only listen. */
   webSocketMessage(): void {}
 
-  webSocketClose(socket: WebSocket, code: number, reason: string): void {
-    socket.close(code, reason);
+  /**
+   * Complete the closing handshake. Always with 1000: the code a client closed with may be one only the runtime reports
+   * (1005 when no code was sent, 1006 when the connection dropped), which a socket may not send.
+   */
+  webSocketClose(socket: WebSocket): void {
+    socket.close(1000, 'Closed');
   }
 }

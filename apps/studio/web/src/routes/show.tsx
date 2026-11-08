@@ -1,11 +1,11 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { Stage, Stream, useStreamStatus } from '@strangecyan/vignette/react';
 import { ShuffleIcon } from '@phosphor-icons/react';
 import { Button } from '@conservationtv/ui/components/button';
 
 import type { Route } from './+types/show';
 import { CtvStreamView } from '@/components/shows/ctv-stream-view';
-import { broadcastStream } from '@/lib/show-stream';
+import { API_URL } from '@/lib/auth-client';
 import { useComposeBroadcast } from '@/queries/shows';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Show · conservation.tv studio' }];
@@ -61,11 +61,22 @@ interface BroadcastStageProps {
   organisationId: string;
 }
 
+/**
+ * Where to follow the organisation's broadcast: the API's show object (apps/studio/api/src/shows/host.ts), as a
+ * WebSocket, which `<Stream>` follows by its scheme. Every connection is sent setup and the latest update first, so
+ * `<Stream>` simply redials with backoff when it drops (or is refused, before the first Compose). The session cookie
+ * travels with the upgrade, as with every call to the API, and the browser sends this page's origin, which the API
+ * checks.
+ */
+function broadcastUrl(organisationId: string) {
+  const url = new URL(`/organisations/${organisationId}/show`, API_URL);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.href;
+}
+
 const BroadcastStage: FC<BroadcastStageProps> = ({ organisationId }) => {
-  // One stream for the stage's life: `<Stream>` reconnects whenever its source changes.
-  const [source] = useState(() => broadcastStream(organisationId));
   return (
-    <Stream source={source} sources={SOURCES}>
+    <Stream url={broadcastUrl(organisationId)} sources={SOURCES}>
       <div className="flex flex-col gap-3">
         <Stage className="w-full overflow-hidden rounded-lg bg-black" />
         <BroadcastStatus />
