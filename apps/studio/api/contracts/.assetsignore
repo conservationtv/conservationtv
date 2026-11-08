@@ -1,0 +1,2 @@
+# Only the published document is a static asset; frozen snapshots stay in the repository.
+snapshots
