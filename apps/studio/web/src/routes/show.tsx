@@ -5,7 +5,7 @@ import { Button } from '@conservationtv/ui/components/button';
 
 import type { Route } from './+types/show';
 import { CtvStreamView } from '@/components/shows/ctv-stream-view';
-import { API_URL } from '@/lib/auth-client';
+import { api } from '@/lib/api';
 import { useComposeBroadcast } from '@/queries/shows';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Show · conservation.tv studio' }];
@@ -62,21 +62,15 @@ interface BroadcastStageProps {
 }
 
 /**
- * Where to follow the organisation's broadcast: the API's show object (apps/studio/api/src/shows/host.tsx), as a
- * WebSocket, which `<Stream>` follows by its scheme. Every connection is sent setup and the latest update first, so
- * `<Stream>` simply redials with backoff when it drops (or is refused, before the first Compose). The session cookie
- * travels with the upgrade, as with every call to the API, and the browser sends this page's origin, which the API
- * checks.
+ * The organisation's broadcast, followed from the API's show object (apps/studio/api/src/shows/host.tsx) at the
+ * WebSocket address the SDK gives, which `<Stream>` follows by its scheme. Every connection is sent setup and the latest
+ * update first, so `<Stream>` simply redials with backoff when it drops (or is refused, before the first Compose). The
+ * session cookie travels with the upgrade, as with every call to the API.
  */
-function broadcastUrl(organisationId: string) {
-  const url = new URL(`/organisations/${organisationId}/show`, API_URL);
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  return url.href;
-}
-
 const BroadcastStage: FC<BroadcastStageProps> = ({ organisationId }) => {
+  const url = api.organisations.show.follow({ id: organisationId });
   return (
-    <Stream url={broadcastUrl(organisationId)} sources={SOURCES}>
+    <Stream url={url} sources={SOURCES}>
       <div className="flex flex-col gap-3">
         <Stage className="w-full overflow-hidden rounded-lg bg-black" />
         <BroadcastStatus />
