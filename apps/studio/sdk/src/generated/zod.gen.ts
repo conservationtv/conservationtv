@@ -1985,8 +1985,7 @@ export const GetOrganisationsByIdChannelsResponseSchema = z.object({
         externalLogin: z.string().nullable(),
         enabled: z.boolean(),
         createdAt: z.string()
-    })),
-    twitch: z.boolean()
+    }))
 }).register(z.globalRegistry, {
     description: 'The channels'
 });

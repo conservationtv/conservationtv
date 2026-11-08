@@ -16,8 +16,7 @@ export const ChannelSchema = z.object({
         externalLogin: z.string().nullable(),
         enabled: z.boolean(),
         createdAt: z.string()
-    })),
-    twitch: z.boolean()
+    }))
 });
 
 export const GetOrganisationsByIdChannelsPathSchema = z.object({

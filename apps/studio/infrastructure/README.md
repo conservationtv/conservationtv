@@ -24,6 +24,15 @@ Use the repository's [Pulumi credentials workflow](../../../docs/infra/pulumi.md
 `op run --env-file=../../../.env.pulumi -- pulumi …`. The checked-in stack files hold `zoneId`, `apiDomain`, `webDomain`
 and `planetscaleOrganization`; the first `pulumi stack init <stack>` adds the stack's encryption salt.
 
+Each stack but a clone also names the Twitch application channels are connected through:
+
+```sh
+pulumi config set twitchClientId <client ID>
+pulumi config set --secret twitchClientSecret <client secret>
+```
+
+Its OAuth redirect URLs must include the stack's `https://<apiDomain>/channels/twitch/callback` (and its clones').
+
 The tokens are the controlplane stack's (see [its README](../../controlplane/infrastructure/README.md#configure-and-deploy)).
 The Cloudflare token additionally needs `Workers KV Storage Write` on the account. The PlanetScale token may create
 databases, and has full access to those it creates, so it controls the studio databases (`studio`, `studio-staging`) too.
@@ -85,13 +94,14 @@ to each version as text, so it changes only with a release and rolls back with o
 Vite server answers `/config.js` instead, from `API_URL` in the environment or the local API.
 
 Secrets reach the API only with a release. `GATEKEEPER_TOKEN` is the token of the controlplane stack's consumer named after
-this stack: after rotating that, release the studio too. `BETTER_AUTH_SECRET` and `FIELD_KEY` are generated here (a clone takes its source's). `FIELD_KEY` seals every
+this stack: after rotating that, release the studio too. `TWITCH_CLIENT_SECRET` is the stack's `twitchClientSecret`. `BETTER_AUTH_SECRET` and `FIELD_KEY` are generated here (a clone takes its source's). `FIELD_KEY` seals every
 encrypted column and nothing re-seals them, so it is protected: replacing it loses that data.
 
 ## Preview
 
 The `preview` stack sets `cloneOf: staging`. A clone shares staging's controlplane, and staging's `BETTER_AUTH_SECRET`
 and `FIELD_KEY` (read from its `apiSecrets`, so staging must be up first): its data is staging's, sealed under that key.
+It connects Twitch channels through staging's Twitch application too.
 Its Workers, KV cache, Hyperdrive configs and database roles are its own. Its database is the `preview` branch of
 `studio-staging`, a single-node `PS_DEV_AWS_X86` development branch restored from staging's `main` as of `restorePoint`;
 a new restore point replaces the branch, its roles with it. The restore does not carry staging's cluster parameters, so

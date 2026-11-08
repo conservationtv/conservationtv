@@ -1560,7 +1560,7 @@ export class Channels extends HeyApiClient {
     /**
      * List where an organisation's broadcast goes out to
      *
-     * Its channels, oldest first, without their credentials, and whether this deployment can connect Twitch channels. Empty for organisations you are not a member of.
+     * Its channels, oldest first, without their credentials. Empty for organisations you are not a member of.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;

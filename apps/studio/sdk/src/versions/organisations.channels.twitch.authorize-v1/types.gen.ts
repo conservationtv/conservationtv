@@ -43,10 +43,6 @@ export type PostOrganisationsByIdChannelsTwitchAuthorizeErrors = {
      */
     412: Error;
     /**
-     * This deployment cannot connect channels of that kind: Twitch needs a Twitch application configured
-     */
-    422: Error;
-    /**
      * The database is unavailable
      */
     503: Error;

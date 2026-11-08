@@ -40,7 +40,6 @@ const categories = {
   relay_unavailable: { status: 503, description: 'The relay cannot admit the device right now.' },
   unsupported_gateway: { status: 422, description: 'Connections to that gateway are not made through this API.' },
   gateway_unavailable: { status: 503, description: 'The gateway cannot be connected to right now.' },
-  unsupported_channel: { status: 422, description: 'This deployment cannot connect channels of that kind.' },
   channel_unavailable: { status: 503, description: 'The channel cannot be reached right now.' }
 } satisfies Record<string, ErrorCategory>;
 

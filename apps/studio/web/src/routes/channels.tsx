@@ -59,7 +59,7 @@ const CONNECT_FAILED = 'Twitch couldn’t be reached, or didn’t answer as expe
 const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
   const { organisationId } = params;
   const list = useSuspenseQuery(channelListQueryOptions(organisationId));
-  const { channels, twitch } = list.data;
+  const { channels } = list.data;
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-10 py-10">
       <header className="flex flex-col gap-2">
@@ -71,7 +71,7 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
       </header>
       <ConnectOutcome />
       <div className="flex flex-wrap items-center gap-2">
-        <ConnectTwitchButton organisationId={organisationId} enabled={twitch} />
+        <ConnectTwitchButton organisationId={organisationId} />
         <AddRtmpDialog organisationId={organisationId} />
       </div>
       {channels.length ? (
@@ -123,20 +123,13 @@ const ConnectOutcome: FC = () => {
 
 interface ConnectTwitchButtonProps {
   organisationId: string;
-  /** Whether this deployment has a Twitch application to connect with. */
-  enabled: boolean;
 }
 
-const ConnectTwitchButton: FC<ConnectTwitchButtonProps> = ({ organisationId, enabled }) => {
+const ConnectTwitchButton: FC<ConnectTwitchButtonProps> = ({ organisationId }) => {
   const connect = useConnectTwitch(organisationId);
   return (
     <div className="flex flex-col gap-1">
-      <Button
-        loading={connect.isPending}
-        disabled={!enabled}
-        title={enabled ? undefined : 'This studio has no Twitch application configured.'}
-        onClick={() => connect.mutate()}
-      >
+      <Button loading={connect.isPending} onClick={() => connect.mutate()}>
         <TwitchLogoIcon />
         Connect Twitch
       </Button>

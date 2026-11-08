@@ -4544,7 +4544,6 @@ export type GetOrganisationsByIdChannelsResponses = {
             enabled: boolean;
             createdAt: string;
         }>;
-        twitch: boolean;
     };
 };
 
@@ -4638,10 +4637,6 @@ export type PostOrganisationsByIdChannelsTwitchAuthorizeErrors = {
      * The selected operation version is not served
      */
     412: Error;
-    /**
-     * This deployment cannot connect channels of that kind: Twitch needs a Twitch application configured
-     */
-    422: Error;
     /**
      * The database is unavailable
      */

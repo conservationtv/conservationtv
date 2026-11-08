@@ -120,7 +120,8 @@ channel_credential  channel_id, organisation_id,
 - **Connect.** `organisations.channels.twitch.authorize` starts Twitch's OAuth authorization-code flow (scope
   `channel:read:stream_key`, state in the cache for 10 minutes); `/channels/twitch/callback` stores the tokens and the
   broadcaster, then returns to the studio's channels page. `organisations.channels.create` adds an RTMP(S) destination
-  by hand. Needs `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` and the app's redirect URL `<APP_URL>/channels/twitch/callback`.
+  by hand. Every deployment has a Twitch application (`TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`; per stack, its
+  `twitchClientId` and `twitchClientSecret`) whose redirect URLs include `<APP_URL>/channels/twitch/callback`.
 - **Key on demand.** The plan never carries a key: `obs.forwards` is `[{ organisationId, channelId }]` for each enabled
   channel. The runtime calls `organisations.channels.ingest` (device-signed; row-level security admits only a
   `channelBroadcaster`), which for Twitch refreshes the tokens if due and reads the key from Helix, returning

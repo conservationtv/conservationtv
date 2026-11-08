@@ -19,7 +19,6 @@ export type Channel = {
         enabled: boolean;
         createdAt: string;
     }>;
-    twitch: boolean;
 };
 
 export type GetOrganisationsByIdChannelsData = {

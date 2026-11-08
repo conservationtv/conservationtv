@@ -10673,7 +10673,7 @@
         "operationId": "organisations.channels.list",
         "x-operation-version": 1,
         "summary": "List where an organisation's broadcast goes out to",
-        "description": "Its channels, oldest first, without their credentials, and whether this deployment can connect Twitch channels. Empty for organisations you are not a member of.",
+        "description": "Its channels, oldest first, without their credentials. Empty for organisations you are not a member of.",
         "responses": {
           "200": {
             "description": "The channels",
@@ -10737,14 +10737,10 @@
                           "createdAt"
                         ]
                       }
-                    },
-                    "twitch": {
-                      "type": "boolean"
                     }
                   },
                   "required": [
-                    "channels",
-                    "twitch"
+                    "channels"
                   ]
                 }
               }
@@ -10977,16 +10973,6 @@
           },
           "412": {
             "description": "The selected operation version is not served",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "This deployment cannot connect channels of that kind: Twitch needs a Twitch application configured",
             "content": {
               "application/json": {
                 "schema": {
@@ -26964,14 +26950,10 @@
                     "createdAt"
                   ]
                 }
-              },
-              "twitch": {
-                "type": "boolean"
               }
             },
             "required": [
-              "channels",
-              "twitch"
+              "channels"
             ]
           }
         }
@@ -26982,7 +26964,7 @@
             "operationId": "organisations.channels.list",
             "x-operation-version": 1,
             "summary": "List where an organisation's broadcast goes out to",
-            "description": "Its channels, oldest first, without their credentials, and whether this deployment can connect Twitch channels. Empty for organisations you are not a member of.",
+            "description": "Its channels, oldest first, without their credentials. Empty for organisations you are not a member of.",
             "responses": {
               "200": {
                 "description": "The channels",
@@ -27383,16 +27365,6 @@
               },
               "412": {
                 "description": "The selected operation version is not served",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "422": {
-                "description": "This deployment cannot connect channels of that kind: Twitch needs a Twitch application configured",
                 "content": {
                   "application/json": {
                     "schema": {

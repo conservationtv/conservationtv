@@ -2,13 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import {
-  freshTwitchCredentials,
-  TWITCH_INGEST,
-  twitchAuthorizeUrl,
-  twitchEnabled,
-  twitchStreamKey
-} from '../channels/twitch.ts';
+import { freshTwitchCredentials, TWITCH_INGEST, twitchAuthorizeUrl, twitchStreamKey } from '../channels/twitch.ts';
 import { transaction } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
@@ -32,7 +26,6 @@ import {
   operationVersion,
   unauthenticated,
   unavailable,
-  unsupportedChannel,
   validator,
   versionMismatch
 } from './openapi.ts';
@@ -76,7 +69,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: "List where an organisation's broadcast goes out to",
       description:
-        'Its channels, oldest first, without their credentials, and whether this deployment can connect Twitch channels. Empty for organisations you are not a member of.',
+        'Its channels, oldest first, without their credentials. Empty for organisations you are not a member of.',
       responses: {
         200: { description: 'The channels' },
         400: invalidRequest,
@@ -91,7 +84,7 @@ export default new Hono()
       const { id } = c.req.valid('param');
       const rows = await transaction(() => listChannels(id));
       c.header('Cache-Control', 'no-store');
-      return c.json({ channels: rows, twitch: twitchEnabled() }, 200);
+      return c.json({ channels: rows }, 200);
     }
   )
   .post(
@@ -136,7 +129,6 @@ export default new Hono()
         401: unauthenticated,
         404: notFound,
         412: versionMismatch,
-        422: unsupportedChannel,
         503: unavailable
       }
     }),

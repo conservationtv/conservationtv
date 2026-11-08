@@ -840,8 +840,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })))).command(Cli.create('channels').command(Cli.create('list', { description: 'List where an organisation\'s broadcast goes out to\n\nIts channels, oldest first, without their credentials, and whether this deployment can connect Twitch channels. Empty for organisations you are not a member of.' }).command('v1', {
-        description: 'List where an organisation\'s broadcast goes out to\n\nIts channels, oldest first, without their credentials, and whether this deployment can connect Twitch channels. Empty for organisations you are not a member of.',
+    })))).command(Cli.create('channels').command(Cli.create('list', { description: 'List where an organisation\'s broadcast goes out to\n\nIts channels, oldest first, without their credentials. Empty for organisations you are not a member of.' }).command('v1', {
+        description: 'List where an organisation\'s broadcast goes out to\n\nIts channels, oldest first, without their credentials. Empty for organisations you are not a member of.',
         options: cliOptions(ChannelListV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

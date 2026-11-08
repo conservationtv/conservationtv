@@ -19,19 +19,12 @@ const SCOPES = ['channel:read:stream_key'];
 /** How long before an access token expires to refresh it. */
 const REFRESH_BEFORE_MS = 5 * 60_000;
 
-/** The deployment's Twitch application; `unsupported_channel` when it has none. */
+/** The deployment's Twitch application. */
 function twitchApp() {
   const environment = useEnvironment();
   const { TWITCH_CLIENT_ID: clientId, TWITCH_CLIENT_SECRET: clientSecret, APP_URL } = environment.variables;
-  if (!clientId || !clientSecret) throw new ApiFailure('unsupported_channel');
   const redirectUri = new URL('/channels/twitch/callback', APP_URL).href;
   return { clientId, clientSecret, redirectUri };
-}
-
-/** Whether this deployment can connect Twitch channels. */
-export function twitchEnabled(): boolean {
-  const environment = useEnvironment();
-  return Boolean(environment.variables.TWITCH_CLIENT_ID && environment.variables.TWITCH_CLIENT_SECRET);
 }
 
 /** Where to send the administrator to connect their Twitch channel, carrying `state` back to the callback. */
