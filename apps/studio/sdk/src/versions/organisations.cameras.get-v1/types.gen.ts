@@ -15,6 +15,7 @@ export type Camera = {
         driver: 'axis';
         host: string;
         resolutions: Array<string>;
+        rtspPort?: number;
     } | {
         driver: 'rtsp';
         url: string;

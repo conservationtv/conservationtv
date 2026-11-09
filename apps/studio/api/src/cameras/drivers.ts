@@ -20,6 +20,10 @@ const AxisSettingsSchema = z.strictObject({
   driver: z.literal('axis'),
   /** Where its web server is, as its network reaches it, such as `http://192.168.1.10`. Its RTSP server is beside it. */
   host: z.url(),
+  /**
+   * Its RTSP server's port (VAPIX `Network.RTSP.Port`), set apart from the web server's on a camera. Default 554.
+   */
+  rtspPort: z.int().min(1).max(65_535).optional(),
   /** The resolutions it streams, as VAPIX lists them (`Properties.Image.Resolution`). */
   resolutions: z.array(ResolutionSchema).min(1)
 });
@@ -80,11 +84,12 @@ function axisResolution(resolutions: Resolution[], maxWidth: number) {
  * Audio is AAC, which RTMP carries to MoQ publishers, though MediaMTX's WebRTC cannot send it.
  */
 function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | undefined, rendition: Rendition) {
-  // Its RTSP server is on the same host, on RTSP's own port, under the same base path (a simulator serves several
-  // cameras, each under its own). Built anew: a web URL's scheme cannot become `rtsp:`.
+  // Its RTSP server is on the same host, on its own port (554 unless set), under the same base path (a proxy may serve
+  // several cameras, each under its own). Built anew: a web URL's scheme cannot become `rtsp:`.
   const host = new URL(settings.host);
   const base = host.pathname.replace(/\/+$/u, '');
   const url = new URL(`rtsp://${host.hostname}${base}/axis-media/media.amp`);
+  if (settings.rtspPort !== undefined) url.port = String(settings.rtspPort);
   url.searchParams.set('videocodec', 'h264');
   url.searchParams.set('audiocodec', 'aac');
   if (rendition !== 'default') {
