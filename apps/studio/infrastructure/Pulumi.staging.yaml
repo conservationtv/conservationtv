@@ -3,4 +3,7 @@ config:
   studio:apiDomain: api.studio.staging.conservation.tv
   studio:webDomain: studio.staging.conservation.tv
   studio:planetscaleOrganization: conservationtv
+  studio:twitchClientId: 27vnqwvut8486rm9x4e29fh2gixnwy
+  studio:twitchClientSecret:
+    secure: v1:WNb38fVjhF5gKd8B:V9QLnzwg0fvFnxYwT5/AoEZusWpsLv0XkEm2WPR9BhPs4ZDd4XqTUeLh26KCzQ==
 encryptionsalt: v1:5IoIs2gAHz0=:v1:i+8t353nNaz1D4yp:EExxgADgq+5TFMFpnEb6jDCe3CbSow==
