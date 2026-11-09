@@ -15,6 +15,7 @@ export type Camera = {
         driver: 'axis';
         host: string;
         resolutions: Array<string>;
+        rtspPort?: number;
     } | {
         driver: 'rtsp';
         url: string;
@@ -38,6 +39,7 @@ export type PatchOrganisationsByIdCamerasByCameraIdData = {
         settings?: {
             driver: 'axis';
             host: string;
+            rtspPort?: number;
             resolutions: Array<string>;
         } | {
             driver: 'rtsp';
