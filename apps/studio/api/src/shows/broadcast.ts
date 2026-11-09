@@ -27,6 +27,8 @@ export interface ShowBundle {
 export interface Broadcast {
   /** Set what the broadcast is composed from: compose it, and send it to everyone following it. */
   setComposition(presentation: Presentation): Promise<void>;
+  /** Whether the broadcast's composition places the exposure: what its output may read. */
+  places(exposureId: string): Promise<boolean>;
   /**
    * Hand a WebSocket upgrade to the broadcast, to follow it, or a frame page's to follow its source
    * (`…/stream?source=`): 404 until it has been composed.

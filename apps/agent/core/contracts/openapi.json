@@ -636,12 +636,193 @@
               "runtime",
               "apply"
             ]
+          },
+          "obs": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "installing": {
+                    "type": "boolean"
+                  },
+                  "show": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "phase": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "error",
+                          "idle",
+                          "connecting",
+                          "downloading-assets",
+                          "synchronising",
+                          "settled",
+                          "disconnected",
+                          "disposed"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "running",
+                      "stopped",
+                      "starting",
+                      "crashed"
+                    ]
+                  },
+                  "pid": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "restarts": {
+                    "type": "number"
+                  },
+                  "lastError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "version",
+                  "installing",
+                  "show",
+                  "phase",
+                  "state",
+                  "pid",
+                  "restarts",
+                  "lastError"
+                ]
+              },
+              "apply": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applying"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applied"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "failed"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "attempt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision",
+                      "error",
+                      "attempt"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "runtime",
+              "apply"
+            ]
           }
         },
         "required": [
           "machine",
           "streams",
-          "metrics"
+          "metrics",
+          "obs"
         ]
       }
     }
@@ -932,6 +1113,29 @@
                       "required": [
                         "intervalMs",
                         "paths"
+                      ]
+                    },
+                    "obs": {
+                      "type": "object",
+                      "properties": {
+                        "show": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "url"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "show"
                       ]
                     }
                   }
@@ -1678,12 +1882,193 @@
                   "runtime",
                   "apply"
                 ]
+              },
+              "obs": {
+                "type": "object",
+                "properties": {
+                  "runtime": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "installing": {
+                        "type": "boolean"
+                      },
+                      "show": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "phase": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "error",
+                              "idle",
+                              "connecting",
+                              "downloading-assets",
+                              "synchronising",
+                              "settled",
+                              "disconnected",
+                              "disposed"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "running",
+                          "stopped",
+                          "starting",
+                          "crashed"
+                        ]
+                      },
+                      "pid": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "restarts": {
+                        "type": "number"
+                      },
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "installing",
+                      "show",
+                      "phase",
+                      "state",
+                      "pid",
+                      "restarts",
+                      "lastError"
+                    ]
+                  },
+                  "apply": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applying"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applied"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "failed"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "attempt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision",
+                          "error",
+                          "attempt"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "apply"
+                ]
               }
             },
             "required": [
               "machine",
               "streams",
-              "metrics"
+              "metrics",
+              "obs"
             ]
           }
         }
@@ -1978,6 +2363,29 @@
                 "required": [
                   "intervalMs",
                   "paths"
+                ]
+              },
+              "obs": {
+                "type": "object",
+                "properties": {
+                  "show": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "url"
+                    ]
+                  }
+                },
+                "required": [
+                  "show"
                 ]
               }
             }

@@ -32,6 +32,7 @@ import {
   type MediamtxPorts,
   type MediamtxReach
 } from './runtimes/mediamtx/index.ts';
+import { DEFAULT_OBS_WEBSOCKET_PORT, OBS_MANIFEST, ObsRuntime, ObsSpecSchema } from './runtimes/obs/index.ts';
 import { watchStudioConfiguration } from './studio-configuration.ts';
 
 export { PeersSchema, type Peer, type Peers } from './admission.ts';
@@ -87,7 +88,8 @@ function controllers(
   config: ConservationTvConfiguration,
   identity: DeviceIdentity,
   registration: EndpointRegistration,
-  mediamtx: MediamtxSetup
+  mediamtx: MediamtxSetup,
+  studio: Client
 ) {
   const machine = new MachineRuntime(config);
   const { ports, reach } = mediamtx;
@@ -103,6 +105,15 @@ function controllers(
     config
   });
   const metrics = new MediamtxMetricsRuntime(config, reach.metrics);
+  // A show sent out, by an OBS of the agent's own.
+  const obs = new ObsRuntime({
+    directory: join(config.directory, 'obs'),
+    binary: OBS_MANIFEST,
+    moq: MOQ_MANIFEST,
+    websocketPort: config.obsWebsocketPort ?? DEFAULT_OBS_WEBSOCKET_PORT,
+    studio,
+    identity
+  });
 
   // const control = new ControlRuntime(config);
 
@@ -127,6 +138,13 @@ function controllers(
       execute: spec => metrics.apply(spec),
       finalize: () => metrics.teardown(),
       dispose: () => metrics.dispose()
+    }),
+    obs: controller({
+      spec: ObsSpecSchema,
+      status: obs.status$,
+      execute: (spec, signal) => obs.execute(spec, signal),
+      finalize: () => obs.finalize(),
+      dispose: () => obs.dispose()
     })
   };
 }
@@ -160,7 +178,7 @@ export class Agent {
     const registration = new EndpointRegistration(studio);
     this.registration = registration;
     await withStudio(studio, () =>
-      withMediamtxClient(mediamtx, () => this.serve(config, identity, registration, setup))
+      withMediamtxClient(mediamtx, () => this.serve(config, identity, registration, setup, studio))
     );
   }
 
@@ -169,10 +187,11 @@ export class Agent {
     config: ConservationTvConfiguration,
     identity: DeviceIdentity,
     registration: EndpointRegistration,
-    mediamtx: MediamtxSetup
+    mediamtx: MediamtxSetup,
+    studio: Client
   ) {
     this.system = await converge({
-      controllers: controllers(config, identity, registration, mediamtx),
+      controllers: controllers(config, identity, registration, mediamtx, studio),
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },
@@ -184,13 +203,13 @@ export class Agent {
       mutator: context =>
         watchStudioConfiguration(context.signal, specs =>
           context.update(draft => {
-            if (specs === undefined) {
-              delete draft.streams;
-              delete draft.metrics;
-            } else {
-              draft.streams = specs.streams;
-              draft.metrics = specs.metrics;
-            }
+            // A runtime the configuration leaves out is finalised: its key is absent.
+            if (specs.streams === undefined) delete draft.streams;
+            else draft.streams = specs.streams;
+            if (specs.metrics === undefined) delete draft.metrics;
+            else draft.metrics = specs.metrics;
+            if (specs.obs === undefined) delete draft.obs;
+            else draft.obs = specs.obs;
           })
         )
     });

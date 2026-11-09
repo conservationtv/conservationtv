@@ -353,6 +353,12 @@ export const LogSchema = z.object({
     }))
 });
 
+export const OutputSchema = z.object({
+    showId: z.string(),
+    deviceId: z.string(),
+    createdAt: z.string()
+});
+
 export const ReportSchema = z.object({
     accepted: z.number()
 });
@@ -364,6 +370,35 @@ export const IrohSessionSchema = z.object({
         grantId: z.string(),
         expiresAt: z.string()
     })
+});
+
+export const DeviceConfigurationSchema = z.object({
+    mediamtx: z.object({
+        gatewayId: z.string(),
+        auth: MediamtxAuthSchema,
+        tls: MediamtxTlsSchema.optional(),
+        paths: z.array(z.object({
+            name: z.string(),
+            exposureId: z.string(),
+            rendition: RenditionSchema,
+            source: z.union([
+                z.object({
+                    url: z.string()
+                }),
+                z.object({
+                    path: z.string()
+                })
+            ])
+        })),
+        publishers: z.array(PublisherSchema),
+        stats: z.array(StatsConnectSchema)
+    }).optional(),
+    obs: z.object({
+        show: z.object({
+            id: z.string(),
+            url: z.string()
+        })
+    }).optional()
 });
 
 export const DeviceAddressSchema = z.object({
@@ -1870,6 +1905,47 @@ export const PostOrganisationsByIdShowComposeResponseSchema = z.void().register(
     description: 'Composed'
 });
 
+export const DeleteOrganisationsByIdShowOutputPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * Stopped
+ */
+export const DeleteOrganisationsByIdShowOutputResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Stopped'
+});
+
+export const GetOrganisationsByIdShowOutputPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The output
+ */
+export const GetOrganisationsByIdShowOutputResponseSchema = OutputSchema;
+
+export const PutOrganisationsByIdShowOutputBodySchema = z.object({
+    deviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The agent that drives OBS for the broadcast: one of the organisation\'s.'
+    })
+});
+
+export const PutOrganisationsByIdShowOutputPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The output
+ */
+export const PutOrganisationsByIdShowOutputResponseSchema = OutputSchema;
+
 /**
  * The invitations, oldest first
  */
@@ -2014,34 +2090,7 @@ export const PostIrohSessionsResponseSchema = IrohSessionSchema;
 /**
  * The configuration
  */
-export const GetDeviceConfigurationResponseSchema = z.union([
-    z.object({
-        state: z.literal('idle')
-    }),
-    z.object({
-        state: z.literal('active'),
-        mediamtx: z.object({
-            gatewayId: z.string(),
-            auth: MediamtxAuthSchema,
-            tls: MediamtxTlsSchema.optional()
-        }),
-        paths: z.array(z.object({
-            name: z.string(),
-            exposureId: z.string(),
-            rendition: RenditionSchema,
-            source: z.union([
-                z.object({
-                    url: z.string()
-                }),
-                z.object({
-                    path: z.string()
-                })
-            ])
-        })),
-        publishers: z.array(PublisherSchema),
-        stats: z.array(StatsConnectSchema)
-    })
-]);
+export const GetDeviceConfigurationResponseSchema = DeviceConfigurationSchema;
 
 export const PutDeviceAddressesBodySchema = z.object({
     addresses: z.array(z.object({

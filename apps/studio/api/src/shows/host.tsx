@@ -140,6 +140,13 @@ export class ShowHost extends DurableObject<Env> {
     });
   }
 
+  /** Whether the composition places the exposure; nothing does before the broadcast is composed. */
+  async places(exposureId: string): Promise<boolean> {
+    const composed = await this.ctx.storage.get<Composed>(COMPOSED_KEY);
+    const cameras = composed?.presentation.state.cameras ?? [];
+    return cameras.some(camera => camera.exposureId === exposureId);
+  }
+
   /**
    * A WebSocket following the broadcast: a member's, or a frame page's following the source `?source=` names
    * (`…/stream`). Sent what a new socket needs, and accepted for hibernation. 404 until composed.

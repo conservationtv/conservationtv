@@ -3,18 +3,21 @@ import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import type { MetricsSpec, MoqPublisher, StreamsSpec } from './runtimes/mediamtx/index.ts';
 import type { RelayStatsSource } from './runtimes/mediamtx/runtime.ts';
+import type { ObsSpec } from './runtimes/obs/index.ts';
 import { useStudio } from './studio.ts';
 
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
 //
-//   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device);
-//   2. turns that into the spec for its streams: the gateway it runs, whose endpoints it registers while it serves, the
+//   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device): a section
+//      for each runtime it is to run, and none for those it isn't;
+//   2. turns its `mediamtx` section into the spec for its streams: the gateway it runs, whose endpoints it registers while it serves, the
 //      paths it names, as they are, the certificate it names for the gateway's hostname, and each publisher it names,
 //      with where to publish from
 //      `organisations.streams.exposures.connect`, and where to read the relays' stats of what they carry from
 //      `organisations.gateways.stats.connect`; and for its metrics: what each path delivers;
-//   3. hands both to converge as the `streams` and `metrics` keys, each of which changes what runs only when its
-//      spec changed.
+//   3. turns its `obs` section, the show it sends out, into the `obs` key's spec as it is;
+//   4. hands them to converge as the `streams`, `metrics` and `obs` keys, each of which changes what runs only when its
+//      spec changed, and is finalised when its section is left out.
 //
 // A publisher reads its renditions on this machine, which needs no token (runtimes/mediamtx/auth.ts), and publishes
 // them to the relay with credentials from `organisations.streams.exposures.connect`. Those are kept until shortly
@@ -33,14 +36,15 @@ const RENEW_BEFORE_MS = 10 * 60_000;
 
 const logger = getLogger(['agent', 'studio']);
 
-/** The specs the configuration gives the `streams` and `metrics` keys. */
+/** The specs the configuration gives each key: absent for a runtime it leaves out. */
 export interface StudioSpecs {
-  streams: StreamsSpec;
-  metrics: MetricsSpec;
+  streams?: StreamsSpec;
+  metrics?: MetricsSpec;
+  obs?: ObsSpec;
 }
 
-/** What converge is told: the keys' specs, or that both are absent. */
-export type ApplyStudioSpecs = (specs: StudioSpecs | undefined) => Promise<void>;
+/** What converge is told: each key's spec, or that it is absent. */
+export type ApplyStudioSpecs = (specs: StudioSpecs) => Promise<void>;
 
 /**
  * Ask for the configuration now and every `INTERVAL_MS` until `signal` aborts, applying each answer. A failed ask
@@ -69,18 +73,29 @@ async function askConfiguration(studio: Client) {
   return configuration;
 }
 
-/**
- * The specs the configuration asks for, or none when the agent is idle: its paths as they are, each publisher with
- * where to publish from `connect`, and the metrics of each path about what it delivers.
- */
+/** The spec of each key the configuration has a section for. */
 async function studioSpecs(
   configuration: DeviceConfiguration,
   studio: Client,
   connections: Connections
-): Promise<StudioSpecs | undefined> {
-  if (configuration.state === 'idle') return undefined;
+): Promise<StudioSpecs> {
+  const specs: StudioSpecs = {};
+  if (configuration.mediamtx !== undefined) {
+    const { streams, metrics } = await mediamtxSpecs(configuration.mediamtx, studio, connections);
+    specs.streams = streams;
+    specs.metrics = metrics;
+  }
+  if (configuration.obs !== undefined) specs.obs = configuration.obs;
+  return specs;
+}
+
+/**
+ * The `streams` and `metrics` specs of the `mediamtx` section: its paths as they are, each publisher with where to
+ * publish from `connect`, and the metrics of each path about what it delivers.
+ */
+async function mediamtxSpecs(mediamtx: MediamtxSection, studio: Client, connections: Connections) {
   const publishers: MoqPublisher[] = [];
-  for (const { exposureId, connect: ask, layout, renditions } of configuration.publishers) {
+  for (const { exposureId, connect: ask, layout, renditions } of mediamtx.publishers) {
     // One whose credentials cannot be had is left out, and tried again next time.
     try {
       const connect = await publishTarget(studio, connections.publish, ask);
@@ -90,7 +105,7 @@ async function studioSpecs(
     }
   }
   const stats: RelayStatsSource[] = [];
-  for (const ask of configuration.stats) {
+  for (const ask of mediamtx.stats) {
     // A gateway whose stats cannot be read is left out, and tried again next time: publishing goes on regardless.
     try {
       stats.push({ connect: await statsTarget(studio, connections.stats, ask) });
@@ -98,8 +113,7 @@ async function studioSpecs(
       logger.error('The stats of gateway {gatewayId} are unavailable: {error}', { gatewayId: ask.gatewayId, error });
     }
   }
-  const { paths } = configuration;
-  const { gatewayId, auth, tls } = configuration.mediamtx;
+  const { gatewayId, auth, tls, paths } = mediamtx;
   const streams: StreamsSpec = { gatewayId, paths, auth, tls, publishers, stats };
   const attributions = paths.map(({ name, exposureId, rendition }) => ({ name, exposureId, rendition }));
   const metrics: MetricsSpec = { intervalMs: METRICS_INTERVAL_MS, paths: attributions };
@@ -108,6 +122,9 @@ async function studioSpecs(
 
 /** The configuration `deviceConfiguration.get` returns. */
 type DeviceConfiguration = Exclude<Awaited<ReturnType<Client['deviceConfiguration']['get']['v1']>>, Error>;
+
+/** Its `mediamtx` section. */
+type MediamtxSection = NonNullable<DeviceConfiguration['mediamtx']>;
 
 /** The connection details `connect` returns, whichever protocol. */
 type Connection = Exclude<Awaited<ReturnType<Client['organisations']['streams']['exposures']['connect']['v1']>>, Error>;
@@ -127,13 +144,8 @@ interface Connections {
   stats: Map<string, StatsConnection>;
 }
 
-/** The configuration of an agent that runs nothing. */
-interface IdleConfiguration {
-  state: 'idle';
-}
-
 /** The `connect` ask the configuration gives for where to publish an exposure. */
-type PublisherConnect = Exclude<DeviceConfiguration, IdleConfiguration>['publishers'][number]['connect'];
+type PublisherConnect = MediamtxSection['publishers'][number]['connect'];
 
 /**
  * Where to publish the exposure: the relay URL to dial at its path, carrying its token as `?jwt=`, which the relay
@@ -156,7 +168,7 @@ async function publishTarget(studio: Client, connections: Connections['publish']
 }
 
 /** The `stats.connect` ask the configuration gives for where to read a gateway's traffic stats. */
-type StatsConnect = Exclude<DeviceConfiguration, IdleConfiguration>['stats'][number];
+type StatsConnect = MediamtxSection['stats'][number];
 
 /**
  * Where to read the gateway's traffic stats: the relay URL to dial at the stats path, carrying its token as `?jwt=`.

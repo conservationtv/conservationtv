@@ -57,6 +57,12 @@ export type System = {
             rendition?: string;
         }>;
     };
+    obs?: {
+        show: {
+            id: string;
+            url: string;
+        };
+    };
 };
 
 export type GetSystemSpecData = {

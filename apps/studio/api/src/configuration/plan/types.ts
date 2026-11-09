@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { RenditionSchema, type Rendition } from '../../topology/settings.ts';
 
 // The shapes of a device's planned configuration (src/configuration/plan/index.ts), which mirror what the agent runs:
-// MediaMTX paths, and MoQ publishers reading them.
+// MediaMTX paths and MoQ publishers reading them, and OBS following a show.
 
 /** A URL MediaMTX pulls a path from while it is read, such as a camera's, credentials included. */
 export interface UrlSource {
@@ -81,28 +81,37 @@ export const MediamtxTlsSchema = z
 export type MediamtxTls = z.output<typeof MediamtxTlsSchema>;
 
 /**
- * The MediaMTX gateway the device runs, how it admits readers and publishers (by tokens this API signs as it), and
- * the hostname and certificate it serves TLS with, when the deployment issues them (src/gateways/certificates.ts).
+ * The `mediamtx` runtime, which a network's active agent runs: the MediaMTX gateway on its network, how it admits
+ * readers and publishers (by tokens this API signs as it), and the hostname and certificate it serves TLS with when the
+ * deployment issues them (src/gateways/certificates.ts); the paths it serves, and what it publishes from them.
  */
 export interface MediamtxConfiguration {
   gatewayId: string;
   auth: MediamtxAuth;
   tls?: MediamtxTls;
-}
-
-/** A device that runs nothing: an agent that is not its network's active agent, or whose network has no MediaMTX gateway. */
-export interface IdleConfiguration {
-  state: 'idle';
-}
-
-/** The network's active agent: the MediaMTX gateway it runs, the paths that serves, and what it publishes from them. */
-export interface ActiveConfiguration {
-  state: 'active';
-  mediamtx: MediamtxConfiguration;
   paths: PlannedPath[];
   publishers: PlannedPublisher[];
   /** Where to read the traffic stats of the gateways it publishes to, for those that publish them. */
   stats: StatsConnect[];
 }
 
-export type PlannedConfiguration = IdleConfiguration | ActiveConfiguration;
+/** The show an OBS output follows: the show, and the request a WebSocket follows it by, to sign as the device. */
+export interface ObsShow {
+  id: string;
+  /** The `https:` (or, locally, `http:`) URL of the show's stream: signed as it is, and dialled as `wss:` (`ws:`). */
+  url: string;
+}
+
+/**
+ * The `obs` runtime, which a show's output runs (src/db/schemas/shows.ts): OBS, following the show it sends out and
+ * playing what it places. Where to read each stream it is asked for when it is placed, not here.
+ */
+export interface ObsConfiguration {
+  show: ObsShow;
+}
+
+/** What a device runs: each runtime it is to run, by its key. A runtime left out is one it doesn't. */
+export interface PlannedConfiguration {
+  mediamtx?: MediamtxConfiguration;
+  obs?: ObsConfiguration;
+}

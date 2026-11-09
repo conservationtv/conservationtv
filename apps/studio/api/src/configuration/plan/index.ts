@@ -4,6 +4,8 @@ import { ensureGatewayTls } from '../../gateways/certificates.ts';
 import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
 import type { Rendition } from '../../topology/settings.ts';
+import { useEnvironment } from '../../env/env.ts';
+import { selectOutputShow } from '../../services/shows.ts';
 import {
   type ExposureInput,
   type Feed,
@@ -16,13 +18,21 @@ import {
   selectPreferredAddress,
   selectStreams
 } from './helpers.ts';
-import type { ActiveConfiguration, PlannedConfiguration, PlannedPath, PlannedPublisher } from './types.ts';
+import type {
+  MediamtxConfiguration,
+  ObsConfiguration,
+  PlannedConfiguration,
+  PlannedPath,
+  PlannedPublisher
+} from './types.ts';
 
 export type * from './types.ts';
 
 // A device's configuration: what it should be doing, derived from the topology whenever it asks, never stored. Only
-// agents have one so far. The network's active agent runs the MediaMTX gateway on its network, and delivers each
-// exposure of a stream that is a hop of it: its gateway's, and those pinned to it on other gateways.
+// agents have one so far, with a section for each runtime it runs, and none for those it doesn't. The network's active
+// agent runs the MediaMTX gateway on its network (`mediamtx`), and delivers each exposure of a stream that is a hop of
+// it: its gateway's, and those pinned to it on other gateways. A show's output runs OBS (`obs`), following the show;
+// what it plays comes with the show, so only which show is here.
 //
 // A hop takes its media from its upstream, or with none from the stream's source, which only a camera can be so far.
 // What the agent does with it depends on where the hop is delivered:
@@ -39,11 +49,18 @@ export type * from './types.ts';
 
 /** The signing device's configuration, read by trusted code: a device principal cannot read the topology. */
 export async function planConfiguration(device: AuthenticatedDevice): Promise<PlannedConfiguration> {
-  const planned = await trustedTransaction(async () => {
-    if (device.kind !== 'agent') {
-      throw new Error('Currently planning configuration is only supported for agents.');
-    }
+  if (device.kind !== 'agent') {
+    throw new Error('Currently planning configuration is only supported for agents.');
+  }
+  // One after the other: each is a trusted transaction, on the one admin connection.
+  const mediamtx = await planMediamtx(device);
+  const obs = await planObs(device);
+  return { mediamtx, obs };
+}
 
+/** The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway. */
+async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfiguration | undefined> {
+  const planned = await trustedTransaction(async () => {
     const gatewayId = await selectLocalGateway(device);
     if (!gatewayId) return undefined;
 
@@ -54,12 +71,22 @@ export async function planConfiguration(device: AuthenticatedDevice): Promise<Pl
     const configuration = planActiveAgent({ organisationId: device.organisationId, gatewayId, gatewayKinds, streams });
     return { configuration, gateway, address };
   });
-  if (planned === undefined) return { state: 'idle' };
+  if (planned === undefined) return undefined;
 
   const { configuration, gateway, address } = planned;
   const tls = await ensureGatewayTls(gateway, address);
-  if (tls !== undefined) configuration.mediamtx.tls = tls;
+  if (tls !== undefined) configuration.tls = tls;
   return configuration;
+}
+
+/** The `obs` runtime, for a show's output: the show, and where its stream is followed. */
+async function planObs(device: AuthenticatedDevice): Promise<ObsConfiguration | undefined> {
+  const output = await trustedTransaction(() => selectOutputShow(device.id));
+  if (output === undefined) return undefined;
+  const environment = useEnvironment();
+  // A show is its organisation's broadcast for now, so it is followed at the organisation's (src/routes/shows.ts).
+  const url = new URL(`/organisations/${output.organisationId}/show`, environment.variables.APP_URL);
+  return { show: { id: output.showId, url: url.href } };
 }
 
 /** What planning an active agent decides from: its MediaMTX gateway, and each stream it delivers some of. */
@@ -71,7 +98,7 @@ interface PlanningInput {
   streams: StreamInput[];
 }
 
-function planActiveAgent(input: PlanningInput): ActiveConfiguration {
+function planActiveAgent(input: PlanningInput): MediamtxConfiguration {
   const paths: PlannedPath[] = [];
   const publishers: PlannedPublisher[] = [];
   const auth = mediamtxAuth(input.gatewayId);
@@ -155,7 +182,7 @@ function planActiveAgent(input: PlanningInput): ActiveConfiguration {
   }
 
   const stats = statsGateways(input, publishers).map(gatewayId => ({ id: input.organisationId, gatewayId }));
-  return { state: 'active', mediamtx: { gatewayId: input.gatewayId, auth }, paths, publishers, stats };
+  return { gatewayId: input.gatewayId, auth, paths, publishers, stats };
 }
 
 /** The gateways the agent publishes to whose relays publish the traffic stats of what they carry, each once. */

@@ -51,20 +51,11 @@ export const StatsConnectSchema = z.object({
     gatewayId: z.string()
 });
 
-/**
- * The configuration
- */
-export const GetDeviceConfigurationResponseSchema = z.union([
-    z.object({
-        state: z.literal('idle')
-    }),
-    z.object({
-        state: z.literal('active'),
-        mediamtx: z.object({
-            gatewayId: z.string(),
-            auth: MediamtxAuthSchema,
-            tls: MediamtxTlsSchema.optional()
-        }),
+export const DeviceConfigurationSchema = z.object({
+    mediamtx: z.object({
+        gatewayId: z.string(),
+        auth: MediamtxAuthSchema,
+        tls: MediamtxTlsSchema.optional(),
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
@@ -80,5 +71,16 @@ export const GetDeviceConfigurationResponseSchema = z.union([
         })),
         publishers: z.array(PublisherSchema),
         stats: z.array(StatsConnectSchema)
-    })
-]);
+    }).optional(),
+    obs: z.object({
+        show: z.object({
+            id: z.string(),
+            url: z.string()
+        })
+    }).optional()
+});
+
+/**
+ * The configuration
+ */
+export const GetDeviceConfigurationResponseSchema = DeviceConfigurationSchema;

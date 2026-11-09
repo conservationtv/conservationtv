@@ -345,6 +345,12 @@ export type Log = {
     }>;
 };
 
+export type Output = {
+    showId: string;
+    deviceId: string;
+    createdAt: string;
+};
+
 export type Report = {
     accepted: number;
 };
@@ -355,6 +361,32 @@ export type IrohSession = {
         id: string;
         grantId: string;
         expiresAt: string;
+    };
+};
+
+export type DeviceConfiguration = {
+    mediamtx?: {
+        gatewayId: string;
+        auth: MediamtxAuth;
+        tls?: MediamtxTls;
+        paths: Array<{
+            name: string;
+            exposureId: string;
+            rendition: Rendition;
+            source: {
+                url: string;
+            } | {
+                path: string;
+            };
+        }>;
+        publishers: Array<Publisher>;
+        stats: Array<StatsConnect>;
+    };
+    obs?: {
+        show: {
+            id: string;
+            url: string;
+        };
     };
 };
 
@@ -4293,6 +4325,157 @@ export type PostOrganisationsByIdShowComposeResponses = {
 
 export type PostOrganisationsByIdShowComposeResponse = PostOrganisationsByIdShowComposeResponses[keyof PostOrganisationsByIdShowComposeResponses];
 
+export type DeleteOrganisationsByIdShowOutputData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/show/output';
+};
+
+export type DeleteOrganisationsByIdShowOutputErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdShowOutputError = DeleteOrganisationsByIdShowOutputErrors[keyof DeleteOrganisationsByIdShowOutputErrors];
+
+export type DeleteOrganisationsByIdShowOutputResponses = {
+    /**
+     * Stopped
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdShowOutputResponse = DeleteOrganisationsByIdShowOutputResponses[keyof DeleteOrganisationsByIdShowOutputResponses];
+
+export type GetOrganisationsByIdShowOutputData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/show/output';
+};
+
+export type GetOrganisationsByIdShowOutputErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdShowOutputError = GetOrganisationsByIdShowOutputErrors[keyof GetOrganisationsByIdShowOutputErrors];
+
+export type GetOrganisationsByIdShowOutputResponses = {
+    /**
+     * The output
+     */
+    200: Output;
+};
+
+export type GetOrganisationsByIdShowOutputResponse = GetOrganisationsByIdShowOutputResponses[keyof GetOrganisationsByIdShowOutputResponses];
+
+export type PutOrganisationsByIdShowOutputData = {
+    body: {
+        /**
+         * The agent that drives OBS for the broadcast: one of the organisation's.
+         */
+        deviceId: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/show/output';
+};
+
+export type PutOrganisationsByIdShowOutputErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdShowOutputError = PutOrganisationsByIdShowOutputErrors[keyof PutOrganisationsByIdShowOutputErrors];
+
+export type PutOrganisationsByIdShowOutputResponses = {
+    /**
+     * The output
+     */
+    200: Output;
+};
+
+export type PutOrganisationsByIdShowOutputResponse = PutOrganisationsByIdShowOutputResponses[keyof PutOrganisationsByIdShowOutputResponses];
+
 export type GetInvitationsData = {
     body?: never;
     path?: never;
@@ -4676,28 +4859,7 @@ export type GetDeviceConfigurationResponses = {
     /**
      * The configuration
      */
-    200: {
-        state: 'idle';
-    } | {
-        state: 'active';
-        mediamtx: {
-            gatewayId: string;
-            auth: MediamtxAuth;
-            tls?: MediamtxTls;
-        };
-        paths: Array<{
-            name: string;
-            exposureId: string;
-            rendition: Rendition;
-            source: {
-                url: string;
-            } | {
-                path: string;
-            };
-        }>;
-        publishers: Array<Publisher>;
-        stats: Array<StatsConnect>;
-    };
+    200: DeviceConfiguration;
 };
 
 export type GetDeviceConfigurationResponse = GetDeviceConfigurationResponses[keyof GetDeviceConfigurationResponses];

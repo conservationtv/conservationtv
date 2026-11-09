@@ -7,11 +7,14 @@ import { usePrincipal } from '../middleware/principal.ts';
 import { BUILTIN_GATEWAYS, gatewayProvider, isBuiltinGateway } from './index.ts';
 import type { ConnectionAction, ConnectionDetails, RequestedConnection, StatsConnection } from './provider.ts';
 import { getOrganisation } from '../services/organisations.ts';
+import { selectOutputShow } from '../services/shows.ts';
+import { useEnvironment } from '../env/env.ts';
 
 // Who may connect to an exposure, and which provider gives them its connection details. Members read, signed in.
 // Devices connect for what they publish: a device publishes the exposures it is the pinned publisher of (a browser
 // publishing directly is one), and reads the upstreams of those. Nothing else is published: exposures without a
-// pinned publisher wait for the configuration builders to choose one.
+// pinned publisher wait for the configuration builders to choose one. A show's output (src/db/schemas/shows.ts) also
+// reads what the show currently places, as its object says (src/shows/host.tsx), to play it in OBS.
 
 /** An exposure, by where its connections are made: `organisations/{organisationId}/streams/{streamId}/exposures/{exposureId}`. */
 export interface ExposureLocation {
@@ -75,6 +78,24 @@ async function publishesFrom(deviceId: string, location: ExposureLocation) {
   return downstream !== undefined;
 }
 
+/** Whether the device may read the exposure: an upstream of one it publishes, or one its show places. */
+async function reads(deviceId: string, location: ExposureLocation) {
+  if (await publishesFrom(deviceId, location)) return true;
+  return showPlaces(deviceId, location);
+}
+
+/**
+ * Whether the device is the output of the exposure's organisation's show, and the show places it. A show is its
+ * organisation's broadcast for now, so the show's ID is the organisation's.
+ */
+async function showPlaces(deviceId: string, location: ExposureLocation) {
+  const output = await selectOutputShow(deviceId);
+  if (output?.showId !== location.organisationId) return false;
+  const environment = useEnvironment();
+  const broadcast = environment.broadcasts.get(output.showId);
+  return broadcast.places(location.exposureId);
+}
+
 /** What the caller may connect to, decided in the transaction: `not_found` if it cannot see the exposure, `forbidden` if `allowed` refuses. */
 async function connection(
   location: ExposureLocation,
@@ -101,7 +122,7 @@ async function callerConnection(location: ExposureLocation, action: ConnectionAc
     if (device.organisationId !== location.organisationId) throw new ApiFailure('not_found');
     return trustedTransaction(() =>
       connection(location, subject, exposure =>
-        action === 'publish' ? exposure.publisherDeviceId === device.id : publishesFrom(device.id, location)
+        action === 'publish' ? exposure.publisherDeviceId === device.id : reads(device.id, location)
       )
     );
   }
