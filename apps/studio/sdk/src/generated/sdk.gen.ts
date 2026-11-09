@@ -509,6 +509,7 @@ export class Cameras extends HeyApiClient {
         settings: {
             driver: 'axis';
             host: string;
+            rtspPort?: number;
             resolutions: Array<string>;
         } | {
             driver: 'rtsp';
@@ -583,6 +584,7 @@ export class Cameras extends HeyApiClient {
         settings?: {
             driver: 'axis';
             host: string;
+            rtspPort?: number;
             resolutions: Array<string>;
         } | {
             driver: 'rtsp';

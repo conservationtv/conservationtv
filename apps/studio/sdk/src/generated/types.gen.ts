@@ -127,6 +127,7 @@ export type Camera = {
         driver: 'axis';
         host: string;
         resolutions: Array<string>;
+        rtspPort?: number;
     } | {
         driver: 'rtsp';
         url: string;
@@ -1944,6 +1945,7 @@ export type GetOrganisationsByIdCamerasResponses = {
                 driver: 'axis';
                 host: string;
                 resolutions: Array<string>;
+                rtspPort?: number;
             } | {
                 driver: 'rtsp';
                 url: string;
@@ -1979,6 +1981,7 @@ export type PostOrganisationsByIdCamerasData = {
         settings: {
             driver: 'axis';
             host: string;
+            rtspPort?: number;
             resolutions: Array<string>;
         } | {
             driver: 'rtsp';
@@ -2160,6 +2163,7 @@ export type PatchOrganisationsByIdCamerasByCameraIdData = {
         settings?: {
             driver: 'axis';
             host: string;
+            rtspPort?: number;
             resolutions: Array<string>;
         } | {
             driver: 'rtsp';

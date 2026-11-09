@@ -13,7 +13,8 @@ export const CameraSchema = z.object({
         z.object({
             driver: z.literal('axis'),
             host: z.string(),
-            resolutions: z.array(z.string())
+            resolutions: z.array(z.string()),
+            rtspPort: z.number().optional()
         }),
         z.object({
             driver: z.literal('rtsp'),
@@ -44,6 +45,7 @@ export const PatchOrganisationsByIdCamerasByCameraIdBodySchema = z.object({
         z.object({
             driver: z.literal('axis'),
             host: z.url(),
+            rtspPort: z.int().gte(1).lte(65535).optional(),
             resolutions: z.array(z.string().regex(/^\d{2,5}x\d{2,5}$/)).min(1)
         }),
         z.object({

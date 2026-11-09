@@ -14,7 +14,8 @@ export const CameraSchema = z.object({
             z.object({
                 driver: z.literal('axis'),
                 host: z.string(),
-                resolutions: z.array(z.string())
+                resolutions: z.array(z.string()),
+                rtspPort: z.number().optional()
             }),
             z.object({
                 driver: z.literal('rtsp'),

@@ -484,6 +484,9 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "rtspPort": {
+                    "type": "number"
                   }
                 },
                 "required": [
@@ -4858,6 +4861,9 @@
                                     "items": {
                                       "type": "string"
                                     }
+                                  },
+                                  "rtspPort": {
+                                    "type": "number"
                                   }
                                 },
                                 "required": [
@@ -5146,6 +5152,11 @@
                           "host": {
                             "type": "string",
                             "format": "uri"
+                          },
+                          "rtspPort": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535
                           },
                           "resolutions": {
                             "minItems": 1,
@@ -5444,6 +5455,11 @@
                           "host": {
                             "type": "string",
                             "format": "uri"
+                          },
+                          "rtspPort": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 65535
                           },
                           "resolutions": {
                             "minItems": 1,
@@ -17542,6 +17558,9 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "rtspPort": {
+                              "type": "number"
                             }
                           },
                           "required": [
@@ -17787,6 +17806,9 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "rtspPort": {
+                        "type": "number"
                       }
                     },
                     "required": [
@@ -18023,6 +18045,11 @@
                                 "type": "string",
                                 "format": "uri"
                               },
+                              "rtspPort": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
+                              },
                               "resolutions": {
                                 "minItems": 1,
                                 "type": "array",
@@ -18163,6 +18190,9 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "rtspPort": {
+                        "type": "number"
                       }
                     },
                     "required": [
@@ -18422,6 +18452,9 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "rtspPort": {
+                        "type": "number"
                       }
                     },
                     "required": [
@@ -18648,6 +18681,11 @@
                               "host": {
                                 "type": "string",
                                 "format": "uri"
+                              },
+                              "rtspPort": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 65535
                               },
                               "resolutions": {
                                 "minItems": 1,
