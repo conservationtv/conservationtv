@@ -30,6 +30,13 @@ interface HttpRequest {
   headers?: unknown;
   fetch?: typeof fetch;
 }
+/**
+ * A request as a generated method hands it to its client: the URL template, with the path and query parameters to fill
+ * it with, which are passed through to `buildUrl` untouched.
+ */
+interface UrlRequest {
+  url: string;
+}
 export interface RawResult {
   data?: unknown;
   error?: unknown;
@@ -47,6 +54,7 @@ interface HttpInterceptors {
 /** What the facade uses of a Hey API fetch client. */
 export interface HttpClient {
   get(options: HttpRequest): Promise<RawResult>;
+  buildUrl(options: UrlRequest): string;
   getConfig(): HttpSettings;
   interceptors: HttpInterceptors;
 }
@@ -93,6 +101,13 @@ type At<Value, Path extends string> = Path extends `${infer Head}.${infer Rest}`
     : never;
 export type SdkMethod<Sdk, Id extends string> = Sdk extends new (args: SdkClassArgs) => infer Instance
   ? At<Instance, Id>
+  : never;
+
+/** A WebSocket operation's address: the generated method's parameters, without its options, to a `ws:` or `wss:` URL. */
+export type WebSocketAddress<Method> = Method extends (...args: infer Args) => object
+  ? Args extends [...infer Params, unknown?]
+    ? (...args: Params) => string
+    : never
   : never;
 
 export type BoundMethod = (...args: unknown[]) => Promise<RawResult>;
@@ -151,6 +166,37 @@ export abstract class ClientTransport {
     const call = async (...args: unknown[]) => (await this.send(this.method(sdk, id), args)).result;
     // SAFETY: the raw generated method supplies the same parameters and success body; send normalizes every failure.
     return call as ResultCall<SdkMethod<Sdk, Id>>;
+  }
+
+  /**
+   * A WebSocket operation's address. The generated method still fills in its URL, from the base URL and its path and
+   * query parameters; it is handed a client that builds that URL rather than sending the request, which it does before
+   * returning.
+   */
+  protected webSocket<const Id extends string, Sdk extends SdkClass>(
+    id: Id,
+    sdk: Sdk
+  ): WebSocketAddress<SdkMethod<Sdk, Id>> {
+    const address = (...args: unknown[]) => {
+      const method = this.method(sdk, id);
+      const transport = this.transport;
+      let built: string | undefined = undefined;
+      const builder = {
+        get: (request: UrlRequest) => {
+          built = transport.buildUrl(request);
+        }
+      };
+      // Hey API 0.99 flat methods take options last, as in `send`.
+      const padded = Array.from({ length: Math.max(method.length, args.length, 1) }, (_, index) => args[index]);
+      padded[padded.length - 1] = { client: builder };
+      void method(...padded);
+      if (built === undefined) throw new Error(`${id} built no address`);
+      const url = new URL(built);
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      return url.href;
+    };
+    // SAFETY: the generated method takes the same parameters; the options it also takes are this facade's to supply.
+    return address as WebSocketAddress<SdkMethod<Sdk, Id>>;
   }
 
   protected method(sdk: SdkClass, operationId: string): BoundMethod {

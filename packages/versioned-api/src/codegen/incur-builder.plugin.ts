@@ -21,7 +21,8 @@ type IncurBuilderPlugin = DefinePlugin<UserConfig, Config>;
 /**
  * Companion to the flat SDK config and the generated Client; tested with Hey API 0.99.0 / Incur 0.6.1. A
  * versionless operation is a command; a versioned one is a command group with a `v1`, `v2`, ... command per version the
- * client keeps, which handshakes first so a version the server doesn't serve fails before it is sent.
+ * client keeps, which handshakes first so a version the server doesn't serve fails before it is sent. A WebSocket
+ * operation is left out.
  */
 export const incurBuilder = definePluginConfig<IncurBuilderPlugin['Types']>({
   name: 'incur-builder',
@@ -106,6 +107,8 @@ export const incurBuilder = definePluginConfig<IncurBuilderPlugin['Types']>({
     plugin.forEach('operation', ({ operation }) => {
       const id = operation.operationId;
       if (!id) throw new Error(`Missing operationId: ${operation.id}`);
+      // A WebSocket is connected to, not called, so it is no command.
+      if (operation['x-websocket'] === true) return;
       // Versioned groups are created here, so they keep their place among the commands, and filled below.
       if (versioned.has(id)) {
         branch(id);

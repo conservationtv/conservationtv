@@ -91,6 +91,51 @@ const studioWebDataRules = {
   'house/query-options-declaration': 'error'
 } as const;
 
+/**
+ * Shows (`*.show.tsx`, packages/shows) are composed afresh for each change in a Durable Object that hibernates
+ * between them (apps/studio/api/src/shows/host.ts): a show is a pure function of its state. A timer, a socket or a
+ * fetch would keep the object awake, and React state or effects would be lost when it sleeps, so neither is allowed.
+ * Data comes in as props, from the state the studio API composes the show from.
+ */
+const showDisallowed = 'A show is a pure function of its state: pass data in as props instead.';
+const showRules = {
+  'no-restricted-globals': [
+    'error',
+    ...['setTimeout', 'setInterval', 'setImmediate', 'queueMicrotask', 'requestAnimationFrame'].map(name => ({
+      name,
+      message: `${showDisallowed} A timer keeps the show's object awake.`
+    })),
+    ...['fetch', 'WebSocket', 'EventSource'].map(name => ({
+      name,
+      message: `${showDisallowed} I/O keeps the show's object awake.`
+    }))
+  ],
+  'no-restricted-imports': [
+    'error',
+    {
+      paths: [
+        restrictedMemoisation,
+        {
+          name: 'react',
+          importNames: [
+            'useState',
+            'useReducer',
+            'useEffect',
+            'useLayoutEffect',
+            'useInsertionEffect',
+            'useSyncExternalStore',
+            'useTransition',
+            'useActionState',
+            'useOptimistic',
+            'use'
+          ],
+          message: `${showDisallowed} A show keeps no state and runs no effects: each change composes it anew.`
+        }
+      ]
+    }
+  ]
+} as const;
+
 /** The React apps and the components they share. */
 const reactFiles = ['apps/studio/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}', 'tools/review/src/app/**/*.{ts,tsx}'];
 
@@ -153,6 +198,7 @@ export default defineConfig({
     // Before the vendored files' override, which switches house rules off again for the copied-in shadcn code.
     { files: ['apps/studio/web/src/**/*.{ts,tsx}'], rules: studioWebDataRules },
     { files: vendoredFiles, rules: withoutHouseRules },
+    { files: ['**/*.show.tsx'], rules: showRules },
     {
       // The rules of eslint-plugin-react-hooks' `recommended-latest` (hooks and React Compiler) and
       // eslint-plugin-react-refresh, which oxlint implements natively. `config` and `gating` only validate a Babel

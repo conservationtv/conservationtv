@@ -4214,6 +4214,85 @@ export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponses = {
 
 export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponse = GetOrganisationsByIdSubjectsBySubjectIdLogsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdLogsResponses];
 
+export type GetOrganisationsByIdShowData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/show';
+};
+
+export type GetOrganisationsByIdShowErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The request is not a WebSocket handshake
+     */
+    426: unknown;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdShowError = GetOrganisationsByIdShowErrors[keyof GetOrganisationsByIdShowErrors];
+
+export type PostOrganisationsByIdShowComposeData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/show/compose';
+};
+
+export type PostOrganisationsByIdShowComposeErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowComposeError = PostOrganisationsByIdShowComposeErrors[keyof PostOrganisationsByIdShowComposeErrors];
+
+export type PostOrganisationsByIdShowComposeResponses = {
+    /**
+     * Composed
+     */
+    204: void;
+};
+
+export type PostOrganisationsByIdShowComposeResponse = PostOrganisationsByIdShowComposeResponses[keyof PostOrganisationsByIdShowComposeResponses];
+
 export type GetInvitationsData = {
     body?: never;
     path?: never;

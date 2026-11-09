@@ -18,6 +18,19 @@ export function operationVersion(version: number): OperationVersionExtension {
   return { 'x-operation-version': version };
 }
 
+export interface WebSocketExtension {
+  'x-websocket': true;
+}
+
+/**
+ * Declare a route clients connect to as a WebSocket rather than call. It is versionless: the SDK gives its address
+ * rather than sending it, since a browser can send no `Operation-Version` with the handshake, and what is said over the
+ * socket versions itself. Give a new address for a change the old one can't carry.
+ */
+export function webSocket(): WebSocketExtension {
+  return { 'x-websocket': true };
+}
+
 /** One described response, as hono-openapi accepts under `responses`. */
 export type DescribedResponse = ResponsesWithResolver[string];
 

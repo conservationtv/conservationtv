@@ -9,6 +9,8 @@ export default {
       admin: env.HYPERDRIVE_ADMIN.connectionString,
       app: env.HYPERDRIVE_APP.connectionString,
       cache: kvCache(env.CACHE),
+      // The Worker's own ShowHost export, through its loopback binding: one object per organisation, named by its ID.
+      broadcasts: { get: organisationId => ctx.exports.ShowHost.getByName(organisationId) },
       background: task => ctx.waitUntil(task),
       assets: env.ASSETS
     });
@@ -19,3 +21,6 @@ export default {
     }
   }
 } satisfies ExportedHandler<Env>;
+
+// The Durable Object classes the Worker declares (cloudflare.config.ts).
+export { ShowHost } from './shows/host.tsx';
