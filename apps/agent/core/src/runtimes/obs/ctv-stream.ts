@@ -71,7 +71,13 @@ export function ctvStreamObs(options: CtvStreamObsOptions): ObsSourcePlugin<type
     async create(source, context) {
       const relay = new Relay(options, source.id);
       context.signal.addEventListener('abort', () => void relay.stop(), { once: true });
-      await relay.follow(source.props);
+      try {
+        await relay.follow(source.props);
+      } catch (error) {
+        // Vignette tries the source again with a relay of its own: this one must not linger, pushing to the same path.
+        await relay.stop();
+        throw error;
+      }
       const input = relayInput(options.program.cameraUrl(source.id));
       return {
         input,
@@ -247,7 +253,10 @@ class Relay {
     await this.renew();
   }
 
-  /** Ask for a session and restart `moq` with it, then schedule the next; a failure is tried again a minute on. */
+  /**
+   * Ask for a session and restart `moq` with it, then schedule the next. A failure once serving is tried again a minute
+   * on; the first is thrown, for vignette to retry the source, without a retry of this relay's own.
+   */
   private async renew(): Promise<void> {
     clearTimeout(this.renewal);
     const props = this.props;
@@ -259,8 +268,8 @@ class Relay {
       this.schedule(Math.max(session.expiresAt - Date.now() - RENEW_BEFORE_MS, RETRY_MS));
     } catch (error) {
       logger.error('The stream for {sourceId} is unavailable: {error}', { sourceId: this.sourceId, error });
-      this.schedule(RETRY_MS);
       if (this.session === undefined) throw error;
+      this.schedule(RETRY_MS);
     }
   }
 
