@@ -43,3 +43,14 @@ export const organisationAdmin = role('organisationAdmin', {
   description: 'Manage the organisation, its members, their profiles and its invitations, and its stream topology.',
   assignableScopes: ['organisation']
 });
+
+/**
+ * Who may use the organisation's channel credentials (src/db/schemas/channels.ts): read stream keys and OAuth tokens,
+ * and keep refreshed tokens. Included in `organisationAdmin`, and granted explicitly to the agent that sends the
+ * organisation's show out, for as long as it does (src/services/shows.ts); no one else ever reads a stream key.
+ */
+export const channelBroadcaster = role('channelBroadcaster', {
+  label: 'Broadcaster',
+  description: "Read the organisation's stream keys and channel tokens, to send its broadcast out.",
+  assignableScopes: ['organisation']
+});

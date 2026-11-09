@@ -59,4 +59,6 @@ export const gatewayUnavailable = errorResponse(
   'The database is unavailable, or the gateway is not configured or cannot issue credentials right now'
 );
 
+export const channelUnavailable = errorResponse('The channel could not be reached: Twitch refused or did not answer');
+
 export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');

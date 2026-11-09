@@ -5,6 +5,7 @@ import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
 import type { Rendition } from '../../topology/settings.ts';
 import { useEnvironment } from '../../env/env.ts';
+import { selectEnabledChannels } from '../../services/channels.ts';
 import { selectOutputShow } from '../../services/shows.ts';
 import {
   type ExposureInput,
@@ -79,14 +80,27 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfig
   return configuration;
 }
 
+/**
+ * The program's encoding: 1080p30 at 6000 kbps with 2-second keyframes, Twitch's ceiling for unpartnered channels, and
+ * the size of MediaMTX's built-in offline slate, which the program's fallback plays when OBS is gone.
+ */
+const PROGRAM_OUTPUT = { width: 1920, height: 1080, fps: 30, bitrateKbps: 6000, keyframeSeconds: 2 } as const;
+
 /** The `obs` runtime, for a show's output: the show, and where its stream is followed. */
 async function planObs(device: AuthenticatedDevice): Promise<ObsConfiguration | undefined> {
-  const output = await trustedTransaction(() => selectOutputShow(device.id));
-  if (output === undefined) return undefined;
+  const planned = await trustedTransaction(async () => {
+    const output = await selectOutputShow(device.id);
+    if (output === undefined) return undefined;
+    const channels = await selectEnabledChannels(output.organisationId);
+    return { output, channels };
+  });
+  if (planned === undefined) return undefined;
+  const { output, channels } = planned;
   const environment = useEnvironment();
   // A show is its organisation's broadcast for now, so it is followed at the organisation's (src/routes/shows.ts).
   const url = new URL(`/organisations/${output.organisationId}/show`, environment.variables.APP_URL);
-  return { show: { id: output.showId, url: url.href } };
+  const forwards = channels.map(channel => ({ organisationId: output.organisationId, channelId: channel.id }));
+  return { show: { id: output.showId, url: url.href }, output: PROGRAM_OUTPUT, forwards };
 }
 
 /** What planning an active agent decides from: its MediaMTX gateway, and each stream it delivers some of. */

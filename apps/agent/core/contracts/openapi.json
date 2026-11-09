@@ -686,6 +686,93 @@
                       }
                     ]
                   },
+                  "streaming": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "starting",
+                          "streaming",
+                          "reconnecting"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "program": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "forwards": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "cameras": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "properties": {
+                                "fallback": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "fallback"
+                              ]
+                            }
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "running",
+                              "stopped",
+                              "starting",
+                              "crashed"
+                            ]
+                          },
+                          "pid": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "restarts": {
+                            "type": "number"
+                          },
+                          "lastError": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "forwards",
+                          "cameras",
+                          "state",
+                          "pid",
+                          "restarts",
+                          "lastError"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "state": {
                     "type": "string",
                     "enum": [
@@ -724,6 +811,8 @@
                   "installing",
                   "show",
                   "phase",
+                  "streaming",
+                  "program",
                   "state",
                   "pid",
                   "restarts",
@@ -1132,10 +1221,57 @@
                             "id",
                             "url"
                           ]
+                        },
+                        "output": {
+                          "type": "object",
+                          "properties": {
+                            "width": {
+                              "type": "number"
+                            },
+                            "height": {
+                              "type": "number"
+                            },
+                            "fps": {
+                              "type": "number"
+                            },
+                            "bitrateKbps": {
+                              "type": "number"
+                            },
+                            "keyframeSeconds": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "width",
+                            "height",
+                            "fps",
+                            "bitrateKbps",
+                            "keyframeSeconds"
+                          ]
+                        },
+                        "forwards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "organisationId": {
+                                "type": "string"
+                              },
+                              "channelId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "organisationId",
+                              "channelId"
+                            ]
+                          }
                         }
                       },
                       "required": [
-                        "show"
+                        "show",
+                        "output",
+                        "forwards"
                       ]
                     }
                   }
@@ -1932,6 +2068,93 @@
                           }
                         ]
                       },
+                      "streaming": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "starting",
+                              "streaming",
+                              "reconnecting"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "program": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "forwards": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "cameras": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "object",
+                                  "properties": {
+                                    "fallback": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "fallback"
+                                  ]
+                                }
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "running",
+                                  "stopped",
+                                  "starting",
+                                  "crashed"
+                                ]
+                              },
+                              "pid": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "restarts": {
+                                "type": "number"
+                              },
+                              "lastError": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "forwards",
+                              "cameras",
+                              "state",
+                              "pid",
+                              "restarts",
+                              "lastError"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "state": {
                         "type": "string",
                         "enum": [
@@ -1970,6 +2193,8 @@
                       "installing",
                       "show",
                       "phase",
+                      "streaming",
+                      "program",
                       "state",
                       "pid",
                       "restarts",
@@ -2382,10 +2607,57 @@
                       "id",
                       "url"
                     ]
+                  },
+                  "output": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "number"
+                      },
+                      "height": {
+                        "type": "number"
+                      },
+                      "fps": {
+                        "type": "number"
+                      },
+                      "bitrateKbps": {
+                        "type": "number"
+                      },
+                      "keyframeSeconds": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height",
+                      "fps",
+                      "bitrateKbps",
+                      "keyframeSeconds"
+                    ]
+                  },
+                  "forwards": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organisationId": {
+                          "type": "string"
+                        },
+                        "channelId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "organisationId",
+                        "channelId"
+                      ]
+                    }
                   }
                 },
                 "required": [
-                  "show"
+                  "show",
+                  "output",
+                  "forwards"
                 ]
               }
             }

@@ -11,6 +11,11 @@ FIELD_KEY=REPLACE_WITH_GENERATED_KEY
 # token from 1Password (gatekeeper_staging_local_consumer_token).
 GATEKEEPER_TOKEN=local-consumer-token
 
+# The Twitch application channels are connected through (https://dev.twitch.tv/console/apps), with this API's
+# `<APP_URL>/channels/twitch/callback` among its OAuth redirect URLs. Its client ID is a text binding, so it is set from
+# the environment (TWITCH_CLIENT_ID), and its secret here.
+TWITCH_CLIENT_SECRET=REPLACE_WITH_TWITCH_CLIENT_SECRET
+
 # Optional: give MediaMTX gateways hostnames under a domain you control, `<gateway>.<organisation>.<domain>`, pointed
 # at the agent running each, with Let's Encrypt certificates for them. Needs the domain's Cloudflare zone and a token
 # that may edit its DNS records, and an ACME account key: one ES256 JWK with the private `d`, generated with:
@@ -26,6 +31,7 @@ GATEKEEPER_TOKEN=local-consumer-token
 # WEB_ORIGINS=http://localhost:6420
 # GATEKEEPER_URL=http://localhost:6422
 # OTP_DELIVERY=log
+# TWITCH_CLIENT_ID=…
 # GATEWAY_DOMAIN=conservationtv.net
 # CLOUDFLARE_ZONE_ID=…
 # ACME_DIRECTORY_URL=https://acme-v02.api.letsencrypt.org/directory

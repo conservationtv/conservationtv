@@ -38,3 +38,14 @@ export const DeviceCodeSchema = z.object({
 });
 export type DeviceCode = z.output<typeof DeviceCodeSchema>;
 export type DeviceCodeInput = z.input<typeof DeviceCodeSchema>;
+
+export const RtmpChannelSchema = z.object({
+  name: z.string().trim().min(1, 'Enter a name.').max(120, 'Use 120 characters or fewer.'),
+  url: z
+    .string()
+    .trim()
+    .regex(/^rtmps?:\/\/[^\s/]+\/\S+$/u, 'Enter an rtmp:// or rtmps:// server URL, with its application.'),
+  key: z.string().trim().min(1, 'Enter the stream key.').max(512, 'Use 512 characters or fewer.')
+});
+export type RtmpChannel = z.output<typeof RtmpChannelSchema>;
+export type RtmpChannelInput = z.input<typeof RtmpChannelSchema>;

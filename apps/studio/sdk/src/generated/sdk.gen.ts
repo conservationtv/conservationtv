@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdShowOutputErrors, DeleteOrganisationsByIdShowOutputResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetDeviceConfigurationErrors, GetDeviceConfigurationResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdDevicesAllowlistErrors, GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesByDeviceIdAddressesErrors, GetOrganisationsByIdDevicesByDeviceIdAddressesResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysErrors, GetOrganisationsByIdGatewaysResponses, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdShowErrors, GetOrganisationsByIdShowOutputErrors, GetOrganisationsByIdShowOutputResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsByIdSubjectsStatesErrors, GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsErrors, GetOrganisationsResponses, GetWhoamiErrors, GetWhoamiResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostIrohSessionsErrors, PostIrohSessionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdGatewaysByGatewayIdStatsErrors, PostOrganisationsByIdGatewaysByGatewayIdStatsResponses, PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdShowComposeErrors, PostOrganisationsByIdShowComposeResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdSubjectsMetricsQueryErrors, PostOrganisationsByIdSubjectsMetricsQueryResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostReportsErrors, PostReportsResponses, PutDeviceAddressesErrors, PutDeviceAddressesResponses, PutGatewayEndpointsErrors, PutGatewayEndpointsResponses, PutOrganisationsByIdBrowserErrors, PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, PutOrganisationsByIdShowOutputErrors, PutOrganisationsByIdShowOutputResponses, Rendition, Schema0 } from './types.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdChannelsByChannelIdErrors, DeleteOrganisationsByIdChannelsByChannelIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdShowOutputErrors, DeleteOrganisationsByIdShowOutputResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetDeviceConfigurationErrors, GetDeviceConfigurationResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdChannelsByChannelIdErrors, GetOrganisationsByIdChannelsByChannelIdResponses, GetOrganisationsByIdChannelsErrors, GetOrganisationsByIdChannelsResponses, GetOrganisationsByIdDevicesAllowlistErrors, GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesByDeviceIdAddressesErrors, GetOrganisationsByIdDevicesByDeviceIdAddressesResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysErrors, GetOrganisationsByIdGatewaysResponses, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdShowErrors, GetOrganisationsByIdShowOutputErrors, GetOrganisationsByIdShowOutputResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsByIdSubjectsStatesErrors, GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsErrors, GetOrganisationsResponses, GetWhoamiErrors, GetWhoamiResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostIrohSessionsErrors, PostIrohSessionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdChannelsByChannelIdIngestErrors, PostOrganisationsByIdChannelsByChannelIdIngestResponses, PostOrganisationsByIdChannelsErrors, PostOrganisationsByIdChannelsResponses, PostOrganisationsByIdChannelsTwitchAuthorizeErrors, PostOrganisationsByIdChannelsTwitchAuthorizeResponses, PostOrganisationsByIdGatewaysByGatewayIdStatsErrors, PostOrganisationsByIdGatewaysByGatewayIdStatsResponses, PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdShowComposeErrors, PostOrganisationsByIdShowComposeResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdSubjectsMetricsQueryErrors, PostOrganisationsByIdSubjectsMetricsQueryResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostReportsErrors, PostReportsResponses, PutDeviceAddressesErrors, PutDeviceAddressesResponses, PutGatewayEndpointsErrors, PutGatewayEndpointsResponses, PutOrganisationsByIdBrowserErrors, PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, PutOrganisationsByIdShowOutputErrors, PutOrganisationsByIdShowOutputResponses, Rendition, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -1540,6 +1540,156 @@ export class Show extends HeyApiClient {
     }
 }
 
+export class Twitch extends HeyApiClient {
+    /**
+     * Start connecting a Twitch channel
+     *
+     * Where to send the browser to approve on Twitch; Twitch sends it back to this API, which connects the channel (or refreshes it, if it is connected already) and returns to the studio's channels page. Valid for 10 minutes; only administrators' connections are kept.
+     */
+    public authorize<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdChannelsTwitchAuthorizeResponses, PostOrganisationsByIdChannelsTwitchAuthorizeErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdChannelsTwitchAuthorizeResponses, PostOrganisationsByIdChannelsTwitchAuthorizeErrors, ThrowOnError>({
+            url: '/organisations/{id}/channels/twitch/authorize',
+            ...options,
+            ...params
+        });
+    }
+}
+
+export class Channels extends HeyApiClient {
+    /**
+     * List where an organisation's broadcast goes out to
+     *
+     * Its channels, oldest first, without their credentials. Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdChannelsResponses, GetOrganisationsByIdChannelsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdChannelsResponses, GetOrganisationsByIdChannelsErrors, ThrowOnError>({
+            url: '/organisations/{id}/channels',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Add an RTMP destination
+     *
+     * Administrators only. Any service that takes RTMP(S), by its server URL and stream key; the key is kept encrypted and never shown again. Twitch channels are connected with `organisations.channels.twitch.authorize` instead.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
+        url: string;
+        key: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdChannelsResponses, PostOrganisationsByIdChannelsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'url' },
+                    { in: 'body', key: 'key' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdChannelsResponses, PostOrganisationsByIdChannelsErrors, ThrowOnError>({
+            url: '/organisations/{id}/channels',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a channel
+     *
+     * Administrators only. Its credentials go with it; Twitch keeps the authorization until revoked there.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        channelId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdChannelsByChannelIdResponses, DeleteOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'channelId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdChannelsByChannelIdResponses, DeleteOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/channels/{channelId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read a channel
+     *
+     * Without its credentials, which the studio never shows. `not_found` unless you are a member.
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        channelId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdChannelsByChannelIdResponses, GetOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'channelId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdChannelsByChannelIdResponses, GetOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/channels/{channelId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Rename a channel, or turn it on or off
+     *
+     * Administrators only. A channel that is off is not forwarded to.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        channelId: string;
+        name?: string;
+        enabled?: boolean;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'channelId' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'enabled' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/channels/{channelId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Read where to send the broadcast for a channel
+     *
+     * Devices holding `channelBroadcaster` at the organisation only, which the show's output is granted while it is the output, signed as the device (an RFC 9421 HTTP Message Signature, as for `deviceConfiguration.get`): the RTMP(S) server URL and stream key to forward the program to. For Twitch, read from Twitch now, refreshing the connection's tokens as needed.
+     */
+    public ingest<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        channelId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdChannelsByChannelIdIngestResponses, PostOrganisationsByIdChannelsByChannelIdIngestErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'channelId' }] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdChannelsByChannelIdIngestResponses, PostOrganisationsByIdChannelsByChannelIdIngestErrors, ThrowOnError>({
+            url: '/organisations/{id}/channels/{channelId}/ingest',
+            ...options,
+            ...params
+        });
+    }
+    
+    private _twitch?: Twitch;
+    get twitch(): Twitch {
+        return this._twitch ??= new Twitch({ client: this.client });
+    }
+}
+
 export class Organisations extends HeyApiClient {
     /**
      * List your organisations
@@ -1679,6 +1829,11 @@ export class Organisations extends HeyApiClient {
     private _show?: Show;
     get show(): Show {
         return this._show ??= new Show({ client: this.client });
+    }
+    
+    private _channels?: Channels;
+    get channels(): Channels {
+        return this._channels ??= new Channels({ client: this.client });
     }
 }
 
@@ -1857,7 +2012,7 @@ export class DeviceConfiguration extends HeyApiClient {
     /**
      * Read the signing device's configuration
      *
-     * What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for a show's output (`organisations.show.output.set`): the `show` it follows, at the `url` it signs a WebSocket upgrade to as the device; it reads each stream the show places with `organisations.streams.exposures.connect`. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.
+     * What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for a show's output (`organisations.show.output.set`): the `show` it follows, at the `url` it signs a WebSocket upgrade to as the device, the `output` encoding the program is sent at, and the `forwards`, one for each of the organisation's enabled channels, naming the channel whose server and stream key it reads with `organisations.channels.ingest`; it reads each stream the show places with `organisations.streams.exposures.connect`. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.
      */
     public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetDeviceConfigurationResponses, GetDeviceConfigurationErrors, ThrowOnError> {
         return (options?.client ?? this.client).get<GetDeviceConfigurationResponses, GetDeviceConfigurationErrors, ThrowOnError>({ url: '/device-configuration', ...options });

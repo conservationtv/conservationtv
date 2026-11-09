@@ -113,6 +113,8 @@ bindings:
 | `OTP_DELIVERY`         | text       | `log` only, see above                                                                                                |
 | `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
 | `GATEKEEPER_TOKEN`     | secret     | that control plane environment's token for this consumer, whose MoQ paths it places beneath the consumer's namespace |
+| `TWITCH_CLIENT_ID`     | text       | the Twitch application channels are connected through                                                                |
+| `TWITCH_CLIENT_SECRET` | secret     | that application's client secret                                                                                     |
 | `GATEWAY_DOMAIN`       | text       | optional: the zone MediaMTX gateways get hostnames and certificates in, see below                                    |
 | `CLOUDFLARE_ZONE_ID`   | text       | with `GATEWAY_DOMAIN`: its Cloudflare zone                                                                           |
 | `CLOUDFLARE_API_TOKEN` | secret     | with `GATEWAY_DOMAIN`: a token that may edit that zone's DNS records                                                 |

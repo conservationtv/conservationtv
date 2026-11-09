@@ -32,7 +32,13 @@ import {
   type MediamtxPorts,
   type MediamtxReach
 } from './runtimes/mediamtx/index.ts';
-import { DEFAULT_OBS_WEBSOCKET_PORT, OBS_MANIFEST, ObsRuntime, ObsSpecSchema } from './runtimes/obs/index.ts';
+import {
+  DEFAULT_OBS_WEBSOCKET_PORT,
+  DEFAULT_PROGRAM_PORTS,
+  OBS_MANIFEST,
+  ObsRuntime,
+  ObsSpecSchema
+} from './runtimes/obs/index.ts';
 import { watchStudioConfiguration } from './studio-configuration.ts';
 
 export { PeersSchema, type Peer, type Peers } from './admission.ts';
@@ -110,6 +116,8 @@ function controllers(
     directory: join(config.directory, 'obs'),
     binary: OBS_MANIFEST,
     moq: MOQ_MANIFEST,
+    mediamtx: MEDIAMTX_MANIFEST,
+    programPorts: DEFAULT_PROGRAM_PORTS,
     websocketPort: config.obsWebsocketPort ?? DEFAULT_OBS_WEBSOCKET_PORT,
     studio,
     identity

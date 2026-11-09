@@ -324,6 +324,9 @@ importers:
       jose:
         specifier: 6.2.12
         version: 6.2.12
+      obs-websocket-js:
+        specifier: 5.0.8
+        version: 5.0.8(supports-color@10.2.2)
       react:
         specifier: ^19.3.0
         version: 19.3.0

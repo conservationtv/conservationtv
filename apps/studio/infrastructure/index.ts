@@ -187,6 +187,28 @@ const ownSecrets = cloneSource
     )
   : generateSecrets();
 
+/** What a clone reads of its source's `api` output, and of its `apiSecrets`. */
+interface SourceApi {
+  twitchClientId: string;
+}
+interface SourceTwitchSecret {
+  TWITCH_CLIENT_SECRET: string;
+}
+
+// The Twitch application channels are connected through, from the stack's config: `twitchClientId`, and the secret
+// `twitchClientSecret`. Its redirect URLs must include this stack's `<appUrl>/channels/twitch/callback`. A clone uses
+// its source's, so that app must also redirect to the clone.
+const twitchClientId = cloneSource
+  ? // SAFETY: the source stack is this program's, which exports `api` with `twitchClientId`.
+    (cloneSource.requireOutput('api') as pulumi.Output<SourceApi>).apply(source => source.twitchClientId)
+  : pulumi.output(config.require('twitchClientId'));
+const twitchClientSecret = cloneSource
+  ? // SAFETY: the source stack is this program's, which exports `apiSecrets` with `TWITCH_CLIENT_SECRET`.
+    (cloneSource.requireOutput('apiSecrets') as pulumi.Output<SourceTwitchSecret>).apply(
+      secrets => secrets.TWITCH_CLIENT_SECRET
+    )
+  : config.requireSecret('twitchClientSecret');
+
 /** What this stack reads of its own `api` and `web` outputs. */
 interface DeployedWorker {
   versionTag?: string;
@@ -237,7 +259,8 @@ export const api = {
   cacheId: cache.id,
   appUrl,
   webOrigins: [webOrigin],
-  gatekeeperUrl
+  gatekeeperUrl,
+  twitchClientId
 };
 /** The studio web Worker's build settings, read from STACK_OUTPUT_JSON: `apiUrl` is served to the app as /config.js. */
 export const web = {
@@ -248,7 +271,11 @@ export const web = {
 };
 /** Every studio API secret binding, uploaded with each version through `--secrets-file`. */
 export const apiSecrets = pulumi.secret(
-  pulumi.all([ownSecrets, gatekeeperToken]).apply(([secrets, token]) => ({ ...secrets, GATEKEEPER_TOKEN: token }))
+  pulumi.all([ownSecrets, gatekeeperToken, twitchClientSecret]).apply(([secrets, token, twitch]) => ({
+    ...secrets,
+    GATEKEEPER_TOKEN: token,
+    TWITCH_CLIENT_SECRET: twitch
+  }))
 );
 /** The database's PlanetScale name and branch, and a clone's restore point. */
 export const database = {

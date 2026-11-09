@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { Stage, Stream, useStreamStatus } from '@strangecyan/vignette/react';
-import { ShuffleIcon } from '@phosphor-icons/react';
+import { BroadcastIcon, ShuffleIcon } from '@phosphor-icons/react';
+import { Link } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
 
 import type { Route } from './+types/show';
@@ -29,7 +30,13 @@ const ShowRoute: FC<Route.ComponentProps> = ({ params }) => {
             five small.
           </p>
         </div>
-        <ComposeButton organisationId={params.organisationId} />
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="../channels" relative="path" />}>
+            <BroadcastIcon />
+            Channels
+          </Button>
+          <ComposeButton organisationId={params.organisationId} />
+        </div>
       </header>
       {/* A new organisation is a new stream, so its broadcast starts over. */}
       <BroadcastStage key={params.organisationId} organisationId={params.organisationId} />

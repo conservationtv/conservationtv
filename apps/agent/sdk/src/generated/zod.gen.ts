@@ -136,6 +136,26 @@ export const SystemSchema = z.object({
                 'disconnected',
                 'disposed'
             ]).nullable(),
+            streaming: z.enum([
+                'starting',
+                'streaming',
+                'reconnecting'
+            ]).nullable(),
+            program: z.object({
+                forwards: z.array(z.string()),
+                cameras: z.record(z.string(), z.object({
+                    fallback: z.boolean()
+                })),
+                state: z.enum([
+                    'running',
+                    'stopped',
+                    'starting',
+                    'crashed'
+                ]),
+                pid: z.number().nullable(),
+                restarts: z.number(),
+                lastError: z.string().nullable()
+            }).nullable(),
             state: z.enum([
                 'running',
                 'stopped',
@@ -238,7 +258,18 @@ export const GetSystemSpecResponseSchema = z.object({
         show: z.object({
             id: z.string(),
             url: z.string()
-        })
+        }),
+        output: z.object({
+            width: z.number(),
+            height: z.number(),
+            fps: z.number(),
+            bitrateKbps: z.number(),
+            keyframeSeconds: z.number()
+        }),
+        forwards: z.array(z.object({
+            organisationId: z.string(),
+            channelId: z.string()
+        }))
     }).optional()
 }).register(z.globalRegistry, {
     description: 'The current system specification'

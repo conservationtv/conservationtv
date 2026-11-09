@@ -62,6 +62,17 @@ export type System = {
             id: string;
             url: string;
         };
+        output: {
+            width: number;
+            height: number;
+            fps: number;
+            bitrateKbps: number;
+            keyframeSeconds: number;
+        };
+        forwards: Array<{
+            organisationId: string;
+            channelId: string;
+        }>;
     };
 };
 

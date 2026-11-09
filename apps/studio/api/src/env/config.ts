@@ -50,6 +50,9 @@ export const config = {
   /** The ACME directory certificates come from, and the account key, one ES256 JWK with its private `d`. */
   ACME_DIRECTORY_URL: optionalText(z.url()),
   ACME_ACCOUNT_KEY: z.string().min(1).optional(),
+  /** The Twitch application channels are connected through (src/channels/twitch.ts): its client ID, and its secret. */
+  TWITCH_CLIENT_ID: z.string().min(1),
+  TWITCH_CLIENT_SECRET: z.string().min(1),
   /** Only logging exists; see src/auth/otp.ts. */
   OTP_DELIVERY: z.literal('log'),
   BETTER_AUTH_SECRET: z.string().min(32),

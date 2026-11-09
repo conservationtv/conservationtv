@@ -7,7 +7,13 @@ import { ApiFailure } from '../errors.ts';
 import { useDevice } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { getOrganisation } from '../services/organisations.ts';
-import { deleteShowOutput, getShowOutput, selectOutputShow, setShowOutput } from '../services/shows.ts';
+import {
+  deleteShowOutput,
+  getShowOutput,
+  selectOutputShow,
+  setShowOutput,
+  syncBroadcasters
+} from '../services/shows.ts';
 import { broadcastBundle, broadcastServe, shuffledComposition } from '../shows/broadcast.ts';
 import {
   forbidden,
@@ -175,6 +181,7 @@ export default new Hono()
       const { id } = c.req.valid('param');
       const { deviceId } = c.req.valid('json');
       const row = await transaction(() => setShowOutput(id, id, deviceId));
+      await trustedTransaction(() => syncBroadcasters(id));
       c.header('Cache-Control', 'no-store');
       return c.json(row, 200);
     }
@@ -201,6 +208,7 @@ export default new Hono()
     async c => {
       const { id } = c.req.valid('param');
       await transaction(() => deleteShowOutput(id, id));
+      await trustedTransaction(() => syncBroadcasters(id));
       return c.body(null, 204);
     }
   );

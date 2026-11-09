@@ -108,6 +108,19 @@ export type System = {
             installing: boolean;
             show: string | null;
             phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
+            streaming: 'starting' | 'streaming' | 'reconnecting' | null;
+            program: {
+                forwards: Array<string>;
+                cameras: {
+                    [key: string]: {
+                        fallback: boolean;
+                    };
+                };
+                state: 'running' | 'stopped' | 'starting' | 'crashed';
+                pid: number | null;
+                restarts: number;
+                lastError: string | null;
+            } | null;
             state: 'running' | 'stopped' | 'starting' | 'crashed';
             pid: number | null;
             restarts: number;

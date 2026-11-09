@@ -18,6 +18,7 @@ export * from './schemas/gateway-certificates.ts';
 export * from './schemas/gateway-endpoints.ts';
 export * from './schemas/streams.ts';
 export * from './schemas/shows.ts';
+export * from './schemas/channels.ts';
 export * from './schemas/observations.ts';
 export * from './schemas/metrics.ts';
 export * from './schemas/logs.ts';

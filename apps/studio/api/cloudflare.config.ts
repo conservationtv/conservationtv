@@ -15,7 +15,8 @@ const StackOutputsSchema = z.object({
     cacheId: z.string(),
     appUrl: z.url(),
     webOrigins: z.array(z.url()).nonempty(),
-    gatekeeperUrl: z.url()
+    gatekeeperUrl: z.url(),
+    twitchClientId: z.string().min(1)
   })
 });
 type StackOutputs = z.output<typeof StackOutputsSchema>;
@@ -86,6 +87,9 @@ export default defineConfig({
        * with each version, and these are only set beside `GATEWAY_DOMAIN`.
        */
       GATEWAY_DOMAIN: bindings.text(process.env.GATEWAY_DOMAIN ?? ''),
+      /** The Twitch application channels are connected through, and its secret; see .dev.vars.example. */
+      TWITCH_CLIENT_ID: bindings.text(stack?.twitchClientId ?? process.env.TWITCH_CLIENT_ID ?? ''),
+      TWITCH_CLIENT_SECRET: bindings.secret(),
       CLOUDFLARE_ZONE_ID: bindings.text(process.env.CLOUDFLARE_ZONE_ID ?? ''),
       ACME_DIRECTORY_URL: bindings.text(
         process.env.ACME_DIRECTORY_URL ?? 'https://acme-staging-v02.api.letsencrypt.org/directory'
