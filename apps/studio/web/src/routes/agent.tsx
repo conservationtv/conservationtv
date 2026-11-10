@@ -171,7 +171,7 @@ const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
                 </SectionDescription>
               </SectionHeading>
             </SectionHeader>
-            <AgentSetup agentId={agent.id} name={agent.device.name} />
+            <AgentSetup key={agent.id} agentId={agent.id} name={agent.device.name} />
           </Section>
 
           <Section>
