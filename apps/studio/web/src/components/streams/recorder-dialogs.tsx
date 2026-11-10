@@ -1,4 +1,4 @@
-import { useState, type FC, type ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { PlusIcon } from '@phosphor-icons/react';
 import type { Rendition } from '@conservationtv/studio-sdk';
@@ -32,7 +32,7 @@ import type { Delivery, StreamRecorder } from '@/components/streams/stream-detai
 import { RecorderSchema, type Recorder, type RecorderInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useCreateRecorder, useDeleteRecorder, useUpdateRecorder } from '@/queries/streams';
 
@@ -49,7 +49,6 @@ export interface AddRecorderDialogProps {
 /** Records one of the stream's deliveries; the dialog closes once the recorder is made. */
 export const AddRecorderDialog: FC<AddRecorderDialogProps> = ({ streamId, deliveries }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const create = useCreateRecorder(organisationId);
   const first = deliveries[0]?.exposure;
   const defaultValues: RecorderInput = {
@@ -57,14 +56,9 @@ export const AddRecorderDialog: FC<AddRecorderDialogProps> = ({ streamId, delive
     rendition: first?.renditions[0] ?? 'default',
     kind: ''
   };
+  const dialog = useDialog(create);
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="outline" disabled={deliveries.length === 0} />}>
         <PlusIcon />
         Add recorder
@@ -77,7 +71,7 @@ export const AddRecorderDialog: FC<AddRecorderDialogProps> = ({ streamId, delive
         <RecorderForm
           deliveries={deliveries}
           defaultValues={defaultValues}
-          onSubmit={recorder => create.mutate({ streamId, ...recorder }, { onSuccess: () => setOpen(false) })}
+          onSubmit={recorder => dialog.mutate({ streamId, ...recorder })}
         >
           <FormError error={create.error} />
           <DialogFooter>
@@ -100,21 +94,15 @@ export interface RecorderDialogProps {
 /** Changes what a recorder records, or its kind; the form starts from what is stored each time the dialog opens. */
 export const EditRecorderDialog: FC<RecorderDialogProps> = ({ streamId, recorder, deliveries }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateRecorder(organisationId);
   const defaultValues: RecorderInput = {
     exposureId: recorder.exposureId,
     rendition: recorder.rendition,
     kind: recorder.kind
   };
+  const dialog = useDialog(update);
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (next) update.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Edit</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -125,9 +113,7 @@ export const EditRecorderDialog: FC<RecorderDialogProps> = ({ streamId, recorder
           deliveries={deliveries}
           recorder={recorder}
           defaultValues={defaultValues}
-          onSubmit={changes =>
-            update.mutate({ streamId, recorderId: recorder.id, ...changes }, { onSuccess: () => setOpen(false) })
-          }
+          onSubmit={changes => dialog.mutate({ streamId, recorderId: recorder.id, ...changes })}
         >
           <FormError error={update.error} />
           <DialogFooter>
@@ -150,9 +136,9 @@ export interface DeleteRecorderDialogProps {
 export const DeleteRecorderDialog: FC<DeleteRecorderDialogProps> = ({ streamId, recorder }) => {
   const organisationId = useOrganisationId();
   const remove = useDeleteRecorder(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Remove</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -165,7 +151,7 @@ export const DeleteRecorderDialog: FC<DeleteRecorderDialogProps> = ({ streamId, 
           <AlertDialogAction
             variant="destructive"
             loading={remove.isPending}
-            onClick={() => confirmation.confirm({ streamId, partId: recorder.id })}
+            onClick={() => dialog.mutate({ streamId, partId: recorder.id })}
           >
             Remove
           </AlertDialogAction>

@@ -1,4 +1,4 @@
-import { Suspense, useState, type FC, type ReactNode } from 'react';
+import { Suspense, type FC, type ReactNode } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import {
   BroadcastIcon,
@@ -26,6 +26,7 @@ import {
 } from '@conservationtv/ui/components/item';
 import { Skeleton } from '@conservationtv/ui/components/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@conservationtv/ui/components/tabs';
+import { parseAsBoolean, useQueryState } from 'nuqs';
 
 import type { Route } from './+types/show';
 import { PinButton } from '@/components/app/pins';
@@ -75,6 +76,7 @@ import { CONSERVATIONTV_GATEWAY } from '@/components/streams/renditions';
 import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { statusLabels } from '@/components/streams/topology';
 import { useIsAdministrator, useOrganisation, useOrganisationId } from '@/hooks/use-organisation';
+import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { formatDate } from '@/lib/format';
 import { agentListQueryOptions } from '@/queries/agents';
 import { channelListQueryOptions } from '@/queries/channels';
@@ -97,7 +99,7 @@ const ShowRoute: FC<Route.ComponentProps> = ({ params }) => {
         Shows
       </BackLink>
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <ShowView showId={params.showId} />
+        <ShowView key={params.showId} showId={params.showId} />
       </Suspense>
     </Page>
   );
@@ -188,12 +190,16 @@ interface ShowTabsProps {
   choices: ShowChoices;
 }
 
+/** Whether the broadcast is open, as `?watch=true` in its address, so a link can open the show playing. */
+const watchParser = parseAsBoolean.withDefault(false);
+
 /** Configuration, outputs, recording and traffic, under line tabs, with the broadcast a button away at the row's end. */
 const ShowTabs: FC<ShowTabsProps> = ({ detail, choices }) => {
   const organisation = useOrganisation();
-  const [watching, setWatching] = useState(false);
+  const tabs = useTabsQuery('tab', ['configuration', 'outputs', 'recording', 'traffic']);
+  const [watching, setWatching] = useQueryState('watch', watchParser);
   return (
-    <Tabs defaultValue="configuration" className="gap-8">
+    <Tabs {...tabs} className="gap-8">
       <div className="flex items-center justify-between gap-4 border-b border-border pb-1">
         <TabsList variant="line" className="justify-start">
           <TabsTrigger value="configuration" className="flex-none px-2 text-custom-13">

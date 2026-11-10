@@ -40,7 +40,7 @@ import {
 } from '@/components/common/page';
 import { DisplayNameSchema, NameSchema, type DisplayNameInput, type NameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate } from '@/lib/format';
 import { accountQueryOptions } from '@/queries/account';
@@ -253,9 +253,9 @@ const LeaveOrDeleteSection: FC<OrganisationProps> = ({ organisation }) => {
 const LeaveOrganisationDialog: FC<OrganisationProps> = ({ organisation }) => {
   const navigate = useNavigate();
   const remove = useRemoveMember(organisation.id);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="outline" />}>Leave</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -270,9 +270,7 @@ const LeaveOrganisationDialog: FC<OrganisationProps> = ({ organisation }) => {
           <AlertDialogAction
             variant="destructive"
             loading={remove.isPending}
-            onClick={() =>
-              confirmation.confirm('me', { onSuccess: () => navigate('/organisations', { replace: true }) })
-            }
+            onClick={() => dialog.mutate('me', { onSuccess: () => navigate('/organisations', { replace: true }) })}
           >
             Leave
           </AlertDialogAction>
@@ -289,9 +287,9 @@ const LeaveOrganisationDialog: FC<OrganisationProps> = ({ organisation }) => {
 const DeleteOrganisationDialog: FC<OrganisationProps> = ({ organisation }) => {
   const navigate = useNavigate();
   const remove = useDeleteOrganisation(organisation.id);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="outline" />}>Delete</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -307,9 +305,7 @@ const DeleteOrganisationDialog: FC<OrganisationProps> = ({ organisation }) => {
           <AlertDialogAction
             variant="destructive"
             loading={remove.isPending}
-            onClick={() =>
-              confirmation.confirm(undefined, { onSuccess: () => navigate('/organisations', { replace: true }) })
-            }
+            onClick={() => dialog.mutate(undefined, { onSuccess: () => navigate('/organisations', { replace: true }) })}
           >
             Delete
           </AlertDialogAction>

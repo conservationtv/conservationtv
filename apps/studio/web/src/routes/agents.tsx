@@ -1,20 +1,10 @@
-import { useState, type FC } from 'react';
-import { useForm } from '@tanstack/react-form';
+import type { FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { CaretRightIcon, HardDrivesIcon, PlusIcon } from '@phosphor-icons/react';
-import { Link, useNavigate } from 'react-router';
+import { Link, Outlet } from 'react-router';
 import type { Agent, Network } from '@conservationtv/studio-sdk';
 import { Badge } from '@conservationtv/ui/components/badge';
 import { Button } from '@conservationtv/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@conservationtv/ui/components/dialog';
 import {
   Empty,
   EmptyContent,
@@ -23,7 +13,6 @@ import {
   EmptyMedia,
   EmptyTitle
 } from '@conservationtv/ui/components/empty';
-import { FieldGroup } from '@conservationtv/ui/components/field';
 import {
   Item,
   ItemActions,
@@ -33,10 +22,8 @@ import {
   ItemMedia,
   ItemTitle
 } from '@conservationtv/ui/components/item';
-import { NativeSelectOption } from '@conservationtv/ui/components/native-select';
 
 import type { Route } from './+types/agents';
-import { FormError } from '@/components/common/form-error';
 import {
   Page,
   PageActions,
@@ -50,11 +37,8 @@ import {
 } from '@/components/common/page';
 import { SubjectHealth } from '@/components/devices/subject-health';
 import { deviceSubjectId, statesBySubject, type SubjectState } from '@/components/devices/subjects';
-import { NewAgentSchema, type NewAgentInput } from '@/forms/schemas';
-import { SelectField } from '@/forms/select-field';
-import { TextField } from '@/forms/text-field';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
-import { agentListQueryOptions, useCreateAgent } from '@/queries/agents';
+import { agentListQueryOptions } from '@/queries/agents';
 import { networkListQueryOptions } from '@/queries/networks';
 import { subjectStateListQueryOptions } from '@/queries/streams';
 
@@ -89,7 +73,10 @@ const AgentsRoute: FC = () => {
         </PageHeading>
         {administrator && networks.length > 0 && (
           <PageActions>
-            <AddAgentDialog networks={networks} />
+            <Button nativeButton={false} render={<Link to="new" />}>
+              <PlusIcon />
+              Add agent
+            </Button>
           </PageActions>
         )}
       </PageHeader>
@@ -123,6 +110,8 @@ const AgentsRoute: FC = () => {
           states={states}
         />
       ))}
+      {/* A dialog routed over the page, such as adding one: `new`. */}
+      <Outlet />
     </Page>
   );
 };
@@ -167,88 +156,5 @@ const NetworkAgents: FC<NetworkAgentsProps> = ({ network, agents, states }) => {
         ))}
       </ItemGroup>
     </Section>
-  );
-};
-
-interface AddAgentDialogProps {
-  networks: Network[];
-}
-
-/**
- * Adds an agent to a network, then opens its page, where its key is: the agent is only a record until a machine is
- * started with it.
- */
-const AddAgentDialog: FC<AddAgentDialogProps> = ({ networks }) => {
-  const organisationId = useOrganisationId();
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const create = useCreateAgent(organisationId);
-  const defaultValues: NewAgentInput = { name: '', networkId: networks[0]?.id ?? '', priority: '0' };
-  const form = useForm({
-    defaultValues,
-    validators: { onSubmit: NewAgentSchema },
-    onSubmit: ({ value }) => create.mutate(NewAgentSchema.parse(value), { onSuccess: agent => navigate(agent.id) })
-  });
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
-      <DialogTrigger render={<Button />}>
-        <PlusIcon />
-        Add agent
-      </DialogTrigger>
-      <DialogContent>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>Add an agent</DialogTitle>
-            <DialogDescription>
-              It gets an identity of its own. Its page then shows the key to start it with on a machine at the site.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup className="py-4">
-            <form.Field name="name">
-              {field => <TextField field={field} label="Name" placeholder="Hide agent" autoComplete="off" />}
-            </form.Field>
-            <form.Field name="networkId">
-              {field => (
-                <SelectField field={field} label="Network">
-                  {networks.map(network => (
-                    <NativeSelectOption key={network.id} value={network.id}>
-                      {network.name}
-                    </NativeSelectOption>
-                  ))}
-                </SelectField>
-              )}
-            </form.Field>
-            <form.Field name="priority">
-              {field => (
-                <TextField
-                  field={field}
-                  label="Priority"
-                  description="Among a network’s agents, the highest is preferred as the active one."
-                  inputMode="numeric"
-                  autoComplete="off"
-                />
-              )}
-            </form.Field>
-            <FormError error={create.error} />
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="submit" loading={create.isPending}>
-              Add agent
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 };

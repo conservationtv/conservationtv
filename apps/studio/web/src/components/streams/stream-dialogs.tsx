@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useNavigate } from 'react-router';
 import type { Camera, Device, Stream } from '@conservationtv/studio-sdk';
@@ -28,7 +28,7 @@ import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/
 import { FormError } from '@/components/common/form-error';
 import { NameSchema, type NameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
 import { useDeleteStream, useUpdateStream } from '@/queries/streams';
@@ -43,25 +43,16 @@ export interface StreamDialogProps {
 /** Renames the stream; the form starts from its stored name each time the dialog opens. */
 export const RenameStreamDialog: FC<StreamDialogProps> = ({ stream }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateStream(organisationId);
   const defaultValues: NameInput = { name: stream.name };
   const form = useForm({
     defaultValues,
     validators: { onSubmit: NameSchema },
-    onSubmit: ({ value }) =>
-      update.mutate({ streamId: stream.id, ...NameSchema.parse(value) }, { onSuccess: () => setOpen(false) })
+    onSubmit: ({ value }) => dialog.mutate({ streamId: stream.id, ...NameSchema.parse(value) })
   });
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        update.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Rename</DialogTrigger>
       <DialogContent>
         <form
@@ -132,10 +123,10 @@ export const DeleteStreamDialog: FC<StreamDialogProps> = ({ stream }) => {
   const organisationId = useOrganisationId();
   const navigate = useNavigate();
   const remove = useDeleteStream(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   const unpin = useUnpinPage();
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="destructive" />}>Delete stream</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -151,7 +142,7 @@ export const DeleteStreamDialog: FC<StreamDialogProps> = ({ stream }) => {
             variant="destructive"
             loading={remove.isPending}
             onClick={() =>
-              confirmation.confirm(stream.id, {
+              dialog.mutate(stream.id, {
                 onSuccess: () => {
                   unpin();
                   navigate('..', { relative: 'path', replace: true });

@@ -1,7 +1,6 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useNavigate } from 'react-router';
-import { PlusIcon } from '@phosphor-icons/react';
 import type { Agent, Show } from '@conservationtv/studio-sdk';
 import {
   AlertDialog,
@@ -31,70 +30,13 @@ import { FormError } from '@/components/common/form-error';
 import { EncodingSchema, NameSchema, type EncodingInput, type NameInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
-import { useClearShowOutput, useCreateShow, useDeleteShow, useSetShowOutput, useUpdateShow } from '@/queries/shows';
+import { useClearShowOutput, useDeleteShow, useSetShowOutput, useUpdateShow } from '@/queries/shows';
 
-// What an administrator changes about a show itself, beside its forwards, previews and recorder: whether it exists,
-// its name, how its programme is encoded, and the agent that sends it out.
-
-/** Makes a show by name, its programme at the default encoding, then opens it. */
-export const NewShowDialog: FC = () => {
-  const organisationId = useOrganisationId();
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const create = useCreateShow(organisationId);
-  const defaultValues: NameInput = { name: '' };
-  const form = useForm({
-    defaultValues,
-    validators: { onSubmit: NameSchema },
-    onSubmit: ({ value }) => create.mutate(NameSchema.parse(value), { onSuccess: show => navigate(show.id) })
-  });
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        create.reset();
-        form.reset();
-      }}
-    >
-      <DialogTrigger render={<Button />}>
-        <PlusIcon />
-        New show
-      </DialogTrigger>
-      <DialogContent>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>New show</DialogTitle>
-            <DialogDescription>
-              It follows the organisation’s broadcast, at 1080p and 30 frames a second until you change it. Choose the
-              agent that sends it out, and the channels it goes to, on its page.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup className="py-4">
-            <form.Field name="name">
-              {field => <TextField field={field} label="Name" placeholder="Waterhole, evenings" autoComplete="off" />}
-            </form.Field>
-            <FormError error={create.error} />
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="submit" loading={create.isPending}>
-              Create show
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
+// What an administrator changes about a show itself, beside its forwards, previews and recorder (making one is its
+// own route, show-new): whether it exists, its name, how its programme is encoded, and the agent that sends it out.
 
 export interface ShowDialogProps {
   show: Show;
@@ -103,25 +45,16 @@ export interface ShowDialogProps {
 /** Renames the show; the form starts from its stored name each time the dialog opens. */
 export const RenameShowDialog: FC<ShowDialogProps> = ({ show }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateShow(organisationId);
   const defaultValues: NameInput = { name: show.name };
   const form = useForm({
     defaultValues,
     validators: { onSubmit: NameSchema },
-    onSubmit: ({ value }) =>
-      update.mutate({ showId: show.id, ...NameSchema.parse(value) }, { onSuccess: () => setOpen(false) })
+    onSubmit: ({ value }) => dialog.mutate({ showId: show.id, ...NameSchema.parse(value) })
   });
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        update.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Rename</DialogTrigger>
       <DialogContent>
         <form
@@ -187,14 +120,12 @@ function encodingInputOf(show: Show): EncodingInput {
  */
 export const EncodingDialog: FC<ShowDialogProps> = ({ show }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateShow(organisationId);
   const defaultValues = encodingInputOf(show);
   const form = useForm({
     defaultValues,
     validators: { onSubmit: EncodingSchema },
-    onSubmit: ({ value }) =>
-      update.mutate({ showId: show.id, ...EncodingSchema.parse(value) }, { onSuccess: () => setOpen(false) })
+    onSubmit: ({ value }) => dialog.mutate({ showId: show.id, ...EncodingSchema.parse(value) })
   });
   const resolutions = withCurrent(RESOLUTIONS, {
     value: defaultValues.resolution,
@@ -208,16 +139,9 @@ export const EncodingDialog: FC<ShowDialogProps> = ({ show }) => {
     KEYFRAME_INTERVALS.map(value => ({ value })),
     { value: defaultValues.keyframeSeconds }
   );
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        update.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Edit</DialogTrigger>
       <DialogContent>
         <form
@@ -298,10 +222,10 @@ export const DeleteShowDialog: FC<ShowDialogProps> = ({ show }) => {
   const organisationId = useOrganisationId();
   const navigate = useNavigate();
   const remove = useDeleteShow(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   const unpin = useUnpinPage();
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="destructive" />}>Delete show</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -318,7 +242,7 @@ export const DeleteShowDialog: FC<ShowDialogProps> = ({ show }) => {
             variant="destructive"
             loading={remove.isPending}
             onClick={() =>
-              confirmation.confirm(show.id, {
+              dialog.mutate(show.id, {
                 onSuccess: () => {
                   unpin();
                   navigate('..', { relative: 'path', replace: true });
@@ -381,9 +305,9 @@ export const OutputSelect: FC<OutputSelectProps> = ({ show, agents, shows }) => 
 export const ClearOutputDialog: FC<ShowDialogProps> = ({ show }) => {
   const organisationId = useOrganisationId();
   const clear = useClearShowOutput(organisationId);
-  const confirmation = useConfirm(clear);
+  const dialog = useDialog(clear);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Clear</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -396,11 +320,7 @@ export const ClearOutputDialog: FC<ShowDialogProps> = ({ show }) => {
         <FormError error={clear.error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            loading={clear.isPending}
-            onClick={() => confirmation.confirm(show.id)}
-          >
+          <AlertDialogAction variant="destructive" loading={clear.isPending} onClick={() => dialog.mutate(show.id)}>
             Stop it going out
           </AlertDialogAction>
         </AlertDialogFooter>
