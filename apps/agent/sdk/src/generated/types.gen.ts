@@ -112,9 +112,11 @@ export type System = {
             installing: boolean;
             show: string | null;
             phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
-            streaming: 'starting' | 'streaming' | 'reconnecting' | null;
+            streaming: 'reconnecting' | 'starting' | 'streaming' | null;
+            recording: 'recording' | 'starting' | 'stopping' | null;
             program: {
                 forwards: Array<string>;
+                previews: Array<string>;
                 cameras: {
                     [key: string]: {
                         fallback: boolean;
@@ -123,6 +125,23 @@ export type System = {
                 state: 'running' | 'stopped' | 'starting' | 'crashed';
                 pid: number | null;
                 restarts: number;
+                lastError: string | null;
+            } | null;
+            reports: {
+                running: boolean;
+                lastScrapedAt: string | null;
+                pending: number;
+                submitted: number;
+                lastSubmittedAt: string | null;
+                lastError: string | null;
+            } | null;
+            channels: {
+                running: boolean;
+                channels: number;
+                lastReadAt: string | null;
+                pending: number;
+                submitted: number;
+                lastSubmittedAt: string | null;
                 lastError: string | null;
             } | null;
             state: 'running' | 'stopped' | 'starting' | 'crashed';
@@ -230,6 +249,10 @@ export type GetSystemSpecResponses = {
                     path: string;
                 };
             }>;
+            previews: Array<{
+                name: string;
+                previewId: string;
+            }>;
             publishers: Array<{
                 exposureId: string;
                 layout: 'tracks';
@@ -278,7 +301,27 @@ export type GetSystemSpecResponses = {
             forwards: Array<{
                 organisationId: string;
                 channelId: string;
+                forwardId?: string;
+                stats?: boolean;
             }>;
+            previews: Array<{
+                previewId: string;
+                publish: {
+                    protocol: 'moq';
+                    connect: string;
+                    broadcast: string;
+                } | {
+                    protocol: 'rtmp' | 'rtmps';
+                    url: string;
+                };
+            }>;
+            recording?: {
+                recorderId: string;
+                kind: string;
+            };
+            program?: {
+                subjectId: string;
+            };
         };
     };
 };

@@ -24,6 +24,10 @@ export type System = {
                 path: string;
             };
         }>;
+        previews: Array<{
+            name: string;
+            previewId: string;
+        }>;
         publishers: Array<{
             exposureId: string;
             layout: 'tracks';
@@ -72,7 +76,27 @@ export type System = {
         forwards: Array<{
             organisationId: string;
             channelId: string;
+            forwardId?: string;
+            stats?: boolean;
         }>;
+        previews: Array<{
+            previewId: string;
+            publish: {
+                protocol: 'moq';
+                connect: string;
+                broadcast: string;
+            } | {
+                protocol: 'rtmp' | 'rtmps';
+                url: string;
+            };
+        }>;
+        recording?: {
+            recorderId: string;
+            kind: string;
+        };
+        program?: {
+            subjectId: string;
+        };
     };
 };
 

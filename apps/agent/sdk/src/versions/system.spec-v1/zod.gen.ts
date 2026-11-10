@@ -25,6 +25,10 @@ export const SystemSchema = z.object({
                 })
             ]).optional()
         })),
+        previews: z.array(z.object({
+            name: z.string(),
+            previewId: z.string()
+        })),
         publishers: z.array(z.object({
             exposureId: z.string(),
             layout: z.literal('tracks'),
@@ -77,8 +81,31 @@ export const SystemSchema = z.object({
         }),
         forwards: z.array(z.object({
             organisationId: z.string(),
-            channelId: z.string()
-        }))
+            channelId: z.string(),
+            forwardId: z.string().optional(),
+            stats: z.boolean().optional()
+        })),
+        previews: z.array(z.object({
+            previewId: z.string(),
+            publish: z.union([
+                z.object({
+                    protocol: z.literal('moq'),
+                    connect: z.string(),
+                    broadcast: z.string()
+                }),
+                z.object({
+                    protocol: z.enum(['rtmp', 'rtmps']),
+                    url: z.string()
+                })
+            ])
+        })),
+        recording: z.object({
+            recorderId: z.string(),
+            kind: z.string()
+        }).optional(),
+        program: z.object({
+            subjectId: z.string()
+        }).optional()
     }).optional()
 });
 
