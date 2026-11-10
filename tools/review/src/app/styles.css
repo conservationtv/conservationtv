@@ -855,6 +855,19 @@ button {
   max-width: 100%;
 }
 
+/* A badge in a line of small print, such as a bot's logo in its footer. */
+.markdown sup img {
+  vertical-align: middle;
+}
+
+.markdown details {
+  margin: 0.75rem 0;
+}
+
+.markdown summary {
+  cursor: pointer;
+}
+
 .markdown table {
   border-collapse: collapse;
 }

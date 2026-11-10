@@ -1,5 +1,7 @@
 import { useSyncExternalStore, type FC } from 'react';
 import Markdown, { type Components } from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { CheckState, Person, PullState } from '../../shared/review.ts';
 
@@ -89,7 +91,12 @@ export const CheckMark: FC<CheckMarkProps> = ({ state }) => (
   </span>
 );
 
-// Raw HTML in a body is shown as text, not rendered: anyone may comment on a public repository.
+// Raw HTML in a body is rendered as GitHub renders it, `<details>`, `<sup>`, `<picture>` and the rest, and then
+// sanitised with GitHub's own schema: anyone may comment on a public repository, and this page holds a reviewer's
+// session, so nothing beyond what GitHub shows survives: no scripts, styles or event handlers, and only safe URLs.
+// Comments, `<!-- … -->`, are dropped.
+const rehypePlugins = [rehypeRaw, rehypeSanitize];
+
 const markdownComponents: Components = {
   a: ({ href, title, children }) => (
     <a href={href} title={title} target="_blank" rel="noreferrer">
@@ -105,7 +112,7 @@ interface MarkdownBodyProps {
 export const MarkdownBody: FC<MarkdownBodyProps> = ({ text }) =>
   text.trim() ? (
     <div className="markdown">
-      <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={rehypePlugins} components={markdownComponents}>
         {text}
       </Markdown>
     </div>
