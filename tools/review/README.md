@@ -37,14 +37,29 @@ The generated files are trusted on the strength of `signoff/generated`: `pnpm si
 API document, SDK and CLI and signs off only if nothing changed, so a green signoff on the head commit means each
 generated file is what its generator writes. Read the generator's input instead.
 
+## Map
+
+When `.github/workflows/diffmap.yml` has run, the files tab opens on a **Map** chapter: a
+[diffmap](https://github.com/tanishqkancharla/diffmap) spec, an agent's account of the change whose diagrams link to
+its code, drawn by diffmap.dev in a frame. The workflow has Pullfrog's agent write it read-only, then a separate job
+validates it, shares it as an unlisted gist (with `DIFFMAP_GIST_TOKEN`, a token with only the gist scope) and keeps one
+comment naming it: `<!-- diffmap gist=<id> sha=<head> -->`. The Worker takes the latest such comment, only from
+`github-actions[bot]`, and leaves it out of the conversation. A map written from an older head commit says so.
+
 ## Calls
 
 The source chapter opens on its calls: the functions, methods, routes and call-built values that are new or changed,
 as trees of the calls between them. Each tree starts where the change is entered, from an unchanged function that calls
-into it when there is one, and opening a call shows that function's own diff. It is read from syntax alone with
-`@babel/parser`, in the browser, from both sides of each TypeScript and JavaScript file: a call is matched to a
-changed function by the name it is written with (`this.x` within its class or object), so calls through variables,
-imports under another name or dynamic dispatch are not followed. **Files** shows the chapter file by file.
+into it when there is one. It is read from syntax alone with `@babel/parser`, in the browser, from both sides of each
+TypeScript and JavaScript file: a call is matched to a changed function by the name it is written with (`this.x` within
+its class or object), so calls through variables, imports under another name or dynamic dispatch are not followed.
+**Files** shows the chapter file by file.
+
+A row is a function, and opening it shows what its name is bound to: at the merge base, the function of that name, or
+else whatever statement bound the name, such as a re-export the function replaced; at the head, the function with the
+changed top-level declarations of its file it is built from (values it reads, and for a function that was there
+before, the imports it newly uses). Under each function are the calls its caller makes to it, each opening onto its
+lines in the caller, marked as new unless the caller made the same call at the merge base.
 
 ## API contracts
 

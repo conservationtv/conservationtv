@@ -1,9 +1,11 @@
+import type { FileDiffMetadata } from '@pierre/diffs';
 import { FileDiff } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FC } from 'react';
 import type { Review, ReviewFile } from '../../shared/review.ts';
-import type { CallGraph, CallNode, Status } from '../calls/graph.ts';
-import { loadCallGraph, unitDiff } from '../calls/load.ts';
+import type { CallGraph, CallNode, Located, Status } from '../calls/graph.ts';
+import { callPiece, loadCallGraph, pieceDiff, unitPieces } from '../calls/load.ts';
+import type { Call } from '../calls/units.ts';
 import { theme } from '../highlighting.ts';
 import type { DiffStyle } from './DiffList.tsx';
 
@@ -26,55 +28,108 @@ interface Display {
   args: string;
 }
 
-/** A node as its caller calls it, else as it is declared: `ScheduleCheck.validate(condition)`, `PUT /`. */
-function display(node: CallNode): Display {
-  const { unit, call } = node;
-  if (unit.kind === 'route' && !call) return { qualifier: '', name: unit.name, args: '' };
-  const text = call ? call.text : unit.name;
-  const dot = text.lastIndexOf('.');
-  const args = call ? `(${call.args})` : unit.kind === 'function' ? `(${unit.params})` : '';
-  return { qualifier: text.slice(0, dot + 1), name: text.slice(dot + 1), args };
+/** A unit as it is declared: `ScheduleCheck.validate(condition)`, `PUT /`, `cn`. */
+function declared(unit: Located): Display {
+  if (unit.kind === 'route') return { qualifier: '', name: unit.name, args: '' };
+  const dot = unit.name.lastIndexOf('.');
+  const args = unit.kind === 'function' ? `(${unit.params})` : '';
+  return { qualifier: unit.name.slice(0, dot + 1), name: unit.name.slice(dot + 1), args };
 }
 
-interface UnitDiffProps {
-  node: CallNode;
+/** A call as it is written: `cn('flex gap-6', className)`. */
+function written(call: Call): Display {
+  const dot = call.text.lastIndexOf('.');
+  return { qualifier: call.text.slice(0, dot + 1), name: call.text.slice(dot + 1), args: `(${call.args})` };
+}
+
+interface ShownProps {
+  shown: Display;
+}
+
+const Shown: FC<ShownProps> = ({ shown }) => (
+  <>
+    <span className="muted">{shown.qualifier}</span>
+    <strong>{shown.name}</strong>
+    <span className="muted">{shown.args}</span>
+  </>
+);
+
+interface DiffsProps {
+  diffs: readonly FileDiffMetadata[];
+  /** Split when the diff changes what was there; one wholly new or unchanged reads as a single column. */
+  split: boolean;
   diffStyle: DiffStyle;
   wrap: boolean;
 }
 
-/** The whole unit, its changes marked; one that did not change is shown as it is. */
-const UnitDiffView: FC<UnitDiffProps> = ({ node, diffStyle, wrap }) => {
-  const diff = unitDiff(node.unit);
-  return (
-    <div className="call-diff">
+const Diffs: FC<DiffsProps> = ({ diffs, split, diffStyle, wrap }) => (
+  <div className="call-diff">
+    {diffs.map(diff => (
       <FileDiff
+        key={diff.cacheKey}
         fileDiff={diff}
         options={{
           theme,
-          diffStyle: node.unit.status === 'changed' ? diffStyle : 'unified',
+          diffStyle: split ? diffStyle : 'unified',
           overflow: wrap ? 'wrap' : 'scroll',
           expandUnchanged: true,
           disableFileHeader: true
         }}
       />
+    ))}
+  </div>
+);
+
+interface CallSiteProps {
+  caller: Located;
+  call: Call;
+  diffStyle: DiffStyle;
+  wrap: boolean;
+}
+
+/** A call as its caller makes it, opened to read its lines there. */
+const CallSite: FC<CallSiteProps> = ({ caller, call, diffStyle, wrap }) => {
+  const [open, setOpen] = useState(false);
+  const diff = open ? pieceDiff(caller.path, callPiece(caller, call)) : null;
+  return (
+    <div className="call-site">
+      <button
+        type="button"
+        className="call-row call-site-row"
+        aria-expanded={open}
+        title={`Called in ${caller.name} · ${caller.path}:${call.line}`}
+        onClick={() => setOpen(current => !current)}
+      >
+        <span className="call-site-mark" aria-hidden>
+          ↳
+        </span>
+        <span className="call-text">
+          <Shown shown={written(call)} />
+        </span>
+        <span className="call-where">:{call.line}</span>
+      </button>
+      {diff ? <Diffs diffs={[diff]} split={false} diffStyle={diffStyle} wrap={wrap} /> : null}
     </div>
   );
 };
 
 interface CallRowProps {
   node: CallNode;
-  /** The caller's file: a callee in it shows only its line. */
-  parentPath: string | null;
+  /** The unit making `node.calls`; null at the top of a tree. */
+  caller: Located | null;
   diffStyle: DiffStyle;
   wrap: boolean;
 }
 
-/** A call, opened to read the unit it reaches, and the calls that unit makes into the change. */
-const CallRow: FC<CallRowProps> = ({ node, parentPath, diffStyle, wrap }) => {
+/**
+ * A unit a call reaches, opened to read what it is bound to with what it is built from; under it, each call its caller
+ * makes to it, opened to read that call where it is made, then the calls it makes into the change.
+ */
+const CallRow: FC<CallRowProps> = ({ node, caller, diffStyle, wrap }) => {
   const [open, setOpen] = useState(false);
   const { unit } = node;
-  const shown = display(node);
-  const where = unit.path === parentPath ? `:${unit.start}` : `${fileName(unit.path)}:${unit.start}`;
+  const diffs = open ? unitPieces(unit).map(piece => pieceDiff(unit.path, piece)) : [];
+  const where = unit.path === caller?.path ? `:${unit.start}` : `${fileName(unit.path)}:${unit.start}`;
   return (
     <li className="call">
       <button
@@ -86,24 +141,23 @@ const CallRow: FC<CallRowProps> = ({ node, parentPath, diffStyle, wrap }) => {
       >
         <span className={`call-status call-${unit.status}`} aria-label={statusLabels[unit.status]} />
         <span className="call-text">
-          <span className="muted">{shown.qualifier}</span>
-          <strong>{shown.name}</strong>
-          <span className="muted">{shown.args}</span>
+          <Shown shown={declared(unit)} />
           {node.recursive ? <span className="muted"> ↻</span> : null}
         </span>
         <span className="call-where">{where}</span>
       </button>
-      {open ? <UnitDiffView node={node} diffStyle={diffStyle} wrap={wrap} /> : null}
+      {open ? <Diffs diffs={diffs} split={unit.status === 'changed'} diffStyle={diffStyle} wrap={wrap} /> : null}
+      {caller && node.calls.length ? (
+        <div className="call-sites">
+          {node.calls.map((call, index) => (
+            <CallSite key={`${call.line}:${index}`} caller={caller} call={call} diffStyle={diffStyle} wrap={wrap} />
+          ))}
+        </div>
+      ) : null}
       {node.children.length ? (
         <ul className="call-children">
           {node.children.map(child => (
-            <CallRow
-              key={`${child.unit.id}:${child.call?.line ?? 0}`}
-              node={child}
-              parentPath={unit.path}
-              diffStyle={diffStyle}
-              wrap={wrap}
-            />
+            <CallRow key={child.unit.id} node={child} caller={unit} diffStyle={diffStyle} wrap={wrap} />
           ))}
         </ul>
       ) : null}
@@ -182,7 +236,7 @@ export const CallGraphView: FC<CallGraphViewProps> = ({ review, files, diffStyle
       {graph.roots.length ? (
         <ul className="call-tree">
           {graph.roots.map(root => (
-            <CallRow key={root.unit.id} node={root} parentPath={null} diffStyle={diffStyle} wrap={wrap} />
+            <CallRow key={root.unit.id} node={root} caller={null} diffStyle={diffStyle} wrap={wrap} />
           ))}
         </ul>
       ) : (
