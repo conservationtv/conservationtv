@@ -1,22 +1,43 @@
-import { relayMetrics } from '@conservationtv/reports';
+import { exposureSubject, relayMetrics } from '@conservationtv/reports';
 import { getLogger } from '@logtape/logtape';
 import * as Moq from '@moq/net';
+import type { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
-import type { AgentConfiguration } from '../../config.ts';
-import { type Metric, MetricReporter, summary } from '../reports.ts';
-import type { MoqPublisher } from './config.ts';
+import { type IntervalSamples, Sampler, type SamplerStatus } from './sampler.ts';
 
-const logger = getLogger(['agent', 'mediamtx', 'relay-traffic']);
+const logger = getLogger(['agent', 'relay-traffic']);
 
-// What the MoQ relays carry of the exposures the agent publishes, as the relays count it. Each relay node publishes its
-// traffic stats for the organisation as a broadcast, `node/<node>`, beneath the stats path the studio API hands out
-// (`organisations.gateways.stats.connect`), with a pair of tracks per tier of session: `subscriber.json`, what the node
-// received, and `publisher.json`, what it sent, each a JSON object of cumulative counters by broadcast path. Only the
-// consumer tier's count: the sessions publishers and viewers hold, rather than the relays' own peering. The agent
-// follows every node's, samples every few seconds how fast the counters of each exposure's broadcasts (those beneath
-// the path it publishes the exposure at) moved, and each interval submits each exposure's summary: what the relays
-// received of it, which is what actually left this agent for the internet, what they sent on to its viewers, and how
-// many watch.
+// The `relayTraffic` key: what the MoQ relays carry of the exposures the agent publishes, as the relays count it. Each
+// relay node publishes its traffic stats for the organisation as a broadcast, `node/<node>`, beneath the stats path the
+// studio API hands out (`organisations.gateways.stats.connect`), with a pair of tracks per tier of session:
+// `subscriber.json`, what the node received, and `publisher.json`, what it sent, each a JSON object of cumulative
+// counters by broadcast path. Only the consumer tier's count: the sessions publishers and viewers hold, rather than the
+// relays' own peering. The agent follows every node's, samples every few seconds how fast the counters of each
+// exposure's broadcasts (those beneath its prefix) moved, and each interval submits each exposure's summary
+// (sampler.ts): what the relays received of it, which is what actually left this agent for the internet, what they
+// sent on to its viewers, and how many watch.
+//
+// The spec says where to read the stats, each URL carrying its token, and each exposure by the path its broadcasts
+// are beneath on the relay (studio-configuration.ts, from the `streams` key's publishers), so the publishers' own
+// URLs and tokens never reach it. A renewed stats token is a new URL: it is followed afresh and the old one stopped,
+// and the counters, kept by relay and node rather than by URL, carry on across the two.
+
+/** Where to read a relay's traffic stats: the URL to dial, carrying its token as `?jwt=`. */
+const RelayStatsSourceSchema = z.object({ connect: z.url() });
+export type RelayStatsSource = z.output<typeof RelayStatsSourceSchema>;
+
+/** An exposure the agent publishes, by the path its broadcasts are beneath on the relay, with its trailing slash. */
+const ExposurePathSchema = z.object({ exposureId: z.string(), prefix: z.string() });
+type ExposurePath = z.output<typeof ExposurePathSchema>;
+
+/** The relays' stats to read, and the exposures to report what they carry of. */
+export const RelayTrafficSpecSchema = z.object({
+  /** Each relay's stats, followed while it is named. */
+  sources: z.array(RelayStatsSourceSchema),
+  /** The exposures to report about, each by the path its broadcasts are beneath on the relay. */
+  exposures: z.array(ExposurePathSchema)
+});
+export type RelayTrafficSpec = z.output<typeof RelayTrafficSpecSchema>;
 
 /** How often the counters are sampled, and each exposure's summary submitted. */
 const SAMPLE_MS = 10_000;
@@ -44,122 +65,106 @@ const ROLES: Role[] = ['received', 'sent'];
 /** Each node's latest counters, by the relay and node they are from, and by role. */
 type Counters = Map<string, Map<Role, Traffic>>;
 
-/** An exposure the agent publishes, by the path its broadcasts are beneath on the relay, with its trailing slash. */
-interface ExposurePath {
-  exposureId: string;
-  prefix: string;
+/** What following the relays adds to their sampler's status. */
+interface RelayReads {
+  /** How many stats sources are followed. */
+  sources: number;
+  /** How many relay nodes' counters there are. */
+  nodes: number;
+  /** ISO 8601: when the counters were last sampled. */
+  lastSampledAt: string | null;
 }
 
-/** An exposure's samples so far this interval: bitrates in bits a second, and viewers. */
-interface ExposureSamples {
-  received: number[];
-  sent: number[];
-  viewers: number[];
-}
+export type RelayTrafficStatus = SamplerStatus & RelayReads;
 
 /** Reports what the relays carry of the exposures the agent publishes, from the stats each relay node publishes. */
-export class RelayTrafficReporter {
-  private readonly reporter: MetricReporter;
+export class RelayTrafficRuntime {
+  readonly status$: BehaviorSubject<RelayTrafficStatus>;
+  private readonly sampler: Sampler<RelayReads>;
   /** Each stats source being followed, by its URL, with how to stop following it. */
   private readonly sources = new Map<string, () => void>();
   private readonly counters: Counters = new Map();
   private paths: ExposurePath[] = [];
   private previous: Counters | undefined = undefined;
   private previousAt = 0;
-  private interval = new Map<string, ExposureSamples>();
-  private intervalStartedAt = 0;
-  private timer: ReturnType<typeof setInterval> | undefined = undefined;
-  private reporting = false;
 
-  constructor(config: AgentConfiguration) {
-    this.reporter = new MetricReporter(config);
+  constructor() {
+    this.sampler = new Sampler<RelayReads>({
+      stopped: { sources: 0, nodes: 0, lastSampledAt: null },
+      sample: samples => this.sample(samples)
+    });
+    this.status$ = this.sampler.status$;
   }
 
   /**
-   * Follow the stats at each of `sources`, URLs to dial carrying their tokens, and report about each of `publishers`'
-   * exposures. A source no longer given is stopped; one that is new (as a renewed token is) is followed afresh.
+   * Follow the stats at each of the spec's sources, and report about each of its exposures. A source no longer given
+   * is stopped; one that is new (as a renewed token is) is followed afresh.
    */
-  set(sources: string[], publishers: MoqPublisher[]): void {
-    this.paths = publishers.map(({ exposureId, connect }) => ({ exposureId, prefix: `${pathOf(connect)}/` }));
+  async apply(spec: RelayTrafficSpec): Promise<void> {
+    this.follow(spec.sources.map(({ connect }) => connect));
+    this.paths = spec.exposures;
+    this.sampler.update({ sources: this.sources.size });
+    if (this.sources.size === 0) return this.teardown();
+    if (this.sampler.running) return;
+    this.previous = undefined;
+    this.sampler.start({ sampleMs: SAMPLE_MS, reportMs: REPORT_MS });
+  }
+
+  /** Stop following every source, and drop what was not submitted. Safe when it never started. */
+  async teardown(): Promise<void> {
+    this.follow([]);
+    this.paths = [];
+    this.previous = undefined;
+    this.sampler.stop();
+    this.sampler.update({ sources: 0, nodes: 0 });
+  }
+
+  /** Stop following and sampling for good when the agent stops; not a removal, so the status is left as it was. */
+  dispose(): void {
+    this.follow([]);
+    this.sampler.dispose();
+  }
+
+  /** Follow the stats at each of `urls`, and only those. */
+  private follow(urls: string[]): void {
     for (const [url, stop] of this.sources) {
-      if (sources.includes(url)) continue;
+      if (urls.includes(url)) continue;
       stop();
       this.sources.delete(url);
     }
-    for (const url of sources) if (!this.sources.has(url)) this.sources.set(url, followStats(url, this.counters));
-    if (this.sources.size > 0) this.start();
-    else this.stop();
+    for (const url of urls) if (!this.sources.has(url)) this.sources.set(url, followStats(url, this.counters));
   }
 
-  /** Stop following every source, and drop what was not submitted. */
-  close(): void {
-    this.set([], []);
-    this.reporter.clear();
-  }
-
-  private start(): void {
-    if (this.timer !== undefined) return;
-    this.intervalStartedAt = Date.now();
-    this.timer = setInterval(() => this.sample(), SAMPLE_MS);
-  }
-
-  private stop(): void {
-    clearInterval(this.timer);
-    this.timer = undefined;
-    this.previous = undefined;
-    this.interval = new Map();
-  }
-
-  /** Sample each exposure's rates since the last sample, then report if the interval has ended. */
-  private sample(): void {
+  /** Sample each exposure's rates since the last sample. */
+  private sample(samples: IntervalSamples): void {
     const now = Date.now();
     const snapshot = copyCounters(this.counters);
     const previous = this.previous;
     if (previous !== undefined) {
       const seconds = (now - this.previousAt) / 1000;
-      for (const path of this.paths) this.addSamples(path, snapshot, previous, seconds);
+      for (const path of this.paths) addSamples(samples, path, snapshot, previous, seconds);
     }
     this.previous = snapshot;
     this.previousAt = now;
-    if (now - this.intervalStartedAt + SAMPLE_MS / 2 >= REPORT_MS) void this.report(now);
-  }
-
-  /** Add an exposure's rates to its interval, each only when some node had its stats at both samples. */
-  private addSamples(path: ExposurePath, snapshot: Counters, previous: Counters, seconds: number): void {
-    const samples = this.interval.get(path.exposureId) ?? { received: [], sent: [], viewers: [] };
-    this.interval.set(path.exposureId, samples);
-    const received = rate(snapshot, previous, 'received', path, seconds);
-    const sent = rate(snapshot, previous, 'sent', path, seconds);
-    if (received !== undefined) samples.received.push(received);
-    if (sent !== undefined) samples.sent.push(sent);
-    if (sent !== undefined) samples.viewers.push(viewers(snapshot, path));
-  }
-
-  /** Submit each exposure's summary of the interval, and start the next. */
-  private async report(now: number): Promise<void> {
-    const exposures = this.interval;
-    this.interval = new Map();
-    this.intervalStartedAt = now;
-    const observedAt = new Date(now).toISOString();
-    for (const [exposureId, samples] of exposures) {
-      const metrics = metricsOf(samples);
-      if (metrics.length > 0) this.reporter.queue(observedAt, metrics, `exposure:${exposureId}`);
-    }
-    if (this.reporting || this.reporter.queued === 0) return;
-    this.reporting = true;
-    try {
-      await this.reporter.submit();
-    } catch (error) {
-      logger.warn('Submitting the relays’ traffic failed: {error}', { error });
-    } finally {
-      this.reporting = false;
-    }
+    const at = new Date(now);
+    this.sampler.update({ nodes: snapshot.size, lastSampledAt: at.toISOString() });
   }
 }
 
-/** The path a URL is dialed at, without its leading slash: where a publisher's broadcasts are on the relay. */
-function pathOf(url: string): string {
-  return new URL(url).pathname.replace(/^\/+/, '').replace(/\/+$/, '');
+/** Add an exposure's rates to its interval, each only when some node had its stats at both samples. */
+function addSamples(
+  samples: IntervalSamples,
+  path: ExposurePath,
+  snapshot: Counters,
+  previous: Counters,
+  seconds: number
+): void {
+  const subject = exposureSubject(path.exposureId);
+  const received = rate(snapshot, previous, 'received', path, seconds);
+  const sent = rate(snapshot, previous, 'sent', path, seconds);
+  if (received !== undefined) samples.add(subject, relayMetrics.ingestBitrate, received);
+  if (sent !== undefined) samples.add(subject, relayMetrics.egressBitrate, sent);
+  if (sent !== undefined) samples.add(subject, relayMetrics.viewers, viewers(snapshot, path));
 }
 
 /** The counters as they are now: each node's tracks are replaced whole as frames arrive, so a shallow copy holds. */
@@ -220,15 +225,6 @@ function watchingOf(entry: TrafficEntry): number {
   const started = entry.broadcasts_started ?? entry.broadcasts ?? 0;
   const ended = entry.broadcasts_ended ?? entry.broadcasts_closed ?? 0;
   return Math.max(0, started - ended);
-}
-
-/** An exposure's summaries of an interval, for whichever it has samples of. */
-function metricsOf(samples: ExposureSamples): Metric[] {
-  const metrics: Metric[] = [];
-  if (samples.received.length > 0) metrics.push(summary(relayMetrics.ingestBitrate, samples.received));
-  if (samples.sent.length > 0) metrics.push(summary(relayMetrics.egressBitrate, samples.sent));
-  if (samples.viewers.length > 0) metrics.push(summary(relayMetrics.viewers, samples.viewers));
-  return metrics;
 }
 
 /**

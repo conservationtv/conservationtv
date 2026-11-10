@@ -7,7 +7,7 @@ import { useOrganisationId } from '@/hooks/use-organisation';
 import { channelListQueryOptions, channelPlatformStateQueryOptions } from '@/queries/channels';
 
 // What a channel's platform last said of it (live or offline, and its viewers), as the output of a show forwarded to
-// it reported it about `channel:<channelId>` (apps/agent/core/src/runtimes/obs/channel-stats.ts). Only Twitch
+// it reported it about `channel:<channelId>` (apps/agent/core/src/runtimes/channel-stats.ts). Only Twitch
 // channels say anything. Every channel's is one read, of the organisation's Twitch channels, which each row selects
 // its own from, so the Channels page and a show's channel rows share it.
 

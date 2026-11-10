@@ -80,14 +80,38 @@ export type System = {
     metrics: {
         runtime: {
             running: boolean;
-            intervalMs: number | null;
-            subjectId: string | null;
-            lastScrapedAt: string | null;
-            samples: number;
             pending: number;
             submitted: number;
             lastSubmittedAt: string | null;
             lastError: string | null;
+            intervalMs: number | null;
+            subjectId: string | null;
+            lastScrapedAt: string | null;
+            samples: number;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    relayTraffic: {
+        runtime: {
+            running: boolean;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastError: string | null;
+            sources: number;
+            nodes: number;
+            lastSampledAt: string | null;
         };
         apply: {
             state: 'applying';
@@ -108,9 +132,11 @@ export type System = {
             installing: boolean;
             show: string | null;
             phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
-            streaming: 'starting' | 'streaming' | 'reconnecting' | null;
+            streaming: 'reconnecting' | 'starting' | 'streaming' | null;
+            recording: 'recording' | 'starting' | 'stopping' | null;
             program: {
                 forwards: Array<string>;
+                previews: Array<string>;
                 cameras: {
                     [key: string]: {
                         fallback: boolean;
@@ -121,10 +147,41 @@ export type System = {
                 restarts: number;
                 lastError: string | null;
             } | null;
+            reports: {
+                running: boolean;
+                pending: number;
+                submitted: number;
+                lastSubmittedAt: string | null;
+                lastError: string | null;
+                lastScrapedAt: string | null;
+            } | null;
             state: 'running' | 'stopped' | 'starting' | 'crashed';
             pid: number | null;
             restarts: number;
             lastError: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    channels: {
+        runtime: {
+            running: boolean;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastError: string | null;
+            channels: number;
+            lastReadAt: string | null;
         };
         apply: {
             state: 'applying';

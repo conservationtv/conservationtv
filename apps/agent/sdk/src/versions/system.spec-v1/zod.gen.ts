@@ -25,6 +25,10 @@ export const SystemSchema = z.object({
                 })
             ]).optional()
         })),
+        previews: z.array(z.object({
+            name: z.string(),
+            previewId: z.string()
+        })),
         publishers: z.array(z.object({
             exposureId: z.string(),
             layout: z.literal('tracks'),
@@ -39,9 +43,6 @@ export const SystemSchema = z.object({
             })),
             connect: z.string(),
             broadcast: z.string()
-        })),
-        stats: z.array(z.object({
-            connect: z.string()
         })),
         gatewayId: z.string().optional(),
         auth: z.object({
@@ -63,6 +64,15 @@ export const SystemSchema = z.object({
             rendition: z.string().optional()
         }))
     }).optional(),
+    relayTraffic: z.object({
+        sources: z.array(z.object({
+            connect: z.string()
+        })),
+        exposures: z.array(z.object({
+            exposureId: z.string(),
+            prefix: z.string()
+        }))
+    }).optional(),
     obs: z.object({
         show: z.object({
             id: z.string(),
@@ -76,6 +86,34 @@ export const SystemSchema = z.object({
             keyframeSeconds: z.number()
         }),
         forwards: z.array(z.object({
+            organisationId: z.string(),
+            channelId: z.string(),
+            forwardId: z.string().optional()
+        })),
+        previews: z.array(z.object({
+            previewId: z.string(),
+            publish: z.union([
+                z.object({
+                    protocol: z.literal('moq'),
+                    connect: z.string(),
+                    broadcast: z.string()
+                }),
+                z.object({
+                    protocol: z.enum(['rtmp', 'rtmps']),
+                    url: z.string()
+                })
+            ])
+        })),
+        recording: z.object({
+            recorderId: z.string(),
+            kind: z.string()
+        }).optional(),
+        program: z.object({
+            subjectId: z.string()
+        }).optional()
+    }).optional(),
+    channels: z.object({
+        channels: z.array(z.object({
             organisationId: z.string(),
             channelId: z.string()
         }))

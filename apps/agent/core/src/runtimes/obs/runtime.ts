@@ -8,11 +8,9 @@ import type { Snapshot, Target, TargetPhase } from '@strangecyan/vignette';
 import { obsTarget } from '@strangecyan/vignette/obs';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
-import type { AgentConfiguration } from '../../config.ts';
 import { type MediamtxManifest, mediamtxBinary } from '../mediamtx/binaries/mediamtx.ts';
 import { type MoqManifest, moqBinary } from '../mediamtx/binaries/moq.ts';
 import { type ObsManifest, obsBinary } from './binaries/obs.ts';
-import { ChannelStats, type ChannelStatsStatus, type ReportedChannel } from './channel-stats.ts';
 import { ctvStreamObs } from './ctv-stream.ts';
 import {
   listening,
@@ -57,7 +55,7 @@ export type ObsPreviewPublish = z.output<typeof ObsPreviewPublishSchema>;
  * forward it to, whose ingests the agent asks for, the previews to publish it to, the recorder recording it, and the
  * subject its reports are about (src/configuration in the studio API). A forward with no `forwardId`, from an API that
  * doesn't name it, is forwarded to but not reported about; with no `program`, the reports are about `program:<show>`.
- * A forward whose channel has `stats` has what its platform says of it reported about `channel:<channelId>`.
+ * What the channels' platforms say of them is the `channels` key's to report (runtimes/channel-stats.ts).
  */
 export const ObsSpecSchema = z.object({
   show: z.object({ id: z.string(), url: z.url() }),
@@ -67,8 +65,7 @@ export const ObsSpecSchema = z.object({
       z.object({
         organisationId: z.string(),
         channelId: z.string(),
-        forwardId: z.string().optional(),
-        stats: z.boolean().optional()
+        forwardId: z.string().optional()
       })
     )
     .default([]),
@@ -97,12 +94,10 @@ export interface ObsRuntimeOptions {
   programPorts: ProgramPorts;
   /** The port obs-websocket serves on, on this machine. */
   websocketPort: number;
-  /** The studio API, as the agent's device, for read sessions. */
+  /** The studio API, as the agent's device, for read sessions and the channels' ingests. */
   studio: Client;
   /** The agent's identity, which following the show is signed as. */
   identity: DeviceIdentity;
-  /** The agent's configuration, which the program's reports are submitted as. */
-  config: AgentConfiguration;
 }
 
 export interface ObsStatus extends ProcessStatus {
@@ -121,8 +116,6 @@ export interface ObsStatus extends ProcessStatus {
   program: ProgramStatus | null;
   /** The program's reports. */
   reports: ProgramMetricsStatus | null;
-  /** What the channels' platforms say of them, reported. */
-  channels: ChannelStatsStatus | null;
 }
 
 const STOPPED: ObsStatus = {
@@ -134,8 +127,7 @@ const STOPPED: ObsStatus = {
   streaming: null,
   recording: null,
   program: null,
-  reports: null,
-  channels: null
+  reports: null
 };
 
 /** OBS's executable name, as `ps` reports it. */
@@ -170,7 +162,6 @@ export class ObsRuntime {
   private readonly process: AttachedProcess;
   private readonly program: ProgramMediamtx;
   private readonly metrics: ProgramMetrics;
-  private readonly channelStats: ChannelStats;
   private readonly watching: Subscription[];
   private following: Following | undefined = undefined;
   private watchdog: StreamingWatchdog | undefined = undefined;
@@ -187,21 +178,19 @@ export class ObsRuntime {
       readyTimeoutMs: READY_TIMEOUT_MS
     });
     this.program = new ProgramMediamtx(join(options.directory, 'program'), options.programPorts);
-    this.metrics = new ProgramMetrics(options.config, this.program, () => this.watchdog?.reading$.value ?? null);
-    this.channelStats = new ChannelStats(options.config, options.studio);
+    this.metrics = new ProgramMetrics(this.program, () => this.watchdog?.reading$.value ?? null);
     this.watching = [
       this.process.status$.subscribe(status => this.update(status)),
       this.program.status$.subscribe(program => this.update({ program })),
-      this.metrics.status$.subscribe(reports => this.update({ reports })),
-      this.channelStats.status$.subscribe(channels => this.update({ channels }))
+      this.metrics.status$.subscribe(reports => this.update({ reports }))
     ];
   }
 
   /**
    * Installs OBS, moq and MediaMTX if need be; has the program MediaMTX running, forwarding to the spec's channels and
    * publishing to its previews; has OBS running with obs-websocket on and the agent's profile, streaming to it; then
-   * the target following the spec's show, the watchdog keeping OBS streaming (and recording, with a recorder), the
-   * program's reports, and the reports of what the platforms say of the channels that have stats. Resolves once OBS answers; the target converges on its own, and reconnects to OBS when it
+   * the target following the spec's show, the watchdog keeping OBS streaming (and recording, with a recorder), and
+   * the program's reports. Resolves once OBS answers; the target converges on its own, and reconnects to OBS when it
    * restarts.
    */
   async execute(spec: ObsSpec, signal: AbortSignal): Promise<void> {
@@ -231,7 +220,6 @@ export class ObsRuntime {
     const program = spec.program?.subjectId ?? programSubject(spec.show.id);
     const recorder = recording === undefined ? undefined : recorderSubject(recording.recorderId);
     this.metrics.apply({ program, recorder });
-    this.channelStats.apply(reportedChannels(spec.forwards));
     for (const binary of [installed, moq, mediamtx]) await this.binaries.prune(binary, { spare: 1 });
   }
 
@@ -344,7 +332,6 @@ export class ObsRuntime {
   async finalize(): Promise<void> {
     clearTimeout(this.refresh);
     this.metrics.stop();
-    this.channelStats.stop();
     this.unfollow();
     await this.watchdog?.stop();
     this.watchdog = undefined;
@@ -357,7 +344,6 @@ export class ObsRuntime {
   dispose(): void {
     clearTimeout(this.refresh);
     this.metrics.stop();
-    this.channelStats.stop();
     this.unfollow();
     void this.watchdog?.stop();
     for (const subscription of this.watching) subscription.unsubscribe();
@@ -377,15 +363,6 @@ export class ObsRuntime {
 function programSceneOf(snapshot: Snapshot): string | undefined {
   const scene = snapshot.activeScene ?? snapshot.scenes[0]?.id;
   return scene === undefined ? undefined : `vignette/${snapshot.id}/${scene}`;
-}
-
-/** The channels to report what their platforms say of: each forwarded to that has stats, once. */
-function reportedChannels(forwards: ObsSpec['forwards']): ReportedChannel[] {
-  const channels = new Map<string, ReportedChannel>();
-  for (const { organisationId, channelId, stats } of forwards) {
-    if (stats === true) channels.set(channelId, { organisationId, channelId });
-  }
-  return [...channels.values()];
 }
 
 /** Logs a channel's ingest failing, for a promise's `catch`: the forward keeps the ingest it last had. */

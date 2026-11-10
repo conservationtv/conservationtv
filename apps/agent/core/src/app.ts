@@ -16,6 +16,7 @@ import { withSystem, type AgentSystem } from './system.ts';
 
 import { join } from 'node:path';
 import { controller, converge } from '@conservationtv/converge';
+import { ChannelStatsRuntime, ChannelsSpecSchema } from './runtimes/channel-stats.ts';
 import { MachineRuntime, MachineSpecSchema } from './runtimes/machine.ts';
 import {
   DEFAULT_MEDIAMTX_PORTS,
@@ -39,6 +40,8 @@ import {
   ObsRuntime,
   ObsSpecSchema
 } from './runtimes/obs/index.ts';
+import { RelayTrafficRuntime, RelayTrafficSpecSchema } from './runtimes/relay-traffic.ts';
+import { MetricReporter, withMetricReporter } from './runtimes/reports.ts';
 import { watchStudioConfiguration } from './studio-configuration.ts';
 
 export { PeersSchema, type Peer, type Peers } from './admission.ts';
@@ -99,7 +102,7 @@ function controllers(
 ) {
   const machine = new MachineRuntime(config);
   const { ports, reach } = mediamtx;
-  // The streams and their metrics, both fulfilled by MediaMTX.
+  // The streams and their metrics, both fulfilled by MediaMTX, and what the relays carry of what it publishes.
   const streams = new MediamtxRuntime({
     directory: join(config.directory, 'mediamtx'),
     binary: MEDIAMTX_MANIFEST,
@@ -107,11 +110,11 @@ function controllers(
     identity,
     ports,
     reach,
-    registration,
-    config
+    registration
   });
   const metrics = new MediamtxMetricsRuntime(config, reach.metrics);
-  // A show sent out, by an OBS of the agent's own.
+  const relayTraffic = new RelayTrafficRuntime();
+  // A show sent out, by an OBS of the agent's own, and what the platforms of the channels it goes to say of them.
   const obs = new ObsRuntime({
     directory: join(config.directory, 'obs'),
     binary: OBS_MANIFEST,
@@ -120,9 +123,9 @@ function controllers(
     programPorts: DEFAULT_PROGRAM_PORTS,
     websocketPort: config.obsWebsocketPort ?? DEFAULT_OBS_WEBSOCKET_PORT,
     studio,
-    identity,
-    config
+    identity
   });
+  const channels = new ChannelStatsRuntime();
 
   // const control = new ControlRuntime(config);
 
@@ -148,12 +151,26 @@ function controllers(
       finalize: () => metrics.teardown(),
       dispose: () => metrics.dispose()
     }),
+    relayTraffic: controller({
+      spec: RelayTrafficSpecSchema,
+      status: relayTraffic.status$,
+      execute: spec => relayTraffic.apply(spec),
+      finalize: () => relayTraffic.teardown(),
+      dispose: () => relayTraffic.dispose()
+    }),
     obs: controller({
       spec: ObsSpecSchema,
       status: obs.status$,
       execute: (spec, signal) => obs.execute(spec, signal),
       finalize: () => obs.finalize(),
       dispose: () => obs.dispose()
+    }),
+    channels: controller({
+      spec: ChannelsSpecSchema,
+      status: channels.status$,
+      execute: spec => channels.apply(spec),
+      finalize: () => channels.teardown(),
+      dispose: () => channels.dispose()
     })
   };
 }
@@ -186,12 +203,19 @@ export class Agent {
     const mediamtx = createMediamtxClient(setup.reach.api);
     const registration = new EndpointRegistration(studio);
     this.registration = registration;
+    // One reporter for every monitor, so the studio API is asked who the device is once.
+    const reporter = new MetricReporter(config);
     await withStudio(studio, () =>
-      withMediamtxClient(mediamtx, () => this.serve(config, identity, registration, setup, studio))
+      withMediamtxClient(mediamtx, () =>
+        withMetricReporter(reporter, () => this.serve(config, identity, registration, setup, studio))
+      )
     );
   }
 
-  /** Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs in scope for both. */
+  /**
+   * Converge the runtimes and serve on the endpoint, with the studio and MediaMTX APIs, and the agent's reporter, in
+   * scope for both.
+   */
   private async serve(
     config: ConservationTvConfiguration,
     identity: DeviceIdentity,
@@ -204,7 +228,7 @@ export class Agent {
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },
-          streams: { paths: [], previews: [], publishers: [], stats: [] },
+          streams: { paths: [], previews: [], publishers: [] },
           metrics: { intervalMs: 60_000, paths: [] }
         };
         return spec;
@@ -217,8 +241,12 @@ export class Agent {
             else draft.streams = specs.streams;
             if (specs.metrics === undefined) delete draft.metrics;
             else draft.metrics = specs.metrics;
+            if (specs.relayTraffic === undefined) delete draft.relayTraffic;
+            else draft.relayTraffic = specs.relayTraffic;
             if (specs.obs === undefined) delete draft.obs;
             else draft.obs = specs.obs;
+            if (specs.channels === undefined) delete draft.channels;
+            else draft.channels = specs.channels;
           })
         )
     });

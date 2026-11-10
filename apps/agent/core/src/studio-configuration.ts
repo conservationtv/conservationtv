@@ -1,30 +1,35 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
+import type { ChannelsSpec, ReportedChannel } from './runtimes/channel-stats.ts';
 import type { MetricsSpec, MoqPublisher, StreamsSpec } from './runtimes/mediamtx/index.ts';
-import type { RelayStatsSource } from './runtimes/mediamtx/runtime.ts';
 import type { ObsSpec } from './runtimes/obs/index.ts';
+import type { RelayStatsSource, RelayTrafficSpec } from './runtimes/relay-traffic.ts';
 import { useStudio } from './studio.ts';
 
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
 //
 //   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device): a section
 //      for each runtime it is to run, and none for those it isn't;
-//   2. turns its `mediamtx` section into the spec for its streams: the gateway it runs, whose endpoints it registers while it serves, the
-//      paths it names, as they are, the certificate it names for the gateway's hostname, and each publisher it names,
-//      with where to publish from
-//      `organisations.streams.exposures.connect`, and where to read the relays' stats of what they carry from
-//      `organisations.gateways.stats.connect`; and for its metrics: what each path delivers;
+//   2. turns its `mediamtx` section into the spec for its streams: the gateway it runs, whose endpoints it registers
+//      while it serves, the paths it names, as they are, the certificate it names for the gateway's hostname, and each
+//      publisher it names, with where to publish from `organisations.streams.exposures.connect`; for its metrics: what
+//      each path delivers; and for the relays' traffic: where to read the relays' stats of what they carry from
+//      `organisations.gateways.stats.connect`, and each publisher's exposure by the path it publishes at, without the
+//      URL or its token;
 //   3. turns its `obs` section, the show it sends out, into the `obs` key's spec: as it is, but for each preview, with
-//      where to publish it from `organisations.shows.previews.connect`. Its forwards say which channels have stats,
-//      which the runtime reads with `organisations.channels.stats.get` as it reports, so no credential is kept for them;
-//   4. hands them to converge as the `streams`, `metrics` and `obs` keys, each of which changes what runs only when its
-//      spec changed, and is finalised when its section is left out.
+//      where to publish it from `organisations.shows.previews.connect`; and its forwards whose channels have stats
+//      into the `channels` key's, each channel once, which the runtime reads with `organisations.channels.stats.get`
+//      as it reports, so no credential is kept for them;
+//   4. hands them to converge as the `streams`, `metrics`, `relayTraffic`, `obs` and `channels` keys, each of which
+//      changes what runs only when its spec changed, and is finalised when its section is left out, or, for
+//      `relayTraffic` and `channels`, when it has nothing to read.
 //
 // A publisher reads its renditions on this machine, which needs no token (runtimes/mediamtx/auth.ts), and publishes
 // them to the relay with credentials from `organisations.streams.exposures.connect`; a preview, the program, with
 // credentials from `organisations.shows.previews.connect`. Those are kept until shortly before they expire, so the
-// spec, and the processes run from it, stay the same between renewals.
+// spec, and the processes run from it, stay the same between renewals. A renewal changes the spec: the relays' traffic
+// follows a renewed stats URL afresh, carrying its counters on (runtimes/relay-traffic.ts).
 //
 // TODO: Be told of changes rather than polling, once the studio API can push them.
 
@@ -43,7 +48,9 @@ const logger = getLogger(['agent', 'studio']);
 export interface StudioSpecs {
   streams?: StreamsSpec;
   metrics?: MetricsSpec;
+  relayTraffic?: RelayTrafficSpec;
   obs?: ObsSpec;
+  channels?: ChannelsSpec;
 }
 
 /** What converge is told: each key's spec, or that it is absent. */
@@ -84,12 +91,26 @@ async function studioSpecs(
 ): Promise<StudioSpecs> {
   const specs: StudioSpecs = {};
   if (configuration.mediamtx !== undefined) {
-    const { streams, metrics } = await mediamtxSpecs(configuration.mediamtx, studio, connections);
+    const { streams, metrics, relayTraffic } = await mediamtxSpecs(configuration.mediamtx, studio, connections);
     specs.streams = streams;
     specs.metrics = metrics;
+    specs.relayTraffic = relayTraffic;
   }
-  if (configuration.obs !== undefined) specs.obs = await obsSpec(configuration.obs, studio, connections);
+  if (configuration.obs !== undefined) {
+    specs.obs = await obsSpec(configuration.obs, studio, connections);
+    specs.channels = channelsSpec(configuration.obs);
+  }
   return specs;
+}
+
+/** The `channels` key's spec: each channel the `obs` section forwards to that has stats, once; absent for none. */
+function channelsSpec(obs: ObsSection): ChannelsSpec | undefined {
+  const channels = new Map<string, ReportedChannel>();
+  for (const { organisationId, channelId, stats } of obs.forwards) {
+    if (stats === true) channels.set(channelId, { organisationId, channelId });
+  }
+  if (channels.size === 0) return undefined;
+  return { channels: [...channels.values()] };
 }
 
 /** The `obs` key's spec from the `obs` section: as it is, but for each preview, with where to publish it. */
@@ -109,8 +130,9 @@ async function obsSpec(obs: ObsSection, studio: Client, connections: Connections
 }
 
 /**
- * The `streams` and `metrics` specs of the `mediamtx` section: its paths as they are, each publisher with where to
- * publish from `connect`, and the metrics of each path about what it delivers.
+ * The `streams`, `metrics` and `relayTraffic` specs of the `mediamtx` section: its paths as they are, each publisher
+ * with where to publish from `connect`, the metrics of each path about what it delivers, and the relays' traffic of
+ * each publisher's exposure, read from `stats.connect`.
  */
 async function mediamtxSpecs(mediamtx: MediamtxSection, studio: Client, connections: Connections) {
   const publishers: MoqPublisher[] = [];
@@ -134,10 +156,27 @@ async function mediamtxSpecs(mediamtx: MediamtxSection, studio: Client, connecti
   }
   const { gatewayId, auth, tls, paths } = mediamtx;
   const previews = mediamtx.previews ?? [];
-  const streams: StreamsSpec = { gatewayId, paths, previews, auth, tls, publishers, stats };
+  const streams: StreamsSpec = { gatewayId, paths, previews, auth, tls, publishers };
   const attributions = paths.map(({ name, exposureId, rendition }) => ({ name, exposureId, rendition }));
   const metrics: MetricsSpec = { intervalMs: METRICS_INTERVAL_MS, paths: attributions };
-  return { streams, metrics };
+  const relayTraffic = relayTrafficSpec(stats, publishers);
+  return { streams, metrics, relayTraffic };
+}
+
+/**
+ * The `relayTraffic` key's spec: the relays' stats to read, and each publisher's exposure by the path its broadcasts
+ * are beneath on the relay. Absent without either: there is nothing to read, or nothing to report about.
+ */
+function relayTrafficSpec(sources: RelayStatsSource[], publishers: MoqPublisher[]): RelayTrafficSpec | undefined {
+  if (sources.length === 0 || publishers.length === 0) return undefined;
+  const exposures = publishers.map(({ exposureId, connect }) => ({ exposureId, prefix: `${pathOf(connect)}/` }));
+  return { sources, exposures };
+}
+
+/** The path a URL is dialed at, without its slashes: where a publisher's broadcasts are on the relay. */
+function pathOf(url: string): string {
+  const { pathname } = new URL(url);
+  return pathname.replace(/^\/+/, '').replace(/\/+$/, '');
 }
 
 /** The configuration `deviceConfiguration.get` returns. */
