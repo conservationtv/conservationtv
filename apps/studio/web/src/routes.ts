@@ -25,7 +25,7 @@ export default [
         route('streams/:streamId', './routes/stream.tsx'),
         // The organisation's shows going out: each its output agent, programme, forwards, previews and recorder, all
         // following the organisation's one broadcast for now.
-        route('shows', './routes/shows.tsx'),
+        route('shows', './routes/shows.tsx', [route('new', './routes/show-new.tsx')]),
         route('shows/:showId', './routes/show.tsx'),
         // Where shows go out to: Twitch channels and RTMP destinations.
         route('channels', './routes/channels.tsx', [route('rtmp/new', './routes/channel-rtmp-new.tsx')]),

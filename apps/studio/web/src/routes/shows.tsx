@@ -1,7 +1,8 @@
 import { Suspense, type FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
-import { MonitorPlayIcon } from '@phosphor-icons/react';
-import { Link } from 'react-router';
+import { MonitorPlayIcon, PlusIcon } from '@phosphor-icons/react';
+import { Link, Outlet } from 'react-router';
+import { Button } from '@conservationtv/ui/components/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
 import {
   Item,
@@ -16,7 +17,6 @@ import { Skeleton } from '@conservationtv/ui/components/skeleton';
 import type { Route } from './+types/shows';
 import { Page, PageActions, PageDescription, PageHeader, PageHeading, PageTitle } from '@/components/common/page';
 import { StatusLabel } from '@/components/common/status';
-import { NewShowDialog } from '@/components/shows/show-dialogs';
 import { showDetailOf, type ShowDetail } from '@/components/shows/show-detail';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { counted } from '@/lib/format';
@@ -47,13 +47,18 @@ const ShowsRoute: FC = () => {
         </PageHeading>
         {administrator && (
           <PageActions>
-            <NewShowDialog />
+            <Button nativeButton={false} render={<Link to="new" />}>
+              <PlusIcon />
+              New show
+            </Button>
           </PageActions>
         )}
       </PageHeader>
       <Suspense fallback={<Skeleton className="h-40 w-full" />}>
         <ShowList />
       </Suspense>
+      {/* A dialog routed over the page: a new show, at `new`. */}
+      <Outlet />
     </Page>
   );
 };
