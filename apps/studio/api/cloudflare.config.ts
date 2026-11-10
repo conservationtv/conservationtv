@@ -26,6 +26,15 @@ const stack: StackOutputs['api'] | undefined = process.env.STACK_OUTPUT_JSON
   ? StackOutputsSchema.parse(JSON.parse(process.env.STACK_OUTPUT_JSON)).api
   : undefined;
 
+/**
+ * The secrets gateway hostnames need (src/gateways/certificates.ts), declared only where `GATEWAY_DOMAIN` is set: every
+ * declared secret must be uploaded with each version, which releases without the domain don't do (#90), and `cf dev`
+ * hands the Worker only the secrets that are declared, from .dev.vars or .dev.vars.<mode>.
+ */
+const gatewayCertificateSecrets = process.env.GATEWAY_DOMAIN
+  ? { CLOUDFLARE_API_TOKEN: bindings.secret(), ACME_ACCOUNT_KEY: bindings.secret() }
+  : undefined;
+
 /** Each stack's own Worker: `studio-api` for prod, `studio-api-<stack>` otherwise. */
 const workerName = stack?.workerName ?? 'studio-api';
 
@@ -83,10 +92,10 @@ export default defineConfig({
       /**
        * Optional: the zone MediaMTX gateways get hostnames and certificates in, its Cloudflare zone, and the ACME
        * directory; see .dev.vars.example. Empty text leaves gateways without hostnames. Their secrets,
-       * `CLOUDFLARE_API_TOKEN` and `ACME_ACCOUNT_KEY`, are not declared here: every declared secret must be uploaded
-       * with each version, and these are only set beside `GATEWAY_DOMAIN`.
+       * `CLOUDFLARE_API_TOKEN` and `ACME_ACCOUNT_KEY`, are declared only beside it (`gatewayCertificateSecrets`).
        */
       GATEWAY_DOMAIN: bindings.text(process.env.GATEWAY_DOMAIN ?? ''),
+      ...gatewayCertificateSecrets,
       /** The Twitch application channels are connected through, and its secret; see .dev.vars.example. */
       TWITCH_CLIENT_ID: bindings.text(stack?.twitchClientId ?? process.env.TWITCH_CLIENT_ID ?? ''),
       TWITCH_CLIENT_SECRET: bindings.secret(),
