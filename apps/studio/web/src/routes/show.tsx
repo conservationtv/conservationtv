@@ -680,6 +680,12 @@ const OutputsPanel: FC<RowProps> = ({ detail }) => {
 /** A preview offers the programme as OBS encodes it: the one rendition. */
 const PREVIEW_RENDITIONS = ['default' as const];
 
+/**
+ * A preview at a MediaMTX gateway is read by HLS alone: OBS encodes the programme with B-frames, which WebRTC refuses
+ * (apps/studio/api/src/gateways/connect.ts).
+ */
+const PREVIEW_PROTOCOLS = ['hls' as const];
+
 interface PreviewOutputProps {
   detail: ShowDetail;
   part: PreviewPart;
@@ -687,7 +693,7 @@ interface PreviewOutputProps {
 
 /**
  * A preview's card: its gateway and health, then how to read it, as a stream's delivery to that gateway is read: over
- * MoQ at conservation.tv, by each protocol at a MediaMTX gateway; for anything else, just what it is.
+ * MoQ at conservation.tv, by HLS at a MediaMTX gateway; for anything else, just what it is.
  */
 const PreviewOutput: FC<PreviewOutputProps> = ({ detail, part }) => {
   const organisationId = useOrganisationId();
@@ -715,6 +721,7 @@ const PreviewOutput: FC<PreviewOutputProps> = ({ detail, part }) => {
             previewReadQueryOptions(organisationId, showId, previewId, protocol, rendition)
           }
           renditions={PREVIEW_RENDITIONS}
+          protocols={PREVIEW_PROTOCOLS}
           name={gatewayNameOf(part.gateway)}
         />
       )}

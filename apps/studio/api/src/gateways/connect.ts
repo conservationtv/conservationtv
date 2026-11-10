@@ -218,8 +218,19 @@ export async function connectExposure(location: ExposureLocation, ask: Connectio
 }
 
 /** Connect the caller to a show's preview, as `connectTarget` does. */
+/**
+ * How a preview at a MediaMTX gateway is read: by HLS alone. OBS encodes the programme with B-frames, which WebRTC
+ * refuses, and HLS is what readers of a preview are pointed at; its publisher pushes by RTMP, which stays open.
+ */
+const MEDIAMTX_PREVIEW_READ_PROTOCOLS: ReadonlySet<string> = new Set(['hls']);
+
+/** Where the caller reads or publishes a show's preview: `unsupported_protocol` to read a MediaMTX one but by HLS. */
 export async function connectPreview(location: PreviewLocation, ask: ConnectionAsk): Promise<ConnectionDetails> {
   const target = await callerPreviewConnection(location, ask.action);
+  const mediamtx = target.gateway.kind === 'mediamtx';
+  if (mediamtx && ask.action === 'read' && !MEDIAMTX_PREVIEW_READ_PROTOCOLS.has(ask.protocol)) {
+    throw new ApiFailure('unsupported_protocol');
+  }
   return connectTarget(target, ask);
 }
 

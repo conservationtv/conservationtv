@@ -62,10 +62,15 @@ export interface LocalReadProps {
   renditions: Rendition[];
   /** The gateway's hostname, once it has one: each protocol is then offered there and at the IP it points at. */
   name: GatewayName | null;
+  /** The protocols it is read by, of those the gateway serves: all of them unless said. */
+  protocols?: readonly GatewayProtocolName[];
 }
 
+/** One of the protocols a MediaMTX gateway serves readers. */
+export type GatewayProtocolName = (typeof GATEWAY_PROTOCOLS)[number]['protocol'];
+
 /** Each rendition it offers as a compact tab, each listing the protocols a reader can use for it. */
-export const LocalRead: FC<LocalReadProps> = ({ read, renditions, name }) => {
+export const LocalRead: FC<LocalReadProps> = ({ read, renditions, name, protocols }) => {
   const offered = RENDITIONS.filter(rendition => renditions.includes(rendition));
   // The tab moves as soon as it is chosen; the rows change in a transition, so they keep showing the last rendition
   // until the chosen one's connections are ready, rather than falling back to a placeholder.
@@ -82,7 +87,7 @@ export const LocalRead: FC<LocalReadProps> = ({ read, renditions, name }) => {
           startTransition(() => setShown(chosen));
         }}
       />
-      <ReadList read={read} rendition={shown} name={name} />
+      <ReadList read={read} rendition={shown} name={name} protocols={protocols} />
     </>
   );
 };
@@ -111,16 +116,18 @@ interface ReadListProps {
   read: ProtocolReadOf;
   rendition: Rendition;
   name: GatewayName | null;
+  protocols: readonly GatewayProtocolName[] | undefined;
 }
 
 /**
  * One row per protocol the gateway serves readers. A row's name and use are known already, so they show at once; only
  * its buttons wait on its connection, behind a placeholder the buttons' height, so nothing moves when they arrive.
  */
-const ReadList: FC<ReadListProps> = ({ read, rendition, name }) => {
+const ReadList: FC<ReadListProps> = ({ read, rendition, name, protocols }) => {
+  const offered = GATEWAY_PROTOCOLS.filter(({ protocol }) => protocols?.includes(protocol) ?? true);
   return (
     <ReadRows>
-      {GATEWAY_PROTOCOLS.map(({ protocol, label }) => (
+      {offered.map(({ protocol, label }) => (
         <ReadRow key={protocol}>
           <ReadRowHeading>
             <ReadRowTitle>{label}</ReadRowTitle>
