@@ -242,8 +242,13 @@ export function callGraph(files: readonly Sides[], others: readonly string[]): C
   const bare = new Resolver(located.flatMap(file => file.units));
   for (const file of located) {
     file.units = file.units.map(unit => {
+      // A member call reaches a unit inside its object or class, not the whole declaration: `api.get` passes over `api`.
       const called = new Set(
-        unit.calls.flatMap(call => (call.callee !== null && bare.resolve(call, unit) ? [call.callee] : []))
+        unit.calls.flatMap(call => {
+          if (call.callee === null || !bare.resolve(call, unit)) return [];
+          const [root = call.callee] = call.callee.split('.');
+          return [call.callee, root];
+        })
       );
       return { ...unit, context: contextOf(unit, file, called) };
     });

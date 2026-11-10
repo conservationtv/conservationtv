@@ -149,8 +149,8 @@ const CallRow: FC<CallRowProps> = ({ node, caller, diffStyle, wrap }) => {
       {open ? <Diffs diffs={diffs} split={unit.status === 'changed'} diffStyle={diffStyle} wrap={wrap} /> : null}
       {caller && node.calls.length ? (
         <div className="call-sites">
-          {node.calls.map(call => (
-            <CallSite key={call.line} caller={caller} call={call} diffStyle={diffStyle} wrap={wrap} />
+          {node.calls.map((call, index) => (
+            <CallSite key={`${call.line}:${index}`} caller={caller} call={call} diffStyle={diffStyle} wrap={wrap} />
           ))}
         </div>
       ) : null}

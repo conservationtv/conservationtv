@@ -121,7 +121,9 @@ const EXPRESSION_WRAPPERS: ReadonlySet<string> = new Set([
 
 /** Whether what is under `key` of `parent` is the name of a property or key: `x` in `a.x` and `{ x: 1 }`. */
 function isPropertyName(parent: Node, key: string): boolean {
-  if (key === 'property') return parent.type === 'MemberExpression' && !parent.computed;
+  if (key === 'property') {
+    return (parent.type === 'MemberExpression' || parent.type === 'OptionalMemberExpression') && !parent.computed;
+  }
   return key === 'key' && 'computed' in parent && !parent.computed;
 }
 
@@ -131,6 +133,43 @@ function isUse({ parent, key }: Placed): boolean {
   // A name bound, or a property's; then within a type, a name is a type's unless an expression is wrapped in it.
   if (NAMING_FIELDS.has(key) || isPropertyName(parent, key)) return false;
   return !parent.type.startsWith('TS') || EXPRESSION_WRAPPERS.has(parent.type);
+}
+
+/** The names a pattern binds: `a`, `b` and `c` in `{ a, b: [b], ...c }`, `x` in `x = 1`. */
+function patternNames(node: Node | null | undefined): string[] {
+  if (!node) return [];
+  if (node.type === 'Identifier') return [node.name];
+  if (node.type === 'ObjectPattern') {
+    return node.properties.flatMap(property =>
+      patternNames(property.type === 'RestElement' ? property : property.value)
+    );
+  }
+  if (node.type === 'ArrayPattern') return node.elements.flatMap(element => patternNames(element));
+  if (node.type === 'AssignmentPattern') return patternNames(node.left);
+  if (node.type === 'RestElement') return patternNames(node.argument);
+  if (node.type === 'TSParameterProperty') return patternNames(node.parameter);
+  return [];
+}
+
+/** The patterns a node binds names with: a variable's, a catch clause's error, a function's parameters. */
+function bindingPatterns(node: Node): (Node | null | undefined)[] {
+  if (node.type === 'VariableDeclarator') return [node.id];
+  if (node.type === 'CatchClause') return [node.param];
+  return 'params' in node ? node.params : [];
+}
+
+/** The names bound inside a node: its variables, the parameters of its functions, and its catch clauses' errors. */
+function localNames(node: Node): Set<string> {
+  return new Set([...walk(node)].flatMap(({ node: inner }) => bindingPatterns(inner).flatMap(patternNames)));
+}
+
+/** The names a node reads as values, other than those bound inside it. */
+function readsIn(node: Node): string[] {
+  const locals = localNames(node);
+  const reads = [...walk(node)].flatMap(placed =>
+    placed.node.type === 'Identifier' && isUse(placed) ? [placed.node.name] : []
+  );
+  return reads.filter(name => !locals.has(name));
 }
 
 /** The methods a router declares a route with. */
@@ -241,14 +280,12 @@ class Reader {
     return calls.toSorted((a, b) => a.line - b.line);
   }
 
-  /** The names used as values inside nodes, each once. */
+  /**
+   * The names used as values inside nodes, each once, other than those bound inside them: a local read is not the
+   * top-level name it shadows, at the cost of a top-level one read where an inner scope does not shadow it.
+   */
   usesIn(...nodes: Node[]): string[] {
-    const names = new Set<string>();
-    for (const node of nodes) {
-      for (const placed of walk(node))
-        if (placed.node.type === 'Identifier' && isUse(placed)) names.add(placed.node.name);
-    }
-    return [...names];
+    return [...new Set(nodes.flatMap(readsIn))];
   }
 
   /** A unit spanning `node`, with the calls inside it. */
