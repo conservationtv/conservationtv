@@ -1,0 +1,137 @@
+name: diffmap
+
+# Writes a diffmap (https://github.com/tanishqkancharla/diffmap) of each pull request: an agent's account of the change,
+# with diagrams whose parts link to the code. It is shared as an unlisted gist and named in a comment, which the review
+# tool (tools/review) finds and opens as the pull request's first chapter.
+#
+# Two jobs, so the agent never holds a token that writes: `write` runs it read-only and keeps the spec as an artifact;
+# `publish` checks it, shares it and comments, with no agent in the job.
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      number:
+        type: number
+        description: Pull request to map again
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diffmap-${{ github.event.pull_request.number || inputs.number }}
+  cancel-in-progress: true
+
+env:
+  DIFFMAP: '@tanishqkancharla/diffmap@0.12.0'
+  DIFFMAP_TELEMETRY: '0'
+
+jobs:
+  write:
+    # Forks get no secrets, and a draft is mapped once it is ready.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    outputs:
+      number: ${{ steps.pull.outputs.number }}
+      sha: ${{ steps.pull.outputs.sha }}
+    steps:
+      - name: Find the pull request
+        id: pull
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number || inputs.number }}
+        run: |
+          gh pr view "$NUMBER" --json number,headRefOid,baseRefName \
+            --jq '"number=\(.number)\nsha=\(.headRefOid)\nbase=\(.baseRefName)"' >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pull.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Name the pull request in the prompt
+        env:
+          PULL_NUMBER: ${{ steps.pull.outputs.number }}
+          BASE_REF: origin/${{ steps.pull.outputs.base }}
+          HEAD_SHA: ${{ steps.pull.outputs.sha }}
+        run: |
+          # shellcheck disable=SC2016 # envsubst takes the names to substitute, unexpanded
+          envsubst '$PULL_NUMBER $BASE_REF $HEAD_SHA $DIFFMAP' < .github/diffmap/prompt.md > .diffmap-prompt.md
+      - name: Write the diffmap
+        uses: pullfrog/pullfrog@v0
+        with:
+          prompt_file: .diffmap-prompt.md
+          push: disabled
+          progress_comments: disabled
+          timeout: 40m
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      - name: Check it
+        run: npx -y "$DIFFMAP" validate diffmap.md
+      - uses: actions/upload-artifact@v5
+        with:
+          name: diffmap
+          path: diffmap.md
+          if-no-files-found: error
+
+  publish:
+    needs: write
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # Sharing snapshots every commit and file the spec cites, so it needs the same tree the agent read.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.write.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v5
+        with:
+          name: diffmap
+          path: ${{ runner.temp }}/diffmap
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Share it as a gist
+        id: share
+        env:
+          # GITHUB_TOKEN cannot make gists: a token with the gist scope, and nothing else, from the account that owns them.
+          GH_TOKEN: ${{ secrets.DIFFMAP_GIST_TOKEN }}
+        run: |
+          out=$(npx -y "$DIFFMAP" share "$RUNNER_TEMP/diffmap/diffmap.md")
+          echo "$out"
+          gist=$(grep -oE 'diffmap\.dev/g/[0-9a-f]{32}' <<<"$out" | head -1 | cut -d/ -f3)
+          test -n "$gist"
+          echo "gist=$gist" >> "$GITHUB_OUTPUT"
+      - name: Name it in a comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ needs.write.outputs.number }}
+          SHA: ${{ needs.write.outputs.sha }}
+          GIST: ${{ steps.share.outputs.gist }}
+        run: |
+          # tools/review reads this marker, and only from github-actions[bot]; keep the two in step.
+          cat > body.md <<EOF
+          <!-- diffmap gist=$GIST sha=$SHA -->
+          **[Diffmap](https://diffmap.dev/g/$GIST)** of ${SHA:0:7}, also the first chapter on [review.tools.conservation.tv](https://review.tools.conservation.tv/pr/$NUMBER/files/map).
+          EOF
+          existing=$(gh api "repos/$GH_REPO/issues/$NUMBER/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- diffmap "))) | .id' | tail -1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$existing" -F body=@body.md > /dev/null
+          else
+            gh pr comment "$NUMBER" --body-file body.md
+          fi

@@ -1270,6 +1270,22 @@ button {
   padding: 0 1rem 6rem;
 }
 
+/* The diffmap, as diffmap.dev draws it, filling the chapter. */
+
+.map-chapter {
+  flex: 1;
+  padding: 0 1rem 1.5rem;
+}
+
+.map-frame {
+  flex: 1;
+  min-height: 70vh;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
 .call-summary {
   display: flex;
   align-items: center;
