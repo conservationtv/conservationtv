@@ -217,7 +217,15 @@ export const GatewaySchema = z.object({
             kind: z.string(),
             networkId: z.string().nullable(),
             settings: z.record(z.string(), z.unknown()),
-            createdAt: z.string()
+            createdAt: z.string(),
+            tls: z.object({
+                hostname: z.string(),
+                address: z.string().nullable(),
+                issuedAt: z.string().nullable(),
+                notAfter: z.string().nullable(),
+                attemptedAt: z.string().nullable(),
+                error: z.string().nullable()
+            }).nullable()
         })]))
 });
 
@@ -1315,7 +1323,15 @@ export const GetOrganisationsByIdGatewaysByGatewayIdResponseSchema = z.union([
         kind: z.string(),
         networkId: z.string().nullable(),
         settings: z.record(z.string(), z.unknown()),
-        createdAt: z.string()
+        createdAt: z.string(),
+        tls: z.object({
+            hostname: z.string(),
+            address: z.string().nullable(),
+            issuedAt: z.string().nullable(),
+            notAfter: z.string().nullable(),
+            attemptedAt: z.string().nullable(),
+            error: z.string().nullable()
+        }).nullable()
     })
 ]);
 

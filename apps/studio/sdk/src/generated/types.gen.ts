@@ -190,6 +190,14 @@ export type Gateway = {
             [key: string]: unknown;
         };
         createdAt: string;
+        tls: {
+            hostname: string;
+            address: string | null;
+            issuedAt: string | null;
+            notAfter: string | null;
+            attemptedAt: string | null;
+            error: string | null;
+        } | null;
     }>;
 };
 
@@ -2817,6 +2825,14 @@ export type GetOrganisationsByIdGatewaysByGatewayIdResponses = {
             [key: string]: unknown;
         };
         createdAt: string;
+        tls: {
+            hostname: string;
+            address: string | null;
+            issuedAt: string | null;
+            notAfter: string | null;
+            attemptedAt: string | null;
+            error: string | null;
+        } | null;
     };
 };
 

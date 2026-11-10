@@ -51,7 +51,7 @@ export class Gateways extends HeyApiClient {
     /**
      * Read a gateway
      *
-     * A built-in gateway, or one of the organisation's own.
+     * A built-in gateway, or one of the organisation's own, with its hostname and certificate (`tls`) as `organisations.gateways.list` has them.
      */
     public get<ThrowOnError extends boolean = false>(parameters: {
         id: string;

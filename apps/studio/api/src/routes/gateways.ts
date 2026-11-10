@@ -49,7 +49,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: "List an organisation's gateways",
       description:
-        "The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.",
+        "The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is. Each of the organisation's own has `tls`: the hostname it is reached at on its network, where that points, and its certificate's issue and expiry, with the last attempt to issue one and why it failed; null until the deployment gives it a hostname (`GATEWAY_DOMAIN`), which happens when the agent running it next asks for its configuration.",
       responses: {
         200: { description: 'The built-in gateways, then the organisation’s own, oldest first' },
         400: invalidRequest,
@@ -114,7 +114,8 @@ export default new Hono()
       operationId: 'organisations.gateways.get',
       ...operationVersion(1),
       summary: 'Read a gateway',
-      description: "A built-in gateway, or one of the organisation's own.",
+      description:
+        "A built-in gateway, or one of the organisation's own, with its hostname and certificate (`tls`) as `organisations.gateways.list` has them.",
       responses: {
         200: { description: 'The gateway' },
         400: invalidRequest,

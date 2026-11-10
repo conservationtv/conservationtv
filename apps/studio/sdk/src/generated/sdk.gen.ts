@@ -764,7 +764,7 @@ export class Gateways extends HeyApiClient {
     /**
      * List an organisation's gateways
      *
-     * The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is.
+     * The built-in gateways, then the organisation's own (none for organisations you are not a member of). Optionally only those on one network, which no built-in gateway is. Each of the organisation's own has `tls`: the hostname it is reached at on its network, where that points, and its certificate's issue and expiry, with the last attempt to issue one and why it failed; null until the deployment gives it a hostname (`GATEWAY_DOMAIN`), which happens when the agent running it next asks for its configuration.
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -831,7 +831,7 @@ export class Gateways extends HeyApiClient {
     /**
      * Read a gateway
      *
-     * A built-in gateway, or one of the organisation's own.
+     * A built-in gateway, or one of the organisation's own, with its hostname and certificate (`tls`) as `organisations.gateways.list` has them.
      */
     public get<ThrowOnError extends boolean = false>(parameters: {
         id: string;
