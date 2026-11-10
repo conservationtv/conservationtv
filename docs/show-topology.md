@@ -38,7 +38,7 @@ All new tables use `uuidv7()` IDs, carry `organisation_id`, and take the topolog
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
 | `show`          | `id`, `organisation_id`, `name`, the programme's encoding (`width`, `height`, `fps`, `bitrate_kbps`, `keyframe_seconds`, defaulting to today's 1920×1080, 30, 6000, 2), `created_at` | The encoding moves here from the constant in `configuration/plan/index.ts`. |
 | `show_output`   | as now, `show_id` now referencing `show` (cascade)                                                                                                                                   | One output per show, as now.                                                |
-| `show_forward`  | `id`, `show_id`, `channel_id`, `enabled`, `created_at`; unique `(show_id, channel_id)`                                                                                               | Replaces `channel.enabled`, kept unused for a release, then dropped.        |
+| `show_forward`  | `id`, `show_id`, `channel_id`, `enabled`, `created_at`; unique `(show_id, channel_id)`                                                                                               | Replaces `channel.enabled`, kept unused for a release, now dropped.         |
 | `show_preview`  | `id`, `show_id`, `gateway_id` (text, as `exposure.gateway_id`: a built-in slug or one of the organisation's gateways), `created_at`; unique `(show_id, gateway_id)`                  |                                                                             |
 | `show_recorder` | `id`, `show_id`, `kind` (`obs`), `params` (jsonb, `{}`), `created_at`                                                                                                                |                                                                             |
 
@@ -67,8 +67,9 @@ reads a stream's.
   relations, as `organisations.streams.list` is). `create` (`name`, encoding optional), `get`, `update` (name,
   encoding), `delete`.
 - `organisations.shows.output.get|set|delete`, by show. The organisation-level `organisations.show.output.*`,
-  `organisations.show.follow` and `organisations.show.compose` keep working unchanged: the output ones act on the
-  organisation's show whose ID is the organisation's, while it exists.
+  `organisations.show.follow` and `organisations.show.compose` keep working: the output ones act on the
+  organisation's show whose ID is the organisation's, while it exists. All three are versionless, so none is part of
+  the released v1 contract.
 - `organisations.shows.forwards.create` (`channelId`, `enabled`), `update` (`enabled`), `delete`.
 - `organisations.shows.previews.create` (`gatewayId`), `delete`, and `connect` (`action` read or publish,
   `protocol`, `rendition`), as `organisations.streams.exposures.connect`: members read; the show's output device
