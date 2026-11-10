@@ -1,3 +1,6 @@
 node_modules/
 # Machine-local overrides, such as .env.staging.local for `pnpm dev:staging`.
 .env.*.local
+# The diffmap workflow's prompt and spec, written in the checkout and left untracked (.github/workflows/diffmap.yml).
+/.diffmap-prompt.md
+/diffmap.md

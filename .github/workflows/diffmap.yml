@@ -56,6 +56,8 @@ jobs:
         with:
           ref: ${{ steps.pull.outputs.sha }}
           fetch-depth: 0
+      # npx refuses to run here: the root package.json's devEngines asks for pnpm.
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -78,7 +80,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       - name: Check it
-        run: npx -y "$DIFFMAP" validate diffmap.md
+        run: pnpm dlx "$DIFFMAP" validate diffmap.md
       - uses: actions/upload-artifact@v5
         with:
           name: diffmap
@@ -101,6 +103,8 @@ jobs:
         with:
           name: diffmap
           path: ${{ runner.temp }}/diffmap
+      # npx refuses to run here: the root package.json's devEngines asks for pnpm.
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -110,7 +114,7 @@ jobs:
           # GITHUB_TOKEN cannot make gists: a token with the gist scope, and nothing else, from the account that owns them.
           GH_TOKEN: ${{ secrets.DIFFMAP_GIST_TOKEN }}
         run: |
-          out=$(npx -y "$DIFFMAP" share "$RUNNER_TEMP/diffmap/diffmap.md")
+          out=$(pnpm dlx "$DIFFMAP" share "$RUNNER_TEMP/diffmap/diffmap.md")
           echo "$out"
           gist=$(grep -oE 'diffmap\.dev/g/[0-9a-f]{32}' <<<"$out" | head -1 | cut -d/ -f3)
           test -n "$gist"

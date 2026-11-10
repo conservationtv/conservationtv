@@ -1,6 +1,7 @@
 Write a diffmap spec of pull request #${PULL_NUMBER}. Its base branch is `${BASE_REF}`; its head is checked out, at
-commit `${HEAD_SHA}`. diffmap is https://github.com/tanishqkancharla/diffmap; run `npx -y ${DIFFMAP} guide` first and follow it, using
-that exact version for every diffmap command.
+commit `${HEAD_SHA}`. diffmap is https://github.com/tanishqkancharla/diffmap; run `pnpm dlx ${DIFFMAP} guide`first and follow it, using
+that exact version for every diffmap command. Run it with`pnpm dlx`, not `npx`: the repository's `devEngines` turns npx
+away.
 
 The spec is for the person about to review this pull request. They will read it first, then the diff itself on a review
 tool that already does some of the work, so spend the spec on what that tool cannot show:
@@ -25,6 +26,6 @@ Rules for this run:
 - Cite code only by commit: `[[<sha>:path#L1-L9]]` references and `changes` fences naming a commit or range from this
   pull request. A reference with no commit reads the working tree, which the published copy does not have.
 - No local images or videos; the spec is published as a gist, which holds only text.
-- Write the spec to `diffmap.md` in the repository root, run `npx -y ${DIFFMAP} validate diffmap.md` and fix it until it
+- Write the spec to `diffmap.md` in the repository root, run `pnpm dlx ${DIFFMAP} validate diffmap.md` and fix it until it
   passes. Do not start a server, do not share it, do not commit, push, comment or edit anything else. A later step
   publishes it.
