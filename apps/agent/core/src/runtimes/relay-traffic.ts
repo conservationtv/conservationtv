@@ -19,8 +19,10 @@ const logger = getLogger(['agent', 'relay-traffic']);
 //
 // The spec says where to read the stats, each URL carrying its token, and each exposure by the path its broadcasts
 // are beneath on the relay (studio-configuration.ts, from the `streams` key's publishers), so the publishers' own
-// URLs and tokens never reach it. A renewed stats token is a new URL: it is followed afresh and the old one stopped,
-// and the counters, kept by relay and node rather than by URL, carry on across the two.
+// URLs and tokens never reach it. With no exposures the relays are still followed, and nothing is reported. A renewed
+// stats token is a new URL: it is followed afresh and the old one stopped, which takes each node's counters with it
+// until the new connection's first frame, so the sample or two after a renewal have no rates. The rest of that
+// interval's samples still make its summary.
 
 /** Where to read a relay's traffic stats: the URL to dial, carrying its token as `?jwt=`. */
 const RelayStatsSourceSchema = z.object({ connect: z.url() });
@@ -229,8 +231,8 @@ function watchingOf(entry: TrafficEntry): number {
 
 /**
  * Follow the stats at `url` into `counters`: every node's broadcast announced beneath it, until stopped. A node's
- * counters are kept by the relay it is on and its path, so a renewed token's connection continues them; a node no
- * longer followed, retracted or with its source stopped, leaves them.
+ * counters are kept by the relay it is on and its path, so two sources following one node write the same counters; a
+ * node no longer followed, retracted or with its source stopped, leaves them.
  */
 function followStats(url: string, counters: Counters): () => void {
   const effect = new Moq.Signals.Effect();

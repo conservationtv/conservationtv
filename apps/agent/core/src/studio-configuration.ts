@@ -23,13 +23,13 @@ import { useStudio } from './studio.ts';
 //      as it reports, so no credential is kept for them;
 //   4. hands them to converge as the `streams`, `metrics`, `relayTraffic`, `obs` and `channels` keys, each of which
 //      changes what runs only when its spec changed, and is finalised when its section is left out, or, for
-//      `relayTraffic` and `channels`, when it has nothing to read.
+//      `relayTraffic` and `channels`, when it has nothing to read: no relay's stats, or no channel with any.
 //
 // A publisher reads its renditions on this machine, which needs no token (runtimes/mediamtx/auth.ts), and publishes
 // them to the relay with credentials from `organisations.streams.exposures.connect`; a preview, the program, with
 // credentials from `organisations.shows.previews.connect`. Those are kept until shortly before they expire, so the
 // spec, and the processes run from it, stay the same between renewals. A renewal changes the spec: the relays' traffic
-// follows a renewed stats URL afresh, carrying its counters on (runtimes/relay-traffic.ts).
+// follows a renewed stats URL afresh, and has no rates for a sample or two after it (runtimes/relay-traffic.ts).
 //
 // TODO: Be told of changes rather than polling, once the studio API can push them.
 
@@ -165,10 +165,12 @@ async function mediamtxSpecs(mediamtx: MediamtxSection, studio: Client, connecti
 
 /**
  * The `relayTraffic` key's spec: the relays' stats to read, and each publisher's exposure by the path its broadcasts
- * are beneath on the relay. Absent without either: there is nothing to read, or nothing to report about.
+ * are beneath on the relay. Absent without stats to read. With stats but no publishers, as when none's credentials
+ * could be had this time, the relays are still followed: finalising would drop what is pending and the counters the
+ * next rates are measured from, for publishers that are back with the next ask.
  */
 function relayTrafficSpec(sources: RelayStatsSource[], publishers: MoqPublisher[]): RelayTrafficSpec | undefined {
-  if (sources.length === 0 || publishers.length === 0) return undefined;
+  if (sources.length === 0) return undefined;
   const exposures = publishers.map(({ exposureId, connect }) => ({ exposureId, prefix: `${pathOf(connect)}/` }));
   return { sources, exposures };
 }
