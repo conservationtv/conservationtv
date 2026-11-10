@@ -40,7 +40,9 @@ const AgentNewRoute: FC = () => {
     defaultValues,
     validators: { onSubmit: NewAgentSchema },
     onSubmit: ({ value }) =>
-      dialog.mutate(NewAgentSchema.parse(value), {
+      // Not dialog.mutate: closing first would step back once the animation ends, which can overtake the navigation
+      // to the agent while its page's module loads. The dialog stays open until that page replaces it.
+      create.mutate(NewAgentSchema.parse(value), {
         onSuccess: agent => navigate(`../${agent.id}`, { relative: 'path', replace: true })
       })
   });
