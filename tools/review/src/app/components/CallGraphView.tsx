@@ -32,7 +32,7 @@ function display(node: CallNode): Display {
   if (unit.kind === 'route' && !call) return { qualifier: '', name: unit.name, args: '' };
   const text = call ? call.text : unit.name;
   const dot = text.lastIndexOf('.');
-  const args = call ? `(${call.args})` : unit.kind === 'function' ? `(${unit.params})` : '';
+  const args = call ? (call.reference ? '' : `(${call.args})`) : unit.kind === 'function' ? `(${unit.params})` : '';
   return { qualifier: text.slice(0, dot + 1), name: text.slice(dot + 1), args };
 }
 
@@ -61,6 +61,18 @@ const UnitDiffView: FC<UnitDiffProps> = ({ node, diffStyle, wrap }) => {
   );
 };
 
+/** The element id of a unit's row where the graph first shows it. */
+function anchorOf(unit: CallNode['unit']): string {
+  return `call:${unit.id}`;
+}
+
+/** Moves to where a unit was first shown, its row focused. */
+function goToFirst(unit: CallNode['unit']): void {
+  const row = document.getElementById(anchorOf(unit));
+  row?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  row?.querySelector<HTMLButtonElement>('.call-row')?.focus({ preventScroll: true });
+}
+
 interface CallRowProps {
   node: CallNode;
   /** The caller's file: a callee in it shows only its line. */
@@ -69,20 +81,23 @@ interface CallRowProps {
   wrap: boolean;
 }
 
-/** A call, opened to read the unit it reaches, and the calls that unit makes into the change. */
+/**
+ * A call, opened to read the unit it reaches, and the calls that unit makes into the change; a unit shown already
+ * points back to it.
+ */
 const CallRow: FC<CallRowProps> = ({ node, parentPath, diffStyle, wrap }) => {
   const [open, setOpen] = useState(false);
   const { unit } = node;
   const shown = display(node);
   const where = unit.path === parentPath ? `:${unit.start}` : `${fileName(unit.path)}:${unit.start}`;
   return (
-    <li className="call">
+    <li className="call" id={node.repeat ? undefined : anchorOf(unit)}>
       <button
         type="button"
         className="call-row"
-        aria-expanded={open}
-        title={`${statusLabels[unit.status]} · ${unit.path}:${unit.start}`}
-        onClick={() => setOpen(current => !current)}
+        aria-expanded={node.repeat ? undefined : open}
+        title={`${statusLabels[unit.status]} · ${unit.path}:${unit.start}${node.repeat ? ' · shown above' : ''}`}
+        onClick={() => (node.repeat ? goToFirst(unit) : setOpen(current => !current))}
       >
         <span className={`call-status call-${unit.status}`} aria-label={statusLabels[unit.status]} />
         <span className="call-text">
@@ -90,10 +105,11 @@ const CallRow: FC<CallRowProps> = ({ node, parentPath, diffStyle, wrap }) => {
           <strong>{shown.name}</strong>
           <span className="muted">{shown.args}</span>
           {node.recursive ? <span className="muted"> ↻</span> : null}
+          {node.repeat && !node.recursive ? <span className="call-repeat">shown above ↑</span> : null}
         </span>
         <span className="call-where">{where}</span>
       </button>
-      {open ? <UnitDiffView node={node} diffStyle={diffStyle} wrap={wrap} /> : null}
+      {open && !node.repeat ? <UnitDiffView node={node} diffStyle={diffStyle} wrap={wrap} /> : null}
       {node.children.length ? (
         <ul className="call-children">
           {node.children.map(child => (

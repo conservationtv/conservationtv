@@ -28,6 +28,8 @@ export interface CallNode {
   children: CallNode[];
   /** Called again from within its own calls: its children are left out. */
   recursive: boolean;
+  /** Shown already, higher up the graph: it points there instead, and its children are left out. */
+  repeat: boolean;
 }
 
 /** A unit at the merge base with none of its name at the head. */
@@ -91,13 +93,14 @@ class Resolver {
 
   /**
    * The unit a call reaches, by name: `this.x` within its own class or object, else the name as written, preferring
-   * the caller's own file when several files define it.
+   * the caller's own file when several files define it. A name read without a call reaches only its own file's.
    */
   resolve(call: Call, from: Located): Located | undefined {
     if (call.callee === null) return undefined;
     const name = call.callee.startsWith('this.') && from.owner ? `${from.owner}${call.callee.slice(4)}` : call.callee;
     const candidates = this.byName.get(name) ?? [];
-    return candidates.find(unit => unit.path === from.path) ?? candidates[0];
+    const own = candidates.find(unit => unit.path === from.path);
+    return call.reference ? own : (own ?? candidates[0]);
   }
 
   /** The changed units a unit calls, each once, in the order it first calls them. */
@@ -124,7 +127,19 @@ function grow(resolver: Resolver, unit: Located, call: Call | null, trail: Reado
     recursive || trail.size >= MAX_DEPTH
       ? []
       : resolver.callees(unit).map(([inner, target]) => grow(resolver, target, inner, next));
-  return { unit, call, children, recursive };
+  return { unit, call, children, recursive, repeat: false };
+}
+
+/**
+ * The trees with each unit drawn once, where it is first reached reading down: wherever else it is reached, such as a
+ * helper every component calls, it points back there instead of repeating its diff and calls.
+ */
+function once(nodes: readonly CallNode[], shown: Set<string>): CallNode[] {
+  return nodes.map(node => {
+    if (shown.has(node.unit.id)) return { ...node, children: [], repeat: true };
+    shown.add(node.unit.id);
+    return { ...node, children: once(node.children, shown) };
+  });
 }
 
 /**
@@ -154,7 +169,10 @@ export function callGraph(files: readonly Sides[], others: readonly string[]): C
     .filter(sides => !withUnits.has(sides.path) && sides.before !== sides.after)
     .map(sides => sides.path);
   return {
-    roots: tops.map(unit => grow(resolver, unit, null, new Set())),
+    roots: once(
+      tops.map(unit => grow(resolver, unit, null, new Set())),
+      new Set()
+    ),
     added: changed.filter(unit => unit.status === 'new').length,
     changed: changed.filter(unit => unit.status === 'changed').length,
     files: withUnits.size,

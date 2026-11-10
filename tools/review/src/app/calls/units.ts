@@ -4,7 +4,7 @@ import type { CallExpression, ClassBody, Expression, Node, ObjectExpression, Sta
 // A source file as the functions it defines and the calls each makes, read from its syntax alone: what a reviewer
 // follows by eye, without the type checker.
 
-/** A call made inside a unit: what is called, as written, and with what. */
+/** A call made inside a unit: what is called, as written, and with what; or a name the unit reads without calling. */
 export interface Call {
   /** `ScheduleCheck.validate`, `this.check` or `run`: dotted names only; null when the callee is an expression. */
   callee: string | null;
@@ -12,6 +12,8 @@ export interface Call {
   text: string;
   args: string;
   line: number;
+  /** `customTextSizes` read, not called: it reaches only a unit of the same file. */
+  reference: boolean;
 }
 
 /** A function or method; a value built from calls, such as a schema; or a route a router chain declares. */
@@ -57,15 +59,42 @@ function isNode(value: MaybeNode | null): value is Node {
   return value !== null && 'type' in value;
 }
 
-/** Every node within `node`, depth first, `node` itself first. */
-function* walk(node: Node): Generator<Node> {
-  yield node;
-  for (const [key, value] of Object.entries(node)) {
-    if (NOT_CHILDREN.has(key)) continue;
-    // A child is a node or a list of them; everything else on a node is a plain value.
+/** A node with the node it is in, and the field of that node it is under. */
+interface Placed {
+  node: Node;
+  parent: Node | null;
+  key: string | null;
+}
+
+/** Every node within `node` with what it is in, depth first, `node` itself first. */
+function* walk(node: Node, parent: Node | null = null, key: string | null = null): Generator<Placed> {
+  yield { node, parent, key };
+  for (const [field, value] of Object.entries(node)) {
+    if (NOT_CHILDREN.has(field)) continue;
     const children: (MaybeNode | null)[] = Array.isArray(value) ? value : [value];
-    for (const child of children) if (child instanceof Object && isNode(child)) yield* walk(child);
+    for (const child of children) if (child instanceof Object && isNode(child)) yield* walk(child, node, field);
   }
+}
+
+/** Fields whose identifier names something rather than reading it: a binding, a label, an import or export. */
+const NAMING_FIELDS: ReadonlySet<string> = new Set(['id', 'params', 'label', 'local', 'imported', 'exported']);
+
+/** TypeScript wrappers around an expression, whose identifier is still read; every other `TS…` node is a type. */
+const EXPRESSION_WRAPPERS: ReadonlySet<string> = new Set([
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSNonNullExpression',
+  'TSInstantiationExpression'
+]);
+
+/** Whether an identifier is read as a value: not a callee, a binding, a key, a property name or a type. */
+function isRead({ parent, key }: Placed): boolean {
+  if (parent === null || key === null) return true;
+  if (NAMING_FIELDS.has(key)) return false;
+  if (key === 'callee' && (parent.type === 'CallExpression' || parent.type === 'NewExpression')) return false;
+  if (key === 'property' && parent.type === 'MemberExpression' && !parent.computed) return false;
+  if (key === 'key' && 'computed' in parent && !parent.computed) return false;
+  return !parent.type.startsWith('TS') || EXPRESSION_WRAPPERS.has(parent.type);
 }
 
 /** The methods a router declares a route with. */
@@ -119,15 +148,33 @@ class Reader {
       callee: this.dotted(node.callee),
       text: this.shown(node.callee),
       args: squash(node.arguments.map(arg => this.slice(arg)).join(', ')),
-      line: node.loc?.start.line ?? 0
+      line: node.loc?.start.line ?? 0,
+      reference: false
     };
   }
 
-  /** Every call inside a node, nested functions and callbacks included, in source order. */
+  /**
+   * Every call inside a node, nested functions and callbacks included, then every name it reads without calling, each
+   * in source order.
+   */
   callsIn(node: Node): Call[] {
     const calls: Call[] = [];
-    for (const inner of walk(node)) if (inner.type === 'CallExpression') calls.push(this.call(inner));
-    return calls.toSorted((a, b) => a.line - b.line);
+    for (const { node: inner } of walk(node)) if (inner.type === 'CallExpression') calls.push(this.call(inner));
+    return [...calls.toSorted((a, b) => a.line - b.line), ...this.referencesIn(node)];
+  }
+
+  /** The names a node reads without calling, each once, where it is first read. */
+  referencesIn(node: Node): Call[] {
+    const seen = new Set<string>();
+    const references: Call[] = [];
+    for (const placed of walk(node)) {
+      const { node: inner } = placed;
+      if (inner.type !== 'Identifier' || seen.has(inner.name) || !isRead(placed)) continue;
+      seen.add(inner.name);
+      const line = inner.loc?.start.line ?? 0;
+      references.push({ callee: inner.name, text: inner.name, args: '', line, reference: true });
+    }
+    return references;
   }
 
   /** A unit spanning `node`, with the calls inside it. */
@@ -169,7 +216,7 @@ class Reader {
       this.object(name, node);
     } else if (node.type === 'TSAsExpression' || node.type === 'TSSatisfiesExpression') {
       this.value(name, owner, node.expression);
-    } else if (!this.routes(node) && this.callsIn(node).length) {
+    } else if (!this.routes(node) && this.callsIn(node).some(call => !call.reference)) {
       this.add(name, owner, node, '', 'value');
     }
   }

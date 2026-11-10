@@ -44,7 +44,10 @@ as trees of the calls between them. Each tree starts where the change is entered
 into it when there is one, and opening a call shows that function's own diff. It is read from syntax alone with
 `@babel/parser`, in the browser, from both sides of each TypeScript and JavaScript file: a call is matched to a
 changed function by the name it is written with (`this.x` within its class or object), so calls through variables,
-imports under another name or dynamic dispatch are not followed. **Files** shows the chapter file by file.
+imports under another name or dynamic dispatch are not followed. A name a function reads without calling it, such as
+a changed list it passes on, is followed too, within its own file. Each function is drawn once, where it is first
+reached: wherever else it is reached, such as a helper every component calls, it points back there instead of
+repeating its diff. **Files** shows the chapter file by file.
 
 ## API contracts
 

@@ -1350,6 +1350,12 @@ button {
   color: var(--muted);
 }
 
+.call-repeat {
+  margin-left: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
 .call-status {
   flex-shrink: 0;
   display: inline-block;
