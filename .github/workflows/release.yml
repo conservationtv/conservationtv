@@ -1,0 +1,146 @@
+name: release
+
+# One version for everything: publishing a GitHub release `vX.Y.Z` (from a commit on main that `pnpm release:prepare`
+# prepared; see tools/release/release.ts) checks every API's contracts against their snapshots, then publishes the
+# `ctv` CLI to npm and the agent image to GHCR at that version, and adds the contract changes to the release's notes.
+# Each publishing job can be re-run alone: one that already published its version skips it.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+
+env:
+  TAG: ${{ github.event.release.tag_name }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+          # verify checks the tag is on main.
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Check the tag is the prepared version, on main
+        run: node tools/release/release.ts verify "$TAG"
+      # Each API's committed bundle must equal its snapshot for this release, or its latest before it, and no frozen
+      # snapshot or released contract may have changed.
+      - name: Check every API's contracts
+        run: API_RELEASE_TAG="$TAG" pnpm -r run ci:contracts release
+
+  notes:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      # Appended to the notes the release was published with, unless an earlier run already added them.
+      - name: Add the contract changes to the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" --json body --jq .body > notes.md
+          if grep -q '^## Contract changes$' notes.md; then
+            echo "The notes already list the contract changes."
+            exit 0
+          fi
+          printf '\n\n' >> notes.md
+          node tools/release/release.ts notes "$TAG" >> notes.md
+          gh release edit "$TAG" --notes-file notes.md
+
+  npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      # npm trusted publishing: npm exchanges the workflow's OIDC token for a short-lived publish token, and attaches
+      # provenance. Node 24's npm supports it (11.5.1 and later).
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - name: Install
+        run: pnpm install --frozen-lockfile --filter @conservationtv/cli...
+      - name: Build the CLI
+        run: pnpm --filter @conservationtv/cli build
+      - name: Publish to npm
+        run: |
+          version="${TAG#v}"
+          if npm view "@conservationtv/cli@$version" version >/dev/null 2>&1; then
+            echo "@conservationtv/cli@$version is already published."
+            exit 0
+          fi
+          npm publish ./apps/cli/dist --access public
+
+  agent-image:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/agent
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+      # arm64 for the Raspberry Pis, built under emulation.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      # X.Y.Z, X.Y, X and latest.
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=true
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=semver,pattern={{major}},value=${{ env.TAG }}
+          labels: |
+            org.opencontainers.image.title=conservation.tv agent
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/agent/docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,11 +1,12 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { contractsOf, ReleaseDocumentSchema, type ReleaseDocument } from './compare.js';
 import type { ContractsProject } from './config.js';
+import { snapshotNames } from './snapshot-status.js';
 
 /** The project parts the release checks read. */
-export type ReleaseProject = Pick<ContractsProject, 'document' | 'snapshots' | 'root' | 'paths' | 'release'>;
+export type ReleaseProject = Pick<ContractsProject, 'document' | 'snapshots' | 'root' | 'paths'>;
 
 export interface Release {
   name: string;
@@ -37,17 +38,13 @@ export function readCurrent(project: ReleaseProject): ReleaseDocument {
   return ReleaseDocumentSchema.parse(JSON.parse(readFileSync(project.document, 'utf8')));
 }
 
-/** Read the immutable release history in a reusable form for gates and advisory checks. */
+/** Read the immutable release history, oldest first, in a reusable form for gates and advisory checks. */
 export function readReleases(project: ReleaseProject): Release[] {
-  const names = existsSync(project.snapshots)
-    ? readdirSync(project.snapshots)
-        .filter(name => name.endsWith('.json'))
-        .sort()
-    : [];
-  return names.map(name => ({
-    name,
-    document: ReleaseDocumentSchema.parse(JSON.parse(readFileSync(join(project.snapshots, name), 'utf8')))
-  }));
+  return snapshotNames(project).map(name => ({ name, document: readSnapshot(project, name) }));
+}
+
+export function readSnapshot(project: Pick<ReleaseProject, 'snapshots'>, name: string): ReleaseDocument {
+  return ReleaseDocumentSchema.parse(JSON.parse(readFileSync(join(project.snapshots, `${name}.json`), 'utf8')));
 }
 
 /** Compare all releases, including versions removed from the current server and later reintroduced. */
@@ -55,13 +52,16 @@ export function checkReleasedContracts(project: ReleaseProject, current: Release
   checkContractHistory([...readReleases(project), { name: 'current', document: current }]);
 }
 
+/** Bundles outgrow `execFileSync`'s 1 MiB default (the studio API's is over a megabyte), so Git may print this much. */
+const GIT_MAX_BUFFER = 256 * 1024 * 1024;
+
 /** Existing snapshots cannot be changed or deleted; new snapshots are permitted. */
 export function checkSnapshotFiles(project: ReleaseProject, base = 'HEAD'): void {
   // A freshly initialized starter has no frozen Git history until its first commit.
   const { root } = project;
   if (base === 'HEAD' && spawnSync('git', ['rev-parse', '--verify', '--quiet', 'HEAD'], { cwd: root }).status !== 0)
     return;
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: root });
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: root, maxBuffer: GIT_MAX_BUFFER });
   const paths = git('ls-tree', '-r', '--name-only', '-z', base, '--', project.paths.snapshots)
     .toString()
     .split('\0')
@@ -78,7 +78,11 @@ export function checkSnapshotFiles(project: ReleaseProject, base = 'HEAD'): void
 export function readBundleAt(project: ReleaseProject, base: string): ReleaseDocument {
   return ReleaseDocumentSchema.parse(
     JSON.parse(
-      execFileSync('git', ['show', `${base}:${project.paths.document}`], { cwd: project.root, encoding: 'utf8' })
+      execFileSync('git', ['show', `${base}:${project.paths.document}`], {
+        cwd: project.root,
+        encoding: 'utf8',
+        maxBuffer: GIT_MAX_BUFFER
+      })
     )
   );
 }

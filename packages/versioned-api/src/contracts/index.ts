@@ -1,6 +1,7 @@
 export {
   defineContracts,
   loadProject,
+  compareReleases,
   releaseName,
   type ContractsConfig,
   type ContractsProject,
@@ -11,7 +12,9 @@ export { generateBundle } from './openapi.js';
 export { createResponseInferrer } from './infer-responses.js';
 export {
   compatibilityChanges,
+  contractChanges,
   contractsOf,
+  type ContractChanges,
   ReleaseDocumentSchema,
   type CompatibilityChange,
   type ReleaseDocument
@@ -23,5 +26,14 @@ export {
   readReleases,
   type Release
 } from './release.js';
-export { snapshotStatus, type SnapshotStatus } from './snapshot-status.js';
-export { checkRelease, checkSnapshot, ci, snapshot, type CiEnvironment, type Mode } from './commands.js';
+export { snapshotNames, snapshotStatus, type SnapshotStatus } from './snapshot-status.js';
+export {
+  changes,
+  checkRelease,
+  checkSnapshot,
+  ci,
+  snapshot,
+  type Changes,
+  type CiEnvironment,
+  type Mode
+} from './commands.js';

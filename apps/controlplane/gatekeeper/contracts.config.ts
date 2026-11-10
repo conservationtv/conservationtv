@@ -4,5 +4,5 @@ import { specOptions } from './src/openapi.ts';
 import * as schemas from './src/schemas.ts';
 
 // `api-contracts generate` writes openapi.json from these routes and their handlers' types; the snapshot and release
-// commands freeze and check it under contracts/snapshots/ as gatekeeper-vX.Y.Z.
-export default defineContracts({ app, router: operationRouter, spec: specOptions, schemas, release: 'gatekeeper' });
+// commands freeze and check it under contracts/snapshots/ as vX.Y.Z, the version every API releases under together.
+export default defineContracts({ app, router: operationRouter, spec: specOptions, schemas });

@@ -1,15 +1,18 @@
 // `api-contracts <command>`, run from an API's directory (the one holding contracts.config.ts).
 import { parseArgs } from 'node:util';
 import { loadProject } from './config.js';
-import { checkRelease, checkSnapshot, ci, snapshot } from './commands.js';
+import { changes, checkRelease, checkSnapshot, ci, snapshot } from './commands.js';
 import { generateBundle } from './openapi.js';
 
 const usage = `Usage: api-contracts <command> [options]
 
   generate                       Write openapi.json from the routes and their handler types.
-  snapshot <tag>                 Regenerate, then freeze the bundle as snapshots/<tag>.json.
+  snapshot <tag>                 Regenerate, then freeze the bundle as snapshots/<tag>.json, unless it is unchanged.
   check-release [--base <ref>] [--tag <tag>]
                                  Frozen snapshots are unchanged and no released contract differs.
+  changes [--tag <tag>]          Print, as JSON, the operation versions a release adds, changes and removes.
+
+  Every API releases under one version: tags are vX.Y.Z.
   check-snapshot [--required]    Exit 0 when the bundle matches the latest snapshot (or, with --required, when it doesn't).
   ci <pr|main|release|snapshots> The CI gates; reads API_BASE_REF, API_RELEASE_TAG, GITHUB_ACTIONS and GITHUB_STEP_SUMMARY.
 
@@ -38,6 +41,9 @@ try {
       break;
     case 'check-release':
       checkRelease(project, { base: values.base, tag: values.tag });
+      break;
+    case 'changes':
+      console.log(JSON.stringify(changes(project, values.tag)));
       break;
     case 'check-snapshot':
       process.exitCode = checkSnapshot(project, values.required);

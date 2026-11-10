@@ -235,10 +235,10 @@ GATEKEEPER_URL=http://localhost:6422 GATEKEEPER_TOKEN=local-consumer-token pnpm 
   --expires_in 300
 ```
 
-Release snapshots work as in the reference: `pnpm snapshot gatekeeper-v1.0.0` freezes the current bundle under
-`contracts/snapshots/`, and `check:snapshot`, `check:release` and `ci:contracts` gate releases. These scripts are the shared
-`api-contracts` command reading `contracts.config.ts`. No snapshot has been cut yet, so every contract is still
-provisional.
+Every API in the repository releases together under one version, `vX.Y.Z` (`pnpm release:prepare` at the root, then a
+GitHub release; see tools/release). A release that changes the gatekeeper's contracts freezes its bundle as
+`contracts/snapshots/vX.Y.Z.json`, and `check:snapshot`, `check:release` and `ci:contracts` gate releases. These scripts
+are the shared `api-contracts` command reading `contracts.config.ts`. v1.0.0 is the first release.
 
 Toolchain note: every package type-checks with TypeScript 7 (the workspace catalog). Response inference and Hey API
 need the TypeScript compiler API, which TypeScript 7 does not ship: the shared package imports TypeScript 6 as

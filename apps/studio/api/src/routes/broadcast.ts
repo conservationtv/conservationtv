@@ -20,11 +20,9 @@ import {
   invalidReference,
   invalidRequest,
   notFound,
-  operationVersion,
   unauthenticated,
   unavailable,
   validator,
-  versionMismatch,
   webSocket
 } from './openapi.ts';
 
@@ -38,8 +36,9 @@ export type OutputDevice = z.output<typeof OutputDeviceSchema>;
 // shows go out through, signed as their devices. Following it changes nothing; only setting its composition does, which
 // for now is a temporary command composing it from the organisation's streams. Both are versionless operations:
 // following is a WebSocket, which the SDK gives the address of (`webSocket`), and composing will give way to a show's
-// controls. Where it goes out is a versioned operation, kept for the show whose ID is the organisation's, which every
-// organisation going out before it could have more than one show has (src/routes/shows.ts has every show's).
+// controls. Where it goes out is versionless too, so it stays out of the released contract: it is kept for the show
+// whose ID is the organisation's, which every organisation going out before it could have more than one show has,
+// until the per-show operations (src/routes/shows.ts) replace it.
 // A frame page (packages/shows' `*.frame.tsx`, as OBS or an iframe opens it) follows its own source over a WebSocket
 // too, with no session at all, so that socket serves frame sources only (src/shows/host.tsx). The show's bundle names
 // that address (src/shows/broadcast.ts), so it is no operation: its route is hidden.
@@ -135,7 +134,6 @@ export default new Hono()
     '/output',
     describeRoute({
       operationId: 'organisations.show.output.get',
-      ...operationVersion(1),
       summary: "Read where an organisation's broadcast goes out",
       description: 'The agent that drives OBS for it, following the broadcast and playing its streams.',
       responses: {
@@ -143,7 +141,6 @@ export default new Hono()
         400: invalidRequest,
         401: unauthenticated,
         404: notFound,
-        412: versionMismatch,
         503: unavailable
       }
     }),
@@ -161,7 +158,6 @@ export default new Hono()
     '/output',
     describeRoute({
       operationId: 'organisations.show.output.set',
-      ...operationVersion(1),
       summary: "Set where an organisation's broadcast goes out",
       description:
         "Administrators only. The agent, one of the organisation's, drives OBS for the broadcast in place of any other: its configuration gains the `obs` runtime, and it follows the broadcast and reads the streams it shows. OBS agents run on Windows and macOS.",
@@ -170,7 +166,6 @@ export default new Hono()
         400: invalidRequest,
         401: unauthenticated,
         403: forbidden,
-        412: versionMismatch,
         422: invalidReference,
         503: unavailable
       }
@@ -191,7 +186,6 @@ export default new Hono()
     '/output',
     describeRoute({
       operationId: 'organisations.show.output.delete',
-      ...operationVersion(1),
       summary: "Stop an organisation's broadcast going out",
       description: 'Administrators only. Its agent stops running OBS for it.',
       responses: {
@@ -200,7 +194,6 @@ export default new Hono()
         401: unauthenticated,
         403: forbidden,
         404: notFound,
-        412: versionMismatch,
         503: unavailable
       }
     }),
