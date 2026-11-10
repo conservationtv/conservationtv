@@ -114,7 +114,8 @@ jobs:
           # GITHUB_TOKEN cannot make gists: a token with the gist scope, and nothing else, from the account that owns them.
           GH_TOKEN: ${{ secrets.DIFFMAP_GIST_TOKEN }}
         run: |
-          out=$(pnpm dlx "$DIFFMAP" share "$RUNNER_TEMP/diffmap/diffmap.md")
+          gh auth status
+          out=$(pnpm dlx "$DIFFMAP" share "$RUNNER_TEMP/diffmap/diffmap.md" 2>&1) || { echo "$out"; exit 1; }
           echo "$out"
           gist=$(grep -oE 'diffmap\.dev/g/[0-9a-f]{32}' <<<"$out" | head -1 | cut -d/ -f3)
           test -n "$gist"
