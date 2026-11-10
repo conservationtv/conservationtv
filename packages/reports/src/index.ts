@@ -1,8 +1,12 @@
 export {
   MetricDimensionsSchema,
   MetricSummarySchema,
+  forwardMetrics,
   machineMetrics,
   pathMetrics,
+  previewMetrics,
+  programMetrics,
+  recorderMetrics,
   relayMetrics,
   summarise,
   type MetricDefinition,

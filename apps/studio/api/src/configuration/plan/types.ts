@@ -25,6 +25,15 @@ export interface PlannedPath {
   source: PathSource;
 }
 
+/**
+ * A path the agent's MediaMTX takes a show's preview on: the show's output publishes the program there, with a token
+ * `organisations.shows.previews.connect` signs as the agent for its gateway, and readers read it.
+ */
+export interface PlannedPreviewPath {
+  name: string;
+  previewId: string;
+}
+
 /** The `connect` ask (`organisations.streams.exposures.connect`) for where a publisher publishes, and its token. */
 export const PublisherConnectSchema = z
   .object({
@@ -83,7 +92,8 @@ export type MediamtxTls = z.output<typeof MediamtxTlsSchema>;
 /**
  * The `mediamtx` runtime, which a network's active agent runs: the MediaMTX gateway on its network, how it admits
  * readers and publishers (by tokens this API signs as it), and the hostname and certificate it serves TLS with when the
- * deployment issues them (src/gateways/certificates.ts); the paths it serves, and what it publishes from them.
+ * deployment issues them (src/gateways/certificates.ts); the paths it serves, what it publishes from them, and the
+ * paths shows' outputs publish their previews to.
  */
 export interface MediamtxConfiguration {
   gatewayId: string;
@@ -93,6 +103,11 @@ export interface MediamtxConfiguration {
   publishers: PlannedPublisher[];
   /** Where to read the traffic stats of the gateways it publishes to, for those that publish them. */
   stats: StatsConnect[];
+  /**
+   * The shows' previews delivered to its gateway, each a path publishers push to. Agents built from earlier releases
+   * don't read it, and serve no previews.
+   */
+  previews?: PlannedPreviewPath[];
 }
 
 /** The show an OBS output follows: the show, and the request a WebSocket follows it by, to sign as the device. */

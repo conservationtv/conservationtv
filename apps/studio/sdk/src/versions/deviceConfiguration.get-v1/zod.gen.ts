@@ -78,7 +78,11 @@ export const DeviceConfigurationSchema = z.object({
             ])
         })),
         publishers: z.array(PublisherSchema),
-        stats: z.array(StatsConnectSchema)
+        stats: z.array(StatsConnectSchema),
+        previews: z.array(z.object({
+            name: z.string(),
+            previewId: z.string()
+        })).optional()
     }).optional(),
     obs: z.object({
         show: z.object({

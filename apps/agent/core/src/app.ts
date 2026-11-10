@@ -120,7 +120,8 @@ function controllers(
     programPorts: DEFAULT_PROGRAM_PORTS,
     websocketPort: config.obsWebsocketPort ?? DEFAULT_OBS_WEBSOCKET_PORT,
     studio,
-    identity
+    identity,
+    config
   });
 
   // const control = new ControlRuntime(config);
@@ -203,7 +204,7 @@ export class Agent {
       restore: async () => {
         const spec = {
           machine: { intervalMs: 60_000 },
-          streams: { paths: [], publishers: [], stats: [] },
+          streams: { paths: [], previews: [], publishers: [], stats: [] },
           metrics: { intervalMs: 60_000, paths: [] }
         };
         return spec;

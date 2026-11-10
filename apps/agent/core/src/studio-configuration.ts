@@ -15,13 +15,15 @@ import { useStudio } from './studio.ts';
 //      with where to publish from
 //      `organisations.streams.exposures.connect`, and where to read the relays' stats of what they carry from
 //      `organisations.gateways.stats.connect`; and for its metrics: what each path delivers;
-//   3. turns its `obs` section, the show it sends out, into the `obs` key's spec as it is;
+//   3. turns its `obs` section, the show it sends out, into the `obs` key's spec: as it is, but for each preview, with
+//      where to publish it from `organisations.shows.previews.connect`;
 //   4. hands them to converge as the `streams`, `metrics` and `obs` keys, each of which changes what runs only when its
 //      spec changed, and is finalised when its section is left out.
 //
 // A publisher reads its renditions on this machine, which needs no token (runtimes/mediamtx/auth.ts), and publishes
-// them to the relay with credentials from `organisations.streams.exposures.connect`. Those are kept until shortly
-// before they expire, so the spec, and the processes run from it, stay the same between renewals.
+// them to the relay with credentials from `organisations.streams.exposures.connect`; a preview, the program, with
+// credentials from `organisations.shows.previews.connect`. Those are kept until shortly before they expire, so the
+// spec, and the processes run from it, stay the same between renewals.
 //
 // TODO: Be told of changes rather than polling, once the studio API can push them.
 
@@ -52,7 +54,7 @@ export type ApplyStudioSpecs = (specs: StudioSpecs) => Promise<void>;
  */
 export async function watchStudioConfiguration(signal: AbortSignal, apply: ApplyStudioSpecs): Promise<void> {
   const studio = useStudio();
-  const connections: Connections = { publish: new Map(), stats: new Map() };
+  const connections: Connections = { publish: new Map(), stats: new Map(), previews: new Map() };
   while (!signal.aborted) {
     try {
       const configuration = await askConfiguration(studio);
@@ -85,8 +87,24 @@ async function studioSpecs(
     specs.streams = streams;
     specs.metrics = metrics;
   }
-  if (configuration.obs !== undefined) specs.obs = configuration.obs;
+  if (configuration.obs !== undefined) specs.obs = await obsSpec(configuration.obs, studio, connections);
   return specs;
+}
+
+/** The `obs` key's spec from the `obs` section: as it is, but for each preview, with where to publish it. */
+async function obsSpec(obs: ObsSection, studio: Client, connections: Connections): Promise<ObsSpec> {
+  const previews: ObsSpec['previews'] = [];
+  for (const { previewId, connect: ask } of obs.previews ?? []) {
+    // One whose credentials cannot be had is left out, and tried again next time.
+    try {
+      const publish = await previewTarget(studio, connections.previews, ask);
+      previews.push({ previewId, publish });
+    } catch (error) {
+      logger.error('Preview {previewId} is unavailable: {error}', { previewId, error });
+    }
+  }
+  const { show, output, forwards, recording, program } = obs;
+  return { show, output, forwards, previews, recording, program };
 }
 
 /**
@@ -114,7 +132,8 @@ async function mediamtxSpecs(mediamtx: MediamtxSection, studio: Client, connecti
     }
   }
   const { gatewayId, auth, tls, paths } = mediamtx;
-  const streams: StreamsSpec = { gatewayId, paths, auth, tls, publishers, stats };
+  const previews = mediamtx.previews ?? [];
+  const streams: StreamsSpec = { gatewayId, paths, previews, auth, tls, publishers, stats };
   const attributions = paths.map(({ name, exposureId, rendition }) => ({ name, exposureId, rendition }));
   const metrics: MetricsSpec = { intervalMs: METRICS_INTERVAL_MS, paths: attributions };
   return { streams, metrics };
@@ -126,6 +145,9 @@ type DeviceConfiguration = Exclude<Awaited<ReturnType<Client['deviceConfiguratio
 /** Its `mediamtx` section. */
 type MediamtxSection = NonNullable<DeviceConfiguration['mediamtx']>;
 
+/** Its `obs` section. */
+type ObsSection = NonNullable<DeviceConfiguration['obs']>;
+
 /** The connection details `connect` returns, whichever protocol. */
 type Connection = Exclude<Awaited<ReturnType<Client['organisations']['streams']['exposures']['connect']['v1']>>, Error>;
 
@@ -135,13 +157,21 @@ type StatsConnection = Exclude<
   Error
 >;
 
+/** The connection details `organisations.shows.previews.connect` returns, whichever protocol. */
+type PreviewConnection = Exclude<
+  Awaited<ReturnType<Client['organisations']['shows']['previews']['connect']['v1']>>,
+  Error
+>;
+
 /**
  * The credentials kept between asks, each until shortly before it expires: from `connect`, to publish each exposure,
- * by its ID; and from `stats.connect`, to read each gateway's stats, by the gateway's ID.
+ * by its ID; from `stats.connect`, to read each gateway's stats, by the gateway's ID; and from `previews.connect`, to
+ * publish each preview, by its ID.
  */
 interface Connections {
   publish: Map<string, Connection>;
   stats: Map<string, StatsConnection>;
+  previews: Map<string, PreviewConnection>;
 }
 
 /** The `connect` ask the configuration gives for where to publish an exposure. */
@@ -165,6 +195,43 @@ async function publishTarget(studio: Client, connections: Connections['publish']
   const url = new URL(connection.path, connection.relay);
   if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
   return { connect: url.href, broadcast: connection.broadcast };
+}
+
+/** The `previews.connect` ask the configuration gives for where to publish a preview. */
+type PreviewConnect = NonNullable<ObsSection['previews']>[number]['connect'];
+
+/**
+ * Where to publish the preview: by MoQ, the relay URL to dial at its path, carrying its token as `?jwt=`, and the
+ * broadcast under it; by RTMP(S), the URL to push to, carrying its token as `?jwt=`. Asks `previews.connect` again
+ * when what is kept expires within `RENEW_BEFORE_MS`; throws if it refuses, or offers a protocol the agent can't push.
+ */
+async function previewTarget(
+  studio: Client,
+  connections: Connections['previews'],
+  ask: PreviewConnect
+): Promise<ObsSpec['previews'][number]['publish']> {
+  const connection = await previewConnection(studio, connections, ask);
+  if ('relay' in connection) {
+    const url = new URL(connection.path, connection.relay);
+    if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
+    return { protocol: 'moq', connect: url.href, broadcast: connection.broadcast };
+  }
+  const { protocol } = connection;
+  if (protocol !== 'rtmp' && protocol !== 'rtmps') throw new Error(`Preview ${ask.previewId} is not pushed by RTMP`);
+  const url = new URL(connection.url);
+  if (connection.token !== undefined) url.searchParams.set('jwt', connection.token);
+  return { protocol, url: url.href };
+}
+
+/** The preview's connection: the one kept, or asked for again when it expires within `RENEW_BEFORE_MS`. */
+async function previewConnection(studio: Client, connections: Connections['previews'], ask: PreviewConnect) {
+  const kept = connections.get(ask.previewId);
+  const expiresAt = kept?.expiresAt === undefined ? Infinity : Date.parse(kept.expiresAt);
+  if (kept !== undefined && expiresAt - Date.now() >= RENEW_BEFORE_MS) return kept;
+  const renewed = await studio.organisations.shows.previews.connect.v1(ask);
+  if (renewed instanceof Error) throw renewed;
+  connections.set(ask.previewId, renewed);
+  return renewed;
 }
 
 /** The `stats.connect` ask the configuration gives for where to read a gateway's traffic stats. */

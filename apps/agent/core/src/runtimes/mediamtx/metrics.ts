@@ -17,8 +17,10 @@ import { type PathIndex, type PathTarget, PathAttributionsSchema, pathIndexOf } 
 // What a path sends is split by who reads it. The agent's MoQ publishers read each path they publish over RTMP from
 // loopback (builders/publishers.ts), all of it for as long as they run, so those readers' bytes are its publisher
 // egress, and everything else it sends, to any other reader, its LAN egress. What actually reaches the relay is the
-// relay's to count (relay-traffic.ts). Per-session and per-protocol samples are
-// not shipped.
+// relay's to count (relay-traffic.ts). Per-session and per-protocol samples are not shipped.
+//
+// Reading the page (`readMetricsPage`), and the rates between two reads, are shared with the obs runtime, which reads
+// its program MediaMTX's page the same way (runtimes/obs/program-metrics.ts).
 
 /** How often to report the streams' metrics, and what each path's are about. */
 export const MetricsSpecSchema = z.object({
@@ -33,7 +35,7 @@ export type MetricsSpec = z.output<typeof MetricsSpecSchema>;
 const SAMPLE_INTERVAL_MS = 10_000;
 
 /** What one read of the metrics page says of a path. Byte and error counts are MediaMTX's running totals. */
-interface PathReading {
+export interface PathReading {
   ready: number;
   readers: number;
   inboundBytes: number;
@@ -52,16 +54,32 @@ interface PathSamples {
 }
 
 /** One of the agent's MoQ publishers reading a path: the path, and the bytes sent it so far on this connection. */
-interface PublisherReading {
+export interface PublisherReading {
   path: string;
   outboundBytes: number;
 }
 
-/** A read of the metrics page, at a time: each path's reading, and each publisher connection's, by its ID. */
-interface Read {
+/**
+ * One of a path's forward destinations (its config's `forward`): the path, its place in that list (from 1), MediaMTX's
+ * state for it (`idle`, `forwarding` or `error`), and the bytes sent it so far.
+ */
+export interface ForwardReading {
+  path: string;
+  pos: number;
+  state: string;
+  outboundBytes: number;
+}
+
+/**
+ * A read of the metrics page, at a time: each path's reading, each publisher connection's and each forward
+ * destination's, by its ID, and the paths something publishes to over RTMP.
+ */
+export interface Read {
   at: number;
   paths: Map<string, PathReading>;
   publishers: Map<string, PublisherReading>;
+  forwards: Map<string, ForwardReading>;
+  rtmpPublished: Set<string>;
 }
 
 /** The per-path samples a reading is made from, by the field each adds to. */
@@ -74,7 +92,7 @@ const PATH_FIELDS = new Map<string, keyof PathReading>([
 ]);
 
 /** Each path's reading, adding up the samples MediaMTX gives it per label, such as one per reader type. */
-function readingsOf(samples: PrometheusSample[]): Map<string, PathReading> {
+export function readingsOf(samples: PrometheusSample[]): Map<string, PathReading> {
   const paths = new Map<string, PathReading>();
   for (const sample of samples) {
     // A per-path sample adds to its path's reading, under the field its name gives. MediaMTX gives `paths` under the
@@ -113,11 +131,73 @@ function publishersOf(samples: PrometheusSample[]): Map<string, PublisherReading
   return publishers;
 }
 
+/** Each forward destination, by its ID, which MediaMTX gives it anew whenever it starts forwarding afresh. */
+function forwardsOf(samples: PrometheusSample[]): Map<string, ForwardReading> {
+  const forwards = new Map<string, ForwardReading>();
+  for (const sample of samples) {
+    // Each destination's byte count, labelled with its path, its place in the path's list, and its state; anything
+    // else, or one missing a label, is skipped.
+    const { id, path, pos, state } = sample.labels;
+    if (sample.deprecated || sample.name !== 'forward_dests_outbound_bytes') continue;
+    if (id === undefined || path === undefined || pos === undefined) continue;
+    forwards.set(id, { path, pos: Number(pos), state: state ?? '', outboundBytes: sample.value });
+  }
+  return forwards;
+}
+
+/** The paths an RTMP connection publishes to: OBS's stream to the program, say. */
+function rtmpPublishedOf(samples: PrometheusSample[]): Set<string> {
+  const published = new Set<string>();
+  for (const sample of samples) {
+    // Each RTMP connection publishing to a path; reading ones, and deprecated duplicates, are skipped.
+    const { path, state } = sample.labels;
+    if (sample.deprecated || sample.name !== 'rtmp_conns' || state !== 'publish' || path === undefined) continue;
+    published.add(path);
+  }
+  return published;
+}
+
+/** A read of the metrics page, and how many samples it had. */
+export interface MetricsPage {
+  read: Read;
+  samples: number;
+}
+
+/** Reads MediaMTX's metrics page at `url`, as of now. Throws if it doesn't answer, or answers with an error. */
+export async function readMetricsPage(url: string): Promise<MetricsPage> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
+  if (!response.ok) throw new Error(`MediaMTX's metrics page answered ${response.status}`);
+  const text = await response.text();
+  const samples = parseMetrics(text);
+  const read: Read = {
+    at: Date.now(),
+    paths: readingsOf(samples),
+    publishers: publishersOf(samples),
+    forwards: forwardsOf(samples),
+    rtmpPublished: rtmpPublishedOf(samples)
+  };
+  return { read, samples: samples.length };
+}
+
+/**
+ * How many bits a second each forward destination was sent between two reads, by its ID. One the previous read did not
+ * have counts from zero, as one started since; one whose count went back was reset, and gives no rate.
+ */
+export function forwardRates(read: Read, previous: Read, seconds: number): Map<string, number> {
+  const rates = new Map<string, number>();
+  for (const [id, reading] of read.forwards) {
+    const before = previous.forwards.get(id)?.outboundBytes ?? 0;
+    const moved = reading.outboundBytes - before;
+    if (moved >= 0) rates.set(id, (moved * 8) / seconds);
+  }
+  return rates;
+}
+
 /**
  * How many bits a second each path sent its publishers between two reads. A connection counts from zero when the
  * previous read did not have it, as one opened since; one whose count went back was reset, and gives no rate.
  */
-function publisherRates(read: Read, previous: Read, seconds: number): Map<string, number> {
+export function publisherRates(read: Read, previous: Read, seconds: number): Map<string, number> {
   const rates = new Map<string, number>();
   for (const [id, reading] of read.publishers) {
     // Each connection adds what it moved to its path's rate: from zero if it is new, nothing if its count went back.
@@ -130,7 +210,7 @@ function publisherRates(read: Read, previous: Read, seconds: number): Map<string
 }
 
 /** Sample how fast a running total moved between two reads, a second, times `scale`. */
-function addRate(into: number[], current: number, previous: number, seconds: number, scale: number): void {
+export function addRate(into: number[], current: number, previous: number, seconds: number, scale: number): void {
   // A total that went back was reset, as on a restart, so this read gives no rate.
   const moved = current - previous;
   if (moved >= 0) into.push((moved * scale) / seconds);
@@ -333,13 +413,10 @@ export class MediamtxMetricsRuntime {
   /** Read the metrics page into each path's samples. A failed read is reported in the status, and skipped. */
   private async sample(): Promise<void> {
     try {
-      const response = await fetch(this.url, { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
-      if (!response.ok) throw new Error(`MediaMTX's metrics page answered ${response.status}`);
-      const text = await response.text();
-      const samples = parseMetrics(text);
-      const now = new Date();
-      this.record({ at: now.getTime(), paths: readingsOf(samples), publishers: publishersOf(samples) });
-      this.update({ lastScrapedAt: now.toISOString(), samples: samples.length });
+      const { read, samples } = await readMetricsPage(this.url);
+      this.record(read);
+      const at = new Date(read.at);
+      this.update({ lastScrapedAt: at.toISOString(), samples });
     } catch (error) {
       this.update({ lastError: error instanceof Error ? error.message : String(error) });
     }

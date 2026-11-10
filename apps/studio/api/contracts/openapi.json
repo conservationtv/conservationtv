@@ -1871,6 +1871,24 @@
                 "items": {
                   "$ref": "#/components/schemas/StatsConnect"
                 }
+              },
+              "previews": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "previewId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "previewId"
+                  ]
+                }
               }
             },
             "required": [
@@ -36474,6 +36492,24 @@
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/StatsConnect"
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "previewId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "previewId"
+                      ]
                     }
                   }
                 },

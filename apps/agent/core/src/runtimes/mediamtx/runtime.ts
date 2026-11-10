@@ -21,7 +21,7 @@ import { type EndpointRegistration, type RealisedEndpoint, realisedEndpoints } f
 import { BroadcastJoiner } from './joiner.ts';
 import { RelayTrafficReporter } from './relay-traffic.ts';
 import type { AgentConfiguration } from '../../config.ts';
-import { MediamtxPathsSchema } from './paths.ts';
+import { MediamtxPathsSchema, MediamtxPreviewPathSchema } from './paths.ts';
 import { removeTlsFiles, writeTlsFiles, type TlsFiles } from './tls.ts';
 
 const logger = getLogger(['agent', 'mediamtx']);
@@ -39,6 +39,8 @@ export const StreamsSpecSchema = z.object({
   gatewayId: z.string().optional(),
   /** The paths to serve, each delivering an exposure. None, without `auth`, serves any path. */
   paths: MediamtxPathsSchema.default([]),
+  /** The paths shows' outputs publish their previews to, by token, for readers to read. */
+  previews: z.array(MediamtxPreviewPathSchema).default([]),
   /** Admit readers and publishers on this machine, and others only by tokens the studio API signs as this agent for this gateway; without it, anyone. */
   auth: MediamtxAuthSchema.optional(),
   /** Exposures to publish to MoQ relays from what is served: each rendition run by MediaMTX, joined by the agent. */
@@ -252,10 +254,10 @@ export class MediamtxRuntime {
 
   /** The config MediaMTX is to serve for `spec`, with the files it names (its certificate's) written for it to read. */
   private async render(spec: StreamsSpec, moq: Installed | undefined): Promise<string> {
-    const { paths, auth, publishers } = spec;
+    const { paths, previews, auth, publishers } = spec;
     const publishing = moq === undefined ? undefined : { moq: moq.path, publishers };
     const tls = await this.writeTls(spec);
-    return renderConfig({ ...this.options, paths, auth, publishing, tls });
+    return renderConfig({ ...this.options, paths, previews, auth, publishing, tls });
   }
 
   /**

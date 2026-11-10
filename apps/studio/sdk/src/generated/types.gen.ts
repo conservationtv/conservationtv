@@ -457,6 +457,10 @@ export type DeviceConfiguration = {
         }>;
         publishers: Array<Publisher>;
         stats: Array<StatsConnect>;
+        previews?: Array<{
+            name: string;
+            previewId: string;
+        }>;
     };
     obs?: {
         show: {

@@ -15,6 +15,7 @@ import {
   mediamtxAuth,
   selectGatewayIdentity,
   selectGatewayKinds,
+  selectGatewayPreviews,
   selectLocalGateway,
   selectPreferredAddress,
   selectStreams
@@ -32,7 +33,8 @@ export type * from './types.ts';
 // A device's configuration: what it should be doing, derived from the topology whenever it asks, never stored. Only
 // agents have one so far, with a section for each runtime it runs, and none for those it doesn't. The network's active
 // agent runs the MediaMTX gateway on its network (`mediamtx`), and delivers each exposure of a stream that is a hop of
-// it: its gateway's, and those pinned to it on other gateways. A show's output runs OBS (`obs`), following the show;
+// it: its gateway's, and those pinned to it on other gateways; and takes each show's preview delivered to its gateway,
+// on a path a show's output publishes to. A show's output runs OBS (`obs`), following the show;
 // what it plays comes with the show, so here are only which show, and where its program goes: the show's encoding, its
 // enabled forwards, its previews and its recorder.
 //
@@ -60,7 +62,13 @@ export async function planConfiguration(device: AuthenticatedDevice): Promise<Pl
   return { mediamtx, obs };
 }
 
-/** The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway. */
+/** The one rendition a preview is published at: the program, as it is encoded (src/gateways/connect.ts). */
+const PREVIEW_RENDITION: Rendition = 'default';
+
+/**
+ * The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway: its streams' paths and
+ * publishers, and a path for each show's preview delivered to its gateway.
+ */
 async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfiguration | undefined> {
   const planned = await trustedTransaction(async () => {
     const gatewayId = await selectLocalGateway(device);
@@ -70,7 +78,12 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfig
     const gatewayKinds = await selectGatewayKinds(device.organisationId);
     const gateway = await selectGatewayIdentity(gatewayId);
     const address = await selectPreferredAddress(device.id);
+    const previews = await selectGatewayPreviews(device.organisationId, gatewayId);
     const configuration = planActiveAgent({ organisationId: device.organisationId, gatewayId, gatewayKinds, streams });
+    configuration.previews = previews.map(preview => ({
+      name: mediamtxPath(preview.id, PREVIEW_RENDITION),
+      previewId: preview.id
+    }));
     return { configuration, gateway, address };
   });
   if (planned === undefined) return undefined;

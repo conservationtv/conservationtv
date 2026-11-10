@@ -3,13 +3,20 @@ import type { PublishedRendition } from '@conservationtv/studio-sdk';
 import type { MediamtxListening, MediamtxServing, MoqPublisher } from '../config.ts';
 
 /**
+ * The moq CLI (`moq`, installed) pulling `source` over RTMP from a MediaMTX on the same machine, and publishing it as
+ * `broadcast` at `connect`, the relay URL carrying its token. For MediaMTX to run directly (`runOnInit`): none of its
+ * arguments has a space.
+ */
+export function moqPublishCommand(moq: string, connect: string, broadcast: string, source: string): string {
+  return [moq, '--connect', connect, 'import', '--broadcast', broadcast, 'rtmp', '--connect', source].join(' ');
+}
+
+/**
  * A rendition's publisher: the moq CLI pulling it from this MediaMTX over RTMP (`rtmp`, from reach.ts), as a reader
- * on the same machine, which needs no token (auth.ts), and publishing it as its own broadcast. MediaMTX runs it
- * directly: none of its arguments has a space.
+ * on the same machine, which needs no token (auth.ts), and publishing it as its own broadcast.
  */
 function publisherCommand(publisher: MoqPublisher, rendition: PublishedRendition, moq: string, rtmp: string) {
-  const publish = [moq, '--connect', publisher.connect, 'import', '--broadcast', rendition.rendition];
-  return [...publish, 'rtmp', '--connect', `${rtmp}/${rendition.path}`].join(' ');
+  return moqPublishCommand(moq, publisher.connect, rendition.rendition, `${rtmp}/${rendition.path}`);
 }
 
 /**
