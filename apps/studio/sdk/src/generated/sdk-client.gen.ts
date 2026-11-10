@@ -60,9 +60,6 @@ import type { NetworkGetV1Input, NetworkGetV1Output } from '../versions/organisa
 import type { NetworkListV1Input, NetworkListV1Output } from '../versions/organisations.networks.list-v1/flat-params.gen.js';
 import type { NetworkSetActiveAgentV1Input, NetworkSetActiveAgentV1Output } from '../versions/organisations.networks.setActiveAgent-v1/flat-params.gen.js';
 import type { NetworkUpdateV1Input, NetworkUpdateV1Output } from '../versions/organisations.networks.update-v1/flat-params.gen.js';
-import type { OutputDeleteV1Input, OutputDeleteV1Output } from '../versions/organisations.show.output.delete-v1/flat-params.gen.js';
-import type { OutputGetV1Input, OutputGetV1Output } from '../versions/organisations.show.output.get-v1/flat-params.gen.js';
-import type { OutputSetV1Input, OutputSetV1Output } from '../versions/organisations.show.output.set-v1/flat-params.gen.js';
 import type { ShowCreateV1Input, ShowCreateV1Output } from '../versions/organisations.shows.create-v1/flat-params.gen.js';
 import type { ShowCreateRecorderV1Input, ShowCreateRecorderV1Output } from '../versions/organisations.shows.createRecorder-v1/flat-params.gen.js';
 import type { ShowDeleteV1Input, ShowDeleteV1Output } from '../versions/organisations.shows.delete-v1/flat-params.gen.js';
@@ -105,7 +102,7 @@ import type { WhoamiGetV1Output } from '../versions/whoami.get-v1/flat-params.ge
 import { buildClientParams, createClient, mergeHeaders } from './client/index.js';
 import { ClientCore, operation } from '@conservationtv/versioned-api/client';
 
-import type { HealthGetOutput, ShowComposeInput, ShowComposeOutput, ShowFollowInput, ShowFollowOutput } from './flat-params.gen.js';
+import type { HealthGetOutput, OutputDeleteInput, OutputDeleteOutput, OutputGetInput, OutputGetOutput, OutputSetInput, OutputSetOutput, ShowComposeInput, ShowComposeOutput, ShowFollowInput, ShowFollowOutput } from './flat-params.gen.js';
 
 /**
  * The SDK for servers running any release since the oldest supported snapshot. Call `handshake()` before versioned operations.
@@ -132,21 +129,21 @@ export class Client extends ClientCore {
                 fields: [{ in: 'path', key: 'id' }]
             })),
             output: {
-                get: this.versioned('organisations.show.output.get', { v1: operation<OutputGetV1Output, OutputGetV1Input>({
-                        method: 'GET',
-                        url: '/organisations/{id}/show/output',
-                        fields: [{ in: 'path', key: 'id' }]
-                    }) }),
-                set: this.versioned('organisations.show.output.set', { v1: operation<OutputSetV1Output, OutputSetV1Input>({
-                        method: 'PUT',
-                        url: '/organisations/{id}/show/output',
-                        fields: [{ in: 'path', key: 'id' }, { in: 'body', key: 'deviceId' }]
-                    }) }),
-                delete: this.versioned('organisations.show.output.delete', { v1: operation<OutputDeleteV1Output, OutputDeleteV1Input>({
-                        method: 'DELETE',
-                        url: '/organisations/{id}/show/output',
-                        fields: [{ in: 'path', key: 'id' }]
-                    }) })
+                get: this.versionless(operation<OutputGetOutput, OutputGetInput>({
+                    method: 'GET',
+                    url: '/organisations/{id}/show/output',
+                    fields: [{ in: 'path', key: 'id' }]
+                })),
+                set: this.versionless(operation<OutputSetOutput, OutputSetInput>({
+                    method: 'PUT',
+                    url: '/organisations/{id}/show/output',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'body', key: 'deviceId' }]
+                })),
+                delete: this.versionless(operation<OutputDeleteOutput, OutputDeleteInput>({
+                    method: 'DELETE',
+                    url: '/organisations/{id}/show/output',
+                    fields: [{ in: 'path', key: 'id' }]
+                }))
             }
         },
         list: this.versioned('organisations.list', { v1: operation<OrganisationListV1Output>({ method: 'GET', url: '/organisations' }) }),

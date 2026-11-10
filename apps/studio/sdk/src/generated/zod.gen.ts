@@ -82,6 +82,12 @@ export const HealthSchema = z.object({
     status: z.literal('ok')
 });
 
+export const OutputSchema = z.object({
+    showId: z.string(),
+    deviceId: z.string(),
+    createdAt: z.string()
+});
+
 export const AccountSchema = z.object({
     id: z.string(),
     name: z.string(),
@@ -367,12 +373,6 @@ export const LogSchema = z.object({
         message: z.string(),
         context: z.record(z.string(), z.unknown())
     }))
-});
-
-export const OutputSchema = z.object({
-    showId: z.string(),
-    deviceId: z.string(),
-    createdAt: z.string()
 });
 
 export const ShowSchema = z.object({

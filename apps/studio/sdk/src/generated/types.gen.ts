@@ -73,6 +73,12 @@ export type Health = {
     status: 'ok';
 };
 
+export type Output = {
+    showId: string;
+    deviceId: string;
+    createdAt: string;
+};
+
 export type Account = {
     id: string;
     name: string;
@@ -359,12 +365,6 @@ export type Log = {
             [key: string]: unknown;
         };
     }>;
-};
-
-export type Output = {
-    showId: string;
-    deviceId: string;
-    createdAt: string;
 };
 
 export type Show = {
@@ -4471,10 +4471,6 @@ export type DeleteOrganisationsByIdShowOutputErrors = {
      */
     404: Error;
     /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
      * The database is unavailable
      */
     503: Error;
@@ -4516,10 +4512,6 @@ export type GetOrganisationsByIdShowOutputErrors = {
      * The resource does not exist or is not visible to this account
      */
     404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
     /**
      * The database is unavailable
      */
@@ -4567,10 +4559,6 @@ export type PutOrganisationsByIdShowOutputErrors = {
      * The resource is visible, but this account may not do this to it
      */
     403: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
     /**
      * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
      */

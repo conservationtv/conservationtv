@@ -256,6 +256,25 @@
           "status"
         ]
       },
+      "Output": {
+        "type": "object",
+        "properties": {
+          "showId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "showId",
+          "deviceId",
+          "createdAt"
+        ]
+      },
       "Account": {
         "type": "object",
         "properties": {
@@ -1490,25 +1509,6 @@
         },
         "required": [
           "logs"
-        ]
-      },
-      "Output": {
-        "type": "object",
-        "properties": {
-          "showId": {
-            "type": "string"
-          },
-          "deviceId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "showId",
-          "deviceId",
-          "createdAt"
         ]
       },
       "Show": {
@@ -10836,7 +10836,6 @@
     "/organisations/{id}/show/output": {
       "get": {
         "operationId": "organisations.show.output.get",
-        "x-operation-version": 1,
         "summary": "Read where an organisation's broadcast goes out",
         "description": "The agent that drives OBS for it, following the broadcast and playing its streams.",
         "responses": {
@@ -10880,16 +10879,6 @@
               }
             }
           },
-          "412": {
-            "description": "The selected operation version is not served",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "503": {
             "description": "The database is unavailable",
             "content": {
@@ -10913,14 +10902,10 @@
             "required": true,
             "description": "The organisation."
           }
-        ],
-        "x-operation-versions": [
-          1
         ]
       },
       "put": {
         "operationId": "organisations.show.output.set",
-        "x-operation-version": 1,
         "summary": "Set where an organisation's broadcast goes out",
         "description": "Administrators only. The agent, one of the organisation's, drives OBS for the broadcast in place of any other: its configuration gains the `obs` runtime, and it follows the broadcast and reads the streams it shows. OBS agents run on Windows and macOS.",
         "responses": {
@@ -10956,16 +10941,6 @@
           },
           "403": {
             "description": "The resource is visible, but this account may not do this to it",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "The selected operation version is not served",
             "content": {
               "application/json": {
                 "schema": {
@@ -11029,14 +11004,10 @@
               }
             }
           }
-        },
-        "x-operation-versions": [
-          1
-        ]
+        }
       },
       "delete": {
         "operationId": "organisations.show.output.delete",
-        "x-operation-version": 1,
         "summary": "Stop an organisation's broadcast going out",
         "description": "Administrators only. Its agent stops running OBS for it.",
         "responses": {
@@ -11083,16 +11054,6 @@
               }
             }
           },
-          "412": {
-            "description": "The selected operation version is not served",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "503": {
             "description": "The database is unavailable",
             "content": {
@@ -11116,9 +11077,6 @@
             "required": true,
             "description": "The organisation."
           }
-        ],
-        "x-operation-versions": [
-          1
         ]
       }
     },
@@ -29682,481 +29640,6 @@
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                 },
                 "description": "Only those observed before this time, to page back."
-              },
-              {
-                "in": "header",
-                "name": "Operation-Version",
-                "required": true,
-                "description": "Selects this immutable operation contract.",
-                "schema": {
-                  "type": "string",
-                  "const": "1"
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "openapi": "3.1.0",
-      "info": {
-        "title": "Studio API",
-        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
-        "version": "0.1.0"
-      },
-      "components": {
-        "responses": {
-          "InvalidRequest": {
-            "description": "The request is invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "schemas": {
-          "Error": {
-            "type": "object",
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_description": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "error",
-              "error_description"
-            ]
-          },
-          "Output": {
-            "type": "object",
-            "properties": {
-              "showId": {
-                "type": "string"
-              },
-              "deviceId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "showId",
-              "deviceId",
-              "createdAt"
-            ]
-          }
-        }
-      },
-      "paths": {
-        "/organisations/{id}/show/output": {
-          "get": {
-            "operationId": "organisations.show.output.get",
-            "x-operation-version": 1,
-            "summary": "Read where an organisation's broadcast goes out",
-            "description": "The agent that drives OBS for it, following the broadcast and playing its streams.",
-            "responses": {
-              "200": {
-                "description": "The output",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Output"
-                    }
-                  }
-                }
-              },
-              "400": {
-                "description": "The request is malformed",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "401": {
-                "description": "No signed-in session was presented",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "404": {
-                "description": "The resource does not exist or is not visible to this account",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "412": {
-                "description": "The selected operation version is not served",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "503": {
-                "description": "The database is unavailable",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              }
-            },
-            "parameters": [
-              {
-                "in": "path",
-                "name": "id",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "required": true,
-                "description": "The organisation."
-              },
-              {
-                "in": "header",
-                "name": "Operation-Version",
-                "required": true,
-                "description": "Selects this immutable operation contract.",
-                "schema": {
-                  "type": "string",
-                  "const": "1"
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "openapi": "3.1.0",
-      "info": {
-        "title": "Studio API",
-        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
-        "version": "0.1.0"
-      },
-      "components": {
-        "responses": {
-          "InvalidRequest": {
-            "description": "The request is invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "schemas": {
-          "Error": {
-            "type": "object",
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_description": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "error",
-              "error_description"
-            ]
-          },
-          "Output": {
-            "type": "object",
-            "properties": {
-              "showId": {
-                "type": "string"
-              },
-              "deviceId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "showId",
-              "deviceId",
-              "createdAt"
-            ]
-          }
-        }
-      },
-      "paths": {
-        "/organisations/{id}/show/output": {
-          "put": {
-            "operationId": "organisations.show.output.set",
-            "x-operation-version": 1,
-            "summary": "Set where an organisation's broadcast goes out",
-            "description": "Administrators only. The agent, one of the organisation's, drives OBS for the broadcast in place of any other: its configuration gains the `obs` runtime, and it follows the broadcast and reads the streams it shows. OBS agents run on Windows and macOS.",
-            "responses": {
-              "200": {
-                "description": "The output",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Output"
-                    }
-                  }
-                }
-              },
-              "400": {
-                "description": "The request is malformed",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "401": {
-                "description": "No signed-in session was presented",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "403": {
-                "description": "The resource is visible, but this account may not do this to it",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "412": {
-                "description": "The selected operation version is not served",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "422": {
-                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "503": {
-                "description": "The database is unavailable",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              }
-            },
-            "parameters": [
-              {
-                "in": "path",
-                "name": "id",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "required": true,
-                "description": "The organisation."
-              },
-              {
-                "in": "header",
-                "name": "Operation-Version",
-                "required": true,
-                "description": "Selects this immutable operation contract.",
-                "schema": {
-                  "type": "string",
-                  "const": "1"
-                }
-              }
-            ],
-            "requestBody": {
-              "required": true,
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "deviceId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "description": "The agent that drives OBS for the broadcast: one of the organisation's."
-                      }
-                    },
-                    "required": [
-                      "deviceId"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "openapi": "3.1.0",
-      "info": {
-        "title": "Studio API",
-        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
-        "version": "0.1.0"
-      },
-      "components": {
-        "responses": {
-          "InvalidRequest": {
-            "description": "The request is invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "schemas": {
-          "Error": {
-            "type": "object",
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_description": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "error",
-              "error_description"
-            ]
-          }
-        }
-      },
-      "paths": {
-        "/organisations/{id}/show/output": {
-          "delete": {
-            "operationId": "organisations.show.output.delete",
-            "x-operation-version": 1,
-            "summary": "Stop an organisation's broadcast going out",
-            "description": "Administrators only. Its agent stops running OBS for it.",
-            "responses": {
-              "204": {
-                "description": "Stopped"
-              },
-              "400": {
-                "description": "The request is malformed",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "401": {
-                "description": "No signed-in session was presented",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "403": {
-                "description": "The resource is visible, but this account may not do this to it",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "404": {
-                "description": "The resource does not exist or is not visible to this account",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "412": {
-                "description": "The selected operation version is not served",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              },
-              "503": {
-                "description": "The database is unavailable",
-                "content": {
-                  "application/json": {
-                    "schema": {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  }
-                }
-              }
-            },
-            "parameters": [
-              {
-                "in": "path",
-                "name": "id",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "required": true,
-                "description": "The organisation."
               },
               {
                 "in": "header",
