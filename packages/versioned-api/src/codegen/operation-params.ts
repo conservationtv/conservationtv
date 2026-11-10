@@ -75,3 +75,47 @@ export function operationParams(operation: IR.OperationObject): OperationParams 
   const body = operation.body ? bodyFields(id, operation.body) : [];
   return { base: paramsBase(id), fields: [...parameterFields(operation), ...body] };
 }
+
+/** A ParamField under the name it has in the flat Params: its key, or `<location>_<key>` where keys repeat. */
+export interface FlatField extends ParamField {
+  name: string;
+}
+
+/** Field names may repeat across locations; such fields are prefixed with their location (`path_id`, `query_id`). */
+function locationsByKey(fields: ParamField[]): Map<string, Set<string>> {
+  const locations = new Map<string, Set<string>>();
+  for (const field of fields) {
+    const set = locations.get(field.key) ?? new Set<string>();
+    set.add(field.location);
+    locations.set(field.key, set);
+  }
+  return locations;
+}
+
+/**
+ * Hey API 0.99.0 does not consistently disambiguate a scalar/array body's fallback 'body' key from a parameter also
+ * named 'body'. Reject it rather than emit Params that send the wrong value.
+ */
+function rejectAmbiguousBody(operation: IR.OperationObject, fields: ParamField[], locations: Map<string, Set<string>>) {
+  const wholeBody = operation.body && !operation.body.schema.$ref && fields.some(field => field.whole);
+  if (wholeBody && (locations.get('body')?.size ?? 0) > 1) {
+    throw new Error(`Unsupported conflicting body parameter: ${operation.operationId}`);
+  }
+}
+
+/**
+ * The flat Params members every SDK generator emits, in order. Only names that repeat across locations get a location
+ * prefix; any remaining clash is an error, not a silent overwrite.
+ */
+export function flatFields(operation: IR.OperationObject, fields: ParamField[]): FlatField[] {
+  const locations = locationsByKey(fields);
+  rejectAmbiguousBody(operation, fields, locations);
+  const emitted = new Set<string>();
+  return fields.map(field => {
+    // Location-prefix only names repeated across locations; any remaining clash is an error, not a silent overwrite.
+    const name = (locations.get(field.key)?.size ?? 0) > 1 ? `${field.location}_${field.key}` : field.key;
+    if (emitted.has(name)) throw new Error(`Ambiguous flat field ${name}: ${operation.operationId}`);
+    emitted.add(name);
+    return { ...field, name };
+  });
+}

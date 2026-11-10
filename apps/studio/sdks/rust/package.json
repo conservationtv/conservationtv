@@ -1,0 +1,19 @@
+{
+  "name": "@conservationtv/studio-sdk-rust",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Generates the version-aware Rust SDK for the conservation.tv studio API (the `conservationtv-studio-sdk` crate).",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.node.json",
+    "generate": "openapi-ts --file openapi-ts.config.ts && cargo run --quiet --locked -p versioned-api-codegen -- --manifest .generate --out src/generated"
+  },
+  "devDependencies": {
+    "@conservationtv/studio-api": "workspace:*",
+    "@conservationtv/studio-sdk": "workspace:*",
+    "@conservationtv/versioned-api": "workspace:*",
+    "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "24.10.1",
+    "typescript": "catalog:"
+  }
+}

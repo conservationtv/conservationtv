@@ -1,0 +1,22 @@
+[package]
+name = "conservationtv-studio-sdk"
+version = "0.1.0"
+description = "A generated version-aware SDK for the conservation.tv studio API."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = ["reqwest"]
+# Send with reqwest by default. Without it, give the Client a transport: `ClientConfig::from_service` takes any
+# `tower::Service` over `http` types, such as an `iroh_http::Client`.
+reqwest = ["versioned-api-client/reqwest"]
+
+[dependencies]
+versioned-api-client.workspace = true
+chrono.workspace = true
+regress.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true

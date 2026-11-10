@@ -132,8 +132,8 @@ export default defineConfig({
     'apps/controlplane/sdk/src/versions',
     'apps/controlplane/cli/src/generated',
     // Generated from the studio API's OpenAPI bundle; edit the routes or generators instead.
-    'apps/studio/sdk/src/generated',
-    'apps/studio/sdk/src/versions',
+    'apps/studio/sdks/ts/src/generated',
+    'apps/studio/sdks/ts/src/versions',
     'apps/studio/cli/src/generated',
     // Generated from the agent API's OpenAPI bundle; edit the routes or generators instead.
     'apps/agent/sdk/src/generated',

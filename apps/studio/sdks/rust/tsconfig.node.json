@@ -1,0 +1,14 @@
+{
+  // The generator config runs under Node at generation time; the crate itself is built by Cargo.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["openapi-ts.config.ts"]
+}

@@ -1,0 +1,29 @@
+[package]
+name = "versioned-api-client"
+version = "0.1.0"
+description = "The runtime behind generated version-aware Rust SDKs: handshake, per-operation version negotiation and errors."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = ["reqwest"]
+# The default transport. Without it, a Client is given its transport: any `tower::Service` over `http` types, such as
+# `iroh_http::Client`, through `ClientConfig::with_service`.
+reqwest = ["dep:reqwest"]
+
+[dependencies]
+bytes.workspace = true
+form_urlencoded.workspace = true
+futures-util.workspace = true
+http.workspace = true
+http-body.workspace = true
+http-body-util.workspace = true
+percent-encoding.workspace = true
+reqwest = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["time"] }
+tower-service.workspace = true

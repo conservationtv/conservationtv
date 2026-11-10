@@ -6,7 +6,7 @@ on:
     paths:
       - apps/studio/api/**
       - apps/studio/infrastructure/**
-      - apps/studio/sdk/**
+      - apps/studio/sdks/**
       - apps/studio/web/**
       - apps/controlplane/sdk/**
       - packages/reports/**

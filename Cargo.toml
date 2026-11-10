@@ -1,0 +1,37 @@
+# The Rust half of the workspace: the versioned-API runtime and generator, and the SDKs generated with them.
+[workspace]
+resolver = "3"
+members = ["packages/versioned-api/rust/client", "packages/versioned-api/rust/codegen", "apps/studio/sdks/rust"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+versioned-api-client = { path = "packages/versioned-api/rust/client", default-features = false }
+base64 = "0.23.1"
+bytes = "1.12.1"
+chrono = { version = "0.4.45", default-features = false, features = ["serde", "std"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+form_urlencoded = "1.2.2"
+heck = "0.5.0"
+http = "1.5.0"
+http-body = "1.1.0"
+http-body-util = "0.1.5"
+percent-encoding = "2.3.2"
+prettyplease = "0.3.0"
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
+regress = "0.12.0"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "query", "rustls"] }
+schemars = "0.8.22"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+syn = { version = "3.0.9", features = ["full"] }
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", default-features = false }
+tower-service = "0.3.3"
+typify = "0.8.0"
+uuid = { version = "1.29.1", features = ["serde"] }
