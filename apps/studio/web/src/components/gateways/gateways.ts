@@ -80,6 +80,9 @@ export function gatewayOverridesOf(gateway: ListedGateway): GatewayOverride[] {
   });
 }
 
+/** A new gateway's addresses, before any is given. */
+export const EMPTY_URLS: GatewayInput['urls'] = { webrtc: '', rtsp: '', rtsps: '', rtmp: '', rtmps: '', hls: '' };
+
 /** A gateway as its form starts from it: every protocol's override, empty where it has none. */
 export function gatewayInputOf(gateway: ListedGateway): GatewayInput {
   const { urls } = MediamtxSettingsSchema.parse(gateway.settings);

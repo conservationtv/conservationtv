@@ -18,6 +18,7 @@ import {
 import { streamPageOf, type PageStream } from '@/components/streams/stream-page';
 import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
+import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { cameraListQueryOptions } from '@/queries/cameras';
 import { deviceListQueryOptions } from '@/queries/devices';
@@ -85,8 +86,10 @@ const StreamTabs: FC = () => {
     networks: networksQuery.data,
     states: statesQuery.data
   });
+  // Which of them the list shows, as `?status=`: those being fed, or the rest.
+  const tabs = useTabsQuery('status', ['active', 'inactive']);
   return (
-    <Tabs defaultValue="active" className="gap-10">
+    <Tabs {...tabs} className="gap-10">
       <TabsList variant="line" className="w-full justify-start border-b border-border pb-1">
         <TabsTrigger value="active" className="flex-none px-2 text-custom-13">
           Active

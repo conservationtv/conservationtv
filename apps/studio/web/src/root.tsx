@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode, type FC } from 'react';
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { MotionConfig } from 'motion/react';
+import { NuqsAdapter } from 'nuqs/adapters/react-router/v8';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Spinner } from '@conservationtv/ui/components/spinner';
 import { TooltipProvider } from '@conservationtv/ui/components/tooltip';
@@ -76,7 +77,10 @@ const App: FC = () => {
           <MotionConfig reducedMotion="user">
             {/* Pages suspend while their queries load; a page wanting its own placeholder sets a boundary inside. */}
             <Suspense fallback={<HydrateFallback />}>
-              <Outlet />
+              {/* Tabs and other ways of looking at a page keep their state in its query string, through nuqs. */}
+              <NuqsAdapter>
+                <Outlet />
+              </NuqsAdapter>
             </Suspense>
           </MotionConfig>
         </TooltipProvider>

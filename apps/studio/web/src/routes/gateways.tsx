@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
-import { CaretDownIcon, CloudIcon, ShareNetworkIcon } from '@phosphor-icons/react';
+import { Link, Outlet } from 'react-router';
+import { CaretDownIcon, CloudIcon, PlusIcon, ShareNetworkIcon } from '@phosphor-icons/react';
 import type { Device, Network, Stream } from '@conservationtv/studio-sdk';
 import { Badge } from '@conservationtv/ui/components/badge';
 import { Button } from '@conservationtv/ui/components/button';
@@ -34,7 +35,7 @@ import {
 import { networkNameOf } from '@/components/devices/devices';
 import { SubjectHealth } from '@/components/devices/subject-health';
 import { deviceSubjectId, statesBySubject, type SubjectState } from '@/components/devices/subjects';
-import { AddGatewayDialog, DeleteGatewayDialog, EditGatewayDialog } from '@/components/gateways/gateway-dialogs';
+import { DeleteGatewayDialog, EditGatewayDialog } from '@/components/gateways/gateway-dialogs';
 import { GatewayEndpoints } from '@/components/gateways/gateway-endpoints';
 import { GatewayHostname } from '@/components/gateways/gateway-hostname';
 import { gatewayKindLabelOf, gatewayOverridesOf, type ListedGateway } from '@/components/gateways/gateways';
@@ -80,7 +81,10 @@ const GatewaysRoute: FC = () => {
         </PageHeading>
         {administrator && (
           <PageActions>
-            <AddGatewayDialog networks={networks} />
+            <Button nativeButton={false} render={<Link to="new" />}>
+              <PlusIcon />
+              Add gateway
+            </Button>
           </PageActions>
         )}
       </PageHeader>
@@ -130,6 +134,8 @@ const GatewaysRoute: FC = () => {
           </Empty>
         )}
       </Section>
+      {/* A dialog routed over the page, such as adding one: `new`. */}
+      <Outlet />
     </Page>
   );
 };

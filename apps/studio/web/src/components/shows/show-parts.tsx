@@ -27,7 +27,7 @@ import { Switch } from '@conservationtv/ui/components/switch';
 import { FormError } from '@/components/common/form-error';
 import type { ListedGateway } from '@/components/gateways/gateways';
 import type { ForwardPart, PreviewPart } from '@/components/shows/show-detail';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import {
   useCreateForward,
@@ -115,9 +115,9 @@ export const ForwardSwitch: FC<ForwardControlProps> = ({ showId, part }) => {
 export const RemoveForwardDialog: FC<ForwardControlProps> = ({ showId, part }) => {
   const organisationId = useOrganisationId();
   const remove = useDeleteForward(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Remove</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -133,7 +133,7 @@ export const RemoveForwardDialog: FC<ForwardControlProps> = ({ showId, part }) =
           <AlertDialogAction
             variant="destructive"
             loading={remove.isPending}
-            onClick={() => confirmation.confirm({ showId, partId: part.forward.id })}
+            onClick={() => dialog.mutate({ showId, partId: part.forward.id })}
           >
             Remove
           </AlertDialogAction>
@@ -191,9 +191,9 @@ export interface PreviewControlProps {
 export const RemovePreviewDialog: FC<PreviewControlProps> = ({ showId, part }) => {
   const organisationId = useOrganisationId();
   const remove = useDeletePreview(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Remove</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -208,7 +208,7 @@ export const RemovePreviewDialog: FC<PreviewControlProps> = ({ showId, part }) =
           <AlertDialogAction
             variant="destructive"
             loading={remove.isPending}
-            onClick={() => confirmation.confirm({ showId, partId: part.preview.id })}
+            onClick={() => dialog.mutate({ showId, partId: part.preview.id })}
           >
             Remove
           </AlertDialogAction>

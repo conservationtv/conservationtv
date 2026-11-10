@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import type { Camera } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
@@ -23,6 +23,7 @@ import {
 import { cameraSettingsInputOf } from '@/components/cameras/cameras';
 import { FormError } from '@/components/common/form-error';
 import { CameraSettingsSchema } from '@/forms/schemas';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUpdateCamera } from '@/queries/cameras';
 
@@ -38,27 +39,15 @@ export interface CameraSettingsDialogProps {
  */
 export const CameraSettingsDialog: FC<CameraSettingsDialogProps> = ({ camera, name }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateCamera(organisationId);
   const form = useForm({
     defaultValues: cameraSettingsInputOf(camera.settings),
     validators: { onSubmit: CameraSettingsSchema },
-    onSubmit: ({ value }) =>
-      update.mutate(
-        { cameraId: camera.id, settings: CameraSettingsSchema.parse(value) },
-        { onSuccess: () => setOpen(false) }
-      )
+    onSubmit: ({ value }) => dialog.mutate({ cameraId: camera.id, settings: CameraSettingsSchema.parse(value) })
   });
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        update.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Edit</DialogTrigger>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
         <form

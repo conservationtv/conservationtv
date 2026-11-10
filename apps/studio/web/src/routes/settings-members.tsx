@@ -1,6 +1,6 @@
 import { Suspense, useState, type FC } from 'react';
-import { useForm } from '@tanstack/react-form';
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query';
+import { Link, Outlet } from 'react-router';
 import { EnvelopeSimpleIcon, PlusIcon } from '@phosphor-icons/react';
 import type { GetOrganisationsByIdInvitationsResponse } from '@conservationtv/studio-sdk';
 import {
@@ -16,17 +16,7 @@ import {
 } from '@conservationtv/ui/components/alert-dialog';
 import { Badge } from '@conservationtv/ui/components/badge';
 import { Button } from '@conservationtv/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@conservationtv/ui/components/dialog';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
-import { FieldGroup } from '@conservationtv/ui/components/field';
 import {
   Item,
   ItemActions,
@@ -41,9 +31,7 @@ import { Skeleton } from '@conservationtv/ui/components/skeleton';
 import { FormError } from '@/components/common/form-error';
 import { Section, SectionDescription, SectionHeader, SectionHeading, SectionTitle } from '@/components/common/page';
 import { badgeRoles, isAdministrator, memberName, type ListedMember } from '@/components/settings/roles';
-import { InvitationEmailSchema, type InvitationEmailInput } from '@/forms/schemas';
-import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate, formatRelative } from '@/lib/format';
 import { accountQueryOptions } from '@/queries/account';
@@ -51,7 +39,6 @@ import {
   memberListQueryOptions,
   organisationInvitationListQueryOptions,
   useCancelInvitation,
-  useCreateInvitation,
   useGrantAdmin,
   useRemoveMember,
   useRevokeAdmin
@@ -94,6 +81,8 @@ const SettingsMembersRoute: FC = () => {
           <InvitationsSection members={members} />
         </Suspense>
       )}
+      {/* A dialog routed over the page: inviting someone, at `invite`. */}
+      <Outlet />
     </>
   );
 };
@@ -185,10 +174,10 @@ interface MemberDialogProps {
 const RemoveMemberDialog: FC<MemberDialogProps> = ({ member }) => {
   const organisationId = useOrganisationId();
   const remove = useRemoveMember(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   const name = memberName(member);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Remove</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -203,7 +192,7 @@ const RemoveMemberDialog: FC<MemberDialogProps> = ({ member }) => {
           <AlertDialogAction
             variant="destructive"
             loading={remove.isPending}
-            onClick={() => confirmation.confirm(member.userId)}
+            onClick={() => dialog.mutate(member.userId)}
           >
             Remove
           </AlertDialogAction>
@@ -234,7 +223,10 @@ const InvitationsSection: FC<InvitationsSectionProps> = ({ members }) => {
             email yet: links are written to the API server’s log, for whoever runs it to pass on.
           </SectionDescription>
         </SectionHeading>
-        <InviteDialog />
+        <Button nativeButton={false} render={<Link to="invite" />}>
+          <PlusIcon />
+          Invite
+        </Button>
       </SectionHeader>
       {invitations.length > 0 ? (
         <ItemGroup className="gap-2">
@@ -298,76 +290,5 @@ const InvitationRow: FC<InvitationRowProps> = ({ invitation, sender }) => {
         </ItemFooter>
       )}
     </Item>
-  );
-};
-
-/**
- * Invites someone by email address; the dialog closes once the invitation is made. Email isn't wired in to the API
- * yet (apps/studio/api/src/organisations/delivery.ts): the link is written to its log, and the dialog says so.
- */
-const InviteDialog: FC = () => {
-  const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
-  const create = useCreateInvitation(organisationId);
-  const defaultValues: InvitationEmailInput = { email: '' };
-  const form = useForm({
-    defaultValues,
-    validators: { onSubmit: InvitationEmailSchema },
-    onSubmit: ({ value, formApi }) =>
-      create.mutate(InvitationEmailSchema.parse(value), {
-        onSuccess: () => {
-          formApi.reset();
-          setOpen(false);
-        }
-      })
-  });
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
-      <DialogTrigger render={<Button />}>
-        <PlusIcon />
-        Invite
-      </DialogTrigger>
-      <DialogContent>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>Invite someone</DialogTitle>
-            <DialogDescription>
-              They’re sent a link to join, open for 14 days. Until the studio sends email, the link is written to the
-              API server’s log instead.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup className="py-4">
-            <form.Field name="email">
-              {field => (
-                <TextField
-                  field={field}
-                  label="Email"
-                  type="email"
-                  placeholder="ranger@example.org"
-                  autoComplete="off"
-                />
-              )}
-            </form.Field>
-            <FormError error={create.error} />
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="submit" loading={create.isPending}>
-              Send invitation
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 };
