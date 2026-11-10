@@ -1,4 +1,4 @@
-import { useState, type FC, type ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { PlusIcon } from '@phosphor-icons/react';
 import type { Camera, Device, Network, Rendition, Stream } from '@conservationtv/studio-sdk';
@@ -39,7 +39,7 @@ import {
 } from '@/components/streams/stream-detail';
 import { ExposureSchema, type Exposure, type ExposureInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useCreateExposure, useDeleteExposure, useUpdateExposure } from '@/queries/streams';
 
@@ -66,7 +66,6 @@ export interface AddExposureDialogProps {
 /** Delivers the stream to another gateway; the dialog closes once the exposure is made. */
 export const AddExposureDialog: FC<AddExposureDialogProps> = ({ choices }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const create = useCreateExposure(organisationId);
   const defaultValues: ExposureInput = {
     gatewayId: '',
@@ -74,14 +73,9 @@ export const AddExposureDialog: FC<AddExposureDialogProps> = ({ choices }) => {
     renditions: ['default'],
     publisherDeviceId: ''
   };
+  const dialog = useDialog(create);
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="outline" />}>
         <PlusIcon />
         Add delivery
@@ -96,9 +90,7 @@ export const AddExposureDialog: FC<AddExposureDialogProps> = ({ choices }) => {
         <ExposureForm
           choices={choices}
           defaultValues={defaultValues}
-          onSubmit={exposure =>
-            create.mutate({ streamId: choices.stream.id, ...exposure }, { onSuccess: () => setOpen(false) })
-          }
+          onSubmit={exposure => dialog.mutate({ streamId: choices.stream.id, ...exposure })}
         >
           <FormError error={create.error} />
           <DialogFooter>
@@ -120,7 +112,6 @@ export interface ExposureDialogProps {
 /** Changes a delivery; the form starts from what is stored each time the dialog opens. */
 export const EditExposureDialog: FC<ExposureDialogProps> = ({ choices, delivery }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateExposure(organisationId);
   const { exposure } = delivery;
   const defaultValues: ExposureInput = {
@@ -129,14 +120,9 @@ export const EditExposureDialog: FC<ExposureDialogProps> = ({ choices, delivery 
     renditions: exposure.renditions,
     publisherDeviceId: exposure.publisherDeviceId ?? ''
   };
+  const dialog = useDialog(update);
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (next) update.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Edit</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -147,12 +133,7 @@ export const EditExposureDialog: FC<ExposureDialogProps> = ({ choices, delivery 
           choices={choices}
           exposure={exposure}
           defaultValues={defaultValues}
-          onSubmit={changes =>
-            update.mutate(
-              { streamId: choices.stream.id, exposureId: exposure.id, ...changes },
-              { onSuccess: () => setOpen(false) }
-            )
-          }
+          onSubmit={changes => dialog.mutate({ streamId: choices.stream.id, exposureId: exposure.id, ...changes })}
         >
           <FormError error={update.error} />
           <DialogFooter>
@@ -170,9 +151,9 @@ export const EditExposureDialog: FC<ExposureDialogProps> = ({ choices, delivery 
 export const DeleteExposureDialog: FC<ExposureDialogProps> = ({ choices, delivery }) => {
   const organisationId = useOrganisationId();
   const remove = useDeleteExposure(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Remove</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -188,7 +169,7 @@ export const DeleteExposureDialog: FC<ExposureDialogProps> = ({ choices, deliver
           <AlertDialogAction
             variant="destructive"
             loading={remove.isPending}
-            onClick={() => confirmation.confirm({ streamId: choices.stream.id, partId: delivery.exposure.id })}
+            onClick={() => dialog.mutate({ streamId: choices.stream.id, partId: delivery.exposure.id })}
           >
             Remove
           </AlertDialogAction>

@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useNavigate } from 'react-router';
 import { EnvelopeSimpleIcon } from '@phosphor-icons/react';
@@ -27,6 +27,7 @@ import { FieldGroup } from '@conservationtv/ui/components/field';
 import { FormError } from '@/components/common/form-error';
 import { DisplayNameSchema, type DisplayNameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
+import { useDialog } from '@/hooks/use-dialog';
 import { formatRelative } from '@/lib/format';
 import { useAcceptInvitation, useDeclineInvitation } from '@/queries/invitations';
 
@@ -77,28 +78,20 @@ export const OwnInvitationItem: FC<OwnInvitationItemProps> = ({ invitation, acco
 /** Accepts the invitation under a name for the organisation, then opens the organisation. */
 const AcceptInvitationDialog: FC<OwnInvitationItemProps> = ({ invitation, accountName }) => {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
   const accept = useAcceptInvitation();
   const defaultValues: DisplayNameInput = { displayName: accountName };
   const form = useForm({
     defaultValues,
     validators: { onSubmit: DisplayNameSchema },
     onSubmit: ({ value }) =>
-      accept.mutate(
+      dialog.mutate(
         { id: invitation.id, ...DisplayNameSchema.parse(value) },
         { onSuccess: membership => navigate(`/organisations/${membership.organisationId}`) }
       )
   });
+  const dialog = useDialog(accept, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        accept.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button size="sm" />}>Accept</DialogTrigger>
       <DialogContent>
         <form

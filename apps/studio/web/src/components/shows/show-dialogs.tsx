@@ -31,7 +31,7 @@ import { FormError } from '@/components/common/form-error';
 import { EncodingSchema, NameSchema, type EncodingInput, type NameInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
 import { useClearShowOutput, useCreateShow, useDeleteShow, useSetShowOutput, useUpdateShow } from '@/queries/shows';
@@ -298,10 +298,10 @@ export const DeleteShowDialog: FC<ShowDialogProps> = ({ show }) => {
   const organisationId = useOrganisationId();
   const navigate = useNavigate();
   const remove = useDeleteShow(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   const unpin = useUnpinPage();
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="destructive" />}>Delete show</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -318,7 +318,7 @@ export const DeleteShowDialog: FC<ShowDialogProps> = ({ show }) => {
             variant="destructive"
             loading={remove.isPending}
             onClick={() =>
-              confirmation.confirm(show.id, {
+              dialog.mutate(show.id, {
                 onSuccess: () => {
                   unpin();
                   navigate('..', { relative: 'path', replace: true });
@@ -381,9 +381,9 @@ export const OutputSelect: FC<OutputSelectProps> = ({ show, agents, shows }) => 
 export const ClearOutputDialog: FC<ShowDialogProps> = ({ show }) => {
   const organisationId = useOrganisationId();
   const clear = useClearShowOutput(organisationId);
-  const confirmation = useConfirm(clear);
+  const dialog = useDialog(clear);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Clear</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -396,11 +396,7 @@ export const ClearOutputDialog: FC<ShowDialogProps> = ({ show }) => {
         <FormError error={clear.error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            loading={clear.isPending}
-            onClick={() => confirmation.confirm(show.id)}
-          >
+          <AlertDialogAction variant="destructive" loading={clear.isPending} onClick={() => dialog.mutate(show.id)}>
             Stop it going out
           </AlertDialogAction>
         </AlertDialogFooter>

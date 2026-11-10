@@ -153,7 +153,8 @@ lists recorders. Outputs lists the internet-side deliveries. Traffic is the exis
 
 ![Create new stream](2026-11-10-studio-ui-pass/21-stream-new.png)
 
-New stream follows the second sketch: source as radio cards, a searchable camera picker with "Add new", then where
+New stream follows the second sketch: source as radio cards, a searchable camera picker with "Add new" (which adds a
+camera in a dialog over the form, at `streams/new/camera`, and chooses it), then where
 it is delivered from the start. It creates the
 stream, then its exposures in order. If a delivery fails after the stream exists, you land on the stream with a note
 of what failed rather than a form that would make a second stream.
@@ -238,9 +239,10 @@ Other gaps the pages ran into:
 ## Confirm dialogs
 
 Every delete or clear is the kit's `AlertDialog` composed in place, with its own words; there are 11. The wiring they
-repeated (open state, forgetting the last refusal when closed, closing on success) is `useConfirm(mutation)`
-(`hooks/use-confirm.ts`): `<AlertDialog {...confirmation.dialog}>`, and `confirmation.confirm(variables, options)` on
-the action, the error and pending state still read from the mutation. The kit's alert dialog is roomier (384 px,
+repeated (open state, forgetting the last refusal, closing on success) is `useDialog(mutation)` (`hooks/use-dialog.ts`,
+first written as `useConfirm`, now shared with every form dialog; see Addresses and dialogs below):
+`<AlertDialog {...dialog.props}>`, and `dialog.mutate(variables, options)` on the action, the error and pending state
+still read from the mutation. The kit's alert dialog is roomier (384 px,
 24 px padding) and its description 13 px at a 1.4 line height.
 
 That description first came out too large, which found a wider bug: the kit's components merged classes with the
@@ -249,6 +251,29 @@ the size never applied and the colour was dropped. All 58 components now import 
 (`@conservationtv/ui/lib/utils`, which the shadcn config's `utils` alias already names). Every custom size passed to a
 kit component now applies: page tabs, for one, are 13 px as written, their inactive ones muted again. Checked in headless Chrome: Cancel closes it; a refusal keeps it open with the
 API's reason; reopening starts clean; a success closes it. ([screenshot](2026-11-10-studio-ui-pass/confirm-dialog.png))
+
+## Addresses and dialogs
+
+After review on the PR, what was only in memory and was really navigation now lives in the address:
+
+- **Tabs** are query parameters, through nuqs (`NuqsAdapter` in `root.tsx`, `hooks/use-tabs-query.ts`): a stream's
+  `?tab=recording|outputs`, the streams list's `?status=inactive`, devices' `?kind=agent|camera|browser`. The default
+  tab is left out of the address. A stream's live preview is `?watch=true`, so a link can open it playing. Settings'
+  tabs were already routes.
+- **Dialogs that create something** are child routes over their list, rendered through an `<Outlet />`:
+  `agents/new`, `cameras/new`, `networks/new`, `gateways/new`, `channels/rtmp/new`, `settings/members/invite`, and
+  `streams/new/camera`. Their buttons are links. `useDialog(mutation, { closeTo: '..' })` opens such a dialog from the
+  start and, once it has finished closing, steps back in history (or, opened by its address, replaces it with the
+  page beneath). A new agent replaces the dialog with its own page.
+- **Adding a camera while creating a stream** no longer leaves the form: the dialog opens over it, the form keeps what
+  was filled in, and the new camera is chosen through the outlet's context. The outlet sits outside the stream's
+  `<form>`, since a portal's submit would otherwise bubble into it.
+- **Every form dialog** (edit, rename, add delivery or recorder, replace credentials, accept an invitation) uses the
+  same `useDialog`, with `onOpen: () => form.reset()` where its form starts from what is stored.
+
+Still in memory, on purpose: edit, rename and delete dialogs, which belong to one row and aren't somewhere to go; a
+player's chosen rendition (`read-parts.tsx`, `local-read.tsx`, `output-read.tsx`); the new-stream form's own values;
+and the dismissed delivery-failure note.
 
 ## What the review found, and what happened to it
 

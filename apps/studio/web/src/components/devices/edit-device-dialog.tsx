@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import type { Network } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
@@ -19,6 +19,7 @@ import { NetworkOptions } from '@/components/devices/network-options';
 import { DeviceDetailsSchema, type DeviceDetailsInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUpdateDevice } from '@/queries/devices';
 
@@ -49,7 +50,6 @@ const editNotes = {
  */
 export const EditDeviceDialog: FC<EditDeviceDialogProps> = ({ device, networks }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateDevice(organisationId);
   const movable = device.kind === 'camera';
   const defaultValues: DeviceDetailsInput = { name: device.name, networkId: device.networkId ?? '' };
@@ -59,19 +59,12 @@ export const EditDeviceDialog: FC<EditDeviceDialogProps> = ({ device, networks }
     onSubmit: ({ value }) => {
       const { name, networkId } = DeviceDetailsSchema.parse(value);
       const changes = movable ? { deviceId: device.id, name, networkId } : { deviceId: device.id, name };
-      update.mutate(changes, { onSuccess: () => setOpen(false) });
+      dialog.mutate(changes);
     }
   });
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        update.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Edit</DialogTrigger>
       <DialogContent>
         <form

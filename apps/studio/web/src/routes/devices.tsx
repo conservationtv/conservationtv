@@ -14,6 +14,7 @@ import { DeviceDetailsDialog } from '@/components/devices/device-details-dialog'
 import { DEVICE_KINDS, DeviceKindIcon } from '@/components/devices/device-kind';
 import { devicePathOf, networkNameOf } from '@/components/devices/devices';
 import { EditDeviceDialog } from '@/components/devices/edit-device-dialog';
+import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate, shortPublicId } from '@/lib/format';
 import { deviceListQueryOptions } from '@/queries/devices';
@@ -32,6 +33,8 @@ const DevicesRoute: FC = () => {
     queries: [deviceListQueryOptions(organisationId), networkListQueryOptions(organisationId)]
   });
   const devices = devicesQuery.data;
+  // The kind the list is narrowed to, as `?kind=`; every kind when it is absent.
+  const tabs = useTabsQuery('kind', ['all', ...DEVICE_KINDS.map(({ kind }) => kind)]);
   return (
     <Page className="max-w-5xl">
       <PageHeader>
@@ -43,7 +46,7 @@ const DevicesRoute: FC = () => {
           </PageDescription>
         </PageHeading>
       </PageHeader>
-      <Tabs defaultValue="all" className="gap-6">
+      <Tabs {...tabs} className="gap-6">
         <TabsList variant="line" className="w-full justify-start border-b border-border pb-1">
           <TabsTrigger value="all" className="flex-none px-2 text-custom-13">
             All

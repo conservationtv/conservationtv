@@ -1,4 +1,9 @@
-import { Client as AgentClient } from '@conservationtv/agent-sdk';
+import {
+  Client as AgentClient,
+  HttpError,
+  OperationVersionChangedError,
+  OperationVersionUnavailableError
+} from '@conservationtv/agent-sdk';
 import { Client as StudioClient, DeviceIdentity, deviceSignature } from '@conservationtv/studio-sdk';
 import type { BrowserRelay, IrohHttpClient } from '@strangecyan/iroh-http-browser';
 
@@ -199,6 +204,19 @@ function linkOf(organisationId: string, agentPublicId: string): Promise<AgentLin
 }
 
 /**
+ * Whether a call's error is the agent's own answer: it refused (an HTTP error), or doesn't serve that operation version.
+ * Versioned calls return every failure rather than reject, so anything else (the transport's fetch failing, a handshake
+ * that couldn't fetch the agent's document) is the connection beneath breaking.
+ */
+function answeredBy(error: Error): boolean {
+  return (
+    error instanceof HttpError ||
+    error instanceof OperationVersionUnavailableError ||
+    error instanceof OperationVersionChangedError
+  );
+}
+
+/**
  * Ask the agent something over its API, on a connection kept open between calls. An answer that is one of the SDK's
  * errors (the agent refused, or doesn't serve that operation version) is thrown with the connection kept; a call that
  * fails beneath that (the connection broke) closes it, so the next call dials again.
@@ -208,13 +226,16 @@ export async function askAgent<Answer>(
   agentPublicId: string,
   ask: (agent: AgentClient) => Promise<Answer | Error>
 ): Promise<Answer> {
+  const key = linkKey(organisationId, agentPublicId);
   const link = linkOf(organisationId, agentPublicId);
   const { agent } = await link;
   const asking = ask(agent);
-  asking.catch(() => dropLink(linkKey(organisationId, agentPublicId), link));
+  // An `ask` that throws rather than returns its error is treated as a broken connection too.
+  asking.catch(() => dropLink(key, link));
   const answer = await asking;
-  if (answer instanceof Error) throw answer;
-  return answer;
+  if (!(answer instanceof Error)) return answer;
+  if (!answeredBy(answer)) dropLink(key, link);
+  throw answer;
 }
 
 /**

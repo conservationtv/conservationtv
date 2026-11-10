@@ -2,7 +2,7 @@ import { Suspense, type ComponentProps, type FC, type ReactNode } from 'react';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { CloudIcon, HardDrivesIcon, PlusIcon, VideoCameraIcon } from '@phosphor-icons/react';
-import { Link, useNavigate } from 'react-router';
+import { Link, Outlet, useNavigate } from 'react-router';
 import type { Camera, Device, Network, Rendition } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
 import { Checkbox } from '@conservationtv/ui/components/checkbox';
@@ -103,6 +103,11 @@ const NewStreamGate: FC = () => {
   );
 };
 
+/** What the new-stream form gives the dialog routed over it, to choose the camera it adds. */
+export interface NewStreamOutletContext {
+  onCameraAdded: (camera: Camera) => void;
+}
+
 /**
  * The new stream's fields and the delivery they amount to. Creating makes the stream, then its deliveries in order;
  * if one is refused, the stream already exists, so its page opens saying what wasn't made.
@@ -160,6 +165,9 @@ const NewStreamForm: FC = () => {
     }
   });
   const values = useStore(form.store, state => state.values);
+  const outletContext: NewStreamOutletContext = {
+    onCameraAdded: added => form.setFieldValue('cameraId', added.id)
+  };
   const { camera, candidates, plan } = planOf(values);
   const draft = draftTopology({
     sourceDeviceId: camera?.id ?? null,
@@ -169,151 +177,154 @@ const NewStreamForm: FC = () => {
     networks
   });
   return (
-    <form
-      className="flex flex-col gap-10"
-      onSubmit={event => {
-        event.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      <FieldGroup className="max-w-md">
-        <form.Field name="name">
-          {field => <TextField field={field} label="Name" placeholder="Hide feeder" autoComplete="off" />}
-        </form.Field>
-      </FieldGroup>
-      <form.Field name="source">
-        {field => (
-          <FieldSet>
-            <FieldLegend>Source</FieldLegend>
-            <FieldDescription>Where the picture comes from.</FieldDescription>
-            <RadioGroup
-              className="grid-cols-1 sm:grid-cols-2"
-              value={field.state.value}
-              onValueChange={value => field.handleChange(StreamSourceSchema.parse(value))}
-            >
-              <SourceCard value="camera" title="Camera">
-                Pulled from a camera on one of your networks, by the network’s agent.
-              </SourceCard>
-              <SourceCard value="publisher" title="Publisher">
-                Published to a gateway from a phone, a PC or OBS, by the device you pin to it.
-              </SourceCard>
-            </RadioGroup>
-          </FieldSet>
-        )}
-      </form.Field>
-      {values.source === 'camera' ? (
-        <form.Field name="cameraId">
+    <>
+      <form
+        className="flex flex-col gap-10"
+        onSubmit={event => {
+          event.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <FieldGroup className="max-w-md">
+          <form.Field name="name">
+            {field => <TextField field={field} label="Name" placeholder="Hide feeder" autoComplete="off" />}
+          </form.Field>
+        </FieldGroup>
+        <form.Field name="source">
           {field => (
-            <Field data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}>
-              <FieldLabel htmlFor="camera-search">Camera</FieldLabel>
-              <div className="flex gap-2">
-                <CameraPicker
-                  cameras={cameras}
-                  networks={networks}
-                  value={field.state.value}
-                  onChange={cameraId => field.handleChange(cameraId)}
-                />
-                <Button variant="outline" nativeButton={false} render={<Link to="../../cameras" relative="path" />}>
-                  <PlusIcon />
-                  Add new
-                </Button>
-              </div>
-              <FieldDescription>
-                A plain RTSP address is a camera too: add it on the cameras page with the RTSP driver.
-              </FieldDescription>
-              {field.state.meta.isTouched && <FieldError errors={field.state.meta.errors} />}
-            </Field>
+            <FieldSet>
+              <FieldLegend>Source</FieldLegend>
+              <FieldDescription>Where the picture comes from.</FieldDescription>
+              <RadioGroup
+                className="grid-cols-1 sm:grid-cols-2"
+                value={field.state.value}
+                onValueChange={value => field.handleChange(StreamSourceSchema.parse(value))}
+              >
+                <SourceCard value="camera" title="Camera">
+                  Pulled from a camera on one of your networks, by the network’s agent.
+                </SourceCard>
+                <SourceCard value="publisher" title="Publisher">
+                  Published to a gateway from a phone, a PC or OBS, by the device you pin to it.
+                </SourceCard>
+              </RadioGroup>
+            </FieldSet>
           )}
         </form.Field>
-      ) : (
-        <form.Field name="publisherDeviceId">
-          {field => (
-            <SelectField
-              field={field}
-              label="Published by"
-              className="max-w-md"
-              description="The device that sends it: an agent running OBS, or a browser. Nothing sends it until one is pinned, here or later on its page."
-            >
-              <NativeSelectOption value="">None yet</NativeSelectOption>
-              <PublisherOptions devices={devicesQuery.data} />
-            </SelectField>
-          )}
-        </form.Field>
-      )}
-      <form.Field name="deliveries" mode="array">
-        {deliveriesField => (
-          <FieldSet>
-            <FieldLegend>Delivery</FieldLegend>
-            <FieldDescription>
-              Where it goes from the start. On a network, the agent serves it to readers there; conservation.tv makes it
-              watchable anywhere.
-            </FieldDescription>
-            <div className="flex flex-col gap-2">
-              {candidates.map(gateway => {
-                // A gateway is chosen while the form holds a delivery to it, at `index`; ticking adds one offering
-                // the first rendition it can, unticking removes it. Once chosen, it shows its renditions, and why
-                // the plan would be refused or leave it unsent.
-                const index = values.deliveries.findIndex(delivery => delivery.gatewayId === gateway.id);
-                const choices = renditionsFor(gateway, plan, camera, values.source);
-                return (
-                  <DeliveryCard key={gateway.id}>
-                    <DeliveryCardHeader gateway={gateway} networks={networks}>
-                      <Checkbox
-                        checked={index >= 0}
-                        aria-label={`Deliver to ${gateway.name}`}
-                        onCheckedChange={checked =>
-                          checked
-                            ? deliveriesField.pushValue({ gatewayId: gateway.id, renditions: choices.slice(0, 1) })
-                            : deliveriesField.removeValue(index)
-                        }
-                      />
-                    </DeliveryCardHeader>
-                    {index >= 0 && (
-                      <form.Field name={`deliveries[${index}].renditions`}>
-                        {field => (
-                          <RenditionsField
-                            field={field}
-                            label="Renditions"
-                            choices={choices}
-                            description={choices.length === 1 ? onlyRenditionNote(gateway, plan) : undefined}
-                          />
-                        )}
-                      </form.Field>
-                    )}
-                    {plan.problems.has(gateway.id) && <FieldError>{plan.problems.get(gateway.id)}</FieldError>}
-                    {index >= 0 && plan.unsent.has(gateway.id) && (
-                      <FieldDescription>{plan.unsent.get(gateway.id)}</FieldDescription>
-                    )}
-                  </DeliveryCard>
-                );
-              })}
-            </div>
-          </FieldSet>
-        )}
-      </form.Field>
-      <section className="flex flex-col gap-3" aria-label="How it will be delivered">
-        {draft.topology.nodes.length > 0 ? (
-          <div className="rounded-xl border border-border p-5">
-            <TopologyDiagram topology={draft.topology} statuses={draft.statuses} />
-          </div>
+        {values.source === 'camera' ? (
+          <form.Field name="cameraId">
+            {field => (
+              <Field data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}>
+                <FieldLabel htmlFor="camera-search">Camera</FieldLabel>
+                <div className="flex gap-2">
+                  <CameraPicker
+                    cameras={cameras}
+                    networks={networks}
+                    value={field.state.value}
+                    onChange={cameraId => field.handleChange(cameraId)}
+                  />
+                  <Button variant="outline" nativeButton={false} render={<Link to="camera" />}>
+                    <PlusIcon />
+                    Add new
+                  </Button>
+                </div>
+                <FieldDescription>A plain RTSP address is a camera too: add it with the RTSP driver.</FieldDescription>
+                {field.state.meta.isTouched && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            )}
+          </form.Field>
         ) : (
-          <p className="text-custom-13 text-muted-foreground">
-            Choose a camera or where it goes, and how it will be delivered is drawn here.
-          </p>
+          <form.Field name="publisherDeviceId">
+            {field => (
+              <SelectField
+                field={field}
+                label="Published by"
+                className="max-w-md"
+                description="The device that sends it: an agent running OBS, or a browser. Nothing sends it until one is pinned, here or later on its page."
+              >
+                <NativeSelectOption value="">None yet</NativeSelectOption>
+                <PublisherOptions devices={devicesQuery.data} />
+              </SelectField>
+            )}
+          </form.Field>
         )}
-        <PlanSummary
-          plan={plan.deliveries}
-          devices={devicesQuery.data}
-          sourceName={values.source === 'camera' ? (camera?.device?.name ?? 'the camera') : 'its publisher'}
-        />
-      </section>
-      <div className="flex flex-col items-start gap-3">
-        <FormError error={create.error} />
-        <Button type="submit" loading={create.isPending} disabled={plan.problems.size > 0}>
-          Create stream
-        </Button>
-      </div>
-    </form>
+        <form.Field name="deliveries" mode="array">
+          {deliveriesField => (
+            <FieldSet>
+              <FieldLegend>Delivery</FieldLegend>
+              <FieldDescription>
+                Where it goes from the start. On a network, the agent serves it to readers there; conservation.tv makes
+                it watchable anywhere.
+              </FieldDescription>
+              <div className="flex flex-col gap-2">
+                {candidates.map(gateway => {
+                  // A gateway is chosen while the form holds a delivery to it, at `index`; ticking adds one offering
+                  // the first rendition it can, unticking removes it. Once chosen, it shows its renditions, and why
+                  // the plan would be refused or leave it unsent.
+                  const index = values.deliveries.findIndex(delivery => delivery.gatewayId === gateway.id);
+                  const choices = renditionsFor(gateway, plan, camera, values.source);
+                  return (
+                    <DeliveryCard key={gateway.id}>
+                      <DeliveryCardHeader gateway={gateway} networks={networks}>
+                        <Checkbox
+                          checked={index >= 0}
+                          aria-label={`Deliver to ${gateway.name}`}
+                          onCheckedChange={checked =>
+                            checked
+                              ? deliveriesField.pushValue({ gatewayId: gateway.id, renditions: choices.slice(0, 1) })
+                              : deliveriesField.removeValue(index)
+                          }
+                        />
+                      </DeliveryCardHeader>
+                      {index >= 0 && (
+                        <form.Field name={`deliveries[${index}].renditions`}>
+                          {field => (
+                            <RenditionsField
+                              field={field}
+                              label="Renditions"
+                              choices={choices}
+                              description={choices.length === 1 ? onlyRenditionNote(gateway, plan) : undefined}
+                            />
+                          )}
+                        </form.Field>
+                      )}
+                      {plan.problems.has(gateway.id) && <FieldError>{plan.problems.get(gateway.id)}</FieldError>}
+                      {index >= 0 && plan.unsent.has(gateway.id) && (
+                        <FieldDescription>{plan.unsent.get(gateway.id)}</FieldDescription>
+                      )}
+                    </DeliveryCard>
+                  );
+                })}
+              </div>
+            </FieldSet>
+          )}
+        </form.Field>
+        <section className="flex flex-col gap-3" aria-label="How it will be delivered">
+          {draft.topology.nodes.length > 0 ? (
+            <div className="rounded-xl border border-border p-5">
+              <TopologyDiagram topology={draft.topology} statuses={draft.statuses} />
+            </div>
+          ) : (
+            <p className="text-custom-13 text-muted-foreground">
+              Choose a camera or where it goes, and how it will be delivered is drawn here.
+            </p>
+          )}
+          <PlanSummary
+            plan={plan.deliveries}
+            devices={devicesQuery.data}
+            sourceName={values.source === 'camera' ? (camera?.device?.name ?? 'the camera') : 'its publisher'}
+          />
+        </section>
+        <div className="flex flex-col items-start gap-3">
+          <FormError error={create.error} />
+          <Button type="submit" loading={create.isPending} disabled={plan.problems.size > 0}>
+            Create stream
+          </Button>
+        </div>
+      </form>
+      {/* Adding a camera, at `camera`: a dialog over the form, which keeps what has been filled in and chooses it. It is
+          outside the form, so submitting the dialog's own form doesn't bubble up to this one through the portal. */}
+      <Outlet context={outletContext} />
+    </>
   );
 };
 

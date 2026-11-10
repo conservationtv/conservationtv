@@ -18,27 +18,31 @@ export default [
       route('organisations/:organisationId', './routes/organisation-layout.tsx', [
         index('./routes/organisation-home.tsx'),
         route('streams', './routes/streams.tsx'),
-        route('streams/new', './routes/stream-new.tsx'),
+        route('streams/new', './routes/stream-new.tsx', [
+          // Adding a camera without leaving the new stream's form, which then chooses it.
+          route('camera', './routes/stream-new-camera.tsx')
+        ]),
         route('streams/:streamId', './routes/stream.tsx'),
         // The organisation's shows going out: each its output agent, programme, forwards, previews and recorder, all
         // following the organisation's one broadcast for now.
         route('shows', './routes/shows.tsx'),
         route('shows/:showId', './routes/show.tsx'),
         // Where shows go out to: Twitch channels and RTMP destinations.
-        route('channels', './routes/channels.tsx'),
+        route('channels', './routes/channels.tsx', [route('rtmp/new', './routes/channel-rtmp-new.tsx')]),
         // What the streams run on: the sites, and the agents, cameras and gateways on them.
-        route('networks', './routes/networks.tsx'),
-        route('agents', './routes/agents.tsx'),
+        // Adding one is a dialog routed over its list, at `new`, so it can be linked to.
+        route('networks', './routes/networks.tsx', [route('new', './routes/network-new.tsx')]),
+        route('agents', './routes/agents.tsx', [route('new', './routes/agent-new.tsx')]),
         route('agents/:agentId', './routes/agent.tsx'),
-        route('cameras', './routes/cameras.tsx'),
+        route('cameras', './routes/cameras.tsx', [route('new', './routes/camera-new.tsx')]),
         route('cameras/:cameraId', './routes/camera.tsx'),
-        route('gateways', './routes/gateways.tsx'),
+        route('gateways', './routes/gateways.tsx', [route('new', './routes/gateway-new.tsx')]),
         route('publishers', './routes/publishers.tsx'),
         route('devices', './routes/devices.tsx'),
         // The organisation itself, under its own tabs.
         route('settings', './routes/settings-layout.tsx', [
           index('./routes/settings-general.tsx'),
-          route('members', './routes/settings-members.tsx'),
+          route('members', './routes/settings-members.tsx', [route('invite', './routes/settings-members-invite.tsx')]),
           route('roles', './routes/settings-roles.tsx')
         ])
       ])
