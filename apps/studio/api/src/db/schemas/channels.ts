@@ -1,6 +1,6 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { boolean, check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { CHANNEL_KINDS, ChannelCredentialsSchema, type ChannelKind } from '../../channels/kinds.ts';
 import { encrypted, json } from '../encrypted.ts';
 import { channelBroadcaster, organisationAdmin } from '../roles.ts';
@@ -27,6 +27,12 @@ export const channels = withAccess(
       /** The account on the other side, such as the Twitch broadcaster's ID and login; null for a plain RTMP URL. */
       externalId: text('external_id'),
       externalLogin: text('external_login'),
+      /**
+       * Unused: whether a show goes out to it is now each show's forward (`show_forward.enabled`). Kept for one release,
+       * because migrations run before the new API version is uploaded and the version still serving reads it; drop it
+       * in a migration of its own once this version serves everywhere.
+       */
+      enabled: boolean('enabled').default(true).notNull(),
       createdAt: timestamp('created_at').defaultNow().notNull()
     },
     t => [

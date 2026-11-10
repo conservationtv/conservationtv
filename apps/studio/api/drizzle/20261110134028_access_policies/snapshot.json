@@ -2910,6 +2910,19 @@
       "table": "channel"
     },
     {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "enabled",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channel"
+    },
+    {
       "type": "timestamp",
       "typeSchema": null,
       "notNull": true,
