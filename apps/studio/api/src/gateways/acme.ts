@@ -15,7 +15,7 @@ import {
 import { calculateJwkThumbprint, FlattenedSign, importJWK, type JWK } from 'jose';
 import { z } from 'zod';
 import { ApiFailure } from '../errors.ts';
-import { createRecord, type DnsZone } from './dns.ts';
+import { createRecord, type DnsZone, RECORD_PROPAGATION_MS } from './dns.ts';
 
 // Certificates from an ACME certificate authority (RFC 8555), Let's Encrypt by default, for one hostname at a time,
 // proving control of it by DNS-01: the challenge's token goes in a TXT record at `_acme-challenge.<hostname>` in the
@@ -50,10 +50,12 @@ const POLL_ATTEMPTS = 45;
 const DirectorySchema = z.object({ newNonce: z.url(), newAccount: z.url(), newOrder: z.url() });
 type Directory = z.output<typeof DirectorySchema>;
 
+// Only dns-01 is answered, and it always has a token; other types an authority offers beside it may not (dns-persist-01
+// has none), so the token is optional here and required where dns-01 is chosen.
 const ChallengeSchema = z.object({
   type: z.string(),
   url: z.url(),
-  token: z.string(),
+  token: z.string().optional(),
   status: z.string(),
   error: z.object({ detail: z.string().optional() }).optional()
 });
@@ -129,9 +131,10 @@ export async function generateCertificateKey() {
 async function importCertificateKey(privateKeyPem: string): Promise<CryptoKeyPair> {
   const algorithm = { name: 'ECDSA', namedCurve: 'P-256' };
   const privateKey = await crypto.subtle.importKey('pkcs8', der(privateKeyPem), algorithm, true, ['sign']);
-  // The public half, through the JWK the private key exports as.
+  // The public half, through the JWK the private key exports as: without `d`, and without its `key_ops` (`sign`), which
+  // Web Crypto refuses to import a key for `verify` with.
   // SAFETY: exporting as `jwk` yields a JWK, not bytes.
-  const { d: _d, ...publicJwk } = (await crypto.subtle.exportKey('jwk', privateKey)) as JsonWebKey;
+  const { d: _d, key_ops: _keyOps, ...publicJwk } = (await crypto.subtle.exportKey('jwk', privateKey)) as JsonWebKey;
   const publicKey = await crypto.subtle.importKey('jwk', publicJwk, algorithm, true, ['verify']);
   return { privateKey, publicKey };
 }
@@ -317,16 +320,21 @@ class AcmeSession {
 
   /**
    * Proves control of `hostname` for one authorization of an order, unless it is already valid from an earlier order:
-   * publishes the DNS-01 token in `zone`, tells the authority to look, waits until it has decided, and takes the token
+   * publishes the DNS-01 token in `zone`, waits until it is served, tells the authority to look, waits until it has decided, and takes the token
    * down whatever it decided. Throws the authority's refusal.
    */
   private async authorize(authorizationUrl: string, hostname: string, zone: DnsZone): Promise<void> {
     const authorization = await this.read(authorizationUrl, AuthorizationSchema);
     if (authorization.status === 'valid') return;
     const challenge = authorization.challenges.find(candidate => candidate.type === 'dns-01');
-    if (challenge === undefined) throw refused('the authorization', 'it offers no dns-01 challenge');
-    const remove = await createRecord(zone, 'TXT', `_acme-challenge.${hostname}`, await this.txtValue(challenge.token));
+    if (challenge?.token === undefined)
+      throw refused('the authorization', 'it offers no dns-01 challenge with a token');
+    const name = `_acme-challenge.${hostname}`;
+    const value = await this.txtValue(challenge.token);
+    const remove = await createRecord(zone, 'TXT', name, value);
     try {
+      // Told to look before the record is served, the authority finds nothing and fails the challenge.
+      await sleep(RECORD_PROPAGATION_MS);
       await this.post(challenge.url, {});
       const validated = await this.poll(authorizationUrl, AuthorizationSchema, result => result.status !== 'pending');
       if (validated.status !== 'valid') throw refused(`the challenge for ${hostname}`, challengeFailure(validated));

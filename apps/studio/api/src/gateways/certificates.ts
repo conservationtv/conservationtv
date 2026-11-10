@@ -11,6 +11,7 @@ import {
   issueCertificate,
   type AcmeAuthority
 } from './acme.ts';
+import { ApiFailure } from '../errors.ts';
 import { upsertRecord, type DnsZone } from './dns.ts';
 
 // A hostname for each MediaMTX gateway an agent runs, `<gateway>.<organisation>.<GATEWAY_DOMAIN>`, pointing at the
@@ -157,7 +158,9 @@ async function issue(row: CertificateRow, issuer: CertificateIssuer, now: number
     await update(row.gatewayId, changes);
     return { ...row, ...changes };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    // An ApiFailure's message is only its category's ("cannot be connected to right now"); what went wrong is its cause.
+    const detail = error instanceof ApiFailure && error.cause !== undefined ? String(error.cause) : undefined;
+    const message = detail ?? (error instanceof Error ? error.message : String(error));
     await update(row.gatewayId, { attemptedAt, error: message });
     console.warn(JSON.stringify({ event: 'gateway_certificate_failed', hostname: row.hostname, cause: message }));
     return { ...row, attemptedAt, error: message };
