@@ -97,7 +97,7 @@ const ShowRoute: FC<Route.ComponentProps> = ({ params }) => {
         Shows
       </BackLink>
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <ShowView showId={params.showId} />
+        <ShowView key={params.showId} showId={params.showId} />
       </Suspense>
     </Page>
   );
