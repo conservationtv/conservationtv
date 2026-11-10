@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { CloudSlashIcon, GearIcon, SignInIcon, UserCircleGearIcon } from '@phosphor-icons/react';
+import { CloudSlashIcon, SignInIcon, SquaresFourIcon, UserCircleGearIcon } from '@phosphor-icons/react';
 import { motion, type Transition } from 'motion/react';
 import { NavLink } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
@@ -17,7 +17,9 @@ import { Fireflies } from '@/components/about/fireflies';
 import { Frame } from '@/components/about/frame';
 import { NightStars } from '@/components/about/night-stars';
 import { Reflection } from '@/components/about/reflection';
-import { usePinsStandIn } from '@/hooks/use-pins-stand-in';
+import { PinIcon } from '@/components/app/pins';
+import { useAccountMenu } from '@/hooks/use-account-menu';
+import { appHomePath } from '@/lib/route-guards';
 import '@/components/about/about-hero.css';
 
 declare module 'react' {
@@ -32,7 +34,7 @@ declare module 'react' {
 
 /** The app rail's icon links, here floating over the sky. */
 const navLinkClassName =
-  'flex size-9 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-interaction-hover focus-visible:outline-2 focus-visible:outline-ring';
+  'flex size-9 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-interaction-hover focus-visible:outline-2 focus-visible:outline-ring [&_svg]:size-4';
 
 /** Links styled as the sidebar's menu items, which need a SidebarProvider this page doesn't have. */
 const sidebarItemClassName =
@@ -67,12 +69,12 @@ export const links: Route.LinksFunction = () => [{ rel: 'preload', as: 'image', 
 
 /**
  * Across the top right: a way to sign in, there from the first paint, or for someone signed in, the app rail's pinned
- * links and the account link. Nothing waits on the session: once it and the pins have loaded (see usePinsStandIn), the
+ * links and the account link. Nothing waits on the session: once it and the pins have loaded (see useAccountMenu), the
  * signed-in menu fades in in place of the sign-in button. If the studio can't be reached, a status saying so fades in
  * there instead, and the rest of the page carries on.
  */
 const AccountMenu: FC = () => {
-  const menu = usePinsStandIn();
+  const menu = useAccountMenu();
   if (menu.status === 'offline') {
     return (
       <motion.p
@@ -109,22 +111,31 @@ const AccountMenu: FC = () => {
       transition={menuEntrance}
       className="flex items-center gap-2"
     >
-      <nav aria-label="Pinned" className="flex gap-0.5">
-        {menu.pins.map(({ to, label }) => (
-          <Tooltip key={label}>
-            <TooltipTrigger>
-              <NavLink to={to} className={navLinkClassName}>
-                <GearIcon className="size-4" aria-hidden="true" />
-              </NavLink>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{label}</TooltipContent>
-          </Tooltip>
-        ))}
+      {menu.pins.length > 0 && (
+        <>
+          <nav aria-label="Pinned" className="flex gap-0.5">
+            {menu.pins.map(pin => (
+              <Tooltip key={pin.to}>
+                <TooltipTrigger render={<NavLink to={pin.to} className={navLinkClassName} />}>
+                  <PinIcon kind={pin.kind} />
+                  <span className="sr-only">{pin.label}</span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{pin.label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </nav>
+          <Separator
+            orientation="vertical"
+            className="bg-sidebar-foreground/40 data-vertical:h-5 data-vertical:self-auto"
+          />
+        </>
+      )}
+      <nav aria-label="Studio" className="flex gap-0.5">
+        <NavLink to={appHomePath} className={headerLinkClassName}>
+          <SquaresFourIcon aria-hidden="true" />
+          <span>Open studio</span>
+        </NavLink>
       </nav>
-      <Separator
-        orientation="vertical"
-        className="bg-sidebar-foreground/40 data-vertical:h-5 data-vertical:self-auto"
-      />
       <nav aria-label="Account" className="flex gap-0.5">
         <NavLink to="/account" className={headerLinkClassName}>
           <UserCircleGearIcon aria-hidden="true" />

@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import type { ComponentProps, FC } from 'react';
 import { z } from 'zod';
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import {
@@ -7,6 +7,7 @@ import {
   ChartTooltipContent,
   type ChartConfig
 } from '@conservationtv/ui/components/chart';
+import { cn } from '@conservationtv/ui/lib/utils';
 
 /** One bucket: what came in from the camera, and what went out to the network and to the internet, in bits a second. */
 export interface BitrateRow {
@@ -31,6 +32,8 @@ export interface StreamChartProps {
   rows: BitrateRow[];
   from: number;
   to: number;
+  /** Its size, where a card's sparkline height isn't right: a stream's own page draws it taller. */
+  className?: string;
 }
 
 /**
@@ -38,7 +41,7 @@ export interface StreamChartProps {
  * to the network dotted, and out to the internet dashed on top. What goes to the internet usually matches what comes
  * in, so it is drawn as a darker line riding the area's edge rather than a second line of the same kind over the first.
  */
-export const StreamChart: FC<StreamChartProps> = ({ rows, from, to }) => {
+export const StreamChart: FC<StreamChartProps> = ({ rows, from, to, className }) => {
   const highest = rows.reduce(
     (most, row) => Math.max(most, row.ingress ?? 0, row.lanEgress ?? 0, row.internetEgress ?? 0),
     0
@@ -46,7 +49,7 @@ export const StreamChart: FC<StreamChartProps> = ({ rows, from, to }) => {
   // A flat line sits low rather than in the middle when nothing has been reported.
   const top = highest > 0 ? tidyCeiling(highest * HEADROOM) : 1e6;
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-32 w-full">
+    <ChartContainer config={chartConfig} className={cn('aspect-auto h-32 w-full', className)}>
       <ComposedChart data={rows} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="2 4" />
         <XAxis
@@ -122,6 +125,42 @@ export const StreamChart: FC<StreamChartProps> = ({ rows, from, to }) => {
         />
       </ComposedChart>
     </ChartContainer>
+  );
+};
+
+/** How each line is drawn, for its key: the area filled, the others by their dashes. */
+const legendDashes = {
+  ingress: undefined,
+  lanEgress: '1 3',
+  internetEgress: '5 3'
+} satisfies Record<keyof typeof chartConfig, string | undefined>;
+
+/** What each of the chart's lines is, drawn as it is drawn in the chart, for where the chart stands without a card. */
+export const StreamChartLegend: FC<ComponentProps<'ul'>> = ({ className, ...props }) => {
+  return (
+    <ul
+      className={cn('flex flex-wrap gap-x-5 gap-y-1 text-custom-12 text-custom-text-secondary', className)}
+      {...props}
+    >
+      {(['ingress', 'lanEgress', 'internetEgress'] satisfies (keyof typeof chartConfig)[]).map(key => (
+        <li key={key} className="inline-flex items-center gap-2">
+          <svg aria-hidden="true" width="18" height="8" className="overflow-visible">
+            <line
+              x1="0"
+              y1="4"
+              x2="18"
+              y2="4"
+              stroke={chartConfig[key].color}
+              strokeWidth={key === 'ingress' ? 6 : 1.75}
+              strokeOpacity={key === 'ingress' ? 0.3 : 1}
+              strokeDasharray={legendDashes[key]}
+              strokeLinecap={key === 'lanEgress' ? 'round' : undefined}
+            />
+          </svg>
+          {chartConfig[key].label}
+        </li>
+      ))}
+    </ul>
   );
 };
 

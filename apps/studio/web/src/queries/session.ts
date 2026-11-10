@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { closeAgentSessions } from '@/lib/agent-connection';
 import { authClient } from '@/lib/auth-client';
 import {
   startAuthentication,
@@ -31,6 +32,8 @@ const accountIndependent = new Set<unknown>(['session', 'this-device', 'api']);
 export function useSessionChanged() {
   const queryClient = useQueryClient();
   return () => {
+    // Connections to agents were dialled as the last account's browser device.
+    closeAgentSessions();
     queryClient.removeQueries({ predicate: query => !accountIndependent.has(query.queryKey[0]) });
     return queryClient.invalidateQueries({ queryKey: ['session'] });
   };

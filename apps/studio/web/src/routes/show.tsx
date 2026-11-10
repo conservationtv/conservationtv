@@ -1,13 +1,19 @@
-import type { FC } from 'react';
+import { Suspense, type FC } from 'react';
+import { useSuspenseQueries } from '@tanstack/react-query';
 import { Stage, Stream, useStreamStatus } from '@strangecyan/vignette/react';
 import { BroadcastIcon, ShuffleIcon } from '@phosphor-icons/react';
 import { Link } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
+import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
+import { Skeleton } from '@conservationtv/ui/components/skeleton';
 
 import type { Route } from './+types/show';
 import { CtvStreamView } from '@/components/shows/ctv-stream-view';
 import { api } from '@/lib/api';
-import { useComposeBroadcast } from '@/queries/shows';
+import { FormError } from '@/components/common/form-error';
+import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
+import { agentListQueryOptions } from '@/queries/agents';
+import { showOutputQueryOptions, useClearShowOutput, useComposeBroadcast, useSetShowOutput } from '@/queries/shows';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Show · conservation.tv studio' }];
 
@@ -40,11 +46,57 @@ const ShowRoute: FC<Route.ComponentProps> = ({ params }) => {
       </header>
       {/* A new organisation is a new stream, so its broadcast starts over. */}
       <BroadcastStage key={params.organisationId} organisationId={params.organisationId} />
+      <Suspense fallback={<Skeleton className="h-7 w-72" />}>
+        <ShowOutput />
+      </Suspense>
     </div>
   );
 };
 
 export default ShowRoute;
+
+/**
+ * Which agent sends the show out: it runs OBS, follows the broadcast, and forwards the programme to every channel
+ * that is on. Everyone sees which it is; administrators choose it, or leave the show with none.
+ */
+const ShowOutput: FC = () => {
+  const organisationId = useOrganisationId();
+  const administrator = useIsAdministrator();
+  const [outputQuery, agentsQuery] = useSuspenseQueries({
+    queries: [showOutputQueryOptions(organisationId), agentListQueryOptions(organisationId)]
+  });
+  const setOutput = useSetShowOutput(organisationId);
+  const clearOutput = useClearShowOutput(organisationId);
+  const saving = setOutput.isPending || clearOutput.isPending;
+  const stored = outputQuery.data?.deviceId ?? '';
+  const current = agentsQuery.data.find(agent => agent.id === stored);
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="text-custom-13 text-foreground">Sent out by</span>
+      {administrator ? (
+        <NativeSelect
+          aria-label="The agent that sends the show out"
+          value={setOutput.isPending ? setOutput.variables : stored}
+          disabled={saving}
+          onChange={event => (event.target.value ? setOutput.mutate(event.target.value) : clearOutput.mutate())}
+        >
+          <NativeSelectOption value="">No one</NativeSelectOption>
+          {agentsQuery.data.map(agent => (
+            <NativeSelectOption key={agent.id} value={agent.id}>
+              {agent.device?.name ?? 'Unnamed agent'}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      ) : (
+        <span className="text-custom-13 text-custom-text-secondary">{current?.device?.name ?? 'No one'}</span>
+      )}
+      <span className="text-custom-12 text-custom-text-secondary">
+        The agent runs OBS and forwards the show to every channel that’s on.
+      </span>
+      <FormError error={setOutput.error ?? clearOutput.error} />
+    </div>
+  );
+};
 
 interface ComposeButtonProps {
   organisationId: string;

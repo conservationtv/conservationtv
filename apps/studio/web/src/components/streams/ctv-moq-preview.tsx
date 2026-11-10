@@ -3,15 +3,13 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Skeleton } from '@conservationtv/ui/components/skeleton';
 
 import { MoqPlayer } from '@/components/streams/moq-player';
+import { CONSERVATIONTV_GATEWAY } from '@/components/streams/renditions';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { moqReadQueryOptions, streamListQueryOptions } from '@/queries/streams';
 
 // A temporary live preview of a stream, played over MoQ from the built-in conservation.tv gateway: the only gateway
 // readers reach by MoQ (src/gateways/conservationtv.ts in the studio API). Muted, and playing whether or not it's on
 // screen.
-
-/** The built-in gateway that serves MoQ to readers, by its slug. */
-const MOQ_GATEWAY = 'conservationtv';
 
 export interface CTVMoQPreviewProps {
   /** The stream's ID. */
@@ -39,7 +37,7 @@ const PreviewSource: FC<PreviewSourceProps> = ({ streamId }) => {
     select: streams =>
       streams
         .find(candidate => candidate.id === streamId)
-        ?.exposures.find(exposure => exposure.gatewayId === MOQ_GATEWAY)
+        ?.exposures.find(exposure => exposure.gatewayId === CONSERVATIONTV_GATEWAY)
   });
   const exposure = exposureQuery.data;
   if (!exposure) return <PreviewNote>Not delivered to conservation.tv, so there’s no preview.</PreviewNote>;

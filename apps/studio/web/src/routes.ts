@@ -1,4 +1,4 @@
-import { index, layout, prefix, route, type RouteConfig } from '@react-router/dev/routes';
+import { index, layout, route, type RouteConfig } from '@react-router/dev/routes';
 
 export default [
   // The public homepage: what conservation.tv is, with a way into the app.
@@ -7,20 +7,42 @@ export default [
   layout('./routes/authenticated-layout.tsx', [
     // The app's rail, around everything that lives in the app.
     layout('./routes/app-layout.tsx', [
-      ...prefix('organisations', [
-        index('./routes/home.tsx'),
-        // An organisation's section sidebar, around its pages: everything under it is in that organisation.
-        route(':organisationId', './routes/organisation-layout.tsx', [
-          index('./routes/organisation-home.tsx'),
-          route('streams', './routes/streams.tsx'),
-          // The organisation's broadcast, composed by the studio API and followed live.
-          route('show', './routes/show.tsx'),
-          // Where the broadcast goes out to: Twitch channels and RTMP destinations.
-          route('channels', './routes/channels.tsx')
+      // Pages that aren't in an organisation scroll as one page in the app's pane.
+      layout('./routes/page-layout.tsx', [
+        route('organisations', './routes/home.tsx'),
+        route('organisations/new', './routes/organisation-new.tsx'),
+        // The signed-in account: its profile, how it signs in, and the organisations it is in or invited to.
+        route('account', './routes/account.tsx')
+      ]),
+      // An organisation's section sidebar, around its pages: everything under it is in that organisation.
+      route('organisations/:organisationId', './routes/organisation-layout.tsx', [
+        index('./routes/organisation-home.tsx'),
+        route('streams', './routes/streams.tsx'),
+        route('streams/new', './routes/stream-new.tsx'),
+        route('streams/:streamId', './routes/stream.tsx'),
+        // The organisation's broadcast, composed by the studio API and followed live.
+        route('show', './routes/show.tsx'),
+        // Where the broadcast goes out to: Twitch channels and RTMP destinations.
+        route('channels', './routes/channels.tsx'),
+        // What the streams run on: the sites, and the agents, cameras and gateways on them.
+        route('networks', './routes/networks.tsx'),
+        route('agents', './routes/agents.tsx'),
+        route('agents/:agentId', './routes/agent.tsx'),
+        route('cameras', './routes/cameras.tsx'),
+        route('cameras/:cameraId', './routes/camera.tsx'),
+        route('gateways', './routes/gateways.tsx'),
+        route('publishers', './routes/publishers.tsx'),
+        route('devices', './routes/devices.tsx'),
+        // The organisation itself, under its own tabs.
+        route('settings', './routes/settings-layout.tsx', [
+          index('./routes/settings-general.tsx'),
+          route('members', './routes/settings-members.tsx'),
+          route('roles', './routes/settings-roles.tsx')
         ])
       ])
     ]),
-    route('account', './routes/account.tsx')
+    // The page an emailed invitation's link opens, carrying its one-time code.
+    route('invitations/:invitationId', './routes/invitation.tsx')
   ]),
   route('sign-in', './routes/sign-in.tsx'),
   route('device', './routes/device.tsx'),

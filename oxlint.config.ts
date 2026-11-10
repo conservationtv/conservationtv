@@ -61,7 +61,6 @@ const vendoredFiles = [
   'packages/ui/src/components/**',
   'packages/ui/src/hooks/**',
   'packages/ui/src/lib/**',
-  'apps/studio/web/src/components/blocks/**',
   'apps/studio/web/src/components/app/theme-provider.tsx'
 ];
 
