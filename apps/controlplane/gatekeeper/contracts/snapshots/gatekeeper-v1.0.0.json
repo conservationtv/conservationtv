@@ -1,0 +1,625 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gatekeeper",
+    "description": "The conservation.stream control plane: a relay capability broker that exchanges its environment's consumer's grants for MoQ and Iroh relay credentials.",
+    "version": "0.1.0"
+  },
+  "components": {
+    "responses": {
+      "InvalidRequest": {
+        "description": "The request is invalid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "error_description"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Grant": {
+        "type": "object",
+        "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "issued_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "credentials": {
+            "type": "object",
+            "properties": {
+              "moq": {
+                "type": "object",
+                "properties": {
+                  "relay": {
+                    "type": "string"
+                  },
+                  "root": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  },
+                  "expires_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "relay",
+                  "root",
+                  "token",
+                  "expires_at"
+                ]
+              },
+              "iroh": {
+                "type": "object",
+                "properties": {
+                  "relay": {
+                    "type": "string"
+                  },
+                  "endpoint_id": {
+                    "type": "string"
+                  },
+                  "lease_id": {
+                    "type": "string"
+                  },
+                  "expires_at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "relay",
+                  "endpoint_id",
+                  "lease_id",
+                  "expires_at"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "grant_id",
+          "subject",
+          "issued_at",
+          "expires_at",
+          "credentials"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health.get",
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "The server is ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/grants/exchange": {
+      "post": {
+        "operationId": "grants.exchange",
+        "x-operation-version": 1,
+        "summary": "Exchange a grant",
+        "description": "Exchanges a grant for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Requires the environment's consumer token as `Authorization: Bearer …`. Responses are secrets and are never cacheable.",
+        "responses": {
+          "200": {
+            "description": "The issued relay credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Grant"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request or its grant is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The consumer token is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The requested endpoint cannot be admitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency required to decide the request is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "pattern": "^[\\x21-\\x7e]{1,256}$",
+                    "description": "Who the credentials are for, recorded for audit, such as `app:device:42`."
+                  },
+                  "requested_capabilities": {
+                    "type": "object",
+                    "properties": {
+                      "moq": {
+                        "type": "object",
+                        "properties": {
+                          "root": {
+                            "type": "string",
+                            "maxLength": 223
+                          },
+                          "publish": {
+                            "maxItems": 32,
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": ""
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 256
+                                }
+                              ]
+                            }
+                          },
+                          "subscribe": {
+                            "maxItems": 32,
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": ""
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 256
+                                }
+                              ]
+                            }
+                          },
+                          "stats": {
+                            "default": false,
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "root",
+                          "publish",
+                          "subscribe"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "iroh": {
+                        "type": "object",
+                        "properties": {
+                          "endpoint_id": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "action": {
+                            "type": "string",
+                            "const": "connect"
+                          }
+                        },
+                        "required": [
+                          "endpoint_id",
+                          "action"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "expires_in": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400
+                  }
+                },
+                "required": [
+                  "subject",
+                  "requested_capabilities",
+                  "expires_in"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    }
+  },
+  "x-operation-contracts": [
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Gatekeeper",
+        "description": "The conservation.stream control plane: a relay capability broker that exchanges its environment's consumer's grants for MoQ and Iroh relay credentials.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Grant": {
+            "type": "object",
+            "properties": {
+              "grant_id": {
+                "type": "string"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "issued_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "credentials": {
+                "type": "object",
+                "properties": {
+                  "moq": {
+                    "type": "object",
+                    "properties": {
+                      "relay": {
+                        "type": "string"
+                      },
+                      "root": {
+                        "type": "string"
+                      },
+                      "token": {
+                        "type": "string"
+                      },
+                      "expires_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "relay",
+                      "root",
+                      "token",
+                      "expires_at"
+                    ]
+                  },
+                  "iroh": {
+                    "type": "object",
+                    "properties": {
+                      "relay": {
+                        "type": "string"
+                      },
+                      "endpoint_id": {
+                        "type": "string"
+                      },
+                      "lease_id": {
+                        "type": "string"
+                      },
+                      "expires_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "relay",
+                      "endpoint_id",
+                      "lease_id",
+                      "expires_at"
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "grant_id",
+              "subject",
+              "issued_at",
+              "expires_at",
+              "credentials"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/grants/exchange": {
+          "post": {
+            "operationId": "grants.exchange",
+            "x-operation-version": 1,
+            "summary": "Exchange a grant",
+            "description": "Exchanges a grant for relay credentials: a MoQ capability token and/or an Iroh endpoint lease. Requires the environment's consumer token as `Authorization: Bearer …`. Responses are secrets and are never cacheable.",
+            "responses": {
+              "200": {
+                "description": "The issued relay credentials",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Grant"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request or its grant is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The consumer token is missing or invalid",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The requested endpoint cannot be admitted",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "A dependency required to decide the request is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "subject": {
+                        "type": "string",
+                        "pattern": "^[\\x21-\\x7e]{1,256}$",
+                        "description": "Who the credentials are for, recorded for audit, such as `app:device:42`."
+                      },
+                      "requested_capabilities": {
+                        "type": "object",
+                        "properties": {
+                          "moq": {
+                            "type": "object",
+                            "properties": {
+                              "root": {
+                                "type": "string",
+                                "maxLength": 223
+                              },
+                              "publish": {
+                                "maxItems": 32,
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "const": ""
+                                    },
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    }
+                                  ]
+                                }
+                              },
+                              "subscribe": {
+                                "maxItems": 32,
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "const": ""
+                                    },
+                                    {
+                                      "type": "string",
+                                      "maxLength": 256
+                                    }
+                                  ]
+                                }
+                              },
+                              "stats": {
+                                "default": false,
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "root",
+                              "publish",
+                              "subscribe"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "iroh": {
+                            "type": "object",
+                            "properties": {
+                              "endpoint_id": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "action": {
+                                "type": "string",
+                                "const": "connect"
+                              }
+                            },
+                            "required": [
+                              "endpoint_id",
+                              "action"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "expires_in": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 86400
+                      }
+                    },
+                    "required": [
+                      "subject",
+                      "requested_capabilities",
+                      "expires_in"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
