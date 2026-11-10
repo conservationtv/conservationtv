@@ -49,7 +49,15 @@ const app = new Hono({ router: operationRouter })
         return environment.variables.WEB_ORIGINS.includes(origin) ? origin : null;
       },
       credentials: true,
-      allowHeaders: ['Authorization', 'Content-Type', 'Operation-Version'],
+      // The signature fields are a browser acting as its own device (`irohSessions.create`), before it dials an agent.
+      allowHeaders: [
+        'Authorization',
+        'Content-Type',
+        'Operation-Version',
+        'Content-Digest',
+        'Signature',
+        'Signature-Input'
+      ],
       exposeHeaders: ['Operation-Version']
     })
   )
