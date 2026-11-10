@@ -1,11 +1,12 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { contractsOf, ReleaseDocumentSchema, type ReleaseDocument } from './compare.js';
 import type { ContractsProject } from './config.js';
+import { snapshotNames } from './snapshot-status.js';
 
 /** The project parts the release checks read. */
-export type ReleaseProject = Pick<ContractsProject, 'document' | 'snapshots' | 'root' | 'paths' | 'release'>;
+export type ReleaseProject = Pick<ContractsProject, 'document' | 'snapshots' | 'root' | 'paths'>;
 
 export interface Release {
   name: string;
@@ -37,17 +38,13 @@ export function readCurrent(project: ReleaseProject): ReleaseDocument {
   return ReleaseDocumentSchema.parse(JSON.parse(readFileSync(project.document, 'utf8')));
 }
 
-/** Read the immutable release history in a reusable form for gates and advisory checks. */
+/** Read the immutable release history, oldest first, in a reusable form for gates and advisory checks. */
 export function readReleases(project: ReleaseProject): Release[] {
-  const names = existsSync(project.snapshots)
-    ? readdirSync(project.snapshots)
-        .filter(name => name.endsWith('.json'))
-        .sort()
-    : [];
-  return names.map(name => ({
-    name,
-    document: ReleaseDocumentSchema.parse(JSON.parse(readFileSync(join(project.snapshots, name), 'utf8')))
-  }));
+  return snapshotNames(project).map(name => ({ name, document: readSnapshot(project, name) }));
+}
+
+export function readSnapshot(project: Pick<ReleaseProject, 'snapshots'>, name: string): ReleaseDocument {
+  return ReleaseDocumentSchema.parse(JSON.parse(readFileSync(join(project.snapshots, `${name}.json`), 'utf8')));
 }
 
 /** Compare all releases, including versions removed from the current server and later reintroduced. */

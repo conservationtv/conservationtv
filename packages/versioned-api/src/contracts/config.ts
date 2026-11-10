@@ -27,8 +27,6 @@ export interface ContractsConfig {
   router: OperationRouter;
   spec: Partial<GenerateSpecOptions>;
   schemas: ResponseSchemas;
-  /** The release tag prefix: snapshots are `<release>-vX.Y.Z`. */
-  release: string;
   /** The published bundle. Default `./contracts/openapi.json`: a directory, so a Vite dev server never serves it as a file. */
   document?: string;
   /** Frozen release bundles. Default `./contracts/snapshots`. */
@@ -61,7 +59,6 @@ export interface ContractsProject {
   router: OperationRouter;
   spec: Partial<GenerateSpecOptions>;
   schemas: ResponseSchemas;
-  release: string;
   dir: string;
   document: string;
   snapshots: string;
@@ -107,36 +104,32 @@ function resolvePaths(configPath: string, config: ContractsConfig): ResolvedPath
 
 export async function loadProject(configPath = resolve('contracts.config.ts')): Promise<ContractsProject> {
   const loaded: Module = ModuleSchema.parse(await import(pathToFileURL(configPath).href));
-  const { app, router, spec, schemas, release } = loaded.default;
-  return { app, router, spec, schemas, release, ...resolvePaths(configPath, loaded.default) };
+  const { app, router, spec, schemas } = loaded.default;
+  return { app, router, spec, schemas, ...resolvePaths(configPath, loaded.default) };
 }
 
 function toGitPath(root: string, path: string): string {
   return relative(root, path).split('\\').join('/');
 }
 
-/** `releaseName('gatekeeper', 'gatekeeper-v1.0.0')`: validate a tag of this project. */
-export function releaseName(project: Pick<ContractsProject, 'release'>, name: string | undefined): string {
-  const pattern = new RegExp(`^${escape(project.release)}-v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$`);
-  if (!name || !pattern.test(name)) {
-    throw new Error(`Provide a release tag, for example ${project.release}-v1.0.0`);
-  }
+// Every API in the repository releases together, under one version: a release is tagged `vX.Y.Z`, and an API whose
+// contract changed in it freezes the bundle as snapshots/vX.Y.Z.json.
+const RELEASE = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+
+/** `releaseName('v1.0.0')`: validate a release tag. */
+export function releaseName(name: string | undefined): string {
+  if (!name || !RELEASE.test(name)) throw new Error('Provide a release tag, for example v1.0.0');
   return name;
 }
 
 /** Compare release tags numerically, independently of file timestamps or lexical order. */
-export function compareReleases(project: Pick<ContractsProject, 'release'>, a: string, b: string): number {
-  const prefix = `${project.release}-v`.length;
-  const left = a.slice(prefix).split('.').map(BigInt);
-  const right = b.slice(prefix).split('.').map(BigInt);
+export function compareReleases(a: string, b: string): number {
+  const left = releaseName(a).slice(1).split('.').map(BigInt);
+  const right = releaseName(b).slice(1).split('.').map(BigInt);
   for (let index = 0; index < 3; index++) {
     if (left[index] !== right[index]) return left[index]! < right[index]! ? -1 : 1;
   }
   return 0;
-}
-
-function escape(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function fileUrl(path: string): URL {
