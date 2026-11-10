@@ -69,8 +69,13 @@ jobs:
         run: |
           MERGE_BASE=$(git merge-base "$BASE_REF" "$HEAD_SHA")
           export MERGE_BASE
+          # The prompt comes from the commit this workflow runs from: the pull request may predate it.
+          git fetch -q --no-tags origin "$GITHUB_SHA"
           # shellcheck disable=SC2016 # envsubst takes the names to substitute, unexpanded
-          envsubst '$PULL_NUMBER $BASE_REF $HEAD_SHA $MERGE_BASE $DIFFMAP' < .github/diffmap/prompt.md > .diffmap-prompt.md
+          git show "$GITHUB_SHA:.github/diffmap/prompt.md" \
+            | envsubst '$PULL_NUMBER $BASE_REF $HEAD_SHA $MERGE_BASE $DIFFMAP' > .diffmap-prompt.md
+          # Pullfrog holds the agent back while files show as untracked, and an older head has no .gitignore for these.
+          printf '/.diffmap-prompt.md\n/diffmap.md\n' >> .git/info/exclude
       - name: Write the diffmap
         uses: pullfrog/pullfrog@v0
         with:
