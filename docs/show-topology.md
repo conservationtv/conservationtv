@@ -34,13 +34,13 @@ Decided (2026-11-10):
 All new tables use `uuidv7()` IDs, carry `organisation_id`, and take the topology's access (`topologyActions`,
 `topologyRoles`): members read, administrators write. Composite foreign keys keep every row inside its organisation.
 
-| Table | Columns | Notes |
-| --- | --- | --- |
-| `show` | `id`, `organisation_id`, `name`, the programme's encoding (`width`, `height`, `fps`, `bitrate_kbps`, `keyframe_seconds`, defaulting to today's 1920×1080, 30, 6000, 2), `created_at` | The encoding moves here from the constant in `configuration/plan/index.ts`. |
-| `show_output` | as now, `show_id` now referencing `show` (cascade) | One output per show, as now. |
-| `show_forward` | `id`, `show_id`, `channel_id`, `enabled`, `created_at`; unique `(show_id, channel_id)` | Replaces `channel.enabled`, which is dropped. |
-| `show_preview` | `id`, `show_id`, `gateway_id` (text, as `exposure.gateway_id`: a built-in slug or one of the organisation's gateways), `created_at`; unique `(show_id, gateway_id)` | |
-| `show_recorder` | `id`, `show_id`, `kind` (`obs`), `params` (jsonb, `{}`), `created_at` | |
+| Table           | Columns                                                                                                                                                                              | Notes                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `show`          | `id`, `organisation_id`, `name`, the programme's encoding (`width`, `height`, `fps`, `bitrate_kbps`, `keyframe_seconds`, defaulting to today's 1920×1080, 30, 6000, 2), `created_at` | The encoding moves here from the constant in `configuration/plan/index.ts`. |
+| `show_output`   | as now, `show_id` now referencing `show` (cascade)                                                                                                                                   | One output per show, as now.                                                |
+| `show_forward`  | `id`, `show_id`, `channel_id`, `enabled`, `created_at`; unique `(show_id, channel_id)`                                                                                               | Replaces `channel.enabled`, which is dropped.                               |
+| `show_preview`  | `id`, `show_id`, `gateway_id` (text, as `exposure.gateway_id`: a built-in slug or one of the organisation's gateways), `created_at`; unique `(show_id, gateway_id)`                  |                                                                             |
+| `show_recorder` | `id`, `show_id`, `kind` (`obs`), `params` (jsonb, `{}`), `created_at`                                                                                                                |                                                                             |
 
 Migration, for what exists: a `show` row for every organisation that has a `show_output`, **with the organisation's
 ID as its ID** (today's show ID is the organisation's, and every `show_output.show_id` already holds it), named
@@ -50,12 +50,13 @@ ID as its ID** (today's show ID is the organisation's, and every `show_output.sh
 
 Reports are filed against new subject kinds, as `device:` and `exposure:` are now:
 
-| Subject | Reported by | Metrics |
-| --- | --- | --- |
-| `program:<showId>` | the output agent | `program.ingest.bitrate` and `program.ready` (the program MediaMTX's `show/program`), `program.fallback` (1 while the offline segment plays because OBS isn't publishing); from obs-websocket: `obs.fps`, `obs.render.skipped`, `obs.output.skipped`, `obs.output.congestion`, `obs.output.reconnecting` |
-| `forward:<forwardId>` | the output agent | `forward.egress.bitrate` (what the forward's reader of `show/program` is sent), `forward.connected` |
-| `preview:<previewId>` | the output agent | `preview.egress.bitrate`, `preview.connected` |
-| `recorder:<recorderId>` | the output agent | `recorder.active`, `recorder.bytes` |
+| Subject                 | Reported by                                                               | Metrics                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `program:<showId>`      | the output agent                                                          | `program.ingest.bitrate` and `program.ready` (the program MediaMTX's `show/program`), `program.fallback` (1 while the offline segment plays because OBS isn't publishing); from obs-websocket: `obs.fps`, `obs.render.skipped`, `obs.output.skipped`, `obs.output.congestion`, `obs.output.reconnecting` |
+| `forward:<forwardId>`   | the output agent                                                          | `forward.egress.bitrate` (what the forward's reader of `show/program` is sent), `forward.connected`                                                                                                                                                                                                      |
+| `preview:<previewId>`   | the output agent                                                          | `preview.egress.bitrate`, `preview.connected`                                                                                                                                                                                                                                                            |
+| `recorder:<recorderId>` | the output agent                                                          | `recorder.active`, `recorder.bytes`                                                                                                                                                                                                                                                                      |
+| `channel:<channelId>`   | the output agent, for each channel it forwards to that has stats (Twitch) | `channel.live`, `channel.viewers`, `channel.uptime`: what the platform says of the channel, from `organisations.channels.stats.get`                                                                                                                                                                      |
 
 `organisations.subjects.states.list` and `metrics.query` already take any subject ID, so the studio reads these as it
 reads a stream's.
@@ -73,6 +74,10 @@ reads a stream's.
   `protocol`, `rendition`), as `organisations.streams.exposures.connect`: members read; the show's output device
   publishes. Through the same gateway providers as exposures, not a second copy of them.
 - `organisations.shows.recorders.create` (`kind`, `params`), `update`, `delete`.
+- `organisations.channels.stats.get`: what a channel's platform says of it now (`live`, and while it is, `viewers`,
+  `startedAt`, `title`, `category`, `language`), for the show's output only, as `organisations.channels.ingest` is
+  (a device holding `channelBroadcaster`). The API refreshes the Twitch connection's tokens and calls Helix
+  `GET /streams` itself, so no token reaches the agent; `unsupported_channel` for an RTMP destination.
 - `organisations.channels.*`: `enabled` is no longer a channel's (in place on v1: no contract snapshot has been cut,
   and only the studio web app calls these).
 
@@ -82,7 +87,7 @@ Agents built from `main` poll this operation; it must not change shape in place.
 
 - `output`: the show's encoding, rather than the constant.
 - `forwards[]`: each keeps `organisationId` and `channelId`, and gains `forwardId`; only enabled forwards are listed,
-  as only enabled channels were.
+  as only enabled channels were. Each gains `stats` (optional): whether its channel has stats to read.
 - `previews[]` (new, optional): `previewId`, `gatewayId`, and what the agent connects with to publish it.
 - `recording` (new, optional): `recorderId`, and anything the kind needs.
 - `program` (new, optional): `subjectId` (`program:<showId>`), so the agent knows what to report against.
@@ -94,7 +99,9 @@ An agent on `main` ignores what it doesn't know (`ObsSpecSchema` is a non-strict
 - **Reporting:** read the program MediaMTX's metrics as the gateway MediaMTX's are read
   (`runtimes/mediamtx/metrics.ts`), filed against `program:`, `forward:` and `preview:` subjects, splitting what
   `show/program` sends by reader as publisher egress is split now; and obs-websocket's `GetStats` and
-  `GetStreamStatus` against `program:`.
+  `GetStreamStatus` against `program:`. Each forwarded channel with `stats`, read with
+  `organisations.channels.stats.get` every few seconds and reported against `channel:` (`channel-stats.ts`): the
+  agent decides when and how often to read, and keeps nothing between reads.
 - **Previews:** publish the programme to each preview: to conservation.tv by the `moq` CLI, as a stream's publishers
   are (`builders/publishers.ts`); to a MediaMTX gateway by pushing to its publish URL.
 - **Recording:** with a recorder configured, OBS records alongside streaming (obs-websocket `StartRecord`), kept going

@@ -147,12 +147,15 @@ export interface ObsOutput {
 
 /**
  * A channel the program goes out to: its ingest (server URL and stream key) is read with `organisations.channels.ingest`.
- * `forwardId` names the forward (`forward:<forwardId>`) in what the agent reports about it.
+ * `forwardId` names the forward (`forward:<forwardId>`) in what the agent reports about it. `stats` says whether the
+ * channel's platform says anything of it (`organisations.channels.stats.get`, Twitch's only), for the agent to report
+ * about the channel (`channel:<channelId>`).
  */
 export interface ObsForward {
   organisationId: string;
   channelId: string;
   forwardId: string;
+  stats?: boolean;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import { Suspense, useState, type FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
@@ -28,6 +28,7 @@ import {
 } from '@conservationtv/ui/components/item';
 
 import type { Route } from './+types/channels';
+import { ChannelPlatformState } from '@/components/channels/platform-state';
 import { FormError } from '@/components/common/form-error';
 import { RtmpChannelSchema, type RtmpChannelInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
@@ -224,14 +225,19 @@ interface ChannelRowProps {
   shows: Show[];
 }
 
-/** A channel: what it is, the shows that go out on it, and removing it. */
+/** A channel: what it is, what its platform last said of it, the shows that go out on it, and removing it. */
 const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel, shows }) => {
   const remove = useDeleteChannel(organisationId);
   return (
     <Item variant="outline">
       <ItemMedia variant="icon">{channel.kind === 'twitch' ? <TwitchLogoIcon /> : <BroadcastIcon />}</ItemMedia>
       <ItemContent>
-        <ItemTitle>{channel.name}</ItemTitle>
+        <ItemTitle className="flex-wrap">
+          {channel.name}
+          <Suspense fallback={null}>
+            <ChannelPlatformState channelId={channel.id} />
+          </Suspense>
+        </ItemTitle>
         <ItemDescription>
           {channel.kind === 'twitch' && channel.externalLogin
             ? `twitch.tv/${channel.externalLogin}`

@@ -114,7 +114,12 @@ async function planObs(device: AuthenticatedDevice): Promise<ObsConfiguration | 
   return {
     show: { id: showId, url: url.href },
     output: encoding,
-    forwards: forwards.map(forward => ({ organisationId, channelId: forward.channelId, forwardId: forward.id })),
+    forwards: forwards.map(forward => ({
+      organisationId,
+      channelId: forward.channelId,
+      forwardId: forward.id,
+      stats: forward.channel?.kind === 'twitch'
+    })),
     previews: previews.map(preview => ({
       previewId: preview.id,
       gatewayId: preview.gatewayId,

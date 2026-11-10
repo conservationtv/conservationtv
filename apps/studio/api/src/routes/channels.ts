@@ -2,7 +2,13 @@ import { randomBytes } from 'node:crypto';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import { z } from 'zod';
-import { freshTwitchCredentials, TWITCH_INGEST, twitchAuthorizeUrl, twitchStreamKey } from '../channels/twitch.ts';
+import {
+  freshTwitchCredentials,
+  TWITCH_INGEST,
+  twitchAuthorizeUrl,
+  twitchStreamKey,
+  twitchStreamStats
+} from '../channels/twitch.ts';
 import { transaction } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
@@ -26,6 +32,7 @@ import {
   operationVersion,
   unauthenticated,
   unavailable,
+  unsupportedChannelStats,
   validator,
   versionMismatch
 } from './openapi.ts';
@@ -60,7 +67,9 @@ export type ConnectState = z.output<typeof ConnectStateSchema>;
 // and remove them; each show forwards to the channels it has an enabled forward to (src/routes/shows.ts). An RTMP
 // destination is entered by hand; a Twitch channel is connected by OAuth, starting here (`twitch.authorize`) and
 // finishing at /channels/twitch/callback (src/routes/channel-callbacks.ts). A show's output agent asks for the ingest of
-// each channel it forwards to, signed as its device, when it forwards the programme.
+// each channel it forwards to, signed as its device, when it forwards the programme, and for what a Twitch channel's
+// platform says of it (`stats.get`) whenever it reports on the channel: the API reads Twitch itself, so the
+// connection's tokens never leave it.
 
 export default new Hono()
   .get(
@@ -269,5 +278,46 @@ export default new Hono()
       const ingest = { url: TWITCH_INGEST, key };
       c.header('Cache-Control', 'no-store');
       return c.json(ingest, 200);
+    }
+  )
+  .get(
+    '/:channelId/stats',
+    describeRoute({
+      operationId: 'organisations.channels.stats.get',
+      ...operationVersion(1),
+      summary: "Read what a channel's platform says of it now",
+      description:
+        "Devices holding `channelBroadcaster` at the organisation only, which the show's output is granted while it is the output, signed as the device (an RFC 9421 HTTP Message Signature, as for `deviceConfiguration.get`): whether the channel is `live` and, while it is, its `viewers`, when it went live (`startedAt`), its `title`, `category` and `language`, read from Twitch now, refreshing the connection's tokens as needed. `observedAt` is when it was read. The output reports these about `channel:<channelId>`. Only Twitch channels say anything: `unsupported_channel` for an RTMP destination.",
+      responses: {
+        200: { description: 'What the platform says' },
+        400: invalidRequest,
+        401: invalidSignature,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        422: unsupportedChannelStats,
+        503: channelUnavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', ChannelParamsSchema),
+    async c => {
+      const { id, channelId } = c.req.valid('param');
+      // Only a device asks, as for an ingest: the studio reads what the output reported instead.
+      const principal = usePrincipal();
+      if (principal.kind !== 'device') throw new ApiFailure('forbidden');
+      // Row-level security: only a `channelBroadcaster` of the organisation reads the channel's credentials.
+      const channel = await transaction(() => getChannelCredentials(id, channelId));
+      if (!channel) throw new ApiFailure('not_found');
+      const { credentials } = channel;
+      if (credentials.kind !== 'twitch') throw new ApiFailure('unsupported_channel');
+      // Twitch is called outside the transaction, which isn't held open on the network.
+      const fresh = await freshTwitchCredentials(credentials);
+      if (fresh !== credentials) await transaction(() => saveChannelCredentials(id, channelId, fresh));
+      const stats = await twitchStreamStats(fresh, channel.externalId ?? '');
+      const environment = useEnvironment();
+      const observedAt = new Date(environment.clock()).toISOString();
+      c.header('Cache-Control', 'no-store');
+      return c.json({ ...stats, observedAt }, 200);
     }
   );

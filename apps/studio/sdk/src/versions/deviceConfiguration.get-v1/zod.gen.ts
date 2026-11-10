@@ -99,7 +99,8 @@ export const DeviceConfigurationSchema = z.object({
         forwards: z.array(z.object({
             organisationId: z.string(),
             channelId: z.string(),
-            forwardId: z.string()
+            forwardId: z.string(),
+            stats: z.boolean().optional()
         })),
         previews: z.array(z.object({
             previewId: z.string(),

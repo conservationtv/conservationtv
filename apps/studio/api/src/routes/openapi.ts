@@ -68,4 +68,8 @@ export const gatewayUnavailable = errorResponse(
 
 export const channelUnavailable = errorResponse('The channel could not be reached: Twitch refused or did not answer');
 
+export const unsupportedChannelStats = errorResponse(
+  'The channel publishes no stats through this API: only Twitch channels do, and no RTMP destination'
+);
+
 export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');

@@ -163,7 +163,8 @@ export const relations = defineRelations(schema, r => ({
     device: r.one.devices({ from: r.showOutputs.deviceId, to: r.devices.id })
   },
   showForwards: {
-    show: r.one.shows({ from: r.showForwards.showId, to: r.shows.id })
+    show: r.one.shows({ from: r.showForwards.showId, to: r.shows.id }),
+    channel: r.one.channels({ from: r.showForwards.channelId, to: r.channels.id })
   },
   showPreviews: {
     show: r.one.shows({ from: r.showPreviews.showId, to: r.shows.id })

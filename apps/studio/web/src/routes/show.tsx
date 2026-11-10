@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@conservationtv/ui/com
 
 import type { Route } from './+types/show';
 import { PinButton } from '@/components/app/pins';
+import { ChannelPlatformState } from '@/components/channels/platform-state';
 import {
   BackLink,
   Fact,
@@ -542,7 +543,7 @@ interface ForwardRowProps {
   part: ForwardPart;
 }
 
-/** A channel the show goes to: what it is, how it is doing, and for administrators, switching or removing it. */
+/** A channel the show goes to: what it is, how it is doing, what its platform last said of it, and for administrators, switching or removing it. */
 const ForwardRow: FC<ForwardRowProps> = ({ showId, part }) => {
   const administrator = useIsAdministrator();
   const { forward, channel } = part;
@@ -556,6 +557,11 @@ const ForwardRow: FC<ForwardRowProps> = ({ showId, part }) => {
             <StatusLabel status={part.status}>{statusLabels[part.status]}</StatusLabel>
           ) : (
             <StatusLabel status="unknown">Off</StatusLabel>
+          )}
+          {channel && (
+            <Suspense fallback={null}>
+              <ChannelPlatformState channelId={channel.id} />
+            </Suspense>
           )}
         </ItemTitle>
         <ItemDescription>

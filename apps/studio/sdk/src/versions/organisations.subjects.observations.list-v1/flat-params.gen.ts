@@ -6,7 +6,7 @@ import { GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema, GetOrgan
 
 export const ObservationListV1ParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
     limit: GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
     before: GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.')
 });

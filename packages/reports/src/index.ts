@@ -1,6 +1,7 @@
 export {
   MetricDimensionsSchema,
   MetricSummarySchema,
+  channelMetrics,
   forwardMetrics,
   machineMetrics,
   pathMetrics,
@@ -16,6 +17,7 @@ export {
 export {
   SUBJECT_KINDS,
   SubjectIdSchema,
+  channelSubject,
   deviceSubject,
   exposureSubject,
   forwardSubject,

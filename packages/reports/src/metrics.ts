@@ -139,3 +139,16 @@ export const recorderMetrics = {
   /** The size of the recording OBS is making, so far. */
   bytes: { name: 'recorder.bytes', unit: 'bytes', label: 'Recorded' }
 } as const satisfies Record<string, MetricDefinition>;
+
+/**
+ * A channel a show goes out to, about `channel:<channelId>`: what its platform says of it, as the show's output reads it
+ * (`organisations.channels.stats.get`) every few seconds. Twitch only, so far: an RTMP destination says nothing.
+ */
+export const channelMetrics = {
+  /** 1 while the platform says the channel is live, else 0. */
+  live: { name: 'channel.live', unit: 'boolean', label: 'Live' },
+  /** How many watch the channel, as the platform counts them; 0 while it is offline. */
+  viewers: { name: 'channel.viewers', unit: 'viewers', label: 'Viewers' },
+  /** How long the channel has been live, by the platform's start time; only while it is live. */
+  uptime: { name: 'channel.uptime', unit: 'seconds', label: 'Live for' }
+} as const satisfies Record<string, MetricDefinition>;

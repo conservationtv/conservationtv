@@ -94,6 +94,7 @@ export type DeviceConfiguration = {
             organisationId: string;
             channelId: string;
             forwardId: string;
+            stats?: boolean;
         }>;
         previews?: Array<{
             previewId: string;

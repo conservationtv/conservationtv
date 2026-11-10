@@ -22,7 +22,7 @@ export type PostReportsData = {
         reports: Array<{
             kind: 'event';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -38,7 +38,7 @@ export type PostReportsData = {
         } | {
             kind: 'metric';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -66,7 +66,7 @@ export type PostReportsData = {
         } | {
             kind: 'log';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;

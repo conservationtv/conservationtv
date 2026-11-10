@@ -31,8 +31,8 @@ export const MetricSchema = z.object({
 });
 
 export const PostOrganisationsByIdSubjectsMetricsQueryBodySchema = z.object({
-    subjectIds: z.array(z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+    subjectIds: z.array(z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     })).min(1).max(100).register(z.globalRegistry, {
         description: 'Series about any of these subjects.'
     }),

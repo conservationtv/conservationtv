@@ -486,7 +486,8 @@ export const DeviceConfigurationSchema = z.object({
         forwards: z.array(z.object({
             organisationId: z.string(),
             channelId: z.string(),
-            forwardId: z.string()
+            forwardId: z.string(),
+            stats: z.boolean().optional()
         })),
         previews: z.array(z.object({
             previewId: z.string(),
@@ -1816,6 +1817,7 @@ export const GetOrganisationsByIdSubjectsStatesQuerySchema = z.object({
         'forward',
         'preview',
         'recorder',
+        'channel',
         'external'
     ]).register(z.globalRegistry, {
         description: 'Only subjects of this kind: the part of their ID before the colon.'
@@ -1828,8 +1830,8 @@ export const GetOrganisationsByIdSubjectsStatesQuerySchema = z.object({
 export const GetOrganisationsByIdSubjectsStatesResponseSchema = StateSchema;
 
 export const PostOrganisationsByIdSubjectsMetricsQueryBodySchema = z.object({
-    subjectIds: z.array(z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+    subjectIds: z.array(z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     })).min(1).max(100).register(z.globalRegistry, {
         description: 'Series about any of these subjects.'
     }),
@@ -1885,8 +1887,8 @@ export const GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 
@@ -1899,8 +1901,8 @@ export const GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema = z.o
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 
@@ -1922,8 +1924,8 @@ export const GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema = z.object
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 
@@ -1953,8 +1955,8 @@ export const GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema 
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     }),
     seriesId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The series.'
@@ -1982,8 +1984,8 @@ export const GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
     }),
-    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 
@@ -2643,6 +2645,34 @@ export const PostOrganisationsByIdChannelsByChannelIdIngestResponseSchema = z.ob
     description: 'The ingest'
 });
 
+export const GetOrganisationsByIdChannelsByChannelIdStatsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    channelId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The channel.'
+    })
+});
+
+/**
+ * What the platform says
+ */
+export const GetOrganisationsByIdChannelsByChannelIdStatsResponseSchema = z.union([
+    z.object({
+        observedAt: z.string(),
+        live: z.literal(false)
+    }),
+    z.object({
+        observedAt: z.string(),
+        live: z.literal(true),
+        viewers: z.number(),
+        startedAt: z.string(),
+        title: z.string(),
+        category: z.string(),
+        language: z.string()
+    })
+]);
+
 /**
  * The invitations, oldest first
  */
@@ -2719,8 +2749,8 @@ export const PostReportsBodySchema = z.object({
     reports: z.array(z.union([
         z.object({
             kind: z.literal('event'),
-            subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-                description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+            subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+                description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
             }),
             observedAt: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/),
             payload: z.object({
@@ -2732,8 +2762,8 @@ export const PostReportsBodySchema = z.object({
         }),
         z.object({
             kind: z.literal('metric'),
-            subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-                description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+            subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+                description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
             }),
             observedAt: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/),
             payload: z.union([
@@ -2759,8 +2789,8 @@ export const PostReportsBodySchema = z.object({
         }),
         z.object({
             kind: z.literal('log'),
-            subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-                description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'
+            subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+                description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
             }),
             observedAt: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/),
             payload: z.object({

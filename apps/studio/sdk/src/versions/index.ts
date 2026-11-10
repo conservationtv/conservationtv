@@ -91,6 +91,7 @@ export * from './organisations.channels.get-v1/index.js';
 export * from './organisations.channels.update-v1/index.js';
 export * from './organisations.channels.delete-v1/index.js';
 export * from './organisations.channels.ingest-v1/index.js';
+export * from './organisations.channels.stats.get-v1/index.js';
 export * from './invitations.listMine-v1/index.js';
 export * from './invitations.get-v1/index.js';
 export * from './invitations.accept-v1/index.js';

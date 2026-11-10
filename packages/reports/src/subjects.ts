@@ -16,7 +16,8 @@ export const SUBJECT_KINDS = [
   'program',
   'forward',
   'preview',
-  'recorder'
+  'recorder',
+  'channel'
 ] as const;
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -26,7 +27,7 @@ export const SubjectIdSchema = z
   .string()
   .regex(SUBJECT_ID)
   .describe(
-    "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else."
+    "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else."
   );
 export type SubjectId = z.output<typeof SubjectIdSchema>;
 
@@ -47,3 +48,6 @@ export const previewSubject = (previewId: string): SubjectId => `preview:${previ
 
 /** A show's recorder, as a subject. */
 export const recorderSubject = (recorderId: string): SubjectId => `recorder:${recorderId}`;
+
+/** A channel a show goes out to, as a subject: what its platform says of it, as the show's output reads it. */
+export const channelSubject = (channelId: string): SubjectId => `channel:${channelId}`;

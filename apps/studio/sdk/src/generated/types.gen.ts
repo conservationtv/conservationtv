@@ -478,6 +478,7 @@ export type DeviceConfiguration = {
             organisationId: string;
             channelId: string;
             forwardId: string;
+            stats?: boolean;
         }>;
         previews?: Array<{
             previewId: string;
@@ -3955,7 +3956,7 @@ export type GetOrganisationsByIdSubjectsStatesData = {
         /**
          * Only subjects of this kind: the part of their ID before the colon.
          */
-        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'program' | 'forward' | 'preview' | 'recorder' | 'external';
+        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'program' | 'forward' | 'preview' | 'recorder' | 'channel' | 'external';
     };
     url: '/organisations/{id}/subjects/states';
 };
@@ -4084,7 +4085,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4130,7 +4131,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdObservationsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4185,7 +4186,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4247,7 +4248,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
         /**
@@ -4314,7 +4315,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdLogsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -6111,6 +6112,75 @@ export type PostOrganisationsByIdChannelsByChannelIdIngestResponses = {
 
 export type PostOrganisationsByIdChannelsByChannelIdIngestResponse = PostOrganisationsByIdChannelsByChannelIdIngestResponses[keyof PostOrganisationsByIdChannelsByChannelIdIngestResponses];
 
+export type GetOrganisationsByIdChannelsByChannelIdStatsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The channel.
+         */
+        channelId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/channels/{channelId}/stats';
+};
+
+export type GetOrganisationsByIdChannelsByChannelIdStatsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The channel publishes no stats through this API: only Twitch channels do, and no RTMP destination
+     */
+    422: Error;
+    /**
+     * The channel could not be reached: Twitch refused or did not answer
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdChannelsByChannelIdStatsError = GetOrganisationsByIdChannelsByChannelIdStatsErrors[keyof GetOrganisationsByIdChannelsByChannelIdStatsErrors];
+
+export type GetOrganisationsByIdChannelsByChannelIdStatsResponses = {
+    /**
+     * What the platform says
+     */
+    200: {
+        observedAt: string;
+        live: false;
+    } | {
+        observedAt: string;
+        live: true;
+        viewers: number;
+        startedAt: string;
+        title: string;
+        category: string;
+        language: string;
+    };
+};
+
+export type GetOrganisationsByIdChannelsByChannelIdStatsResponse = GetOrganisationsByIdChannelsByChannelIdStatsResponses[keyof GetOrganisationsByIdChannelsByChannelIdStatsResponses];
+
 export type GetInvitationsData = {
     body?: never;
     path?: never;
@@ -6330,7 +6400,7 @@ export type PostReportsData = {
         reports: Array<{
             kind: 'event';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -6346,7 +6416,7 @@ export type PostReportsData = {
         } | {
             kind: 'metric';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -6374,7 +6444,7 @@ export type PostReportsData = {
         } | {
             kind: 'log';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;

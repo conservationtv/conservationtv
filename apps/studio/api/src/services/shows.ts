@@ -357,7 +357,12 @@ export async function selectOutputPlan(showId: string) {
   return db.query.shows.findFirst({
     columns: { width: true, height: true, fps: true, bitrateKbps: true, keyframeSeconds: true },
     with: {
-      forwards: { columns: { id: true, channelId: true }, where: { enabled: true }, orderBy: { id: 'asc' } },
+      forwards: {
+        columns: { id: true, channelId: true },
+        with: { channel: { columns: { kind: true } } },
+        where: { enabled: true },
+        orderBy: { id: 'asc' }
+      },
       previews: { columns: { id: true, gatewayId: true }, orderBy: { id: 'asc' } },
       recorders: { columns: { id: true, kind: true, params: true }, orderBy: { id: 'asc' } }
     },

@@ -16,7 +16,8 @@ import { useStudio } from './studio.ts';
 //      `organisations.streams.exposures.connect`, and where to read the relays' stats of what they carry from
 //      `organisations.gateways.stats.connect`; and for its metrics: what each path delivers;
 //   3. turns its `obs` section, the show it sends out, into the `obs` key's spec: as it is, but for each preview, with
-//      where to publish it from `organisations.shows.previews.connect`;
+//      where to publish it from `organisations.shows.previews.connect`. Its forwards say which channels have stats,
+//      which the runtime reads with `organisations.channels.stats.get` as it reports, so no credential is kept for them;
 //   4. hands them to converge as the `streams`, `metrics` and `obs` keys, each of which changes what runs only when its
 //      spec changed, and is finalised when its section is left out.
 //

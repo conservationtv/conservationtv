@@ -6,7 +6,7 @@ import { GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema, Get
 
 export const MetricGetV1ParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
     seriesId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.seriesId.nonoptional().describe('The series.'),
     from: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.from.nonoptional().describe('Points observed at or after this time.'),
     to: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.to.optional().describe('Points observed before this time; now by default.'),
