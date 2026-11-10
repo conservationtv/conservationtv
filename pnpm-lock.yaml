@@ -194,6 +194,9 @@ catalogs:
     '@pulumiverse/acme':
       specifier: 0.18.1
       version: 0.18.1
+    '@strangecyan/iroh-http-browser':
+      specifier: 0.3.0
+      version: 0.3.0
     '@strangecyan/iroh-http-node':
       specifier: 0.3.0
       version: 0.3.0
@@ -380,6 +383,10 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+
+  apps/agent/runner/data/obs/binaries/obs/33.0.1-3d6b2eedeb564166/OBS.app/Contents/PlugIns/rtmp-services.plugin/Contents/Resources: {}
+
+  apps/agent/runner/data/obs/home/Library/Application Support/obs-studio/plugin_config/rtmp-services: {}
 
   apps/agent/sdk:
     dependencies:
@@ -858,6 +865,9 @@ importers:
       '@better-fetch/fetch':
         specifier: 1.3.2
         version: 1.3.2
+      '@conservationtv/agent-sdk':
+        specifier: workspace:*
+        version: link:../../agent/sdk
       '@conservationtv/shows':
         specifier: workspace:*
         version: link:../../../packages/shows
@@ -876,6 +886,9 @@ importers:
       '@simplewebauthn/browser':
         specifier: 13.3.0
         version: 13.3.0
+      '@strangecyan/iroh-http-browser':
+        specifier: 'catalog:'
+        version: 0.3.0
       '@strangecyan/vignette':
         specifier: 2.1.0
         version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
@@ -4247,6 +4260,9 @@ packages:
     engines: {node: '>= 20.3.0'}
     cpu: [arm64]
     os: [darwin]
+
+  '@strangecyan/iroh-http-browser@0.3.0':
+    resolution: {integrity: sha512-VKD1szfRbMZZ7PX4h2YJpaI4ogfOono1FS2MyDTdGEtB7DjYANtvwKWZNyVgDlUDhIdfNtkzDa0mrrAEDa3PrA==}
 
   '@strangecyan/iroh-http-core@0.3.0':
     resolution: {integrity: sha512-dQ9AH+XzbqFVWMVBPhapV/R1qd+ro/piRL96wwhzX398ZEoCcguBEzN4p0F/ZKUW/G23KwQEpSAK03qhKT8aZQ==}
@@ -11062,6 +11078,10 @@ snapshots:
 
   '@strangecyan/iroh-darwin-arm64@1.1.0-relayed.1':
     optional: true
+
+  '@strangecyan/iroh-http-browser@0.3.0':
+    dependencies:
+      '@strangecyan/iroh-http-core': 0.3.0
 
   '@strangecyan/iroh-http-core@0.3.0': {}
 
