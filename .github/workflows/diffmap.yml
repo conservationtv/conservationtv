@@ -67,8 +67,10 @@ jobs:
           BASE_REF: origin/${{ steps.pull.outputs.base }}
           HEAD_SHA: ${{ steps.pull.outputs.sha }}
         run: |
+          MERGE_BASE=$(git merge-base "$BASE_REF" "$HEAD_SHA")
+          export MERGE_BASE
           # shellcheck disable=SC2016 # envsubst takes the names to substitute, unexpanded
-          envsubst '$PULL_NUMBER $BASE_REF $HEAD_SHA $DIFFMAP' < .github/diffmap/prompt.md > .diffmap-prompt.md
+          envsubst '$PULL_NUMBER $BASE_REF $HEAD_SHA $MERGE_BASE $DIFFMAP' < .github/diffmap/prompt.md > .diffmap-prompt.md
       - name: Write the diffmap
         uses: pullfrog/pullfrog@v0
         with:
