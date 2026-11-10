@@ -48,7 +48,6 @@ SELECT "show_id", "organisation_id", 'Broadcast' FROM "show_output";--> statemen
 INSERT INTO "show_forward" ("organisation_id", "show_id", "channel_id", "enabled")
 SELECT "channel"."organisation_id", "show"."id", "channel"."id", "channel"."enabled"
 FROM "channel" JOIN "show" ON "show"."organisation_id" = "channel"."organisation_id";--> statement-breakpoint
-ALTER TABLE "channel" DROP COLUMN "enabled";--> statement-breakpoint
 DROP INDEX "show_output_device_idx";--> statement-breakpoint
 CREATE UNIQUE INDEX "show_output_device_idx" ON "show_output" ("device_id");--> statement-breakpoint
 CREATE INDEX "show_forward_channel_idx" ON "show_forward" ("channel_id");--> statement-breakpoint

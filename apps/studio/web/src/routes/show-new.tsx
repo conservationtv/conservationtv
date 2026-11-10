@@ -35,7 +35,9 @@ const ShowNewRoute: FC = () => {
     defaultValues,
     validators: { onSubmit: NameSchema },
     onSubmit: ({ value }) =>
-      dialog.mutate(NameSchema.parse(value), {
+      // Not dialog.mutate: closing first would step back once the animation ends, which can overtake the navigation
+      // to the show while its page's module loads. The dialog stays open until that page replaces it.
+      create.mutate(NameSchema.parse(value), {
         onSuccess: show => navigate(`../${show.id}`, { relative: 'path', replace: true })
       })
   });

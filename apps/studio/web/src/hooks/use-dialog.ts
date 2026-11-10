@@ -15,8 +15,9 @@ export interface UseDialogOptions {
   /**
    * Makes the dialog a route's: it starts open, and once it has finished closing the app goes back to the page beneath
    * it. Opened from within the app, that is a step back in history, so the back button doesn't open it again; opened
-   * by its address, it is this path (`'..'`), in its place. A dialog that navigates elsewhere when it succeeds just
-   * does so.
+   * by its address, it is this path (`'..'`), in its place. A dialog that navigates elsewhere when it succeeds calls
+   * the mutation itself, not `mutate`: closing would step back once the animation ends, and can overtake that
+   * navigation while the next page's module loads. It stays open until that page replaces it.
    */
   closeTo?: To;
 }
