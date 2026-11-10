@@ -1,6 +1,7 @@
 import type { State } from '@conservationtv/studio-sdk';
 
-// What agents report about the organisation's subjects (`device:<id>`, `exposure:<id>`), as pages look it up while
+// What agents report about the organisation's subjects (`device:<id>`, `exposure:<id>`, and a show's `program:`,
+// `forward:`, `preview:` and `recorder:`, as packages/reports names them), as pages look it up while
 // rendering: read once for the whole organisation (subjectStateListQueryOptions), never per subject.
 
 /** What reports about a device (an agent, a camera) are filed under. */
@@ -11,6 +12,26 @@ export function deviceSubjectId(deviceId: string): string {
 /** What reports about one of a stream's deliveries are filed under. */
 export function exposureSubjectId(exposureId: string): string {
   return `exposure:${exposureId}`;
+}
+
+/** What a show's output reports about its programme under: what OBS sends, and the program MediaMTX it goes to. */
+export function programSubjectId(showId: string): string {
+  return `program:${showId}`;
+}
+
+/** What a show's output reports about one of its forwards to a channel under. */
+export function forwardSubjectId(forwardId: string): string {
+  return `forward:${forwardId}`;
+}
+
+/** What a show's output reports about one of its previews at a gateway under. */
+export function previewSubjectId(previewId: string): string {
+  return `preview:${previewId}`;
+}
+
+/** What a show's output reports about its recording under. */
+export function recorderSubjectId(recorderId: string): string {
+  return `recorder:${recorderId}`;
 }
 
 /** What agents last said about one subject, combined. */

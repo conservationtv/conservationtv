@@ -3,6 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import {
   FileIcon,
   HardDrivesIcon,
+  MonitorPlayIcon,
   NetworkIcon,
   PushPinSimpleIcon,
   VideoCameraIcon,
@@ -17,6 +18,7 @@ import { pinListQueryOptions, useTogglePin } from '@/queries/this-device';
 
 const kindIcons = {
   stream: <VideoIcon aria-hidden="true" />,
+  show: <MonitorPlayIcon aria-hidden="true" />,
   camera: <VideoCameraIcon aria-hidden="true" />,
   agent: <HardDrivesIcon aria-hidden="true" />,
   network: <NetworkIcon aria-hidden="true" />,

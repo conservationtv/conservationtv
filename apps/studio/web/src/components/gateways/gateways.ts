@@ -2,6 +2,7 @@ import type { Gateway } from '@conservationtv/studio-sdk';
 import { z } from 'zod';
 
 import type { GatewayInput } from '@/forms/schemas';
+import type { GatewayName } from '@/components/streams/local-read';
 
 // What the studio knows about gateways, in words: their kinds, the protocols a MediaMTX gateway serves, and the URL
 // overrides its settings keep (apps/studio/api/src/gateways/).
@@ -28,6 +29,15 @@ export const GATEWAY_PROTOCOLS = [
 /** What a protocol is called, or the protocol itself for one the studio doesn't know. */
 export function protocolLabelOf(protocol: string): string {
   return GATEWAY_PROTOCOLS.find(candidate => candidate.protocol === protocol)?.label ?? protocol;
+}
+
+/**
+ * The gateway's hostname and the address its DNS record points at (the agent's preferred one), once it is one of the
+ * organisation's own and has a hostname: how its readers reach it by name, or at that address.
+ */
+export function gatewayNameOf(gateway: ListedGateway | undefined): GatewayName | null {
+  if (!gateway || !('tls' in gateway) || !gateway.tls) return null;
+  return { hostname: gateway.tls.hostname, address: gateway.tls.address };
 }
 
 /** What a kind of gateway is called. */

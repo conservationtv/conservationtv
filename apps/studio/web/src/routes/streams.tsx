@@ -16,7 +16,7 @@ import {
   StreamGrid
 } from '@/components/streams/stream-card';
 import { streamPageOf, type PageStream } from '@/components/streams/stream-page';
-import { StreamTopology } from '@/components/streams/stream-topology';
+import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { cameraListQueryOptions } from '@/queries/cameras';
@@ -157,7 +157,7 @@ const StreamItem: FC<StreamItemProps> = ({ stream }) => {
         <StreamCardChart stream={stream} />
       </Suspense>
       {stream.topology.nodes.length > 0 ? (
-        <StreamTopology topology={stream.topology} statuses={stream.statuses} />
+        <TopologyDiagram topology={stream.topology} statuses={stream.statuses} />
       ) : (
         <StreamCardNote>No source or delivery set up yet.</StreamCardNote>
       )}

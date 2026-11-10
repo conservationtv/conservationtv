@@ -1,4 +1,10 @@
-import { deviceSubjectId, exposureSubjectId } from '@/components/devices/subjects';
+import {
+  deviceSubjectId,
+  exposureSubjectId,
+  forwardSubjectId,
+  previewSubjectId,
+  programSubjectId
+} from '@/components/devices/subjects';
 import { isFed } from '@/components/streams/stream-page';
 import { ownStatus, type SubjectStatusInput } from '@/components/streams/topology';
 
@@ -32,6 +38,25 @@ interface ListedGateway {
   id: string;
   name: string;
 }
+interface ListedShow {
+  id: string;
+  name: string;
+  output: unknown;
+  forwards: ListedForward[];
+  previews: ListedPreview[];
+}
+interface ListedForward {
+  id: string;
+  channelId: string;
+}
+interface ListedPreview {
+  id: string;
+  gatewayId: string;
+}
+interface ListedChannel {
+  id: string;
+  name: string;
+}
 interface ListedState extends SubjectStatusInput {
   subjectId: string;
 }
@@ -45,7 +70,8 @@ export interface OverviewInputs {
   agents: ListedAgent[];
   networks: Identified[];
   gateways: ListedGateway[];
-  channels: Identified[];
+  shows: ListedShow[];
+  channels: ListedChannel[];
   states: ListedState[];
 }
 
@@ -76,6 +102,9 @@ export interface Overview {
   agentCount: number;
   activeAgentCount: number;
   networkCount: number;
+  showCount: number;
+  /** The shows with an agent to send them out: those that can be going out, not that they are. */
+  outputShowCount: number;
   channelCount: number;
   problems: Problem[];
   /** How many subjects have reported at all: with none, "nothing failing" would say more than is known. */
@@ -109,17 +138,32 @@ function exposureSubjects(stream: ListedStream, gateways: ListedGateway[]): Name
   });
 }
 
+/** A show's programme, forwards and previews, each named for the show and what it is. */
+function showSubjects(show: ListedShow, channels: ListedChannel[], gateways: ListedGateway[]): NamedSubject[] {
+  const to = `shows/${show.id}`;
+  const forwards = show.forwards.map((forward): NamedSubject => {
+    const channel = channels.find(candidate => candidate.id === forward.channelId);
+    return [forwardSubjectId(forward.id), { name: show.name, kind: `Forward to ${channel?.name ?? 'a channel'}`, to }];
+  });
+  const previews = show.previews.map((preview): NamedSubject => {
+    const gateway = gateways.find(candidate => candidate.id === preview.gatewayId);
+    return [previewSubjectId(preview.id), { name: show.name, kind: `Preview at ${gateway?.name ?? 'a gateway'}`, to }];
+  });
+  return [[programSubjectId(show.id), { name: show.name, kind: 'Programme', to }], ...forwards, ...previews];
+}
+
 /** What each subject that can fail is called, and where its page is. */
-function namedSubjects({ streams, cameras, agents, gateways }: OverviewInputs) {
+function namedSubjects({ streams, cameras, agents, gateways, shows, channels }: OverviewInputs) {
   return new Map([
     ...cameras.map(cameraSubject),
     ...agents.map(agentSubject),
-    ...streams.flatMap(stream => exposureSubjects(stream, gateways))
+    ...streams.flatMap(stream => exposureSubjects(stream, gateways)),
+    ...shows.flatMap(show => showSubjects(show, channels, gateways))
   ]);
 }
 
 export function overviewOf(inputs: OverviewInputs): Overview {
-  const { streams, cameras, agents, networks, channels, states } = inputs;
+  const { streams, cameras, agents, networks, shows, channels, states } = inputs;
   const named = namedSubjects(inputs);
   // A failing subject that names nothing the organisation still has (a removed camera's last report) isn't a problem.
   const problems = states.flatMap((state): Problem[] => {
@@ -133,6 +177,8 @@ export function overviewOf(inputs: OverviewInputs): Overview {
     agentCount: agents.length,
     activeAgentCount: agents.filter(agent => agent.active).length,
     networkCount: networks.length,
+    showCount: shows.length,
+    outputShowCount: shows.filter(show => show.output !== null).length,
     channelCount: channels.length,
     problems,
     reportingCount: states.length,

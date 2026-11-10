@@ -32,7 +32,7 @@ export function useCreateRtmpChannel(organisationId: string) {
   });
 }
 
-/** Remove a channel, and its stream key with it. */
+/** Remove a channel, and its stream key with it. Every show's forward to it goes too. */
 export function useDeleteChannel(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
@@ -40,7 +40,11 @@ export function useDeleteChannel(organisationId: string) {
       const result = await api.organisations.channels.delete.v1({ id: organisationId, channelId });
       if (result instanceof Error) throw result;
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: ['channels', organisationId] })
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['channels', organisationId] }),
+        client.invalidateQueries({ queryKey: ['shows', organisationId] })
+      ])
   });
 }
 

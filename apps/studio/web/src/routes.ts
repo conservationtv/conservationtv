@@ -20,9 +20,11 @@ export default [
         route('streams', './routes/streams.tsx'),
         route('streams/new', './routes/stream-new.tsx'),
         route('streams/:streamId', './routes/stream.tsx'),
-        // The organisation's broadcast, composed by the studio API and followed live.
-        route('show', './routes/show.tsx'),
-        // Where the broadcast goes out to: Twitch channels and RTMP destinations.
+        // The organisation's shows going out: each its output agent, programme, forwards, previews and recorder, all
+        // following the organisation's one broadcast for now.
+        route('shows', './routes/shows.tsx'),
+        route('shows/:showId', './routes/show.tsx'),
+        // Where shows go out to: Twitch channels and RTMP destinations.
         route('channels', './routes/channels.tsx'),
         // What the streams run on: the sites, and the agents, cameras and gateways on them.
         route('networks', './routes/networks.tsx'),

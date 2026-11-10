@@ -326,3 +326,47 @@ export const NewStreamSchema = NameSchema.extend({
 });
 export type NewStream = z.output<typeof NewStreamSchema>;
 export type NewStreamInput = z.input<typeof NewStreamSchema>;
+
+/** A resolution chosen as `<width>x<height>`, both even, within what a show's programme may be. */
+const ResolutionSchema = z
+  .string()
+  .regex(/^\d{2,4}x\d{2,4}$/u, 'Choose a resolution.')
+  .transform(resolution => {
+    const [width = 0, height = 0] = resolution.split('x').map(Number);
+    return { width, height };
+  })
+  .pipe(
+    z.object({
+      width: z.int().min(160).max(3840).multipleOf(2, 'Use an even width.'),
+      height: z.int().min(90).max(2160).multipleOf(2, 'Use an even height.')
+    })
+  );
+export type Resolution = z.output<typeof ResolutionSchema>;
+
+/**
+ * How a show's programme is encoded, chosen as text: its resolution, frame rate, constant bitrate in kbps and keyframe
+ * interval in seconds, within the API's limits.
+ */
+export const EncodingSchema = z
+  .object({
+    resolution: ResolutionSchema,
+    fps: z
+      .string()
+      .regex(/^\d+$/u, 'Choose a frame rate.')
+      .transform(Number)
+      .pipe(z.int().min(1, 'Use 1 to 60 frames a second.').max(60, 'Use 1 to 60 frames a second.')),
+    bitrateKbps: z
+      .string()
+      .trim()
+      .regex(/^\d+$/u, 'Enter a whole number of kbps.')
+      .transform(Number)
+      .pipe(z.int().min(500, 'Use 500 kbps or more.').max(50_000, 'Use 50000 kbps or fewer.')),
+    keyframeSeconds: z
+      .string()
+      .regex(/^\d+$/u, 'Choose a keyframe interval.')
+      .transform(Number)
+      .pipe(z.int().min(1, 'Use 1 to 10 seconds.').max(10, 'Use 1 to 10 seconds.'))
+  })
+  .transform(({ resolution, ...rest }) => ({ ...resolution, ...rest }));
+export type Encoding = z.output<typeof EncodingSchema>;
+export type EncodingInput = z.input<typeof EncodingSchema>;

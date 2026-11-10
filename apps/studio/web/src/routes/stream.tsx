@@ -54,14 +54,16 @@ import {
   EditExposureDialog,
   type ExposureChoices
 } from '@/components/streams/exposure-dialogs';
-import { LocalRead, type GatewayName } from '@/components/streams/local-read';
+import { gatewayNameOf } from '@/components/gateways/gateways';
+import { LocalRead } from '@/components/streams/local-read';
 import { MoqRead } from '@/components/streams/output-read';
 import { AddRecorderDialog, DeleteRecorderDialog, EditRecorderDialog } from '@/components/streams/recorder-dialogs';
 import { CONSERVATIONTV_GATEWAY, renditionLabels } from '@/components/streams/renditions';
-import { StreamChartLegend } from '@/components/streams/stream-chart';
+import { BitrateChartLegend } from '@/components/streams/stream-chart';
+import { STREAM_LINES } from '@/components/streams/stream-charts';
 import { streamDetailOf, type Delivery, type StreamDetail } from '@/components/streams/stream-detail';
 import { DeleteStreamDialog, RenameStreamDialog, SourceSelect } from '@/components/streams/stream-dialogs';
-import { StreamTopology } from '@/components/streams/stream-topology';
+import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { StreamTrafficChart } from '@/components/streams/stream-traffic';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate } from '@/lib/format';
@@ -69,7 +71,12 @@ import { cameraListQueryOptions } from '@/queries/cameras';
 import { deviceListQueryOptions } from '@/queries/devices';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
-import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
+import {
+  exposureReadQueryOptions,
+  moqReadQueryOptions,
+  streamListQueryOptions,
+  subjectStateListQueryOptions
+} from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Stream · conservation.tv studio' }];
 
@@ -288,7 +295,7 @@ const ConfigurationPanel: FC<StreamTabsProps> = ({ detail, choices, cameras }) =
         </SectionHeader>
         {detail.topology.nodes.length > 0 && (
           <div className="rounded-xl border border-border p-5">
-            <StreamTopology topology={detail.topology} statuses={detail.statuses} />
+            <TopologyDiagram topology={detail.topology} statuses={detail.statuses} />
           </div>
         )}
         {detail.sections.length > 0 ? (
@@ -329,7 +336,7 @@ const ConfigurationPanel: FC<StreamTabsProps> = ({ detail, choices, cameras }) =
             <SectionTitle>Traffic</SectionTitle>
             <SectionDescription>The last three hours, in bits a second.</SectionDescription>
           </SectionHeading>
-          <StreamChartLegend />
+          <BitrateChartLegend lines={STREAM_LINES} />
         </SectionHeader>
         {stream.exposures.length > 0 ? (
           <Suspense fallback={<Skeleton className="h-52 w-full" />}>
@@ -485,13 +492,6 @@ const OutputsPanel: FC<PanelProps> = ({ detail }) => {
   );
 };
 
-/** The delivery's gateway's hostname and where it points, if it is one of the organisation's own and has one. */
-function gatewayNameOf(delivery: Delivery): GatewayName | null {
-  const gateway = delivery.gateway;
-  if (!gateway || !('tls' in gateway) || !gateway.tls) return null;
-  return { hostname: gateway.tls.hostname, address: gateway.tls.address };
-}
-
 interface LocalOutputProps {
   streamId: string;
   delivery: Delivery;
@@ -502,6 +502,7 @@ interface LocalOutputProps {
  * the ways to read it; for anything else, just its renditions.
  */
 const LocalOutput: FC<LocalOutputProps> = ({ streamId, delivery }) => {
+  const organisationId = useOrganisationId();
   if (delivery.gateway?.kind !== 'mediamtx') {
     return (
       <DeliveryRow>
@@ -518,10 +519,11 @@ const LocalOutput: FC<LocalOutputProps> = ({ streamId, delivery }) => {
         <DeliverySummary delivery={delivery} />
       </div>
       <LocalRead
-        streamId={streamId}
-        exposureId={delivery.exposure.id}
+        read={(protocol, rendition) =>
+          exposureReadQueryOptions(organisationId, streamId, delivery.exposure.id, protocol, rendition)
+        }
         renditions={delivery.exposure.renditions}
-        name={gatewayNameOf(delivery)}
+        name={gatewayNameOf(delivery.gateway)}
       />
     </DeliveryRow>
   );
@@ -537,6 +539,7 @@ interface OutputProps {
  * laid out as a network delivery's card is; for anything else, just its renditions.
  */
 const Output: FC<OutputProps> = ({ streamId, output }) => {
+  const organisationId = useOrganisationId();
   if (output.exposure.gatewayId !== CONSERVATIONTV_GATEWAY) {
     return (
       <DeliveryRow>
@@ -552,7 +555,10 @@ const Output: FC<OutputProps> = ({ streamId, output }) => {
       <div className="flex items-start gap-2.5 px-5 pt-3.5 pb-2">
         <DeliverySummary delivery={output} />
       </div>
-      <MoqRead streamId={streamId} exposureId={output.exposure.id} renditions={output.exposure.renditions} />
+      <MoqRead
+        read={moqReadQueryOptions(organisationId, streamId, output.exposure.id)}
+        renditions={output.exposure.renditions}
+      />
     </DeliveryRow>
   );
 };

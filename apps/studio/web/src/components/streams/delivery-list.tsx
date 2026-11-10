@@ -15,7 +15,7 @@ import { cn } from '@conservationtv/ui/lib/utils';
 import { StatusLabel } from '@/components/common/status';
 import { RENDITIONS, renditionLabels } from '@/components/streams/renditions';
 import type { Delivery, DeliverySection } from '@/components/streams/stream-detail';
-import type { NodeStatus } from '@/components/streams/topology';
+import { statusLabels } from '@/components/streams/topology';
 
 // A stream's deliveries as rows, composed where they're used: grouped by where they are (each network, then the
 // internet) as the topology above them groups them, each row its gateway, what feeds it, who sends it, the renditions
@@ -52,13 +52,6 @@ export const DeliveryGroupHeading: FC<DeliveryGroupHeadingProps> = ({ section })
 export const DeliveryRows: FC<ComponentProps<typeof ItemGroup>> = ({ className, ...props }) => {
   return <ItemGroup className={cn('gap-2', className)} {...props} />;
 };
-
-const statusLabels = {
-  ok: 'Healthy',
-  unknown: 'No reports',
-  failing: 'Failing',
-  affected: 'Affected upstream'
-} satisfies Record<NodeStatus, string>;
 
 /** A delivery's card: its DeliverySummary, then whatever the page adds (its actions, how to read it). */
 export const DeliveryRow: FC<ComponentProps<typeof Item>> = props => {

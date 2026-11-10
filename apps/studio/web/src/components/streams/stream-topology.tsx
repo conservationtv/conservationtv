@@ -1,5 +1,13 @@
 import { useLayoutEffect, useRef, useState, type FC, type ReactNode } from 'react';
-import { CloudIcon, HardDrivesIcon, NetworkIcon, VideoCameraIcon } from '@phosphor-icons/react';
+import {
+  BroadcastIcon,
+  CloudIcon,
+  FilmStripIcon,
+  HardDrivesIcon,
+  NetworkIcon,
+  TwitchLogoIcon,
+  VideoCameraIcon
+} from '@phosphor-icons/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
 import type { NodeKind, NodeStatus, Topology, TopologyNode } from '@/components/streams/topology';
@@ -17,6 +25,8 @@ interface Connector {
 /** Where a parent and child sit, relative to their layout: what a connector is routed between. */
 interface Placement {
   parent: DOMRect;
+  /** The parent's whole row: its pill and any labels beside it, which a connector across leaves from the end of. */
+  parentRow: DOMRect;
   child: DOMRect;
   origin: DOMRect;
 }
@@ -25,20 +35,23 @@ interface Placement {
 const CORNER = 6;
 /** How far a connector drops from under its parent's icon, to the right of the parent's left edge. */
 const DROP_PX = 14;
+/** How far a port sits past a label beside its pill. */
+const PORT_CLEARANCE_PX = 8;
 /** How far each step within a section is indented: past the connector's drop, so it turns into the child. */
 const INDENT_REM = 1.75;
 
-export interface StreamTopologyProps {
+export interface TopologyDiagramProps {
   topology: Topology;
   statuses: Map<string, NodeStatus>;
 }
 
 /**
- * The stream's source and exposures, each section (the network, the internet) a tree of its nodes in delivery order,
- * each node indented a step from what feeds it, and the sections side by side, joined across by their connectors.
+ * A topology drawn: a stream's source and exposures, or a show's output, programme, forwards and previews. Each
+ * section (the network, the internet) is a tree of its nodes in delivery order, each node indented a step from what
+ * feeds it, and the sections stand side by side, joined across by their connectors.
  */
-export const StreamTopology: FC<StreamTopologyProps> = ({ topology, statuses }) => {
-  const { containerRef, register, connectors } = useConnectors(topology, routeBetween);
+export const TopologyDiagram: FC<TopologyDiagramProps> = ({ topology, statuses }) => {
+  const { containerRef, register, registerRow, connectors } = useConnectors(topology, routeBetween);
   return (
     <div className="overflow-x-auto">
       <div ref={containerRef} className="relative flex min-w-max gap-12">
@@ -49,11 +62,14 @@ export const StreamTopology: FC<StreamTopologyProps> = ({ topology, statuses }) 
             {section.nodes.map(node => (
               <div
                 key={node.id}
-                className="flex items-center gap-1"
+                ref={registerRow(node.id)}
+                className="flex w-fit items-center gap-1"
                 style={{ paddingLeft: `${node.indent * INDENT_REM}rem` }}
               >
+                {/* Indented by its depth, with whichever labels its configuration calls for beside it. */}
                 <NodePill ref={register(node.id)} node={node} status={statuses.get(node.id) ?? 'unknown'} />
                 {node.recording && <RecordingLabel status={statuses.get(node.id) ?? 'unknown'} />}
+                {node.off && <OffLabel />}
               </div>
             ))}
           </section>
@@ -70,6 +86,7 @@ export const StreamTopology: FC<StreamTopologyProps> = ({ topology, statuses }) 
 function useConnectors(topology: Topology, route: (placement: Placement) => ConnectorRoute) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pills = useRef(new Map<string, HTMLElement>());
+  const rows = useRef(new Map<string, HTMLElement>());
   const [connectors, setConnectors] = useState<Connector[]>([]);
 
   useLayoutEffect(() => {
@@ -80,9 +97,15 @@ function useConnectors(topology: Topology, route: (placement: Placement) => Conn
       const next = topology.nodes.flatMap((node): Connector[] => {
         // Only a node with a parent has a connector, and only once both have rendered.
         const from = node.parentId ? pills.current.get(node.parentId) : undefined;
+        const fromRow = node.parentId ? rows.current.get(node.parentId) : undefined;
         const to = pills.current.get(node.id);
-        if (!node.parentId || !from || !to) return [];
-        const routed = route({ parent: from.getBoundingClientRect(), child: to.getBoundingClientRect(), origin });
+        if (!node.parentId || !from || !fromRow || !to) return [];
+        const routed = route({
+          parent: from.getBoundingClientRect(),
+          parentRow: fromRow.getBoundingClientRect(),
+          child: to.getBoundingClientRect(),
+          origin
+        });
         return [{ id: node.id, parentId: node.parentId, ...routed }];
       });
       setConnectors(next);
@@ -91,7 +114,7 @@ function useConnectors(topology: Topology, route: (placement: Placement) => Conn
     // Labels change width as the font loads, and the card as the window resizes.
     const observer = new ResizeObserver(measure);
     observer.observe(container);
-    for (const pill of pills.current.values()) observer.observe(pill);
+    for (const element of [...pills.current.values(), ...rows.current.values()]) observer.observe(element);
     return () => observer.disconnect();
   }, [topology, route]);
 
@@ -99,7 +122,11 @@ function useConnectors(topology: Topology, route: (placement: Placement) => Conn
     if (element) pills.current.set(id, element);
     else pills.current.delete(id);
   };
-  return { containerRef, register, connectors };
+  const registerRow = (id: string) => (element: HTMLElement | null) => {
+    if (element) rows.current.set(id, element);
+    else rows.current.delete(id);
+  };
+  return { containerRef, register, registerRow, connectors };
 }
 
 /** A connector's path, and the port it leaves its parent from. */
@@ -114,9 +141,14 @@ function routeBetween(placement: Placement): ConnectorRoute {
   return placement.child.left >= placement.parent.right ? routeAcross(placement) : routeDown(placement);
 }
 
-/** From the parent's right edge to the child's left: straight across on one row, otherwise stepping halfway. */
-function routeAcross({ parent, child, origin }: Placement): ConnectorRoute {
-  const x1 = parent.right - origin.left;
+/**
+ * From the end of the parent's row (past any label beside it) to the child's left: straight across on one row,
+ * otherwise stepping halfway.
+ */
+function routeAcross({ parent, parentRow, child, origin }: Placement): ConnectorRoute {
+  // A row with a label beside its pill leaves a gap before the port, so the port doesn't sit on the label's last letter.
+  const clearance = parentRow.right > parent.right ? PORT_CLEARANCE_PX : 0;
+  const x1 = Math.min(parentRow.right + clearance, child.left) - origin.left;
   const y1 = parent.top + parent.height / 2 - origin.top;
   const x2 = child.left - origin.left;
   const y2 = child.top + child.height / 2 - origin.top;
@@ -224,7 +256,10 @@ const SectionHeading: FC<SectionHeadingProps> = ({ label, network }) => {
 const kindIcons = {
   camera: <VideoCameraIcon weight="fill" aria-hidden="true" />,
   server: <HardDrivesIcon aria-hidden="true" />,
-  cloud: <CloudIcon aria-hidden="true" />
+  cloud: <CloudIcon aria-hidden="true" />,
+  programme: <FilmStripIcon aria-hidden="true" />,
+  twitch: <TwitchLogoIcon aria-hidden="true" />,
+  channel: <BroadcastIcon aria-hidden="true" />
 } satisfies Record<NodeKind, ReactNode>;
 
 const statusDescriptions = {
@@ -240,7 +275,7 @@ interface NodePillProps {
   status: NodeStatus;
 }
 
-/** A node: dashed and red while failing, faded while something upstream fails. */
+/** A node: dashed and red while failing, faded while something upstream fails, dashed and muted while off. */
 const NodePill: FC<NodePillProps> = ({ ref, node, status }) => {
   return (
     <div
@@ -249,13 +284,26 @@ const NodePill: FC<NodePillProps> = ({ ref, node, status }) => {
         'relative inline-flex h-8 items-center gap-2 rounded-lg border bg-card px-3 text-custom-13 whitespace-nowrap shadow-[0_0_6px_0_var(--custom-surface-shadow)] [&_svg]:size-4 [&_svg]:shrink-0',
         status === 'failing' && 'border-dashed border-destructive bg-destructive-subtle text-destructive shadow-none',
         status === 'affected' && 'border-dashed border-destructive/40 text-destructive/50 shadow-none',
-        (status === 'ok' || status === 'unknown') && 'border-border text-foreground [&_svg]:text-custom-icon-stream'
+        (status === 'ok' || status === 'unknown') && 'border-border text-foreground [&_svg]:text-custom-icon-stream',
+        node.off && 'border-dashed text-muted-foreground shadow-none [&_svg]:text-muted-foreground'
       )}
     >
       {kindIcons[node.kind]}
       <span>{node.label}</span>
-      <span className="sr-only">: {statusDescriptions[status]}</span>
+      <span className="sr-only">: {node.off ? 'switched off' : statusDescriptions[status]}</span>
     </div>
+  );
+};
+
+/** Beside a node that is switched off: it is in place, but nothing is sent to it. */
+const OffLabel: FC = () => {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex items-center gap-1.5 pl-2 text-custom-10 font-semibold tracking-(--tracking-custom-label) text-muted-foreground uppercase"
+    >
+      Off
+    </span>
   );
 };
 

@@ -1,9 +1,11 @@
-// A stream's delivery as its card draws it: the source device, then each exposure along the chain it publishes from, in
-// delivery order (depth first, so each branch follows what feeds it). Nodes are grouped into sections, the network
-// they're on or the internet, each drawn as a tree. What a node reports decides its status, and a failing node's status
-// flows downstream: whatever it feeds is affected.
+// What the studio draws as a topology: nodes, each fed by its parent, placed in delivery order (depth first, so each
+// branch follows what feeds it) and grouped into sections, the network they're on or the internet, each drawn as a
+// tree. A stream's is its source device, then each exposure along the chain it publishes from (`layoutTopology`); a
+// show's is its output agent, its programme, then its forwards and previews (components/shows/show-topology.ts). What
+// a node reports decides its status, and a failing node's status flows downstream: whatever it feeds is affected.
 
-export type NodeKind = 'camera' | 'server' | 'cloud';
+/** What a node is, which decides its icon: a stream's camera, server or cloud gateway; a show's programme or channel. */
+export type NodeKind = 'camera' | 'server' | 'cloud' | 'programme' | 'twitch' | 'channel';
 
 /**
  * `ok`: reporting healthy. `unknown`: nothing reported yet. `failing`: reporting unhealthy, or gone quiet.
@@ -13,7 +15,7 @@ export type NodeStatus = 'ok' | 'unknown' | 'failing' | 'affected';
 
 export interface TopologyNode {
   id: string;
-  /** What reports about it: `device:<id>` or `exposure:<id>`. */
+  /** What reports about it: `device:<id>`, `exposure:<id>`, `program:<id>`, `forward:<id>` or `preview:<id>`. */
   subjectId: string;
   label: string;
   kind: NodeKind;
@@ -24,6 +26,8 @@ export interface TopologyNode {
   indent: number;
   /** Whether a recorder records it. */
   recording: boolean;
+  /** Whether it is switched off, as a show's forward can be: it stays in place, but nothing is sent to it. */
+  off: boolean;
 }
 
 /** A network, or the internet, and the nodes on it, in delivery order. */
@@ -65,7 +69,7 @@ interface GatewayInput {
   name: string;
   networkId: string | null;
 }
-interface NetworkInput {
+export interface NetworkInput {
   id: string;
   name: string;
 }
@@ -78,7 +82,7 @@ export interface TopologyInputs {
 }
 
 /** A node before it has a place in the delivery. */
-type UnplacedNode = Omit<TopologyNode, 'indent'>;
+export type UnplacedNode = Omit<TopologyNode, 'indent'>;
 
 const SOURCE_ID = 'source';
 
@@ -87,7 +91,14 @@ export function layoutTopology({ stream, devices, gateways, networks }: Topology
   const source = devices.find(device => device.id === stream.sourceDeviceId);
   const unplaced = stream.exposures.map(exposure => exposureNode(stream, exposure, gateways, source !== undefined));
   if (source) unplaced.unshift(sourceNode(source));
+  return placeTopology(unplaced, networks);
+}
 
+/**
+ * Place nodes in delivery order, each indented a step beneath the node that feeds it when they share a section, and
+ * group them into sections by the network they're on. A node whose parent isn't among them isn't placed.
+ */
+export function placeTopology(unplaced: UnplacedNode[], networks: NetworkInput[]): Topology {
   // Depth first, so each branch follows what feeds it. A node fed from another section starts its own section's tree.
   const nodes: TopologyNode[] = [];
   const place = (parent: TopologyNode | undefined) => {
@@ -111,7 +122,8 @@ function sourceNode(source: DeviceInput): UnplacedNode {
     kind: source.kind === 'camera' ? 'camera' : 'server',
     networkId: source.networkId,
     parentId: null,
-    recording: false
+    recording: false,
+    off: false
   };
 }
 
@@ -133,7 +145,8 @@ function exposureNode(
     kind: networkId ? 'server' : 'cloud',
     networkId,
     parentId: upstream?.id ?? fallback,
-    recording: stream.recorders.some(recorder => recorder.exposureId === exposure.id)
+    recording: stream.recorders.some(recorder => recorder.exposureId === exposure.id),
+    off: false
   };
 }
 
@@ -153,6 +166,14 @@ function sectionsOf(nodes: TopologyNode[], networks: NetworkInput[]): TopologySe
   }
   return sections;
 }
+
+/** What each status says beside a part's name: a delivery's, or a show's forward or preview. */
+export const statusLabels = {
+  ok: 'Healthy',
+  unknown: 'No reports',
+  failing: 'Failing',
+  affected: 'Affected upstream'
+} satisfies Record<NodeStatus, string>;
 
 /** The parts of a subject's state that decide its status. */
 export interface SubjectStatusInput {

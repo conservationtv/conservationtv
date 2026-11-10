@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 
-import { StreamChart } from '@/components/streams/stream-chart';
-import { useStreamChart, type ChartedStream } from '@/components/streams/stream-charts';
+import { BitrateChart } from '@/components/streams/stream-chart';
+import { anyReported, STREAM_LINES, useStreamChart, type ChartedStream } from '@/components/streams/stream-charts';
 
 export interface StreamTrafficChartProps {
   stream: ChartedStream;
@@ -14,12 +14,16 @@ export interface StreamTrafficChartProps {
  */
 export const StreamTrafficChart: FC<StreamTrafficChartProps> = ({ stream }) => {
   const { chart, chartWindow } = useStreamChart(stream);
-  const reported = chart.rows.some(
-    row => row.ingress !== undefined || row.lanEgress !== undefined || row.internetEgress !== undefined
-  );
+  const reported = anyReported(chart.rows);
   return (
     <div className="flex flex-col gap-2">
-      <StreamChart rows={chart.rows} from={chartWindow.from} to={chartWindow.to} className="h-52" />
+      <BitrateChart
+        lines={STREAM_LINES}
+        rows={chart.rows}
+        from={chartWindow.from}
+        to={chartWindow.to}
+        className="h-52"
+      />
       {!reported && (
         <p className="text-custom-12 text-muted-foreground">Nothing has reported traffic in the last three hours.</p>
       )}

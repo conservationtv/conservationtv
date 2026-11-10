@@ -35,6 +35,7 @@ import { cameraListQueryOptions } from '@/queries/cameras';
 import { channelListQueryOptions } from '@/queries/channels';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
+import { showListQueryOptions } from '@/queries/shows';
 import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Overview · conservation.tv studio' }];
@@ -75,24 +76,34 @@ const OrganisationTitle: FC = () => {
 /** Everything the overview shows, from the organisation's lists, read once and together. */
 const OverviewSections: FC = () => {
   const organisationId = useOrganisationId();
-  const [streamsQuery, camerasQuery, agentsQuery, networksQuery, gatewaysQuery, channelsQuery, statesQuery] =
-    useSuspenseQueries({
-      queries: [
-        streamListQueryOptions(organisationId),
-        cameraListQueryOptions(organisationId),
-        agentListQueryOptions(organisationId),
-        networkListQueryOptions(organisationId),
-        gatewayListQueryOptions(organisationId),
-        channelListQueryOptions(organisationId),
-        subjectStateListQueryOptions(organisationId)
-      ]
-    });
+  const [
+    streamsQuery,
+    camerasQuery,
+    agentsQuery,
+    networksQuery,
+    gatewaysQuery,
+    showsQuery,
+    channelsQuery,
+    statesQuery
+  ] = useSuspenseQueries({
+    queries: [
+      streamListQueryOptions(organisationId),
+      cameraListQueryOptions(organisationId),
+      agentListQueryOptions(organisationId),
+      networkListQueryOptions(organisationId),
+      gatewayListQueryOptions(organisationId),
+      showListQueryOptions(organisationId),
+      channelListQueryOptions(organisationId),
+      subjectStateListQueryOptions(organisationId)
+    ]
+  });
   const overview = overviewOf({
     streams: streamsQuery.data,
     cameras: camerasQuery.data,
     agents: agentsQuery.data,
     networks: networksQuery.data,
     gateways: gatewaysQuery.data,
+    shows: showsQuery.data,
     channels: channelsQuery.data.channels,
     states: statesQuery.data
   });
@@ -157,6 +168,11 @@ const Tiles: FC<TilesProps> = ({ overview }) => {
       <Tile to="networks">
         <TileValue>{overview.networkCount}</TileValue>
         <TileLabel>Networks</TileLabel>
+      </Tile>
+      <Tile to="shows">
+        <TileValue>{overview.showCount}</TileValue>
+        <TileLabel>Shows</TileLabel>
+        <TileNote>{overview.outputShowCount} with an output agent</TileNote>
       </Tile>
       <Tile to="channels">
         <TileValue>{overview.channelCount}</TileValue>

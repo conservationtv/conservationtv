@@ -17,22 +17,21 @@ import {
 } from '@/components/streams/read-parts';
 import { RENDITIONS } from '@/components/streams/renditions';
 import { useCopy } from '@/hooks/use-copy';
-import { useOrganisationId } from '@/hooks/use-organisation';
-import { moqReadQueryOptions } from '@/queries/streams';
+import type { MoqReadQueryOptions } from '@/queries/streams';
 
-// How anyone reads a delivery to conservation.tv: over MoQ, from its relay. One connection carries the delivery's
-// every rendition, each a track of one broadcast, so the renditions' tabs say what it offers and the way to read it is
+// How anyone reads something at conservation.tv, a stream's delivery or a show's preview: over MoQ, from its relay.
+// One connection carries its every rendition, each a track of one broadcast, so the renditions' tabs say what it offers and the way to read it is
 // the same under each: the relay's URL with a read token in it, and the broadcast to subscribe to.
 
 export interface MoqReadProps {
-  streamId: string;
-  exposureId: string;
-  /** The renditions the delivery offers: every one a track of the same broadcast. */
+  /** Its connection: `moqReadQueryOptions` for a stream's delivery, `previewMoqReadQueryOptions` for a show's preview. */
+  read: MoqReadQueryOptions;
+  /** The renditions it offers: every one a track of the same broadcast. */
   renditions: Rendition[];
 }
 
-/** The delivery's renditions as tabs, and beneath them how to read it over MoQ. */
-export const MoqRead: FC<MoqReadProps> = ({ streamId, exposureId, renditions }) => {
+/** Its renditions as tabs, and beneath them how to read it over MoQ. */
+export const MoqRead: FC<MoqReadProps> = ({ read, renditions }) => {
   const offered = RENDITIONS.filter(rendition => renditions.includes(rendition));
   const [selected, setSelected] = useState<Rendition | undefined>(offered[0]);
   if (selected === undefined) return null;
@@ -47,7 +46,7 @@ export const MoqRead: FC<MoqReadProps> = ({ streamId, exposureId, renditions }) 
           </ReadRowHeading>
           {/* The heading is known already; only the buttons wait, behind a placeholder their height. */}
           <Suspense fallback={<Skeleton className="h-7 w-52" />}>
-            <MoqReadActions streamId={streamId} exposureId={exposureId} />
+            <MoqReadActions read={read} />
           </Suspense>
         </ReadRow>
       </ReadRows>
@@ -56,17 +55,15 @@ export const MoqRead: FC<MoqReadProps> = ({ streamId, exposureId, renditions }) 
 };
 
 interface MoqReadActionsProps {
-  streamId: string;
-  exposureId: string;
+  read: MoqReadQueryOptions;
 }
 
 /**
  * The relay URL, with this account's read token in it as `?jwt=`, and the broadcast, each copied by a button; or why
  * the API wouldn't give them.
  */
-const MoqReadActions: FC<MoqReadActionsProps> = ({ streamId, exposureId }) => {
-  const organisationId = useOrganisationId();
-  const readQuery = useSuspenseQuery(moqReadQueryOptions(organisationId, streamId, exposureId));
+const MoqReadActions: FC<MoqReadActionsProps> = ({ read: query }) => {
+  const readQuery = useSuspenseQuery(query);
   const read = readQuery.data;
   if ('failure' in read)
     return <span className="max-w-sm text-custom-12 text-custom-text-secondary">{read.failure}</span>;

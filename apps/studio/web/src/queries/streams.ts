@@ -1,4 +1,10 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+  type QueryKey,
+  type UseSuspenseQueryOptions
+} from '@tanstack/react-query';
 import type {
   ExposureCreateParams,
   ExposureUpdateParams,
@@ -97,23 +103,21 @@ const RENEW_BEFORE_MS = 5 * 60 * 1000;
  * place. Asked again a little before the credential expires.
  */
 export const moqReadQueryOptions = (organisationId: string, streamId: string, exposureId: string) =>
-  queryOptions({
+  // Typed by its key's kind rather than its literal shape, so a stream's read and a show's are one type to the parts.
+  queryOptions<MoqRead, Error, MoqRead, QueryKey>({
     queryKey: ['streams', organisationId, 'moq-read', streamId, exposureId] as const,
-    queryFn: async () => {
-      const result = await api.organisations.streams.exposures.connect.v1({
-        id: organisationId,
-        streamId,
-        exposureId,
-        action: 'read',
-        protocol: 'moq'
-      });
-      if (result instanceof Error) return { failure: result.message };
-      // A MoQ connection names a relay; any other protocol's is a URL.
-      if (!('relay' in result)) return { failure: `The gateway offered ${result.protocol}, not MoQ.` };
-      return { url: relayUrl(result), broadcast: result.broadcast, renewIn: renewalDelay(result.expiresAt) };
-    },
-    staleTime: query => query.state.data?.renewIn ?? 0,
-    refetchInterval: query => query.state.data?.renewIn ?? false
+    queryFn: async () =>
+      moqReadOf(
+        await api.organisations.streams.exposures.connect.v1({
+          id: organisationId,
+          streamId,
+          exposureId,
+          action: 'read',
+          protocol: 'moq'
+        })
+      ),
+    staleTime: query => readStaleTime(query.state.data),
+    refetchInterval: query => readRefetchInterval(query.state.data)
   });
 
 /**
@@ -130,30 +134,101 @@ export const exposureReadQueryOptions = (
   protocol: string,
   rendition: Rendition
 ) =>
-  queryOptions({
+  // As moqReadQueryOptions: one type for a stream's read and a show's.
+  queryOptions<ProtocolRead, Error, ProtocolRead, QueryKey>({
     queryKey: ['streams', organisationId, 'read', streamId, exposureId, protocol, rendition] as const,
-    queryFn: async () => {
-      const result = await api.organisations.streams.exposures.connect.v1({
-        id: organisationId,
-        streamId,
-        exposureId,
-        action: 'read',
-        protocol,
-        rendition
-      });
-      if (result instanceof Error) return { failure: result.message };
-      // A MoQ connection names a relay; every other protocol's is a URL.
-      if ('relay' in result) return { failure: 'It is read over MoQ here.' };
-      return {
-        url: result.url,
-        token: result.token,
-        expiresAt: result.expiresAt,
-        renewIn: renewalDelay(result.expiresAt)
-      };
-    },
-    staleTime: query => query.state.data?.renewIn ?? 0,
-    refetchInterval: query => query.state.data?.renewIn ?? false
+    queryFn: async () =>
+      protocolReadOf(
+        await api.organisations.streams.exposures.connect.v1({
+          id: organisationId,
+          streamId,
+          exposureId,
+          action: 'read',
+          protocol,
+          rendition
+        })
+      ),
+    staleTime: query => readStaleTime(query.state.data),
+    refetchInterval: query => readRefetchInterval(query.state.data)
   });
+
+/**
+ * A read connection as the API gives one, for an exposure or a show's preview alike: a MoQ relay, the path on it and
+ * the broadcast under it; or, for any other protocol, a URL. Either carries the token that admits, and when it expires.
+ */
+type ReadConnection = MoqConnectionAnswer | UrlConnectionAnswer;
+
+/** A MoQ connection: the relay, the path on it and the broadcast under it. */
+interface MoqConnectionAnswer {
+  protocol: 'moq';
+  relay: string;
+  path: string;
+  broadcast: string;
+  token?: string;
+  expiresAt?: string;
+}
+
+/** Any other protocol's connection: a URL. */
+interface UrlConnectionAnswer {
+  protocol: string;
+  url: string;
+  token?: string;
+  expiresAt?: string;
+}
+
+/** Why a reader can't read something, in the API's words: what a read says in place of its buttons. */
+export interface ReadRefused {
+  failure: string;
+}
+
+/** How to read over MoQ: the relay URL with the token in it, the broadcast, and when to ask again. */
+export interface MoqReadable {
+  url: string;
+  broadcast: string;
+  renewIn: number;
+}
+export type MoqRead = MoqReadable | ReadRefused;
+
+/** How to read by one protocol: its URL, the token that goes beside it, and when to ask again. */
+export interface ProtocolReadable {
+  url: string;
+  token?: string;
+  expiresAt?: string;
+  renewIn: number;
+}
+export type ProtocolRead = ProtocolReadable | ReadRefused;
+
+/** A query for a MoQ read, of a stream's delivery or a show's preview: what the reading parts are given. */
+export type MoqReadQueryOptions = UseSuspenseQueryOptions<MoqRead, Error, MoqRead, QueryKey>;
+
+/** A query for one protocol's read, of a stream's delivery or a show's preview. */
+export type ProtocolReadQueryOptions = UseSuspenseQueryOptions<ProtocolRead, Error, ProtocolRead, QueryKey>;
+
+/** How long a read stays fresh: until a little before its credential expires. A refusal is asked again when next shown. */
+export function readStaleTime(read: MoqRead | ProtocolRead | undefined): number {
+  return read && 'renewIn' in read ? read.renewIn : 0;
+}
+
+/** When to ask for a read again while it is shown: a little before its credential expires; a refusal, not on a timer. */
+export function readRefetchInterval(read: MoqRead | ProtocolRead | undefined): number | false {
+  return read && 'renewIn' in read ? read.renewIn : false;
+}
+
+/** A MoQ read from the API's answer, or why there isn't one. */
+export function moqReadOf(result: ReadConnection | Error): MoqRead {
+  if (result instanceof Error) return { failure: result.message };
+  // A MoQ connection names a relay; any other protocol's is a URL.
+  if (!('relay' in result)) return { failure: `The gateway offered ${result.protocol}, not MoQ.` };
+  return { url: relayUrl(result), broadcast: result.broadcast, renewIn: renewalDelay(result.expiresAt) };
+}
+
+/** A protocol's read from the API's answer, or why there isn't one. */
+export function protocolReadOf(result: ReadConnection | Error): ProtocolRead {
+  if (result instanceof Error) return { failure: result.message };
+  // A MoQ connection names a relay; every other protocol's is a URL.
+  if ('relay' in result) return { failure: 'It is read over MoQ here.' };
+  return { url: result.url, token: result.token, expiresAt: result.expiresAt, renewIn: renewalDelay(result.expiresAt) };
+}
 
 /** A MoQ connection as the API describes it: the relay, the exposure's path on it, and the token that admits. */
 interface MoqConnection {

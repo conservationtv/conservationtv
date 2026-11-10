@@ -9,26 +9,29 @@ import {
 } from '@conservationtv/ui/components/chart';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-/** One bucket: what came in from the camera, and what went out to the network and to the internet, in bits a second. */
-export interface BitrateRow {
-  at: number;
-  ingress?: number;
-  lanEgress?: number;
-  internetEgress?: number;
-}
-
-const chartConfig = {
-  ingress: { label: 'From camera', color: 'var(--chart-1)' },
-  lanEgress: { label: 'To network', color: 'var(--chart-2)' },
-  internetEgress: { label: 'To internet', color: 'var(--chart-3)' }
-} satisfies ChartConfig;
+import type { BitrateLine, BitrateLineStyle, BitrateRow } from '@/components/streams/stream-charts';
 
 /** Headroom above the highest point, before the scale's top is rounded up to a tidy value. */
 const HEADROOM = 1.2;
 /** The axes' labels, smaller than the card's text. */
 const AXIS_TICK = { fontSize: 10 };
 
-export interface StreamChartProps {
+/** How each style is stroked: its dashes, width and ends. */
+const lineStrokes = {
+  area: { strokeDasharray: undefined, strokeWidth: 1, strokeLinecap: undefined },
+  dotted: { strokeDasharray: '1 3', strokeWidth: 1.5, strokeLinecap: 'round' },
+  dashed: { strokeDasharray: '5 3', strokeWidth: 1.75, strokeLinecap: undefined }
+} as const satisfies Record<BitrateLineStyle, LineStroke>;
+
+/** How a line's stroke is drawn. */
+interface LineStroke {
+  strokeDasharray: string | undefined;
+  strokeWidth: number;
+  strokeLinecap: 'round' | undefined;
+}
+
+export interface BitrateChartProps {
+  lines: BitrateLine[];
   rows: BitrateRow[];
   from: number;
   to: number;
@@ -36,20 +39,16 @@ export interface StreamChartProps {
   className?: string;
 }
 
-/**
- * The stream's bitrates as a sparkline: in from the camera as a filled area behind, out
- * to the network dotted, and out to the internet dashed on top. What goes to the internet usually matches what comes
- * in, so it is drawn as a darker line riding the area's edge rather than a second line of the same kind over the first.
- */
-export const StreamChart: FC<StreamChartProps> = ({ rows, from, to, className }) => {
-  const highest = rows.reduce(
-    (most, row) => Math.max(most, row.ingress ?? 0, row.lanEgress ?? 0, row.internetEgress ?? 0),
-    0
-  );
+/** Bitrates over time as a sparkline: each line drawn in its style, over a scale that fits the highest point. */
+export const BitrateChart: FC<BitrateChartProps> = ({ lines, rows, from, to, className }) => {
+  const highest = rows.reduce((most, row) => Math.max(most, ...lines.map(line => row[line.key] ?? 0)), 0);
   // A flat line sits low rather than in the middle when nothing has been reported.
   const top = highest > 0 ? tidyCeiling(highest * HEADROOM) : 1e6;
+  const config: ChartConfig = Object.fromEntries(
+    lines.map(line => [line.key, { label: line.label, color: line.colour }])
+  );
   return (
-    <ChartContainer config={chartConfig} className={cn('aspect-auto h-32 w-full', className)}>
+    <ChartContainer config={config} className={cn('aspect-auto h-32 w-full', className)}>
       <ComposedChart data={rows} margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="2 4" />
         <XAxis
@@ -85,7 +84,7 @@ export const StreamChart: FC<StreamChartProps> = ({ rows, from, to, className })
                     style={{ background: item.color }}
                     aria-hidden="true"
                   />
-                  <span className="text-muted-foreground">{seriesLabel(name)}</span>
+                  <span className="text-muted-foreground">{lineLabel(lines, name)}</span>
                   <span className="ml-auto font-mono font-medium text-foreground tabular-nums">
                     {formatBitrate(Number(value))}
                   </span>
@@ -94,70 +93,63 @@ export const StreamChart: FC<StreamChartProps> = ({ rows, from, to, className })
             />
           }
         />
-        <Area
-          dataKey="ingress"
-          type="monotone"
-          stroke="var(--color-ingress)"
-          strokeWidth={1}
-          fill="var(--color-ingress)"
-          fillOpacity={0.12}
-          dot={false}
-          isAnimationActive={false}
-        />
-        <Line
-          dataKey="lanEgress"
-          type="monotone"
-          stroke="var(--color-lanEgress)"
-          strokeWidth={1.5}
-          strokeDasharray="1 3"
-          strokeLinecap="round"
-          dot={false}
-          isAnimationActive={false}
-        />
-        <Line
-          dataKey="internetEgress"
-          type="monotone"
-          stroke="var(--color-internetEgress)"
-          strokeWidth={1.75}
-          strokeDasharray="5 3"
-          dot={false}
-          isAnimationActive={false}
-        />
+        {lines.map(line =>
+          line.style === 'area' ? (
+            <Area
+              key={line.key}
+              dataKey={line.key}
+              type="monotone"
+              stroke={`var(--color-${line.key})`}
+              strokeWidth={lineStrokes.area.strokeWidth}
+              fill={`var(--color-${line.key})`}
+              fillOpacity={0.12}
+              dot={false}
+              isAnimationActive={false}
+            />
+          ) : (
+            <Line
+              key={line.key}
+              dataKey={line.key}
+              type="monotone"
+              stroke={`var(--color-${line.key})`}
+              {...lineStrokes[line.style]}
+              dot={false}
+              isAnimationActive={false}
+            />
+          )
+        )}
       </ComposedChart>
     </ChartContainer>
   );
 };
 
-/** How each line is drawn, for its key: the area filled, the others by their dashes. */
-const legendDashes = {
-  ingress: undefined,
-  lanEgress: '1 3',
-  internetEgress: '5 3'
-} satisfies Record<keyof typeof chartConfig, string | undefined>;
+export interface BitrateChartLegendProps extends ComponentProps<'ul'> {
+  lines: BitrateLine[];
+}
 
-/** What each of the chart's lines is, drawn as it is drawn in the chart, for where the chart stands without a card. */
-export const StreamChartLegend: FC<ComponentProps<'ul'>> = ({ className, ...props }) => {
+/** What each of a chart's lines is, drawn as it is drawn in the chart, for where the chart stands without a card. */
+export const BitrateChartLegend: FC<BitrateChartLegendProps> = ({ lines, className, ...props }) => {
   return (
     <ul
       className={cn('flex flex-wrap gap-x-5 gap-y-1 text-custom-12 text-custom-text-secondary', className)}
       {...props}
     >
-      {(['ingress', 'lanEgress', 'internetEgress'] satisfies (keyof typeof chartConfig)[]).map(key => (
-        <li key={key} className="inline-flex items-center gap-2">
+      {lines.map(line => (
+        <li key={line.key} className="inline-flex items-center gap-2">
           <svg aria-hidden="true" width="18" height="8" className="overflow-visible">
             <line
               x1="0"
               y1="4"
               x2="18"
               y2="4"
-              stroke={chartConfig[key].color}
-              strokeWidth={key === 'ingress' ? 6 : 1.75}
-              strokeOpacity={key === 'ingress' ? 0.3 : 1}
-              strokeDasharray={legendDashes[key]}
-              strokeLinecap={key === 'lanEgress' ? 'round' : undefined}
+              stroke={line.colour}
+              strokeWidth={line.style === 'area' ? 6 : lineStrokes[line.style].strokeWidth}
+              strokeOpacity={line.style === 'area' ? 0.3 : 1}
+              strokeDasharray={lineStrokes[line.style].strokeDasharray}
+              strokeLinecap={lineStrokes[line.style].strokeLinecap}
             />
           </svg>
-          {chartConfig[key].label}
+          {line.label}
         </li>
       ))}
     </ul>
@@ -165,10 +157,8 @@ export const StreamChartLegend: FC<ComponentProps<'ul'>> = ({ className, ...prop
 };
 
 /** A line's label in the tooltip, by the `dataKey` Recharts names it with. */
-function seriesLabel(name: string | number | undefined): string {
-  if (name === 'lanEgress') return chartConfig.lanEgress.label;
-  if (name === 'internetEgress') return chartConfig.internetEgress.label;
-  return chartConfig.ingress.label;
+function lineLabel(lines: BitrateLine[], name: string | number | undefined): string {
+  return lines.find(line => line.key === name)?.label ?? '';
 }
 
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });

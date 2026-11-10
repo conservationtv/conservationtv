@@ -1,9 +1,9 @@
 import { useState, type FC } from 'react';
 import { useForm } from '@tanstack/react-form';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { useSuspenseQueries } from '@tanstack/react-query';
+import { Link, useSearchParams } from 'react-router';
 import { BroadcastIcon, PlusIcon, TwitchLogoIcon } from '@phosphor-icons/react';
-import type { Channel } from '@conservationtv/studio-sdk';
+import type { Channel, Show } from '@conservationtv/studio-sdk';
 import { Alert, AlertDescription, AlertTitle } from '@conservationtv/ui/components/alert';
 import { Button } from '@conservationtv/ui/components/button';
 import {
@@ -32,6 +32,7 @@ import { FormError } from '@/components/common/form-error';
 import { RtmpChannelSchema, type RtmpChannelInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
 import { channelListQueryOptions, useConnectTwitch, useCreateRtmpChannel, useDeleteChannel } from '@/queries/channels';
+import { showListQueryOptions } from '@/queries/shows';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Channels · conservation.tv studio' }];
 
@@ -50,8 +51,10 @@ const CONNECT_FAILED = 'Twitch couldn’t be reached, or didn’t answer as expe
  */
 const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
   const { organisationId } = params;
-  const list = useSuspenseQuery(channelListQueryOptions(organisationId));
-  const { channels } = list.data;
+  const [channelsQuery, showsQuery] = useSuspenseQueries({
+    queries: [channelListQueryOptions(organisationId), showListQueryOptions(organisationId)]
+  });
+  const { channels } = channelsQuery.data;
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-10 py-10">
       <header className="flex flex-col gap-2">
@@ -69,7 +72,12 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
       {channels.length ? (
         <ItemGroup className="gap-2">
           {channels.map(channel => (
-            <ChannelRow key={channel.id} organisationId={organisationId} channel={channel} />
+            <ChannelRow
+              key={channel.id}
+              organisationId={organisationId}
+              channel={channel}
+              shows={showsQuery.data.filter(show => show.forwards.some(forward => forward.channelId === channel.id))}
+            />
           ))}
         </ItemGroup>
       ) : (
@@ -212,10 +220,12 @@ const AddRtmpDialog: FC<AddRtmpDialogProps> = ({ organisationId }) => {
 interface ChannelRowProps {
   organisationId: string;
   channel: Channel;
+  /** The shows forwarded to it, on or off. */
+  shows: Show[];
 }
 
-/** A channel: what it is, and removing it. */
-const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel }) => {
+/** A channel: what it is, the shows that go out on it, and removing it. */
+const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel, shows }) => {
   const remove = useDeleteChannel(organisationId);
   return (
     <Item variant="outline">
@@ -227,6 +237,7 @@ const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel }) => {
             ? `twitch.tv/${channel.externalLogin}`
             : 'RTMP destination'}
         </ItemDescription>
+        <ChannelShows channelId={channel.id} shows={shows} />
         <FormError error={remove.error} />
       </ItemContent>
       <ItemActions>
@@ -235,5 +246,35 @@ const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel }) => {
         </Button>
       </ItemActions>
     </Item>
+  );
+};
+
+interface ChannelShowsProps {
+  channelId: string;
+  /** The shows forwarded to the channel. */
+  shows: Show[];
+}
+
+/** Which shows go out on the channel, each opening its page, and which of them have it switched off. */
+const ChannelShows: FC<ChannelShowsProps> = ({ channelId, shows }) => {
+  if (shows.length === 0) {
+    return <ItemDescription>No show goes out on it. Add it to a show from the show’s page.</ItemDescription>;
+  }
+  return (
+    <ItemDescription>
+      On{' '}
+      {shows.map((show, index) => {
+        const enabled = show.forwards.some(forward => forward.channelId === channelId && forward.enabled);
+        return (
+          <span key={show.id}>
+            {index > 0 && ', '}
+            <Link to={`../shows/${show.id}`} relative="path" className="text-foreground underline underline-offset-2">
+              {show.name}
+            </Link>
+            {!enabled && ' (off)'}
+          </span>
+        );
+      })}
+    </ItemDescription>
   );
 };

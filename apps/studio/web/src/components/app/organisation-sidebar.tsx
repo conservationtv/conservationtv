@@ -62,9 +62,9 @@ export const OrganisationSidebar: FC = () => {
                 <VideoIcon />
                 <span>Streams</span>
               </SidebarNavItem>
-              <SidebarNavItem to="show">
+              <SidebarNavItem to="shows">
                 <MonitorPlayIcon />
-                <span>Show</span>
+                <span>Shows</span>
               </SidebarNavItem>
               <SidebarNavItem to="channels">
                 <BroadcastIcon />

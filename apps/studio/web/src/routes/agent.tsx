@@ -2,7 +2,7 @@ import { Suspense, useState, type FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query';
 import { HardDrivesIcon } from '@phosphor-icons/react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import type { Agent, Network } from '@conservationtv/studio-sdk';
 import {
   AlertDialog,
@@ -64,7 +64,7 @@ import { formatDate, formatRelative, shortPublicId } from '@/lib/format';
 import { agentListQueryOptions, useDeleteAgent, useUpdateAgent } from '@/queries/agents';
 import { deviceAddressListQueryOptions, useUpdateDevice } from '@/queries/devices';
 import { networkListQueryOptions, useSetActiveAgent } from '@/queries/networks';
-import { showOutputQueryOptions } from '@/queries/shows';
+import { showListQueryOptions } from '@/queries/shows';
 import { subjectStateListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Agent · conservation.tv studio' }];
@@ -77,12 +77,12 @@ export const meta: Route.MetaFunction = () => [{ title: 'Agent · conservation.t
 const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
   const organisationId = useOrganisationId();
   const administrator = useIsAdministrator();
-  const [agentsQuery, networksQuery, statesQuery, outputQuery] = useSuspenseQueries({
+  const [agentsQuery, networksQuery, statesQuery, showsQuery] = useSuspenseQueries({
     queries: [
       agentListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
       subjectStateListQueryOptions(organisationId),
-      showOutputQueryOptions(organisationId)
+      showListQueryOptions(organisationId)
     ]
   });
   const agent = agentsQuery.data.find(candidate => candidate.id === params.agentId);
@@ -112,7 +112,7 @@ const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
         name={agent.device.name}
         network={network}
         state={statesQuery.data.find(state => state.subjectId === deviceSubjectId(agent.id))}
-        output={outputQuery.data?.deviceId === agent.id}
+        show={showsQuery.data.find(show => show.output?.deviceId === agent.id)}
       />
 
       <Section>
@@ -192,18 +192,24 @@ const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
 
 export default AgentRoute;
 
+/** A show, as the agent's header names the one it sends out. */
+interface OutputShow {
+  id: string;
+  name: string;
+}
+
 interface AgentHeaderProps {
   agent: Agent;
   name: string;
   network: Network | undefined;
   /** What has been reported to the studio about it: undefined when nothing has. */
   state: SubjectState | undefined;
-  /** Whether this agent sends the organisation's show out. */
-  output: boolean;
+  /** The show this agent sends out, if it is one's output. */
+  show: OutputShow | undefined;
 }
 
 /** The way back, the agent's name with how it is doing and what it is for, and its pin. */
-const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, output }) => {
+const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, show }) => {
   const site = network?.name ?? 'its network';
   return (
     <>
@@ -216,7 +222,11 @@ const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, output
             <PageTitle>{name}</PageTitle>
             <SubjectHealth state={state} />
             {agent.active ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">Standby</Badge>}
-            {output && <Badge variant="outline">Show output</Badge>}
+            {show && (
+              <Badge variant="outline" render={<Link to={`../../shows/${show.id}`} relative="path" />}>
+                Sends {show.name} out
+              </Badge>
+            )}
           </div>
           <PageDescription>
             {agent.active ? `Delivering the streams of ${site}.` : `Standing by on ${site}.`}

@@ -46,7 +46,7 @@ import { PublisherOptions } from '@/components/streams/publisher-options';
 import { RenditionsField } from '@/components/streams/renditions-field';
 import { sourceRenditions } from '@/components/streams/renditions';
 import type { ListedGateway } from '@/components/streams/stream-detail';
-import { StreamTopology } from '@/components/streams/stream-topology';
+import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { NewStreamSchema, StreamSourceSchema, type NewStream, type NewStreamInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
@@ -294,7 +294,7 @@ const NewStreamForm: FC = () => {
       <section className="flex flex-col gap-3" aria-label="How it will be delivered">
         {draft.topology.nodes.length > 0 ? (
           <div className="rounded-xl border border-border p-5">
-            <StreamTopology topology={draft.topology} statuses={draft.statuses} />
+            <TopologyDiagram topology={draft.topology} statuses={draft.statuses} />
           </div>
         ) : (
           <p className="text-custom-13 text-muted-foreground">

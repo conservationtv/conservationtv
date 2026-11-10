@@ -33,13 +33,12 @@ import {
   RenditionTabs
 } from '@/components/streams/read-parts';
 import { RENDITIONS } from '@/components/streams/renditions';
-import { useOrganisationId } from '@/hooks/use-organisation';
 import { formatDateTime } from '@/lib/format';
 import { useCopy } from '@/hooks/use-copy';
-import { exposureReadQueryOptions } from '@/queries/streams';
+import type { ProtocolRead, ProtocolReadable, ProtocolReadQueryOptions } from '@/queries/streams';
 
-// How a reader on the network reads a delivery to its MediaMTX gateway. Every address needs a read token from the
-// studio (apps/agent/core/src/runtimes/mediamtx/auth.ts): MediaMTX admits anyone else only with one, signed for that
+// How a reader on the network reads something at its MediaMTX gateway: a stream's delivery, or a show's preview. Every
+// address needs a read token from the studio (apps/agent/core/src/runtimes/mediamtx/auth.ts): MediaMTX admits anyone else only with one, signed for that
 // gateway, path and action. Each protocol is offered at the gateway's hostname and at the IP it points at (the agent's
 // preferred address), for a reader whose DNS doesn't resolve the name. Where the token can ride in the URL (`?jwt=`),
 // pressing a variant copies the whole working URL; WebRTC's WHEP is given as a URL and a bearer header, in a dialog.
@@ -50,17 +49,23 @@ export interface GatewayName {
   address: string | null;
 }
 
+/**
+ * The query for how this account reads one rendition by one protocol: `exposureReadQueryOptions` for a stream's
+ * delivery, `previewReadQueryOptions` for a show's preview.
+ */
+export type ProtocolReadOf = (protocol: string, rendition: Rendition) => ProtocolReadQueryOptions;
+
 export interface LocalReadProps {
-  streamId: string;
-  exposureId: string;
-  /** The renditions the delivery offers, each read at its own address. */
+  /** How each protocol's connection is asked for, by rendition. */
+  read: ProtocolReadOf;
+  /** The renditions it offers, each read at its own address. */
   renditions: Rendition[];
   /** The gateway's hostname, once it has one: each protocol is then offered there and at the IP it points at. */
   name: GatewayName | null;
 }
 
-/** Each rendition the delivery offers as a compact tab, each listing the protocols a reader can use for it. */
-export const LocalRead: FC<LocalReadProps> = ({ streamId, exposureId, renditions, name }) => {
+/** Each rendition it offers as a compact tab, each listing the protocols a reader can use for it. */
+export const LocalRead: FC<LocalReadProps> = ({ read, renditions, name }) => {
   const offered = RENDITIONS.filter(rendition => renditions.includes(rendition));
   // The tab moves as soon as it is chosen; the rows change in a transition, so they keep showing the last rendition
   // until the chosen one's connections are ready, rather than falling back to a placeholder.
@@ -77,7 +82,7 @@ export const LocalRead: FC<LocalReadProps> = ({ streamId, exposureId, renditions
           startTransition(() => setShown(chosen));
         }}
       />
-      <ReadList streamId={streamId} exposureId={exposureId} rendition={shown} name={name} />
+      <ReadList read={read} rendition={shown} name={name} />
     </>
   );
 };
@@ -103,8 +108,7 @@ const protocolUses = {
 } satisfies Record<(typeof GATEWAY_PROTOCOLS)[number]['protocol'], string>;
 
 interface ReadListProps {
-  streamId: string;
-  exposureId: string;
+  read: ProtocolReadOf;
   rendition: Rendition;
   name: GatewayName | null;
 }
@@ -113,7 +117,7 @@ interface ReadListProps {
  * One row per protocol the gateway serves readers. A row's name and use are known already, so they show at once; only
  * its buttons wait on its connection, behind a placeholder the buttons' height, so nothing moves when they arrive.
  */
-const ReadList: FC<ReadListProps> = ({ streamId, exposureId, rendition, name }) => {
+const ReadList: FC<ReadListProps> = ({ read, rendition, name }) => {
   return (
     <ReadRows>
       {GATEWAY_PROTOCOLS.map(({ protocol, label }) => (
@@ -123,14 +127,7 @@ const ReadList: FC<ReadListProps> = ({ streamId, exposureId, rendition, name }) 
             <ReadRowNote>{protocolUses[protocol]}</ReadRowNote>
           </ReadRowHeading>
           <Suspense fallback={<Skeleton className="h-7 w-56" />}>
-            <ProtocolRead
-              streamId={streamId}
-              exposureId={exposureId}
-              rendition={rendition}
-              protocol={protocol}
-              label={label}
-              name={name}
-            />
+            <ProtocolReadActions query={read(protocol, rendition)} protocol={protocol} label={label} name={name} />
           </Suspense>
         </ReadRow>
       ))}
@@ -138,38 +135,22 @@ const ReadList: FC<ReadListProps> = ({ streamId, exposureId, rendition, name }) 
   );
 };
 
-interface ProtocolReadProps {
-  streamId: string;
-  exposureId: string;
-  rendition: Rendition;
+interface ProtocolReadActionsProps {
+  /** The protocol's connection for the rendition. */
+  query: ProtocolReadQueryOptions;
   protocol: ReadProtocol;
   label: string;
   name: GatewayName | null;
 }
 
 /** One protocol's connection for the rendition, as its buttons. */
-const ProtocolRead: FC<ProtocolReadProps> = ({ streamId, exposureId, rendition, protocol, label, name }) => {
-  const organisationId = useOrganisationId();
-  const readQuery = useSuspenseQuery(
-    exposureReadQueryOptions(organisationId, streamId, exposureId, protocol, rendition)
-  );
+const ProtocolReadActions: FC<ProtocolReadActionsProps> = ({ query, protocol, label, name }) => {
+  const readQuery = useSuspenseQuery(query);
   return <ProtocolActions protocol={protocol} label={label} read={readQuery.data} name={name} />;
 };
 
 /** A protocol the gateway gave a connection for. */
-interface ReadConnection {
-  url: string;
-  token?: string;
-  expiresAt?: string;
-}
-
-/** A protocol it didn't, and why. */
-interface ReadRefused {
-  failure: string;
-}
-
-/** One protocol's answer. */
-type ProtocolRead = ReadConnection | ReadRefused;
+type ReadConnection = ProtocolReadable;
 
 /** One way to reach the gateway: by its hostname, or at an IP. */
 interface Variant {
