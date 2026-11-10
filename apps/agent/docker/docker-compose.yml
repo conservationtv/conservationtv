@@ -17,5 +17,11 @@ services:
       # JSON moving any of MediaMTX's ports from its own, such as {"rtsp":9554}, when the host has one in use.
       AGENT_MEDIAMTX_PORTS:
       SHUTDOWN_DELAY_MS: 10000
+    # The binaries the agent installs, kept across rebuilds.
+    volumes:
+      - data:/app/data
     # Longer than SHUTDOWN_DELAY_MS, so close-with-grace's own deadline ends the process rather than Docker's SIGKILL.
     stop_grace_period: 15s
+
+volumes:
+  data:

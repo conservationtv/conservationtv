@@ -1,0 +1,140 @@
+name: agent-image
+
+# Publishes the agent's image (apps/agent/docker/Dockerfile) to ghcr.io/conservationtv/agent, for linux/amd64 and
+# linux/arm64 under one tag. Each platform builds on a runner of its own architecture, rather than under emulation,
+# and is pushed by digest; the last job joins the digests into one manifest list and tags it `main` and `sha-<commit>`.
+# A pull request builds and checks both platforms, and publishes nothing.
+on:
+  push:
+    branches: [main]
+    # The runner and everything it bundles from the workspace.
+    paths: &paths
+      - apps/agent/**
+      - apps/studio/sdk/**
+      - packages/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/agent-image.yml
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+
+# A newer push supersedes a build still running: only main's latest commit is worth tagging `main`, and only a pull
+# request's latest worth checking.
+concurrency:
+  group: agent-image-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/agent
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Name the platform
+        run: echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
+        env:
+          PLATFORM: ${{ matrix.platform }}
+
+      # Built into the runner's Docker first, to be checked before anything is pushed; the push below is the same
+      # build, from the cache.
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/agent/docker/Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: agent:check
+          cache-from: type=gha,scope=agent-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,scope=agent-${{ env.PLATFORM_PAIR }},mode=max
+
+      # What the agent needs on the image to start and to install its own binaries: iroh's addon loads, and tar and the
+      # system's certificates are there for MediaMTX and moq.
+      - name: Check the image
+        run: |
+          docker run --rm agent:check node -e "require('./node_modules/@number0/iroh')"
+          docker run --rm --entrypoint tar agent:check --version
+          docker run --rm --entrypoint test agent:check -s /etc/ssl/certs/ca-certificates.crt
+          docker run --rm --entrypoint test agent:check -w /app/data
+
+      - name: Push by digest
+        if: github.event_name != 'pull_request'
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/agent/docker/Dockerfile
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=agent-${{ env.PLATFORM_PAIR }}
+
+      - name: Keep the digest
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: digest-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # `main` follows main's latest build; `sha-<commit>` pins one, for a device that shouldn't move with it.
+      - name: Tag the manifest list
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          sources=()
+          for digest in *; do sources+=("$IMAGE@sha256:$digest"); done
+          docker buildx imagetools create --tag "$IMAGE:main" --tag "$IMAGE:sha-${GITHUB_SHA::7}" "${sources[@]}"
+          docker buildx imagetools inspect "$IMAGE:sha-${GITHUB_SHA::7}"

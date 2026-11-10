@@ -1,0 +1,31 @@
+name: agent
+
+# The agent on a device (a Raspberry Pi, or any linux/amd64 or linux/arm64 machine), from the image CI publishes. Beside
+# a `.env` holding at least AGENT_NAME, STUDIO_API_URL and AGENT_SECRET_KEY:
+#   docker compose -f docker-compose.device.yml up -d
+# AGENT_TAG picks the image: `main` (the default) follows main; `sha-<commit>` pins one build.
+
+services:
+  agent:
+    image: ghcr.io/conservationtv/agent:${AGENT_TAG:-main}
+    env_file: .env
+    environment:
+      SHUTDOWN_DELAY_MS: 10000
+    # The host's network: the agent registers the addresses it finds on its interfaces as MediaMTX's endpoints, which on
+    # Docker's bridge would be the container's; and MediaMTX's servers listen on the host's ports, as they would natively.
+    network_mode: host
+    # The binaries the agent installs, kept when an upgrade replaces the container.
+    volumes:
+      - data:/app/data
+    restart: unless-stopped
+    # Longer than SHUTDOWN_DELAY_MS, so close-with-grace's own deadline ends the process rather than Docker's SIGKILL.
+    stop_grace_period: 15s
+    # The agent logs a JSON line per event to stdout; bounded, so a device's SD card doesn't fill.
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '5'
+
+volumes:
+  data:
