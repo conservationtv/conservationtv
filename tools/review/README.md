@@ -50,10 +50,16 @@ comment naming it: `<!-- diffmap gist=<id> sha=<head> -->`. The Worker takes the
 
 The source chapter opens on its calls: the functions, methods, routes and call-built values that are new or changed,
 as trees of the calls between them. Each tree starts where the change is entered, from an unchanged function that calls
-into it when there is one, and opening a call shows that function's own diff. It is read from syntax alone with
-`@babel/parser`, in the browser, from both sides of each TypeScript and JavaScript file: a call is matched to a
-changed function by the name it is written with (`this.x` within its class or object), so calls through variables,
-imports under another name or dynamic dispatch are not followed. **Files** shows the chapter file by file.
+into it when there is one. It is read from syntax alone with `@babel/parser`, in the browser, from both sides of each
+TypeScript and JavaScript file: a call is matched to a changed function by the name it is written with (`this.x` within
+its class or object), so calls through variables, imports under another name or dynamic dispatch are not followed.
+**Files** shows the chapter file by file.
+
+A row is a function, and opening it shows what its name is bound to: at the merge base, the function of that name, or
+else whatever statement bound the name, such as a re-export the function replaced; at the head, the function with the
+changed top-level declarations of its file it is built from (values it reads, and for a function that was there
+before, the imports it newly uses). Under each function are the calls its caller makes to it, each opening onto its
+lines in the caller, marked as new unless the caller made the same call at the merge base.
 
 ## API contracts
 
