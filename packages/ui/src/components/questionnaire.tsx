@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Questionnaire as QuestionnairePrimitive } from "@shadcn/react/questionnaire"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 
 import { type Button } from "@conservationtv/ui/components/button"
 import { buttonVariants } from "@conservationtv/ui/lib/button-variants"

@@ -11,9 +11,15 @@ export const tabsListVariants = cva(
         default: "bg-muted",
         line: "gap-1 bg-transparent",
       },
+      // Compact: a shorter list with smaller labels, for tabs inside a card rather than across a page.
+      size: {
+        default: "",
+        sm: "group-data-horizontal/tabs:h-7",
+      },
     },
     defaultVariants: {
       variant: "default",
+      size: "default",
     },
   }
 )

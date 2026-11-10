@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 import { OTPInput, OTPInputContext } from "input-otp"
 import { MinusIcon } from "@phosphor-icons/react"
 

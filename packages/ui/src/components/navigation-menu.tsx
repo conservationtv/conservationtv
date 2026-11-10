@@ -1,5 +1,5 @@
 import { NavigationMenu as NavigationMenuPrimitive } from "@base-ui/react/navigation-menu"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 import { CaretDownIcon } from "@phosphor-icons/react"
 
 import { navigationMenuTriggerStyle } from "@conservationtv/ui/lib/navigation-menu-variants"

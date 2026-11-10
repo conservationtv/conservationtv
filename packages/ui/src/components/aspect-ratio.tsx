@@ -1,4 +1,4 @@
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 
 function AspectRatio({
   ratio,

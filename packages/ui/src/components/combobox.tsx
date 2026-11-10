@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 
 import { Button } from "@conservationtv/ui/components/button"
 import {

@@ -1,6 +1,6 @@
 "use client"
 
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 import * as ResizablePrimitive from "react-resizable-panels"
 
 function ResizablePanelGroup({
