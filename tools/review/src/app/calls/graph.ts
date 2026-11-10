@@ -114,7 +114,13 @@ function locate(sides: Sides): LocatedFile {
     // A top-level name with no unit at the merge base may have been bound otherwise: re-exported, or a plain value.
     const was = previous.get(unit.name) ?? (unit.owner === null ? bindingOf(before.bindings, unit.name) : undefined);
     const span = was ? { start: was.start, end: was.end, text: was.text } : null;
-    return { ...unit, id: `${sides.path}#${unit.name}`, path: sides.path, status: statusOf(unit, span), previous: span };
+    return {
+      ...unit,
+      id: `${sides.path}#${unit.name}`,
+      path: sides.path,
+      status: statusOf(unit, span),
+      previous: span
+    };
   });
   const names = new Set(after.units.map(unit => unit.name));
   return {
@@ -138,19 +144,47 @@ function contextOf(unit: Located, file: LocatedFile, called: ReadonlySet<string>
   for (let name = queue.shift(); name !== undefined; name = queue.shift()) {
     if (seen.has(name) || called.has(name)) continue;
     seen.add(name);
-    const after = bindingOf(file.after, name);
-    // A name bound by no top-level statement is a local or a global; the unit's own statement is the unit.
-    if (!after || (after.start <= unit.start && after.end >= unit.end)) continue;
-    if (after.imports && unit.status === 'new') continue;
-    const before = bindingOf(file.before, name);
-    if (before && sameBinding(name, before, after)) continue;
-    pieces.set(after.start, {
-      after: { start: after.start, end: after.end, text: after.text },
-      before: before ? { start: before.start, end: before.end, text: before.text } : null
-    });
-    queue.push(...after.uses);
+    const found = changedBinding(unit, file, name);
+    if (!found) continue;
+    pieces.set(found.piece.after.start, found.piece);
+    queue.push(...found.uses);
   }
   return [...pieces.values()].toSorted((a, b) => a.after.start - b.after.start);
+}
+
+/** Lines of a file as a span. */
+function spanOf({ start, end, text }: Span): Span {
+  return { start, end, text };
+}
+
+/** A changed declaration a unit is built from, and the names it uses in turn. */
+interface ChangedBinding {
+  piece: Piece;
+  uses: string[];
+}
+
+/**
+ * The top-level statement binding a name a unit uses, as a piece of the unit, and the names it uses in turn; null when
+ * it did not change, or is not one to show with the unit.
+ */
+function changedBinding(unit: Located, file: LocatedFile, name: string): ChangedBinding | null {
+  const after = bindingOf(file.after, name);
+  // A name bound by no top-level statement is a local or a global; the unit's own statement is the unit; and
+  // everything a new unit imports is new with it.
+  if (!after || (after.start <= unit.start && after.end >= unit.end)) return null;
+  if (after.imports && unit.status === 'new') return null;
+  const before = bindingOf(file.before, name);
+  if (before && sameBinding(name, before, after)) return null;
+  return { piece: { after: spanOf(after), before: before ? spanOf(before) : null }, uses: after.uses };
+}
+
+/** The units within the declarations a unit is built from. */
+function builtFrom(unit: Located, units: readonly Located[]): Located[] {
+  return units.filter(
+    other =>
+      other.path === unit.path &&
+      unit.context.some(piece => other.start >= piece.after.start && other.end <= piece.after.end)
+  );
 }
 
 class Resolver {
@@ -220,16 +254,10 @@ export function callGraph(files: readonly Sides[], others: readonly string[]): C
 
   // A changed unit another changed unit calls is reached from it, and one it is built from is read with it: neither
   // is a tree of its own.
-  const reached = new Set(changed.flatMap(unit => resolved.callees(unit).map(([, target]) => target.id)));
-  for (const unit of changed) {
-    for (const piece of unit.context) {
-      for (const other of units) {
-        if (other.path === unit.path && other.start >= piece.after.start && other.end <= piece.after.end) {
-          reached.add(other.id);
-        }
-      }
-    }
-  }
+  const reached = new Set([
+    ...changed.flatMap(unit => resolved.callees(unit).map(([, target]) => target.id)),
+    ...changed.flatMap(unit => builtFrom(unit, units).map(other => other.id))
+  ]);
   const entries = changed.filter(unit => !reached.has(unit.id));
   // Entry points an unchanged unit calls are shown under it, so the tree starts from code the reader knows.
   const callers = units.filter(

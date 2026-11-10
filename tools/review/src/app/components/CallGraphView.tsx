@@ -1,10 +1,10 @@
+import type { FileDiffMetadata } from '@pierre/diffs';
 import { FileDiff } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState, type FC } from 'react';
+import { useState, type FC } from 'react';
 import type { Review, ReviewFile } from '../../shared/review.ts';
-import type { FileDiffMetadata } from '@pierre/diffs';
 import type { CallGraph, CallNode, Located, Status } from '../calls/graph.ts';
-import { callDiff, loadCallGraph, unitDiffs } from '../calls/load.ts';
+import { callPiece, loadCallGraph, pieceDiff, unitPieces } from '../calls/load.ts';
 import type { Call } from '../calls/units.ts';
 import { theme } from '../highlighting.ts';
 import type { DiffStyle } from './DiffList.tsx';
@@ -42,7 +42,11 @@ function written(call: Call): Display {
   return { qualifier: call.text.slice(0, dot + 1), name: call.text.slice(dot + 1), args: `(${call.args})` };
 }
 
-const Shown: FC<{ shown: Display }> = ({ shown }) => (
+interface ShownProps {
+  shown: Display;
+}
+
+const Shown: FC<ShownProps> = ({ shown }) => (
   <>
     <span className="muted">{shown.qualifier}</span>
     <strong>{shown.name}</strong>
@@ -86,7 +90,7 @@ interface CallSiteProps {
 /** A call as its caller makes it, opened to read its lines there. */
 const CallSite: FC<CallSiteProps> = ({ caller, call, diffStyle, wrap }) => {
   const [open, setOpen] = useState(false);
-  const diff = useMemo(() => (open ? callDiff(caller, call) : null), [open, caller, call]);
+  const diff = open ? pieceDiff(caller.path, callPiece(caller, call)) : null;
   return (
     <div className="call-site">
       <button
@@ -124,7 +128,7 @@ interface CallRowProps {
 const CallRow: FC<CallRowProps> = ({ node, caller, diffStyle, wrap }) => {
   const [open, setOpen] = useState(false);
   const { unit } = node;
-  const diffs = useMemo(() => (open ? unitDiffs(unit) : []), [open, unit]);
+  const diffs = open ? unitPieces(unit).map(piece => pieceDiff(unit.path, piece)) : [];
   const where = unit.path === caller?.path ? `:${unit.start}` : `${fileName(unit.path)}:${unit.start}`;
   return (
     <li className="call">
@@ -142,9 +146,7 @@ const CallRow: FC<CallRowProps> = ({ node, caller, diffStyle, wrap }) => {
         </span>
         <span className="call-where">{where}</span>
       </button>
-      {open ? (
-        <Diffs diffs={diffs} split={unit.status === 'changed'} diffStyle={diffStyle} wrap={wrap} />
-      ) : null}
+      {open ? <Diffs diffs={diffs} split={unit.status === 'changed'} diffStyle={diffStyle} wrap={wrap} /> : null}
       {caller && node.calls.length ? (
         <div className="call-sites">
           {node.calls.map(call => (

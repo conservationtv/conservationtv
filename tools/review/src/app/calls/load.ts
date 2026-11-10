@@ -1,7 +1,7 @@
 import { parseDiffFromFile, type FileDiffMetadata } from '@pierre/diffs';
 import type { Pull, ReviewFile } from '../../shared/review.ts';
 import { rawFile } from '../api.ts';
-import type { CallGraph, Located, Sides, Span } from './graph.ts';
+import type { CallGraph, Located, Piece, Sides, Span } from './graph.ts';
 import type { Call } from './units.ts';
 
 // The source chapter's call graph, read in the browser from the files at the merge base and the head. The parser loads
@@ -40,7 +40,7 @@ export async function loadCallGraph(pull: Pull, files: readonly ReviewFile[]): P
 }
 
 /** Lines on both sides as a diff, numbered as they are in the file; `before` null where they are new. */
-function spanDiff(path: string, before: Span | null, after: Span): FileDiffMetadata {
+export function pieceDiff(path: string, { before, after }: Piece): FileDiffMetadata {
   const diff = parseDiffFromFile(before === null ? null : { name: path, contents: `${before.text}\n` }, {
     name: path,
     contents: `${after.text}\n`
@@ -59,14 +59,12 @@ function spanOf(unit: Located): Span {
 }
 
 /**
- * A unit's diffs in file order: the changed declarations it is built from, and the whole of itself, its changes
+ * A unit's pieces in file order: the changed declarations it is built from, and the whole of itself, its changes
  * marked against what its name was bound to. One that did not change is shown as it is.
  */
-export function unitDiffs(unit: Located): FileDiffMetadata[] {
+export function unitPieces(unit: Located): Piece[] {
   const own = { before: unit.status === 'same' ? spanOf(unit) : unit.previous, after: spanOf(unit) };
-  return [...unit.context, own]
-    .toSorted((a, b) => a.after.start - b.after.start)
-    .map(piece => spanDiff(unit.path, piece.before, piece.after));
+  return [...unit.context, own].toSorted((a, b) => a.after.start - b.after.start);
 }
 
 /** The lines of `text`, which starts at line `start`, from `from` to `to`. */
@@ -81,10 +79,10 @@ function linesOf(text: string, start: number, from: number, to: number): string 
  * A call where its caller makes it: its lines in the caller, marked as new unless the caller made the same call at the
  * merge base.
  */
-export function callDiff(caller: Located, call: Call): FileDiffMetadata {
+export function callPiece(caller: Located, call: Call): Piece {
   const after = { start: call.line, end: call.end, text: linesOf(caller.text, caller.start, call.line, call.end) };
   const was = caller.status === 'same' ? spanOf(caller) : caller.previous;
-  return spanDiff(caller.path, was ? sameLines(was, after) : null, after);
+  return { before: was ? sameLines(was, after) : null, after };
 }
 
 /** The same lines in what a caller was, if they are there: where the call was made before. */
@@ -94,7 +92,11 @@ function sameLines(was: Span, after: Span): Span | null {
   for (let index = 0; index + wanted.length <= lines.length; index++) {
     if (wanted.every((line, offset) => lines[index + offset] === line)) {
       const start = was.start + index;
-      return { start, end: start + wanted.length - 1, text: linesOf(was.text, was.start, start, start + wanted.length - 1) };
+      return {
+        start,
+        end: start + wanted.length - 1,
+        text: linesOf(was.text, was.start, start, start + wanted.length - 1)
+      };
     }
   }
   return null;

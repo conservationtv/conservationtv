@@ -3,6 +3,7 @@ import type {
   CallExpression,
   ClassBody,
   Expression,
+  ExportNamedDeclaration,
   ImportDeclaration,
   Node,
   ObjectExpression,
@@ -101,6 +102,7 @@ function* walk(node: Node, parent: Node | null = null, key: string | null = null
   yield { node, parent, key };
   for (const [field, value] of Object.entries(node)) {
     if (NOT_CHILDREN.has(field)) continue;
+    // A child is a node or a list of them; everything else on a node is a plain value.
     const children: (MaybeNode | null)[] = Array.isArray(value) ? value : [value];
     for (const child of children) if (child instanceof Object && isNode(child)) yield* walk(child, node, field);
   }
@@ -117,12 +119,17 @@ const EXPRESSION_WRAPPERS: ReadonlySet<string> = new Set([
   'TSInstantiationExpression'
 ]);
 
+/** Whether what is under `key` of `parent` is the name of a property or key: `x` in `a.x` and `{ x: 1 }`. */
+function isPropertyName(parent: Node, key: string): boolean {
+  if (key === 'property') return parent.type === 'MemberExpression' && !parent.computed;
+  return key === 'key' && 'computed' in parent && !parent.computed;
+}
+
 /** Whether an identifier uses a name as a value, called or not: not a binding, a key, a property name or a type. */
 function isUse({ parent, key }: Placed): boolean {
   if (parent === null || key === null) return true;
-  if (NAMING_FIELDS.has(key)) return false;
-  if (key === 'property' && parent.type === 'MemberExpression' && !parent.computed) return false;
-  if (key === 'key' && 'computed' in parent && !parent.computed) return false;
+  // A name bound, or a property's; then within a type, a name is a type's unless an expression is wrapped in it.
+  if (NAMING_FIELDS.has(key) || isPropertyName(parent, key)) return false;
   return !parent.type.startsWith('TS') || EXPRESSION_WRAPPERS.has(parent.type);
 }
 
@@ -137,29 +144,34 @@ function routeName(link: CallExpression): string | null {
   return ROUTE_METHODS.has(method) && path?.type === 'StringLiteral' ? `${method.toUpperCase()} ${path.value}` : null;
 }
 
+/** Declarations binding the one name they are given. */
+const NAMED_DECLARATIONS: ReadonlySet<string> = new Set([
+  'FunctionDeclaration',
+  'ClassDeclaration',
+  'TSTypeAliasDeclaration',
+  'TSInterfaceDeclaration',
+  'TSEnumDeclaration'
+]);
+
+/** The names an export binds: what it declares, else the names it exports, `cn` for `export { cn } from "cn"`. */
+function exportedNames(node: ExportNamedDeclaration): string[] {
+  if (node.declaration) return boundNames(node.declaration);
+  return node.specifiers.map(specifier =>
+    specifier.exported.type === 'Identifier' ? specifier.exported.name : specifier.exported.value
+  );
+}
+
 /** The names a top-level statement binds. */
 function boundNames(node: Statement | Expression): string[] {
-  switch (node.type) {
-    case 'ImportDeclaration':
-      return node.specifiers.map(specifier => specifier.local.name);
-    case 'ExportNamedDeclaration':
-      if (node.declaration) return boundNames(node.declaration);
-      return node.specifiers.map(specifier =>
-        specifier.exported.type === 'Identifier' ? specifier.exported.name : specifier.exported.value
-      );
-    case 'ExportDefaultDeclaration':
-      return ['default'];
-    case 'VariableDeclaration':
-      return node.declarations.flatMap(declarator => (declarator.id.type === 'Identifier' ? [declarator.id.name] : []));
-    case 'FunctionDeclaration':
-    case 'ClassDeclaration':
-    case 'TSTypeAliasDeclaration':
-    case 'TSInterfaceDeclaration':
-    case 'TSEnumDeclaration':
-      return node.id ? [node.id.name] : [];
-    default:
-      return [];
+  // Imports by their local names, exports by what they declare or export, variables by their plain names.
+  if (node.type === 'ImportDeclaration') return node.specifiers.map(specifier => specifier.local.name);
+  if (node.type === 'ExportNamedDeclaration') return exportedNames(node);
+  if (node.type === 'ExportDefaultDeclaration') return ['default'];
+  if (node.type === 'VariableDeclaration') {
+    return node.declarations.flatMap(declarator => (declarator.id.type === 'Identifier' ? [declarator.id.name] : []));
   }
+  const id = NAMED_DECLARATIONS.has(node.type) && 'id' in node ? node.id : null;
+  return id?.type === 'Identifier' ? [id.name] : [];
 }
 
 /** What each name an import binds is: `cn/config#createCn`, `react#default`, `./x#*`. */
@@ -212,6 +224,7 @@ class Reader {
   }
 
   call(node: CallExpression): Call {
+    // Where it is: the lines from its callee to its closing parenthesis, 0 where the parser gives none.
     return {
       callee: this.dotted(node.callee),
       text: this.shown(node.callee),
@@ -232,7 +245,8 @@ class Reader {
   usesIn(...nodes: Node[]): string[] {
     const names = new Set<string>();
     for (const node of nodes) {
-      for (const placed of walk(node)) if (placed.node.type === 'Identifier' && isUse(placed)) names.add(placed.node.name);
+      for (const placed of walk(node))
+        if (placed.node.type === 'Identifier' && isUse(placed)) names.add(placed.node.name);
     }
     return [...names];
   }
