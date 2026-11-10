@@ -45,7 +45,8 @@ export const relations = defineRelations(schema, r => ({
     agents: r.many.agents({ from: r.organisations.id, to: r.agents.organisationId }),
     browsers: r.many.browsers({ from: r.organisations.id, to: r.browsers.organisationId }),
     gateways: r.many.gateways({ from: r.organisations.id, to: r.gateways.organisationId }),
-    streams: r.many.streams({ from: r.organisations.id, to: r.streams.organisationId })
+    streams: r.many.streams({ from: r.organisations.id, to: r.streams.organisationId }),
+    shows: r.many.shows({ from: r.organisations.id, to: r.shows.organisationId })
   },
   organisationMemberships: {
     organisation: r.one.organisations({ from: r.organisationMemberships.organisationId, to: r.organisations.id }),
@@ -148,6 +149,27 @@ export const relations = defineRelations(schema, r => ({
     organisation: r.one.organisations({ from: r.recorders.organisationId, to: r.organisations.id }),
     stream: r.one.streams({ from: r.recorders.streamId, to: r.streams.id }),
     exposure: r.one.exposures({ from: r.recorders.exposureId, to: r.exposures.id })
+  },
+  // A show going out, and each hop of its way out.
+  shows: {
+    organisation: r.one.organisations({ from: r.shows.organisationId, to: r.organisations.id }),
+    output: r.one.showOutputs({ from: r.shows.id, to: r.showOutputs.showId }),
+    forwards: r.many.showForwards({ from: r.shows.id, to: r.showForwards.showId }),
+    previews: r.many.showPreviews({ from: r.shows.id, to: r.showPreviews.showId }),
+    recorders: r.many.showRecorders({ from: r.shows.id, to: r.showRecorders.showId })
+  },
+  showOutputs: {
+    show: r.one.shows({ from: r.showOutputs.showId, to: r.shows.id }),
+    device: r.one.devices({ from: r.showOutputs.deviceId, to: r.devices.id })
+  },
+  showForwards: {
+    show: r.one.shows({ from: r.showForwards.showId, to: r.shows.id })
+  },
+  showPreviews: {
+    show: r.one.shows({ from: r.showPreviews.showId, to: r.shows.id })
+  },
+  showRecorders: {
+    show: r.one.shows({ from: r.showRecorders.showId, to: r.shows.id })
   },
   // Reports name their reporter and subject by convention (`@conservationtv/reports`), recorded as given rather than
   // referenced, so their only relation is their organisation.

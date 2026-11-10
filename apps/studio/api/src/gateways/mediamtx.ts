@@ -38,8 +38,11 @@ const MediamtxSettingsSchema = z.strictObject({
 });
 export type MediamtxSettings = z.output<typeof MediamtxSettingsSchema>;
 
-/** The MediaMTX path an exposure's rendition is served at: the configuration builders name it the same. */
-export const mediamtxPath = (exposureId: string, rendition: Rendition) => `${exposureId}/${rendition}`;
+/**
+ * The MediaMTX path an exposure's or a preview's rendition is served at, by its ID: the configuration builders name it
+ * the same.
+ */
+export const mediamtxPath = (deliveryId: string, rendition: Rendition) => `${deliveryId}/${rendition}`;
 
 /**
  * The URL of the protocol's server: the settings' override, or what the agent running the gateway registered, read by
@@ -118,7 +121,7 @@ export const mediamtx = provider.organisation({
     const { protocol } = request;
     const base = await serverUrl(request, protocol, request.settings);
     // Every MediaMTX protocol carries `paths`, so the request always names its rendition.
-    const path = mediamtxPath(request.exposure.id, request.rendition!);
+    const path = mediamtxPath(request.delivery.id, request.rendition!);
     const url = endpoint(protocol, base, path, request.action);
     const environment = useEnvironment();
     const issuedAt = Math.floor(environment.clock() / 1000);

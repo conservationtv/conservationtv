@@ -1,6 +1,6 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
-import { boolean, check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { CHANNEL_KINDS, ChannelCredentialsSchema, type ChannelKind } from '../../channels/kinds.ts';
 import { encrypted, json } from '../encrypted.ts';
 import { channelBroadcaster, organisationAdmin } from '../roles.ts';
@@ -8,9 +8,9 @@ import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
- * Somewhere an organisation's broadcast goes out to, such as a Twitch channel (src/channels). Its show's output agent
- * forwards the program to every enabled channel (apps/agent/core/src/runtimes/obs). What reaches it, its stream key or
- * OAuth tokens, is kept apart in `channel_credential`, under a role of its own.
+ * Somewhere an organisation's shows go out to, such as a Twitch channel (src/channels). A show's output agent forwards
+ * its programme to each channel the show has an enabled forward to (`show_forward`, apps/agent/core/src/runtimes/obs).
+ * What reaches it, its stream key or OAuth tokens, is kept apart in `channel_credential`, under a role of its own.
  */
 export const channels = withAccess(
   pgTable(
@@ -27,8 +27,6 @@ export const channels = withAccess(
       /** The account on the other side, such as the Twitch broadcaster's ID and login; null for a plain RTMP URL. */
       externalId: text('external_id'),
       externalLogin: text('external_login'),
-      /** Whether the broadcast goes out to it. */
-      enabled: boolean('enabled').default(true).notNull(),
       createdAt: timestamp('created_at').defaultNow().notNull()
     },
     t => [
@@ -59,7 +57,7 @@ export const channels = withAccess(
 
 /**
  * What reaches a channel: an RTMP URL and stream key, or a Twitch connection's OAuth tokens, encrypted. Members, who
- * read the channels, never read these: only `channelBroadcaster` does, which administrators hold and the show's output
+ * read the channels, never read these: only `channelBroadcaster` does, which administrators hold and each show's output
  * agent is granted. Administrators write them when they add or connect a channel; the agent keeps refreshed tokens.
  */
 export const channelCredentials = withAccess(

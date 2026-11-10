@@ -51,7 +51,7 @@ export class Gateways extends HeyApiClient {
     /**
      * Remove a gateway
      *
-     * Administrators only, and never a built-in gateway. Refused while exposures use it.
+     * Administrators only, and never a built-in gateway. Refused while exposures or show previews use it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;

@@ -39,7 +39,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
         /**

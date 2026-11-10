@@ -56,10 +56,11 @@ export const connectStateKey = (state: string) => `channel-connect:twitch:${stat
 export const ConnectStateSchema = z.object({ organisationId: z.uuid(), userId: z.string() });
 export type ConnectState = z.output<typeof ConnectStateSchema>;
 
-// Where an organisation's broadcast goes out to (src/services/channels.ts): members list them, administrators add,
-// rename, turn on and off and remove them. An RTMP destination is entered by hand; a Twitch channel is connected by
-// OAuth, starting here (`twitch.authorize`) and finishing at /channels/twitch/callback (src/routes/channel-callbacks.ts).
-// The show's output agent asks for each enabled channel's ingest, signed as its device, when it forwards the program.
+// Where an organisation's shows go out to (src/services/channels.ts): members list them, administrators add, rename
+// and remove them; each show forwards to the channels it has an enabled forward to (src/routes/shows.ts). An RTMP
+// destination is entered by hand; a Twitch channel is connected by OAuth, starting here (`twitch.authorize`) and
+// finishing at /channels/twitch/callback (src/routes/channel-callbacks.ts). A show's output agent asks for the ingest of
+// each channel it forwards to, signed as its device, when it forwards the programme.
 
 export default new Hono()
   .get(
@@ -179,8 +180,8 @@ export default new Hono()
     describeRoute({
       operationId: 'organisations.channels.update',
       ...operationVersion(1),
-      summary: 'Rename a channel, or turn it on or off',
-      description: 'Administrators only. A channel that is off is not forwarded to.',
+      summary: 'Rename a channel',
+      description: 'Administrators only. Which shows go out to it is theirs: `organisations.shows.forwards.*`.',
       responses: {
         200: { description: 'The channel' },
         400: invalidRequest,
@@ -193,15 +194,7 @@ export default new Hono()
     }),
     requirePrincipal,
     validator('param', ChannelParamsSchema),
-    validator(
-      'json',
-      z
-        .strictObject({
-          name: ChannelNameSchema.optional(),
-          enabled: z.boolean().optional().describe('Whether the broadcast goes out to it.')
-        })
-        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
-    ),
+    validator('json', z.strictObject({ name: ChannelNameSchema })),
     async c => {
       const { id, channelId } = c.req.valid('param');
       const body = c.req.valid('json');

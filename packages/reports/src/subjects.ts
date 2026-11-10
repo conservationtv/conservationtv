@@ -7,7 +7,17 @@ import { z } from 'zod';
 // reports by or about a deleted entity stay with the organisation that received them.
 
 /** The topology entities a subject can name. */
-export const SUBJECT_KINDS = ['network', 'device', 'agent', 'stream', 'exposure'] as const;
+export const SUBJECT_KINDS = [
+  'network',
+  'device',
+  'agent',
+  'stream',
+  'exposure',
+  'program',
+  'forward',
+  'preview',
+  'recorder'
+] as const;
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const SUBJECT_ID = new RegExp(`^(?:(?:${SUBJECT_KINDS.join('|')}):${UUID}|external:\\S.{0,499})$`);
@@ -16,7 +26,7 @@ export const SubjectIdSchema = z
   .string()
   .regex(SUBJECT_ID)
   .describe(
-    'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.'
+    "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else."
   );
 export type SubjectId = z.output<typeof SubjectIdSchema>;
 
@@ -25,3 +35,15 @@ export const deviceSubject = (deviceId: string): SubjectId => `device:${deviceId
 
 /** An exposure, as a subject: what the paths delivering it report about. */
 export const exposureSubject = (exposureId: string): SubjectId => `exposure:${exposureId}`;
+
+/** A show's program, as a subject: what its output reports about what OBS sends out. */
+export const programSubject = (showId: string): SubjectId => `program:${showId}`;
+
+/** A show's forward to a channel, as a subject. */
+export const forwardSubject = (forwardId: string): SubjectId => `forward:${forwardId}`;
+
+/** A show's preview, as a subject. */
+export const previewSubject = (previewId: string): SubjectId => `preview:${previewId}`;
+
+/** A show's recorder, as a subject. */
+export const recorderSubject = (recorderId: string): SubjectId => `recorder:${recorderId}`;

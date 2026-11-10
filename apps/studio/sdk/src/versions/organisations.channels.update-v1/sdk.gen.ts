@@ -49,21 +49,19 @@ class HeyApiRegistry<T> {
 
 export class Channels extends HeyApiClient {
     /**
-     * Rename a channel, or turn it on or off
+     * Rename a channel
      *
-     * Administrators only. A channel that is off is not forwarded to.
+     * Administrators only. Which shows go out to it is theirs: `organisations.shows.forwards.*`.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         channelId: string;
-        name?: string;
-        enabled?: boolean;
+        name: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'channelId' },
-                    { in: 'body', key: 'name' },
-                    { in: 'body', key: 'enabled' }
+                    { in: 'body', key: 'name' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError>({
             url: '/organisations/{id}/channels/{channelId}',

@@ -2,21 +2,21 @@ import { moqStatsToken, moqToken } from '../gatekeeper/grants.ts';
 import { CONNECTION_LIFETIME_SECONDS, provider } from './provider.ts';
 
 // The built-in conservation.tv gateway: the MoQ relay gatekeeper names, which admits a connection by a token from
-// gatekeeper (src/gatekeeper/grants.ts) scoped to the exposure's path.
+// gatekeeper (src/gatekeeper/grants.ts) scoped to the delivery's path.
 
-/** The exposure's one broadcast under its path, in hang's format: every rendition a track of it. */
+/** The delivery's one broadcast under its path, in hang's format: every rendition a track of it. */
 const MOQ_BROADCAST = 'live.hang';
 
 export const conservationtv = provider.builtin({
   name: 'conservation.tv',
   kind: 'moq-relay',
-  // One broadcast carries every rendition of the exposure, as tracks.
+  // One broadcast carries every rendition of the delivery, as tracks.
   ingest: { moq: 'tracks' },
   egress: { moq: 'tracks' },
   connect: async request => {
-    // Where the exposure is broadcast: its own path within its organisation's, which gatekeeper places beneath this
-    // deployment's namespace on the relay, so the credential's root is the path to dial.
-    const path = `${request.organisationId}/${request.exposure.id}`;
+    // Where the exposure or preview is broadcast: its own path within its organisation's, which gatekeeper places
+    // beneath this deployment's namespace on the relay, so the credential's root is the path to dial.
+    const path = `${request.organisationId}/${request.delivery.id}`;
     const publish = request.action === 'publish';
     const credential = await moqToken(request.subject, path, publish, CONNECTION_LIFETIME_SECONDS);
     return {

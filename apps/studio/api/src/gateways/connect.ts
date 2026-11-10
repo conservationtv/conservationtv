@@ -1,20 +1,28 @@
 import { and, eq } from 'drizzle-orm';
-import { exposures, gateways } from '../db/schema.ts';
+import { exposures, gateways, showOutputs, showPreviews } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { transaction, trustedTransaction, useDB } from '../db/transaction.ts';
 import { useDevice } from '../middleware/device.ts';
 import { usePrincipal } from '../middleware/principal.ts';
 import { BUILTIN_GATEWAYS, gatewayProvider, isBuiltinGateway } from './index.ts';
-import type { ConnectionAction, ConnectionDetails, RequestedConnection, StatsConnection } from './provider.ts';
+import type {
+  ConnectionAction,
+  ConnectionDelivery,
+  ConnectionDetails,
+  RequestedConnection,
+  StatsConnection
+} from './provider.ts';
 import { getOrganisation } from '../services/organisations.ts';
 import { selectOutputShow } from '../services/shows.ts';
 import { useEnvironment } from '../env/env.ts';
 
-// Who may connect to an exposure, and which provider gives them its connection details. Members read, signed in.
-// Devices connect for what they publish: a device publishes the exposures it is the pinned publisher of (a browser
-// publishing directly is one), and reads the upstreams of those. Nothing else is published: exposures without a
-// pinned publisher wait for the configuration builders to choose one. A show's output (src/db/schemas/shows.ts) also
-// reads what the show currently places, as its object says (src/shows/host.tsx), to play it in OBS.
+// Who may connect to an exposure or a show's preview, and which provider gives them its connection details: the same
+// gateway providers for both, each a delivery at its gateway. Members read, signed in. Devices connect for what they
+// publish: a device publishes the exposures it is the pinned publisher of (a browser publishing directly is one), and
+// reads the upstreams of those. Nothing else is published: exposures without a pinned publisher wait for the
+// configuration builders to choose one. A show's output (src/db/schemas/shows.ts) also reads what its organisation's
+// broadcast currently places, as its object says (src/shows/host.tsx), to play it in OBS, and publishes the show's
+// previews. A preview offers only the `default` rendition: the program is one encoding.
 
 /** An exposure, by where its connections are made: `organisations/{organisationId}/streams/{streamId}/exposures/{exposureId}`. */
 export interface ExposureLocation {
@@ -23,7 +31,17 @@ export interface ExposureLocation {
   exposureId: string;
 }
 
-/** What a caller asks for: an action, by a protocol, at a rendition; unchecked against the gateway and exposure. */
+/** A show's preview, by where its connections are made: `organisations/{organisationId}/shows/{showId}/previews/{previewId}`. */
+export interface PreviewLocation {
+  organisationId: string;
+  showId: string;
+  previewId: string;
+}
+
+/** The renditions a preview offers: the program, as it is encoded. */
+const PREVIEW_RENDITIONS: ConnectionDelivery['renditions'] = ['default'];
+
+/** What a caller asks for: an action, by a protocol, at a rendition; unchecked against the gateway and delivery. */
 export type ConnectionAsk = Pick<RequestedConnection, 'action' | 'protocol' | 'rendition'>;
 
 /** The exposure, if it is visible to the transaction. */
@@ -34,8 +52,7 @@ async function selectExposure(location: ExposureLocation) {
       id: exposures.id,
       gatewayId: exposures.gatewayId,
       renditions: exposures.renditions,
-      publisherDeviceId: exposures.publisherDeviceId,
-      params: exposures.params
+      publisherDeviceId: exposures.publisherDeviceId
     })
     .from(exposures)
     .where(
@@ -49,7 +66,25 @@ async function selectExposure(location: ExposureLocation) {
 }
 type VisibleExposure = NonNullable<Awaited<ReturnType<typeof selectExposure>>>;
 
-/** The exposure's gateway, as its provider reads it: a built-in one has no settings, since where it is is the deployment's. */
+/** The preview, with its show's output device (null for none), if it is visible to the transaction. */
+async function selectPreview(location: PreviewLocation) {
+  const db = useDB();
+  const [preview] = await db
+    .select({ id: showPreviews.id, gatewayId: showPreviews.gatewayId, outputDeviceId: showOutputs.deviceId })
+    .from(showPreviews)
+    .leftJoin(showOutputs, eq(showOutputs.showId, showPreviews.showId))
+    .where(
+      and(
+        eq(showPreviews.organisationId, location.organisationId),
+        eq(showPreviews.showId, location.showId),
+        eq(showPreviews.id, location.previewId)
+      )
+    );
+  return preview;
+}
+type VisiblePreview = NonNullable<Awaited<ReturnType<typeof selectPreview>>>;
+
+/** A delivery's gateway, as its provider reads it: a built-in one has no settings, since where it is is the deployment's. */
 async function selectGateway(organisationId: string, gatewayId: string) {
   if (isBuiltinGateway(gatewayId)) return { id: gatewayId, kind: BUILTIN_GATEWAYS[gatewayId].kind, settings: {} };
   const db = useDB();
@@ -57,7 +92,7 @@ async function selectGateway(organisationId: string, gatewayId: string) {
     .select({ id: gateways.id, kind: gateways.kind, settings: gateways.settings })
     .from(gateways)
     .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId)));
-  // An exposure's gateway is checked whenever either changes, so it is there.
+  // An exposure's or preview's gateway is checked whenever either changes, so it is there.
   return gateway!;
 }
 
@@ -85,14 +120,14 @@ async function reads(deviceId: string, location: ExposureLocation) {
 }
 
 /**
- * Whether the device is the output of the exposure's organisation's show, and the show places it. A show is its
- * organisation's broadcast for now, so the show's ID is the organisation's.
+ * Whether the device is the output of one of the exposure's organisation's shows, and the show places it. Every show
+ * follows its organisation's one broadcast for now, keyed by the organisation.
  */
 async function showPlaces(deviceId: string, location: ExposureLocation) {
   const output = await selectOutputShow(deviceId);
-  if (output?.showId !== location.organisationId) return false;
+  if (output?.organisationId !== location.organisationId) return false;
   const environment = useEnvironment();
-  const broadcast = environment.broadcasts.get(output.showId);
+  const broadcast = environment.broadcasts.get(output.organisationId);
   return broadcast.places(location.exposureId);
 }
 
@@ -106,7 +141,22 @@ async function connection(
   if (!exposure) throw new ApiFailure('not_found');
   if (!(await allowed(exposure))) throw new ApiFailure('forbidden');
   const gateway = await selectGateway(location.organisationId, exposure.gatewayId);
-  return { organisationId: location.organisationId, subject, exposure, gateway };
+  const delivery = { id: exposure.id, renditions: exposure.renditions };
+  return { organisationId: location.organisationId, subject, delivery, gateway };
+}
+
+/** What the caller may connect to, decided in the transaction: `not_found` if it cannot see the preview, `forbidden` if `allowed` refuses. */
+async function previewConnection(
+  location: PreviewLocation,
+  subject: string,
+  allowed: (preview: VisiblePreview) => boolean
+) {
+  const preview = await selectPreview(location);
+  if (!preview) throw new ApiFailure('not_found');
+  if (!allowed(preview)) throw new ApiFailure('forbidden');
+  const gateway = await selectGateway(location.organisationId, preview.gatewayId);
+  const delivery = { id: preview.id, renditions: PREVIEW_RENDITIONS };
+  return { organisationId: location.organisationId, subject, delivery, gateway };
 }
 
 /**
@@ -130,13 +180,47 @@ async function callerConnection(location: ExposureLocation, action: ConnectionAc
 }
 
 /**
- * The connection details from the exposure's gateway's provider, for what the caller asked: `unsupported_gateway` for
+ * What the caller may connect to of a preview. A member decides in their request session, and only reads. A device is
+ * decided by trusted code, and only publishes, and only the output of the preview's show.
+ */
+async function callerPreviewConnection(location: PreviewLocation, action: ConnectionAction) {
+  const caller = usePrincipal();
+  const subject = `${caller.kind}:${caller.id}`;
+  if (caller.kind === 'device') {
+    const device = useDevice();
+    if (device.organisationId !== location.organisationId) throw new ApiFailure('not_found');
+    return trustedTransaction(() =>
+      previewConnection(location, subject, preview => action === 'publish' && preview.outputDeviceId === device.id)
+    );
+  }
+  return transaction(() => previewConnection(location, subject, () => action === 'read'));
+}
+
+/** What a caller connects to: a delivery at its gateway, for the caller. */
+interface ConnectionTarget extends Pick<RequestedConnection, 'organisationId' | 'subject' | 'delivery'> {
+  gateway: Awaited<ReturnType<typeof selectGateway>>;
+}
+
+/**
+ * The connection details from the delivery's gateway's provider, for what the caller asked: `unsupported_gateway` for
  * a kind without one, and the provider's refusals of a protocol or rendition it cannot connect by.
  */
-export async function connectExposure(location: ExposureLocation, ask: ConnectionAsk): Promise<ConnectionDetails> {
-  const { gateway, ...target } = await callerConnection(location, ask.action);
+function connectTarget(target: ConnectionTarget, ask: ConnectionAsk): Promise<ConnectionDetails> {
+  const { gateway, ...delivered } = target;
   const provider = gatewayProvider(gateway.id, gateway.kind);
-  return provider.connect({ ...target, gatewayId: gateway.id, ...ask }, gateway.settings);
+  return provider.connect({ ...delivered, gatewayId: gateway.id, ...ask }, gateway.settings);
+}
+
+/** Connect the caller to an exposure, as `connectTarget` does. */
+export async function connectExposure(location: ExposureLocation, ask: ConnectionAsk): Promise<ConnectionDetails> {
+  const target = await callerConnection(location, ask.action);
+  return connectTarget(target, ask);
+}
+
+/** Connect the caller to a show's preview, as `connectTarget` does. */
+export async function connectPreview(location: PreviewLocation, ask: ConnectionAsk): Promise<ConnectionDetails> {
+  const target = await callerPreviewConnection(location, ask.action);
+  return connectTarget(target, ask);
 }
 
 /**

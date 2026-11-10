@@ -1,0 +1,13 @@
+{
+  "version": "sha256-wDSDYUktUpQWDJqeBaZXcaQn5fG/PL6WrU+zF3MZOYA=",
+  "entries": [
+    {
+      "name": "fonts/Nunito-OFL.txt",
+      "hash": "sha256-QJkb+gKsYgquFtxSfzxHdlol5D8nDUwwHuarZjqNkBU="
+    },
+    {
+      "name": "fonts/Nunito.woff2",
+      "hash": "sha256-ujREUeqyWyF6FlNjsZggSKXlgwoNrzZXeXOVWgTKx5M="
+    }
+  ]
+}

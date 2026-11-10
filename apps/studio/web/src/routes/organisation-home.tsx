@@ -161,7 +161,6 @@ const Tiles: FC<TilesProps> = ({ overview }) => {
       <Tile to="channels">
         <TileValue>{overview.channelCount}</TileValue>
         <TileLabel>Channels</TileLabel>
-        <TileNote>{overview.channelsOn} on</TileNote>
       </Tile>
     </div>
   );

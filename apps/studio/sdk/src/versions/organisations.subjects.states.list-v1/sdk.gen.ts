@@ -55,7 +55,7 @@ export class States extends HeyApiClient {
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'external';
+        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'program' | 'forward' | 'preview' | 'recorder' | 'external';
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsByIdSubjectsStatesErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsByIdSubjectsStatesErrors, ThrowOnError>({

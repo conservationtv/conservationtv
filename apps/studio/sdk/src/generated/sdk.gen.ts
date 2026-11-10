@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import { buildClientParams, type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape } from './client/index.js';
-import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdChannelsByChannelIdErrors, DeleteOrganisationsByIdChannelsByChannelIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdShowOutputErrors, DeleteOrganisationsByIdShowOutputResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetDeviceConfigurationErrors, GetDeviceConfigurationResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdChannelsByChannelIdErrors, GetOrganisationsByIdChannelsByChannelIdResponses, GetOrganisationsByIdChannelsErrors, GetOrganisationsByIdChannelsResponses, GetOrganisationsByIdDevicesAllowlistErrors, GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesByDeviceIdAddressesErrors, GetOrganisationsByIdDevicesByDeviceIdAddressesResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysErrors, GetOrganisationsByIdGatewaysResponses, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdShowErrors, GetOrganisationsByIdShowOutputErrors, GetOrganisationsByIdShowOutputResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsByIdSubjectsStatesErrors, GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsErrors, GetOrganisationsResponses, GetWhoamiErrors, GetWhoamiResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostIrohSessionsErrors, PostIrohSessionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdChannelsByChannelIdIngestErrors, PostOrganisationsByIdChannelsByChannelIdIngestResponses, PostOrganisationsByIdChannelsErrors, PostOrganisationsByIdChannelsResponses, PostOrganisationsByIdChannelsTwitchAuthorizeErrors, PostOrganisationsByIdChannelsTwitchAuthorizeResponses, PostOrganisationsByIdGatewaysByGatewayIdStatsErrors, PostOrganisationsByIdGatewaysByGatewayIdStatsResponses, PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdShowComposeErrors, PostOrganisationsByIdShowComposeResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdSubjectsMetricsQueryErrors, PostOrganisationsByIdSubjectsMetricsQueryResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostReportsErrors, PostReportsResponses, PutDeviceAddressesErrors, PutDeviceAddressesResponses, PutGatewayEndpointsErrors, PutGatewayEndpointsResponses, PutOrganisationsByIdBrowserErrors, PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, PutOrganisationsByIdShowOutputErrors, PutOrganisationsByIdShowOutputResponses, Rendition, Schema0 } from './types.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdErrors, DeleteOrganisationsByIdAgentsByAgentIdResponses, DeleteOrganisationsByIdCamerasByCameraIdErrors, DeleteOrganisationsByIdCamerasByCameraIdResponses, DeleteOrganisationsByIdChannelsByChannelIdErrors, DeleteOrganisationsByIdChannelsByChannelIdResponses, DeleteOrganisationsByIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdErrors, DeleteOrganisationsByIdGatewaysByGatewayIdResponses, DeleteOrganisationsByIdInvitationsByInvitationIdErrors, DeleteOrganisationsByIdInvitationsByInvitationIdResponses, DeleteOrganisationsByIdMembersByUserIdAdminErrors, DeleteOrganisationsByIdMembersByUserIdAdminResponses, DeleteOrganisationsByIdMembersByUserIdErrors, DeleteOrganisationsByIdMembersByUserIdResponses, DeleteOrganisationsByIdNetworksByNetworkIdErrors, DeleteOrganisationsByIdNetworksByNetworkIdResponses, DeleteOrganisationsByIdResponses, DeleteOrganisationsByIdShowOutputErrors, DeleteOrganisationsByIdShowOutputResponses, DeleteOrganisationsByIdShowsByShowIdErrors, DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors, DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses, DeleteOrganisationsByIdShowsByShowIdOutputErrors, DeleteOrganisationsByIdShowsByShowIdOutputResponses, DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors, DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses, DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdShowsByShowIdResponses, DeleteOrganisationsByIdStreamsByStreamIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdStreamsByStreamIdResponses, GetAccountErrors, GetAccountResponses, GetDeviceConfigurationErrors, GetDeviceConfigurationResponses, GetHealthResponses, GetInvitationsByIdErrors, GetInvitationsByIdResponses, GetInvitationsErrors, GetInvitationsResponses, GetOrganisationsByIdAgentsByAgentIdErrors, GetOrganisationsByIdAgentsByAgentIdResponses, GetOrganisationsByIdAgentsErrors, GetOrganisationsByIdAgentsResponses, GetOrganisationsByIdCamerasByCameraIdErrors, GetOrganisationsByIdCamerasByCameraIdResponses, GetOrganisationsByIdCamerasErrors, GetOrganisationsByIdCamerasResponses, GetOrganisationsByIdChannelsByChannelIdErrors, GetOrganisationsByIdChannelsByChannelIdResponses, GetOrganisationsByIdChannelsErrors, GetOrganisationsByIdChannelsResponses, GetOrganisationsByIdDevicesAllowlistErrors, GetOrganisationsByIdDevicesAllowlistResponses, GetOrganisationsByIdDevicesByDeviceIdAddressesErrors, GetOrganisationsByIdDevicesByDeviceIdAddressesResponses, GetOrganisationsByIdDevicesByDeviceIdErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairErrors, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponses, GetOrganisationsByIdDevicesByDeviceIdResponses, GetOrganisationsByIdDevicesErrors, GetOrganisationsByIdDevicesResponses, GetOrganisationsByIdErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsErrors, GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponses, GetOrganisationsByIdGatewaysByGatewayIdErrors, GetOrganisationsByIdGatewaysByGatewayIdResponses, GetOrganisationsByIdGatewaysErrors, GetOrganisationsByIdGatewaysResponses, GetOrganisationsByIdInvitationsErrors, GetOrganisationsByIdInvitationsResponses, GetOrganisationsByIdMembersErrors, GetOrganisationsByIdMembersResponses, GetOrganisationsByIdNetworksByNetworkIdErrors, GetOrganisationsByIdNetworksByNetworkIdResponses, GetOrganisationsByIdNetworksErrors, GetOrganisationsByIdNetworksResponses, GetOrganisationsByIdResponses, GetOrganisationsByIdShowErrors, GetOrganisationsByIdShowOutputErrors, GetOrganisationsByIdShowOutputResponses, GetOrganisationsByIdShowsByShowIdErrors, GetOrganisationsByIdShowsByShowIdOutputErrors, GetOrganisationsByIdShowsByShowIdOutputResponses, GetOrganisationsByIdShowsByShowIdResponses, GetOrganisationsByIdShowsErrors, GetOrganisationsByIdShowsResponses, GetOrganisationsByIdStreamsByStreamIdErrors, GetOrganisationsByIdStreamsByStreamIdResponses, GetOrganisationsByIdStreamsErrors, GetOrganisationsByIdStreamsResponses, GetOrganisationsByIdSubjectsBySubjectIdLogsErrors, GetOrganisationsByIdSubjectsBySubjectIdLogsResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponses, GetOrganisationsByIdSubjectsBySubjectIdMetricsErrors, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponses, GetOrganisationsByIdSubjectsBySubjectIdObservationsErrors, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponses, GetOrganisationsByIdSubjectsBySubjectIdStateErrors, GetOrganisationsByIdSubjectsBySubjectIdStateResponses, GetOrganisationsByIdSubjectsStatesErrors, GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsErrors, GetOrganisationsResponses, GetWhoamiErrors, GetWhoamiResponses, PatchAccountErrors, PatchAccountResponses, PatchOrganisationsByIdAgentsByAgentIdErrors, PatchOrganisationsByIdAgentsByAgentIdResponses, PatchOrganisationsByIdCamerasByCameraIdErrors, PatchOrganisationsByIdCamerasByCameraIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdDevicesByDeviceIdErrors, PatchOrganisationsByIdDevicesByDeviceIdResponses, PatchOrganisationsByIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdErrors, PatchOrganisationsByIdGatewaysByGatewayIdResponses, PatchOrganisationsByIdMembersMeErrors, PatchOrganisationsByIdMembersMeResponses, PatchOrganisationsByIdNetworksByNetworkIdErrors, PatchOrganisationsByIdNetworksByNetworkIdResponses, PatchOrganisationsByIdResponses, PatchOrganisationsByIdShowsByShowIdErrors, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses, PatchOrganisationsByIdShowsByShowIdResponses, PatchOrganisationsByIdStreamsByStreamIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponses, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponses, PatchOrganisationsByIdStreamsByStreamIdResponses, PostInvitationsByIdAcceptErrors, PostInvitationsByIdAcceptResponses, PostInvitationsByIdDeclineErrors, PostInvitationsByIdDeclineResponses, PostIrohSessionsErrors, PostIrohSessionsResponses, PostOrganisationsByIdAgentsErrors, PostOrganisationsByIdAgentsResponses, PostOrganisationsByIdCamerasErrors, PostOrganisationsByIdCamerasResponses, PostOrganisationsByIdChannelsByChannelIdIngestErrors, PostOrganisationsByIdChannelsByChannelIdIngestResponses, PostOrganisationsByIdChannelsErrors, PostOrganisationsByIdChannelsResponses, PostOrganisationsByIdChannelsTwitchAuthorizeErrors, PostOrganisationsByIdChannelsTwitchAuthorizeResponses, PostOrganisationsByIdGatewaysByGatewayIdStatsErrors, PostOrganisationsByIdGatewaysByGatewayIdStatsResponses, PostOrganisationsByIdGatewaysErrors, PostOrganisationsByIdGatewaysResponses, PostOrganisationsByIdInvitationsErrors, PostOrganisationsByIdInvitationsResponses, PostOrganisationsByIdNetworksErrors, PostOrganisationsByIdNetworksResponses, PostOrganisationsByIdShowComposeErrors, PostOrganisationsByIdShowComposeResponses, PostOrganisationsByIdShowsByShowIdForwardsErrors, PostOrganisationsByIdShowsByShowIdForwardsResponses, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses, PostOrganisationsByIdShowsByShowIdPreviewsErrors, PostOrganisationsByIdShowsByShowIdPreviewsResponses, PostOrganisationsByIdShowsByShowIdRecordersErrors, PostOrganisationsByIdShowsByShowIdRecordersResponses, PostOrganisationsByIdShowsErrors, PostOrganisationsByIdShowsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsErrors, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponses, PostOrganisationsByIdStreamsByStreamIdExposuresErrors, PostOrganisationsByIdStreamsByStreamIdExposuresResponses, PostOrganisationsByIdStreamsByStreamIdRecordersErrors, PostOrganisationsByIdStreamsByStreamIdRecordersResponses, PostOrganisationsByIdStreamsErrors, PostOrganisationsByIdStreamsResponses, PostOrganisationsByIdSubjectsMetricsQueryErrors, PostOrganisationsByIdSubjectsMetricsQueryResponses, PostOrganisationsErrors, PostOrganisationsResponses, PostReportsErrors, PostReportsResponses, PutDeviceAddressesErrors, PutDeviceAddressesResponses, PutGatewayEndpointsErrors, PutGatewayEndpointsResponses, PutOrganisationsByIdBrowserErrors, PutOrganisationsByIdBrowserResponses, PutOrganisationsByIdMembersByUserIdAdminErrors, PutOrganisationsByIdMembersByUserIdAdminResponses, PutOrganisationsByIdNetworksByNetworkIdActiveAgentErrors, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponses, PutOrganisationsByIdShowOutputErrors, PutOrganisationsByIdShowOutputResponses, PutOrganisationsByIdShowsByShowIdOutputErrors, PutOrganisationsByIdShowsByShowIdOutputResponses, Rendition, Schema0 } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -814,7 +814,7 @@ export class Gateways extends HeyApiClient {
     /**
      * Remove a gateway
      *
-     * Administrators only, and never a built-in gateway. Refused while exposures use it.
+     * Administrators only, and never a built-in gateway. Refused while exposures or show previews use it.
      */
     public delete<ThrowOnError extends boolean = false>(parameters: {
         id: string;
@@ -1258,7 +1258,7 @@ export class States extends HeyApiClient {
      */
     public list<ThrowOnError extends boolean = false>(parameters: {
         id: string;
-        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'external';
+        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'program' | 'forward' | 'preview' | 'recorder' | 'external';
     }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsByIdSubjectsStatesErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }] }]);
         return (options?.client ?? this.client).get<GetOrganisationsByIdSubjectsStatesResponses, GetOrganisationsByIdSubjectsStatesErrors, ThrowOnError>({
@@ -1540,6 +1540,453 @@ export class Show extends HeyApiClient {
     }
 }
 
+export class Forwards extends HeyApiClient {
+    /**
+     * Forward a show to a channel
+     *
+     * Administrators only. The show's output sends the program to the channel while the forward is enabled. Once per channel.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        channelId: string;
+        enabled?: boolean;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdShowsByShowIdForwardsResponses, PostOrganisationsByIdShowsByShowIdForwardsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'body', key: 'channelId' },
+                    { in: 'body', key: 'enabled' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdShowsByShowIdForwardsResponses, PostOrganisationsByIdShowsByShowIdForwardsErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/forwards',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a forward
+     *
+     * Administrators only. The channel stays, for other shows.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        forwardId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses, DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'path', key: 'forwardId' }
+                ] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses, DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Turn a forward on or off
+     *
+     * Administrators only. A forward that is off is not sent the program.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        forwardId: string;
+        enabled: boolean;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'path', key: 'forwardId' },
+                    { in: 'body', key: 'enabled' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Previews extends HeyApiClient {
+    /**
+     * Preview a show at a gateway
+     *
+     * Administrators only. The show's output publishes the program to the gateway, where members read it by the gateway's protocols, as an exposure of a stream is read. Once per gateway.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        gatewayId: 'conservationtv' | string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdShowsByShowIdPreviewsResponses, PostOrganisationsByIdShowsByShowIdPreviewsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'body', key: 'gatewayId' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdShowsByShowIdPreviewsResponses, PostOrganisationsByIdShowsByShowIdPreviewsErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/previews',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a preview
+     *
+     * Administrators only.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        previewId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses, DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'path', key: 'previewId' }
+                ] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses, DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/previews/{previewId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Connect to a preview
+     *
+     * Where to read or publish the show's program at the preview's gateway by one of its protocols, with the short-lived credential that admits the caller there, as `organisations.streams.exposures.connect` gives for an exposure: a MoQ relay, path and token, or a URL and a token. A preview offers one rendition, `default`. Ask again before `expiresAt`. Members read, signed in. The show's output publishes, signed as its device (an RFC 9421 HTTP Message Signature by its own identity, as for `reports.submit`).
+     */
+    public connect<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        previewId: string;
+        action: 'read' | 'publish';
+        protocol: string;
+        rendition?: Rendition;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'path', key: 'previewId' },
+                    { in: 'body', key: 'action' },
+                    { in: 'body', key: 'protocol' },
+                    { in: 'body', key: 'rendition' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/previews/{previewId}/connections',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+}
+
+export class Shows extends HeyApiClient {
+    /**
+     * List an organisation's shows
+     *
+     * Each with its output (null for none), forwards, previews and recorders, as `organisations.shows.get` reads one. Empty for organisations you are not a member of.
+     */
+    public list<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdShowsResponses, GetOrganisationsByIdShowsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdShowsResponses, GetOrganisationsByIdShowsErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Create a show
+     *
+     * Administrators only. The program's encoding defaults to 1920×1080 at 30 fps, 6000 kbps, with 2-second keyframes. It goes out once it has an output.
+     */
+    public create<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        name: string;
+        width?: number;
+        height?: number;
+        fps?: number;
+        bitrateKbps?: number;
+        keyframeSeconds?: number;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdShowsResponses, PostOrganisationsByIdShowsErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'width' },
+                    { in: 'body', key: 'height' },
+                    { in: 'body', key: 'fps' },
+                    { in: 'body', key: 'bitrateKbps' },
+                    { in: 'body', key: 'keyframeSeconds' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdShowsResponses, PostOrganisationsByIdShowsErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete a show
+     *
+     * Administrators only, with its output, forwards, previews and recorders. Its output stops running OBS for it.
+     */
+    public delete<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdShowsByShowIdResponses, DeleteOrganisationsByIdShowsByShowIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdShowsByShowIdResponses, DeleteOrganisationsByIdShowsByShowIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read a show
+     *
+     * With its output (null for none), forwards, previews and recorders.
+     */
+    public get<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdShowsByShowIdResponses, GetOrganisationsByIdShowsByShowIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdShowsByShowIdResponses, GetOrganisationsByIdShowsByShowIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update a show
+     *
+     * Administrators only: rename it, or change its program's encoding. Changes only the fields given.
+     */
+    public update<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        name?: string;
+        width?: number;
+        height?: number;
+        fps?: number;
+        bitrateKbps?: number;
+        keyframeSeconds?: number;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdShowsByShowIdResponses, PatchOrganisationsByIdShowsByShowIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'body', key: 'name' },
+                    { in: 'body', key: 'width' },
+                    { in: 'body', key: 'height' },
+                    { in: 'body', key: 'fps' },
+                    { in: 'body', key: 'bitrateKbps' },
+                    { in: 'body', key: 'keyframeSeconds' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdShowsByShowIdResponses, PatchOrganisationsByIdShowsByShowIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Stop a show going out
+     *
+     * Administrators only. Its agent stops running OBS for it.
+     */
+    public deleteOutput<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdShowsByShowIdOutputResponses, DeleteOrganisationsByIdShowsByShowIdOutputErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdShowsByShowIdOutputResponses, DeleteOrganisationsByIdShowsByShowIdOutputErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/output',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Read where a show goes out
+     *
+     * The agent that drives OBS for it, following the broadcast and playing its streams.
+     */
+    public getOutput<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<GetOrganisationsByIdShowsByShowIdOutputResponses, GetOrganisationsByIdShowsByShowIdOutputErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }] }]);
+        return (options?.client ?? this.client).get<GetOrganisationsByIdShowsByShowIdOutputResponses, GetOrganisationsByIdShowsByShowIdOutputErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/output',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Set where a show goes out
+     *
+     * Administrators only. The agent, one of the organisation's and no other show's output, drives OBS for the show in place of any other: its configuration gains the `obs` runtime, and it follows the broadcast, reads the streams it shows, and sends the program to the show's forwards and previews. OBS agents run on Windows and macOS.
+     */
+    public setOutput<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        deviceId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<PutOrganisationsByIdShowsByShowIdOutputResponses, PutOrganisationsByIdShowsByShowIdOutputErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'body', key: 'deviceId' }
+                ] }]);
+        return (options?.client ?? this.client).put<PutOrganisationsByIdShowsByShowIdOutputResponses, PutOrganisationsByIdShowsByShowIdOutputErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/output',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Record a show
+     *
+     * Administrators only. `obs`: the show's output records the program alongside streaming it, into its data directory. One recorder of each kind.
+     */
+    public createRecorder<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        kind: 'obs';
+        params?: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PostOrganisationsByIdShowsByShowIdRecordersResponses, PostOrganisationsByIdShowsByShowIdRecordersErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'body', key: 'kind' },
+                    { in: 'body', key: 'params' }
+                ] }]);
+        return (options?.client ?? this.client).post<PostOrganisationsByIdShowsByShowIdRecordersResponses, PostOrganisationsByIdShowsByShowIdRecordersErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/recorders',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a show's recorder
+     *
+     * Administrators only.
+     */
+    public deleteRecorder<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        recorderId: string;
+    }, options?: Options<never, ThrowOnError>): RequestResult<DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'path', key: 'recorderId' }
+                ] }]);
+        return (options?.client ?? this.client).delete<DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses, DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}',
+            ...options,
+            ...params
+        });
+    }
+    
+    /**
+     * Update a show's recorder
+     *
+     * Administrators only. Changes only the fields given; `params` is replaced whole.
+     */
+    public updateRecorder<ThrowOnError extends boolean = false>(parameters: {
+        id: string;
+        showId: string;
+        recorderId: string;
+        kind?: 'obs';
+        params?: {
+            [key: string]: Schema0;
+        };
+    }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors, ThrowOnError> {
+        const params = buildClientParams([parameters], [{ args: [
+                    { in: 'path', key: 'id' },
+                    { in: 'path', key: 'showId' },
+                    { in: 'path', key: 'recorderId' },
+                    { in: 'body', key: 'kind' },
+                    { in: 'body', key: 'params' }
+                ] }]);
+        return (options?.client ?? this.client).patch<PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors, ThrowOnError>({
+            url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}',
+            ...options,
+            ...params,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+                ...params.headers
+            }
+        });
+    }
+    
+    private _forwards?: Forwards;
+    get forwards(): Forwards {
+        return this._forwards ??= new Forwards({ client: this.client });
+    }
+    
+    private _previews?: Previews;
+    get previews(): Previews {
+        return this._previews ??= new Previews({ client: this.client });
+    }
+}
+
 export class Twitch extends HeyApiClient {
     /**
      * Start connecting a Twitch channel
@@ -1639,21 +2086,19 @@ export class Channels extends HeyApiClient {
     }
     
     /**
-     * Rename a channel, or turn it on or off
+     * Rename a channel
      *
-     * Administrators only. A channel that is off is not forwarded to.
+     * Administrators only. Which shows go out to it is theirs: `organisations.shows.forwards.*`.
      */
     public update<ThrowOnError extends boolean = false>(parameters: {
         id: string;
         channelId: string;
-        name?: string;
-        enabled?: boolean;
+        name: string;
     }, options?: Options<never, ThrowOnError>): RequestResult<PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError> {
         const params = buildClientParams([parameters], [{ args: [
                     { in: 'path', key: 'id' },
                     { in: 'path', key: 'channelId' },
-                    { in: 'body', key: 'name' },
-                    { in: 'body', key: 'enabled' }
+                    { in: 'body', key: 'name' }
                 ] }]);
         return (options?.client ?? this.client).patch<PatchOrganisationsByIdChannelsByChannelIdResponses, PatchOrganisationsByIdChannelsByChannelIdErrors, ThrowOnError>({
             url: '/organisations/{id}/channels/{channelId}',
@@ -1831,6 +2276,11 @@ export class Organisations extends HeyApiClient {
         return this._show ??= new Show({ client: this.client });
     }
     
+    private _shows?: Shows;
+    get shows(): Shows {
+        return this._shows ??= new Shows({ client: this.client });
+    }
+    
     private _channels?: Channels;
     get channels(): Channels {
         return this._channels ??= new Channels({ client: this.client });
@@ -1923,7 +2373,7 @@ export class Reports extends HeyApiClient {
         reports: Array<{
             kind: 'event';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -1939,7 +2389,7 @@ export class Reports extends HeyApiClient {
         } | {
             kind: 'metric';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -1967,7 +2417,7 @@ export class Reports extends HeyApiClient {
         } | {
             kind: 'log';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -2012,7 +2462,7 @@ export class DeviceConfiguration extends HeyApiClient {
     /**
      * Read the signing device's configuration
      *
-     * What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for a show's output (`organisations.show.output.set`): the `show` it follows, at the `url` it signs a WebSocket upgrade to as the device, the `output` encoding the program is sent at, and the `forwards`, one for each of the organisation's enabled channels, naming the channel whose server and stream key it reads with `organisations.channels.ingest`; it reads each stream the show places with `organisations.streams.exposures.connect`. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.
+     * What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for a show's output (`organisations.shows.setOutput`): the `show` it follows, at the `url` it signs a WebSocket upgrade to as the device, the `output` encoding the program is sent at (the show's), the `forwards`, one for each channel the show has an enabled forward to, naming the forward and the channel whose server and stream key it reads with `organisations.channels.ingest`, the `previews` it publishes the program to, each with the `connect` ask (`organisations.shows.previews.connect`) for where to and its token, the `recording` it makes alongside streaming, when the show has a recorder, and the `program`'s subject ID, to report about it against; it reads each stream the show places with `organisations.streams.exposures.connect`. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.
      */
     public get<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>): RequestResult<GetDeviceConfigurationResponses, GetDeviceConfigurationErrors, ThrowOnError> {
         return (options?.client ?? this.client).get<GetDeviceConfigurationResponses, GetDeviceConfigurationErrors, ThrowOnError>({ url: '/device-configuration', ...options });

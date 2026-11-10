@@ -5,7 +5,6 @@ import { useSearchParams } from 'react-router';
 import { BroadcastIcon, PlusIcon, TwitchLogoIcon } from '@phosphor-icons/react';
 import type { Channel } from '@conservationtv/studio-sdk';
 import { Alert, AlertDescription, AlertTitle } from '@conservationtv/ui/components/alert';
-import { Badge } from '@conservationtv/ui/components/badge';
 import { Button } from '@conservationtv/ui/components/button';
 import {
   Dialog,
@@ -27,19 +26,12 @@ import {
   ItemMedia,
   ItemTitle
 } from '@conservationtv/ui/components/item';
-import { Switch } from '@conservationtv/ui/components/switch';
 
 import type { Route } from './+types/channels';
 import { FormError } from '@/components/common/form-error';
 import { RtmpChannelSchema, type RtmpChannelInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
-import {
-  channelListQueryOptions,
-  useConnectTwitch,
-  useCreateRtmpChannel,
-  useDeleteChannel,
-  useSetChannelEnabled
-} from '@/queries/channels';
+import { channelListQueryOptions, useConnectTwitch, useCreateRtmpChannel, useDeleteChannel } from '@/queries/channels';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Channels · conservation.tv studio' }];
 
@@ -52,9 +44,9 @@ const CONNECT_ERRORS = new Map([
 const CONNECT_FAILED = 'Twitch couldn’t be reached, or didn’t answer as expected. Try again in a moment.';
 
 /**
- * Where the organisation's broadcast goes out to: Twitch channels, connected on Twitch, and any RTMP(S) destination by
- * its server URL and stream key. The show's output agent forwards the program to every channel that is on. Stream keys
- * are never shown again once saved: only the output agent reads them.
+ * Where the organisation's shows go out to: Twitch channels, connected on Twitch, and any RTMP(S) destination by its
+ * server URL and stream key. A show's output agent forwards its program to each channel the show forwards to. Stream
+ * keys are never shown again once saved: only output agents read them.
  */
 const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
   const { organisationId } = params;
@@ -65,8 +57,8 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
       <header className="flex flex-col gap-2">
         <h1 className="text-custom-21 font-semibold text-foreground">Channels</h1>
         <p className="max-w-2xl text-custom-13 leading-(--leading-custom-body) text-custom-text-secondary">
-          Where the show goes out to. The show’s output sends the broadcast to every channel that’s on, and keeps them
-          live with a holding picture while OBS restarts.
+          Where shows go out to. A show’s output sends the broadcast to each channel the show forwards to, and keeps
+          them live with a holding picture while OBS restarts.
         </p>
       </header>
       <ConnectOutcome />
@@ -222,33 +214,22 @@ interface ChannelRowProps {
   channel: Channel;
 }
 
-/** A channel: what it is, whether the broadcast goes out to it, and removing it. */
+/** A channel: what it is, and removing it. */
 const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel }) => {
-  const setEnabled = useSetChannelEnabled(organisationId);
   const remove = useDeleteChannel(organisationId);
-  const enabled = setEnabled.isPending ? setEnabled.variables.enabled : channel.enabled;
   return (
     <Item variant="outline">
       <ItemMedia variant="icon">{channel.kind === 'twitch' ? <TwitchLogoIcon /> : <BroadcastIcon />}</ItemMedia>
       <ItemContent>
-        <ItemTitle>
-          {channel.name}
-          {enabled ? null : <Badge variant="outline">Off</Badge>}
-        </ItemTitle>
+        <ItemTitle>{channel.name}</ItemTitle>
         <ItemDescription>
           {channel.kind === 'twitch' && channel.externalLogin
             ? `twitch.tv/${channel.externalLogin}`
             : 'RTMP destination'}
         </ItemDescription>
-        <FormError error={setEnabled.error ?? remove.error} />
+        <FormError error={remove.error} />
       </ItemContent>
       <ItemActions>
-        <Switch
-          aria-label={enabled ? `Stop sending to ${channel.name}` : `Send to ${channel.name}`}
-          checked={enabled}
-          disabled={setEnabled.isPending || remove.isPending}
-          onCheckedChange={next => setEnabled.mutate({ channelId: channel.id, enabled: next })}
-        />
         <Button variant="ghost" size="sm" loading={remove.isPending} onClick={() => remove.mutate(channel.id)}>
           Remove
         </Button>

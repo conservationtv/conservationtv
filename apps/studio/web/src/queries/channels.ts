@@ -4,8 +4,9 @@ import type { Channel } from '@conservationtv/studio-sdk';
 import type { RtmpChannel } from '@/forms/schemas';
 import { api } from '@/lib/api';
 
-// Where the organisation's broadcast goes out to (apps/studio/api/src/routes/channels.ts). The studio lists, adds,
-// switches and removes channels, and starts connecting Twitch; it never reads a channel's stream key or tokens.
+// Where the organisation's shows go out to (apps/studio/api/src/routes/channels.ts). The studio lists, adds and removes
+// channels, and starts connecting Twitch; it never reads a channel's stream key or tokens. Which shows go out to a
+// channel is each show's forwards.
 
 /** The organisation's channels, oldest first, and whether this deployment can connect Twitch. */
 export const channelListQueryOptions = (organisationId: string) =>
@@ -24,24 +25,6 @@ export function useCreateRtmpChannel(organisationId: string) {
   return useMutation({
     mutationFn: async (channel: RtmpChannel): Promise<Channel> => {
       const result = await api.organisations.channels.create.v1({ id: organisationId, ...channel });
-      if (result instanceof Error) throw result;
-      return result;
-    },
-    onSuccess: () => client.invalidateQueries({ queryKey: ['channels', organisationId] })
-  });
-}
-
-export interface ChannelChange {
-  channelId: string;
-  enabled: boolean;
-}
-
-/** Turn a channel on or off: the broadcast goes out to it, or doesn't. */
-export function useSetChannelEnabled(organisationId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ channelId, enabled }: ChannelChange) => {
-      const result = await api.organisations.channels.update.v1({ id: organisationId, channelId, enabled });
       if (result instanceof Error) throw result;
       return result;
     },

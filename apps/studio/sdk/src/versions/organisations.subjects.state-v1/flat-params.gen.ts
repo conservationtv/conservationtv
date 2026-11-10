@@ -6,7 +6,7 @@ import { GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema } from './zod.ge
 
 export const SubjectStateV1ParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.')
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.')
 });
 
 export type SubjectStateV1Params = z.infer<typeof SubjectStateV1ParamsSchema>;

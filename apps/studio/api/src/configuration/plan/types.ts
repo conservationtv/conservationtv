@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RenditionSchema, type Rendition } from '../../topology/settings.ts';
+import { RenditionSchema, type Rendition, type Settings } from '../../topology/settings.ts';
 
 // The shapes of a device's planned configuration (src/configuration/plan/index.ts), which mirror what the agent runs:
 // MediaMTX paths and MoQ publishers reading them, and OBS following a show.
@@ -104,14 +104,21 @@ export interface ObsShow {
 
 /**
  * The `obs` runtime, which a show's output runs (src/db/schemas/shows.ts): OBS, following the show it sends out and
- * playing what it places. Where to read each stream it is asked for when it is placed, not here.
+ * playing what it places. Where to read each stream it is asked for when it is placed, not here. Agents built from
+ * earlier releases read only `show`, `output` and `forwards`, so those keep their shape, and what is added is optional.
  */
 export interface ObsConfiguration {
   show: ObsShow;
-  /** What OBS encodes the program as: what Twitch takes, and what the program's fallback slate is encoded as. */
+  /** What OBS encodes the program as: the show's encoding, which the program's fallback slate is encoded as too. */
   output: ObsOutput;
-  /** Where the program goes out to: each of the organisation's enabled channels. */
+  /** Where the program goes out to: each channel the show has an enabled forward to. */
   forwards: ObsForward[];
+  /** Where the program is published to be read from, as an exposure is: each of the show's previews. */
+  previews?: ObsPreview[];
+  /** How the program is recorded alongside streaming it, when the show has a recorder. */
+  recording?: ObsRecording;
+  /** What the agent reports about the program against. */
+  program?: ObsProgram;
 }
 
 /** How the program is encoded: H.264 at a constant bitrate with AAC-LC 48 kHz stereo audio, as Twitch takes. */
@@ -123,10 +130,54 @@ export interface ObsOutput {
   keyframeSeconds: number;
 }
 
-/** A channel the program goes out to: its ingest (server URL and stream key) is read with `organisations.channels.ingest`. */
+/**
+ * A channel the program goes out to: its ingest (server URL and stream key) is read with `organisations.channels.ingest`.
+ * `forwardId` names the forward (`forward:<forwardId>`) in what the agent reports about it.
+ */
 export interface ObsForward {
   organisationId: string;
   channelId: string;
+  forwardId: string;
+}
+
+/**
+ * The `connect` ask (`organisations.shows.previews.connect`) for where an output publishes a preview of its show's
+ * program, and its token: by MoQ to a gateway that takes it, as tracks of one broadcast, otherwise by RTMP.
+ */
+export const PreviewConnectSchema = z
+  .object({
+    id: z.string(),
+    showId: z.string(),
+    previewId: z.string(),
+    action: z.literal('publish'),
+    protocol: z.string()
+  })
+  .meta({ id: 'PreviewConnect' });
+export type PreviewConnect = z.output<typeof PreviewConnectSchema>;
+
+/**
+ * A preview the program is published to: its gateway, and the `connect` ask for where to (kept out of the plan, so a
+ * renewed token leaves the plan as it was). `previewId` names it (`preview:<previewId>`) in what the agent reports.
+ */
+export interface ObsPreview {
+  previewId: string;
+  gatewayId: string;
+  connect: PreviewConnect;
+}
+
+/**
+ * The show's recorder: `obs`, OBS recording the program alongside streaming it, into the agent's data directory, with
+ * the recorder's `params`. `recorderId` names it (`recorder:<recorderId>`) in what the agent reports.
+ */
+export interface ObsRecording {
+  recorderId: string;
+  kind: string;
+  params: Settings;
+}
+
+/** The program as a subject of reports: `program:<showId>`. */
+export interface ObsProgram {
+  subjectId: string;
 }
 
 /** What a device runs: each runtime it is to run, by its key. A runtime left out is one it doesn't. */

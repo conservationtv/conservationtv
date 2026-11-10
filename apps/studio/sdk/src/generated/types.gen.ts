@@ -61,6 +61,14 @@ export type StatsConnect = {
     gatewayId: string;
 };
 
+export type PreviewConnect = {
+    id: string;
+    showId: string;
+    previewId: string;
+    action: 'publish';
+    protocol: string;
+};
+
 export type Health = {
     status: 'ok';
 };
@@ -359,13 +367,59 @@ export type Output = {
     createdAt: string;
 };
 
+export type Show = {
+    name: string;
+    id: string;
+    createdAt: string;
+    width: number;
+    height: number;
+    fps: number;
+    bitrateKbps: number;
+    keyframeSeconds: number;
+    output: {
+        createdAt: string;
+        deviceId: string;
+    } | null;
+    recorders: Array<{
+        params: {
+            [key: string]: unknown;
+        };
+        id: string;
+        createdAt: string;
+        kind: 'obs';
+    }>;
+    forwards: Array<{
+        id: string;
+        createdAt: string;
+        enabled: boolean;
+        channelId: string;
+    }>;
+    previews: Array<{
+        id: string;
+        createdAt: string;
+        gatewayId: string;
+    }>;
+};
+
+export type Forward = {
+    id: string;
+    channelId: string;
+    enabled: boolean;
+    createdAt: string;
+};
+
+export type Preview = {
+    id: string;
+    gatewayId: string;
+    createdAt: string;
+};
+
 export type Channel = {
     id: string;
     kind: 'twitch' | 'rtmp';
     name: string;
     externalId: string | null;
     externalLogin: string | null;
-    enabled: boolean;
     createdAt: string;
 };
 
@@ -419,7 +473,23 @@ export type DeviceConfiguration = {
         forwards: Array<{
             organisationId: string;
             channelId: string;
+            forwardId: string;
         }>;
+        previews?: Array<{
+            previewId: string;
+            gatewayId: string;
+            connect: PreviewConnect;
+        }>;
+        recording?: {
+            recorderId: string;
+            kind: string;
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        program?: {
+            subjectId: string;
+        };
     };
 };
 
@@ -3881,7 +3951,7 @@ export type GetOrganisationsByIdSubjectsStatesData = {
         /**
          * Only subjects of this kind: the part of their ID before the colon.
          */
-        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'external';
+        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'program' | 'forward' | 'preview' | 'recorder' | 'external';
     };
     url: '/organisations/{id}/subjects/states';
 };
@@ -4010,7 +4080,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4056,7 +4126,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdObservationsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4111,7 +4181,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4173,7 +4243,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
         /**
@@ -4240,7 +4310,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdLogsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4517,6 +4587,1150 @@ export type PutOrganisationsByIdShowOutputResponses = {
 
 export type PutOrganisationsByIdShowOutputResponse = PutOrganisationsByIdShowOutputResponses[keyof PutOrganisationsByIdShowOutputResponses];
 
+export type GetOrganisationsByIdShowsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows';
+};
+
+export type GetOrganisationsByIdShowsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdShowsError = GetOrganisationsByIdShowsErrors[keyof GetOrganisationsByIdShowsErrors];
+
+export type GetOrganisationsByIdShowsResponses = {
+    /**
+     * The shows, oldest first, each with its forwards, previews and recorders, oldest first
+     */
+    200: {
+        shows: Array<{
+            name: string;
+            id: string;
+            createdAt: string;
+            width: number;
+            height: number;
+            fps: number;
+            bitrateKbps: number;
+            keyframeSeconds: number;
+            output: {
+                createdAt: string;
+                deviceId: string;
+            } | null;
+            recorders: Array<{
+                params: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                createdAt: string;
+                kind: 'obs';
+            }>;
+            forwards: Array<{
+                id: string;
+                createdAt: string;
+                enabled: boolean;
+                channelId: string;
+            }>;
+            previews: Array<{
+                id: string;
+                createdAt: string;
+                gatewayId: string;
+            }>;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdShowsResponse = GetOrganisationsByIdShowsResponses[keyof GetOrganisationsByIdShowsResponses];
+
+export type PostOrganisationsByIdShowsData = {
+    body: {
+        /**
+         * What the show is called in the studio.
+         */
+        name: string;
+        /**
+         * The program's width in pixels: even.
+         */
+        width?: number;
+        /**
+         * The program's height in pixels: even.
+         */
+        height?: number;
+        /**
+         * The program's frame rate.
+         */
+        fps?: number;
+        /**
+         * The program's constant video bitrate, in kbps.
+         */
+        bitrateKbps?: number;
+        /**
+         * The program's keyframe interval, in seconds.
+         */
+        keyframeSeconds?: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows';
+};
+
+export type PostOrganisationsByIdShowsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsError = PostOrganisationsByIdShowsErrors[keyof PostOrganisationsByIdShowsErrors];
+
+export type PostOrganisationsByIdShowsResponses = {
+    /**
+     * The new show
+     */
+    201: {
+        id: string;
+        name: string;
+        width: number;
+        height: number;
+        fps: number;
+        bitrateKbps: number;
+        keyframeSeconds: number;
+        createdAt: string;
+    };
+};
+
+export type PostOrganisationsByIdShowsResponse = PostOrganisationsByIdShowsResponses[keyof PostOrganisationsByIdShowsResponses];
+
+export type DeleteOrganisationsByIdShowsByShowIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}';
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdError = DeleteOrganisationsByIdShowsByShowIdErrors[keyof DeleteOrganisationsByIdShowsByShowIdErrors];
+
+export type DeleteOrganisationsByIdShowsByShowIdResponses = {
+    /**
+     * Deleted
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdResponse = DeleteOrganisationsByIdShowsByShowIdResponses[keyof DeleteOrganisationsByIdShowsByShowIdResponses];
+
+export type GetOrganisationsByIdShowsByShowIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}';
+};
+
+export type GetOrganisationsByIdShowsByShowIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdShowsByShowIdError = GetOrganisationsByIdShowsByShowIdErrors[keyof GetOrganisationsByIdShowsByShowIdErrors];
+
+export type GetOrganisationsByIdShowsByShowIdResponses = {
+    /**
+     * The show
+     */
+    200: Show;
+};
+
+export type GetOrganisationsByIdShowsByShowIdResponse = GetOrganisationsByIdShowsByShowIdResponses[keyof GetOrganisationsByIdShowsByShowIdResponses];
+
+export type PatchOrganisationsByIdShowsByShowIdData = {
+    body: {
+        /**
+         * What the show is called in the studio.
+         */
+        name?: string;
+        /**
+         * The program's width in pixels: even.
+         */
+        width?: number;
+        /**
+         * The program's height in pixels: even.
+         */
+        height?: number;
+        /**
+         * The program's frame rate.
+         */
+        fps?: number;
+        /**
+         * The program's constant video bitrate, in kbps.
+         */
+        bitrateKbps?: number;
+        /**
+         * The program's keyframe interval, in seconds.
+         */
+        keyframeSeconds?: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}';
+};
+
+export type PatchOrganisationsByIdShowsByShowIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdShowsByShowIdError = PatchOrganisationsByIdShowsByShowIdErrors[keyof PatchOrganisationsByIdShowsByShowIdErrors];
+
+export type PatchOrganisationsByIdShowsByShowIdResponses = {
+    /**
+     * The updated show, without its output, forwards, previews and recorders
+     */
+    200: {
+        id: string;
+        name: string;
+        width: number;
+        height: number;
+        fps: number;
+        bitrateKbps: number;
+        keyframeSeconds: number;
+        createdAt: string;
+    };
+};
+
+export type PatchOrganisationsByIdShowsByShowIdResponse = PatchOrganisationsByIdShowsByShowIdResponses[keyof PatchOrganisationsByIdShowsByShowIdResponses];
+
+export type DeleteOrganisationsByIdShowsByShowIdOutputData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/output';
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdOutputErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdOutputError = DeleteOrganisationsByIdShowsByShowIdOutputErrors[keyof DeleteOrganisationsByIdShowsByShowIdOutputErrors];
+
+export type DeleteOrganisationsByIdShowsByShowIdOutputResponses = {
+    /**
+     * Stopped
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdOutputResponse = DeleteOrganisationsByIdShowsByShowIdOutputResponses[keyof DeleteOrganisationsByIdShowsByShowIdOutputResponses];
+
+export type GetOrganisationsByIdShowsByShowIdOutputData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/output';
+};
+
+export type GetOrganisationsByIdShowsByShowIdOutputErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdShowsByShowIdOutputError = GetOrganisationsByIdShowsByShowIdOutputErrors[keyof GetOrganisationsByIdShowsByShowIdOutputErrors];
+
+export type GetOrganisationsByIdShowsByShowIdOutputResponses = {
+    /**
+     * The output
+     */
+    200: {
+        showId: string;
+        deviceId: string;
+        createdAt: string;
+    };
+};
+
+export type GetOrganisationsByIdShowsByShowIdOutputResponse = GetOrganisationsByIdShowsByShowIdOutputResponses[keyof GetOrganisationsByIdShowsByShowIdOutputResponses];
+
+export type PutOrganisationsByIdShowsByShowIdOutputData = {
+    body: {
+        /**
+         * The agent that drives OBS for the show: one of the organisation's, and no other show's output.
+         */
+        deviceId: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/output';
+};
+
+export type PutOrganisationsByIdShowsByShowIdOutputErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The agent is the output of another show: an agent runs one OBS
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdShowsByShowIdOutputError = PutOrganisationsByIdShowsByShowIdOutputErrors[keyof PutOrganisationsByIdShowsByShowIdOutputErrors];
+
+export type PutOrganisationsByIdShowsByShowIdOutputResponses = {
+    /**
+     * The output
+     */
+    200: {
+        showId: string;
+        deviceId: string;
+        createdAt: string;
+    };
+};
+
+export type PutOrganisationsByIdShowsByShowIdOutputResponse = PutOrganisationsByIdShowsByShowIdOutputResponses[keyof PutOrganisationsByIdShowsByShowIdOutputResponses];
+
+export type PostOrganisationsByIdShowsByShowIdForwardsData = {
+    body: {
+        /**
+         * The channel: one of the organisation's.
+         */
+        channelId: string;
+        /**
+         * Whether the program goes out to the channel.
+         */
+        enabled?: boolean;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/forwards';
+};
+
+export type PostOrganisationsByIdShowsByShowIdForwardsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdForwardsError = PostOrganisationsByIdShowsByShowIdForwardsErrors[keyof PostOrganisationsByIdShowsByShowIdForwardsErrors];
+
+export type PostOrganisationsByIdShowsByShowIdForwardsResponses = {
+    /**
+     * The new forward
+     */
+    201: Forward;
+};
+
+export type PostOrganisationsByIdShowsByShowIdForwardsResponse = PostOrganisationsByIdShowsByShowIdForwardsResponses[keyof PostOrganisationsByIdShowsByShowIdForwardsResponses];
+
+export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+        /**
+         * The forward.
+         */
+        forwardId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}';
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdError = DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors[keyof DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors];
+
+export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse = DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses[keyof DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses];
+
+export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdData = {
+    body: {
+        /**
+         * Whether the program goes out to the channel.
+         */
+        enabled: boolean;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+        /**
+         * The forward.
+         */
+        forwardId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}';
+};
+
+export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdError = PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors[keyof PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors];
+
+export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses = {
+    /**
+     * The updated forward
+     */
+    200: Forward;
+};
+
+export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse = PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses[keyof PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses];
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsData = {
+    body: {
+        /**
+         * The gateway the program is published to and read from: built in, or the organisation's own.
+         */
+        gatewayId: 'conservationtv' | string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/previews';
+};
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsError = PostOrganisationsByIdShowsByShowIdPreviewsErrors[keyof PostOrganisationsByIdShowsByShowIdPreviewsErrors];
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsResponses = {
+    /**
+     * The new preview
+     */
+    201: Preview;
+};
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsResponse = PostOrganisationsByIdShowsByShowIdPreviewsResponses[keyof PostOrganisationsByIdShowsByShowIdPreviewsResponses];
+
+export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+        /**
+         * The preview.
+         */
+        previewId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/previews/{previewId}';
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdError = DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors[keyof DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors];
+
+export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponse = DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses[keyof DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses];
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsData = {
+    body: {
+        /**
+         * Whether to read the preview from its gateway, or publish it there.
+         */
+        action: 'read' | 'publish';
+        /**
+         * One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.
+         */
+        protocol: string;
+        rendition?: Rendition;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+        /**
+         * The preview.
+         */
+        previewId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/previews/{previewId}/connections';
+};
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The caller may see the preview but not connect to it like this: members only read, and only the show's output publishes it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * Connections to the preview's gateway are not made through this API, the gateway is not read or published by that protocol, or the rendition is not `default`, the one a preview offers
+     */
+    422: Error;
+    /**
+     * The database is unavailable, or the gateway is not configured or cannot issue credentials right now
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsError = PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors[keyof PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors];
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses = {
+    /**
+     * The connection details
+     */
+    200: {
+        protocol: 'moq';
+        relay: string;
+        path: string;
+        broadcast: string;
+        token?: string;
+        expiresAt?: string;
+        renditions: Array<Rendition>;
+    } | {
+        protocol: string;
+        url: string;
+        token?: string;
+        expiresAt?: string;
+        renditions: Array<Rendition>;
+    };
+};
+
+export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponse = PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses[keyof PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses];
+
+export type PostOrganisationsByIdShowsByShowIdRecordersData = {
+    body: {
+        /**
+         * How the program is recorded: `obs`, by OBS alongside streaming it.
+         */
+        kind: 'obs';
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        params?: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/recorders';
+};
+
+export type PostOrganisationsByIdShowsByShowIdRecordersErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdRecordersError = PostOrganisationsByIdShowsByShowIdRecordersErrors[keyof PostOrganisationsByIdShowsByShowIdRecordersErrors];
+
+export type PostOrganisationsByIdShowsByShowIdRecordersResponses = {
+    /**
+     * The new recorder
+     */
+    201: {
+        id: string;
+        kind: 'obs';
+        params: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    };
+};
+
+export type PostOrganisationsByIdShowsByShowIdRecordersResponse = PostOrganisationsByIdShowsByShowIdRecordersResponses[keyof PostOrganisationsByIdShowsByShowIdRecordersResponses];
+
+export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+        /**
+         * The recorder.
+         */
+        recorderId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}';
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdError = DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors[keyof DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors];
+
+export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse = DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses[keyof DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses];
+
+export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdData = {
+    body: {
+        /**
+         * How the program is recorded: `obs`, by OBS alongside streaming it.
+         */
+        kind?: 'obs';
+        /**
+         * Settings validated by the implementation that reads them.
+         */
+        params?: {
+            [key: string]: Schema0;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+        /**
+         * The recorder.
+         */
+        recorderId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}';
+};
+
+export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdError = PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors[keyof PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors];
+
+export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses = {
+    /**
+     * The updated recorder
+     */
+    200: {
+        id: string;
+        kind: 'obs';
+        params: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    };
+};
+
+export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse = PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses[keyof PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses];
+
 export type GetOrganisationsByIdChannelsData = {
     body?: never;
     path: {
@@ -4561,7 +5775,6 @@ export type GetOrganisationsByIdChannelsResponses = {
             name: string;
             externalId: string | null;
             externalLogin: string | null;
-            enabled: boolean;
             createdAt: string;
         }>;
     };
@@ -4783,11 +5996,7 @@ export type PatchOrganisationsByIdChannelsByChannelIdData = {
         /**
          * What the channel is called in the studio.
          */
-        name?: string;
-        /**
-         * Whether the broadcast goes out to it.
-         */
-        enabled?: boolean;
+        name: string;
     };
     path: {
         /**
@@ -5117,7 +6326,7 @@ export type PostReportsData = {
         reports: Array<{
             kind: 'event';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -5133,7 +6342,7 @@ export type PostReportsData = {
         } | {
             kind: 'metric';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -5161,7 +6370,7 @@ export type PostReportsData = {
         } | {
             kind: 'log';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), or one of its forwards, previews or recorders (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;

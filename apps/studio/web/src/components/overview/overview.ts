@@ -32,9 +32,6 @@ interface ListedGateway {
   id: string;
   name: string;
 }
-interface ListedChannel {
-  enabled: boolean;
-}
 interface ListedState extends SubjectStatusInput {
   subjectId: string;
 }
@@ -48,7 +45,7 @@ export interface OverviewInputs {
   agents: ListedAgent[];
   networks: Identified[];
   gateways: ListedGateway[];
-  channels: ListedChannel[];
+  channels: Identified[];
   states: ListedState[];
 }
 
@@ -80,7 +77,6 @@ export interface Overview {
   activeAgentCount: number;
   networkCount: number;
   channelCount: number;
-  channelsOn: number;
   problems: Problem[];
   /** How many subjects have reported at all: with none, "nothing failing" would say more than is known. */
   reportingCount: number;
@@ -138,7 +134,6 @@ export function overviewOf(inputs: OverviewInputs): Overview {
     activeAgentCount: agents.filter(agent => agent.active).length,
     networkCount: networks.length,
     channelCount: channels.length,
-    channelsOn: channels.filter(channel => channel.enabled).length,
     problems,
     reportingCount: states.length,
     setup: [

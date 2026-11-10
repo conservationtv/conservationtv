@@ -218,7 +218,8 @@ export default new Hono()
       operationId: 'organisations.gateways.delete',
       ...operationVersion(1),
       summary: 'Remove a gateway',
-      description: 'Administrators only, and never a built-in gateway. Refused while exposures use it.',
+      description:
+        'Administrators only, and never a built-in gateway. Refused while exposures or show previews use it.',
       responses: {
         204: { description: 'Removed' },
         400: invalidRequest,

@@ -5,6 +5,7 @@ import { describeRoute } from 'hono-openapi';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import account from './routes/account.ts';
 import agents from './routes/agents.ts';
+import broadcast from './routes/broadcast.ts';
 import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
 import channelCallbacks from './routes/channel-callbacks.ts';
@@ -79,9 +80,10 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/gateways', gateways)
   .route('/organisations/:id/streams', streams)
   .route('/organisations/:id/subjects', subjects)
-  // The organisation's broadcast, followed over a WebSocket rather than called.
-  .route('/organisations/:id/show', shows)
-  // Where the broadcast goes out to, and Twitch's return from connecting one (a browser navigation).
+  // The organisation's broadcast, followed over a WebSocket rather than called, and the shows that send it out.
+  .route('/organisations/:id/show', broadcast)
+  .route('/organisations/:id/shows', shows)
+  // Where the shows go out to, and Twitch's return from connecting one (a browser navigation).
   .route('/organisations/:id/channels', channels)
   .route('/channels', channelCallbacks)
   .route('/invitations', invitations)

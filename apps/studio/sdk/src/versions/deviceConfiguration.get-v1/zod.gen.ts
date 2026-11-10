@@ -51,6 +51,14 @@ export const StatsConnectSchema = z.object({
     gatewayId: z.string()
 });
 
+export const PreviewConnectSchema = z.object({
+    id: z.string(),
+    showId: z.string(),
+    previewId: z.string(),
+    action: z.literal('publish'),
+    protocol: z.string()
+});
+
 export const DeviceConfigurationSchema = z.object({
     mediamtx: z.object({
         gatewayId: z.string(),
@@ -86,8 +94,22 @@ export const DeviceConfigurationSchema = z.object({
         }),
         forwards: z.array(z.object({
             organisationId: z.string(),
-            channelId: z.string()
-        }))
+            channelId: z.string(),
+            forwardId: z.string()
+        })),
+        previews: z.array(z.object({
+            previewId: z.string(),
+            gatewayId: z.string(),
+            connect: PreviewConnectSchema
+        })).optional(),
+        recording: z.object({
+            recorderId: z.string(),
+            kind: z.string(),
+            params: z.record(z.string(), z.unknown())
+        }).optional(),
+        program: z.object({
+            subjectId: z.string()
+        }).optional()
     }).optional()
 });
 
