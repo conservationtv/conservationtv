@@ -55,13 +55,16 @@ export function checkReleasedContracts(project: ReleaseProject, current: Release
   checkContractHistory([...readReleases(project), { name: 'current', document: current }]);
 }
 
+/** Bundles outgrow `execFileSync`'s 1 MiB default (the studio API's is over a megabyte), so Git may print this much. */
+const GIT_MAX_BUFFER = 256 * 1024 * 1024;
+
 /** Existing snapshots cannot be changed or deleted; new snapshots are permitted. */
 export function checkSnapshotFiles(project: ReleaseProject, base = 'HEAD'): void {
   // A freshly initialized starter has no frozen Git history until its first commit.
   const { root } = project;
   if (base === 'HEAD' && spawnSync('git', ['rev-parse', '--verify', '--quiet', 'HEAD'], { cwd: root }).status !== 0)
     return;
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: root });
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: root, maxBuffer: GIT_MAX_BUFFER });
   const paths = git('ls-tree', '-r', '--name-only', '-z', base, '--', project.paths.snapshots)
     .toString()
     .split('\0')
@@ -78,7 +81,11 @@ export function checkSnapshotFiles(project: ReleaseProject, base = 'HEAD'): void
 export function readBundleAt(project: ReleaseProject, base: string): ReleaseDocument {
   return ReleaseDocumentSchema.parse(
     JSON.parse(
-      execFileSync('git', ['show', `${base}:${project.paths.document}`], { cwd: project.root, encoding: 'utf8' })
+      execFileSync('git', ['show', `${base}:${project.paths.document}`], {
+        cwd: project.root,
+        encoding: 'utf8',
+        maxBuffer: GIT_MAX_BUFFER
+      })
     )
   );
 }
