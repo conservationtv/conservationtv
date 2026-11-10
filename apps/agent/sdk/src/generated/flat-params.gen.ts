@@ -2,14 +2,22 @@
 
 import * as z from 'zod';
 
+import type { GetStatusResponse, GetSystemResponse, GetSystemSpecResponse } from './types.gen.js';
+
 export const StatusGetParamsSchema = z.object({});
 
 export type StatusGetParams = z.infer<typeof StatusGetParamsSchema>;
+
+export type StatusGetOutput = GetStatusResponse;
 
 export const SystemGetParamsSchema = z.object({});
 
 export type SystemGetParams = z.infer<typeof SystemGetParamsSchema>;
 
+export type SystemGetOutput = GetSystemResponse;
+
 export const SystemSpecParamsSchema = z.object({});
 
 export type SystemSpecParams = z.infer<typeof SystemSpecParamsSchema>;
+
+export type SystemSpecOutput = GetSystemSpecResponse;

@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { GetDeviceConfigurationResponse } from './types.gen.js';
+
 export const DeviceConfigurationGetV1ParamsSchema = z.object({});
 
 export type DeviceConfigurationGetV1Params = z.infer<typeof DeviceConfigurationGetV1ParamsSchema>;
+
+export type DeviceConfigurationGetV1Output = GetDeviceConfigurationResponse;

@@ -13,14 +13,16 @@ export {
 export {
   bearer,
   ClientTransport,
+  operation,
   type Authenticate,
+  type CallOptions,
   type ClientConfig,
   type HttpClient,
   type HttpRuntime,
-  type ResultCall,
-  type SdkClass,
-  type SdkClassArgs,
-  type SdkMethod,
+  type Operation,
+  type OperationCall,
+  type OperationDescriptor,
+  type OperationField,
   type WebSocketAddress
 } from './transport.js';
 export {

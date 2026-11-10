@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdPathSchema } from './zod.gen.js';
 
 export const PreviewDeleteV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const PreviewDeleteV1ParamsSchema = z.object({
 });
 
 export type PreviewDeleteV1Params = z.infer<typeof PreviewDeleteV1ParamsSchema>;
+
+export type PreviewDeleteV1Input = {
+    id: string;
+    showId: string;
+    previewId: string;
+};
+
+export type PreviewDeleteV1Output = DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponse;

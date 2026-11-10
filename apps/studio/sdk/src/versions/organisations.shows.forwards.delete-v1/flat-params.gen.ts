@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema } from './zod.gen.js';
 
 export const ForwardDeleteV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const ForwardDeleteV1ParamsSchema = z.object({
 });
 
 export type ForwardDeleteV1Params = z.infer<typeof ForwardDeleteV1ParamsSchema>;
+
+export type ForwardDeleteV1Input = {
+    id: string;
+    showId: string;
+    forwardId: string;
+};
+
+export type ForwardDeleteV1Output = DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse;

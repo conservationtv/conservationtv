@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdStreamsByStreamIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema } from './zod.gen.js';
 
 export const StreamUpdateV1ParamsSchema = z.object({
@@ -12,3 +13,12 @@ export const StreamUpdateV1ParamsSchema = z.object({
 });
 
 export type StreamUpdateV1Params = z.infer<typeof StreamUpdateV1ParamsSchema>;
+
+export type StreamUpdateV1Input = {
+    id: string;
+    streamId: string;
+    name?: string;
+    sourceDeviceId?: string | null;
+};
+
+export type StreamUpdateV1Output = PatchOrganisationsByIdStreamsByStreamIdResponse;

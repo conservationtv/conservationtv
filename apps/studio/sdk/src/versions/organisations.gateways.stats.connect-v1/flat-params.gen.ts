@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdGatewaysByGatewayIdStatsResponse } from './types.gen.js';
 import { PostOrganisationsByIdGatewaysByGatewayIdStatsPathSchema } from './zod.gen.js';
 
 export const StatConnectV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const StatConnectV1ParamsSchema = z.object({
 });
 
 export type StatConnectV1Params = z.infer<typeof StatConnectV1ParamsSchema>;
+
+export type StatConnectV1Input = {
+    id: string;
+    gatewayId: 'conservationtv' | string;
+};
+
+export type StatConnectV1Output = PostOrganisationsByIdGatewaysByGatewayIdStatsResponse;

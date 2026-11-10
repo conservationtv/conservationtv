@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdAgentsByAgentIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema } from './zod.gen.js';
 
 export const AgentDeleteV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const AgentDeleteV1ParamsSchema = z.object({
 });
 
 export type AgentDeleteV1Params = z.infer<typeof AgentDeleteV1ParamsSchema>;
+
+export type AgentDeleteV1Input = {
+    id: string;
+    agentId: string;
+};
+
+export type AgentDeleteV1Output = DeleteOrganisationsByIdAgentsByAgentIdResponse;

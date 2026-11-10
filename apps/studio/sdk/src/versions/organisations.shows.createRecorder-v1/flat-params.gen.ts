@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdShowsByShowIdRecordersResponse, Schema0 } from './types.gen.js';
 import { PostOrganisationsByIdShowsByShowIdRecordersBodySchema, PostOrganisationsByIdShowsByShowIdRecordersPathSchema } from './zod.gen.js';
 
 export const ShowCreateRecorderV1ParamsSchema = z.object({
@@ -12,3 +13,14 @@ export const ShowCreateRecorderV1ParamsSchema = z.object({
 });
 
 export type ShowCreateRecorderV1Params = z.infer<typeof ShowCreateRecorderV1ParamsSchema>;
+
+export type ShowCreateRecorderV1Input = {
+    id: string;
+    showId: string;
+    kind: 'obs';
+    params?: {
+        [key: string]: Schema0;
+    };
+};
+
+export type ShowCreateRecorderV1Output = PostOrganisationsByIdShowsByShowIdRecordersResponse;

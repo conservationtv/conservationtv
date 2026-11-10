@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdShowsByShowIdForwardsResponse } from './types.gen.js';
 import { PostOrganisationsByIdShowsByShowIdForwardsBodySchema, PostOrganisationsByIdShowsByShowIdForwardsPathSchema } from './zod.gen.js';
 
 export const ForwardCreateV1ParamsSchema = z.object({
@@ -12,3 +13,12 @@ export const ForwardCreateV1ParamsSchema = z.object({
 });
 
 export type ForwardCreateV1Params = z.infer<typeof ForwardCreateV1ParamsSchema>;
+
+export type ForwardCreateV1Input = {
+    id: string;
+    showId: string;
+    channelId: string;
+    enabled?: boolean;
+};
+
+export type ForwardCreateV1Output = PostOrganisationsByIdShowsByShowIdForwardsResponse;

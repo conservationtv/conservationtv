@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdGatewaysResponse, Schema0 } from './types.gen.js';
 import { PostOrganisationsByIdGatewaysBodySchema, PostOrganisationsByIdGatewaysPathSchema } from './zod.gen.js';
 
 export const GatewayCreateV1ParamsSchema = z.object({
@@ -13,3 +14,15 @@ export const GatewayCreateV1ParamsSchema = z.object({
 });
 
 export type GatewayCreateV1Params = z.infer<typeof GatewayCreateV1ParamsSchema>;
+
+export type GatewayCreateV1Input = {
+    id: string;
+    name: string;
+    kind: 'mediamtx';
+    networkId?: string | null;
+    settings?: {
+        [key: string]: Schema0;
+    };
+};
+
+export type GatewayCreateV1Output = PostOrganisationsByIdGatewaysResponse;

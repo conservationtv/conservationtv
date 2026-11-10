@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdSubjectsMetricsQueryResponse } from './types.gen.js';
 import { PostOrganisationsByIdSubjectsMetricsQueryBodySchema, PostOrganisationsByIdSubjectsMetricsQueryPathSchema } from './zod.gen.js';
 
 export const MetricQueryV1ParamsSchema = z.object({
@@ -14,3 +15,14 @@ export const MetricQueryV1ParamsSchema = z.object({
 });
 
 export type MetricQueryV1Params = z.infer<typeof MetricQueryV1ParamsSchema>;
+
+export type MetricQueryV1Input = {
+    id: string;
+    subjectIds: Array<string>;
+    names: Array<string>;
+    from: string;
+    to?: string;
+    step?: number;
+};
+
+export type MetricQueryV1Output = PostOrganisationsByIdSubjectsMetricsQueryResponse;

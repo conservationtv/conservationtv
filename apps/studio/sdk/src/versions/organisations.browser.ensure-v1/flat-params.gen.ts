@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PutOrganisationsByIdBrowserResponse } from './types.gen.js';
 import { PutOrganisationsByIdBrowserPathSchema } from './zod.gen.js';
 
 export const BrowserEnsureV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const BrowserEnsureV1ParamsSchema = z.object({
 });
 
 export type BrowserEnsureV1Params = z.infer<typeof BrowserEnsureV1ParamsSchema>;
+
+export type BrowserEnsureV1Input = {
+    id: string;
+};
+
+export type BrowserEnsureV1Output = PutOrganisationsByIdBrowserResponse;

@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdChannelsTwitchAuthorizeResponse } from './types.gen.js';
 import { PostOrganisationsByIdChannelsTwitchAuthorizePathSchema } from './zod.gen.js';
 
 export const TwitchAuthorizeV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const TwitchAuthorizeV1ParamsSchema = z.object({
 });
 
 export type TwitchAuthorizeV1Params = z.infer<typeof TwitchAuthorizeV1ParamsSchema>;
+
+export type TwitchAuthorizeV1Input = {
+    id: string;
+};
+
+export type TwitchAuthorizeV1Output = PostOrganisationsByIdChannelsTwitchAuthorizeResponse;

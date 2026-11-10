@@ -1,3 +1,4 @@
+import * as z from 'zod';
 import { asError, httpError, type ResponseBody, ResponseBodySchema } from './errors.js';
 
 /** Whatever `new Headers(...)` accepts, named without depending on the DOM lib. */
@@ -25,17 +26,84 @@ export interface ClientConfig {
   auth?: Authenticate;
 }
 
-interface HttpRequest {
+/** What one call may override of its Client's configuration, and the signal that aborts it. */
+export interface CallOptions extends Omit<ClientConfig, 'auth'> {
+  signal?: AbortSignal;
+}
+
+type HttpMethod = 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH' | 'OPTIONS' | 'HEAD' | 'TRACE';
+
+/** A member of a call's parameters sent in one part of the request, under `map` when its name there differs. */
+interface PlacedField {
+  in: 'headers' | 'path' | 'query' | 'body';
+  key: string;
+  map?: string;
+}
+/** A member of a call's parameters that is the request's whole body. */
+interface BodyField {
+  key: string;
+  map: 'body';
+}
+/** Where one member of a call's flat parameters goes in the request, as Hey API's `buildClientParams` reads it. */
+export type OperationField = PlacedField | BodyField;
+
+/** One operation as a contract defines it: all the generated Client holds of it at runtime. */
+export interface OperationDescriptor {
+  method: HttpMethod;
+  /** The path template, such as `/organisations/{id}`. */
   url: string;
-  headers?: unknown;
-  fetch?: typeof fetch;
+  /** Absent when a call takes no parameters, only its options. */
+  fields?: readonly OperationField[];
+}
+
+declare const signature: unique symbol;
+interface Signature<Output, Input> {
+  output: Output;
+  input: Input;
 }
 /**
- * A request as a generated method hands it to its client: the URL template, with the path and query parameters to fill
- * it with, which are passed through to `buildUrl` untouched.
+ * A descriptor that also carries, in its type alone, what a call takes and what it answers. `Input` is `never` for an
+ * operation without parameters.
  */
+export interface Operation<Output = unknown, Input = unknown> extends OperationDescriptor {
+  readonly [signature]?: Signature<Output, Input>;
+}
+
+/** Gives a descriptor the types of the contract it was generated from. */
+export function operation<Output, Input = never>(descriptor: OperationDescriptor): Operation<Output, Input> {
+  return descriptor;
+}
+
+// The members of one part of a request, by the names the request has for them. Their values are a caller's, typed by
+// the contract's Input and serialised by the fetch client.
+const MembersSchema = z.record(z.string(), z.unknown());
+type Members = z.output<typeof MembersSchema>;
+
+/** A request's parts, as `buildClientParams` sorts a call's parameters into them. Empty parts are left out. */
+interface RequestParts {
+  body?: unknown;
+  headers?: Members;
+  path?: Members;
+  query?: Members;
+}
+interface FieldGroup {
+  args: readonly OperationField[];
+}
+/** The address of a request: the URL template, with the path and query parameters to fill it with. */
 interface UrlRequest {
   url: string;
+  path?: Members;
+  query?: Members;
+}
+interface HttpRequest extends UrlRequest, FixedSettings {
+  method: HttpMethod;
+  body?: unknown;
+  headers?: Record<string, string>;
+  fetch?: typeof fetch;
+}
+interface PublishedRequest {
+  url: string;
+  headers?: unknown;
 }
 export interface RawResult {
   data?: unknown;
@@ -53,7 +121,8 @@ interface HttpInterceptors {
 }
 /** What the facade uses of a Hey API fetch client. */
 export interface HttpClient {
-  get(options: HttpRequest): Promise<RawResult>;
+  get(options: PublishedRequest): Promise<RawResult>;
+  request(options: HttpRequest): Promise<RawResult>;
   buildUrl(options: UrlRequest): string;
   getConfig(): HttpSettings;
   interceptors: HttpInterceptors;
@@ -66,54 +135,27 @@ interface FixedSettings {
 /** The generated fetch client's module, which each generated Client supplies as its `http` field. */
 export interface HttpRuntime {
   createClient(config: Omit<ClientConfig, 'auth'> & FixedSettings): HttpClient;
-  mergeHeaders(...sources: Array<HeaderSource | undefined>): Headers;
+  mergeHeaders(...sources: Array<HeaderSource | Members | undefined>): Headers;
+  buildClientParams(args: readonly unknown[], fields: readonly FieldGroup[]): RequestParts;
 }
 
-/** Options retain transport controls; the facade owns response and error handling. */
-type ResultOptions<Options> = Omit<NonNullable<Options>, 'throwOnError' | 'responseStyle' | 'parseAs' | 'client'>;
-type ResultArguments<Args extends unknown[]> = Args extends [...infer Params, (infer Options)?]
-  ? [...Params, options?: ResultOptions<Options>]
-  : Args;
-interface DataField<Body> {
-  data: Body;
-}
-type SuccessBody<Result> = Result extends DataField<infer Body> ? Exclude<Body, undefined> : never;
+type Optional<Input> = Record<never, never> extends Input ? true : false;
+type InputArguments<Input> = [Input] extends [never]
+  ? []
+  : Optional<Input> extends true
+    ? [parameters?: Input]
+    : [parameters: Input];
 
 /** Error also covers its HTTP and versioning subclasses; instanceof narrows them before the success body. */
-export type ResultCall<Method> = Method extends (...args: infer Args) => Promise<infer Result>
-  ? (...args: ResultArguments<Args>) => Promise<SuccessBody<Result> | Error>
-  : never;
-
-/**
- * A generated BaseClient takes the fetch client its own job generated. The transport supplies that client, but can
- * only name it structurally, so the argument type is left open and the construction site documents the boundary.
- */
-export interface SdkClassArgs {
-  client: never;
-}
-export type SdkClass = new (args: SdkClassArgs) => object;
-type At<Value, Path extends string> = Path extends `${infer Head}.${infer Rest}`
-  ? Head extends keyof Value
-    ? At<Value[Head], Rest>
-    : never
-  : Path extends keyof Value
-    ? Value[Path]
+export type OperationCall<Described> =
+  Described extends Operation<infer Output, infer Input>
+    ? (...args: [...InputArguments<Input>, options?: CallOptions]) => Promise<Exclude<Output, undefined> | Error>
     : never;
-export type SdkMethod<Sdk, Id extends string> = Sdk extends new (args: SdkClassArgs) => infer Instance
-  ? At<Instance, Id>
-  : never;
 
-/** A WebSocket operation's address: the generated method's parameters, without its options, to a `ws:` or `wss:` URL. */
-export type WebSocketAddress<Method> = Method extends (...args: infer Args) => object
-  ? Args extends [...infer Params, unknown?]
-    ? (...args: Params) => string
-    : never
-  : never;
+/** A WebSocket operation's address: its parameters, without options, to a `ws:` or `wss:` URL. */
+export type WebSocketAddress<Described> =
+  Described extends Operation<unknown, infer Input> ? (...args: InputArguments<Input>) => string : never;
 
-export type BoundMethod = (...args: unknown[]) => Promise<RawResult>;
-interface SdkNode {
-  readonly [segment: string]: SdkNode | BoundMethod;
-}
 /** A parsed success body (or `undefined` for 204), or the Error the call failed with. */
 export type OperationOutcome = ResponseBody | Error;
 
@@ -140,7 +182,6 @@ export abstract class ClientTransport {
   protected abstract readonly http: HttpRuntime;
   private readonly config: ClientConfig | undefined;
   private client: HttpClient | undefined;
-  private readonly sdks = new Map<SdkClass, SdkNode>();
 
   constructor(config?: ClientConfig) {
     this.config = config;
@@ -162,85 +203,70 @@ export abstract class ClientTransport {
     return this.client;
   }
 
-  protected operation<const Id extends string, Sdk extends SdkClass>(id: Id, sdk: Sdk): ResultCall<SdkMethod<Sdk, Id>> {
-    const call = async (...args: unknown[]) => (await this.send(this.method(sdk, id), args)).result;
-    // SAFETY: the raw generated method supplies the same parameters and success body; send normalizes every failure.
-    return call as ResultCall<SdkMethod<Sdk, Id>>;
+  /** An operation as a call: its parameters, then options, to its success body or the Error it failed with. */
+  protected call<Described extends Operation>(described: Described): OperationCall<Described> {
+    const call = async (...args: unknown[]) => (await this.send(described, args)).result;
+    // SAFETY: the descriptor's types are those of the contract its method, URL and fields were generated from, and
+    // send normalizes every failure.
+    return call as OperationCall<Described>;
   }
 
-  /**
-   * A WebSocket operation's address. The generated method still fills in its URL, from the base URL and its path and
-   * query parameters; it is handed a client that builds that URL rather than sending the request, which it does before
-   * returning.
-   */
-  protected webSocket<const Id extends string, Sdk extends SdkClass>(
-    id: Id,
-    sdk: Sdk
-  ): WebSocketAddress<SdkMethod<Sdk, Id>> {
+  /** A WebSocket operation's address: its URL, filled from the base URL and the path and query parameters. */
+  protected webSocket<Described extends Operation>(described: Described): WebSocketAddress<Described> {
     const address = (...args: unknown[]) => {
-      const method = this.method(sdk, id);
-      const transport = this.transport;
-      let built: string | undefined = undefined;
-      const builder = {
-        get: (request: UrlRequest) => {
-          built = transport.buildUrl(request);
-        }
-      };
-      // Hey API 0.99 flat methods take options last, as in `send`.
-      const padded = Array.from({ length: Math.max(method.length, args.length, 1) }, (_, index) => args[index]);
-      padded[padded.length - 1] = { client: builder };
-      void method(...padded);
-      if (built === undefined) throw new Error(`${id} built no address`);
+      const parts = this.http.buildClientParams([args[0]], [{ args: described.fields ?? [] }]);
+      const built = this.transport.buildUrl({ url: described.url, path: parts.path, query: parts.query });
       const url = new URL(built);
       url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
       return url.href;
     };
-    // SAFETY: the generated method takes the same parameters; the options it also takes are this facade's to supply.
-    return address as WebSocketAddress<SdkMethod<Sdk, Id>>;
+    // SAFETY: the descriptor's Input is the type of the parameters its fields were generated for.
+    return address as WebSocketAddress<Described>;
   }
 
-  protected method(sdk: SdkClass, operationId: string): BoundMethod {
-    let owner = this.sdks.get(sdk);
-    if (!owner) {
-      // SAFETY: `transport` is the client `http.createClient` made from the same generated module the BaseClient
-      // expects, and generated BaseClients contain the operation tree described by SdkNode.
-      owner = new sdk({ client: this.transport as never }) as SdkNode;
-      this.sdks.set(sdk, owner);
-    }
-    const path = operationId.split('.');
-    for (const part of path.slice(0, -1)) {
-      // SAFETY: operation IDs name a path through the generated tree; every segment before the last is a namespace.
-      owner = owner[part] as SdkNode;
-    }
-    // SAFETY: the last segment of a generated operation ID is always a generated method.
-    return (owner[path.at(-1)!] as BoundMethod).bind(owner);
+  /**
+   * One request's headers: JSON's content type when its descriptor has body fields, as Hey API's generated methods say
+   * it themselves; then the call's own, its header parameters, and the version it asks for.
+   */
+  private headers(
+    fields: readonly OperationField[],
+    sources: Array<HeaderSource | Members | undefined>,
+    version?: number
+  ) {
+    const sendsBody = fields.some(field => ('in' in field ? field.in : field.map) === 'body');
+    const headers = this.http.mergeHeaders(sendsBody ? { 'Content-Type': 'application/json' } : undefined, ...sources);
+    if (version !== undefined) headers.set('Operation-Version', String(version));
+    return Object.fromEntries(headers);
   }
 
   /** Capture the protocol rejection before unwrapping, so version negotiation can refresh and retry safely. */
-  protected async send(method: BoundMethod, args: unknown[], version?: number): Promise<Sent> {
+  protected async send(described: OperationDescriptor, args: unknown[], version?: number): Promise<Sent> {
     let mismatched = false;
     try {
-      // Hey API 0.99 flat methods take options last. Pad omitted optional parameters before injecting them.
-      const padded = Array.from({ length: Math.max(method.length, args.length, 1) }, (_, index) => args[index]);
-      // SAFETY: the last positional parameter of every generated method is its optional request options.
-      const options = padded.at(-1) as ClientConfig | undefined;
+      const fields = described.fields ?? [];
+      // A call takes its parameters first only when its contract has any; its options are always last.
+      const [parameters, given] = fields.length ? args : [undefined, args[0]];
+      // SAFETY: the last positional parameter of every call is its optional request options.
+      const options = given as CallOptions | undefined;
+      const parts = this.http.buildClientParams([parameters], [{ args: fields }]);
       const base = options?.fetch ?? this.transport.getConfig().fetch ?? globalThis.fetch;
-      const headers = this.http.mergeHeaders(options?.headers);
-      if (version !== undefined) headers.set('Operation-Version', String(version));
       const watch: typeof fetch = async (input, init) => {
         const response = await base(input, init);
         mismatched ||= response.status === 412 && response.headers.has('Operation-Version');
         return response;
       };
-      padded[padded.length - 1] = {
+      const raw = await this.transport.request({
         ...options,
-        headers: Object.fromEntries(headers),
+        ...parts,
+        method: described.method,
+        url: described.url,
+        headers: this.headers(fields, [options?.headers, parts.headers], version),
         fetch: watch,
         responseStyle: 'fields',
         throwOnError: false,
         parseAs: 'auto'
-      };
-      return { mismatched, result: outcome(await method(...padded)) };
+      });
+      return { mismatched, result: outcome(raw) };
     } catch (error) {
       return { mismatched, result: asError(error) };
     }

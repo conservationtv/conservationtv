@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdSubjectsBySubjectIdObservationsResponse } from './types.gen.js';
 import { GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema } from './zod.gen.js';
 
 export const ObservationListV1ParamsSchema = z.object({
@@ -12,3 +13,12 @@ export const ObservationListV1ParamsSchema = z.object({
 });
 
 export type ObservationListV1Params = z.infer<typeof ObservationListV1ParamsSchema>;
+
+export type ObservationListV1Input = {
+    id: string;
+    subjectId: string;
+    limit?: number;
+    before?: string;
+};
+
+export type ObservationListV1Output = GetOrganisationsByIdSubjectsBySubjectIdObservationsResponse;

@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdChannelsByChannelIdIngestResponse } from './types.gen.js';
 import { PostOrganisationsByIdChannelsByChannelIdIngestPathSchema } from './zod.gen.js';
 
 export const ChannelIngestV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const ChannelIngestV1ParamsSchema = z.object({
 });
 
 export type ChannelIngestV1Params = z.infer<typeof ChannelIngestV1ParamsSchema>;
+
+export type ChannelIngestV1Input = {
+    id: string;
+    channelId: string;
+};
+
+export type ChannelIngestV1Output = PostOrganisationsByIdChannelsByChannelIdIngestResponse;

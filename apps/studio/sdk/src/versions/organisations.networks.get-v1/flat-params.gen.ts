@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdNetworksByNetworkIdResponse } from './types.gen.js';
 import { GetOrganisationsByIdNetworksByNetworkIdPathSchema } from './zod.gen.js';
 
 export const NetworkGetV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const NetworkGetV1ParamsSchema = z.object({
 });
 
 export type NetworkGetV1Params = z.infer<typeof NetworkGetV1ParamsSchema>;
+
+export type NetworkGetV1Input = {
+    id: string;
+    networkId: string;
+};
+
+export type NetworkGetV1Output = GetOrganisationsByIdNetworksByNetworkIdResponse;

@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdDevicesByDeviceIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema } from './zod.gen.js';
 
 export const DeviceUpdateV1ParamsSchema = z.object({
@@ -12,3 +13,12 @@ export const DeviceUpdateV1ParamsSchema = z.object({
 });
 
 export type DeviceUpdateV1Params = z.infer<typeof DeviceUpdateV1ParamsSchema>;
+
+export type DeviceUpdateV1Input = {
+    id: string;
+    deviceId: string;
+    name?: string;
+    networkId?: string | null;
+};
+
+export type DeviceUpdateV1Output = PatchOrganisationsByIdDevicesByDeviceIdResponse;

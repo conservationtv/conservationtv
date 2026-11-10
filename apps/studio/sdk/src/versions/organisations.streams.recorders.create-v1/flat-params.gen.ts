@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdStreamsByStreamIdRecordersResponse, Rendition, Schema0 } from './types.gen.js';
 import { PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema } from './zod.gen.js';
 
 export const RecorderCreateV1ParamsSchema = z.object({
@@ -14,3 +15,16 @@ export const RecorderCreateV1ParamsSchema = z.object({
 });
 
 export type RecorderCreateV1Params = z.infer<typeof RecorderCreateV1ParamsSchema>;
+
+export type RecorderCreateV1Input = {
+    id: string;
+    streamId: string;
+    exposureId: string;
+    rendition?: Rendition;
+    kind: string;
+    params?: {
+        [key: string]: Schema0;
+    };
+};
+
+export type RecorderCreateV1Output = PostOrganisationsByIdStreamsByStreamIdRecordersResponse;

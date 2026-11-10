@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PutDeviceAddressesResponse } from './types.gen.js';
 import { PutDeviceAddressesBodySchema } from './zod.gen.js';
 
 export const DeviceAddressReplaceV1ParamsSchema = z.object({
@@ -9,3 +10,22 @@ export const DeviceAddressReplaceV1ParamsSchema = z.object({
 });
 
 export type DeviceAddressReplaceV1Params = z.infer<typeof DeviceAddressReplaceV1ParamsSchema>;
+
+export type DeviceAddressReplaceV1Input = {
+    addresses: Array<{
+        /**
+         * An IPv4 or IPv6 address of the device, without a scope.
+         */
+        address: string | string;
+        /**
+         * The interface it was found on, as the device names it, such as `eth0` or `en0`.
+         */
+        interface: string;
+        /**
+         * Whether this is the address the device's default route leaves by: at most one is.
+         */
+        preferred?: boolean;
+    }>;
+};
+
+export type DeviceAddressReplaceV1Output = PutDeviceAddressesResponse;

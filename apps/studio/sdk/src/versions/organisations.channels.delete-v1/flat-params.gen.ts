@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdChannelsByChannelIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdChannelsByChannelIdPathSchema } from './zod.gen.js';
 
 export const ChannelDeleteV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const ChannelDeleteV1ParamsSchema = z.object({
 });
 
 export type ChannelDeleteV1Params = z.infer<typeof ChannelDeleteV1ParamsSchema>;
+
+export type ChannelDeleteV1Input = {
+    id: string;
+    channelId: string;
+};
+
+export type ChannelDeleteV1Output = DeleteOrganisationsByIdChannelsByChannelIdResponse;

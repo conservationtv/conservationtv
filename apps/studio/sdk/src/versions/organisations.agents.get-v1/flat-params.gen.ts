@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdAgentsByAgentIdResponse } from './types.gen.js';
 import { GetOrganisationsByIdAgentsByAgentIdPathSchema } from './zod.gen.js';
 
 export const AgentGetV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const AgentGetV1ParamsSchema = z.object({
 });
 
 export type AgentGetV1Params = z.infer<typeof AgentGetV1ParamsSchema>;
+
+export type AgentGetV1Input = {
+    id: string;
+    agentId: string;
+};
+
+export type AgentGetV1Output = GetOrganisationsByIdAgentsByAgentIdResponse;

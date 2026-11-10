@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdInvitationsResponse } from './types.gen.js';
 import { GetOrganisationsByIdInvitationsPathSchema } from './zod.gen.js';
 
 export const InvitationListV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const InvitationListV1ParamsSchema = z.object({
 });
 
 export type InvitationListV1Params = z.infer<typeof InvitationListV1ParamsSchema>;
+
+export type InvitationListV1Input = {
+    id: string;
+};
+
+export type InvitationListV1Output = GetOrganisationsByIdInvitationsResponse;

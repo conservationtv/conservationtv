@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdGatewaysByGatewayIdResponse, Schema0 } from './types.gen.js';
 import { PatchOrganisationsByIdGatewaysByGatewayIdBodySchema, PatchOrganisationsByIdGatewaysByGatewayIdPathSchema } from './zod.gen.js';
 
 export const GatewayUpdateV1ParamsSchema = z.object({
@@ -14,3 +15,16 @@ export const GatewayUpdateV1ParamsSchema = z.object({
 });
 
 export type GatewayUpdateV1Params = z.infer<typeof GatewayUpdateV1ParamsSchema>;
+
+export type GatewayUpdateV1Input = {
+    id: string;
+    gatewayId: 'conservationtv' | string;
+    name?: string;
+    kind?: 'mediamtx';
+    networkId?: string | null;
+    settings?: {
+        [key: string]: Schema0;
+    };
+};
+
+export type GatewayUpdateV1Output = PatchOrganisationsByIdGatewaysByGatewayIdResponse;

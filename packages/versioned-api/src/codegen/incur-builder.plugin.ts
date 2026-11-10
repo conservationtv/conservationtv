@@ -1,11 +1,11 @@
 import { $, definePluginConfig, type DefinePlugin, type Plugin } from '@hey-api/openapi-ts';
 import ts from 'typescript-api';
 import { operationParams, paramsBase } from './operation-params.js';
-import { CURRENT, type Operations } from './operation-versions.js';
+import type { Operations } from './operation-versions.js';
 
 interface IncurBuilderUserOptions {
   name: 'incur-builder';
-  /** The SDK package whose Client and `*ParamsSchema` exports the commands use. */
+  /** The SDK package whose Client and `*ParamsSchema` exports the commands use; its contracts' are at `/versions`. */
   clientPackage: string;
   operations?: Operations;
 }
@@ -79,9 +79,10 @@ export const incurBuilder = definePluginConfig<IncurBuilderPlugin['Types']>({
       member: string | undefined,
       params: string,
       hasParams: boolean,
-      description: string
+      description: string,
+      module = plugin.config.clientPackage
     ) => {
-      const schema = plugin.symbolFactory.register(params, { external: plugin.config.clientPackage });
+      const schema = plugin.symbolFactory.register(params, { external: module });
       let method = $('client');
       for (const part of id.split('.')) method = $(method.attr(part));
       if (member) method = $(method.attr(member));
@@ -124,12 +125,13 @@ export const incurBuilder = definePluginConfig<IncurBuilderPlugin['Types']>({
       if (group.definition) throw new Error(`Conflicting CLI command: ${id}`);
       const sorted = versions.toSorted((a, b) => a.version - b.version);
       group.description = sorted.at(-1)!.description;
-      for (const { version, source, hasParams, description } of sorted) {
-        // Each frozen operation contract has version-suffixed Params; plain current SDK Params stay separate.
-        const params = `${paramsBase(id)}${source === CURRENT ? '' : `V${version}`}ParamsSchema`;
+      for (const { version, hasParams, description } of sorted) {
+        // Each frozen operation contract has version-suffixed Params, exported apart from the current spec's plain ones.
+        const params = `${paramsBase(id)}V${version}ParamsSchema`;
+        const module = `${plugin.config.clientPackage}/versions`;
         define(
           branch(`${id}.v${version}`),
-          command(id, `v${version}`, params, hasParams, description),
+          command(id, `v${version}`, params, hasParams, description, module),
           `${id} v${version}`
         );
       }

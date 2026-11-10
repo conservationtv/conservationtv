@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdMembersByUserIdAdminResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdMembersByUserIdAdminPathSchema } from './zod.gen.js';
 
 export const MemberRevokeAdminV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const MemberRevokeAdminV1ParamsSchema = z.object({
 });
 
 export type MemberRevokeAdminV1Params = z.infer<typeof MemberRevokeAdminV1ParamsSchema>;
+
+export type MemberRevokeAdminV1Input = {
+    id: string;
+    userId: string;
+};
+
+export type MemberRevokeAdminV1Output = DeleteOrganisationsByIdMembersByUserIdAdminResponse;

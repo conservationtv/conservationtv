@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse, Schema0 } from './types.gen.js';
 import { PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema } from './zod.gen.js';
 
 export const ShowUpdateRecorderV1ParamsSchema = z.object({
@@ -13,3 +14,15 @@ export const ShowUpdateRecorderV1ParamsSchema = z.object({
 });
 
 export type ShowUpdateRecorderV1Params = z.infer<typeof ShowUpdateRecorderV1ParamsSchema>;
+
+export type ShowUpdateRecorderV1Input = {
+    id: string;
+    showId: string;
+    recorderId: string;
+    kind?: 'obs';
+    params?: {
+        [key: string]: Schema0;
+    };
+};
+
+export type ShowUpdateRecorderV1Output = PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse;

@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdSubjectsBySubjectIdLogsResponse } from './types.gen.js';
 import { GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema } from './zod.gen.js';
 
 export const LogListV1ParamsSchema = z.object({
@@ -12,3 +13,12 @@ export const LogListV1ParamsSchema = z.object({
 });
 
 export type LogListV1Params = z.infer<typeof LogListV1ParamsSchema>;
+
+export type LogListV1Input = {
+    id: string;
+    subjectId: string;
+    limit?: number;
+    before?: string;
+};
+
+export type LogListV1Output = GetOrganisationsByIdSubjectsBySubjectIdLogsResponse;

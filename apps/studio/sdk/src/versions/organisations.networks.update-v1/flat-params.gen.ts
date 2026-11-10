@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdNetworksByNetworkIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema } from './zod.gen.js';
 
 export const NetworkUpdateV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const NetworkUpdateV1ParamsSchema = z.object({
 });
 
 export type NetworkUpdateV1Params = z.infer<typeof NetworkUpdateV1ParamsSchema>;
+
+export type NetworkUpdateV1Input = {
+    id: string;
+    networkId: string;
+    name: string;
+};
+
+export type NetworkUpdateV1Output = PatchOrganisationsByIdNetworksByNetworkIdResponse;

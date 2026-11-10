@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdChannelsByChannelIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdChannelsByChannelIdBodySchema, PatchOrganisationsByIdChannelsByChannelIdPathSchema } from './zod.gen.js';
 
 export const ChannelUpdateV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const ChannelUpdateV1ParamsSchema = z.object({
 });
 
 export type ChannelUpdateV1Params = z.infer<typeof ChannelUpdateV1ParamsSchema>;
+
+export type ChannelUpdateV1Input = {
+    id: string;
+    channelId: string;
+    name: string;
+};
+
+export type ChannelUpdateV1Output = PatchOrganisationsByIdChannelsByChannelIdResponse;

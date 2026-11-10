@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PutGatewayEndpointsResponse } from './types.gen.js';
 import { PutGatewayEndpointsBodySchema } from './zod.gen.js';
 
 export const GatewayEndpointReplaceV1ParamsSchema = z.object({
@@ -10,3 +11,19 @@ export const GatewayEndpointReplaceV1ParamsSchema = z.object({
 });
 
 export type GatewayEndpointReplaceV1Params = z.infer<typeof GatewayEndpointReplaceV1ParamsSchema>;
+
+export type GatewayEndpointReplaceV1Input = {
+    gatewayId: string;
+    endpoints: Array<{
+        /**
+         * The protocol its server speaks.
+         */
+        protocol: 'webrtc' | 'rtsp' | 'rtsps' | 'rtmp' | 'rtmps' | 'hls';
+        /**
+         * The server's base URL, as a reader on the gateway's network reaches it: `rtsps://<host>:8322`, say. Paths go under it.
+         */
+        url: string;
+    }>;
+};
+
+export type GatewayEndpointReplaceV1Output = PutGatewayEndpointsResponse;

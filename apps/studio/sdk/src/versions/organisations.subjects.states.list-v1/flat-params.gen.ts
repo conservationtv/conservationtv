@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdSubjectsStatesResponse } from './types.gen.js';
 import { GetOrganisationsByIdSubjectsStatesPathSchema, GetOrganisationsByIdSubjectsStatesQuerySchema } from './zod.gen.js';
 
 export const StateListV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const StateListV1ParamsSchema = z.object({
 });
 
 export type StateListV1Params = z.infer<typeof StateListV1ParamsSchema>;
+
+export type StateListV1Input = {
+    id: string;
+    kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'program' | 'forward' | 'preview' | 'recorder' | 'channel' | 'external';
+};
+
+export type StateListV1Output = GetOrganisationsByIdSubjectsStatesResponse;

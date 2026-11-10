@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { GetInvitationsResponse } from './types.gen.js';
+
 export const InvitationListMineV1ParamsSchema = z.object({});
 
 export type InvitationListMineV1Params = z.infer<typeof InvitationListMineV1ParamsSchema>;
+
+export type InvitationListMineV1Output = GetInvitationsResponse;

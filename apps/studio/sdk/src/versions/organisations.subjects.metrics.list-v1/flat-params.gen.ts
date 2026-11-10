@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse } from './types.gen.js';
 import { GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema } from './zod.gen.js';
 
 export const MetricListV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const MetricListV1ParamsSchema = z.object({
 });
 
 export type MetricListV1Params = z.infer<typeof MetricListV1ParamsSchema>;
+
+export type MetricListV1Input = {
+    id: string;
+    subjectId: string;
+    name?: string;
+};
+
+export type MetricListV1Output = GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse;

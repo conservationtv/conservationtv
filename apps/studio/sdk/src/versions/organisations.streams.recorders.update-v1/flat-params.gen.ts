@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse, Rendition, Schema0 } from './types.gen.js';
 import { PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema } from './zod.gen.js';
 
 export const RecorderUpdateV1ParamsSchema = z.object({
@@ -15,3 +16,17 @@ export const RecorderUpdateV1ParamsSchema = z.object({
 });
 
 export type RecorderUpdateV1Params = z.infer<typeof RecorderUpdateV1ParamsSchema>;
+
+export type RecorderUpdateV1Input = {
+    id: string;
+    streamId: string;
+    recorderId: string;
+    exposureId?: string;
+    rendition?: Rendition;
+    kind?: string;
+    params?: {
+        [key: string]: Schema0;
+    };
+};
+
+export type RecorderUpdateV1Output = PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse;

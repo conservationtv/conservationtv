@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdCamerasResponse } from './types.gen.js';
 import { PostOrganisationsByIdCamerasBodySchema, PostOrganisationsByIdCamerasPathSchema } from './zod.gen.js';
 
 export const CameraCreateV1ParamsSchema = z.object({
@@ -14,3 +15,25 @@ export const CameraCreateV1ParamsSchema = z.object({
 });
 
 export type CameraCreateV1Params = z.infer<typeof CameraCreateV1ParamsSchema>;
+
+export type CameraCreateV1Input = {
+    id: string;
+    name: string;
+    networkId?: string | null;
+    settings: {
+        driver: 'axis';
+        host: string;
+        rtspPort?: number;
+        resolutions: Array<string>;
+    } | {
+        driver: 'rtsp';
+        url: string;
+    };
+    credentials?: {
+        username: string;
+        password: string;
+    };
+    state?: 'enabled' | 'locked' | 'disabled';
+};
+
+export type CameraCreateV1Output = PostOrganisationsByIdCamerasResponse;

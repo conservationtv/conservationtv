@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdSubjectsBySubjectIdStateResponse } from './types.gen.js';
 import { GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema } from './zod.gen.js';
 
 export const SubjectStateV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const SubjectStateV1ParamsSchema = z.object({
 });
 
 export type SubjectStateV1Params = z.infer<typeof SubjectStateV1ParamsSchema>;
+
+export type SubjectStateV1Input = {
+    id: string;
+    subjectId: string;
+};
+
+export type SubjectStateV1Output = GetOrganisationsByIdSubjectsBySubjectIdStateResponse;

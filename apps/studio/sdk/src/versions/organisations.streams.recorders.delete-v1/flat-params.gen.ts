@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema } from './zod.gen.js';
 
 export const RecorderDeleteV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const RecorderDeleteV1ParamsSchema = z.object({
 });
 
 export type RecorderDeleteV1Params = z.infer<typeof RecorderDeleteV1ParamsSchema>;
+
+export type RecorderDeleteV1Input = {
+    id: string;
+    streamId: string;
+    recorderId: string;
+};
+
+export type RecorderDeleteV1Output = DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse;

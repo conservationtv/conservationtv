@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdStreamsByStreamIdExposuresResponse, Rendition, Schema0 } from './types.gen.js';
 import { PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema } from './zod.gen.js';
 
 export const ExposureCreateV1ParamsSchema = z.object({
@@ -15,3 +16,17 @@ export const ExposureCreateV1ParamsSchema = z.object({
 });
 
 export type ExposureCreateV1Params = z.infer<typeof ExposureCreateV1ParamsSchema>;
+
+export type ExposureCreateV1Input = {
+    id: string;
+    streamId: string;
+    gatewayId: 'conservationtv' | string;
+    renditions?: Array<Rendition>;
+    publisherDeviceId?: string | null;
+    upstreamExposureId?: string | null;
+    params?: {
+        [key: string]: Schema0;
+    };
+};
+
+export type ExposureCreateV1Output = PostOrganisationsByIdStreamsByStreamIdExposuresResponse;

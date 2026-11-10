@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsResponse } from './types.gen.js';
 import { PostOrganisationsBodySchema } from './zod.gen.js';
 
 export const OrganisationCreateV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const OrganisationCreateV1ParamsSchema = z.object({
 });
 
 export type OrganisationCreateV1Params = z.infer<typeof OrganisationCreateV1ParamsSchema>;
+
+export type OrganisationCreateV1Input = {
+    name: string;
+    displayName: string;
+};
+
+export type OrganisationCreateV1Output = PostOrganisationsResponse;

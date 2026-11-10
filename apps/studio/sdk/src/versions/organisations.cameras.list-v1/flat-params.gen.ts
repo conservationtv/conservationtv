@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdCamerasResponse } from './types.gen.js';
 import { GetOrganisationsByIdCamerasPathSchema } from './zod.gen.js';
 
 export const CameraListV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const CameraListV1ParamsSchema = z.object({
 });
 
 export type CameraListV1Params = z.infer<typeof CameraListV1ParamsSchema>;
+
+export type CameraListV1Input = {
+    id: string;
+};
+
+export type CameraListV1Output = GetOrganisationsByIdCamerasResponse;

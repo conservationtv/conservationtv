@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdShowsByShowIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdShowsByShowIdBodySchema, PatchOrganisationsByIdShowsByShowIdPathSchema } from './zod.gen.js';
 
 export const ShowUpdateV1ParamsSchema = z.object({
@@ -16,3 +17,16 @@ export const ShowUpdateV1ParamsSchema = z.object({
 });
 
 export type ShowUpdateV1Params = z.infer<typeof ShowUpdateV1ParamsSchema>;
+
+export type ShowUpdateV1Input = {
+    id: string;
+    showId: string;
+    name?: string;
+    width?: number;
+    height?: number;
+    fps?: number;
+    bitrateKbps?: number;
+    keyframeSeconds?: number;
+};
+
+export type ShowUpdateV1Output = PatchOrganisationsByIdShowsByShowIdResponse;

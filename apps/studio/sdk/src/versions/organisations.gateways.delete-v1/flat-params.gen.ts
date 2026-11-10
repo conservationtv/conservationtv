@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdGatewaysByGatewayIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema } from './zod.gen.js';
 
 export const GatewayDeleteV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const GatewayDeleteV1ParamsSchema = z.object({
 });
 
 export type GatewayDeleteV1Params = z.infer<typeof GatewayDeleteV1ParamsSchema>;
+
+export type GatewayDeleteV1Input = {
+    id: string;
+    gatewayId: 'conservationtv' | string;
+};
+
+export type GatewayDeleteV1Output = DeleteOrganisationsByIdGatewaysByGatewayIdResponse;

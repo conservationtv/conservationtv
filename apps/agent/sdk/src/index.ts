@@ -1,5 +1,4 @@
 export * from './generated/index.js';
-export * from './versions/index.js';
 export {
   ForbiddenError,
   HandshakeError,

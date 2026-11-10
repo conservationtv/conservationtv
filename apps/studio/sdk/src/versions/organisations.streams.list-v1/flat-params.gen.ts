@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdStreamsResponse } from './types.gen.js';
 import { GetOrganisationsByIdStreamsPathSchema } from './zod.gen.js';
 
 export const StreamListV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const StreamListV1ParamsSchema = z.object({
 });
 
 export type StreamListV1Params = z.infer<typeof StreamListV1ParamsSchema>;
+
+export type StreamListV1Input = {
+    id: string;
+};
+
+export type StreamListV1Output = GetOrganisationsByIdStreamsResponse;

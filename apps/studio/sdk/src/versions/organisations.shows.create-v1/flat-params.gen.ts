@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdShowsResponse } from './types.gen.js';
 import { PostOrganisationsByIdShowsBodySchema, PostOrganisationsByIdShowsPathSchema } from './zod.gen.js';
 
 export const ShowCreateV1ParamsSchema = z.object({
@@ -15,3 +16,15 @@ export const ShowCreateV1ParamsSchema = z.object({
 });
 
 export type ShowCreateV1Params = z.infer<typeof ShowCreateV1ParamsSchema>;
+
+export type ShowCreateV1Input = {
+    id: string;
+    name: string;
+    width?: number;
+    height?: number;
+    fps?: number;
+    bitrateKbps?: number;
+    keyframeSeconds?: number;
+};
+
+export type ShowCreateV1Output = PostOrganisationsByIdShowsResponse;

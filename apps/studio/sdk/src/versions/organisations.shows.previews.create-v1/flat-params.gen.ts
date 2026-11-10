@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdShowsByShowIdPreviewsResponse } from './types.gen.js';
 import { PostOrganisationsByIdShowsByShowIdPreviewsBodySchema, PostOrganisationsByIdShowsByShowIdPreviewsPathSchema } from './zod.gen.js';
 
 export const PreviewCreateV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const PreviewCreateV1ParamsSchema = z.object({
 });
 
 export type PreviewCreateV1Params = z.infer<typeof PreviewCreateV1ParamsSchema>;
+
+export type PreviewCreateV1Input = {
+    id: string;
+    showId: string;
+    gatewayId: 'conservationtv' | string;
+};
+
+export type PreviewCreateV1Output = PostOrganisationsByIdShowsByShowIdPreviewsResponse;

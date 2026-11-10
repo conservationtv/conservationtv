@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { PostIrohSessionsResponse } from './types.gen.js';
+
 export const IrohSessionCreateV1ParamsSchema = z.object({});
 
 export type IrohSessionCreateV1Params = z.infer<typeof IrohSessionCreateV1ParamsSchema>;
+
+export type IrohSessionCreateV1Output = PostIrohSessionsResponse;

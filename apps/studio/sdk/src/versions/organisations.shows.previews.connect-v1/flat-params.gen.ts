@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponse, Rendition } from './types.gen.js';
 import { PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsBodySchema, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsPathSchema } from './zod.gen.js';
 
 export const PreviewConnectV1ParamsSchema = z.object({
@@ -14,3 +15,14 @@ export const PreviewConnectV1ParamsSchema = z.object({
 });
 
 export type PreviewConnectV1Params = z.infer<typeof PreviewConnectV1ParamsSchema>;
+
+export type PreviewConnectV1Input = {
+    id: string;
+    showId: string;
+    previewId: string;
+    action: 'read' | 'publish';
+    protocol: string;
+    rendition?: Rendition;
+};
+
+export type PreviewConnectV1Output = PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponse;

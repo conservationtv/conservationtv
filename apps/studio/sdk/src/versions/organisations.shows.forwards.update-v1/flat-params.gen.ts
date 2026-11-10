@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdBodySchema, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema } from './zod.gen.js';
 
 export const ForwardUpdateV1ParamsSchema = z.object({
@@ -12,3 +13,12 @@ export const ForwardUpdateV1ParamsSchema = z.object({
 });
 
 export type ForwardUpdateV1Params = z.infer<typeof ForwardUpdateV1ParamsSchema>;
+
+export type ForwardUpdateV1Input = {
+    id: string;
+    showId: string;
+    forwardId: string;
+    enabled: boolean;
+};
+
+export type ForwardUpdateV1Output = PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse;

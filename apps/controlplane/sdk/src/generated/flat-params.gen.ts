@@ -2,11 +2,14 @@
 
 import * as z from 'zod';
 
+import type { GetHealthResponse, PostGrantsExchangeResponse } from './types.gen.js';
 import { PostGrantsExchangeBodySchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
 export type HealthGetParams = z.infer<typeof HealthGetParamsSchema>;
+
+export type HealthGetOutput = GetHealthResponse;
 
 export const GrantExchangeParamsSchema = z.object({
     subject: PostGrantsExchangeBodySchema.shape.subject.nonoptional().describe('Who the credentials are for, recorded for audit, such as `app:device:42`.'),
@@ -15,3 +18,22 @@ export const GrantExchangeParamsSchema = z.object({
 });
 
 export type GrantExchangeParams = z.infer<typeof GrantExchangeParamsSchema>;
+
+export type GrantExchangeInput = {
+    subject: string;
+    requested_capabilities: {
+        moq?: {
+            root: string;
+            publish: Array<'' | string>;
+            subscribe: Array<'' | string>;
+            stats?: boolean;
+        };
+        iroh?: {
+            endpoint_id: string;
+            action: 'connect';
+        };
+    };
+    expires_in: number;
+};
+
+export type GrantExchangeOutput = PostGrantsExchangeResponse;

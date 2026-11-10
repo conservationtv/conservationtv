@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdChannelsByChannelIdStatsResponse } from './types.gen.js';
 import { GetOrganisationsByIdChannelsByChannelIdStatsPathSchema } from './zod.gen.js';
 
 export const StatGetV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const StatGetV1ParamsSchema = z.object({
 });
 
 export type StatGetV1Params = z.infer<typeof StatGetV1ParamsSchema>;
+
+export type StatGetV1Input = {
+    id: string;
+    channelId: string;
+};
+
+export type StatGetV1Output = GetOrganisationsByIdChannelsByChannelIdStatsResponse;

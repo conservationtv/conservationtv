@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PutOrganisationsByIdMembersByUserIdAdminResponse } from './types.gen.js';
 import { PutOrganisationsByIdMembersByUserIdAdminPathSchema } from './zod.gen.js';
 
 export const MemberGrantAdminV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const MemberGrantAdminV1ParamsSchema = z.object({
 });
 
 export type MemberGrantAdminV1Params = z.infer<typeof MemberGrantAdminV1ParamsSchema>;
+
+export type MemberGrantAdminV1Input = {
+    id: string;
+    userId: string;
+};
+
+export type MemberGrantAdminV1Output = PutOrganisationsByIdMembersByUserIdAdminResponse;
