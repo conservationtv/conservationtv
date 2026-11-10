@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdDevicesResponse } from './types.gen.js';
 import { GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdDevicesQuerySchema } from './zod.gen.js';
 
 export const DeviceListV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const DeviceListV1ParamsSchema = z.object({
 });
 
 export type DeviceListV1Params = z.infer<typeof DeviceListV1ParamsSchema>;
+
+export type DeviceListV1Input = {
+    id: string;
+    kind?: 'agent' | 'camera' | 'browser';
+};
+
+export type DeviceListV1Output = GetOrganisationsByIdDevicesResponse;

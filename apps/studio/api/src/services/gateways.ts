@@ -1,5 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { gateways } from '../db/schema.ts';
+import { gatewayCertificates, gateways } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { checkGatewaySettings } from '../gateways/index.ts';
 import { checkGatewayUnused } from '../topology/exposures.ts';
@@ -29,7 +29,10 @@ export interface GatewayChanges {
   settings?: Settings;
 }
 
-/** The organisation's gateways, oldest first. */
+/**
+ * The organisation's gateways, oldest first, each with its hostname and certificate (`tls`) once it has been given one
+ * (src/gateways/certificates.ts): null until then, and for every gateway when the deployment has no GATEWAY_DOMAIN.
+ */
 export function listGateways(organisationId: string, filter: GatewayFilter) {
   const db = useDB();
   return db
@@ -40,9 +43,18 @@ export function listGateways(organisationId: string, filter: GatewayFilter) {
       kind: gateways.kind,
       networkId: gateways.networkId,
       settings: gateways.settings,
-      createdAt: gateways.createdAt
+      createdAt: gateways.createdAt,
+      tls: {
+        hostname: gatewayCertificates.hostname,
+        address: gatewayCertificates.address,
+        issuedAt: gatewayCertificates.issuedAt,
+        notAfter: gatewayCertificates.notAfter,
+        attemptedAt: gatewayCertificates.attemptedAt,
+        error: gatewayCertificates.error
+      }
     })
     .from(gateways)
+    .leftJoin(gatewayCertificates, eq(gatewayCertificates.gatewayId, gateways.id))
     .where(
       and(
         eq(gateways.organisationId, organisationId),
@@ -52,7 +64,7 @@ export function listGateways(organisationId: string, filter: GatewayFilter) {
     .orderBy(gateways.id);
 }
 
-/** One of the organisation's gateways, if it is visible. */
+/** One of the organisation's gateways, if it is visible, with its hostname and certificate as the list has them. */
 export async function getGateway(organisationId: string, gatewayId: string) {
   const db = useDB();
   const [row] = await db
@@ -63,9 +75,18 @@ export async function getGateway(organisationId: string, gatewayId: string) {
       kind: gateways.kind,
       networkId: gateways.networkId,
       settings: gateways.settings,
-      createdAt: gateways.createdAt
+      createdAt: gateways.createdAt,
+      tls: {
+        hostname: gatewayCertificates.hostname,
+        address: gatewayCertificates.address,
+        issuedAt: gatewayCertificates.issuedAt,
+        notAfter: gatewayCertificates.notAfter,
+        attemptedAt: gatewayCertificates.attemptedAt,
+        error: gatewayCertificates.error
+      }
     })
     .from(gateways)
+    .leftJoin(gatewayCertificates, eq(gatewayCertificates.gatewayId, gateways.id))
     .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId)));
   return row;
 }

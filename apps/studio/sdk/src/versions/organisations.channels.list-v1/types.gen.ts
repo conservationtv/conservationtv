@@ -16,7 +16,6 @@ export type Channel = {
         name: string;
         externalId: string | null;
         externalLogin: string | null;
-        enabled: boolean;
         createdAt: string;
     }>;
 };

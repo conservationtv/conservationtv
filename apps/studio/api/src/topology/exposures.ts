@@ -1,18 +1,18 @@
 import { and, arrayContained, eq, not, notInArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { exposures, gateways, recorders } from '../db/schema.ts';
+import { exposures, gateways, recorders, showPreviews } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { useDB } from '../db/transaction.ts';
 import { isBuiltinGateway } from '../gateways/index.ts';
 
-// What the database cannot check about exposures on its own. An exposure's gateway is a built-in gateway's slug or one
-// of its organisation's gateways, so no foreign key holds it: it must name a gateway that exists, and a gateway cannot
-// go while exposures use it. A chain of upstreams must never loop, and offers at each step at most the renditions of
+// What the database cannot check about exposures on its own. An exposure's gateway, as a show's preview's, is a built-in
+// gateway's slug or one of its organisation's gateways, so no foreign key holds it: it must name a gateway that exists,
+// and a gateway cannot go while exposures or previews use it. A chain of upstreams must never loop, and offers at each step at most the renditions of
 // the step before, as a recorder records only a rendition its exposure offers. Each check runs after the write it
 // guards, so a principal who may not write has already been refused by row-level security, and takes the lock that
 // serialises it with the writes it races.
 
-/** Refuses an exposure whose gateway is not there for its organisation. */
+/** Refuses an exposure or preview whose gateway is not there for its organisation. */
 export async function checkGateway(organisationId: string, gatewayId: string) {
   const db = useDB();
   if (isBuiltinGateway(gatewayId)) return;
@@ -25,7 +25,7 @@ export async function checkGateway(organisationId: string, gatewayId: string) {
   if (!gateway) throw new ApiFailure('invalid_reference');
 }
 
-/** Refuses removing a gateway, already deleted in this transaction, that exposures still use. */
+/** Refuses removing a gateway, already deleted in this transaction, that exposures or previews still use. */
 export async function checkGatewayUnused(gatewayId: string) {
   const db = useDB();
   const [used] = await db
@@ -34,6 +34,12 @@ export async function checkGatewayUnused(gatewayId: string) {
     .where(eq(exposures.gatewayId, gatewayId))
     .limit(1);
   if (used) throw new ApiFailure('in_use');
+  const [previewed] = await db
+    .select({ id: showPreviews.id })
+    .from(showPreviews)
+    .where(eq(showPreviews.gatewayId, gatewayId))
+    .limit(1);
+  if (previewed) throw new ApiFailure('in_use');
 }
 
 /** Refuses an exposure whose upstream chain, already written, leads back to it. */

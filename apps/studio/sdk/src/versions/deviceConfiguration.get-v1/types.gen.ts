@@ -48,6 +48,14 @@ export type StatsConnect = {
     gatewayId: string;
 };
 
+export type PreviewConnect = {
+    id: string;
+    showId: string;
+    previewId: string;
+    action: 'publish';
+    protocol: string;
+};
+
 export type DeviceConfiguration = {
     mediamtx?: {
         gatewayId: string;
@@ -65,6 +73,10 @@ export type DeviceConfiguration = {
         }>;
         publishers: Array<Publisher>;
         stats: Array<StatsConnect>;
+        previews?: Array<{
+            name: string;
+            previewId: string;
+        }>;
     };
     obs?: {
         show: {
@@ -81,7 +93,24 @@ export type DeviceConfiguration = {
         forwards: Array<{
             organisationId: string;
             channelId: string;
+            forwardId: string;
+            stats?: boolean;
         }>;
+        previews?: Array<{
+            previewId: string;
+            gatewayId: string;
+            connect: PreviewConnect;
+        }>;
+        recording?: {
+            recorderId: string;
+            kind: string;
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        program?: {
+            subjectId: string;
+        };
     };
 };
 

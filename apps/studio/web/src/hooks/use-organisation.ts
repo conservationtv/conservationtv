@@ -1,7 +1,8 @@
 import { createContext, use } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import { organisationQueryOptions } from '@/queries/organisations';
+import { ADMINISTRATOR_ROLE } from '@/components/settings/roles';
+import { organisationListQueryOptions, organisationQueryOptions } from '@/queries/organisations';
 
 /**
  * Which organisation everything below the organisation layout is in: its ID, as the layout's route names it. Only the
@@ -26,4 +27,18 @@ export function useOrganisation() {
   const organisationId = useOrganisationId();
   const organisationQuery = useSuspenseQuery(organisationQueryOptions(organisationId));
   return organisationQuery.data;
+}
+
+/**
+ * Whether the signed-in account administers the organisation this is rendered in, from the roles its organisation list
+ * carries. Pages use it to offer what only an administrator may do; the API decides regardless. Suspends until the
+ * list has loaded.
+ */
+export function useIsAdministrator(): boolean {
+  const organisationId = useOrganisationId();
+  const rolesQuery = useSuspenseQuery({
+    ...organisationListQueryOptions(),
+    select: organisations => organisations.find(organisation => organisation.id === organisationId)?.roles ?? []
+  });
+  return rolesQuery.data.some(role => role.id === ADMINISTRATOR_ROLE);
 }

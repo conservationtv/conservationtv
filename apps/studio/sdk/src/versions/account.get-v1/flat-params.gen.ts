@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { GetAccountResponse } from './types.gen.js';
+
 export const AccountGetV1ParamsSchema = z.object({});
 
 export type AccountGetV1Params = z.infer<typeof AccountGetV1ParamsSchema>;
+
+export type AccountGetV1Output = GetAccountResponse;

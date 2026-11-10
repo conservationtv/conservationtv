@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
+import type { OperationDescriptor, OperationField } from '../client/index.js';
+import { operationFields } from './operation-fields.js';
 
 /** Stable generation directory for a frozen operation/version, or `current` for versionless operations. */
 export type Source = string;
@@ -10,8 +12,32 @@ const SelectorHeader = 'operation-version';
 
 // The parts of a spec bundle generation reads. Loose objects keep every other member, so a parsed document is still a
 // complete standalone contract for Hey API.
-const ParameterSchema = z.looseObject({ in: z.string().optional(), name: z.string().optional() });
+const ParameterSchema = z.looseObject({
+  $ref: z.string().optional(),
+  in: z.string().optional(),
+  name: z.string().optional()
+});
 export type Parameter = z.output<typeof ParameterSchema>;
+
+const BodySchemaSchema = z.looseObject({
+  $ref: z.string().optional(),
+  type: z.union([z.string(), z.array(z.string())]).optional(),
+  properties: z.record(z.string(), z.json()).optional(),
+  nullable: z.boolean().optional(),
+  allOf: z.array(z.json()).optional(),
+  anyOf: z.array(z.json()).optional(),
+  oneOf: z.array(z.json()).optional()
+});
+export type BodySchema = z.output<typeof BodySchemaSchema>;
+
+const MediaSchema = z.looseObject({ schema: BodySchemaSchema.optional() });
+export type Media = z.output<typeof MediaSchema>;
+
+const RequestBodySchema = z.looseObject({
+  $ref: z.string().optional(),
+  content: z.record(z.string(), MediaSchema).optional()
+});
+export type RequestBody = z.output<typeof RequestBodySchema>;
 
 const SpecOperationSchema = z.looseObject({
   operationId: z.string().optional(),
@@ -20,21 +46,47 @@ const SpecOperationSchema = z.looseObject({
   summary: z.string().optional(),
   description: z.string().optional(),
   parameters: z.array(ParameterSchema).optional(),
-  requestBody: z.json().optional()
+  requestBody: RequestBodySchema.optional()
 });
 export type SpecOperation = z.output<typeof SpecOperationSchema>;
 
 const methods = ['get', 'put', 'post', 'delete', 'patch', 'options', 'head', 'trace'] as const;
-type Method = (typeof methods)[number];
+export type Method = (typeof methods)[number];
+const verbs = {
+  get: 'GET',
+  put: 'PUT',
+  post: 'POST',
+  delete: 'DELETE',
+  patch: 'PATCH',
+  options: 'OPTIONS',
+  head: 'HEAD',
+  trace: 'TRACE'
+} as const satisfies Record<Method, OperationDescriptor['method']>;
 const isMethod = (key: string): key is Method => methods.some(method => method === key);
 
 const PathItemSchema = z.looseObject({
-  ...Object.fromEntries(methods.map(method => [method, SpecOperationSchema.optional()])),
+  get: SpecOperationSchema.optional(),
+  put: SpecOperationSchema.optional(),
+  post: SpecOperationSchema.optional(),
+  delete: SpecOperationSchema.optional(),
+  patch: SpecOperationSchema.optional(),
+  options: SpecOperationSchema.optional(),
+  head: SpecOperationSchema.optional(),
+  trace: SpecOperationSchema.optional(),
   parameters: z.array(ParameterSchema).optional()
 });
 export type PathItem = z.output<typeof PathItemSchema>;
 
-const SpecDocumentSchema = z.looseObject({ paths: z.record(z.string(), PathItemSchema).optional() });
+const ComponentsSchema = z.looseObject({
+  parameters: z.record(z.string(), ParameterSchema).optional(),
+  requestBodies: z.record(z.string(), RequestBodySchema).optional()
+});
+export type Components = z.output<typeof ComponentsSchema>;
+
+export const SpecDocumentSchema = z.looseObject({
+  paths: z.record(z.string(), PathItemSchema).optional(),
+  components: ComponentsSchema.optional()
+});
 export type SpecDocument = z.output<typeof SpecDocumentSchema>;
 
 const SpecBundleSchema = SpecDocumentSchema.extend({ 'x-operation-contracts': z.array(SpecDocumentSchema).optional() });
@@ -47,13 +99,17 @@ export interface SpecEntry {
   version?: number;
   /** The Hey API filter key, like `POST /grants/exchange`. */
   key: string;
+  method: OperationDescriptor['method'];
+  path: string;
+  /** A call's flat parameters, placed in the request. */
+  fields: OperationField[];
   source: Source;
   file: string;
   /** Complete standalone contract, extracted from the release bundle. */
   document: SpecDocument;
   /** The operation's summary and description, as in that spec. */
   description: string;
-  /** Whether the generated SDK method takes parameters before its options. */
+  /** Whether a call takes parameters before its options. */
   hasParams: boolean;
   /** Whether clients connect to it as a WebSocket, so the SDK gives its address instead of sending it. */
   webSocket: boolean;
@@ -148,7 +204,7 @@ interface EntryContext {
 
 /** One method of one path item, or nothing when the bundle's catalog describes it instead. */
 function entryOf(context: EntryContext, path: string, item: PathItem, method: Method): SpecEntry | undefined {
-  const operation = SpecOperationSchema.optional().parse(item[method]);
+  const operation = item[method];
   if (!operation) return undefined;
   const { operationId, 'x-operation-version': version, 'x-websocket': webSocket = false } = operation;
   if (!operationId) throw new Error(`${context.source}: missing operationId on ${method.toUpperCase()} ${path}`);
@@ -156,22 +212,12 @@ function entryOf(context: EntryContext, path: string, item: PathItem, method: Me
   if (context.catalogued && version !== undefined) return undefined;
   if (version !== undefined)
     operation.parameters = operation.parameters?.filter(parameter => !isSelectorHeader(parameter));
-  item[method] = operation;
-  const key = `${method.toUpperCase()} ${path}`;
+  const key = `${verbs[method]} ${path}`;
   const { source, file, document } = context;
-  return { operationId, version, key, source, file, document, webSocket, ...summary(item, operation) };
-}
-
-interface EntrySummary {
-  description: string;
-  hasParams: boolean;
-}
-
-/** The command/method description, and whether any parameter or body precedes the generated method's options. */
-function summary(item: PathItem, operation: SpecOperation): EntrySummary {
+  const fields = operationFields(document, item, operation, operationId);
   const description = [...new Set([operation.summary, operation.description].filter(Boolean))].join('\n\n');
-  const hasParams = Boolean(item.parameters?.length || operation.parameters?.length || operation.requestBody);
-  return { description, hasParams };
+  const place = { key, method: verbs[method], path, fields, hasParams: fields.length > 0 };
+  return { operationId, version, source, file, document, webSocket, description, ...place };
 }
 
 function operationsOf(file: string, source: Source): SpecEntry[] {

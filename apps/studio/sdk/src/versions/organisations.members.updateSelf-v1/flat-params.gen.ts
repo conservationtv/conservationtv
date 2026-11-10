@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdMembersMeResponse } from './types.gen.js';
 import { PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema } from './zod.gen.js';
 
 export const MemberUpdateSelfV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const MemberUpdateSelfV1ParamsSchema = z.object({
 });
 
 export type MemberUpdateSelfV1Params = z.infer<typeof MemberUpdateSelfV1ParamsSchema>;
+
+export type MemberUpdateSelfV1Input = {
+    id: string;
+    displayName: string;
+};
+
+export type MemberUpdateSelfV1Output = PatchOrganisationsByIdMembersMeResponse;

@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdNetworksResponse } from './types.gen.js';
 import { PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema } from './zod.gen.js';
 
 export const NetworkCreateV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const NetworkCreateV1ParamsSchema = z.object({
 });
 
 export type NetworkCreateV1Params = z.infer<typeof NetworkCreateV1ParamsSchema>;
+
+export type NetworkCreateV1Input = {
+    id: string;
+    name: string;
+};
+
+export type NetworkCreateV1Output = PostOrganisationsByIdNetworksResponse;

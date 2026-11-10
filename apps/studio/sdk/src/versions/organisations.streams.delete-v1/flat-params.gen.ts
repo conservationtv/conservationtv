@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdStreamsByStreamIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdStreamsByStreamIdPathSchema } from './zod.gen.js';
 
 export const StreamDeleteV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const StreamDeleteV1ParamsSchema = z.object({
 });
 
 export type StreamDeleteV1Params = z.infer<typeof StreamDeleteV1ParamsSchema>;
+
+export type StreamDeleteV1Input = {
+    id: string;
+    streamId: string;
+};
+
+export type StreamDeleteV1Output = DeleteOrganisationsByIdStreamsByStreamIdResponse;

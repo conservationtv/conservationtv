@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsResponse } from './types.gen.js';
+
 export const OrganisationListV1ParamsSchema = z.object({});
 
 export type OrganisationListV1Params = z.infer<typeof OrganisationListV1ParamsSchema>;
+
+export type OrganisationListV1Output = GetOrganisationsResponse;

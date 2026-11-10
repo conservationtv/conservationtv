@@ -37,7 +37,7 @@ export type GetOrganisationsByIdSubjectsStatesData = {
         /**
          * Only subjects of this kind: the part of their ID before the colon.
          */
-        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'external';
+        kind?: 'network' | 'device' | 'agent' | 'stream' | 'exposure' | 'program' | 'forward' | 'preview' | 'recorder' | 'channel' | 'external';
     };
     url: '/organisations/{id}/subjects/states';
 };

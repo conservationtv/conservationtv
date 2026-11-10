@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdAgentsByAgentIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema } from './zod.gen.js';
 
 export const AgentUpdateV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const AgentUpdateV1ParamsSchema = z.object({
 });
 
 export type AgentUpdateV1Params = z.infer<typeof AgentUpdateV1ParamsSchema>;
+
+export type AgentUpdateV1Input = {
+    id: string;
+    agentId: string;
+    priority: number;
+};
+
+export type AgentUpdateV1Output = PatchOrganisationsByIdAgentsByAgentIdResponse;

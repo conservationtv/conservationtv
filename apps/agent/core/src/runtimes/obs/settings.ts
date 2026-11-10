@@ -150,7 +150,13 @@ export async function writeObsProfile(config: string, output: ObsOutput, target:
       VodTrackEnabled: false,
       AudioEncoder: 'ffmpeg_aac',
       Track1Bitrate: AUDIO_BITRATE_KBPS,
-      Rescale: false
+      Rescale: false,
+      // A recorder's recording (streaming.ts) is the stream's encode, not a second one, in Matroska, which a crash or
+      // a stop OBS doesn't finish leaves readable. Where it goes is set by obs-websocket.
+      RecType: 'Standard',
+      RecEncoder: 'none',
+      RecFormat2: 'mkv',
+      RecTracks: 1
     },
     Video: {
       BaseCX: output.width,

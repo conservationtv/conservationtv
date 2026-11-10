@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdCamerasByCameraIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdCamerasByCameraIdPathSchema } from './zod.gen.js';
 
 export const CameraDeleteV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const CameraDeleteV1ParamsSchema = z.object({
 });
 
 export type CameraDeleteV1Params = z.infer<typeof CameraDeleteV1ParamsSchema>;
+
+export type CameraDeleteV1Input = {
+    id: string;
+    cameraId: string;
+};
+
+export type CameraDeleteV1Output = DeleteOrganisationsByIdCamerasByCameraIdResponse;

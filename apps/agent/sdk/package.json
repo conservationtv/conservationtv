@@ -7,12 +7,12 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./contracts/*": "./src/versions/*/sdk.gen.ts",
+    "./versions": "./src/versions/index.ts",
     "./minimum-versions": "./minimum-versions.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
-    "generate": "openapi-ts --file openapi-ts.config.ts && share-client"
+    "generate": "openapi-ts --file openapi-ts.config.ts"
   },
   "dependencies": {
     "@conservationtv/versioned-api": "workspace:*",

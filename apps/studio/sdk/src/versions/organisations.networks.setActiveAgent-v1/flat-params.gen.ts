@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponse } from './types.gen.js';
 import { PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema } from './zod.gen.js';
 
 export const NetworkSetActiveAgentV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const NetworkSetActiveAgentV1ParamsSchema = z.object({
 });
 
 export type NetworkSetActiveAgentV1Params = z.infer<typeof NetworkSetActiveAgentV1ParamsSchema>;
+
+export type NetworkSetActiveAgentV1Input = {
+    id: string;
+    networkId: string;
+    agentId: string | null;
+};
+
+export type NetworkSetActiveAgentV1Output = PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponse;

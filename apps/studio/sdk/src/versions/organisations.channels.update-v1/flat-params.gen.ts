@@ -2,13 +2,21 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdChannelsByChannelIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdChannelsByChannelIdBodySchema, PatchOrganisationsByIdChannelsByChannelIdPathSchema } from './zod.gen.js';
 
 export const ChannelUpdateV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdChannelsByChannelIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     channelId: PatchOrganisationsByIdChannelsByChannelIdPathSchema.shape.channelId.nonoptional().describe('The channel.'),
-    name: PatchOrganisationsByIdChannelsByChannelIdBodySchema.shape.name.optional().describe('What the channel is called in the studio.'),
-    enabled: PatchOrganisationsByIdChannelsByChannelIdBodySchema.shape.enabled.optional().describe('Whether the broadcast goes out to it.')
+    name: PatchOrganisationsByIdChannelsByChannelIdBodySchema.shape.name.nonoptional().describe('What the channel is called in the studio.')
 });
 
 export type ChannelUpdateV1Params = z.infer<typeof ChannelUpdateV1ParamsSchema>;
+
+export type ChannelUpdateV1Input = {
+    id: string;
+    channelId: string;
+    name: string;
+};
+
+export type ChannelUpdateV1Output = PatchOrganisationsByIdChannelsByChannelIdResponse;

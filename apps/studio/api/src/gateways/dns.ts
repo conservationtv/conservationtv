@@ -87,3 +87,10 @@ export async function createRecord(zone: DnsZone, type: RecordType, name: string
   const created = await call(zone, 'POST', '', DnsRecordSchema, record);
   return () => call(zone, 'DELETE', `/${created.id}`, z.unknown()).then(() => undefined);
 }
+
+/**
+ * How long a new record takes to be served by the zone's nameservers: about 9 seconds when measured, so twice that.
+ * It is waited out rather than looked for: asking a resolver before the record is served gets an answer that it doesn't
+ * exist, which resolvers then keep for the zone's negative TTL (30 minutes here), so looking delays it instead.
+ */
+export const RECORD_PROPAGATION_MS = 20_000;

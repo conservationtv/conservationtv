@@ -40,7 +40,12 @@ export default defineConfig({
   // Pre-bundle every route's dependencies at startup, including those the shared UI package's components bring in.
   // Discovered lazily instead, the first visit to a route re-bundles mid-session and reloads, and a page holding the
   // old bundle can end up with two copies of React.
-  optimizeDeps: { entries: ['src/**/*.tsx', '../../../packages/ui/src/**/*.tsx'] },
+  optimizeDeps: {
+    entries: ['src/**/*.tsx', '../../../packages/ui/src/**/*.tsx'],
+    // Served as it is published: it finds its WebAssembly module and its SharedWorker beside itself
+    // (`new URL(…, import.meta.url)`), which pre-bundling would move it away from.
+    exclude: ['@strangecyan/iroh-http-browser']
+  },
   resolve: {
     alias: {
       '@': resolve(import.meta.dirname, './src')

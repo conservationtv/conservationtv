@@ -1,8 +1,8 @@
 import type { ComponentProps, FC } from 'react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import { StreamChart } from '@/components/streams/stream-chart';
-import { useStreamChart, type ChartedStream } from '@/components/streams/stream-charts';
+import { BitrateChart } from '@/components/streams/stream-chart';
+import { STREAM_LINES, useStreamChart, type ChartedStream } from '@/components/streams/stream-charts';
 
 // A stream card's parts, composed where they're used: the grid, the card, its title, a note and its chart.
 
@@ -36,5 +36,5 @@ export interface StreamCardChartProps {
 /** The stream's bitrates, once all of them have loaded. */
 export const StreamCardChart: FC<StreamCardChartProps> = ({ stream }) => {
   const { chart, chartWindow } = useStreamChart(stream);
-  return <StreamChart rows={chart.rows} from={chartWindow.from} to={chartWindow.to} />;
+  return <BitrateChart lines={STREAM_LINES} rows={chart.rows} from={chartWindow.from} to={chartWindow.to} />;
 };

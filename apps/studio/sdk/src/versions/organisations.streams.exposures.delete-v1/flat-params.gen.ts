@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse } from './types.gen.js';
 import { DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema } from './zod.gen.js';
 
 export const ExposureDeleteV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const ExposureDeleteV1ParamsSchema = z.object({
 });
 
 export type ExposureDeleteV1Params = z.infer<typeof ExposureDeleteV1ParamsSchema>;
+
+export type ExposureDeleteV1Input = {
+    id: string;
+    streamId: string;
+    exposureId: string;
+};
+
+export type ExposureDeleteV1Output = DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse;

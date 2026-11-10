@@ -5,11 +5,14 @@ import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../config.ts';
 import { AddressReporter, type LanAddress, lanAddresses } from './addresses.ts';
-import { type Metric, MetricReporter, gauge } from './reports.ts';
+import { type Metric, type MetricQueue, type MetricReporter, gauge, useMetricReporter } from './reports.ts';
 
 // Machine metrics: on an interval, sample the machine the agent runs on and submit the samples to the studio API as
 // metrics about the agent's device (see reports.ts). Each sample also finds the machine's addresses (addresses.ts),
 // reported whenever they change.
+//
+// Each sample is submitted as it is, a gauge, rather than summarised per interval as the other monitors' are, so this
+// runtime keeps its own timer rather than a sampler's (sampler.ts): it shares only the agent's reporter.
 
 /** What the machine metrics runtime should do. */
 export const MachineSpecSchema = z.object({
@@ -119,6 +122,7 @@ function metricsOf(sample: MachineSample): Metric[] {
 export class MachineRuntime {
   readonly status$ = new BehaviorSubject<MachineStatus>(STOPPED);
   private readonly reporter: MetricReporter;
+  private readonly queue: MetricQueue;
   private readonly addresses: AddressReporter;
   private timer: ReturnType<typeof setInterval> | undefined = undefined;
   private previousCpu: CpuTimes | undefined = undefined;
@@ -126,7 +130,8 @@ export class MachineRuntime {
   private ticking = false;
 
   constructor(private readonly config: AgentConfiguration) {
-    this.reporter = new MetricReporter(config);
+    this.reporter = useMetricReporter();
+    this.queue = this.reporter.queue();
     this.addresses = new AddressReporter();
   }
 
@@ -143,7 +148,7 @@ export class MachineRuntime {
   /** Stop sampling, and drop what was not submitted. Safe when it never started. */
   async teardown(): Promise<void> {
     this.clear();
-    this.reporter.clear();
+    this.queue.clear();
     this.addresses.clear();
     const current = this.status$.getValue();
     this.status$.next({ ...current, running: false, intervalMs: null, pending: 0 });
@@ -160,7 +165,7 @@ export class MachineRuntime {
     this.ticking = true;
     try {
       const sample = await this.sample();
-      this.reporter.queue(sample.observedAt, metricsOf(sample));
+      this.queue.queue(sample.observedAt, metricsOf(sample));
       this.update({ latest: sample });
       await this.submit(sample.addresses);
     } finally {
@@ -198,7 +203,7 @@ export class MachineRuntime {
    */
   private async submit(addresses: LanAddress[]) {
     try {
-      const { accepted, submittedAt } = await this.reporter.submit();
+      const { accepted, submittedAt } = await this.queue.submit();
       const current = this.status$.getValue();
       this.update({ submitted: current.submitted + accepted, lastSubmittedAt: submittedAt, lastError: null });
       await this.addresses.submit(addresses);
@@ -211,8 +216,8 @@ export class MachineRuntime {
   private update(change: Partial<MachineStatus>) {
     if (this.status$.closed) return;
     const current = this.status$.getValue();
-    const { reporter } = this;
-    this.status$.next({ ...current, ...change, subjectId: reporter.subjectId, pending: reporter.queued });
+    const { reporter, queue } = this;
+    this.status$.next({ ...current, ...change, subjectId: reporter.subjectId, pending: queue.queued });
   }
 
   private clear(): void {

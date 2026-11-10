@@ -2,7 +2,7 @@ import * as React from "react"
 import {
   MessageScroller as MessageScrollerPrimitive,
 } from "@shadcn/react/message-scroller"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 
 import { Button } from "@conservationtv/ui/components/button"
 import { ArrowDownIcon } from "@phosphor-icons/react"

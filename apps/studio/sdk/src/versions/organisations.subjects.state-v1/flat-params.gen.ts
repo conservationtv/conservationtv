@@ -2,11 +2,19 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdSubjectsBySubjectIdStateResponse } from './types.gen.js';
 import { GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema } from './zod.gen.js';
 
 export const SubjectStateV1ParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure (lowercase ID), or `external:<name>` for anything else.')
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.')
 });
 
 export type SubjectStateV1Params = z.infer<typeof SubjectStateV1ParamsSchema>;
+
+export type SubjectStateV1Input = {
+    id: string;
+    subjectId: string;
+};
+
+export type SubjectStateV1Output = GetOrganisationsByIdSubjectsBySubjectIdStateResponse;

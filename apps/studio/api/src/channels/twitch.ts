@@ -114,3 +114,36 @@ export async function twitchStreamKey(credentials: TwitchCredentials, broadcaste
   const keys = await helix(`/streams/key?${query}`, credentials.accessToken, StreamKeySchema);
   return keys.data[0]!.stream_key;
 }
+
+const StreamsSchema = z.object({
+  data: z.array(
+    z.object({
+      type: z.string(),
+      viewer_count: z.number(),
+      started_at: z.string(),
+      title: z.string(),
+      game_name: z.string(),
+      language: z.string()
+    })
+  )
+});
+export type Streams = z.output<typeof StreamsSchema>;
+
+/**
+ * What Twitch says of the broadcaster's channel now (Helix `GET /streams`, which needs no scope): live, with its
+ * viewers, when it went live, its title, category and language; or offline, when Twitch lists no live stream for it.
+ */
+export async function twitchStreamStats(credentials: TwitchCredentials, broadcasterId: string) {
+  const query = new URLSearchParams({ user_id: broadcasterId, type: 'live' }).toString();
+  const streams = await helix(`/streams?${query}`, credentials.accessToken, StreamsSchema);
+  const [stream] = streams.data;
+  if (stream === undefined) return { live: false as const };
+  return {
+    live: true as const,
+    viewers: stream.viewer_count,
+    startedAt: stream.started_at,
+    title: stream.title,
+    category: stream.game_name,
+    language: stream.language
+  };
+}

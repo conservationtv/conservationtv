@@ -92,3 +92,63 @@ export const machineMetrics = {
   diskFree: { name: 'machine.disk.free', unit: 'bytes', label: 'Free disk' },
   agentMemory: { name: 'agent.memory.rss', unit: 'bytes', label: 'Agent memory' }
 } as const satisfies Record<string, MetricDefinition>;
+
+/**
+ * A show's program as its output sends it, about `program:<showId>`: the program MediaMTX's `show/program`, which OBS
+ * streams to, and OBS itself, as obs-websocket reports it. Summarised from reads every few seconds.
+ */
+export const programMetrics = {
+  /** 1 while `show/program` is ready, else 0. Always available, so ready while the offline segment plays too. */
+  ready: { name: 'program.ready', unit: 'boolean', label: 'Ready' },
+  /** What `show/program` receives: OBS's stream, or the offline segment while OBS isn't publishing. */
+  ingestBitrate: { name: 'program.ingest.bitrate', unit: 'bits/s', label: 'Ingest bitrate' },
+  /** 1 while the offline segment plays because OBS isn't publishing, else 0. */
+  fallback: { name: 'program.fallback', unit: 'boolean', label: 'On the offline segment' },
+  /** The frames a second OBS renders (`GetStats`). */
+  fps: { name: 'obs.fps', unit: 'frames/s', label: 'OBS frame rate' },
+  /** Frames OBS skipped rendering, as it lagged (`GetStats`). */
+  renderSkipped: { name: 'obs.render.skipped', unit: 'frames/s', label: 'Frames skipped rendering' },
+  /** Frames OBS skipped encoding, as the encoder lagged (`GetStats`). */
+  outputSkipped: { name: 'obs.output.skipped', unit: 'frames/s', label: 'Frames skipped encoding' },
+  /** How congested OBS's stream to the program MediaMTX is, from 0 to 1 (`GetStreamStatus`). */
+  congestion: { name: 'obs.output.congestion', unit: 'ratio', label: 'Stream congestion' },
+  /** 1 while OBS's stream is reconnecting to the program MediaMTX, else 0 (`GetStreamStatus`). */
+  reconnecting: { name: 'obs.output.reconnecting', unit: 'boolean', label: 'Reconnecting' }
+} as const satisfies Record<string, MetricDefinition>;
+
+/** A show's forward to a channel, about `forward:<forwardId>`: the program MediaMTX's forward of `show/program`. */
+export const forwardMetrics = {
+  /** What the forward is sent of `show/program`. */
+  egressBitrate: { name: 'forward.egress.bitrate', unit: 'bits/s', label: 'Egress bitrate' },
+  /** 1 while the forward is connected to the channel's ingest and sending, else 0. */
+  connected: { name: 'forward.connected', unit: 'boolean', label: 'Connected' }
+} as const satisfies Record<string, MetricDefinition>;
+
+/** A show's preview, about `preview:<previewId>`: what its publisher reads of `show/program` to publish. */
+export const previewMetrics = {
+  /** What the preview's publisher is sent of `show/program`. */
+  egressBitrate: { name: 'preview.egress.bitrate', unit: 'bits/s', label: 'Egress bitrate' },
+  /** 1 while the preview's publisher is reading `show/program` to publish it, else 0. */
+  connected: { name: 'preview.connected', unit: 'boolean', label: 'Connected' }
+} as const satisfies Record<string, MetricDefinition>;
+
+/** A show's recorder, about `recorder:<recorderId>`: OBS recording the program, as `GetRecordStatus` reports it. */
+export const recorderMetrics = {
+  /** 1 while OBS records, else 0. */
+  active: { name: 'recorder.active', unit: 'boolean', label: 'Recording' },
+  /** The size of the recording OBS is making, so far. */
+  bytes: { name: 'recorder.bytes', unit: 'bytes', label: 'Recorded' }
+} as const satisfies Record<string, MetricDefinition>;
+
+/**
+ * A channel a show goes out to, about `channel:<channelId>`: what its platform says of it, as the show's output reads it
+ * (`organisations.channels.stats.get`) every few seconds. Twitch only, so far: an RTMP destination says nothing.
+ */
+export const channelMetrics = {
+  /** 1 while the platform says the channel is live, else 0. */
+  live: { name: 'channel.live', unit: 'boolean', label: 'Live' },
+  /** How many watch the channel, as the platform counts them; 0 while it is offline. */
+  viewers: { name: 'channel.viewers', unit: 'viewers', label: 'Viewers' },
+  /** How long the channel has been live, by the platform's start time; only while it is live. */
+  uptime: { name: 'channel.uptime', unit: 'seconds', label: 'Live for' }
+} as const satisfies Record<string, MetricDefinition>;

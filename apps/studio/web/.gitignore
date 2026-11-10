@@ -1,3 +1,5 @@
 node_modules/
 build/
 .react-router/
+# A stray `vignette bundle` output: the show's bundle is built into the API's contracts/show/ and served from there.
+public/show/

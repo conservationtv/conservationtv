@@ -6,7 +6,7 @@ import { SidebarProvider } from '@conservationtv/ui/components/sidebar';
 import { Spinner } from '@conservationtv/ui/components/spinner';
 
 import type { Route } from './+types/organisation-layout';
-import { RootSidebar } from '@/components/app/root-sidebar';
+import { OrganisationSidebar } from '@/components/app/organisation-sidebar';
 import { OrganisationContext } from '@/hooks/use-organisation';
 import { organisationQueryOptions } from '@/queries/organisations';
 
@@ -21,7 +21,7 @@ const OrganisationLayout: FC<Route.ComponentProps> = ({ params }) => {
     <OrganisationContext value={params.organisationId}>
       {/* The provider's wrapper is the row itself: sized to the pane rather than the viewport. */}
       <SidebarProvider className="min-h-0 min-w-0 flex-1 overflow-hidden" style={{ '--sidebar-width': '13rem' }}>
-        <RootSidebar />
+        <OrganisationSidebar />
         <ScrollArea role="region" aria-label="Page content" className="min-h-0 min-w-0 flex-1 overflow-hidden">
           {/* The sidebar stays while a page's queries load. */}
           <Suspense fallback={<Spinner className="m-10 size-5 text-muted-foreground" />}>

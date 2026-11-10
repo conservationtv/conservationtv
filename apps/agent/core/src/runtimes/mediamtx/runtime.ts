@@ -19,9 +19,7 @@ import { type MediamtxListening, MoqPublisherSchema, renderConfig } from './conf
 import { isMediamtxAlive, mediamtxVersion } from './control.ts';
 import { type EndpointRegistration, type RealisedEndpoint, realisedEndpoints } from './endpoints.ts';
 import { BroadcastJoiner } from './joiner.ts';
-import { RelayTrafficReporter } from './relay-traffic.ts';
-import type { AgentConfiguration } from '../../config.ts';
-import { MediamtxPathsSchema } from './paths.ts';
+import { MediamtxPathsSchema, MediamtxPreviewPathSchema } from './paths.ts';
 import { removeTlsFiles, writeTlsFiles, type TlsFiles } from './tls.ts';
 
 const logger = getLogger(['agent', 'mediamtx']);
@@ -29,22 +27,18 @@ const logger = getLogger(['agent', 'mediamtx']);
 /** How long asking MediaMTX whether it is serving, or which version it is, may take. */
 const SERVING_PROBE_TIMEOUT_MS = 2_000;
 
-/** Where to read a relay's traffic stats: the URL to dial, carrying its token as `?jwt=`. */
-const RelayStatsSourceSchema = z.object({ connect: z.url() });
-export type RelayStatsSource = z.output<typeof RelayStatsSourceSchema>;
-
 /** The streams to serve, who may read and publish them, and the exposures to publish from them. */
 export const StreamsSpecSchema = z.object({
   /** The gateway MediaMTX serves as, whose endpoints are registered with the studio API while it serves. */
   gatewayId: z.string().optional(),
   /** The paths to serve, each delivering an exposure. None, without `auth`, serves any path. */
   paths: MediamtxPathsSchema.default([]),
+  /** The paths shows' outputs publish their previews to, by token, for readers to read. */
+  previews: z.array(MediamtxPreviewPathSchema).default([]),
   /** Admit readers and publishers on this machine, and others only by tokens the studio API signs as this agent for this gateway; without it, anyone. */
   auth: MediamtxAuthSchema.optional(),
   /** Exposures to publish to MoQ relays from what is served: each rendition run by MediaMTX, joined by the agent. */
   publishers: z.array(MoqPublisherSchema).default([]),
-  /** The relays' traffic stats to report what they carry of the publishers' exposures from (relay-traffic.ts). */
-  stats: z.array(RelayStatsSourceSchema).default([]),
   /** The certificate to serve TLS with, for the gateway's hostname; without it, everything is served in the clear. */
   tls: MediamtxTlsSchema.optional()
 });
@@ -62,8 +56,6 @@ export interface MediamtxRuntimeOptions extends MediamtxListening {
   identity: DeviceIdentity;
   /** Where the gateway's endpoints are registered with the studio API while MediaMTX serves it (endpoints.ts). */
   registration: EndpointRegistration;
-  /** The agent's configuration, which reports of what the relays carry are submitted with (relay-traffic.ts). */
-  config: AgentConfiguration;
 }
 
 export interface MediamtxStatus extends ProcessStatus {
@@ -106,10 +98,8 @@ export class MediamtxRuntime {
   private readonly tlsDirectory: string;
   private answering: AuthAnswering | undefined;
   private readonly joiner = new BroadcastJoiner();
-  private readonly traffic: RelayTrafficReporter;
 
   constructor(private readonly options: MediamtxRuntimeOptions) {
-    this.traffic = new RelayTrafficReporter(options.config);
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
     this.process = new AttachedProcess(options.directory, { name: 'mediamtx', probe: isMediamtxAlive });
     this.watching = [
@@ -141,10 +131,6 @@ export class MediamtxRuntime {
     );
     await this.checkVersion(installed.version, signal);
     this.joiner.set(spec.publishers);
-    this.traffic.set(
-      spec.stats.map(({ connect }) => connect),
-      spec.publishers
-    );
     await this.register(spec);
     await this.binaries.prune(installed, { spare: 1 });
     if (moq !== undefined) await this.binaries.prune(moq, { spare: 1 });
@@ -178,7 +164,6 @@ export class MediamtxRuntime {
   async finalize(): Promise<void> {
     await this.options.registration.withdraw();
     this.joiner.close();
-    this.traffic.close();
     await this.process.stop();
     await this.answer(undefined);
     await this.binaries.clear();
@@ -203,7 +188,6 @@ export class MediamtxRuntime {
   dispose(): void {
     for (const subscription of this.watching) subscription.unsubscribe();
     this.joiner.close();
-    this.traffic.close();
     void this.answering?.close();
     this.process.dispose();
     this.status$.complete();
@@ -252,10 +236,10 @@ export class MediamtxRuntime {
 
   /** The config MediaMTX is to serve for `spec`, with the files it names (its certificate's) written for it to read. */
   private async render(spec: StreamsSpec, moq: Installed | undefined): Promise<string> {
-    const { paths, auth, publishers } = spec;
+    const { paths, previews, auth, publishers } = spec;
     const publishing = moq === undefined ? undefined : { moq: moq.path, publishers };
     const tls = await this.writeTls(spec);
-    return renderConfig({ ...this.options, paths, auth, publishing, tls });
+    return renderConfig({ ...this.options, paths, previews, auth, publishing, tls });
   }
 
   /**

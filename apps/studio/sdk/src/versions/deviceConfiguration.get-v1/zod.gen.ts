@@ -51,6 +51,14 @@ export const StatsConnectSchema = z.object({
     gatewayId: z.string()
 });
 
+export const PreviewConnectSchema = z.object({
+    id: z.string(),
+    showId: z.string(),
+    previewId: z.string(),
+    action: z.literal('publish'),
+    protocol: z.string()
+});
+
 export const DeviceConfigurationSchema = z.object({
     mediamtx: z.object({
         gatewayId: z.string(),
@@ -70,7 +78,11 @@ export const DeviceConfigurationSchema = z.object({
             ])
         })),
         publishers: z.array(PublisherSchema),
-        stats: z.array(StatsConnectSchema)
+        stats: z.array(StatsConnectSchema),
+        previews: z.array(z.object({
+            name: z.string(),
+            previewId: z.string()
+        })).optional()
     }).optional(),
     obs: z.object({
         show: z.object({
@@ -86,8 +98,23 @@ export const DeviceConfigurationSchema = z.object({
         }),
         forwards: z.array(z.object({
             organisationId: z.string(),
-            channelId: z.string()
-        }))
+            channelId: z.string(),
+            forwardId: z.string(),
+            stats: z.boolean().optional()
+        })),
+        previews: z.array(z.object({
+            previewId: z.string(),
+            gatewayId: z.string(),
+            connect: PreviewConnectSchema
+        })).optional(),
+        recording: z.object({
+            recorderId: z.string(),
+            kind: z.string(),
+            params: z.record(z.string(), z.unknown())
+        }).optional(),
+        program: z.object({
+            subjectId: z.string()
+        }).optional()
     }).optional()
 });
 

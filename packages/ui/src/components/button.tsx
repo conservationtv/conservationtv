@@ -1,6 +1,6 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 
 import { Spinner } from "@conservationtv/ui/components/spinner"
 import { buttonVariants } from "@conservationtv/ui/lib/button-variants"

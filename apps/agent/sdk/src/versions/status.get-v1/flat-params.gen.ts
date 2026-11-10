@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { GetStatusResponse } from './types.gen.js';
+
 export const StatusGetV1ParamsSchema = z.object({});
 
 export type StatusGetV1Params = z.infer<typeof StatusGetV1ParamsSchema>;
+
+export type StatusGetV1Output = GetStatusResponse;

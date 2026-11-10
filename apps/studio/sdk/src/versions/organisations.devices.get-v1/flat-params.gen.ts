@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdDevicesByDeviceIdResponse } from './types.gen.js';
 import { GetOrganisationsByIdDevicesByDeviceIdPathSchema } from './zod.gen.js';
 
 export const DeviceGetV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const DeviceGetV1ParamsSchema = z.object({
 });
 
 export type DeviceGetV1Params = z.infer<typeof DeviceGetV1ParamsSchema>;
+
+export type DeviceGetV1Input = {
+    id: string;
+    deviceId: string;
+};
+
+export type DeviceGetV1Output = GetOrganisationsByIdDevicesByDeviceIdResponse;

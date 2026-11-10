@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostReportsResponse, Schema0 } from './types.gen.js';
 import { PostReportsBodySchema } from './zod.gen.js';
 
 export const ReportSubmitV1ParamsSchema = z.object({
@@ -9,3 +10,70 @@ export const ReportSubmitV1ParamsSchema = z.object({
 });
 
 export type ReportSubmitV1Params = z.infer<typeof ReportSubmitV1ParamsSchema>;
+
+export type ReportSubmitV1Input = {
+    reports: Array<{
+        kind: 'event';
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+        observedAt: string;
+        payload: {
+            type: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            data?: {
+                [key: string]: Schema0;
+            };
+        };
+    } | {
+        kind: 'metric';
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+        observedAt: string;
+        payload: {
+            name: string;
+            unit?: string | null;
+            dimensions?: {
+                [key: string]: string;
+            };
+            value: number;
+        } | {
+            name: string;
+            unit?: string | null;
+            dimensions?: {
+                [key: string]: string;
+            };
+            summary: {
+                min: number;
+                max: number;
+                avg: number;
+                last: number;
+                count: number;
+            };
+        };
+    } | {
+        kind: 'log';
+        /**
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         */
+        subjectId: string;
+        observedAt: string;
+        payload: {
+            level: string;
+            message: string;
+            /**
+             * Settings validated by the implementation that reads them.
+             */
+            context?: {
+                [key: string]: Schema0;
+            };
+        };
+    }>;
+};
+
+export type ReportSubmitV1Output = PostReportsResponse;

@@ -24,6 +24,10 @@ export type System = {
                 path: string;
             };
         }>;
+        previews: Array<{
+            name: string;
+            previewId: string;
+        }>;
         publishers: Array<{
             exposureId: string;
             layout: 'tracks';
@@ -33,9 +37,6 @@ export type System = {
             }>;
             connect: string;
             broadcast: string;
-        }>;
-        stats: Array<{
-            connect: string;
         }>;
         gatewayId?: string;
         auth?: {
@@ -57,6 +58,15 @@ export type System = {
             rendition?: string;
         }>;
     };
+    relayTraffic?: {
+        sources: Array<{
+            connect: string;
+        }>;
+        exposures: Array<{
+            exposureId: string;
+            prefix: string;
+        }>;
+    };
     obs?: {
         show: {
             id: string;
@@ -70,6 +80,31 @@ export type System = {
             keyframeSeconds: number;
         };
         forwards: Array<{
+            organisationId: string;
+            channelId: string;
+            forwardId?: string;
+        }>;
+        previews: Array<{
+            previewId: string;
+            publish: {
+                protocol: 'moq';
+                connect: string;
+                broadcast: string;
+            } | {
+                protocol: 'rtmp' | 'rtmps';
+                url: string;
+            };
+        }>;
+        recording?: {
+            recorderId: string;
+            kind: string;
+        };
+        program?: {
+            subjectId: string;
+        };
+    };
+    channels?: {
+        channels: Array<{
             organisationId: string;
             channelId: string;
         }>;

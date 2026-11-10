@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchOrganisationsByIdResponse } from './types.gen.js';
 import { PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdPathSchema } from './zod.gen.js';
 
 export const OrganisationUpdateV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const OrganisationUpdateV1ParamsSchema = z.object({
 });
 
 export type OrganisationUpdateV1Params = z.infer<typeof OrganisationUpdateV1ParamsSchema>;
+
+export type OrganisationUpdateV1Input = {
+    id: string;
+    name: string;
+};
+
+export type OrganisationUpdateV1Output = PatchOrganisationsByIdResponse;

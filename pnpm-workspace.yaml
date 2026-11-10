@@ -17,6 +17,8 @@ catalog:
   # endpoint to iroh-http-node, which must load the same native addon.
   '@number0/iroh': npm:@strangecyan/iroh@1.1.0-relayed.1
   '@strangecyan/iroh-http-node': 0.3.0
+  # The same protocol in the browser, over iroh in WebAssembly: the studio web app dials agents with it.
+  '@strangecyan/iroh-http-browser': 0.3.0
   pg: 8.23.1
   typescript: 7.0.2
   zod: 4.6.2
@@ -57,6 +59,7 @@ minimumReleaseAgeExclude:
   - '@strangecyan/iroh-linux-x64-musl@1.1.0-relayed.1'
   - '@strangecyan/iroh-win32-x64-msvc@1.1.0-relayed.1'
   - '@strangecyan/iroh@1.1.0-relayed.1'
+  - '@strangecyan/iroh-http-browser@0.3.0'
   - '@strangecyan/iroh-http-core@0.3.0'
   - '@strangecyan/iroh-http-node@0.3.0'
   - '@strangecyan/vignette@2.1.0'

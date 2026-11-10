@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PatchAccountResponse } from './types.gen.js';
 import { PatchAccountBodySchema } from './zod.gen.js';
 
 export const AccountUpdateV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const AccountUpdateV1ParamsSchema = z.object({
 });
 
 export type AccountUpdateV1Params = z.infer<typeof AccountUpdateV1ParamsSchema>;
+
+export type AccountUpdateV1Input = {
+    name?: string;
+    image?: string | null;
+};
+
+export type AccountUpdateV1Output = PatchAccountResponse;

@@ -34,6 +34,11 @@ export const GetOrganisationsByIdSubjectsStatesQuerySchema = z.object({
         'agent',
         'stream',
         'exposure',
+        'program',
+        'forward',
+        'preview',
+        'recorder',
+        'channel',
         'external'
     ]).register(z.globalRegistry, {
         description: 'Only subjects of this kind: the part of their ID before the colon.'

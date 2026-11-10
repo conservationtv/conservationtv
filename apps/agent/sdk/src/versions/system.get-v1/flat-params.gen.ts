@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { GetSystemResponse } from './types.gen.js';
+
 export const SystemGetV1ParamsSchema = z.object({});
 
 export type SystemGetV1Params = z.infer<typeof SystemGetV1ParamsSchema>;
+
+export type SystemGetV1Output = GetSystemResponse;

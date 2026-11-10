@@ -2,7 +2,7 @@ import * as React from "react"
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 
 import { markerVariants } from "@conservationtv/ui/lib/marker-variants"
 

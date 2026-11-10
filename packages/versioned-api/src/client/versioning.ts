@@ -1,19 +1,18 @@
 import * as z from 'zod';
 import {
   ClientTransport,
-  type BoundMethod,
+  type Operation,
+  type OperationCall,
+  type OperationDescriptor,
   type OperationOutcome,
-  type RawResult,
-  type ResultCall,
-  type SdkClass,
-  type SdkMethod
+  type RawResult
 } from './transport.js';
 import { asError } from './errors.js';
 
 // The runtime behind the generated Client. A versioned operation exposes every version this client was
 // generated with (`v1`, `v2`, ...) and the version negotiated with the server (`version`). The server can serve multiple versions
 // of each; `handshake` reads which from the OpenAPI document it publishes. A versionless operation, one the spec gives
-// no version, is the plain SDK method: no handshake, no header, and no compatibility guarantees.
+// no version, is the plain call: no handshake, no header, and no compatibility guarantees.
 
 export const OPERATION_VERSION_HEADER = 'Operation-Version';
 
@@ -41,12 +40,12 @@ export type PublishedPathItem = z.output<typeof PublishedPathItemSchema>;
 export const PublishedDocumentSchema = z.object({ paths: z.record(z.string(), PublishedPathItemSchema) });
 export type PublishedDocument = z.output<typeof PublishedDocumentSchema>;
 
-export type { ClientConfig, HttpRuntime, SdkClassArgs, SdkClass, SdkMethod } from './transport.js';
+export type { ClientConfig, HttpRuntime } from './transport.js';
 
 type VersionKey = `v${number}`;
 
-/** An operation's versions, each mapped to the BaseClient generated from the spec that defines it. */
-export type OperationVersions = Partial<Record<VersionKey, SdkClass>>;
+/** An operation's versions, each described from the contract that defines it. */
+export type OperationVersions = Partial<Record<VersionKey, Operation>>;
 
 type VersionNumber<Key> = Key extends `v${infer N extends number}` ? N : never;
 type VersionKeys<Versions> = keyof Versions & VersionKey;
@@ -55,13 +54,11 @@ export interface VersionTag<Version extends number> {
   readonly version: Version;
 }
 
-/** One version of an operation: the generated SDK method, tagged with its version. */
+/** One version of an operation: its call, tagged with its version. */
 export type VersionedCall<Method, Version extends number> = Method & VersionTag<Version>;
 
-type CallFor<Id extends string, Versions, Key> =
-  Key extends VersionKeys<Versions>
-    ? VersionedCall<ResultCall<SdkMethod<Versions[Key], Id>>, VersionNumber<Key>>
-    : never;
+type CallFor<Versions, Key> =
+  Key extends VersionKeys<Versions> ? VersionedCall<OperationCall<Versions[Key]>, VersionNumber<Key>> : never;
 
 export interface OperationState<Id extends string, Versions> {
   readonly operationId: Id;
@@ -73,7 +70,7 @@ export interface OperationState<Id extends string, Versions> {
 }
 
 export type VersionedOperation<Id extends string, Versions extends OperationVersions> = OperationState<Id, Versions> & {
-  readonly [Key in VersionKeys<Versions>]: CallFor<Id, Versions, Key>;
+  readonly [Key in VersionKeys<Versions>]: CallFor<Versions, Key>;
 };
 
 /** An operation's version getter throws this before a handshake succeeds; a call handshakes itself instead. */
@@ -159,8 +156,8 @@ export abstract class ClientCore extends ClientTransport {
     versions: Versions
   ): VersionedOperation<Id, Versions> {
     const calls = new Map<string, VersionTag<number>>();
-    for (const [key, sdk] of Object.entries(versions)) {
-      if (sdk) calls.set(key, this.versionedCall(operationId, Number(key.slice(1)), sdk));
+    for (const [key, described] of Object.entries(versions)) {
+      if (described) calls.set(key, this.versionedCall(operationId, Number(key.slice(1)), described));
     }
     this.supported.set(
       operationId,
@@ -179,11 +176,8 @@ export abstract class ClientCore extends ClientTransport {
   }
 
   /** Unversioned operations use the same success-body-or-Error result as versioned calls. */
-  protected versionless<const Id extends string, Sdk extends SdkClass>(
-    operationId: Id,
-    sdk: Sdk
-  ): ResultCall<SdkMethod<Sdk, Id>> {
-    return this.operation(operationId, sdk);
+  protected versionless<Described extends Operation>(described: Described): OperationCall<Described> {
+    return this.call(described);
   }
 
   /**
@@ -220,10 +214,10 @@ export abstract class ClientCore extends ClientTransport {
     return this.negotiated.get(operationId);
   }
 
-  private versionedCall(operationId: string, version: number, sdk: SdkClass): VersionTag<number> {
+  private versionedCall(operationId: string, version: number, described: OperationDescriptor): VersionTag<number> {
     const call = async (...args: unknown[]) => {
       try {
-        return await this.invoke(operationId, version, this.method(sdk, operationId), args);
+        return await this.invoke(operationId, version, described, args);
       } catch (error) {
         return asError(error);
       }
@@ -235,7 +229,7 @@ export abstract class ClientCore extends ClientTransport {
   private async invoke(
     operationId: string,
     version: number,
-    method: BoundMethod,
+    described: OperationDescriptor,
     args: unknown[]
   ): Promise<OperationOutcome> {
     // Until one succeeds, every call handshakes, joining one in flight; its HandshakeError becomes this call's result.
@@ -244,13 +238,13 @@ export abstract class ClientCore extends ClientTransport {
     if (!this.available.get(operationId)?.includes(version))
       return new OperationVersionUnavailableError(operationId, version, negotiated);
 
-    const first = await this.send(method, args, version);
+    const first = await this.send(described, args, version);
     if (!first.mismatched) return first.result;
     await this.handshake();
     const current = this.versionOf(operationId);
     if (!this.available.get(operationId)?.includes(version))
       return new OperationVersionChangedError(operationId, version, current);
-    return (await this.send(method, args, version)).result;
+    return (await this.send(described, args, version)).result;
   }
 }
 

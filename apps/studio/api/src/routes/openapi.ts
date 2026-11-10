@@ -55,10 +55,21 @@ export const unsupportedConnection = errorResponse(
 export const unsupportedStats = errorResponse(
   "The gateway publishes no traffic stats through this API: only built-in MoQ relays do, and no organisation's own gateway"
 );
+export const previewConnectionRefused = errorResponse(
+  "The caller may see the preview but not connect to it like this: members only read, and only the show's output publishes it"
+);
+export const unsupportedPreviewConnection = errorResponse(
+  "Connections to the preview's gateway are not made through this API, the gateway is not read or published by that protocol, or the rendition is not `default`, the one a preview offers"
+);
+export const outputInUse = errorResponse('The agent is the output of another show: an agent runs one OBS');
 export const gatewayUnavailable = errorResponse(
   'The database is unavailable, or the gateway is not configured or cannot issue credentials right now'
 );
 
 export const channelUnavailable = errorResponse('The channel could not be reached: Twitch refused or did not answer');
+
+export const unsupportedChannelStats = errorResponse(
+  'The channel publishes no stats through this API: only Twitch channels do, and no RTMP destination'
+);
 
 export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');

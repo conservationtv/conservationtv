@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostInvitationsByIdDeclineResponse } from './types.gen.js';
 import { PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema } from './zod.gen.js';
 
 export const InvitationDeclineV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const InvitationDeclineV1ParamsSchema = z.object({
 });
 
 export type InvitationDeclineV1Params = z.infer<typeof InvitationDeclineV1ParamsSchema>;
+
+export type InvitationDeclineV1Input = {
+    id: string;
+    code?: string;
+};
+
+export type InvitationDeclineV1Output = PostInvitationsByIdDeclineResponse;

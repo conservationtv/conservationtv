@@ -91,14 +91,42 @@ export const SystemSchema = z.object({
     metrics: z.object({
         runtime: z.object({
             running: z.boolean(),
-            intervalMs: z.number().nullable(),
-            subjectId: z.string().nullable(),
-            lastScrapedAt: z.string().nullable(),
-            samples: z.number(),
             pending: z.number(),
             submitted: z.number(),
             lastSubmittedAt: z.string().nullable(),
-            lastError: z.string().nullable()
+            lastError: z.string().nullable(),
+            intervalMs: z.number().nullable(),
+            subjectId: z.string().nullable(),
+            lastScrapedAt: z.string().nullable(),
+            samples: z.number()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
+    relayTraffic: z.object({
+        runtime: z.object({
+            running: z.boolean(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastError: z.string().nullable(),
+            sources: z.number(),
+            nodes: z.number(),
+            lastSampledAt: z.string().nullable()
         }),
         apply: z.union([
             z.object({
@@ -133,12 +161,18 @@ export const SystemSchema = z.object({
                 'disposed'
             ]).nullable(),
             streaming: z.enum([
+                'reconnecting',
                 'starting',
-                'streaming',
-                'reconnecting'
+                'streaming'
+            ]).nullable(),
+            recording: z.enum([
+                'recording',
+                'starting',
+                'stopping'
             ]).nullable(),
             program: z.object({
                 forwards: z.array(z.string()),
+                previews: z.array(z.string()),
                 cameras: z.record(z.string(), z.object({
                     fallback: z.boolean()
                 })),
@@ -152,6 +186,14 @@ export const SystemSchema = z.object({
                 restarts: z.number(),
                 lastError: z.string().nullable()
             }).nullable(),
+            reports: z.object({
+                running: z.boolean(),
+                pending: z.number(),
+                submitted: z.number(),
+                lastSubmittedAt: z.string().nullable(),
+                lastError: z.string().nullable(),
+                lastScrapedAt: z.string().nullable()
+            }).nullable(),
             state: z.enum([
                 'running',
                 'stopped',
@@ -161,6 +203,33 @@ export const SystemSchema = z.object({
             pid: z.number().nullable(),
             restarts: z.number(),
             lastError: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
+    channels: z.object({
+        runtime: z.object({
+            running: z.boolean(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastError: z.string().nullable(),
+            channels: z.number(),
+            lastReadAt: z.string().nullable()
         }),
         apply: z.union([
             z.object({

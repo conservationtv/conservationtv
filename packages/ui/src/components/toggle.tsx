@@ -1,6 +1,6 @@
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle"
 import { type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@conservationtv/ui/lib/utils"
 
 import { toggleVariants } from "@conservationtv/ui/lib/toggle-variants"
 

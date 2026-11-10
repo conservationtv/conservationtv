@@ -14,7 +14,6 @@ export const ChannelSchema = z.object({
         name: z.string(),
         externalId: z.string().nullable(),
         externalLogin: z.string().nullable(),
-        enabled: z.boolean(),
         createdAt: z.string()
     }))
 });

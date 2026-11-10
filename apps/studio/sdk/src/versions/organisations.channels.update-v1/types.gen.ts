@@ -15,7 +15,6 @@ export type Channel = {
     name: string;
     externalId: string | null;
     externalLogin: string | null;
-    enabled: boolean;
     createdAt: string;
 };
 
@@ -24,11 +23,7 @@ export type PatchOrganisationsByIdChannelsByChannelIdData = {
         /**
          * What the channel is called in the studio.
          */
-        name?: string;
-        /**
-         * Whether the broadcast goes out to it.
-         */
-        enabled?: boolean;
+        name: string;
     };
     path: {
         /**

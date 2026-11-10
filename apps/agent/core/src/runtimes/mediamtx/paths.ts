@@ -27,6 +27,13 @@ export const MediamtxPathSchema = z.strictObject({
 });
 export type MediamtxPath = z.output<typeof MediamtxPathSchema>;
 
+/** A path a show's output publishes one of its previews to (src/configuration in the studio API). */
+export const MediamtxPreviewPathSchema = z.strictObject({
+  name: z.string().max(200).regex(PATH_NAME),
+  previewId: z.uuid()
+});
+export type MediamtxPreviewPath = z.output<typeof MediamtxPreviewPathSchema>;
+
 /** What tells one path from another: its name, and what it delivers. */
 type PathIdentity = Pick<MediamtxPath, 'name' | 'exposureId' | 'rendition'>;
 

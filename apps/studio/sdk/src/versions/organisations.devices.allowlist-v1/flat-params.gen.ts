@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdDevicesAllowlistResponse } from './types.gen.js';
 import { GetOrganisationsByIdDevicesAllowlistPathSchema } from './zod.gen.js';
 
 export const DeviceAllowlistV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const DeviceAllowlistV1ParamsSchema = z.object({
 });
 
 export type DeviceAllowlistV1Params = z.infer<typeof DeviceAllowlistV1ParamsSchema>;
+
+export type DeviceAllowlistV1Input = {
+    id: string;
+};
+
+export type DeviceAllowlistV1Output = GetOrganisationsByIdDevicesAllowlistResponse;

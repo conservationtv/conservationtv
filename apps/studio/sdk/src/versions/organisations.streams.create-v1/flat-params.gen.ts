@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdStreamsResponse } from './types.gen.js';
 import { PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsPathSchema } from './zod.gen.js';
 
 export const StreamCreateV1ParamsSchema = z.object({
@@ -11,3 +12,11 @@ export const StreamCreateV1ParamsSchema = z.object({
 });
 
 export type StreamCreateV1Params = z.infer<typeof StreamCreateV1ParamsSchema>;
+
+export type StreamCreateV1Input = {
+    id: string;
+    name: string;
+    sourceDeviceId?: string | null;
+};
+
+export type StreamCreateV1Output = PostOrganisationsByIdStreamsResponse;

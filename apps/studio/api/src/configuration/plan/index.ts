@@ -1,3 +1,4 @@
+import { programSubject } from '@conservationtv/reports';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
 import { trustedTransaction } from '../../db/transaction.ts';
 import { ensureGatewayTls } from '../../gateways/certificates.ts';
@@ -5,8 +6,7 @@ import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
 import type { Rendition } from '../../topology/settings.ts';
 import { useEnvironment } from '../../env/env.ts';
-import { selectEnabledChannels } from '../../services/channels.ts';
-import { selectOutputShow } from '../../services/shows.ts';
+import { selectOutputPlan, selectOutputShow } from '../../services/shows.ts';
 import {
   type ExposureInput,
   type Feed,
@@ -15,6 +15,7 @@ import {
   mediamtxAuth,
   selectGatewayIdentity,
   selectGatewayKinds,
+  selectGatewayPreviews,
   selectLocalGateway,
   selectPreferredAddress,
   selectStreams
@@ -32,8 +33,10 @@ export type * from './types.ts';
 // A device's configuration: what it should be doing, derived from the topology whenever it asks, never stored. Only
 // agents have one so far, with a section for each runtime it runs, and none for those it doesn't. The network's active
 // agent runs the MediaMTX gateway on its network (`mediamtx`), and delivers each exposure of a stream that is a hop of
-// it: its gateway's, and those pinned to it on other gateways. A show's output runs OBS (`obs`), following the show;
-// what it plays comes with the show, so only which show is here.
+// it: its gateway's, and those pinned to it on other gateways; and takes each show's preview delivered to its gateway,
+// on a path a show's output publishes to. A show's output runs OBS (`obs`), following the show;
+// what it plays comes with the show, so here are only which show, and where its program goes: the show's encoding, its
+// enabled forwards, its previews and its recorder.
 //
 // A hop takes its media from its upstream, or with none from the stream's source, which only a camera can be so far.
 // What the agent does with it depends on where the hop is delivered:
@@ -59,7 +62,13 @@ export async function planConfiguration(device: AuthenticatedDevice): Promise<Pl
   return { mediamtx, obs };
 }
 
-/** The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway. */
+/** The one rendition a preview is published at: the program, as it is encoded (src/gateways/connect.ts). */
+const PREVIEW_RENDITION: Rendition = 'default';
+
+/**
+ * The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway: its streams' paths and
+ * publishers, and a path for each show's preview delivered to its gateway.
+ */
 async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfiguration | undefined> {
   const planned = await trustedTransaction(async () => {
     const gatewayId = await selectLocalGateway(device);
@@ -69,7 +78,12 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfig
     const gatewayKinds = await selectGatewayKinds(device.organisationId);
     const gateway = await selectGatewayIdentity(gatewayId);
     const address = await selectPreferredAddress(device.id);
+    const previews = await selectGatewayPreviews(device.organisationId, gatewayId);
     const configuration = planActiveAgent({ organisationId: device.organisationId, gatewayId, gatewayKinds, streams });
+    configuration.previews = previews.map(preview => ({
+      name: mediamtxPath(preview.id, PREVIEW_RENDITION),
+      previewId: preview.id
+    }));
     return { configuration, gateway, address };
   });
   if (planned === undefined) return undefined;
@@ -80,27 +94,52 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfig
   return configuration;
 }
 
-/**
- * The program's encoding: 1080p30 at 6000 kbps with 2-second keyframes, Twitch's ceiling for unpartnered channels, and
- * the size of MediaMTX's built-in offline slate, which the program's fallback plays when OBS is gone.
- */
-const PROGRAM_OUTPUT = { width: 1920, height: 1080, fps: 30, bitrateKbps: 6000, keyframeSeconds: 2 } as const;
-
-/** The `obs` runtime, for a show's output: the show, and where its stream is followed. */
+/** The `obs` runtime, for a show's output: the show, where its stream is followed, and where its program goes. */
 async function planObs(device: AuthenticatedDevice): Promise<ObsConfiguration | undefined> {
   const planned = await trustedTransaction(async () => {
     const output = await selectOutputShow(device.id);
     if (output === undefined) return undefined;
-    const channels = await selectEnabledChannels(output.organisationId);
-    return { output, channels };
+    const show = await selectOutputPlan(output.showId);
+    const gatewayKinds = await selectGatewayKinds(output.organisationId);
+    return { output, show: show!, gatewayKinds };
   });
   if (planned === undefined) return undefined;
-  const { output, channels } = planned;
+  const { output, show, gatewayKinds } = planned;
+  const { organisationId, showId } = output;
   const environment = useEnvironment();
-  // A show is its organisation's broadcast for now, so it is followed at the organisation's (src/routes/shows.ts).
-  const url = new URL(`/organisations/${output.organisationId}/show`, environment.variables.APP_URL);
-  const forwards = channels.map(channel => ({ organisationId: output.organisationId, channelId: channel.id }));
-  return { show: { id: output.showId, url: url.href }, output: PROGRAM_OUTPUT, forwards };
+  // Every show follows its organisation's one broadcast for now, at the organisation's (src/routes/broadcast.ts).
+  const url = new URL(`/organisations/${organisationId}/show`, environment.variables.APP_URL);
+  const { forwards, previews, recorders, ...encoding } = show;
+  const [recorder] = recorders;
+  return {
+    show: { id: showId, url: url.href },
+    output: encoding,
+    forwards: forwards.map(forward => ({
+      organisationId,
+      channelId: forward.channelId,
+      forwardId: forward.id,
+      stats: forward.channel?.kind === 'twitch'
+    })),
+    previews: previews.map(preview => ({
+      previewId: preview.id,
+      gatewayId: preview.gatewayId,
+      connect: {
+        id: organisationId,
+        showId,
+        previewId: preview.id,
+        action: 'publish',
+        protocol: previewProtocol(preview.gatewayId, gatewayKinds)
+      }
+    })),
+    ...(recorder && { recording: { recorderId: recorder.id, kind: recorder.kind, params: recorder.params } }),
+    program: { subjectId: programSubject(showId) }
+  };
+}
+
+/** How an output publishes a preview: by MoQ to a gateway that takes it as tracks of one broadcast, otherwise RTMP. */
+function previewProtocol(gatewayId: string, gatewayKinds: Map<string, string>) {
+  const provider = gatewayProvider(gatewayId, gatewayKinds.get(gatewayId) ?? '');
+  return provider.ingest.moq === 'tracks' ? 'moq' : 'rtmp';
 }
 
 /** What planning an active agent decides from: its MediaMTX gateway, and each stream it delivers some of. */

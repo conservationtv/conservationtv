@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdGatewaysByGatewayIdResponse } from './types.gen.js';
 import { GetOrganisationsByIdGatewaysByGatewayIdPathSchema } from './zod.gen.js';
 
 export const GatewayGetV1ParamsSchema = z.object({
@@ -10,3 +11,10 @@ export const GatewayGetV1ParamsSchema = z.object({
 });
 
 export type GatewayGetV1Params = z.infer<typeof GatewayGetV1ParamsSchema>;
+
+export type GatewayGetV1Input = {
+    id: string;
+    gatewayId: 'conservationtv' | string;
+};
+
+export type GatewayGetV1Output = GetOrganisationsByIdGatewaysByGatewayIdResponse;

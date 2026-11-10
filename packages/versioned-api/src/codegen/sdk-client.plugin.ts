@@ -1,10 +1,11 @@
 import { $, definePluginConfig, type DefinePlugin, type Plugin } from '@hey-api/openapi-ts';
-import { CURRENT, type Operations, type OperationVersion } from './operation-versions.js';
+import { operationIdOf, paramsBase } from './operation-params.js';
+import { CURRENT, type Operations, type OperationVersion, type SpecEntry } from './operation-versions.js';
 
 interface SdkClientOptions {
   name: 'sdk-client';
   operations: Operations;
-  /** Where the generated Client imports its runtime (`ClientCore`) from. */
+  /** Where the generated Client imports its runtime (`ClientCore`, `operation`) from. */
   runtimeModule: string;
 }
 interface SdkClientUserOptions {
@@ -19,14 +20,14 @@ type SdkClientPlugin = DefinePlugin<UserConfig, Config>;
 interface Branch {
   children: Map<string, Branch>;
   versions?: OperationVersion[];
-  versionless?: boolean;
-  webSocket?: boolean;
+  versionless?: SpecEntry;
 }
 
 /**
- * Generates Client: the supplied BaseClient's operation tree. A versioned operation maps its versions to the
- * BaseClient generated from the spec that defines it (this job's for `current`, `../versions/<operationId>-vN` otherwise); a
- * versionless one is this job's BaseClient method, or for a WebSocket the address it would be sent to. The generated fetch client (`createClient`, `mergeHeaders`) is
+ * Generates Client: the operations as a tree, each a descriptor of its method, URL and fields, typed by the Input and
+ * Output `flatParams` writes for its contract (this job's for `current`, `../versions/<operationId>-vN` otherwise). A
+ * versioned operation maps its versions to their descriptors; a versionless one is its call, or for a WebSocket the
+ * address it would be sent to. The generated fetch client (`createClient`, `mergeHeaders`, `buildClientParams`) is
  * handed to the runtime as the `http` field. Runs in the job for the current spec; tested with Hey API 0.99.0.
  */
 export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
@@ -36,26 +37,46 @@ export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
     operations: { order: [], versioned: [], versionless: [] },
     runtimeModule: '@conservationtv/versioned-api/client'
   },
-  dependencies: ['@hey-api/sdk'],
+  dependencies: ['flat-params'],
   handler({ plugin }) {
-    const base = plugin.querySymbol({
-      artifact: 'sdk',
-      category: 'utility',
-      resource: 'class',
-      resourceId: 'BaseClient'
-    });
-    if (!base) throw new Error('sdk-client requires the supplied instance BaseClient SDK config.');
     const core = plugin.symbolFactory.register('ClientCore', { external: plugin.config.runtimeModule });
+    const describe = plugin.symbolFactory.register('operation', { external: plugin.config.runtimeModule });
     const createClient = plugin.symbolFactory.register('createClient', { external: './client/index.js' });
     const mergeHeaders = plugin.symbolFactory.register('mergeHeaders', { external: './client/index.js' });
-    const sources = new Map([[CURRENT, base]]);
-    const sdkFor = (source: string) => {
-      let symbol = sources.get(source);
-      if (!symbol) {
-        symbol = plugin.symbolFactory.register('BaseClient', { external: `../versions/${source}/sdk.gen.js` });
-        sources.set(source, symbol);
+    const buildClientParams = plugin.symbolFactory.register('buildClientParams', { external: './client/index.js' });
+
+    // This job's operations by operationId, as its own `flatParams` names their types.
+    const parsed = new Map<string, string>();
+    plugin.forEach('operation', ({ operation }) => {
+      const operationId = operationIdOf(operation);
+      if (operationId) parsed.set(operationId, operation.id);
+    });
+    /** An operation's Input or Output: this job's for the current spec, its contract folder's otherwise. */
+    const typeOf = (entry: SpecEntry, role: 'input' | 'output') => {
+      if (entry.source !== CURRENT) {
+        const name = `${paramsBase(entry.operationId)}V${entry.version}${role === 'input' ? 'Input' : 'Output'}`;
+        return plugin.symbolFactory.register(name, {
+          external: `../versions/${entry.source}/flat-params.gen.js`,
+          kind: 'type'
+        });
       }
+      const symbol = plugin.querySymbol({
+        artifact: 'flat-params',
+        category: 'type',
+        resource: 'operation',
+        resourceId: parsed.get(entry.operationId),
+        role
+      });
+      if (!symbol) throw new Error(`sdk-client requires flat-params' ${role} type: ${entry.operationId}`);
       return symbol;
+    };
+    /** `operation<Output, Input>({ method, url, fields })`, without Input or fields when a call takes no parameters. */
+    const descriptor = (entry: SpecEntry) => {
+      const described = $.object().prop('method', $.literal(entry.method)).prop('url', $.literal(entry.path));
+      const call = $(describe).call(described).generic(typeOf(entry, 'output'));
+      if (!entry.fields.length) return call;
+      described.prop('fields', $.fromValue(entry.fields));
+      return call.generic(typeOf(entry, 'input'));
     };
 
     const root: Branch = { children: new Map() };
@@ -78,23 +99,19 @@ export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
       if (branch.versions == null) branch.versions = [];
       branch.versions.push(operation);
     }
-    for (const operation of plugin.config.operations.versionless) {
-      const branch = leaf(operation.operationId);
-      branch.versionless = true;
-      branch.webSocket = operation.webSocket;
-    }
+    for (const operation of plugin.config.operations.versionless) leaf(operation.operationId).versionless = operation;
 
     const operationCall = (operationId: string, versions: OperationVersion[]) => {
       const sdks = $.object();
       for (const operation of versions.toSorted((a, b) => a.version - b.version)) {
-        sdks.prop(`v${operation.version}`, $(sdkFor(operation.source)));
+        sdks.prop(`v${operation.version}`, descriptor(operation));
       }
       return $('this').attr('versioned').call($.literal(operationId), sdks);
     };
-    const versionlessCall = (operationId: string, webSocket: boolean) =>
+    const versionlessCall = (operation: SpecEntry) =>
       $('this')
-        .attr(webSocket ? 'webSocket' : 'versionless')
-        .call($.literal(operationId), $(base));
+        .attr(operation.webSocket ? 'webSocket' : 'versionless')
+        .call(descriptor(operation));
     type Expression =
       | ReturnType<typeof $.object>
       | ReturnType<typeof operationCall>
@@ -103,9 +120,7 @@ export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
       // A leaf is an operation (versioned or not); anything else is a namespace object of its children.
       if (branch.versions || branch.versionless) {
         if (branch.children.size) throw new Error(`operationId is also a namespace: ${operationId}`);
-        return branch.versions
-          ? operationCall(operationId, branch.versions)
-          : versionlessCall(operationId, branch.webSocket ?? false);
+        return branch.versions ? operationCall(operationId, branch.versions) : versionlessCall(branch.versionless!);
       }
       const object = $.object().pretty();
       for (const [part, child] of branch.children) object.prop(part, toExpression(`${operationId}.${part}`, child));
@@ -122,7 +137,14 @@ export const sdkClient = definePluginConfig<SdkClientPlugin['Types']>({
         'The SDK for servers running any release since the oldest supported snapshot. Call `handshake()` before versioned operations.'
       );
     declaration.field('http', field =>
-      field.readonly().assign($.object().prop('createClient', $(createClient)).prop('mergeHeaders', $(mergeHeaders)))
+      field
+        .readonly()
+        .assign(
+          $.object()
+            .prop('createClient', $(createClient))
+            .prop('mergeHeaders', $(mergeHeaders))
+            .prop('buildClientParams', $(buildClientParams))
+        )
     );
     for (const [part, child] of root.children) {
       declaration.field(part, field => field.readonly().assign(toExpression(part, child)));

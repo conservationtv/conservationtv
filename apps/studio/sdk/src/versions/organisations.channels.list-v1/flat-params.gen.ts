@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdChannelsResponse } from './types.gen.js';
 import { GetOrganisationsByIdChannelsPathSchema } from './zod.gen.js';
 
 export const ChannelListV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const ChannelListV1ParamsSchema = z.object({
 });
 
 export type ChannelListV1Params = z.infer<typeof ChannelListV1ParamsSchema>;
+
+export type ChannelListV1Input = {
+    id: string;
+};
+
+export type ChannelListV1Output = GetOrganisationsByIdChannelsResponse;

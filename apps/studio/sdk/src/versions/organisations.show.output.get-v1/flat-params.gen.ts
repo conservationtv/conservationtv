@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { GetOrganisationsByIdShowOutputResponse } from './types.gen.js';
 import { GetOrganisationsByIdShowOutputPathSchema } from './zod.gen.js';
 
 export const OutputGetV1ParamsSchema = z.object({
@@ -9,3 +10,9 @@ export const OutputGetV1ParamsSchema = z.object({
 });
 
 export type OutputGetV1Params = z.infer<typeof OutputGetV1ParamsSchema>;
+
+export type OutputGetV1Input = {
+    id: string;
+};
+
+export type OutputGetV1Output = GetOrganisationsByIdShowOutputResponse;

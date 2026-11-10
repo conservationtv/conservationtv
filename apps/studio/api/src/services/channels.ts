@@ -4,9 +4,10 @@ import { channelCredentials, channels } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { unchanged } from '../topology/transaction.ts';
 
-// Where an organisation's broadcast goes out to (src/db/schemas/channels.ts), all in the principal's request session:
-// members see the channels, administrators connect and manage them, and their credentials (`channel_credential`) are
-// read and refreshed only by `channelBroadcaster`, which administrators hold and the show's output agent is granted.
+// Where an organisation's shows go out to (src/db/schemas/channels.ts), all in the principal's request session: members
+// see the channels, administrators connect and manage them, and their credentials (`channel_credential`) are read and
+// refreshed only by `channelBroadcaster`, which administrators hold and each show's output agent is granted. Which
+// shows forward to a channel is the shows' (`show_forward`, src/services/shows.ts).
 // No trusted code reads a stream key: row-level security decides who does.
 
 /** What is listed of a channel. Its credentials are in a table of their own. */
@@ -16,7 +17,6 @@ const listed = {
   name: channels.name,
   externalId: channels.externalId,
   externalLogin: channels.externalLogin,
-  enabled: channels.enabled,
   createdAt: channels.createdAt
 };
 
@@ -28,7 +28,6 @@ export interface NewRtmpChannel {
 
 export interface ChannelChanges {
   name?: string;
-  enabled?: boolean;
 }
 
 export interface TwitchConnection {
@@ -91,12 +90,12 @@ export async function connectTwitchChannel(organisationId: string, connection: T
   return row!;
 }
 
-/** Rename the channel or turn it on or off: `forbidden` or `not_found` when the write reaches no row. */
+/** Rename the channel: `forbidden` or `not_found` when the write reaches no row. */
 export async function updateChannel(organisationId: string, channelId: string, changes: ChannelChanges) {
   const db = useDB();
   const [row] = await db
     .update(channels)
-    .set({ name: changes.name, enabled: changes.enabled })
+    .set({ name: changes.name })
     .where(and(eq(channels.organisationId, organisationId), eq(channels.id, channelId)))
     .returning(listed);
   if (!row) throw await unchanged(channels.id, channelId);
@@ -111,16 +110,6 @@ export async function deleteChannel(organisationId: string, channelId: string) {
     .where(and(eq(channels.organisationId, organisationId), eq(channels.id, channelId)))
     .returning({ id: channels.id });
   if (deleted.length === 0) throw await unchanged(channels.id, channelId);
-}
-
-/** The organisation's enabled channels: what its broadcast forwards to. Trusted code, for planning: IDs only. */
-export function selectEnabledChannels(organisationId: string) {
-  const db = useDB({ trusted: true });
-  return db
-    .select({ id: channels.id })
-    .from(channels)
-    .where(and(eq(channels.organisationId, organisationId), eq(channels.enabled, true)))
-    .orderBy(channels.id);
 }
 
 /** The channel with its credentials, if the principal is one of the organisation's broadcasters. */

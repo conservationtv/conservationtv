@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponse, Rendition } from './types.gen.js';
 import { PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema } from './zod.gen.js';
 
 export const ExposureConnectV1ParamsSchema = z.object({
@@ -14,3 +15,14 @@ export const ExposureConnectV1ParamsSchema = z.object({
 });
 
 export type ExposureConnectV1Params = z.infer<typeof ExposureConnectV1ParamsSchema>;
+
+export type ExposureConnectV1Input = {
+    id: string;
+    streamId: string;
+    exposureId: string;
+    action: 'read' | 'publish';
+    protocol: string;
+    rendition?: Rendition;
+};
+
+export type ExposureConnectV1Output = PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponse;

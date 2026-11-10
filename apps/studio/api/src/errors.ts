@@ -40,7 +40,8 @@ const categories = {
   relay_unavailable: { status: 503, description: 'The relay cannot admit the device right now.' },
   unsupported_gateway: { status: 422, description: 'Connections to that gateway are not made through this API.' },
   gateway_unavailable: { status: 503, description: 'The gateway cannot be connected to right now.' },
-  channel_unavailable: { status: 503, description: 'The channel cannot be reached right now.' }
+  channel_unavailable: { status: 503, description: 'The channel cannot be reached right now.' },
+  unsupported_channel: { status: 422, description: 'That channel publishes no stats through this API.' }
 } satisfies Record<string, ErrorCategory>;
 
 export type ApiFailureCode = keyof typeof categories;

@@ -13,17 +13,13 @@ export const ChannelSchema = z.object({
     name: z.string(),
     externalId: z.string().nullable(),
     externalLogin: z.string().nullable(),
-    enabled: z.boolean(),
     createdAt: z.string()
 });
 
 export const PatchOrganisationsByIdChannelsByChannelIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'What the channel is called in the studio.'
-    }).optional(),
-    enabled: z.boolean().register(z.globalRegistry, {
-        description: 'Whether the broadcast goes out to it.'
-    }).optional()
+    })
 });
 
 export const PatchOrganisationsByIdChannelsByChannelIdPathSchema = z.object({

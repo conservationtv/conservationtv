@@ -1,23 +1,11 @@
-import { useState, type FC } from 'react';
-import { useForm } from '@tanstack/react-form';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { Suspense, type FC } from 'react';
+import { useSuspenseQueries } from '@tanstack/react-query';
+import { Link, Outlet, useSearchParams } from 'react-router';
 import { BroadcastIcon, PlusIcon, TwitchLogoIcon } from '@phosphor-icons/react';
-import type { Channel } from '@conservationtv/studio-sdk';
+import type { Channel, Show } from '@conservationtv/studio-sdk';
 import { Alert, AlertDescription, AlertTitle } from '@conservationtv/ui/components/alert';
-import { Badge } from '@conservationtv/ui/components/badge';
 import { Button } from '@conservationtv/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@conservationtv/ui/components/dialog';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
-import { FieldGroup } from '@conservationtv/ui/components/field';
 import {
   Item,
   ItemActions,
@@ -27,19 +15,12 @@ import {
   ItemMedia,
   ItemTitle
 } from '@conservationtv/ui/components/item';
-import { Switch } from '@conservationtv/ui/components/switch';
 
 import type { Route } from './+types/channels';
+import { ChannelPlatformState } from '@/components/channels/platform-state';
 import { FormError } from '@/components/common/form-error';
-import { RtmpChannelSchema, type RtmpChannelInput } from '@/forms/schemas';
-import { TextField } from '@/forms/text-field';
-import {
-  channelListQueryOptions,
-  useConnectTwitch,
-  useCreateRtmpChannel,
-  useDeleteChannel,
-  useSetChannelEnabled
-} from '@/queries/channels';
+import { channelListQueryOptions, useConnectTwitch, useDeleteChannel } from '@/queries/channels';
+import { showListQueryOptions } from '@/queries/shows';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Channels · conservation.tv studio' }];
 
@@ -52,32 +33,42 @@ const CONNECT_ERRORS = new Map([
 const CONNECT_FAILED = 'Twitch couldn’t be reached, or didn’t answer as expected. Try again in a moment.';
 
 /**
- * Where the organisation's broadcast goes out to: Twitch channels, connected on Twitch, and any RTMP(S) destination by
- * its server URL and stream key. The show's output agent forwards the program to every channel that is on. Stream keys
- * are never shown again once saved: only the output agent reads them.
+ * Where the organisation's shows go out to: Twitch channels, connected on Twitch, and any RTMP(S) destination by its
+ * server URL and stream key. A show's output agent forwards its program to each channel the show forwards to. Stream
+ * keys are never shown again once saved: only output agents read them.
  */
 const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
   const { organisationId } = params;
-  const list = useSuspenseQuery(channelListQueryOptions(organisationId));
-  const { channels } = list.data;
+  const [channelsQuery, showsQuery] = useSuspenseQueries({
+    queries: [channelListQueryOptions(organisationId), showListQueryOptions(organisationId)]
+  });
+  const { channels } = channelsQuery.data;
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-10 py-10">
       <header className="flex flex-col gap-2">
         <h1 className="text-custom-21 font-semibold text-foreground">Channels</h1>
         <p className="max-w-2xl text-custom-13 leading-(--leading-custom-body) text-custom-text-secondary">
-          Where the show goes out to. The show’s output sends the broadcast to every channel that’s on, and keeps them
-          live with a holding picture while OBS restarts.
+          Where shows go out to. A show’s output sends the broadcast to each channel the show forwards to, and keeps
+          them live with a holding picture while OBS restarts.
         </p>
       </header>
       <ConnectOutcome />
       <div className="flex flex-wrap items-center gap-2">
         <ConnectTwitchButton organisationId={organisationId} />
-        <AddRtmpDialog organisationId={organisationId} />
+        <Button variant="outline" nativeButton={false} render={<Link to="rtmp/new" />}>
+          <PlusIcon />
+          Add RTMP destination
+        </Button>
       </div>
       {channels.length ? (
         <ItemGroup className="gap-2">
           {channels.map(channel => (
-            <ChannelRow key={channel.id} organisationId={organisationId} channel={channel} />
+            <ChannelRow
+              key={channel.id}
+              organisationId={organisationId}
+              channel={channel}
+              shows={showsQuery.data.filter(show => show.forwards.some(forward => forward.channelId === channel.id))}
+            />
           ))}
         </ItemGroup>
       ) : (
@@ -93,6 +84,8 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
           </EmptyHeader>
         </Empty>
       )}
+      {/* A dialog routed over the page: adding an RTMP destination at `rtmp/new`. */}
+      <Outlet />
     </div>
   );
 };
@@ -138,121 +131,69 @@ const ConnectTwitchButton: FC<ConnectTwitchButtonProps> = ({ organisationId }) =
   );
 };
 
-interface AddRtmpDialogProps {
-  organisationId: string;
-}
-
-/** Add any RTMP(S) destination by hand: YouTube, a second Twitch account, a restreaming service. */
-const AddRtmpDialog: FC<AddRtmpDialogProps> = ({ organisationId }) => {
-  const [open, setOpen] = useState(false);
-  const create = useCreateRtmpChannel(organisationId);
-  const defaultValues: RtmpChannelInput = { name: '', url: '', key: '' };
-  const form = useForm({
-    defaultValues,
-    validators: { onSubmit: RtmpChannelSchema },
-    onSubmit: ({ value, formApi }) =>
-      create.mutate(RtmpChannelSchema.parse(value), {
-        onSuccess: () => {
-          formApi.reset();
-          setOpen(false);
-        }
-      })
-  });
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
-      <DialogTrigger render={<Button variant="outline" />}>
-        <PlusIcon />
-        Add RTMP destination
-      </DialogTrigger>
-      <DialogContent>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>Add an RTMP destination</DialogTitle>
-            <DialogDescription>
-              The server URL and stream key from the service’s streaming settings. The key is kept encrypted and isn’t
-              shown again.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup className="py-4">
-            <form.Field name="name">
-              {field => <TextField field={field} label="Name" placeholder="YouTube" autoComplete="off" />}
-            </form.Field>
-            <form.Field name="url">
-              {field => (
-                <TextField
-                  field={field}
-                  label="Server URL"
-                  placeholder="rtmps://a.rtmp.youtube.com/live2"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              )}
-            </form.Field>
-            <form.Field name="key">
-              {field => (
-                <TextField field={field} label="Stream key" type="password" autoComplete="off" spellCheck={false} />
-              )}
-            </form.Field>
-            <FormError error={create.error} />
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="submit" loading={create.isPending}>
-              Add destination
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 interface ChannelRowProps {
   organisationId: string;
   channel: Channel;
+  /** The shows forwarded to it, on or off. */
+  shows: Show[];
 }
 
-/** A channel: what it is, whether the broadcast goes out to it, and removing it. */
-const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel }) => {
-  const setEnabled = useSetChannelEnabled(organisationId);
+/** A channel: what it is, what its platform last said of it, the shows that go out on it, and removing it. */
+const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel, shows }) => {
   const remove = useDeleteChannel(organisationId);
-  const enabled = setEnabled.isPending ? setEnabled.variables.enabled : channel.enabled;
   return (
     <Item variant="outline">
       <ItemMedia variant="icon">{channel.kind === 'twitch' ? <TwitchLogoIcon /> : <BroadcastIcon />}</ItemMedia>
       <ItemContent>
-        <ItemTitle>
+        <ItemTitle className="flex-wrap">
           {channel.name}
-          {enabled ? null : <Badge variant="outline">Off</Badge>}
+          <Suspense fallback={null}>
+            <ChannelPlatformState channelId={channel.id} />
+          </Suspense>
         </ItemTitle>
         <ItemDescription>
           {channel.kind === 'twitch' && channel.externalLogin
             ? `twitch.tv/${channel.externalLogin}`
             : 'RTMP destination'}
         </ItemDescription>
-        <FormError error={setEnabled.error ?? remove.error} />
+        <ChannelShows channelId={channel.id} shows={shows} />
+        <FormError error={remove.error} />
       </ItemContent>
       <ItemActions>
-        <Switch
-          aria-label={enabled ? `Stop sending to ${channel.name}` : `Send to ${channel.name}`}
-          checked={enabled}
-          disabled={setEnabled.isPending || remove.isPending}
-          onCheckedChange={next => setEnabled.mutate({ channelId: channel.id, enabled: next })}
-        />
         <Button variant="ghost" size="sm" loading={remove.isPending} onClick={() => remove.mutate(channel.id)}>
           Remove
         </Button>
       </ItemActions>
     </Item>
+  );
+};
+
+interface ChannelShowsProps {
+  channelId: string;
+  /** The shows forwarded to the channel. */
+  shows: Show[];
+}
+
+/** Which shows go out on the channel, each opening its page, and which of them have it switched off. */
+const ChannelShows: FC<ChannelShowsProps> = ({ channelId, shows }) => {
+  if (shows.length === 0) {
+    return <ItemDescription>No show goes out on it. Add it to a show from the show’s page.</ItemDescription>;
+  }
+  return (
+    <ItemDescription>
+      On{' '}
+      {shows.map((show, index) => {
+        const enabled = show.forwards.some(forward => forward.channelId === channelId && forward.enabled);
+        return (
+          <span key={show.id}>
+            {index > 0 && ', '}
+            <Link to={`../shows/${show.id}`} relative="path" className="text-foreground underline underline-offset-2">
+              {show.name}
+            </Link>
+            {!enabled && ' (off)'}
+          </span>
+        );
+      })}
+    </ItemDescription>
   );
 };

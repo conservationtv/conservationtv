@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { cameraOrigin } from '../../cameras/drivers.ts';
-import { agents, deviceAddresses, gateways, organisations } from '../../db/schema.ts';
+import { agents, deviceAddresses, gateways, organisations, showPreviews } from '../../db/schema.ts';
 import { useDB } from '../../db/transaction.ts';
 import { useEnvironment } from '../../env/env.ts';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
@@ -106,6 +106,15 @@ export async function selectGatewayKinds(organisationId: string) {
     .from(gateways)
     .where(eq(gateways.organisationId, organisationId));
   return new Map(rows.map(row => [row.id, row.kind]));
+}
+
+/** The shows' previews delivered to the gateway: each is published to a path of its own there, by the show's output. */
+export function selectGatewayPreviews(organisationId: string, gatewayId: string) {
+  const db = useDB({ trusted: true });
+  return db
+    .select({ id: showPreviews.id })
+    .from(showPreviews)
+    .where(and(eq(showPreviews.organisationId, organisationId), eq(showPreviews.gatewayId, gatewayId)));
 }
 
 // Planning, from what was read alone.

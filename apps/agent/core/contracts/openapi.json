@@ -478,6 +478,32 @@
                   "running": {
                     "type": "boolean"
                   },
+                  "pending": {
+                    "type": "number"
+                  },
+                  "submitted": {
+                    "type": "number"
+                  },
+                  "lastSubmittedAt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lastError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "intervalMs": {
                     "anyOf": [
                       {
@@ -510,6 +536,115 @@
                   },
                   "samples": {
                     "type": "number"
+                  }
+                },
+                "required": [
+                  "running",
+                  "pending",
+                  "submitted",
+                  "lastSubmittedAt",
+                  "lastError",
+                  "intervalMs",
+                  "subjectId",
+                  "lastScrapedAt",
+                  "samples"
+                ]
+              },
+              "apply": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applying"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applied"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "failed"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "attempt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision",
+                      "error",
+                      "attempt"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "runtime",
+              "apply"
+            ]
+          },
+          "relayTraffic": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "running": {
+                    "type": "boolean"
                   },
                   "pending": {
                     "type": "number"
@@ -536,18 +671,33 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "sources": {
+                    "type": "number"
+                  },
+                  "nodes": {
+                    "type": "number"
+                  },
+                  "lastSampledAt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
                   "running",
-                  "intervalMs",
-                  "subjectId",
-                  "lastScrapedAt",
-                  "samples",
                   "pending",
                   "submitted",
                   "lastSubmittedAt",
-                  "lastError"
+                  "lastError",
+                  "sources",
+                  "nodes",
+                  "lastSampledAt"
                 ]
               },
               "apply": {
@@ -691,9 +841,24 @@
                       {
                         "type": "string",
                         "enum": [
+                          "reconnecting",
                           "starting",
-                          "streaming",
-                          "reconnecting"
+                          "streaming"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "recording": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "recording",
+                          "starting",
+                          "stopping"
                         ]
                       },
                       {
@@ -707,6 +872,12 @@
                         "type": "object",
                         "properties": {
                           "forwards": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "previews": {
                             "type": "array",
                             "items": {
                               "type": "string"
@@ -761,11 +932,71 @@
                         },
                         "required": [
                           "forwards",
+                          "previews",
                           "cameras",
                           "state",
                           "pid",
                           "restarts",
                           "lastError"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reports": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "running": {
+                            "type": "boolean"
+                          },
+                          "pending": {
+                            "type": "number"
+                          },
+                          "submitted": {
+                            "type": "number"
+                          },
+                          "lastSubmittedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastError": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastScrapedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "running",
+                          "pending",
+                          "submitted",
+                          "lastSubmittedAt",
+                          "lastError",
+                          "lastScrapedAt"
                         ]
                       },
                       {
@@ -812,11 +1043,159 @@
                   "show",
                   "phase",
                   "streaming",
+                  "recording",
                   "program",
+                  "reports",
                   "state",
                   "pid",
                   "restarts",
                   "lastError"
+                ]
+              },
+              "apply": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applying"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applied"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "failed"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "attempt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision",
+                      "error",
+                      "attempt"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "runtime",
+              "apply"
+            ]
+          },
+          "channels": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "running": {
+                    "type": "boolean"
+                  },
+                  "pending": {
+                    "type": "number"
+                  },
+                  "submitted": {
+                    "type": "number"
+                  },
+                  "lastSubmittedAt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lastError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "channels": {
+                    "type": "number"
+                  },
+                  "lastReadAt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "running",
+                  "pending",
+                  "submitted",
+                  "lastSubmittedAt",
+                  "lastError",
+                  "channels",
+                  "lastReadAt"
                 ]
               },
               "apply": {
@@ -911,7 +1290,9 @@
           "machine",
           "streams",
           "metrics",
-          "obs"
+          "relayTraffic",
+          "obs",
+          "channels"
         ]
       }
     }
@@ -1057,6 +1438,24 @@
                             ]
                           }
                         },
+                        "previews": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "previewId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "previewId"
+                            ]
+                          }
+                        },
                         "publishers": {
                           "type": "array",
                           "items": {
@@ -1109,20 +1508,6 @@
                             ]
                           }
                         },
-                        "stats": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "connect": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "connect"
-                            ]
-                          }
-                        },
                         "gatewayId": {
                           "type": "string"
                         },
@@ -1167,8 +1552,8 @@
                       },
                       "required": [
                         "paths",
-                        "publishers",
-                        "stats"
+                        "previews",
+                        "publishers"
                       ]
                     },
                     "metrics": {
@@ -1202,6 +1587,47 @@
                       "required": [
                         "intervalMs",
                         "paths"
+                      ]
+                    },
+                    "relayTraffic": {
+                      "type": "object",
+                      "properties": {
+                        "sources": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "connect": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "connect"
+                            ]
+                          }
+                        },
+                        "exposures": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "exposureId": {
+                                "type": "string"
+                              },
+                              "prefix": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "exposureId",
+                              "prefix"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "sources",
+                        "exposures"
                       ]
                     },
                     "obs": {
@@ -1259,6 +1685,122 @@
                               },
                               "channelId": {
                                 "type": "string"
+                              },
+                              "forwardId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "organisationId",
+                              "channelId"
+                            ]
+                          }
+                        },
+                        "previews": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "previewId": {
+                                "type": "string"
+                              },
+                              "publish": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "protocol": {
+                                        "type": "string",
+                                        "const": "moq"
+                                      },
+                                      "connect": {
+                                        "type": "string"
+                                      },
+                                      "broadcast": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "protocol",
+                                      "connect",
+                                      "broadcast"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "protocol": {
+                                        "type": "string",
+                                        "enum": [
+                                          "rtmp",
+                                          "rtmps"
+                                        ]
+                                      },
+                                      "url": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "protocol",
+                                      "url"
+                                    ]
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "previewId",
+                              "publish"
+                            ]
+                          }
+                        },
+                        "recording": {
+                          "type": "object",
+                          "properties": {
+                            "recorderId": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "recorderId",
+                            "kind"
+                          ]
+                        },
+                        "program": {
+                          "type": "object",
+                          "properties": {
+                            "subjectId": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "subjectId"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "show",
+                        "output",
+                        "forwards",
+                        "previews"
+                      ]
+                    },
+                    "channels": {
+                      "type": "object",
+                      "properties": {
+                        "channels": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "organisationId": {
+                                "type": "string"
+                              },
+                              "channelId": {
+                                "type": "string"
                               }
                             },
                             "required": [
@@ -1269,9 +1811,7 @@
                         }
                       },
                       "required": [
-                        "show",
-                        "output",
-                        "forwards"
+                        "channels"
                       ]
                     }
                   }
@@ -1860,6 +2400,32 @@
                       "running": {
                         "type": "boolean"
                       },
+                      "pending": {
+                        "type": "number"
+                      },
+                      "submitted": {
+                        "type": "number"
+                      },
+                      "lastSubmittedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "intervalMs": {
                         "anyOf": [
                           {
@@ -1892,6 +2458,115 @@
                       },
                       "samples": {
                         "type": "number"
+                      }
+                    },
+                    "required": [
+                      "running",
+                      "pending",
+                      "submitted",
+                      "lastSubmittedAt",
+                      "lastError",
+                      "intervalMs",
+                      "subjectId",
+                      "lastScrapedAt",
+                      "samples"
+                    ]
+                  },
+                  "apply": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applying"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applied"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "failed"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "attempt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision",
+                          "error",
+                          "attempt"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "apply"
+                ]
+              },
+              "relayTraffic": {
+                "type": "object",
+                "properties": {
+                  "runtime": {
+                    "type": "object",
+                    "properties": {
+                      "running": {
+                        "type": "boolean"
                       },
                       "pending": {
                         "type": "number"
@@ -1918,18 +2593,33 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "sources": {
+                        "type": "number"
+                      },
+                      "nodes": {
+                        "type": "number"
+                      },
+                      "lastSampledAt": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     },
                     "required": [
                       "running",
-                      "intervalMs",
-                      "subjectId",
-                      "lastScrapedAt",
-                      "samples",
                       "pending",
                       "submitted",
                       "lastSubmittedAt",
-                      "lastError"
+                      "lastError",
+                      "sources",
+                      "nodes",
+                      "lastSampledAt"
                     ]
                   },
                   "apply": {
@@ -2073,9 +2763,24 @@
                           {
                             "type": "string",
                             "enum": [
+                              "reconnecting",
                               "starting",
-                              "streaming",
-                              "reconnecting"
+                              "streaming"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "recording": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "recording",
+                              "starting",
+                              "stopping"
                             ]
                           },
                           {
@@ -2089,6 +2794,12 @@
                             "type": "object",
                             "properties": {
                               "forwards": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "previews": {
                                 "type": "array",
                                 "items": {
                                   "type": "string"
@@ -2143,11 +2854,71 @@
                             },
                             "required": [
                               "forwards",
+                              "previews",
                               "cameras",
                               "state",
                               "pid",
                               "restarts",
                               "lastError"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "reports": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "running": {
+                                "type": "boolean"
+                              },
+                              "pending": {
+                                "type": "number"
+                              },
+                              "submitted": {
+                                "type": "number"
+                              },
+                              "lastSubmittedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastError": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastScrapedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "running",
+                              "pending",
+                              "submitted",
+                              "lastSubmittedAt",
+                              "lastError",
+                              "lastScrapedAt"
                             ]
                           },
                           {
@@ -2194,11 +2965,159 @@
                       "show",
                       "phase",
                       "streaming",
+                      "recording",
                       "program",
+                      "reports",
                       "state",
                       "pid",
                       "restarts",
                       "lastError"
+                    ]
+                  },
+                  "apply": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applying"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applied"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "failed"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "attempt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision",
+                          "error",
+                          "attempt"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "apply"
+                ]
+              },
+              "channels": {
+                "type": "object",
+                "properties": {
+                  "runtime": {
+                    "type": "object",
+                    "properties": {
+                      "running": {
+                        "type": "boolean"
+                      },
+                      "pending": {
+                        "type": "number"
+                      },
+                      "submitted": {
+                        "type": "number"
+                      },
+                      "lastSubmittedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "lastError": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "channels": {
+                        "type": "number"
+                      },
+                      "lastReadAt": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "running",
+                      "pending",
+                      "submitted",
+                      "lastSubmittedAt",
+                      "lastError",
+                      "channels",
+                      "lastReadAt"
                     ]
                   },
                   "apply": {
@@ -2293,7 +3212,9 @@
               "machine",
               "streams",
               "metrics",
-              "obs"
+              "relayTraffic",
+              "obs",
+              "channels"
             ]
           }
         }
@@ -2443,6 +3364,24 @@
                       ]
                     }
                   },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "previewId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "previewId"
+                      ]
+                    }
+                  },
                   "publishers": {
                     "type": "array",
                     "items": {
@@ -2495,20 +3434,6 @@
                       ]
                     }
                   },
-                  "stats": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "connect": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "connect"
-                      ]
-                    }
-                  },
                   "gatewayId": {
                     "type": "string"
                   },
@@ -2553,8 +3478,8 @@
                 },
                 "required": [
                   "paths",
-                  "publishers",
-                  "stats"
+                  "previews",
+                  "publishers"
                 ]
               },
               "metrics": {
@@ -2588,6 +3513,47 @@
                 "required": [
                   "intervalMs",
                   "paths"
+                ]
+              },
+              "relayTraffic": {
+                "type": "object",
+                "properties": {
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "connect": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "connect"
+                      ]
+                    }
+                  },
+                  "exposures": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "prefix": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "prefix"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "sources",
+                  "exposures"
                 ]
               },
               "obs": {
@@ -2645,6 +3611,122 @@
                         },
                         "channelId": {
                           "type": "string"
+                        },
+                        "forwardId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "organisationId",
+                        "channelId"
+                      ]
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "previewId": {
+                          "type": "string"
+                        },
+                        "publish": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "protocol": {
+                                  "type": "string",
+                                  "const": "moq"
+                                },
+                                "connect": {
+                                  "type": "string"
+                                },
+                                "broadcast": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "protocol",
+                                "connect",
+                                "broadcast"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "protocol": {
+                                  "type": "string",
+                                  "enum": [
+                                    "rtmp",
+                                    "rtmps"
+                                  ]
+                                },
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "protocol",
+                                "url"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "previewId",
+                        "publish"
+                      ]
+                    }
+                  },
+                  "recording": {
+                    "type": "object",
+                    "properties": {
+                      "recorderId": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "recorderId",
+                      "kind"
+                    ]
+                  },
+                  "program": {
+                    "type": "object",
+                    "properties": {
+                      "subjectId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectId"
+                    ]
+                  }
+                },
+                "required": [
+                  "show",
+                  "output",
+                  "forwards",
+                  "previews"
+                ]
+              },
+              "channels": {
+                "type": "object",
+                "properties": {
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organisationId": {
+                          "type": "string"
+                        },
+                        "channelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -2655,9 +3737,7 @@
                   }
                 },
                 "required": [
-                  "show",
-                  "output",
-                  "forwards"
+                  "channels"
                 ]
               }
             }

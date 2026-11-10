@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import type { PostGrantsExchangeResponse } from './types.gen.js';
 import { PostGrantsExchangeBodySchema } from './zod.gen.js';
 
 export const GrantExchangeV1ParamsSchema = z.object({
@@ -11,3 +12,22 @@ export const GrantExchangeV1ParamsSchema = z.object({
 });
 
 export type GrantExchangeV1Params = z.infer<typeof GrantExchangeV1ParamsSchema>;
+
+export type GrantExchangeV1Input = {
+    subject: string;
+    requested_capabilities: {
+        moq?: {
+            root: string;
+            publish: Array<'' | string>;
+            subscribe: Array<'' | string>;
+            stats?: boolean;
+        };
+        iroh?: {
+            endpoint_id: string;
+            action: 'connect';
+        };
+    };
+    expires_in: number;
+};
+
+export type GrantExchangeV1Output = PostGrantsExchangeResponse;

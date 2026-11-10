@@ -1,4 +1,11 @@
-export { operationParams, paramsBase, type OperationParams, type ParamField } from './operation-params.js';
+export {
+  nameByPath,
+  operationParams,
+  paramsBase,
+  type NamedField,
+  type OperationParams,
+  type ParamField
+} from './operation-params.js';
 export {
   CURRENT,
   readOperations,
@@ -9,4 +16,3 @@ export {
 } from './operation-versions.js';
 export { flatParams } from './flat-params.plugin.js';
 export { sdkClient } from './sdk-client.plugin.js';
-export { shareClient } from './share-client.js';

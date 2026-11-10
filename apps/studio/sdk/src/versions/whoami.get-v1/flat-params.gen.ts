@@ -2,6 +2,10 @@
 
 import * as z from 'zod';
 
+import type { GetWhoamiResponse } from './types.gen.js';
+
 export const WhoamiGetV1ParamsSchema = z.object({});
 
 export type WhoamiGetV1Params = z.infer<typeof WhoamiGetV1ParamsSchema>;
+
+export type WhoamiGetV1Output = GetWhoamiResponse;

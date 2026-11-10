@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AttachedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
+import { programSubject, recorderSubject } from '@conservationtv/reports';
 import type { Client, DeviceIdentity } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import type { Snapshot, Target, TargetPhase } from '@strangecyan/vignette';
@@ -19,9 +20,10 @@ import {
   type ProgramPorts,
   type ProgramStatus
 } from './program.ts';
+import { ProgramMetrics, type ProgramMetricsStatus } from './program-metrics.ts';
 import { obsLaunch, websocketPassword, writeObsProfile, writeObsSettings } from './settings.ts';
 import { showStream } from './show-stream.ts';
-import { type StreamingState, StreamingWatchdog } from './streaming.ts';
+import { type RecordingState, type RecordingTarget, type StreamingState, StreamingWatchdog } from './streaming.ts';
 
 const logger = getLogger(['agent', 'obs']);
 
@@ -39,13 +41,37 @@ export type Output = z.output<typeof OutputSchema>;
 const DEFAULT_OUTPUT: Output = { width: 1920, height: 1080, fps: 30, bitrateKbps: 6000, keyframeSeconds: 2 };
 
 /**
- * The show to send out: the one the agent is the output of, followed at `url`, how to encode it, and the channels to
- * forward it to, whose ingests the agent asks for (src/configuration in the studio API).
+ * Where a preview is published, as studio-configuration.ts resolves its `connect`: by MoQ, to the relay URL carrying
+ * its token, as a broadcast; or pushed by RTMP(S) to a URL carrying its token.
+ */
+const ObsPreviewPublishSchema = z.discriminatedUnion('protocol', [
+  z.object({ protocol: z.literal('moq'), connect: z.string(), broadcast: z.string() }),
+  z.object({ protocol: z.enum(['rtmp', 'rtmps']), url: z.string() })
+]);
+export type ObsPreviewPublish = z.output<typeof ObsPreviewPublishSchema>;
+
+/**
+ * The show to send out: the one the agent is the output of, followed at `url`, how to encode it, the channels to
+ * forward it to, whose ingests the agent asks for, the previews to publish it to, the recorder recording it, and the
+ * subject its reports are about (src/configuration in the studio API). A forward with no `forwardId`, from an API that
+ * doesn't name it, is forwarded to but not reported about; with no `program`, the reports are about `program:<show>`.
+ * What the channels' platforms say of them is the `channels` key's to report (runtimes/channel-stats.ts).
  */
 export const ObsSpecSchema = z.object({
   show: z.object({ id: z.string(), url: z.url() }),
   output: OutputSchema.default(DEFAULT_OUTPUT),
-  forwards: z.array(z.object({ organisationId: z.string(), channelId: z.string() })).default([])
+  forwards: z
+    .array(
+      z.object({
+        organisationId: z.string(),
+        channelId: z.string(),
+        forwardId: z.string().optional()
+      })
+    )
+    .default([]),
+  previews: z.array(z.object({ previewId: z.string(), publish: ObsPreviewPublishSchema })).default([]),
+  recording: z.object({ recorderId: z.string(), kind: z.string() }).optional(),
+  program: z.object({ subjectId: z.string() }).optional()
 });
 export type ObsSpec = z.output<typeof ObsSpecSchema>;
 
@@ -68,7 +94,7 @@ export interface ObsRuntimeOptions {
   programPorts: ProgramPorts;
   /** The port obs-websocket serves on, on this machine. */
   websocketPort: number;
-  /** The studio API, as the agent's device, for read sessions. */
+  /** The studio API, as the agent's device, for read sessions and the channels' ingests. */
   studio: Client;
   /** The agent's identity, which following the show is signed as. */
   identity: DeviceIdentity;
@@ -84,8 +110,12 @@ export interface ObsStatus extends ProcessStatus {
   phase: TargetPhase | null;
   /** Whether OBS is streaming the program. */
   streaming: StreamingState;
-  /** The program MediaMTX, and the channels it forwards to. */
+  /** Whether OBS is recording the program, while the show has a recorder. */
+  recording: RecordingState | null;
+  /** The program MediaMTX, and the channels and previews it sends to. */
   program: ProgramStatus | null;
+  /** The program's reports. */
+  reports: ProgramMetricsStatus | null;
 }
 
 const STOPPED: ObsStatus = {
@@ -95,11 +125,16 @@ const STOPPED: ObsStatus = {
   show: null,
   phase: null,
   streaming: null,
-  program: null
+  recording: null,
+  program: null,
+  reports: null
 };
 
 /** OBS's executable name, as `ps` reports it. */
 const PROCESS_NAME = process.platform === 'win32' ? 'obs64' : 'OBS';
+
+/** The only recorder kind there is: OBS recording the program alongside streaming it. */
+const OBS_RECORDER = 'obs';
 
 /** A first start scans plugins, and macOS checks a new app: OBS may take a while to answer. */
 const READY_TIMEOUT_MS = 60_000;
@@ -126,6 +161,7 @@ export class ObsRuntime {
   private readonly binaries: BinaryStore;
   private readonly process: AttachedProcess;
   private readonly program: ProgramMediamtx;
+  private readonly metrics: ProgramMetrics;
   private readonly watching: Subscription[];
   private following: Following | undefined = undefined;
   private watchdog: StreamingWatchdog | undefined = undefined;
@@ -142,17 +178,20 @@ export class ObsRuntime {
       readyTimeoutMs: READY_TIMEOUT_MS
     });
     this.program = new ProgramMediamtx(join(options.directory, 'program'), options.programPorts);
+    this.metrics = new ProgramMetrics(this.program, () => this.watchdog?.reading$.value ?? null);
     this.watching = [
       this.process.status$.subscribe(status => this.update(status)),
-      this.program.status$.subscribe(program => this.update({ program }))
+      this.program.status$.subscribe(program => this.update({ program })),
+      this.metrics.status$.subscribe(reports => this.update({ reports }))
     ];
   }
 
   /**
-   * Installs OBS, moq and MediaMTX if need be; has the program MediaMTX running, forwarding to the spec's channels; has
-   * OBS running with obs-websocket on and the agent's profile, streaming to it; then the target following the spec's
-   * show and the watchdog keeping OBS streaming. Resolves once OBS answers; the target converges on its own, and
-   * reconnects to OBS when it restarts.
+   * Installs OBS, moq and MediaMTX if need be; has the program MediaMTX running, forwarding to the spec's channels and
+   * publishing to its previews; has OBS running with obs-websocket on and the agent's profile, streaming to it; then
+   * the target following the spec's show, the watchdog keeping OBS streaming (and recording, with a recorder), and
+   * the program's reports. Resolves once OBS answers; the target converges on its own, and reconnects to OBS when it
+   * restarts.
    */
   async execute(spec: ObsSpec, signal: AbortSignal): Promise<void> {
     if (process.platform !== 'win32' && process.platform !== 'darwin') {
@@ -163,8 +202,9 @@ export class ObsRuntime {
     this.update({ version: installed.version });
     const moq = await this.installed(moqBinary, this.options.moq, signal);
     const mediamtx = await this.installed(mediamtxBinary, this.options.mediamtx, signal);
-    await this.program.ensure(mediamtx, signal);
+    await this.program.ensure(mediamtx, moq.path, signal);
     await this.forward(spec.forwards);
+    await this.program.setPreviews(spec.previews);
     const password = await websocketPassword(directory);
     const launch = obsLaunch(installed.path, directory);
     await writeObsSettings(launch.config, websocketPort, password);
@@ -174,7 +214,12 @@ export class ObsRuntime {
       signal
     );
     this.follow(spec.show, password, moq.path);
-    this.watch(password);
+    const watchdog = this.watch(password);
+    const recording = this.recordingTarget(spec.recording);
+    watchdog.record(recording);
+    const program = spec.program?.subjectId ?? programSubject(spec.show.id);
+    const recorder = recording === undefined ? undefined : recorderSubject(recording.recorderId);
+    this.metrics.apply({ program, recorder });
     for (const binary of [installed, moq, mediamtx]) await this.binaries.prune(binary, { spare: 1 });
   }
 
@@ -192,7 +237,7 @@ export class ObsRuntime {
       const ingest = await this.ingest(forward).catch(logIngestFailure(forward.channelId));
       if (ingest === undefined) failed = true;
       const using = ingest ?? known.get(forward.channelId);
-      if (using !== undefined) resolved.push(using);
+      if (using !== undefined) resolved.push({ ...using, forwardId: forward.forwardId });
     }
     await this.program.setForwards(resolved);
     const delay = failed ? INGEST_RETRY_MS : INGEST_REFRESH_MS;
@@ -207,17 +252,33 @@ export class ObsRuntime {
       channelId: forward.channelId
     });
     if (ingest instanceof Error) throw ingest;
-    return { channelId: forward.channelId, url: ingest.url, key: ingest.key };
+    return { forwardId: forward.forwardId, channelId: forward.channelId, url: ingest.url, key: ingest.key };
   }
 
   /** The watchdog keeping OBS streaming, made once with the password it connects with. */
-  private watch(password: string): void {
-    if (this.watchdog !== undefined) return;
+  private watch(password: string): StreamingWatchdog {
+    if (this.watchdog !== undefined) return this.watchdog;
     const url = `ws://127.0.0.1:${String(this.options.websocketPort)}`;
     const watchdog = new StreamingWatchdog(url, password, () => this.programScene);
     this.watching.push(watchdog.state$.subscribe(streaming => this.update({ streaming })));
+    this.watching.push(watchdog.recording$.subscribe(recording => this.update({ recording })));
     watchdog.start();
     this.watchdog = watchdog;
+    return watchdog;
+  }
+
+  /**
+   * Where OBS records for the spec's recorder: a directory of the recorder's own in the runtime's. None without a
+   * recorder, or for a kind this agent doesn't know.
+   */
+  private recordingTarget(recording: ObsSpec['recording']): RecordingTarget | undefined {
+    if (recording === undefined) return undefined;
+    const { recorderId, kind } = recording;
+    if (kind !== OBS_RECORDER) {
+      logger.error('Recorder {recorderId} is of a kind this agent cannot record: {kind}', { recorderId, kind });
+      return undefined;
+    }
+    return { recorderId, directory: join(this.options.directory, 'recordings', recorderId) };
   }
 
   /** The install of `manifest`, downloading it if need be. */
@@ -270,6 +331,7 @@ export class ObsRuntime {
   /** The key is absent: stop following and watching, and stop OBS, then the program MediaMTX. */
   async finalize(): Promise<void> {
     clearTimeout(this.refresh);
+    this.metrics.stop();
     this.unfollow();
     await this.watchdog?.stop();
     this.watchdog = undefined;
@@ -281,6 +343,7 @@ export class ObsRuntime {
   /** The agent is stopping, and OBS and the program MediaMTX go with it. */
   dispose(): void {
     clearTimeout(this.refresh);
+    this.metrics.stop();
     this.unfollow();
     void this.watchdog?.stop();
     for (const subscription of this.watching) subscription.unsubscribe();

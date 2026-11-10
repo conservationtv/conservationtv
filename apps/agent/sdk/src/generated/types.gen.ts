@@ -84,14 +84,38 @@ export type System = {
     metrics: {
         runtime: {
             running: boolean;
-            intervalMs: number | null;
-            subjectId: string | null;
-            lastScrapedAt: string | null;
-            samples: number;
             pending: number;
             submitted: number;
             lastSubmittedAt: string | null;
             lastError: string | null;
+            intervalMs: number | null;
+            subjectId: string | null;
+            lastScrapedAt: string | null;
+            samples: number;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    relayTraffic: {
+        runtime: {
+            running: boolean;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastError: string | null;
+            sources: number;
+            nodes: number;
+            lastSampledAt: string | null;
         };
         apply: {
             state: 'applying';
@@ -112,9 +136,11 @@ export type System = {
             installing: boolean;
             show: string | null;
             phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
-            streaming: 'starting' | 'streaming' | 'reconnecting' | null;
+            streaming: 'reconnecting' | 'starting' | 'streaming' | null;
+            recording: 'recording' | 'starting' | 'stopping' | null;
             program: {
                 forwards: Array<string>;
+                previews: Array<string>;
                 cameras: {
                     [key: string]: {
                         fallback: boolean;
@@ -125,10 +151,41 @@ export type System = {
                 restarts: number;
                 lastError: string | null;
             } | null;
+            reports: {
+                running: boolean;
+                pending: number;
+                submitted: number;
+                lastSubmittedAt: string | null;
+                lastError: string | null;
+                lastScrapedAt: string | null;
+            } | null;
             state: 'running' | 'stopped' | 'starting' | 'crashed';
             pid: number | null;
             restarts: number;
             lastError: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    channels: {
+        runtime: {
+            running: boolean;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastError: string | null;
+            channels: number;
+            lastReadAt: string | null;
         };
         apply: {
             state: 'applying';
@@ -230,6 +287,10 @@ export type GetSystemSpecResponses = {
                     path: string;
                 };
             }>;
+            previews: Array<{
+                name: string;
+                previewId: string;
+            }>;
             publishers: Array<{
                 exposureId: string;
                 layout: 'tracks';
@@ -239,9 +300,6 @@ export type GetSystemSpecResponses = {
                 }>;
                 connect: string;
                 broadcast: string;
-            }>;
-            stats: Array<{
-                connect: string;
             }>;
             gatewayId?: string;
             auth?: {
@@ -263,6 +321,15 @@ export type GetSystemSpecResponses = {
                 rendition?: string;
             }>;
         };
+        relayTraffic?: {
+            sources: Array<{
+                connect: string;
+            }>;
+            exposures: Array<{
+                exposureId: string;
+                prefix: string;
+            }>;
+        };
         obs?: {
             show: {
                 id: string;
@@ -276,6 +343,31 @@ export type GetSystemSpecResponses = {
                 keyframeSeconds: number;
             };
             forwards: Array<{
+                organisationId: string;
+                channelId: string;
+                forwardId?: string;
+            }>;
+            previews: Array<{
+                previewId: string;
+                publish: {
+                    protocol: 'moq';
+                    connect: string;
+                    broadcast: string;
+                } | {
+                    protocol: 'rtmp' | 'rtmps';
+                    url: string;
+                };
+            }>;
+            recording?: {
+                recorderId: string;
+                kind: string;
+            };
+            program?: {
+                subjectId: string;
+            };
+        };
+        channels?: {
+            channels: Array<{
                 organisationId: string;
                 channelId: string;
             }>;

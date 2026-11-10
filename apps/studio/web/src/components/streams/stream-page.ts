@@ -46,7 +46,21 @@ export function streamPageOf({ streams, cameras, states, ...topology }: StreamPa
     const own = new Map(laidOut.nodes.map(node => [node.id, ownStatus(stateOf.get(node.subjectId))]));
     return { ...stream, topology: laidOut, statuses: statusesOf(laidOut.nodes, own) };
   });
-  const disabled = new Set(cameras.filter(camera => camera.state !== 'enabled').map(camera => camera.id));
-  const isActive = (stream: PageStream) => stream.sourceDeviceId !== null && !disabled.has(stream.sourceDeviceId);
-  return { active: pageStreams.filter(isActive), inactive: pageStreams.filter(stream => !isActive(stream)) };
+  const fed = (stream: PageStream) => isFed(stream, cameras);
+  return { active: pageStreams.filter(fed), inactive: pageStreams.filter(stream => !fed(stream)) };
+}
+
+/** The part of a stream that says where it comes from. */
+interface Sourced {
+  sourceDeviceId: string | null;
+}
+
+/**
+ * Whether a stream's source is feeding it, as far as its configuration says: it has one and, if it is a camera, the
+ * camera is enabled. Not whether a picture is arriving, which is what its nodes' statuses are for.
+ */
+export function isFed(stream: Sourced, cameras: CameraInput[]): boolean {
+  if (stream.sourceDeviceId === null) return false;
+  const camera = cameras.find(candidate => candidate.id === stream.sourceDeviceId);
+  return camera === undefined || camera.state === 'enabled';
 }
