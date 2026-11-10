@@ -1,10 +1,18 @@
 import { parse } from '@babel/parser';
-import type { CallExpression, ClassBody, Expression, Node, ObjectExpression, Statement } from '@babel/types';
+import type {
+  CallExpression,
+  ClassBody,
+  Expression,
+  ImportDeclaration,
+  Node,
+  ObjectExpression,
+  Statement
+} from '@babel/types';
 
 // A source file as the functions it defines and the calls each makes, read from its syntax alone: what a reviewer
 // follows by eye, without the type checker.
 
-/** A call made inside a unit: what is called, as written, and with what; or a name the unit reads without calling. */
+/** A call made inside a unit: what is called, as written, and with what, and the lines it spans. */
 export interface Call {
   /** `ScheduleCheck.validate`, `this.check` or `run`: dotted names only; null when the callee is an expression. */
   callee: string | null;
@@ -12,8 +20,7 @@ export interface Call {
   text: string;
   args: string;
   line: number;
-  /** `customTextSizes` read, not called: it reaches only a unit of the same file. */
-  reference: boolean;
+  end: number;
 }
 
 /** A function or method; a value built from calls, such as a schema; or a route a router chain declares. */
@@ -32,6 +39,29 @@ export interface Unit {
   /** Its source, for telling whether it changed and for its diff. */
   text: string;
   calls: Call[];
+  /** Every name it uses as a value, called or not: `createCn`, `customTextSizes`. */
+  uses: string[];
+}
+
+/**
+ * A top-level statement and the names it binds: `import { createCn } from "cn/config"` binds `createCn`, `export { cn }
+ * from "cn"` binds `cn`. What a unit's name was bound to before it was a unit, and what else a unit is built from.
+ */
+export interface Binding {
+  names: string[];
+  start: number;
+  end: number;
+  text: string;
+  /** The names its own code uses, to follow what it is built from in turn. */
+  uses: string[];
+  /** For an import, what each name is, `cn/config#createCn`: compared in place of the statement, which binds others. */
+  imports: Record<string, string> | null;
+}
+
+/** A file's units, and its top-level statements by the names they bind. */
+export interface FileUnits {
+  units: Unit[];
+  bindings: Binding[];
 }
 
 /** One line, at most `limit` characters: arguments and parameters as a reader skims them. */
@@ -87,11 +117,10 @@ const EXPRESSION_WRAPPERS: ReadonlySet<string> = new Set([
   'TSInstantiationExpression'
 ]);
 
-/** Whether an identifier is read as a value: not a callee, a binding, a key, a property name or a type. */
-function isRead({ parent, key }: Placed): boolean {
+/** Whether an identifier uses a name as a value, called or not: not a binding, a key, a property name or a type. */
+function isUse({ parent, key }: Placed): boolean {
   if (parent === null || key === null) return true;
   if (NAMING_FIELDS.has(key)) return false;
-  if (key === 'callee' && (parent.type === 'CallExpression' || parent.type === 'NewExpression')) return false;
   if (key === 'property' && parent.type === 'MemberExpression' && !parent.computed) return false;
   if (key === 'key' && 'computed' in parent && !parent.computed) return false;
   return !parent.type.startsWith('TS') || EXPRESSION_WRAPPERS.has(parent.type);
@@ -108,8 +137,47 @@ function routeName(link: CallExpression): string | null {
   return ROUTE_METHODS.has(method) && path?.type === 'StringLiteral' ? `${method.toUpperCase()} ${path.value}` : null;
 }
 
+/** The names a top-level statement binds. */
+function boundNames(node: Statement | Expression): string[] {
+  switch (node.type) {
+    case 'ImportDeclaration':
+      return node.specifiers.map(specifier => specifier.local.name);
+    case 'ExportNamedDeclaration':
+      if (node.declaration) return boundNames(node.declaration);
+      return node.specifiers.map(specifier =>
+        specifier.exported.type === 'Identifier' ? specifier.exported.name : specifier.exported.value
+      );
+    case 'ExportDefaultDeclaration':
+      return ['default'];
+    case 'VariableDeclaration':
+      return node.declarations.flatMap(declarator => (declarator.id.type === 'Identifier' ? [declarator.id.name] : []));
+    case 'FunctionDeclaration':
+    case 'ClassDeclaration':
+    case 'TSTypeAliasDeclaration':
+    case 'TSInterfaceDeclaration':
+    case 'TSEnumDeclaration':
+      return node.id ? [node.id.name] : [];
+    default:
+      return [];
+  }
+}
+
+/** What each name an import binds is: `cn/config#createCn`, `react#default`, `./x#*`. */
+function importedNames(node: ImportDeclaration): Record<string, string> {
+  const source = node.source.value;
+  return Object.fromEntries(
+    node.specifiers.map(specifier => {
+      if (specifier.type === 'ImportDefaultSpecifier') return [specifier.local.name, `${source}#default`];
+      if (specifier.type === 'ImportNamespaceSpecifier') return [specifier.local.name, `${source}#*`];
+      const imported = specifier.imported.type === 'Identifier' ? specifier.imported.name : specifier.imported.value;
+      return [specifier.local.name, `${source}#${imported}`];
+    })
+  );
+}
+
 class Reader {
   readonly units: Unit[] = [];
+  readonly bindings: Binding[] = [];
   private readonly source: string;
 
   constructor(source: string) {
@@ -149,32 +217,24 @@ class Reader {
       text: this.shown(node.callee),
       args: squash(node.arguments.map(arg => this.slice(arg)).join(', ')),
       line: node.loc?.start.line ?? 0,
-      reference: false
+      end: node.loc?.end.line ?? 0
     };
   }
 
-  /**
-   * Every call inside a node, nested functions and callbacks included, then every name it reads without calling, each
-   * in source order.
-   */
+  /** Every call inside a node, nested functions and callbacks included, in source order. */
   callsIn(node: Node): Call[] {
     const calls: Call[] = [];
     for (const { node: inner } of walk(node)) if (inner.type === 'CallExpression') calls.push(this.call(inner));
-    return [...calls.toSorted((a, b) => a.line - b.line), ...this.referencesIn(node)];
+    return calls.toSorted((a, b) => a.line - b.line);
   }
 
-  /** The names a node reads without calling, each once, where it is first read. */
-  referencesIn(node: Node): Call[] {
-    const seen = new Set<string>();
-    const references: Call[] = [];
-    for (const placed of walk(node)) {
-      const { node: inner } = placed;
-      if (inner.type !== 'Identifier' || seen.has(inner.name) || !isRead(placed)) continue;
-      seen.add(inner.name);
-      const line = inner.loc?.start.line ?? 0;
-      references.push({ callee: inner.name, text: inner.name, args: '', line, reference: true });
+  /** The names used as values inside nodes, each once. */
+  usesIn(...nodes: Node[]): string[] {
+    const names = new Set<string>();
+    for (const node of nodes) {
+      for (const placed of walk(node)) if (placed.node.type === 'Identifier' && isUse(placed)) names.add(placed.node.name);
     }
-    return references;
+    return [...names];
   }
 
   /** A unit spanning `node`, with the calls inside it. */
@@ -187,7 +247,8 @@ class Reader {
       start: node.loc?.start.line ?? 0,
       end: node.loc?.end.line ?? 0,
       text: this.lines(node.start ?? 0, node.end ?? 0),
-      calls: this.callsIn(node)
+      calls: this.callsIn(node),
+      uses: this.usesIn(node)
     });
   }
 
@@ -216,7 +277,7 @@ class Reader {
       this.object(name, node);
     } else if (node.type === 'TSAsExpression' || node.type === 'TSSatisfiesExpression') {
       this.value(name, owner, node.expression);
-    } else if (!this.routes(node) && this.callsIn(node).some(call => !call.reference)) {
+    } else if (!this.routes(node) && this.callsIn(node).length) {
       this.add(name, owner, node, '', 'value');
     }
   }
@@ -250,7 +311,8 @@ class Reader {
       start: property.loc?.start.line ?? 0,
       end: link.loc?.end.line ?? 0,
       text: this.lines(property.start ?? 0, link.end ?? 0),
-      calls: handlers.flatMap(handler => this.callsIn(handler))
+      calls: handlers.flatMap(handler => this.callsIn(handler)),
+      uses: this.usesIn(...handlers)
     });
     return true;
   }
@@ -266,6 +328,20 @@ class Reader {
         this.value(`${name}.${member.key.name}`, name, member.value);
       }
     }
+  }
+
+  /** A top-level statement as what it binds. */
+  binding(node: Statement): void {
+    const names = boundNames(node);
+    if (!names.length) return;
+    this.bindings.push({
+      names,
+      start: node.loc?.start.line ?? 0,
+      end: node.loc?.end.line ?? 0,
+      text: this.lines(node.start ?? 0, node.end ?? 0),
+      uses: node.type === 'ImportDeclaration' ? [] : this.usesIn(node),
+      imports: node.type === 'ImportDeclaration' ? importedNames(node) : null
+    });
   }
 
   /** A top-level statement's units: exports are read as what they export, a default expression as `default`. */
@@ -295,16 +371,19 @@ class Reader {
   }
 }
 
-/** A file's units, or none when it does not parse. */
-export function unitsOf(path: string, source: string): Unit[] {
+/** A file's units and top-level bindings, or none when it does not parse. */
+export function unitsOf(path: string, source: string): FileUnits {
   try {
     const plugins: ('typescript' | 'jsx')[] = /\.[cm]?tsx?$/.test(path) ? ['typescript'] : [];
     if (path.endsWith('x')) plugins.push('jsx');
     const file = parse(source, { sourceType: 'module', plugins, errorRecovery: true });
     const reader = new Reader(source);
-    for (const statement of file.program.body) reader.statement(statement);
-    return reader.units;
+    for (const statement of file.program.body) {
+      reader.statement(statement);
+      reader.binding(statement);
+    }
+    return { units: reader.units, bindings: reader.bindings };
   } catch {
-    return [];
+    return { units: [], bindings: [] };
   }
 }

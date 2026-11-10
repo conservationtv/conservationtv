@@ -1,7 +1,8 @@
-import { unitsOf, type Call, type Unit } from './units.ts';
+import { unitsOf, type Binding, type Call, type Unit } from './units.ts';
 
 // The changed functions of a pull request as the calls between them: each tree starts where the change is entered,
-// from a function that did not change when one calls in, and follows calls into whatever else changed.
+// from a function that did not change when one calls in, and follows calls into whatever else changed. A unit is what
+// a name is bound to, read with the changed declarations of its file it is built from; a call is a place in its caller.
 
 /** A source file at the merge base and at the head; null on the side it does not exist. */
 export interface Sides {
@@ -12,24 +13,44 @@ export interface Sides {
 
 export type Status = 'new' | 'changed' | 'same';
 
-/** A unit at the head, where it is, and what it was. */
+/** Lines of a file: where they start and end, and what they say. */
+export interface Span {
+  start: number;
+  end: number;
+  text: string;
+}
+
+/** A declaration a unit is built from, at the head and as it was; null where it is new. */
+export interface Piece {
+  after: Span;
+  before: Span | null;
+}
+
+/** A unit at the head, where it is, what it was, and the changed declarations it is built from. */
 export interface Located extends Unit {
   id: string;
   path: string;
   status: Status;
-  /** The unit of the same name at the merge base, for its diff. */
-  previous: Unit | null;
+  /**
+   * What its name was bound to at the merge base: the unit of that name, else the statement binding it, such as the
+   * re-export `export { cn } from "cn"` a function replaced.
+   */
+  previous: Span | null;
+  /**
+   * The top-level declarations of its file it uses that changed, other than what it calls, in file order: the values it
+   * is made from, such as `customTextSizes` for `cn`, and in turn what they are made from; and, for a unit that was
+   * there before, the imports it newly uses, such as `createCn`.
+   */
+  context: Piece[];
 }
 
 export interface CallNode {
   unit: Located;
-  /** How its parent calls it; null at the top of a tree. */
-  call: Call | null;
+  /** Each call its parent makes to it, in the parent's order; none at the top of a tree. */
+  calls: Call[];
   children: CallNode[];
   /** Called again from within its own calls: its children are left out. */
   recursive: boolean;
-  /** Shown already, higher up the graph: it points there instead, and its children are left out. */
-  repeat: boolean;
 }
 
 /** A unit at the merge base with none of its name at the head. */
@@ -38,10 +59,12 @@ export interface RemovedUnit {
   name: string;
 }
 
-/** A file's units at the head, and the names it no longer defines. */
+/** A file's units at the head, its bindings on both sides, and the names it no longer defines. */
 interface LocatedFile {
   path: string;
   units: Located[];
+  before: Binding[];
+  after: Binding[];
   removed: string[];
 }
 
@@ -66,22 +89,68 @@ function normalised(text: string): string {
     .join('\n');
 }
 
-function statusOf(unit: Unit, previous: Unit | null): Status {
+function statusOf(unit: Unit, previous: Span | null): Status {
   if (!previous) return 'new';
   return normalised(previous.text) === normalised(unit.text) ? 'same' : 'changed';
 }
 
-/** Every unit at the head, with what it was at the merge base. */
+/** The statement binding a name, if one does. */
+function bindingOf(bindings: readonly Binding[], name: string): Binding | undefined {
+  return bindings.find(binding => binding.names.includes(name));
+}
+
+/** Whether a name is bound the same way on both sides: an import to the same thing, else by the same statement. */
+function sameBinding(name: string, before: Binding, after: Binding): boolean {
+  if (before.imports && after.imports) return before.imports[name] === after.imports[name];
+  return normalised(before.text) === normalised(after.text);
+}
+
+/** Every unit at the head, with what its name was bound to at the merge base. */
 function locate(sides: Sides): LocatedFile {
-  const before = sides.before === null ? [] : unitsOf(sides.path, sides.before);
-  const after = sides.after === null ? [] : unitsOf(sides.path, sides.after);
-  const previous = new Map(before.map(unit => [unit.name, unit]));
-  const units = after.map(unit => {
-    const was = previous.get(unit.name) ?? null;
-    return { ...unit, id: `${sides.path}#${unit.name}`, path: sides.path, status: statusOf(unit, was), previous: was };
+  const before = sides.before === null ? { units: [], bindings: [] } : unitsOf(sides.path, sides.before);
+  const after = sides.after === null ? { units: [], bindings: [] } : unitsOf(sides.path, sides.after);
+  const previous = new Map(before.units.map(unit => [unit.name, unit]));
+  const units = after.units.map(unit => {
+    // A top-level name with no unit at the merge base may have been bound otherwise: re-exported, or a plain value.
+    const was = previous.get(unit.name) ?? (unit.owner === null ? bindingOf(before.bindings, unit.name) : undefined);
+    const span = was ? { start: was.start, end: was.end, text: was.text } : null;
+    return { ...unit, id: `${sides.path}#${unit.name}`, path: sides.path, status: statusOf(unit, span), previous: span };
   });
-  const names = new Set(after.map(unit => unit.name));
-  return { path: sides.path, units, removed: before.filter(unit => !names.has(unit.name)).map(unit => unit.name) };
+  const names = new Set(after.units.map(unit => unit.name));
+  return {
+    path: sides.path,
+    units: units.map(unit => ({ ...unit, context: [] })),
+    before: before.bindings,
+    after: after.bindings,
+    removed: before.units.filter(unit => !names.has(unit.name)).map(unit => unit.name)
+  };
+}
+
+/**
+ * The changed top-level declarations a unit is built from, in file order: those binding a name it uses, other than its
+ * own statement and the names in `called`, which are read as calls; and in turn the changed ones those use. Imports
+ * only for a unit that was there before: everything a new one imports is new with it.
+ */
+function contextOf(unit: Located, file: LocatedFile, called: ReadonlySet<string>): Piece[] {
+  const pieces = new Map<number, Piece>();
+  const seen = new Set<string>([unit.name]);
+  const queue = [...unit.uses];
+  for (let name = queue.shift(); name !== undefined; name = queue.shift()) {
+    if (seen.has(name) || called.has(name)) continue;
+    seen.add(name);
+    const after = bindingOf(file.after, name);
+    // A name bound by no top-level statement is a local or a global; the unit's own statement is the unit.
+    if (!after || (after.start <= unit.start && after.end >= unit.end)) continue;
+    if (after.imports && unit.status === 'new') continue;
+    const before = bindingOf(file.before, name);
+    if (before && sameBinding(name, before, after)) continue;
+    pieces.set(after.start, {
+      after: { start: after.start, end: after.end, text: after.text },
+      before: before ? { start: before.start, end: before.end, text: before.text } : null
+    });
+    queue.push(...after.uses);
+  }
+  return [...pieces.values()].toSorted((a, b) => a.after.start - b.after.start);
 }
 
 class Resolver {
@@ -93,53 +162,40 @@ class Resolver {
 
   /**
    * The unit a call reaches, by name: `this.x` within its own class or object, else the name as written, preferring
-   * the caller's own file when several files define it. A name read without a call reaches only its own file's.
+   * the caller's own file when several files define it.
    */
   resolve(call: Call, from: Located): Located | undefined {
     if (call.callee === null) return undefined;
     const name = call.callee.startsWith('this.') && from.owner ? `${from.owner}${call.callee.slice(4)}` : call.callee;
     const candidates = this.byName.get(name) ?? [];
-    const own = candidates.find(unit => unit.path === from.path);
-    return call.reference ? own : (own ?? candidates[0]);
+    return candidates.find(unit => unit.path === from.path) ?? candidates[0];
   }
 
-  /** The changed units a unit calls, each once, in the order it first calls them. */
-  callees(unit: Located): [Call, Located][] {
-    const seen = new Set<string>();
-    const found: [Call, Located][] = [];
+  /** The changed units a unit calls, in the order it first calls each, with every call it makes to it. */
+  callees(unit: Located): [Call[], Located][] {
+    const found = new Map<string, [Call[], Located]>();
     for (const call of unit.calls) {
-      // Calls that reach nothing, an unchanged unit, the unit itself or one already found are passed over.
+      // Calls that reach nothing, an unchanged unit or the unit itself are passed over.
       const target = this.resolve(call, unit);
-      if (!target || target.status === 'same' || target.id === unit.id || seen.has(target.id)) continue;
-      seen.add(target.id);
-      found.push([call, target]);
+      if (!target || target.status === 'same' || target.id === unit.id) continue;
+      const entry = found.get(target.id);
+      if (entry) entry[0].push(call);
+      else found.set(target.id, [[call], target]);
     }
-    return found;
+    return [...found.values()];
   }
 }
 
 const MAX_DEPTH = 12;
 
-function grow(resolver: Resolver, unit: Located, call: Call | null, trail: ReadonlySet<string>): CallNode {
+function grow(resolver: Resolver, unit: Located, calls: Call[], trail: ReadonlySet<string>): CallNode {
   const recursive = trail.has(unit.id);
   const next = new Set([...trail, unit.id]);
   const children =
     recursive || trail.size >= MAX_DEPTH
       ? []
       : resolver.callees(unit).map(([inner, target]) => grow(resolver, target, inner, next));
-  return { unit, call, children, recursive, repeat: false };
-}
-
-/**
- * The trees with each unit drawn once, where it is first reached reading down: wherever else it is reached, such as a
- * helper every component calls, it points back there instead of repeating its diff and calls.
- */
-function once(nodes: readonly CallNode[], shown: Set<string>): CallNode[] {
-  return nodes.map(node => {
-    if (shown.has(node.unit.id)) return { ...node, children: [], repeat: true };
-    shown.add(node.unit.id);
-    return { ...node, children: once(node.children, shown) };
-  });
+  return { unit, calls, children, recursive };
 }
 
 /**
@@ -148,18 +204,38 @@ function once(nodes: readonly CallNode[], shown: Set<string>): CallNode[] {
  */
 export function callGraph(files: readonly Sides[], others: readonly string[]): CallGraph {
   const located = files.map(locate);
+  // Each unit read with the changed declarations it is built from, other than the units it calls: those are its calls.
+  const bare = new Resolver(located.flatMap(file => file.units));
+  for (const file of located) {
+    file.units = file.units.map(unit => {
+      const called = new Set(
+        unit.calls.flatMap(call => (call.callee !== null && bare.resolve(call, unit) ? [call.callee] : []))
+      );
+      return { ...unit, context: contextOf(unit, file, called) };
+    });
+  }
   const units = located.flatMap(file => file.units);
-  const resolver = new Resolver(units);
+  const resolved = new Resolver(units);
   const changed = units.filter(unit => unit.status !== 'same');
 
-  // A changed unit another changed unit calls is reached from it, so is not a tree of its own.
-  const called = new Set(changed.flatMap(unit => resolver.callees(unit).map(([, target]) => target.id)));
-  const entries = changed.filter(unit => !called.has(unit.id));
+  // A changed unit another changed unit calls is reached from it, and one it is built from is read with it: neither
+  // is a tree of its own.
+  const reached = new Set(changed.flatMap(unit => resolved.callees(unit).map(([, target]) => target.id)));
+  for (const unit of changed) {
+    for (const piece of unit.context) {
+      for (const other of units) {
+        if (other.path === unit.path && other.start >= piece.after.start && other.end <= piece.after.end) {
+          reached.add(other.id);
+        }
+      }
+    }
+  }
+  const entries = changed.filter(unit => !reached.has(unit.id));
   // Entry points an unchanged unit calls are shown under it, so the tree starts from code the reader knows.
   const callers = units.filter(
-    unit => unit.status === 'same' && resolver.callees(unit).some(([, target]) => entries.includes(target))
+    unit => unit.status === 'same' && resolved.callees(unit).some(([, target]) => entries.includes(target))
   );
-  const covered = new Set(callers.flatMap(unit => resolver.callees(unit).map(([, target]) => target.id)));
+  const covered = new Set(callers.flatMap(unit => resolved.callees(unit).map(([, target]) => target.id)));
   const tops = [...callers, ...entries.filter(unit => !covered.has(unit.id))].toSorted(
     (a, b) => a.path.localeCompare(b.path) || a.start - b.start
   );
@@ -169,10 +245,7 @@ export function callGraph(files: readonly Sides[], others: readonly string[]): C
     .filter(sides => !withUnits.has(sides.path) && sides.before !== sides.after)
     .map(sides => sides.path);
   return {
-    roots: once(
-      tops.map(unit => grow(resolver, unit, null, new Set())),
-      new Set()
-    ),
+    roots: tops.map(unit => grow(resolved, unit, [], new Set())),
     added: changed.filter(unit => unit.status === 'new').length,
     changed: changed.filter(unit => unit.status === 'changed').length,
     files: withUnits.size,

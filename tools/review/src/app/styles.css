@@ -1350,10 +1350,25 @@ button {
   color: var(--muted);
 }
 
-.call-repeat {
-  margin-left: 0.5rem;
+/* The calls a caller makes to a unit, under it: each opens onto its lines in the caller. */
+.call-sites {
+  padding-left: 1.3rem;
+}
+
+.call-site-row {
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+  font-size: 12px;
+}
+
+.call-site-mark {
+  flex-shrink: 0;
   color: var(--muted);
-  font-size: 0.85em;
+}
+
+/* A unit's diffs: what it is built from, then itself. */
+.call-diff > * + * {
+  border-top: 1px solid var(--border);
 }
 
 .call-status {
