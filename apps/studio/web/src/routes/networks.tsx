@@ -1,6 +1,7 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useSuspenseQueries } from '@tanstack/react-query';
+import { Link, Outlet } from 'react-router';
 import { NetworkIcon, PlusIcon } from '@phosphor-icons/react';
 import type { Agent, Network } from '@conservationtv/studio-sdk';
 import {
@@ -18,7 +19,6 @@ import { Button } from '@conservationtv/ui/components/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -43,19 +43,13 @@ import { FormError } from '@/components/common/form-error';
 import { Page, PageActions, PageDescription, PageHeader, PageHeading, PageTitle } from '@/components/common/page';
 import { NameSchema, type NameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { counted } from '@/lib/format';
 import { agentListQueryOptions } from '@/queries/agents';
 import { cameraListQueryOptions } from '@/queries/cameras';
 import { gatewayListQueryOptions } from '@/queries/gateways';
-import {
-  networkListQueryOptions,
-  useCreateNetwork,
-  useDeleteNetwork,
-  useSetActiveAgent,
-  useUpdateNetwork
-} from '@/queries/networks';
+import { networkListQueryOptions, useDeleteNetwork, useSetActiveAgent, useUpdateNetwork } from '@/queries/networks';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Networks · conservation.tv studio' }];
 
@@ -88,7 +82,10 @@ const NetworksRoute: FC = () => {
         </PageHeading>
         {administrator && (
           <PageActions>
-            <AddNetworkDialog />
+            <Button nativeButton={false} render={<Link to="new" />}>
+              <PlusIcon />
+              Add network
+            </Button>
           </PageActions>
         )}
       </PageHeader>
@@ -115,6 +112,8 @@ const NetworksRoute: FC = () => {
           </EmptyHeader>
         </Empty>
       )}
+      {/* A dialog routed over the page, such as adding one: `new`. */}
+      <Outlet />
     </Page>
   );
 };
@@ -194,65 +193,6 @@ const ActiveAgentSelect: FC<ActiveAgentSelectProps> = ({ network, agents }) => {
   );
 };
 
-/** Adds a network by name; the dialog closes once it is made. */
-const AddNetworkDialog: FC = () => {
-  const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
-  const create = useCreateNetwork(organisationId);
-  const defaultValues: NameInput = { name: '' };
-  const form = useForm({
-    defaultValues,
-    validators: { onSubmit: NameSchema },
-    onSubmit: ({ value, formApi }) =>
-      create.mutate(NameSchema.parse(value), {
-        onSuccess: () => {
-          formApi.reset();
-          setOpen(false);
-        }
-      })
-  });
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
-      <DialogTrigger render={<Button />}>
-        <PlusIcon />
-        Add network
-      </DialogTrigger>
-      <DialogContent>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>Add a network</DialogTitle>
-            <DialogDescription>
-              A site with its own local network: a sanctuary, a reserve, a single building.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup className="py-4">
-            <form.Field name="name">
-              {field => <TextField field={field} label="Name" placeholder="Hide LAN" autoComplete="off" />}
-            </form.Field>
-            <FormError error={create.error} />
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="submit" loading={create.isPending}>
-              Add network
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 interface NetworkDialogProps {
   network: Network;
 }
@@ -260,25 +200,16 @@ interface NetworkDialogProps {
 /** Renames the network; the form starts from its stored name each time the dialog opens. */
 const RenameNetworkDialog: FC<NetworkDialogProps> = ({ network }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateNetwork(organisationId);
   const defaultValues: NameInput = { name: network.name };
   const form = useForm({
     defaultValues,
     validators: { onSubmit: NameSchema },
-    onSubmit: ({ value }) =>
-      update.mutate({ networkId: network.id, ...NameSchema.parse(value) }, { onSuccess: () => setOpen(false) })
+    onSubmit: ({ value }) => dialog.mutate({ networkId: network.id, ...NameSchema.parse(value) })
   });
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        update.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Rename</DialogTrigger>
       <DialogContent>
         <form
@@ -309,9 +240,9 @@ const RenameNetworkDialog: FC<NetworkDialogProps> = ({ network }) => {
 const DeleteNetworkDialog: FC<NetworkDialogProps> = ({ network }) => {
   const organisationId = useOrganisationId();
   const remove = useDeleteNetwork(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Delete</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -323,11 +254,7 @@ const DeleteNetworkDialog: FC<NetworkDialogProps> = ({ network }) => {
         <FormError error={remove.error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            loading={remove.isPending}
-            onClick={() => confirmation.confirm(network.id)}
-          >
+          <AlertDialogAction variant="destructive" loading={remove.isPending} onClick={() => dialog.mutate(network.id)}>
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>

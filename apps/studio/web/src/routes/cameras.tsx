@@ -1,8 +1,9 @@
 import type { FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
-import { Link } from 'react-router';
-import { VideoCameraIcon } from '@phosphor-icons/react';
+import { Link, Outlet } from 'react-router';
+import { PlusIcon, VideoCameraIcon } from '@phosphor-icons/react';
 import type { Camera, Network, Stream } from '@conservationtv/studio-sdk';
+import { Button } from '@conservationtv/ui/components/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
 import {
   Item,
@@ -16,7 +17,6 @@ import {
 } from '@conservationtv/ui/components/item';
 
 import type { Route } from './+types/cameras';
-import { AddCameraDialog } from '@/components/cameras/add-camera-dialog';
 import { CameraStateBadge } from '@/components/cameras/camera-state-badge';
 import { cameraAddressOf, cameraDriverLabelOf, cameraStateDetailsOf } from '@/components/cameras/cameras';
 import { Page, PageActions, PageDescription, PageHeader, PageHeading, PageTitle } from '@/components/common/page';
@@ -60,7 +60,10 @@ const CamerasRoute: FC = () => {
         </PageHeading>
         {administrator && (
           <PageActions>
-            <AddCameraDialog networks={networksQuery.data} />
+            <Button nativeButton={false} render={<Link to="new" />}>
+              <PlusIcon />
+              Add camera
+            </Button>
           </PageActions>
         )}
       </PageHeader>
@@ -91,6 +94,8 @@ const CamerasRoute: FC = () => {
           </EmptyHeader>
         </Empty>
       )}
+      {/* A dialog routed over the page, such as adding one: `new`. */}
+      <Outlet />
     </Page>
   );
 };

@@ -14,7 +14,7 @@ import {
 import { Button } from '@conservationtv/ui/components/button';
 
 import { FormError } from '@/components/common/form-error';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
 import { useDeleteCamera } from '@/queries/cameras';
@@ -33,10 +33,10 @@ export const DeleteCameraDialog: FC<DeleteCameraDialogProps> = ({ cameraId, name
   const organisationId = useOrganisationId();
   const navigate = useNavigate();
   const remove = useDeleteCamera(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   const unpin = useUnpinPage();
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>Delete</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -52,7 +52,7 @@ export const DeleteCameraDialog: FC<DeleteCameraDialogProps> = ({ cameraId, name
             variant="destructive"
             loading={remove.isPending}
             onClick={() =>
-              confirmation.confirm(cameraId, {
+              dialog.mutate(cameraId, {
                 onSuccess: () => {
                   unpin();
                   navigate('..', { relative: 'path', replace: true });

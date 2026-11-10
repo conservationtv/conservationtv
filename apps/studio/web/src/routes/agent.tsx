@@ -1,4 +1,4 @@
-import { Suspense, useState, type FC } from 'react';
+import { Suspense, type FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query';
 import { HardDrivesIcon } from '@phosphor-icons/react';
@@ -57,7 +57,7 @@ import { SubjectHealth } from '@/components/devices/subject-health';
 import { deviceSubjectId, type SubjectState } from '@/components/devices/subjects';
 import { AgentSettingsSchema, type AgentSettingsInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
 import { formatDate, formatRelative, shortPublicId } from '@/lib/format';
@@ -280,7 +280,6 @@ interface EditAgentDialogProps extends AgentActionProps {
  */
 const EditAgentDialog: FC<EditAgentDialogProps> = ({ agent, name }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const updateDevice = useUpdateDevice(organisationId);
   const updateAgent = useUpdateAgent(organisationId);
   const defaultValues: AgentSettingsInput = { name, priority: String(agent.priority) };
@@ -293,20 +292,18 @@ const EditAgentDialog: FC<EditAgentDialogProps> = ({ agent, name }) => {
       if (settings.priority !== agent.priority) {
         await updateAgent.mutateAsync({ agentId: agent.id, priority: settings.priority });
       }
-      setOpen(false);
+      dialog.close();
+    }
+  });
+  // Two mutations save it: the dialog forgets the device's refusal itself, and the agent's when it opens.
+  const dialog = useDialog(updateDevice, {
+    onOpen: () => {
+      updateAgent.reset();
+      form.reset();
     }
   });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        updateDevice.reset();
-        updateAgent.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="outline" />}>Edit</DialogTrigger>
       <DialogContent>
         <form
@@ -354,10 +351,10 @@ const DeleteAgentDialog: FC<DeleteAgentDialogProps> = ({ agent, name }) => {
   const organisationId = useOrganisationId();
   const navigate = useNavigate();
   const remove = useDeleteAgent(organisationId);
-  const confirmation = useConfirm(remove);
+  const dialog = useDialog(remove);
   const unpin = useUnpinPage();
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="destructive" />}>Remove agent</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -374,7 +371,7 @@ const DeleteAgentDialog: FC<DeleteAgentDialogProps> = ({ agent, name }) => {
             variant="destructive"
             loading={remove.isPending}
             onClick={() =>
-              confirmation.confirm(agent.id, {
+              dialog.mutate(agent.id, {
                 onSuccess: () => {
                   unpin();
                   navigate('..', { relative: 'path', replace: true });

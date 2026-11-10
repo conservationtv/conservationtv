@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import {
   AlertDialog,
@@ -26,7 +26,7 @@ import { FieldGroup } from '@conservationtv/ui/components/field';
 import { FormError } from '@/components/common/form-error';
 import { CameraCredentialsSchema, type CameraCredentialsInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
-import { useConfirm } from '@/hooks/use-confirm';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUpdateCamera } from '@/queries/cameras';
 
@@ -42,28 +42,16 @@ export interface CameraCredentialsDialogProps {
 /** Replaces the camera's username and password with new ones. The form starts empty each time it opens. */
 export const ReplaceCredentialsDialog: FC<CameraCredentialsDialogProps> = ({ cameraId, name }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
   const update = useUpdateCamera(organisationId);
   const defaultValues: CameraCredentialsInput = { username: '', password: '' };
   const form = useForm({
     defaultValues,
     validators: { onSubmit: CameraCredentialsSchema },
-    onSubmit: ({ value }) =>
-      update.mutate(
-        { cameraId, credentials: CameraCredentialsSchema.parse(value) },
-        { onSuccess: () => setOpen(false) }
-      )
+    onSubmit: ({ value }) => dialog.mutate({ cameraId, credentials: CameraCredentialsSchema.parse(value) })
   });
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) return;
-        update.reset();
-        form.reset();
-      }}
-    >
+    <Dialog {...dialog.props}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>Replace</DialogTrigger>
       <DialogContent>
         <form
@@ -102,9 +90,9 @@ export const ReplaceCredentialsDialog: FC<CameraCredentialsDialogProps> = ({ cam
 export const ClearCredentialsDialog: FC<CameraCredentialsDialogProps> = ({ cameraId, name }) => {
   const organisationId = useOrganisationId();
   const update = useUpdateCamera(organisationId);
-  const confirmation = useConfirm(update);
+  const dialog = useDialog(update);
   return (
-    <AlertDialog {...confirmation.dialog}>
+    <AlertDialog {...dialog.props}>
       <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Clear</AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
@@ -119,7 +107,7 @@ export const ClearCredentialsDialog: FC<CameraCredentialsDialogProps> = ({ camer
           <AlertDialogAction
             variant="destructive"
             loading={update.isPending}
-            onClick={() => confirmation.confirm({ cameraId, credentials: null })}
+            onClick={() => dialog.mutate({ cameraId, credentials: null })}
           >
             Clear
           </AlertDialogAction>

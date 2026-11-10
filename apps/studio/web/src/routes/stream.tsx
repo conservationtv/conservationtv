@@ -2,6 +2,7 @@ import { Suspense, useState, type FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { NetworkIcon, PlayIcon, RecordIcon, VideoCameraIcon, XIcon } from '@phosphor-icons/react';
 import { useLocation } from 'react-router';
+import { parseAsBoolean, useQueryState } from 'nuqs';
 import { z } from 'zod';
 import type { Camera, Stream } from '@conservationtv/studio-sdk';
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@conservationtv/ui/components/alert';
@@ -63,6 +64,7 @@ import { streamDetailOf, type Delivery, type StreamDetail } from '@/components/s
 import { DeleteStreamDialog, RenameStreamDialog, SourceSelect } from '@/components/streams/stream-dialogs';
 import { StreamTopology } from '@/components/streams/stream-topology';
 import { StreamTrafficChart } from '@/components/streams/stream-traffic';
+import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate } from '@/lib/format';
 import { cameraListQueryOptions } from '@/queries/cameras';
@@ -194,11 +196,15 @@ interface StreamTabsProps {
   cameras: Camera[];
 }
 
+/** Whether the live preview is open, as `?watch=true` in its address, so a link can open the stream playing. */
+const watchParser = parseAsBoolean.withDefault(false);
+
 /** Configuration, recording and outputs, under line tabs, with the live preview a button away at the row's end. */
 const StreamTabs: FC<StreamTabsProps> = ({ detail, choices, cameras }) => {
-  const [watching, setWatching] = useState(false);
+  const tabs = useTabsQuery('tab', ['configuration', 'recording', 'outputs']);
+  const [watching, setWatching] = useQueryState('watch', watchParser);
   return (
-    <Tabs defaultValue="configuration" className="gap-8">
+    <Tabs {...tabs} className="gap-8">
       <div className="flex items-center justify-between gap-4 border-b border-border pb-1">
         <TabsList variant="line" className="justify-start">
           <TabsTrigger value="configuration" className="flex-none px-2 text-custom-13">

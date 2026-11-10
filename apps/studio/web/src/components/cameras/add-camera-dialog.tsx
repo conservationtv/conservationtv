@@ -1,7 +1,7 @@
-import { useState, type FC } from 'react';
+import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
-import { PlusIcon } from '@phosphor-icons/react';
-import type { Network } from '@conservationtv/studio-sdk';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import type { Camera } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
 import {
   Dialog,
@@ -9,8 +9,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger
+  DialogTitle
 } from '@conservationtv/ui/components/dialog';
 import { FieldGroup, FieldSeparator } from '@conservationtv/ui/components/field';
 
@@ -27,21 +26,24 @@ import { NetworkOptions } from '@/components/devices/network-options';
 import { NewCameraSchema, type NewCameraInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
+import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useCreateCamera } from '@/queries/cameras';
+import { networkListQueryOptions } from '@/queries/networks';
 
 export interface AddCameraDialogProps {
-  /** The networks the camera can be on. */
-  networks: Network[];
+  /** Called with the camera once it is made, before the dialog closes back to the page beneath it. */
+  onAdded?: (camera: Camera) => void;
 }
 
 /**
  * Adds a camera: its name and network, how it is reached by its driver, the credentials it takes, and whether it feeds
- * its streams straight away. The dialog closes once it is made.
+ * its streams straight away. It is a route's dialog: open from the start, and closing back to the page beneath it, once
+ * the camera is made or the dialog is dismissed.
  */
-export const AddCameraDialog: FC<AddCameraDialogProps> = ({ networks }) => {
+export const AddCameraDialog: FC<AddCameraDialogProps> = ({ onAdded }) => {
   const organisationId = useOrganisationId();
-  const [open, setOpen] = useState(false);
+  const { data: networks } = useSuspenseQuery(networkListQueryOptions(organisationId));
   const create = useCreateCamera(organisationId);
   const defaultValues: NewCameraInput = {
     name: '',
@@ -58,26 +60,11 @@ export const AddCameraDialog: FC<AddCameraDialogProps> = ({ networks }) => {
   const form = useForm({
     defaultValues,
     validators: { onSubmit: NewCameraSchema },
-    onSubmit: ({ value, formApi }) =>
-      create.mutate(NewCameraSchema.parse(value), {
-        onSuccess: () => {
-          formApi.reset();
-          setOpen(false);
-        }
-      })
+    onSubmit: ({ value }) => dialog.mutate(NewCameraSchema.parse(value), { onSuccess: camera => onAdded?.(camera) })
   });
+  const dialog = useDialog(create, { closeTo: '..' });
   return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
-      <DialogTrigger render={<Button />}>
-        <PlusIcon />
-        Add camera
-      </DialogTrigger>
+    <Dialog {...dialog.props}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
         <form
           onSubmit={event => {

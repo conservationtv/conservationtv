@@ -1,23 +1,12 @@
-import { useState, type FC } from 'react';
-import { useForm } from '@tanstack/react-form';
+import type { FC } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router';
+import { Link, Outlet, useSearchParams } from 'react-router';
 import { BroadcastIcon, PlusIcon, TwitchLogoIcon } from '@phosphor-icons/react';
 import type { Channel } from '@conservationtv/studio-sdk';
 import { Alert, AlertDescription, AlertTitle } from '@conservationtv/ui/components/alert';
 import { Badge } from '@conservationtv/ui/components/badge';
 import { Button } from '@conservationtv/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@conservationtv/ui/components/dialog';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
-import { FieldGroup } from '@conservationtv/ui/components/field';
 import {
   Item,
   ItemActions,
@@ -31,15 +20,7 @@ import { Switch } from '@conservationtv/ui/components/switch';
 
 import type { Route } from './+types/channels';
 import { FormError } from '@/components/common/form-error';
-import { RtmpChannelSchema, type RtmpChannelInput } from '@/forms/schemas';
-import { TextField } from '@/forms/text-field';
-import {
-  channelListQueryOptions,
-  useConnectTwitch,
-  useCreateRtmpChannel,
-  useDeleteChannel,
-  useSetChannelEnabled
-} from '@/queries/channels';
+import { channelListQueryOptions, useConnectTwitch, useDeleteChannel, useSetChannelEnabled } from '@/queries/channels';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Channels · conservation.tv studio' }];
 
@@ -72,7 +53,10 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
       <ConnectOutcome />
       <div className="flex flex-wrap items-center gap-2">
         <ConnectTwitchButton organisationId={organisationId} />
-        <AddRtmpDialog organisationId={organisationId} />
+        <Button variant="outline" nativeButton={false} render={<Link to="rtmp/new" />}>
+          <PlusIcon />
+          Add RTMP destination
+        </Button>
       </div>
       {channels.length ? (
         <ItemGroup className="gap-2">
@@ -93,6 +77,8 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
           </EmptyHeader>
         </Empty>
       )}
+      {/* A dialog routed over the page: adding an RTMP destination at `rtmp/new`. */}
+      <Outlet />
     </div>
   );
 };
@@ -135,85 +121,6 @@ const ConnectTwitchButton: FC<ConnectTwitchButtonProps> = ({ organisationId }) =
       </Button>
       <FormError error={connect.error} />
     </div>
-  );
-};
-
-interface AddRtmpDialogProps {
-  organisationId: string;
-}
-
-/** Add any RTMP(S) destination by hand: YouTube, a second Twitch account, a restreaming service. */
-const AddRtmpDialog: FC<AddRtmpDialogProps> = ({ organisationId }) => {
-  const [open, setOpen] = useState(false);
-  const create = useCreateRtmpChannel(organisationId);
-  const defaultValues: RtmpChannelInput = { name: '', url: '', key: '' };
-  const form = useForm({
-    defaultValues,
-    validators: { onSubmit: RtmpChannelSchema },
-    onSubmit: ({ value, formApi }) =>
-      create.mutate(RtmpChannelSchema.parse(value), {
-        onSuccess: () => {
-          formApi.reset();
-          setOpen(false);
-        }
-      })
-  });
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={next => {
-        setOpen(next);
-        if (!next) create.reset();
-      }}
-    >
-      <DialogTrigger render={<Button variant="outline" />}>
-        <PlusIcon />
-        Add RTMP destination
-      </DialogTrigger>
-      <DialogContent>
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>Add an RTMP destination</DialogTitle>
-            <DialogDescription>
-              The server URL and stream key from the service’s streaming settings. The key is kept encrypted and isn’t
-              shown again.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup className="py-4">
-            <form.Field name="name">
-              {field => <TextField field={field} label="Name" placeholder="YouTube" autoComplete="off" />}
-            </form.Field>
-            <form.Field name="url">
-              {field => (
-                <TextField
-                  field={field}
-                  label="Server URL"
-                  placeholder="rtmps://a.rtmp.youtube.com/live2"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              )}
-            </form.Field>
-            <form.Field name="key">
-              {field => (
-                <TextField field={field} label="Stream key" type="password" autoComplete="off" spellCheck={false} />
-              )}
-            </form.Field>
-            <FormError error={create.error} />
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="submit" loading={create.isPending}>
-              Add destination
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 };
 
