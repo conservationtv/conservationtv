@@ -44,17 +44,21 @@ export default defineConfig({
     compatibilityDate: '2026-09-25',
     compatibilityFlags: ['nodejs_compat'],
     entrypoint,
-    // contracts/ (see vite.config.ts) as static assets, for the published OpenAPI document and the show's bundle. Every
-    // request still goes to the Worker first, so both are served through its CORS policy: browsers fetch them
-    // cross-origin, revalidating with If-None-Match, which needs a preflight. No HTML handling: the frame page is
-    // served at frames.html, as its sources name it, rather than redirected to a path without the extension.
+    // contracts/ (see vite.config.ts) as static assets, for the operation manifest, the published OpenAPI document and
+    // the show's bundle. Every request still goes to the Worker first, so all are served through its CORS policy:
+    // browsers fetch them cross-origin, revalidating with If-None-Match, which needs a preflight. No HTML handling: the
+    // frame page is served at frames.html, as its sources name it, rather than redirected to a path without the
+    // extension.
     assets: { runWorkerFirst: true, htmlHandling: 'none' },
     exports: {
       /** Each organisation's broadcast, composed and followed over WebSockets; see src/shows/host.tsx. */
       ShowHost: exports.durableObject({ storage: 'sqlite' })
     },
     env: {
-      /** The static assets: contracts/openapi.json at /openapi.json, and the show's bundle under /show/ (src/app.ts). */
+      /**
+       * The static assets: contracts/operations.json and contracts/openapi.json at their names, and the show's bundle
+       * under /show/ (src/app.ts).
+       */
       ASSETS: bindings.assets(),
       /** The owning role: migrations, Better Auth's tables, and grant management. Never used for request queries. */
       HYPERDRIVE_ADMIN: bindings.hyperdrive({

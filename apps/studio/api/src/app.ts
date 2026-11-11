@@ -1,4 +1,8 @@
-import { OperationRouter, PUBLISHED_DOCUMENT_PATH } from '@conservationtv/versioned-api/server';
+import {
+  OPERATION_MANIFEST_PATH,
+  OperationRouter,
+  PUBLISHED_DOCUMENT_PATH
+} from '@conservationtv/versioned-api/server';
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { describeRoute } from 'hono-openapi';
@@ -29,8 +33,8 @@ import { SHOW_BUNDLE_PATH } from './shows/broadcast.ts';
 import { useEnvironment } from './env/env.ts';
 
 /**
- * The requested file from the Worker's static assets (contracts/): the published OpenAPI document, or the show's
- * bundle. The asset server answers `If-None-Match` itself with its own entity tag, so an unchanged file is a 304 with
+ * The requested file from the Worker's static assets (contracts/): the operation manifest, the published OpenAPI
+ * document, or the show's bundle. The asset server answers `If-None-Match` itself with its own entity tag, so an unchanged file is a 304 with
  * no body. Copied into a new Response so the CORS middleware can add its headers.
  */
 const serveStaticAsset = async (c: Context) => {
@@ -95,6 +99,7 @@ const app = new Hono({ router: operationRouter })
   .route('/gateway-endpoints', gatewayEndpoints)
   // Fetched by gateways, with no session.
   .route('/whoami', whoami)
+  .get(OPERATION_MANIFEST_PATH, describeRoute({ hide: true }), serveStaticAsset)
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), serveStaticAsset)
   // The show's bundle (`pnpm bundle:show`, packages/shows): the frame page OBS and the studio open, and the fonts the
   // show is set in, which the studio web app fetches cross-origin.

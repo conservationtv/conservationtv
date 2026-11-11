@@ -1,0 +1,13 @@
+{
+  "operations": {
+    "status.get": [
+      1
+    ],
+    "system.get": [
+      1
+    ],
+    "system.spec": [
+      1
+    ]
+  }
+}
