@@ -18,7 +18,7 @@ export const SubjectSchema = z.object({
         computedAt: z.string(),
         contributingReporterIds: z.array(z.string()),
         evidenceReportIds: z.array(z.string())
-    }),
+    }).nullable(),
     reachable: z.boolean(),
     opinions: z.array(z.object({
         reporterId: z.string(),

@@ -6,6 +6,7 @@
     "moduleResolution": "bundler",
     "types": ["node"],
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,

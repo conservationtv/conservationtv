@@ -1296,53 +1296,60 @@
             "type": "string"
           },
           "state": {
-            "type": "object",
-            "properties": {
-              "health": {
-                "type": "string"
-              },
-              "state": {
+            "anyOf": [
+              {
                 "type": "object",
-                "additionalProperties": {}
-              },
-              "freshness": {
-                "type": "string",
-                "enum": [
-                  "fresh",
-                  "stale"
+                "properties": {
+                  "health": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "freshness": {
+                    "type": "string",
+                    "enum": [
+                      "fresh",
+                      "stale"
+                    ]
+                  },
+                  "observedAt": {
+                    "type": "string"
+                  },
+                  "expiresAt": {
+                    "type": "string"
+                  },
+                  "computedAt": {
+                    "type": "string"
+                  },
+                  "contributingReporterIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidenceReportIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "health",
+                  "state",
+                  "freshness",
+                  "observedAt",
+                  "expiresAt",
+                  "computedAt",
+                  "contributingReporterIds",
+                  "evidenceReportIds"
                 ]
               },
-              "observedAt": {
-                "type": "string"
-              },
-              "expiresAt": {
-                "type": "string"
-              },
-              "computedAt": {
-                "type": "string"
-              },
-              "contributingReporterIds": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "evidenceReportIds": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
+              {
+                "type": "null"
               }
-            },
-            "required": [
-              "health",
-              "state",
-              "freshness",
-              "observedAt",
-              "expiresAt",
-              "computedAt",
-              "contributingReporterIds",
-              "evidenceReportIds"
             ]
           },
           "reachable": {
@@ -28624,53 +28631,60 @@
                 "type": "string"
               },
               "state": {
-                "type": "object",
-                "properties": {
-                  "health": {
-                    "type": "string"
-                  },
-                  "state": {
+                "anyOf": [
+                  {
                     "type": "object",
-                    "additionalProperties": {}
-                  },
-                  "freshness": {
-                    "type": "string",
-                    "enum": [
-                      "fresh",
-                      "stale"
+                    "properties": {
+                      "health": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "freshness": {
+                        "type": "string",
+                        "enum": [
+                          "fresh",
+                          "stale"
+                        ]
+                      },
+                      "observedAt": {
+                        "type": "string"
+                      },
+                      "expiresAt": {
+                        "type": "string"
+                      },
+                      "computedAt": {
+                        "type": "string"
+                      },
+                      "contributingReporterIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "evidenceReportIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "health",
+                      "state",
+                      "freshness",
+                      "observedAt",
+                      "expiresAt",
+                      "computedAt",
+                      "contributingReporterIds",
+                      "evidenceReportIds"
                     ]
                   },
-                  "observedAt": {
-                    "type": "string"
-                  },
-                  "expiresAt": {
-                    "type": "string"
-                  },
-                  "computedAt": {
-                    "type": "string"
-                  },
-                  "contributingReporterIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidenceReportIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
+                  {
+                    "type": "null"
                   }
-                },
-                "required": [
-                  "health",
-                  "state",
-                  "freshness",
-                  "observedAt",
-                  "expiresAt",
-                  "computedAt",
-                  "contributingReporterIds",
-                  "evidenceReportIds"
                 ]
               },
               "reachable": {
