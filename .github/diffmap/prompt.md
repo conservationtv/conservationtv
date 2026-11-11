@@ -7,9 +7,10 @@ exact version for every diffmap command. Run it with pnpm dlx, not npx: the repo
 The spec is for the person about to review this pull request. They will read it first, then the diff itself on a review
 tool that already does some of the work, so spend the spec on what that tool cannot show:
 
-- It sets apart generated code: API documents (`contracts/openapi.json`), SDKs and CLIs, Drizzle snapshots, umbrella's
-  policies and `pnpm-lock.yaml` (the rules are in `tools/review/src/shared/classify.ts`). A signoff proves those match
-  their generators, so do not describe them; describe the source change they were generated from.
+- It sets apart generated code: API documents (`contracts/openapi.json`), operation manifests
+  (`contracts/operations.json`), SDKs and CLIs, Drizzle snapshots, umbrella's policies and `pnpm-lock.yaml` (the rules
+  are in `tools/review/src/shared/classify.ts`). A signoff proves those match their generators, so do not describe
+  them; describe the source change they were generated from.
 - It already draws the calls between changed functions as trees. Do not write a call stack that only restates which
   function calls which; use one only where the order of calls or what each one does is the point.
 - What it cannot show is the design: what state a service or Durable Object holds and how an event changes it, how a

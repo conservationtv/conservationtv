@@ -1,11 +1,22 @@
 import type { Context } from 'hono';
 
-/** Where version-aware clients read the contracts a server publishes. */
+/** Where the server publishes its complete OpenAPI bundle, and where SDKs older than the manifest handshake. */
 export const PUBLISHED_DOCUMENT_PATH = '/openapi.json';
+
+/** Where version-aware clients handshake: the operation manifest, every served version of each versioned operation. */
+export const OPERATION_MANIFEST_PATH = '/operations.json';
 
 /** An OpenAPI bundle as the API imports it from its contracts directory; only serialized, never read here. */
 export interface PublishedDocument {
   readonly openapi: string;
+}
+
+/**
+ * The served versions of each versioned operation, ascending, keyed by operationId. Generated beside the bundle as
+ * contracts/operations.json; versionless operations are left out, since nothing negotiates them.
+ */
+export interface OperationManifest {
+  readonly operations: Readonly<Record<string, readonly number[]>>;
 }
 
 /** A plain response handler: no `any` from Hono's generic Handler type, so the app's route types stay inferable. */
@@ -17,7 +28,7 @@ interface Published {
 }
 
 /** Hash once per isolate; the document is part of the deployed code, so it cannot change underneath. */
-async function publish(document: PublishedDocument): Promise<Published> {
+async function publish(document: PublishedDocument | OperationManifest): Promise<Published> {
   const body = JSON.stringify(document);
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
   const hex = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -32,12 +43,13 @@ function matches(header: string | undefined, etag: string): boolean {
 }
 
 /**
- * Serve the published OpenAPI bundle with a strong entity tag. `no-cache` lets browsers keep it but revalidate on
- * every handshake, so a deploy is seen at once while an unchanged document costs a 304 with no body. The SDK sends
+ * Serve the published OpenAPI bundle, or the operation manifest, with a strong entity tag. `no-cache` lets browsers
+ * keep it but revalidate on every handshake, so a deploy is seen at once while an unchanged document costs a 304 with
+ * no body. The SDK sends
  * `If-None-Match` itself too, so runtimes without an HTTP cache, such as Node, get the same. A long max-age would be
  * faster still, but the SDK re-handshakes after a version mismatch and must then see the new document.
  */
-export function servePublishedDocument(document: PublishedDocument): PublishedDocumentHandler {
+export function servePublishedDocument(document: PublishedDocument | OperationManifest): PublishedDocumentHandler {
   let published: Promise<Published> | undefined = undefined;
   return async c => {
     if (published == null) published = publish(document);

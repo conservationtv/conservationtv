@@ -15,6 +15,7 @@ const rules: Rule[] = [
   { pattern: /(^|\/)pnpm-lock\.yaml$/, category: 'lockfile', generator: 'pnpm install' },
   { pattern: /\/contracts\/openapi\.json$/, category: 'contract', generator: 'api-contracts generate' },
   { pattern: /\/contracts\/snapshots\/[^/]+\.json$/, category: 'contract', generator: 'api-contracts snapshot' },
+  { pattern: /\/contracts\/operations\.json$/, category: 'generated', generator: 'api-contracts generate' },
   { pattern: /^apps\/[^/]+\/sdk\/src\/(generated|versions)\//, category: 'generated', generator: 'openapi-ts: SDK' },
   { pattern: /^apps\/[^/]+\/cli\/src\/generated\//, category: 'generated', generator: 'openapi-ts: CLI' },
   { pattern: /^packages\/mediamtx\/src\/generated\//, category: 'generated', generator: 'openapi-ts: MediaMTX' },

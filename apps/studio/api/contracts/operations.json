@@ -1,0 +1,310 @@
+{
+  "operations": {
+    "account.get": [
+      1
+    ],
+    "account.update": [
+      1
+    ],
+    "organisations.list": [
+      1
+    ],
+    "organisations.create": [
+      1
+    ],
+    "organisations.get": [
+      1
+    ],
+    "organisations.update": [
+      1
+    ],
+    "organisations.delete": [
+      1
+    ],
+    "organisations.members.list": [
+      1
+    ],
+    "organisations.members.updateSelf": [
+      1
+    ],
+    "organisations.members.remove": [
+      1
+    ],
+    "organisations.members.grantAdmin": [
+      1
+    ],
+    "organisations.members.revokeAdmin": [
+      1
+    ],
+    "organisations.invitations.list": [
+      1
+    ],
+    "organisations.invitations.create": [
+      1
+    ],
+    "organisations.invitations.cancel": [
+      1
+    ],
+    "organisations.networks.list": [
+      1
+    ],
+    "organisations.networks.create": [
+      1
+    ],
+    "organisations.networks.get": [
+      1
+    ],
+    "organisations.networks.update": [
+      1
+    ],
+    "organisations.networks.delete": [
+      1
+    ],
+    "organisations.networks.setActiveAgent": [
+      1
+    ],
+    "organisations.devices.allowlist": [
+      1
+    ],
+    "organisations.devices.list": [
+      1
+    ],
+    "organisations.devices.get": [
+      1
+    ],
+    "organisations.devices.getKeyPair": [
+      1
+    ],
+    "organisations.devices.listAddresses": [
+      1
+    ],
+    "organisations.devices.update": [
+      1
+    ],
+    "organisations.cameras.list": [
+      1
+    ],
+    "organisations.cameras.create": [
+      1
+    ],
+    "organisations.cameras.get": [
+      1
+    ],
+    "organisations.cameras.update": [
+      1
+    ],
+    "organisations.cameras.delete": [
+      1
+    ],
+    "organisations.browser.ensure": [
+      1
+    ],
+    "organisations.agents.list": [
+      1
+    ],
+    "organisations.agents.create": [
+      1
+    ],
+    "organisations.agents.get": [
+      1
+    ],
+    "organisations.agents.update": [
+      1
+    ],
+    "organisations.agents.delete": [
+      1
+    ],
+    "organisations.gateways.list": [
+      1
+    ],
+    "organisations.gateways.create": [
+      1
+    ],
+    "organisations.gateways.get": [
+      1
+    ],
+    "organisations.gateways.listEndpoints": [
+      1
+    ],
+    "organisations.gateways.update": [
+      1
+    ],
+    "organisations.gateways.delete": [
+      1
+    ],
+    "organisations.gateways.stats.connect": [
+      1
+    ],
+    "organisations.streams.list": [
+      1
+    ],
+    "organisations.streams.create": [
+      1
+    ],
+    "organisations.streams.get": [
+      1
+    ],
+    "organisations.streams.update": [
+      1
+    ],
+    "organisations.streams.delete": [
+      1
+    ],
+    "organisations.streams.exposures.create": [
+      1
+    ],
+    "organisations.streams.exposures.update": [
+      1
+    ],
+    "organisations.streams.exposures.delete": [
+      1
+    ],
+    "organisations.streams.exposures.connect": [
+      1
+    ],
+    "organisations.streams.recorders.create": [
+      1
+    ],
+    "organisations.streams.recorders.update": [
+      1
+    ],
+    "organisations.streams.recorders.delete": [
+      1
+    ],
+    "organisations.subjects.states.list": [
+      1
+    ],
+    "organisations.subjects.metrics.query": [
+      1
+    ],
+    "organisations.subjects.state": [
+      1
+    ],
+    "organisations.subjects.observations.list": [
+      1
+    ],
+    "organisations.subjects.metrics.list": [
+      1
+    ],
+    "organisations.subjects.metrics.get": [
+      1
+    ],
+    "organisations.subjects.logs.list": [
+      1
+    ],
+    "organisations.show.output.get": [
+      1
+    ],
+    "organisations.show.output.set": [
+      1
+    ],
+    "organisations.show.output.delete": [
+      1
+    ],
+    "organisations.shows.list": [
+      1
+    ],
+    "organisations.shows.create": [
+      1
+    ],
+    "organisations.shows.get": [
+      1
+    ],
+    "organisations.shows.update": [
+      1
+    ],
+    "organisations.shows.delete": [
+      1
+    ],
+    "organisations.shows.getOutput": [
+      1
+    ],
+    "organisations.shows.setOutput": [
+      1
+    ],
+    "organisations.shows.deleteOutput": [
+      1
+    ],
+    "organisations.shows.forwards.create": [
+      1
+    ],
+    "organisations.shows.forwards.update": [
+      1
+    ],
+    "organisations.shows.forwards.delete": [
+      1
+    ],
+    "organisations.shows.previews.create": [
+      1
+    ],
+    "organisations.shows.previews.delete": [
+      1
+    ],
+    "organisations.shows.previews.connect": [
+      1
+    ],
+    "organisations.shows.createRecorder": [
+      1
+    ],
+    "organisations.shows.updateRecorder": [
+      1
+    ],
+    "organisations.shows.deleteRecorder": [
+      1
+    ],
+    "organisations.channels.list": [
+      1
+    ],
+    "organisations.channels.create": [
+      1
+    ],
+    "organisations.channels.twitch.authorize": [
+      1
+    ],
+    "organisations.channels.get": [
+      1
+    ],
+    "organisations.channels.update": [
+      1
+    ],
+    "organisations.channels.delete": [
+      1
+    ],
+    "organisations.channels.ingest": [
+      1
+    ],
+    "organisations.channels.stats.get": [
+      1
+    ],
+    "invitations.listMine": [
+      1
+    ],
+    "invitations.get": [
+      1
+    ],
+    "invitations.accept": [
+      1
+    ],
+    "invitations.decline": [
+      1
+    ],
+    "reports.submit": [
+      1
+    ],
+    "irohSessions.create": [
+      1
+    ],
+    "deviceConfiguration.get": [
+      1
+    ],
+    "deviceAddresses.replace": [
+      1
+    ],
+    "gatewayEndpoints.replace": [
+      1
+    ],
+    "whoami.get": [
+      1
+    ]
+  }
+}
