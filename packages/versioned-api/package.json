@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Per-operation API versioning for Hono Workers: the server router, the OpenAPI contract bundle and release gates, and the generators behind the version-aware SDKs and CLIs (TypeScript here, Rust under rust/).",
+  "description": "Per-operation API versioning for Hono Workers: the server router, the OpenAPI contract bundle and release gates, and the generators behind the version-aware SDKs and CLIs (TypeScript here, Rust under rust/, Swift under swift/).",
   "exports": {
     "./server": "./src/server/index.ts",
     "./contracts": "./src/contracts/index.ts",
