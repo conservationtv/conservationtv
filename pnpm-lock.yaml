@@ -816,6 +816,27 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  apps/studio/sdks/swift:
+    devDependencies:
+      '@conservationtv/studio-api':
+        specifier: workspace:*
+        version: link:../../api
+      '@conservationtv/studio-sdk':
+        specifier: workspace:*
+        version: link:../ts
+      '@conservationtv/versioned-api':
+        specifier: workspace:*
+        version: link:../../../../packages/versioned-api
+      '@hey-api/openapi-ts':
+        specifier: 0.99.0
+        version: 0.99.0
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   apps/studio/sdks/ts:
     dependencies:
       '@conservationtv/versioned-api':

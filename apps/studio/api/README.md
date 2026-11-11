@@ -2,7 +2,7 @@
 
 The conservation.tv studio API: a Cloudflare Worker (Hono) backed by Postgres through Hyperdrive, built the same way
 as [gatekeeper](../../controlplane/gatekeeper). Its API is versioned per operation and publishes an OpenAPI bundle
-from which the SDKs (`../sdks/ts`, `../sdks/rust`) and CLI (`../cli`) are generated; the versioning router, contract generation, release
+from which the SDKs (`../sdks/ts`, `../sdks/rust`, `../sdks/swift`) and CLI (`../cli`) are generated; the versioning router, contract generation, release
 gates and generators are shared through [`@conservationtv/versioned-api`](../../../packages/versioned-api).
 
 Unlike gatekeeper, requests run as a signed-in account and the database decides what that account can see:
