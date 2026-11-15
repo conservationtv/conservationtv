@@ -24,6 +24,7 @@ import reports from './routes/reports.ts';
 import shows from './routes/shows.ts';
 import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
+import topology from './routes/topology.ts';
 import whoami from './routes/whoami.ts';
 import { SHOW_BUNDLE_PATH } from './shows/broadcast.ts';
 import { useEnvironment } from './env/env.ts';
@@ -80,6 +81,7 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/gateways', gateways)
   .route('/organisations/:id/streams', streams)
   .route('/organisations/:id/subjects', subjects)
+  .route('/organisations/:id/topology', topology)
   // The organisation's broadcast, followed over a WebSocket rather than called, and the shows that send it out.
   .route('/organisations/:id/show', broadcast)
   .route('/organisations/:id/shows', shows)

@@ -28,6 +28,7 @@ import {
   SectionTitle
 } from '@/components/common/page';
 import { overviewOf, type Overview, type Problem, type SetupStep } from '@/components/overview/overview';
+import { OverviewSignal } from '@/components/overview/overview-signal';
 import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
 import { useOrganisation, useOrganisationId } from '@/hooks/use-organisation';
 import { agentListQueryOptions } from '@/queries/agents';
@@ -60,6 +61,9 @@ const OrganisationHomeRoute: FC = () => {
       </PageHeader>
       <Suspense fallback={<Skeleton className="h-64 w-full" />}>
         <OverviewSections />
+      </Suspense>
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+        <OverviewSignal />
       </Suspense>
     </Page>
   );

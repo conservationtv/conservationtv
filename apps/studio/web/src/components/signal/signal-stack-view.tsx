@@ -1,0 +1,312 @@
+import type { FC } from 'react';
+import { ArrowSquareInIcon, FolderSimpleIcon, NetworkIcon, NetworkXIcon } from '@phosphor-icons/react';
+import { cn } from '@conservationtv/ui/lib/utils';
+
+import {
+  SignalEditAction,
+  SignalEditChevron,
+  SignalEditTrigger,
+  SignalTierAdd
+} from '@/components/signal/editing/signal-editing';
+import { useSignalFocus, useSignalTopology } from '@/components/signal/signal-context';
+import {
+  SignalGroup,
+  SignalGroupCaret,
+  SignalGroupContent,
+  SignalGroupShut,
+  SignalGroupShutContent,
+  SignalGroupTrigger
+} from '@/components/signal/signal-group';
+import { PlatformIcon, SourceIcon } from '@/components/signal/signal-icons';
+import {
+  SignalAspect,
+  SignalBars,
+  SignalDots,
+  SignalHealth,
+  SignalNodeFlag,
+  SignalNodeIcon
+} from '@/components/signal/signal-node';
+import { Reveal } from '@/components/signal/signal-presence';
+import {
+  SignalList,
+  SignalListIcon,
+  SignalListItem,
+  SignalListNote,
+  SignalListText,
+  SignalListTrail,
+  SignalStack,
+  SignalTier,
+  SignalTierHeader,
+  SignalTierTitle
+} from '@/components/signal/signal-stack';
+import type { SignalBroadcast, SignalChannel } from '@/components/signal/signal-system';
+import {
+  broadcastTrouble,
+  channelTrouble,
+  sourceTrouble,
+  type GroupView,
+  type SourceView,
+  type SubgroupView
+} from '@/components/signal/signal-topology';
+
+// The signal as a quiet stack, for a screen too narrow for the map: a tier each for channels, broadcasts and
+// sources, a row a thing. A composition of the signal's parts, with editing's set among them (they do nothing unless
+// the page is editable).
+
+/** How far in a group's members sit, and a subgroup's further. */
+const MEMBER = 'min-h-9 border-t border-border/60 py-1.5 text-custom-12';
+
+interface ChannelProps {
+  channel: SignalChannel;
+}
+
+/** A channel's row: a second line only when something's wrong, and its bars (or, cut off, a dot) at the end. */
+const StackChannel: FC<ChannelProps> = ({ channel }) => {
+  const trouble = channelTrouble(channel);
+  return (
+    <SignalEditTrigger target={{ kind: 'channel', id: channel.id }} render={<SignalListItem id={channel.id} pick />}>
+      <SignalNodeIcon>
+        <PlatformIcon platform={channel.platform} />
+      </SignalNodeIcon>
+      <SignalListText>
+        <span className="truncate">{channel.handle}</span>
+        <Reveal when={trouble !== null}>
+          <SignalListNote tone={trouble?.tone ?? 'warning'}>{trouble?.text}</SignalListNote>
+        </Reveal>
+      </SignalListText>
+      <SignalListTrail>
+        <SignalEditChevron>
+          {channel.status === 'affected' ? (
+            <SignalHealth status="affected" />
+          ) : (
+            <SignalBars level={channel.level} status={channel.status} />
+          )}
+        </SignalEditChevron>
+      </SignalListTrail>
+    </SignalEditTrigger>
+  );
+};
+
+interface BroadcastProps {
+  broadcast: SignalBroadcast;
+}
+
+const StackBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
+  const { system, groups } = useSignalTopology();
+  const focus = useSignalFocus();
+  const trouble = broadcastTrouble(broadcast);
+  const channels = system.channels.filter(channel => channel.broadcast === broadcast.id).length;
+  const sources = groups.flatMap(group => group.sources).filter(source => source.feeds.includes(broadcast.id)).length;
+  return (
+    <SignalEditTrigger
+      target={{ kind: 'broadcast', id: broadcast.id }}
+      render={<SignalListItem id={broadcast.id} pick />}
+    >
+      <SignalAspect width={broadcast.width} height={broadcast.height} />
+      <SignalListText>
+        {broadcast.name}
+        <Reveal when={trouble !== null}>
+          <SignalListNote tone="destructive">{trouble}</SignalListNote>
+        </Reveal>
+        {/* Picked, it says what it's wired to, since there are no wires here to show it. */}
+        <Reveal when={focus.picked === broadcast.id && trouble === null}>
+          <SignalListNote>
+            To {channels} channel{channels === 1 ? '' : 's'} · from {sources} sources
+          </SignalListNote>
+        </Reveal>
+      </SignalListText>
+      <SignalListTrail>
+        <SignalEditChevron>
+          {broadcast.recording && trouble === null && <SignalNodeFlag tone="recording">Rec</SignalNodeFlag>}
+          <SignalHealth status={broadcast.status} />
+        </SignalEditChevron>
+      </SignalListTrail>
+    </SignalEditTrigger>
+  );
+};
+
+interface SourceProps {
+  source: SourceView;
+  /** What editing it edits: a camera, or an ingest. */
+  kind: 'camera' | 'ingest';
+  /** How far in it sits: under its network, or further in under its subgroup. */
+  className: string;
+}
+
+/** A camera or an ingest, as a row under its group's. */
+const StackSource: FC<SourceProps> = ({ source, kind, className }) => {
+  return (
+    <SignalEditTrigger
+      target={{ kind, id: source.id }}
+      render={<SignalListItem id={source.id} pick className={cn(MEMBER, className)} />}
+    >
+      <SignalListIcon>
+        <SourceIcon kind={source.kind} />
+      </SignalListIcon>
+      <SignalListText>
+        {source.name}
+        <Reveal when={sourceTrouble(source) !== null}>
+          <SignalListNote tone="destructive">Not sending</SignalListNote>
+        </Reveal>
+      </SignalListText>
+      <SignalListTrail>
+        <SignalEditChevron>
+          <SignalHealth status={source.seen} />
+        </SignalEditChevron>
+      </SignalListTrail>
+    </SignalEditTrigger>
+  );
+};
+
+interface SubgroupProps {
+  subgroup: SubgroupView;
+}
+
+const StackSubgroup: FC<SubgroupProps> = ({ subgroup }) => {
+  return (
+    <SignalGroup id={subgroup.id}>
+      <SignalGroupTrigger render={<SignalListItem id={subgroup.id} className={cn(MEMBER, 'pl-10')} />}>
+        <SignalListIcon>
+          <FolderSimpleIcon />
+        </SignalListIcon>
+        <SignalListText>
+          <span className="flex items-center gap-1.5 truncate">
+            {subgroup.name}
+            <SignalGroupCaret />
+          </span>
+          <Reveal when={subgroup.trouble !== null}>
+            <SignalListNote tone="destructive">{subgroup.trouble}</SignalListNote>
+          </Reveal>
+        </SignalListText>
+        <SignalListTrail>
+          <SignalGroupShut>
+            <SignalDots statuses={subgroup.sources.map(source => source.seen)} className="max-w-28 justify-end" />
+          </SignalGroupShut>
+          <SignalEditAction target={{ kind: 'subgroup', id: subgroup.id }} aria-label={`Edit ${subgroup.name}`} />
+        </SignalListTrail>
+      </SignalGroupTrigger>
+      <SignalGroupShutContent>
+        {subgroup.stopped.map(source => (
+          <StackSource key={source.id} source={source} kind="camera" className="pl-[4.25rem]" />
+        ))}
+      </SignalGroupShutContent>
+      <SignalGroupContent>
+        {subgroup.sources.map(source => (
+          <StackSource key={source.id} source={source} kind="camera" className="pl-[4.25rem]" />
+        ))}
+      </SignalGroupContent>
+    </SignalGroup>
+  );
+};
+
+interface GroupProps {
+  group: GroupView;
+}
+
+const StackNetwork: FC<GroupProps> = ({ group }) => {
+  return (
+    <SignalGroup id={group.id}>
+      <SignalGroupTrigger render={<SignalListItem id={group.id} />}>
+        <SignalNodeIcon className={cn('transition-colors duration-300', group.down && 'text-destructive')}>
+          {group.down ? <NetworkXIcon /> : <NetworkIcon />}
+        </SignalNodeIcon>
+        <SignalListText>
+          <span className="flex items-center gap-1.5 truncate">
+            {group.name}
+            <SignalGroupCaret />
+          </span>
+          <Reveal when={group.trouble !== null}>
+            <SignalListNote tone="destructive">{group.trouble}</SignalListNote>
+          </Reveal>
+        </SignalListText>
+        <SignalListTrail>
+          <SignalGroupShut>
+            <SignalDots statuses={group.sources.map(source => source.seen)} className="max-w-28 justify-end" />
+          </SignalGroupShut>
+          <SignalEditAction target={{ kind: 'network', id: group.id }} aria-label={`Edit ${group.name}`} />
+        </SignalListTrail>
+      </SignalGroupTrigger>
+      {/* Shut, whatever has stopped is listed anyway, straight under the network, whichever subgroup it's in. */}
+      <SignalGroupShutContent>
+        {group.stopped.map(source => (
+          <StackSource key={source.id} source={source} kind="camera" className="pl-10" />
+        ))}
+      </SignalGroupShutContent>
+      <SignalGroupContent>
+        {group.subgroups.map(subgroup => (
+          <StackSubgroup key={subgroup.id} subgroup={subgroup} />
+        ))}
+        {group.ungrouped.map(source => (
+          <StackSource key={source.id} source={source} kind="camera" className="pl-10" />
+        ))}
+      </SignalGroupContent>
+    </SignalGroup>
+  );
+};
+
+/** The ingests: no network's, so nothing to open or shut; always listed one by one. */
+const StackIngests: FC<GroupProps> = ({ group }) => {
+  return (
+    <SignalGroup id={group.id} open>
+      <SignalListItem id={group.id}>
+        <SignalNodeIcon className="transition-colors duration-300">
+          <ArrowSquareInIcon />
+        </SignalNodeIcon>
+        <SignalListText>
+          <span className="flex items-center gap-1.5 truncate">{group.name}</span>
+        </SignalListText>
+        <SignalListTrail />
+      </SignalListItem>
+      <SignalGroupContent>
+        {group.ungrouped.map(source => (
+          <StackSource key={source.id} source={source} kind="ingest" className="pl-10" />
+        ))}
+      </SignalGroupContent>
+    </SignalGroup>
+  );
+};
+
+export const SignalStackView: FC = () => {
+  const { system, groups } = useSignalTopology();
+  return (
+    <SignalStack className="gap-6">
+      <SignalTier>
+        <SignalTierHeader className="px-1">
+          <SignalTierTitle>Channels</SignalTierTitle>
+          <SignalTierAdd target={{ kind: 'add-channel' }} />
+        </SignalTierHeader>
+        <SignalList>
+          {system.channels.map(channel => (
+            <StackChannel key={channel.id} channel={channel} />
+          ))}
+        </SignalList>
+      </SignalTier>
+      <SignalTier>
+        <SignalTierHeader className="px-1">
+          <SignalTierTitle>Broadcasts</SignalTierTitle>
+          <SignalTierAdd target={{ kind: 'add-broadcast' }} />
+        </SignalTierHeader>
+        <SignalList>
+          {system.broadcasts.map(broadcast => (
+            <StackBroadcast key={broadcast.id} broadcast={broadcast} />
+          ))}
+        </SignalList>
+      </SignalTier>
+      <SignalTier>
+        <SignalTierHeader className="px-1">
+          <SignalTierTitle>Sources</SignalTierTitle>
+          <SignalTierAdd target={{ kind: 'add-source' }} />
+        </SignalTierHeader>
+        <SignalList>
+          {groups.map(group =>
+            group.network === null ? (
+              <StackIngests key={group.id} group={group} />
+            ) : (
+              <StackNetwork key={group.id} group={group} />
+            )
+          )}
+        </SignalList>
+      </SignalTier>
+    </SignalStack>
+  );
+};
