@@ -20,8 +20,10 @@ export {
 } from './openapi.js';
 export { ApiErrorSchema, type ApiError } from './schemas.js';
 export {
+  OPERATION_MANIFEST_PATH,
   PUBLISHED_DOCUMENT_PATH,
   servePublishedDocument,
+  type OperationManifest,
   type PublishedDocument,
   type PublishedDocumentHandler
 } from './published-document.js';
