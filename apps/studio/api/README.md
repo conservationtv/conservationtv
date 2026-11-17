@@ -54,7 +54,8 @@ releases it the way gatekeeper is released. Locally, the Hyperdrive and KV IDs a
 | `PUT /device-addresses`                                                                     | devices, by signature                        | `deviceAddresses.replace` v1: the addresses the signing device found on its interfaces, replaced whole   |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as        |
-| `GET /openapi.json`                                                                         | SDK/CLI                                      | the published capability bundle                                                                          |
+| `GET /operations.json`                                                                      | SDK                                          | the operation manifest: each versioned operation's served versions, read by the handshake                |
+| `GET /openapi.json`                                                                         | SDK/CLI                                      | the published capability bundle; SDKs older than the manifest handshake here                             |
 | `/auth/*`                                                                                   | accounts                                     | Better Auth's routes, hidden from the contract                                                           |
 
 Request and response fields are camelCase. Failures use the shared `{ "error", "error_description" }`: 400 for malformed requests, 401 without a session, 403 when the row
@@ -422,7 +423,7 @@ Rotating would also change every blind index, so those would need recomputing to
 ## Contracts, SDK and CLI
 
 ```sh
-pnpm --filter @conservationtv/studio-api generate             # contracts/openapi.json from routes + handler types
+pnpm --filter @conservationtv/studio-api generate             # contracts/openapi.json and operations.json from routes + handler types
 pnpm --filter @conservationtv/studio-sdk generate
 pnpm --filter @conservationtv/studio-cli generate           # the commands apps/cli mounts at its top level
 ```
