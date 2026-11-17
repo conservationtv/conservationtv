@@ -22,7 +22,7 @@ export type Subject = {
         computedAt: string;
         contributingReporterIds: Array<string>;
         evidenceReportIds: Array<string>;
-    };
+    } | null;
     reachable: boolean;
     opinions: Array<{
         reporterId: string;
