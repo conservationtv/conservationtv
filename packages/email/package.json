@@ -1,0 +1,33 @@
+{
+  "name": "@conservationtv/email",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Transactional emails written with React Email, styled by @conservationtv/ui's Tailwind theme: sign-in codes, invitations and account notices, rendered to HTML and text by whichever service sends them.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "email dev --dir src/emails --port 3030",
+    "generate": "tsx scripts/generate.ts",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "react-dom": "^19.3.0",
+    "react-email": "6.11.13"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "@conservationtv/ui": "workspace:*",
+    "@react-email/ui": "6.11.13",
+    "@types/css-tree": "3.2.0",
+    "@types/node": "24.10.1",
+    "@types/react": "^19",
+    "css-tree": "3.2.1",
+    "react": "^19.3.0",
+    "tsx": "4.23.15",
+    "typescript": "catalog:"
+  }
+}
