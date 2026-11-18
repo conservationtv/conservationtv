@@ -6,6 +6,7 @@ import type { ConservationTvConfiguration } from '../config.ts';
 import { gatewayControllers, type GatewaySetup } from '../gateway/index.ts';
 import { machineController } from '../machine/index.ts';
 import { outputControllers } from '../output/index.ts';
+import { REPORT_INTERVAL_MS } from '../reporting/sampler.ts';
 import { watchStudioConfiguration } from './configuration.ts';
 import { specFile } from './spec-file.ts';
 
@@ -54,9 +55,9 @@ const SPEC_FILE = 'spec.json';
 
 /** The spec of an agent that has none saved: sampling its machine, and MediaMTX up, until the studio says more. */
 const INITIAL_SPEC: SystemSpec<AgentControllers> = {
-  machine: { intervalMs: 60_000 },
+  machine: { intervalMs: REPORT_INTERVAL_MS },
   streams: { paths: [], previews: [], publishers: [] },
-  metrics: { intervalMs: 60_000, paths: [] }
+  metrics: { intervalMs: REPORT_INTERVAL_MS, paths: [] }
 };
 
 /** Converge the runtimes, from the spec last saved, to what the studio configuration says from then on. */
@@ -69,8 +70,8 @@ export function startSystem(context: SystemContext): Promise<AgentSystem> {
     restore: async () => {
       const saved = await file.restore();
       if (saved === undefined) return INITIAL_SPEC;
-      // The studio never sets `machine`, so a saved spec that lost it, as one that no longer parses, starts it afresh.
-      return { machine: INITIAL_SPEC.machine, ...saved };
+      // The studio never sets `machine`: the agent does, so it samples as this build says to, whatever was saved.
+      return { ...saved, machine: INITIAL_SPEC.machine };
     },
     sink: spec => file.sink(spec),
     mutator: mutation =>

@@ -1,7 +1,7 @@
 import { exposureSubject, relayMetrics } from '@conservationtv/reports';
 import type { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
-import { type IntervalSamples, Sampler, type SamplerStatus } from '../../reporting/sampler.ts';
+import { type IntervalSamples, REPORT_INTERVAL_MS, Sampler, type SamplerStatus } from '../../reporting/sampler.ts';
 import { type Counters, followStats, type Role, type Traffic, type TrafficEntry } from './follow.ts';
 
 // The `relayTraffic` key: what the MoQ relays carry of the exposures the agent publishes, as the relays count it. Each
@@ -38,9 +38,8 @@ export const RelayTrafficSpecSchema = z.object({
 });
 export type RelayTrafficSpec = z.output<typeof RelayTrafficSpecSchema>;
 
-/** How often the counters are sampled, and each exposure's summary submitted. */
-const SAMPLE_MS = 10_000;
-const REPORT_MS = 60_000;
+/** How often the counters are sampled; each exposure's summary is submitted every `REPORT_INTERVAL_MS`. */
+const SAMPLE_MS = 5_000;
 
 /** What following the relays adds to their sampler's status. */
 interface RelayReads {
@@ -84,7 +83,7 @@ export class RelayTrafficRuntime {
     if (this.sources.size === 0) return this.teardown();
     if (this.sampler.running) return;
     this.previous = undefined;
-    this.sampler.start({ sampleMs: SAMPLE_MS, reportMs: REPORT_MS });
+    this.sampler.start({ sampleMs: SAMPLE_MS, reportMs: REPORT_INTERVAL_MS });
   }
 
   /** Stop following every source, and drop what was not submitted. Safe when it never started. */

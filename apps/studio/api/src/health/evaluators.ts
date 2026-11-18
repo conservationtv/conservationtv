@@ -31,16 +31,20 @@ import { FINDINGS_LOCALE, type Finding, type Health } from './health.ts';
 // by its parts, as the studio's topology rolls their health up. Adding a kind to `SUBJECT_KINDS` doesn't compile until
 // it is given one or the other.
 //
-// Agents submit each subject's summaries every minute (the machine's every 30 seconds), so an opinion holds for three
-// intervals before going stale, and checks judge the last two minutes: the last two summaries. The thresholds are a
-// first opinion, to be tuned against what the fleet reports.
+// Agents submit each subject's summaries every 15 seconds, and each channel's every minute; agents of earlier builds,
+// every minute. An opinion holds for three minutes before going stale, three of the slowest intervals, and checks judge
+// the last two minutes: eight summaries, or two of a channel's. The thresholds are a first opinion, to be tuned against
+// what the fleet reports.
 
 export type SubjectKind = (typeof SUBJECT_KINDS)[number];
 
-/** Seconds of reports a check judges: two report intervals. */
+/** Seconds of reports a check judges: two of the slowest report intervals. */
 const WINDOW = 120;
 
-/** Seconds an opinion holds without a report: three report intervals. */
+/**
+ * Seconds an opinion holds without a report: three of the slowest report intervals, a channel's or an earlier agent's.
+ * Down to a minute or less once every agent reports every 15 seconds, so a subject goes stale sooner.
+ */
 const TTL = 180;
 
 /** The shares of a capacity free below which a machine is unhealthy, or degraded. */
@@ -49,7 +53,7 @@ interface FreeThresholds {
   degradedBelow: number;
 }
 
-/** The free share of a capacity, from two metrics' last values in the window: free memory of memory, free disk of disk. */
+/** The free share of a capacity, from two metrics' last values in the window: available memory of memory, free disk of disk. */
 function freeShare(
   label: string,
   free: MetricDefinition,
@@ -80,7 +84,7 @@ const device = defineEvaluator({
   ttl: TTL,
   evaluate: allOf(
     ceiling(machineMetrics.cpuUtilisation, { over: WINDOW, degradedAbove: 85, unhealthyAbove: 97 }),
-    freeShare('Memory', machineMetrics.memoryFree, machineMetrics.memoryTotal, {
+    freeShare('Memory', machineMetrics.memoryAvailable, machineMetrics.memoryTotal, {
       unhealthyBelow: 0.03,
       degradedBelow: 0.1
     }),

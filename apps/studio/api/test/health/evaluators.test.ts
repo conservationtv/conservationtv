@@ -151,12 +151,12 @@ describe('device', () => {
     const opinion = await agent.minute(
       report(machineMetrics.cpuUtilisation, 40),
       report(machineMetrics.memoryTotal, 8 * GB),
-      report(machineMetrics.memoryFree, 4 * GB),
+      report(machineMetrics.memoryAvailable, 4 * GB),
       report(machineMetrics.diskTotal, 100 * GB),
       report(machineMetrics.diskFree, 2 * GB)
     );
     expect(opinion.health).toBe('unhealthy');
     expect(findingOf(opinion, machineMetrics.diskFree.name)?.summary).toBe('Disk 2% free');
-    expect(findingOf(opinion, machineMetrics.memoryFree.name)?.health).toBe('healthy');
+    expect(findingOf(opinion, machineMetrics.memoryAvailable.name)?.health).toBe('healthy');
   });
 });

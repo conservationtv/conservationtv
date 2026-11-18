@@ -7,7 +7,13 @@ import {
   type Read,
   readMetricsPage
 } from '../../mediamtx/metrics-page.ts';
-import { addRate, type IntervalSamples, Sampler, type SamplerStatus } from '../../reporting/sampler.ts';
+import {
+  addRate,
+  type IntervalSamples,
+  REPORT_INTERVAL_MS,
+  Sampler,
+  type SamplerStatus
+} from '../../reporting/sampler.ts';
 import { PROGRAM_PATH, type ProgramDestination } from './program.ts';
 import type { ObsReading } from './watchdog.ts';
 
@@ -28,11 +34,11 @@ import type { ObsReading } from './watchdog.ts';
 //
 // A read that fails samples nothing: a gap, not zeroes. Rates need two reads, so the first after a start has none.
 
-/** How often the program MediaMTX and OBS are read. The watchdog reads OBS every 5 seconds. */
-const SAMPLE_INTERVAL_MS = 10_000;
-
-/** How often each subject's summary is submitted, as the gateway's path metrics are (gateway/configuration.ts). */
-const REPORT_INTERVAL_MS = 60_000;
+/**
+ * How often the program MediaMTX and OBS are read: a few times a report (`REPORT_INTERVAL_MS`). The watchdog reads OBS
+ * every 5 seconds too.
+ */
+const SAMPLE_INTERVAL_MS = 5_000;
 
 /** What the program's reports are about: the program's subject, and the recorder's while there is one. */
 export interface ProgramSubjects {

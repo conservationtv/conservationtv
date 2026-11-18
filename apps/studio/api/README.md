@@ -430,9 +430,10 @@ stream, is `null`, and the studio rolls it up from its parts) forms the reporter
    evaluator says otherwise), so a subject doesn't flap.
 
 The opinion keeps its findings (`Ready 62% of the last 2 min`), what it read, since when it has held its health, and a
-change it is waiting to take. It holds for its evaluator's `ttl`, three report intervals. The subject's state is the
-worst of its fresh opinions, with their findings; with none fresh, it keeps the health it had, and is stale. The
-thresholds are a first opinion, to be tuned against what the fleet reports.
+change it is waiting to take. It holds for its evaluator's `ttl`, three of the slowest report intervals (agents report
+every 15 seconds, and a channel every minute). The subject's state is the worst of its fresh opinions, with their
+findings; with none fresh, it keeps the health it had, and is stale. The thresholds are a first opinion, to be tuned
+against what the fleet reports.
 
 Some checks judge a window's greatest sample rather than its mean, where any of it is the outage: one reconnection of
 a show's programme, however brief, holds it unhealthy until the reconnection leaves the two-minute window, and then

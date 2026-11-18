@@ -25,6 +25,7 @@ export type System = {
                 cpuCount: number;
                 load: number;
                 memory: {
+                    available: number;
                     total: number;
                     free: number;
                 };

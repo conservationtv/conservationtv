@@ -40,7 +40,7 @@ export const MetricsSpecSchema = z.object({
 export type MetricsSpec = z.output<typeof MetricsSpecSchema>;
 
 /** How often MediaMTX's metrics page is read, at most: the samples each interval's summaries are made from. */
-const SAMPLE_INTERVAL_MS = 10_000;
+const SAMPLE_INTERVAL_MS = 5_000;
 
 /**
  * Sample what a path sent between two reads, split by who read it: `publishers`, the rate its publishers read, and the
