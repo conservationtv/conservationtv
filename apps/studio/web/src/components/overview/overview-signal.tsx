@@ -1,0 +1,128 @@
+import type { FC, ReactNode } from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
+import type { Topology } from '@conservationtv/studio-sdk';
+
+import { Section, SectionDescription, SectionHeader, SectionHeading, SectionTitle } from '@/components/common/page';
+import {
+  Signal,
+  SignalAttention,
+  SignalCanvas,
+  SignalHint,
+  SignalNarrow,
+  SignalThings,
+  SignalWide
+} from '@/components/signal/signal';
+import { signalSystemOf } from '@/components/signal/signal-from-topology';
+import { SignalMapView } from '@/components/signal/signal-map-view';
+import { SignalStackView } from '@/components/signal/signal-stack-view';
+import { useSignalHoverPreview } from '@/components/signal/signal-things';
+import { useOrganisationId } from '@/hooks/use-organisation';
+import { topologyQueryOptions } from '@/queries/topology';
+
+// The organisation's signal on its overview: how it runs from the cameras, through the broadcast its shows follow, to
+// the channels they go out to, as it stands. Read-only: the signal view with no editing composed on. Resting the
+// pointer on a thing previews its path; pressing it opens its page; pressing a network opens it.
+
+/** How long the pointer rests on a thing before its path is previewed, in milliseconds. */
+const PREVIEW_AFTER = 800;
+
+/**
+ * Where each thing on the view has its page, under the organisation, by its id: a broadcast its show's; a channel the
+ * show it's forwarded from (there's no page for a channel alone); a camera its own; any other source the first stream
+ * from it.
+ */
+function pagesOf(topology: Topology): Map<string, string> {
+  const shows = topology.shows.flatMap(show =>
+    [show.id, ...show.forwards.map(forward => forward.id)].map(id => [id, `shows/${show.id}`] as const)
+  );
+  const cameras = topology.devices
+    .filter(device => device.kind === 'camera')
+    .map(device => [device.id, `cameras/${device.id}`] as const);
+  const ingests = topology.streams.flatMap(stream =>
+    stream.sourceDeviceId ? [[stream.sourceDeviceId, `streams/${stream.id}`] as const] : []
+  );
+  // A later entry wins: a camera's own page over its streams', and an ingest's first stream over its others.
+  return new Map([...ingests.toReversed(), ...cameras, ...shows]);
+}
+
+/** The view, and what it links to, from the topology: one select, so both are worked out once a refresh. */
+function overviewOf(topology: Topology) {
+  return { system: signalSystemOf(topology), pages: pagesOf(topology) };
+}
+
+/** Nothing, for an organisation with nothing to draw yet: its setup steps say what comes first. */
+export const OverviewSignal: FC = () => {
+  const organisationId = useOrganisationId();
+  const { data } = useSuspenseQuery({ ...topologyQueryOptions(organisationId), select: overviewOf });
+  const { system, pages } = data;
+  if (system.broadcasts.length + system.cameras.length + system.ingests.length === 0) return null;
+  // The first network open to begin with, so its cameras are on show; any other opens on a press.
+  const firstNetwork = system.networks.slice(0, 1).map(network => network.id);
+  return (
+    <Signal system={system} defaultOpen={firstNetwork}>
+      <OverviewSignalLinks pages={pages}>
+        <Section>
+          <SectionHeader>
+            <SectionHeading>
+              <SectionTitle className="flex items-center gap-2">
+                Signal
+                <SignalAttention />
+              </SectionTitle>
+              <SectionDescription>
+                From the cameras, through the broadcast every show follows, to the channels each show goes out to.
+              </SectionDescription>
+            </SectionHeading>
+          </SectionHeader>
+          <SignalCanvas className="flex-none p-0 lg:p-0">
+            {/* The map where the section has room for it, the stack where it hasn't: by its own width, not the window's. */}
+            <SignalWide>
+              <SignalMapView />
+            </SignalWide>
+            <SignalNarrow>
+              <SignalStackView />
+            </SignalNarrow>
+            <SignalHint>
+              Rest on anything to follow its path, press it to open its page; press a network to open it.
+            </SignalHint>
+          </SignalCanvas>
+        </Section>
+      </OverviewSignalLinks>
+    </Signal>
+  );
+};
+
+interface OverviewSignalLinksProps {
+  /** Each thing's page, under the organisation, by its id. */
+  pages: Map<string, string>;
+  children: ReactNode;
+}
+
+/**
+ * What the overview's things do: resting on one previews its path, and pressing one opens its page (in a new tab, with
+ * the platform's modifier). A thing with no page only previews.
+ */
+const OverviewSignalLinks: FC<OverviewSignalLinksProps> = ({ pages, children }) => {
+  const organisationId = useOrganisationId();
+  const navigate = useNavigate();
+  const preview = useSignalHoverPreview(PREVIEW_AFTER);
+  return (
+    <SignalThings
+      props={thing => {
+        const page = pages.get(thing.id);
+        if (page === undefined) return preview(thing);
+        const href = `/organisations/${organisationId}/${page}`;
+        return {
+          ...preview(thing),
+          role: 'link',
+          onClick: event => {
+            if (event.metaKey || event.ctrlKey) window.open(href, '_blank', 'noopener');
+            else void navigate(href);
+          }
+        };
+      }}
+    >
+      {children}
+    </SignalThings>
+  );
+};

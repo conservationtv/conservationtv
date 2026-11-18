@@ -369,6 +369,131 @@ export const LogSchema = z.object({
     }))
 });
 
+export const TopologySchema = z.object({
+    broadcast: z.object({
+        placed: z.array(z.string())
+    }),
+    networks: z.array(z.object({
+        name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
+        activeAgent: z.object({
+            id: z.string()
+        }).nullable()
+    })),
+    devices: z.array(z.object({
+        id: z.string(),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
+        name: z.string(),
+        networkId: z.string().nullable(),
+        publicKey: z.string(),
+        publicId: z.string(),
+        createdAt: z.string()
+    })),
+    gateways: z.array(z.union([z.object({
+            id: z.literal('conservationtv'),
+            builtin: z.literal(true),
+            name: z.string(),
+            kind: z.string(),
+            networkId: z.null(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.null()
+        }), z.object({
+            id: z.string(),
+            builtin: z.boolean(),
+            name: z.string(),
+            kind: z.string(),
+            networkId: z.string().nullable(),
+            settings: z.record(z.string(), z.unknown()),
+            createdAt: z.string(),
+            tls: z.object({
+                hostname: z.string(),
+                address: z.string().nullable(),
+                issuedAt: z.string().nullable(),
+                notAfter: z.string().nullable(),
+                attemptedAt: z.string().nullable(),
+                error: z.string().nullable()
+            }).nullable()
+        })])),
+    streams: z.array(z.object({
+        name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
+        sourceDeviceId: z.string().nullable(),
+        exposures: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            gatewayId: z.string(),
+            renditions: z.array(RenditionSchema),
+            publisherDeviceId: z.string().nullable(),
+            upstreamExposureId: z.string().nullable()
+        })),
+        recorders: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            kind: z.string(),
+            exposureId: z.string(),
+            rendition: RenditionSchema
+        }))
+    })),
+    shows: z.array(z.object({
+        name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
+        width: z.number(),
+        height: z.number(),
+        fps: z.number(),
+        bitrateKbps: z.number(),
+        keyframeSeconds: z.number(),
+        output: z.object({
+            createdAt: z.string(),
+            deviceId: z.string()
+        }).nullable(),
+        recorders: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            kind: z.literal('obs')
+        })),
+        forwards: z.array(z.object({
+            id: z.string(),
+            createdAt: z.string(),
+            enabled: z.boolean(),
+            channelId: z.string()
+        })),
+        previews: z.array(z.object({
+            id: z.string(),
+            createdAt: z.string(),
+            gatewayId: z.string()
+        }))
+    })),
+    channels: z.array(z.object({
+        id: z.string(),
+        kind: z.enum(['twitch', 'rtmp']),
+        name: z.string(),
+        externalId: z.string().nullable(),
+        externalLogin: z.string().nullable(),
+        createdAt: z.string()
+    })),
+    states: z.array(z.object({
+        subjectId: z.string(),
+        health: z.string(),
+        state: z.record(z.string(), z.unknown()),
+        freshness: z.enum(['fresh', 'stale']),
+        observedAt: z.string(),
+        expiresAt: z.string(),
+        computedAt: z.string(),
+        contributingReporterIds: z.array(z.string()),
+        evidenceReportIds: z.array(z.string())
+    }))
+});
+
 export const OutputSchema = z.object({
     showId: z.string(),
     deviceId: z.string(),
@@ -2002,6 +2127,17 @@ export const GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema = z.object({
  * The log records
  */
 export const GetOrganisationsByIdSubjectsBySubjectIdLogsResponseSchema = LogSchema;
+
+export const GetOrganisationsByIdTopologyPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The topology
+ */
+export const GetOrganisationsByIdTopologyResponseSchema = TopologySchema;
 
 export const GetOrganisationsByIdShowPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {

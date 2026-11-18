@@ -192,6 +192,9 @@
     "organisations.subjects.logs.list": [
       1
     ],
+    "organisations.topology.get": [
+      1
+    ],
     "organisations.show.output.get": [
       1
     ],

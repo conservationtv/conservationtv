@@ -29,6 +29,11 @@ export function previewSubjectId(previewId: string): string {
   return `preview:${previewId}`;
 }
 
+/** What a show's output reports about a channel it forwards to under: whether the platform has it live. */
+export function channelSubjectId(channelId: string): string {
+  return `channel:${channelId}`;
+}
+
 /** What a show's output reports about its recording under. */
 export function recorderSubjectId(recorderId: string): string {
   return `recorder:${recorderId}`;

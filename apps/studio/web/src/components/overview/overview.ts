@@ -8,8 +8,8 @@ import {
 import { isFed } from '@/components/streams/stream-page';
 import { ownStatus, type SubjectStatusInput } from '@/components/streams/topology';
 
-// The organisation's overview, worked out from its lists: how much of each thing there is, what is live, what is
-// failing, and what a new organisation still has to set up. Pure derivation; the page reads the lists once, together.
+// The organisation's overview, worked out from its lists: what is live, what is failing, and what a new organisation
+// still has to set up. Pure derivation; the page reads the lists once, together.
 
 interface ListedStream {
   id: string;
@@ -31,7 +31,6 @@ interface NamedDevice {
 }
 interface ListedAgent {
   id: string;
-  active: boolean;
   device: NamedDevice | null;
 }
 interface ListedGateway {
@@ -41,7 +40,6 @@ interface ListedGateway {
 interface ListedShow {
   id: string;
   name: string;
-  output: unknown;
   forwards: ListedForward[];
   previews: ListedPreview[];
 }
@@ -97,15 +95,6 @@ export interface SetupStep {
 export interface Overview {
   /** The streams being fed, as the streams page counts them active (`isFed`). */
   fedStreams: ListedStream[];
-  streamCount: number;
-  cameraCount: number;
-  agentCount: number;
-  activeAgentCount: number;
-  networkCount: number;
-  showCount: number;
-  /** The shows with an agent to send them out: those that can be going out, not that they are. */
-  outputShowCount: number;
-  channelCount: number;
   problems: Problem[];
   /** How many subjects have reported at all: with none, "nothing failing" would say more than is known. */
   reportingCount: number;
@@ -163,7 +152,7 @@ function namedSubjects({ streams, cameras, agents, gateways, shows, channels }: 
 }
 
 export function overviewOf(inputs: OverviewInputs): Overview {
-  const { streams, cameras, agents, networks, shows, channels, states } = inputs;
+  const { streams, cameras, agents, networks, states } = inputs;
   const named = namedSubjects(inputs);
   // A failing subject that names nothing the organisation still has (a removed camera's last report) isn't a problem.
   const problems = states.flatMap((state): Problem[] => {
@@ -172,14 +161,6 @@ export function overviewOf(inputs: OverviewInputs): Overview {
   });
   return {
     fedStreams: streams.filter(stream => isFed(stream, cameras)),
-    streamCount: streams.length,
-    cameraCount: cameras.length,
-    agentCount: agents.length,
-    activeAgentCount: agents.filter(agent => agent.active).length,
-    networkCount: networks.length,
-    showCount: shows.length,
-    outputShowCount: shows.filter(show => show.output !== null).length,
-    channelCount: channels.length,
     problems,
     reportingCount: states.length,
     setup: [

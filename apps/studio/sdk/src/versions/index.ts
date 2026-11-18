@@ -64,6 +64,7 @@ export * from './organisations.subjects.observations.list-v1/index.js';
 export * from './organisations.subjects.metrics.list-v1/index.js';
 export * from './organisations.subjects.metrics.get-v1/index.js';
 export * from './organisations.subjects.logs.list-v1/index.js';
+export * from './organisations.topology.get-v1/index.js';
 export * from './organisations.show.output.get-v1/index.js';
 export * from './organisations.show.output.set-v1/index.js';
 export * from './organisations.show.output.delete-v1/index.js';
