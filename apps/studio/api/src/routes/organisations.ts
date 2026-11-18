@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { recordOrganisation } from '../requests/record.ts';
 import { deleteMemberBrowsers } from '../services/browsers.ts';
 import {
   createInvitation,
@@ -114,6 +115,7 @@ export default new Hono()
         await grantAdmin(created.id, principal.id);
         return created;
       });
+      recordOrganisation(organisation.id);
       c.header('Cache-Control', 'no-store');
       return c.json(organisation, 201);
     }

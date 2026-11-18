@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { recordOrganisation } from '../requests/record.ts';
 import {
   deleteInvitation,
   getOpenInvitation,
@@ -125,6 +126,7 @@ export default new Hono()
         await deleteInvitation(invitation.organisationId, invitation.id);
         return joined;
       });
+      recordOrganisation(membership.organisationId);
       c.header('Cache-Control', 'no-store');
       return c.json(membership, 200);
     }
@@ -154,10 +156,12 @@ export default new Hono()
       const { id } = c.req.valid('param');
       const proof = c.req.valid('json');
       const principal = useUser();
-      await trustedTransaction(async () => {
-        const invitation = await lockRedeemableInvitation(id, principal.id, proof);
-        await deleteInvitation(invitation.organisationId, invitation.id);
+      const invitation = await trustedTransaction(async () => {
+        const redeemable = await lockRedeemableInvitation(id, principal.id, proof);
+        await deleteInvitation(redeemable.organisationId, redeemable.id);
+        return redeemable;
       });
+      recordOrganisation(invitation.organisationId);
       return c.body(null, 204);
     }
   );
