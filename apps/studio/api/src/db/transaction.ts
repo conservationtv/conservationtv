@@ -4,6 +4,7 @@ import { authorization } from '../access.ts';
 import { useEnvironment } from '../env/env.ts';
 import { usePrincipal } from '../middleware/principal.ts';
 import { recordAccessChanges } from '../requests/record.ts';
+import { traced } from '../tracing/trace.ts';
 import type { Database } from './client.ts';
 
 // Every query runs in a transaction, and code reads the one it is in through `useDB()` rather than threading it
@@ -12,7 +13,8 @@ import type { Database } from './client.ts';
 // runs on the owning connection, for writes row-level security cannot authorise, such as grants; `useDB()` sees it
 // too, and `useDB({ trusted: true })` sees only it. Neither nests: the two run on different connections, so one inside
 // the other would be neither atomic with it nor safe from waiting on its locks. A trusted transaction collects the
-// grants it changes, and adds them to the request's record (src/requests/record.ts) only once it has committed.
+// grants it changes, and adds them to the request's record (src/requests/record.ts) only once it has committed. Each
+// transaction is a span of its own in the request's trace (src/tracing/trace.ts).
 
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
@@ -53,7 +55,9 @@ export async function transaction<Result>(run: () => Promise<Result>) {
   const environment = useEnvironment();
   const principal = usePrincipal();
   const session = await environment.session(principal);
-  return session.transaction(tx => withTransaction(tx, run));
+  return traced('transaction', { 'studio.transaction.kind': 'request' }, () =>
+    session.transaction(tx => withTransaction(tx, run))
+  );
 }
 
 /** Run `run` in a trusted transaction on the owning connection. */
@@ -62,8 +66,10 @@ export async function trustedTransaction<Result>(run: () => Promise<Result>) {
   const environment = useEnvironment();
   const admin = await environment.admin();
   const changes: AccessChange[] = [];
-  const result = await admin.transaction(tx =>
-    withTrustedTransaction(tx, () => withTransaction(tx, () => withAccessChanges(changes, run)))
+  const result = await traced('transaction', { 'studio.transaction.kind': 'trusted' }, () =>
+    admin.transaction(tx =>
+      withTrustedTransaction(tx, () => withTransaction(tx, () => withAccessChanges(changes, run)))
+    )
   );
   recordAccessChanges(changes);
   return result;

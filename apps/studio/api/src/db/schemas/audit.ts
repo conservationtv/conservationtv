@@ -56,7 +56,12 @@ export const auditEntries = withAccess(
       /** The fields a request body set, by name, without their values. */
       fields: text('fields').array().default([]).notNull(),
       /** The grants the operation stored or removed. */
-      accessChanges: jsonb('access_changes').$type<AuditedAccessChange[]>().default([]).notNull()
+      accessChanges: jsonb('access_changes').$type<AuditedAccessChange[]>().default([]).notNull(),
+      /**
+       * The request's trace (src/tracing/trace.ts), and the invocation's logs. The trace may not have been kept (sampled
+       * out, or past retention); absent when the Worker's observability is off.
+       */
+      traceId: text('trace_id')
     },
     t => [index('audit_entry_organisation_occurred_idx').on(t.organisationId, t.occurredAt)]
   ),

@@ -8,6 +8,7 @@ import { cors } from 'hono/cors';
 import { describeRoute } from 'hono-openapi';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import { recordOperation, recordRequest } from './requests/record.ts';
+import { traceRequest } from './tracing/trace.ts';
 import account from './routes/account.ts';
 import agents from './routes/agents.ts';
 import browsers from './routes/browsers.ts';
@@ -48,8 +49,10 @@ const serveStaticAsset = async (c: Context) => {
 export const operationRouter = new OperationRouter({ onSelect: recordOperation });
 
 const app = new Hono({ router: operationRouter })
-  // What each request did (src/requests/record.ts), from before anything else runs.
+  // What each request did (src/requests/record.ts), from before anything else runs, and described on its trace once it
+  // has been handled (src/tracing/).
   .use(recordRequest)
+  .use(traceRequest)
   // The studio web app calls with its session cookie, so its origins are allowed explicitly, never `*`.
   .use(
     cors({

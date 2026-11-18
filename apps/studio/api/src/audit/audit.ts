@@ -7,6 +7,7 @@ import { auditEntries } from '../db/schemas/audit.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useRequestRecord, type RequestFailureCode, type RequestRecord } from '../requests/record.ts';
 import { organisationScope } from '../services/organisations.ts';
+import { currentTraceId } from '../tracing/trace.ts';
 
 // The audit log: an operation that is worth keeping says so where it is routed, with `audited(category)` after it
 // authenticates, and is kept from what it did once it has been handled. Operations that change nothing anyone needs to
@@ -77,7 +78,8 @@ function auditEntry(
       role: assignment.role,
       scopeName: assignment.scopeName,
       scopeId: assignment.scopeId
-    }))
+    })),
+    traceId: currentTraceId()
   };
 }
 

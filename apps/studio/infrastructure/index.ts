@@ -55,7 +55,9 @@ const gatekeeperToken = gatekeeperTokens.apply(tokens => {
 const apiWorker = new cloudflare.Worker('studio-api', {
   accountId,
   name: apiWorkerName,
-  observability: { enabled: true },
+  // Traces as well as logs: the runtime's spans, with the API's own attributes on each request's and a span for each
+  // transaction (../api/src/tracing/trace.ts). Kept in Workers Observability; audit entries name their trace.
+  observability: { enabled: true, traces: { enabled: true, persist: true } },
   subdomain: { enabled: false }
 });
 // The web app's Worker. Its versions carry the app's build as static assets and serve the configuration it reads at

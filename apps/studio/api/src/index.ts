@@ -13,7 +13,8 @@ export default {
       // before shows were their own has its organisation's ID, which its object was named by.
       broadcasts: { get: showId => ctx.exports.ShowHost.getByName(showId) },
       background: task => ctx.waitUntil(task),
-      assets: env.ASSETS
+      assets: env.ASSETS,
+      tracing: ctx.tracing
     });
     try {
       return await withEnvironment(environment, () => app.fetch(request));
