@@ -81,12 +81,12 @@ class ContractCanonicalizer {
     const resolved = this.resolve(parsed.data, state);
     if (resolved.terminal) return resolved.value;
     return Object.fromEntries(
-      Object.keys(resolved.value)
-        .sort()
-        .filter(key => state.mapKeys || state.literal || !prose.has(key))
-        .map(key => [
+      Object.entries(resolved.value)
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .filter(([key]) => state.mapKeys || state.literal || !prose.has(key))
+        .map(([key, value]) => [
           key,
-          this.canonical(resolved.value[key], {
+          this.canonical(value, {
             references: resolved.state.references,
             mapKeys: !state.mapKeys && maps.has(key),
             literal: state.literal || (!state.mapKeys && literals.has(key))

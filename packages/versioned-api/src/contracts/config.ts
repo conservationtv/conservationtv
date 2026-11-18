@@ -31,6 +31,8 @@ export interface ContractsConfig {
   release: string;
   /** The published bundle. Default `./contracts/openapi.json`: a directory, so a Vite dev server never serves it as a file. */
   document?: string;
+  /** The operation manifest the handshake reads, generated with the bundle. Default `./contracts/operations.json`. */
+  manifest?: string;
   /** Frozen release bundles. Default `./contracts/snapshots`. */
   snapshots?: string;
   /** The Worker's TypeScript project, whose types describe the handlers' responses. Default `./tsconfig.json`. */
@@ -64,6 +66,7 @@ export interface ContractsProject {
   release: string;
   dir: string;
   document: string;
+  manifest: string;
   snapshots: string;
   tsconfig: string;
   source: SourceLayout;
@@ -79,6 +82,7 @@ type Module = z.output<typeof ModuleSchema>;
 interface ResolvedPaths {
   dir: string;
   document: string;
+  manifest: string;
   snapshots: string;
   tsconfig: string;
   source: SourceLayout;
@@ -92,11 +96,13 @@ function resolvePaths(configPath: string, config: ContractsConfig): ResolvedPath
   const at = (path: string) => resolve(dir, path);
   const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: dir, encoding: 'utf8' }).trim();
   const document = at(config.document ?? 'contracts/openapi.json');
+  const manifest = at(config.manifest ?? 'contracts/operations.json');
   const snapshots = at(config.snapshots ?? 'contracts/snapshots');
   const source = config.source ?? {};
   return {
     dir,
     document,
+    manifest,
     snapshots,
     tsconfig: at(config.tsconfig ?? 'tsconfig.json'),
     source: { dir: `${at(source.dir ?? 'src')}/`, app: source.app ?? './app', schemas: source.schemas ?? './schemas' },

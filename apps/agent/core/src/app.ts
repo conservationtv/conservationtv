@@ -1,10 +1,16 @@
-import { OperationRouter, PUBLISHED_DOCUMENT_PATH, servePublishedDocument } from '@conservationtv/versioned-api/server';
+import {
+  OPERATION_MANIFEST_PATH,
+  OperationRouter,
+  PUBLISHED_DOCUMENT_PATH,
+  servePublishedDocument
+} from '@conservationtv/versioned-api/server';
 import { Client, DeviceIdentity, deviceSignature } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import { serve, type Admission, type IncomingPeer, type IrohHttpServer } from '@strangecyan/iroh-http-node';
 import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import document from '../contracts/openapi.json' with { type: 'json' };
+import manifest from '../contracts/operations.json' with { type: 'json' };
 import { type AgentConfiguration, type ConservationTvConfiguration, type MediamtxSettings } from './config.ts';
 import { decide } from './admission.ts';
 import { connectWithEndpoint, createEndpoint } from './iroh.ts';
@@ -74,6 +80,7 @@ export const operationRouter = new OperationRouter();
 const app = new Hono<AgentEnv>({ router: operationRouter })
   .route('/status', status)
   .route('/system', system)
+  .get(OPERATION_MANIFEST_PATH, describeRoute({ hide: true }), servePublishedDocument(manifest))
   .get(PUBLISHED_DOCUMENT_PATH, describeRoute({ hide: true }), servePublishedDocument(document))
   .notFound(handleNotFound)
   .onError(handleError);

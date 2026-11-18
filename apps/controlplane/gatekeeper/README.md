@@ -16,13 +16,14 @@ release gates and SDK/CLI generators are shared through [`@conservationtv/versio
 
 ## Endpoints
 
-| Route                         | Audience   | Contract                                                                  |
-| ----------------------------- | ---------- | ------------------------------------------------------------------------- |
-| `GET /health`                 | anyone     | `health.get`, versionless                                                 |
-| `POST /grants/exchange`       | consumer   | `grants.exchange` v1 (`Operation-Version: 1`), with the consumer token    |
-| `GET /openapi.json`           | SDK/CLI    | the published capability bundle                                           |
-| `POST /relays/moq/admission`  | MoQ relay  | moq-relay `--auth-url`: a moq-auth `Request` in, a `Grant` or 401/403 out |
-| `POST /relays/iroh/admission` | Iroh relay | iroh-relay `access.http`: `200 true` admits, anything else refuses        |
+| Route                         | Audience   | Contract                                                                                  |
+| ----------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
+| `GET /health`                 | anyone     | `health.get`, versionless                                                                 |
+| `POST /grants/exchange`       | consumer   | `grants.exchange` v1 (`Operation-Version: 1`), with the consumer token                    |
+| `GET /operations.json`        | SDK        | the operation manifest: each versioned operation's served versions, read by the handshake |
+| `GET /openapi.json`           | SDK/CLI    | the published capability bundle; SDKs older than the manifest handshake here              |
+| `POST /relays/moq/admission`  | MoQ relay  | moq-relay `--auth-url`: a moq-auth `Request` in, a `Grant` or 401/403 out                 |
+| `POST /relays/iroh/admission` | Iroh relay | iroh-relay `access.http`: `200 true` admits, anything else refuses                        |
 
 Relay-facing routes speak each relay's fixed protocol, so they are hidden from the published contract, SDK and CLI.
 Signing keys are never published: the control plane is the only party that verifies its own MoQ tokens.
@@ -227,7 +228,7 @@ initialises every client that uses some configuration.
 ## Contracts, SDK and CLI
 
 ```sh
-pnpm --filter @conservationtv/gatekeeper generate             # contracts/openapi.json from routes + handler types
+pnpm --filter @conservationtv/gatekeeper generate             # contracts/openapi.json and operations.json from routes + handler types
 pnpm --filter @conservationtv/controlplane-sdk generate
 pnpm --filter @conservationtv/controlplane-cli generate
 GATEKEEPER_URL=http://localhost:6422 GATEKEEPER_TOKEN=local-consumer-token pnpm --filter @conservationtv/controlplane-cli \

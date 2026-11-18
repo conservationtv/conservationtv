@@ -11,21 +11,34 @@ import { asError } from './errors.js';
 
 // The runtime behind the generated Client. A versioned operation exposes every version this client was
 // generated with (`v1`, `v2`, ...) and the version negotiated with the server (`version`). The server can serve multiple versions
-// of each; `handshake` reads which from the OpenAPI document it publishes. A versionless operation, one the spec gives
+// of each; `handshake` reads which from the operation manifest it publishes. A versionless operation, one the spec gives
 // no version, is the plain call: no handshake, no header, and no compatibility guarantees.
 
 export const OPERATION_VERSION_HEADER = 'Operation-Version';
 
-/** Where the API publishes the OpenAPI document it was generated with. */
+/** Where the API publishes its operation manifest: every version it serves of each versioned operation. */
+export const OPERATION_MANIFEST_URL = '/operations.json';
+
+/** Where the API publishes the OpenAPI document it was generated with; servers older than the manifest publish only this. */
 export const PUBLISHED_DOCUMENT_URL = '/openapi.json';
 
-// The parts of the published document the handshake reads. An operation without `x-operation-version` is versionless.
+const VersionSchema = z.number().int().positive();
+type Version = z.output<typeof VersionSchema>;
+
+/** The operation manifest: each versioned operation's served versions, keyed by operationId. */
+export const OperationManifestSchema = z.object({
+  operations: z.record(z.string(), z.array(VersionSchema).nonempty())
+});
+export type OperationManifest = z.output<typeof OperationManifestSchema>;
+
+// LEGACY: the parts of the published document a server older than the manifest is read for. An operation without
+// `x-operation-version` is versionless. Remove with the fallback in `fetchManifest` once every server publishes one.
 const PublishedOperationSchema = z.object({
   operationId: z.string(),
-  'x-operation-version': z.number().int().positive().optional(),
-  'x-operation-versions': z.array(z.number().int().positive()).nonempty().optional()
+  'x-operation-version': VersionSchema.optional(),
+  'x-operation-versions': z.array(VersionSchema).nonempty().optional()
 });
-export type PublishedOperation = z.output<typeof PublishedOperationSchema>;
+type PublishedOperation = z.output<typeof PublishedOperationSchema>;
 const PublishedPathItemSchema = z.object({
   get: PublishedOperationSchema.optional(),
   put: PublishedOperationSchema.optional(),
@@ -36,9 +49,9 @@ const PublishedPathItemSchema = z.object({
   head: PublishedOperationSchema.optional(),
   trace: PublishedOperationSchema.optional()
 });
-export type PublishedPathItem = z.output<typeof PublishedPathItemSchema>;
-export const PublishedDocumentSchema = z.object({ paths: z.record(z.string(), PublishedPathItemSchema) });
-export type PublishedDocument = z.output<typeof PublishedDocumentSchema>;
+type PublishedPathItem = z.output<typeof PublishedPathItemSchema>;
+const PublishedDocumentSchema = z.object({ paths: z.record(z.string(), PublishedPathItemSchema) });
+type PublishedDocument = z.output<typeof PublishedDocumentSchema>;
 
 export type { ClientConfig, HttpRuntime } from './transport.js';
 
@@ -83,7 +96,7 @@ export class HandshakeRequiredError extends Error {
   }
 }
 
-/** Fetching the server's published OpenAPI document failed, or it isn't one. */
+/** Fetching the server's operation manifest failed, or it isn't one. */
 export class HandshakeError extends Error {}
 
 /** The client called a version of an operation that the server doesn't serve. */
@@ -126,12 +139,12 @@ export abstract class ClientCore extends ClientTransport {
   private readonly supported = new Map<string, number[]>();
   private negotiated: Map<string, number> | undefined;
   private available = new Map<string, number[]>();
-  /** The entity tag of the document last negotiated against, sent back so an unchanged document costs a 304. */
-  private etag: string | undefined;
+  /** Where the last negotiation read from, and its entity tag, sent back so an unchanged source costs a 304. */
+  private validator: Validator | undefined;
   private pendingHandshake: Promise<void> | undefined;
 
   /**
-   * Reads all versions of each versioned operation the server serves from its published OpenAPI document. Call before
+   * Reads all versions of each versioned operation the server serves from its operation manifest. Call before
    * any versioned operation, and again to refresh. Rejects with HandshakeError on failure. A versioned call made before
    * one has succeeded handshakes itself, joining one in flight, so callers can start it without awaiting it.
    * Versionless operations don't need it.
@@ -139,7 +152,7 @@ export abstract class ClientCore extends ClientTransport {
   handshake(): Promise<void> {
     // Concurrent calls that hit a version mismatch share one handshake.
     if (this.pendingHandshake == null) {
-      this.pendingHandshake = this.readPublishedDocument()
+      this.pendingHandshake = this.readManifest()
         .catch(error => {
           throw error instanceof HandshakeError ? error : new HandshakeError('Handshake failed', { cause: error });
         })
@@ -181,32 +194,42 @@ export abstract class ClientCore extends ClientTransport {
   }
 
   /**
-   * Fetch and validate the published document, then negotiate every operation against it at once. Once negotiated,
-   * the document is asked for conditionally: a 304 says it is unchanged, so what was negotiated stands. Browsers do
-   * this in their HTTP cache; runtimes without one, such as Node, would otherwise download and parse it every time.
+   * Fetch and validate the manifest, then negotiate every operation against it at once. Once negotiated, it is asked
+   * for conditionally: a 304 says it is unchanged, so what was negotiated stands. Browsers do this in their HTTP cache;
+   * runtimes without one, such as Node, would otherwise download and parse it every time.
    */
-  private async readPublishedDocument(): Promise<void> {
-    const result = await this.fetchPublishedDocument();
-    if (result === 'unchanged') return;
-    const parsed = PublishedDocumentSchema.safeParse(result.data);
-    if (!parsed.success) {
-      const status = result.response?.status ?? 'no response';
-      throw new HandshakeError(`GET ${PUBLISHED_DOCUMENT_URL} failed (${status})`, {
-        cause: result.error ?? parsed.error
-      });
-    }
-    const { negotiated, available } = negotiate(parsed.data, this.supported);
+  private async readManifest(): Promise<void> {
+    const fetched = await this.fetchManifest();
+    if (fetched === 'unchanged') return;
+    const { negotiated, available } = negotiate(fetched.manifest, this.supported);
     this.negotiated = negotiated;
     this.available = available;
-    this.etag = result.response?.headers.get('ETag') ?? undefined;
+    const etag = fetched.response?.headers.get('ETag');
+    this.validator = etag ? { url: fetched.url, etag } : undefined;
   }
 
-  /** GET the document, conditionally once negotiated: `'unchanged'` when the server answers 304 to the known tag. */
-  private async fetchPublishedDocument(): Promise<RawResult | 'unchanged'> {
-    const conditional = this.negotiated !== undefined && this.etag !== undefined;
-    const headers = conditional ? { 'If-None-Match': this.etag } : undefined;
-    const result = await this.transport.get({ url: PUBLISHED_DOCUMENT_URL, headers });
-    return conditional && result.response?.status === 304 ? 'unchanged' : result;
+  /** The manifest, or for a server that predates it, the one its published document describes. */
+  private async fetchManifest(): Promise<Fetched | 'unchanged'> {
+    const result = await this.fetchConditionally(OPERATION_MANIFEST_URL);
+    if (result === 'unchanged') return result;
+    // LEGACY: a server older than the manifest answers 404 for it. Remove once every server publishes one.
+    if (result.response?.status === 404) {
+      const legacy = await this.fetchConditionally(PUBLISHED_DOCUMENT_URL);
+      if (legacy === 'unchanged') return legacy;
+      const document = parse(PUBLISHED_DOCUMENT_URL, legacy, PublishedDocumentSchema);
+      const manifest = manifestFromDocument(document);
+      return { url: PUBLISHED_DOCUMENT_URL, manifest, response: legacy.response };
+    }
+    const manifest = parse(OPERATION_MANIFEST_URL, result, OperationManifestSchema);
+    return { url: OPERATION_MANIFEST_URL, manifest, response: result.response };
+  }
+
+  /** GET `url`, conditionally if it is what was last negotiated against: `'unchanged'` when the server answers 304. */
+  private async fetchConditionally(url: string): Promise<RawResult | 'unchanged'> {
+    const validator = this.negotiated !== undefined && this.validator?.url === url ? this.validator : undefined;
+    const headers = validator ? { 'If-None-Match': validator.etag } : undefined;
+    const result = await this.transport.get({ url, headers });
+    return validator && result.response?.status === 304 ? 'unchanged' : result;
   }
 
   private versionOf(operationId: string): number | undefined {
@@ -248,36 +271,64 @@ export abstract class ClientCore extends ClientTransport {
   }
 }
 
-/** Validate the advertised set; a legacy document advertises only its described version. */
-function servedVersions(operation: PublishedOperation): number[] {
+/** Where a negotiation read from, and the entity tag it was served with. */
+interface Validator {
+  url: string;
+  etag: string;
+}
+
+/** A manifest as fetched, with where it came from and the response that carried it. */
+interface Fetched {
+  url: string;
+  manifest: OperationManifest;
+  response: Response | undefined;
+}
+
+/** A successful response's body, validated, or HandshakeError naming the request that failed. */
+function parse<Output>(url: string, result: RawResult, schema: z.ZodType<Output>): Output {
+  const parsed = schema.safeParse(result.data);
+  if (parsed.success) return parsed.data;
+  const status = result.response?.status ?? 'no response';
+  throw new HandshakeError(`GET ${url} failed (${status})`, { cause: result.error ?? parsed.error });
+}
+
+/** LEGACY: the manifest a published document describes, checked as the old handshake checked the document. */
+function manifestFromDocument(document: PublishedDocument): OperationManifest {
+  const operations = Object.values(document.paths).flatMap((item: PublishedPathItem) => Object.values(item));
+  const manifest: Record<string, Version[]> = {};
+  const seen = new Set<string>();
+  // Every operationId once, versionless ones included; only versioned ones enter the manifest.
+  for (const operation of operations) {
+    if (!operation) continue;
+    if (seen.has(operation.operationId)) throw new HandshakeError(`Duplicate operationId: ${operation.operationId}`);
+    seen.add(operation.operationId);
+    const served = servedVersions(operation);
+    if (served) manifest[operation.operationId] = served;
+  }
+  return { operations: manifest };
+}
+
+/** LEGACY: an operation's advertised set; an older document advertises only its described version. */
+function servedVersions(operation: PublishedOperation): Version[] | undefined {
   const described = operation['x-operation-version'];
-  const served = operation['x-operation-versions'] ?? (described === undefined ? [] : [described]);
-  if (
-    served.length &&
-    (described === undefined || !served.includes(described) || new Set(served).size !== served.length)
-  ) {
+  const served = operation['x-operation-versions'] ?? (described === undefined ? undefined : [described]);
+  if (served && (described === undefined || !served.includes(described))) {
     throw new HandshakeError(`Invalid served versions for ${operation.operationId}`);
   }
   return served;
 }
 
 /** Negotiate each operation independently, retaining all shared versions for explicit vN calls. */
-function negotiate(document: PublishedDocument, supported: Map<string, number[]>) {
-  const operations = Object.values(document.paths).flatMap(item => Object.values(item));
+function negotiate(manifest: OperationManifest, supported: Map<string, number[]>) {
   const negotiated = new Map<string, number>();
   const available = new Map<string, number[]>();
-  const seen = new Set<string>();
-  for (const operation of operations) {
-    // Each logical operation is unique; preserve all intersections and choose the highest as the default.
-    if (!operation) continue;
-    if (seen.has(operation.operationId)) throw new HandshakeError(`Duplicate operationId: ${operation.operationId}`);
-    seen.add(operation.operationId);
-    const served = servedVersions(operation);
-    const shared = served
-      .filter(version => supported.get(operation.operationId)?.includes(version))
-      .sort((a, b) => a - b);
-    available.set(operation.operationId, shared);
-    if (shared.length) negotiated.set(operation.operationId, shared.at(-1)!);
+  for (const [operationId, served] of Object.entries(manifest.operations)) {
+    if (new Set(served).size !== served.length) throw new HandshakeError(`Invalid served versions for ${operationId}`);
+    // Preserve every shared version, and choose the highest as the default.
+    const ours = supported.get(operationId);
+    const shared = served.filter(version => ours?.includes(version)).sort((a, b) => a - b);
+    available.set(operationId, shared);
+    if (shared.length) negotiated.set(operationId, shared.at(-1)!);
   }
   return { negotiated, available };
 }

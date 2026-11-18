@@ -1,9 +1,11 @@
 // Each served version gets a complete standalone OpenAPI document inside the release bundle. The top-level paths
 // describe the defaults for plain clients; x-operation-contracts is the complete catalog for version-aware tools.
+// Beside the bundle, the operation manifest lists only the versions each operation serves, which is all a handshake needs.
 import { writeFileSync } from 'node:fs';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { generateSpecs } from 'hono-openapi';
+import type { OperationManifest } from '../server/published-document.js';
 import type { OperationRoute, OperationRouter } from '../server/operation-router.js';
 import type { ContractsProject } from './config.js';
 import { createResponseInferrer, type GeneratedDocument } from './infer-responses.js';
@@ -44,20 +46,33 @@ function selectVersion(contract: GeneratedDocument, operation: OperationRoute): 
   ];
 }
 
+/** Every served version of each versioned operation, ascending, in the order the router registered them. */
+function servedVersions(router: OperationRouter): Map<string, number[]> {
+  const served = new Map<string, number[]>();
+  for (const operation of router.operations) {
+    if (operation.version === undefined) continue;
+    const versions = served.get(operation.operationId) ?? [];
+    versions.push(operation.version);
+    served.set(operation.operationId, versions);
+  }
+  for (const versions of served.values()) versions.sort((a, b) => a - b);
+  return served;
+}
+
 /** Advertise every served version on each default operation, found by its known method and path. */
-function advertiseVersions(document: GeneratedDocument, router: OperationRouter, latest: Iterable<OperationRoute>) {
+function advertiseVersions(
+  document: GeneratedDocument,
+  served: Map<string, number[]>,
+  latest: Iterable<OperationRoute>
+) {
   for (const selected of latest) {
     const operation = operationAt(document, toTemplate(selected.path), selected.method);
-    if (!operation) continue;
-    const served = router.operations
-      .filter(candidate => candidate.operationId === selected.operationId)
-      .flatMap((candidate): number[] => (candidate.version === undefined ? [] : [candidate.version]))
-      .sort((a, b) => a - b);
-    if (served.length) Object.assign(operation, { 'x-operation-versions': served });
+    const versions = served.get(selected.operationId);
+    if (operation && versions) Object.assign(operation, { 'x-operation-versions': versions });
   }
 }
 
-/** Generate the release bundle and write it to the project's document path. */
+/** Generate the release bundle and the operation manifest, and write them to the project's paths. */
 export async function generateBundle(project: ContractsProject): Promise<void> {
   const { app, router, spec } = project;
   const inferResponses = createResponseInferrer(project);
@@ -79,7 +94,12 @@ export async function generateBundle(project: ContractsProject): Promise<void> {
     selectVersion(contract, operation);
     contracts.push(contract);
   }
-  advertiseVersions(document, router, latest.values());
+  const served = servedVersions(router);
+  advertiseVersions(document, served, latest.values());
   const bundle = { ...document, 'x-operation-contracts': contracts };
   writeFileSync(project.document, `${JSON.stringify(bundle, null, 2)}\n`);
+  // The handshake reads only this: a few kilobytes, where the bundle is hundreds.
+  const manifest: OperationManifest = { operations: Object.fromEntries(served) };
+  const manifestText = JSON.stringify(manifest, null, 2);
+  writeFileSync(project.manifest, `${manifestText}\n`);
 }
