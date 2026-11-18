@@ -6,6 +6,7 @@ import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
 import { useDevice } from '../middleware/device.ts';
 import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import { selectDeviceOutput } from '../services/outputs.ts';
 import { createShow, deleteShow, getShow, listShows, showVisible, updateShow } from '../services/shows.ts';
 import { broadcastBundle, broadcastServe, shuffledComposition } from '../shows/broadcast.ts';
@@ -103,6 +104,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator('json', z.strictObject({ name: ShowNameSchema })),
     async c => {
@@ -157,6 +159,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', ShowParamsSchema),
     validator('json', z.strictObject({ name: ShowNameSchema })),
     async c => {
@@ -186,6 +189,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', ShowParamsSchema),
     async c => {
       const { id, showId } = c.req.valid('param');
@@ -247,6 +251,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', ShowParamsSchema),
     async c => {
       const { id, showId } = c.req.valid('param');

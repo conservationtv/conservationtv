@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import { recordOrganisation } from '../requests/record.ts';
 import {
   deleteInvitation,
@@ -107,6 +108,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', InvitationParamsSchema),
     validator(
       'json',
@@ -150,6 +152,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', InvitationParamsSchema),
     validator('json', z.strictObject({ code: InvitationCodeSchema.optional() })),
     async c => {
