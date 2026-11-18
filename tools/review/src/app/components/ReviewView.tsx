@@ -77,12 +77,48 @@ const Story: FC<ReviewViewProps> = ({ review, chapter: chapterId, operation }) =
           ))}
         </div>
       </StoryNav>
-      {chapter.id === 'api' ? (
+      {chapter.id === 'map' ? (
+        <MapChapter context={context} />
+      ) : chapter.id === 'api' ? (
         <ApiChapter key={operation ?? ''} context={context} operation={operation} />
       ) : (
         <FileChapter key={chapter.id} context={context} />
       )}
     </main>
+  );
+};
+
+interface MapChapterProps {
+  context: ChapterContext;
+}
+
+/**
+ * The diffmap the workflow wrote: an agent's account of the change, with diagrams whose parts open the code they stand
+ * for. diffmap.dev draws it from the gist, which carries its own snapshot of each commit it cites.
+ */
+const MapChapter: FC<MapChapterProps> = ({ context }) => {
+  const { review } = context;
+  const map = review.diffmap;
+  if (!map) return null;
+  const stale = map.sha !== review.pull.headSha;
+  return (
+    <section className="review-main map-chapter">
+      <header className="intro">
+        <h2>Map</h2>
+        <p>
+          An agent's account of the change, written before anyone read it: read it to know where to look, and the
+          chapters after it for what is there. <a href={map.url}>Open on diffmap.dev</a>.
+        </p>
+        {stale ? (
+          <p className="muted">
+            Written from <code>{map.sha.slice(0, 7)}</code>; the branch has moved on since, so the later commits are not
+            in it.
+          </p>
+        ) : null}
+      </header>
+      <iframe className="map-frame" src={map.url} title="Diffmap" />
+      <NextChapter context={context} />
+    </section>
   );
 };
 
@@ -117,11 +153,13 @@ const StoryNav: FC<StoryNavProps> = ({ review, chapters, current, viewed, childr
   <nav className="story-nav" aria-label="Review">
     <ol>
       {chapters.map((chapter, index) => {
-        // The API chapter counts operations; the others count their files and how many are viewed.
+        // The map counts nothing, the API chapter counts operations, and the others their files and how many are viewed.
         const count =
-          chapter.id === 'api'
-            ? `${review.contracts.length} op${review.contracts.length === 1 ? '' : 's'}`
-            : `${chapter.files.filter(file => viewed.isViewed(file)).length}/${chapter.files.length}`;
+          chapter.id === 'map'
+            ? ''
+            : chapter.id === 'api'
+              ? `${review.contracts.length} op${review.contracts.length === 1 ? '' : 's'}`
+              : `${chapter.files.filter(file => viewed.isViewed(file)).length}/${chapter.files.length}`;
         return (
           <li key={chapter.id} className={chapter.id === current ? 'current' : undefined}>
             <Link to={chapterUrl(review, chapter.id)}>
@@ -170,6 +208,7 @@ const Intro: FC<IntroProps> = ({ context, children }) => {
   const { review, chapter } = context;
   const files = chapter.files;
   const leads = {
+    map: '',
     code: `${plural(files.length, 'source file')}. This is the change itself: everything in the chapters after it follows from it, so start here.`,
     schema: `${plural(files.length, 'migration')} drizzle-kit wrote from the schema changes. They run against every database exactly as written, so read them as SQL: locks, defaults on existing rows, and data that has to move.`,
     api: '',

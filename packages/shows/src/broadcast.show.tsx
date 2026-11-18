@@ -101,7 +101,7 @@ export const Broadcast: FC<BroadcastProps> = ({ state }) => {
   const cameras = state.cameras.slice(0, BROADCAST_CAMERAS);
   return (
     // The scene OBS goes out on: vignette's target puts it on program whenever it starts following, so OBS never
-    // stays on the empty scene its fresh collection begins with (apps/agent/core/src/runtimes/obs/settings.ts).
+    // stays on the empty scene its fresh collection begins with (apps/agent/core/src/output/obs/settings.ts).
     <Show id="broadcast" canvas={CANVAS} activeScene="main">
       <Scene id="main">
         <Layer id="background" style={FILL}>

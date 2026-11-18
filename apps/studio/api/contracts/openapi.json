@@ -1315,53 +1315,60 @@
             "type": "string"
           },
           "state": {
-            "type": "object",
-            "properties": {
-              "health": {
-                "type": "string"
-              },
-              "state": {
+            "anyOf": [
+              {
                 "type": "object",
-                "additionalProperties": {}
-              },
-              "freshness": {
-                "type": "string",
-                "enum": [
-                  "fresh",
-                  "stale"
+                "properties": {
+                  "health": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "freshness": {
+                    "type": "string",
+                    "enum": [
+                      "fresh",
+                      "stale"
+                    ]
+                  },
+                  "observedAt": {
+                    "type": "string"
+                  },
+                  "expiresAt": {
+                    "type": "string"
+                  },
+                  "computedAt": {
+                    "type": "string"
+                  },
+                  "contributingReporterIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidenceReportIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "health",
+                  "state",
+                  "freshness",
+                  "observedAt",
+                  "expiresAt",
+                  "computedAt",
+                  "contributingReporterIds",
+                  "evidenceReportIds"
                 ]
               },
-              "observedAt": {
-                "type": "string"
-              },
-              "expiresAt": {
-                "type": "string"
-              },
-              "computedAt": {
-                "type": "string"
-              },
-              "contributingReporterIds": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "evidenceReportIds": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
+              {
+                "type": "null"
               }
-            },
-            "required": [
-              "health",
-              "state",
-              "freshness",
-              "observedAt",
-              "expiresAt",
-              "computedAt",
-              "contributingReporterIds",
-              "evidenceReportIds"
             ]
           },
           "reachable": {
@@ -1509,6 +1516,667 @@
         },
         "required": [
           "logs"
+        ]
+      },
+      "Topology": {
+        "type": "object",
+        "properties": {
+          "broadcast": {
+            "type": "object",
+            "properties": {
+              "placed": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "placed"
+            ]
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "activeAgent": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "id",
+                "createdAt",
+                "activeAgent"
+              ]
+            }
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "agent",
+                    "camera",
+                    "browser"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "networkId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "publicKey": {
+                  "type": "string"
+                },
+                "publicId": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "name",
+                "networkId",
+                "publicKey",
+                "publicId",
+                "createdAt"
+              ]
+            }
+          },
+          "gateways": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "const": "conservationtv"
+                    },
+                    "builtin": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "type": "null"
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "null"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "settings",
+                    "createdAt"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "builtin": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "tls": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "hostname": {
+                              "type": "string"
+                            },
+                            "address": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "issuedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "notAfter": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "attemptedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "error": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "hostname",
+                            "address",
+                            "issuedAt",
+                            "notAfter",
+                            "attemptedAt",
+                            "error"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "builtin",
+                    "name",
+                    "kind",
+                    "networkId",
+                    "settings",
+                    "createdAt",
+                    "tls"
+                  ]
+                }
+              ]
+            }
+          },
+          "streams": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "sourceDeviceId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "exposures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "params": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "gatewayId": {
+                        "type": "string"
+                      },
+                      "renditions": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Rendition"
+                        }
+                      },
+                      "publisherDeviceId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "upstreamExposureId": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "params",
+                      "id",
+                      "createdAt",
+                      "gatewayId",
+                      "renditions",
+                      "publisherDeviceId",
+                      "upstreamExposureId"
+                    ]
+                  }
+                },
+                "recorders": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "params": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "exposureId": {
+                        "type": "string"
+                      },
+                      "rendition": {
+                        "$ref": "#/components/schemas/Rendition"
+                      }
+                    },
+                    "required": [
+                      "params",
+                      "id",
+                      "createdAt",
+                      "kind",
+                      "exposureId",
+                      "rendition"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "id",
+                "createdAt",
+                "sourceDeviceId",
+                "exposures",
+                "recorders"
+              ]
+            }
+          },
+          "shows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "height": {
+                  "type": "number"
+                },
+                "fps": {
+                  "type": "number"
+                },
+                "bitrateKbps": {
+                  "type": "number"
+                },
+                "keyframeSeconds": {
+                  "type": "number"
+                },
+                "output": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "deviceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "createdAt",
+                        "deviceId"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "recorders": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "params": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "const": "obs"
+                      }
+                    },
+                    "required": [
+                      "params",
+                      "id",
+                      "createdAt",
+                      "kind"
+                    ]
+                  }
+                },
+                "forwards": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "channelId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "createdAt",
+                      "enabled",
+                      "channelId"
+                    ]
+                  }
+                },
+                "previews": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "gatewayId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "createdAt",
+                      "gatewayId"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "id",
+                "createdAt",
+                "width",
+                "height",
+                "fps",
+                "bitrateKbps",
+                "keyframeSeconds",
+                "output",
+                "recorders",
+                "forwards",
+                "previews"
+              ]
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "twitch",
+                    "rtmp"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "externalId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "externalLogin": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "name",
+                "externalId",
+                "externalLogin",
+                "createdAt"
+              ]
+            }
+          },
+          "states": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "subjectId": {
+                  "type": "string"
+                },
+                "health": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "freshness": {
+                  "type": "string",
+                  "enum": [
+                    "fresh",
+                    "stale"
+                  ]
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "type": "string"
+                },
+                "computedAt": {
+                  "type": "string"
+                },
+                "contributingReporterIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "evidenceReportIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "subjectId",
+                "health",
+                "state",
+                "freshness",
+                "observedAt",
+                "expiresAt",
+                "computedAt",
+                "contributingReporterIds",
+                "evidenceReportIds"
+              ]
+            }
+          }
+        },
+        "required": [
+          "broadcast",
+          "networks",
+          "devices",
+          "gateways",
+          "streams",
+          "shows",
+          "channels",
+          "states"
         ]
       },
       "Show": {
@@ -10692,6 +11360,92 @@
               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
             },
             "description": "Only those observed before this time, to page back."
+          }
+        ],
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/topology": {
+      "get": {
+        "operationId": "organisations.topology.get",
+        "x-operation-version": 1,
+        "summary": "Read an organisation's whole topology",
+        "description": "Its networks, devices, gateways (the built-in ones first), streams, shows and channels, as their lists read them; every subject's current state, as `organisations.subjects.states.list` reads them; and the exposures its broadcast's composition places, in its order (none before it is composed), which every show follows for now.",
+        "responses": {
+          "200": {
+            "description": "The topology",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Topology"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
           }
         ],
         "x-operation-versions": [
@@ -28582,53 +29336,60 @@
                 "type": "string"
               },
               "state": {
-                "type": "object",
-                "properties": {
-                  "health": {
-                    "type": "string"
-                  },
-                  "state": {
+                "anyOf": [
+                  {
                     "type": "object",
-                    "additionalProperties": {}
-                  },
-                  "freshness": {
-                    "type": "string",
-                    "enum": [
-                      "fresh",
-                      "stale"
+                    "properties": {
+                      "health": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "freshness": {
+                        "type": "string",
+                        "enum": [
+                          "fresh",
+                          "stale"
+                        ]
+                      },
+                      "observedAt": {
+                        "type": "string"
+                      },
+                      "expiresAt": {
+                        "type": "string"
+                      },
+                      "computedAt": {
+                        "type": "string"
+                      },
+                      "contributingReporterIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "evidenceReportIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "health",
+                      "state",
+                      "freshness",
+                      "observedAt",
+                      "expiresAt",
+                      "computedAt",
+                      "contributingReporterIds",
+                      "evidenceReportIds"
                     ]
                   },
-                  "observedAt": {
-                    "type": "string"
-                  },
-                  "expiresAt": {
-                    "type": "string"
-                  },
-                  "computedAt": {
-                    "type": "string"
-                  },
-                  "contributingReporterIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "evidenceReportIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
+                  {
+                    "type": "null"
                   }
-                },
-                "required": [
-                  "health",
-                  "state",
-                  "freshness",
-                  "observedAt",
-                  "expiresAt",
-                  "computedAt",
-                  "contributingReporterIds",
-                  "evidenceReportIds"
                 ]
               },
               "reachable": {
@@ -29640,6 +30401,810 @@
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                 },
                 "description": "Only those observed before this time, to page back."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
+          "Topology": {
+            "type": "object",
+            "properties": {
+              "broadcast": {
+                "type": "object",
+                "properties": {
+                  "placed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "placed"
+                ]
+              },
+              "networks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "activeAgent": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "createdAt",
+                    "activeAgent"
+                  ]
+                }
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "camera",
+                        "browser"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "name",
+                    "networkId",
+                    "publicKey",
+                    "publicId",
+                    "createdAt"
+                  ]
+                }
+              },
+              "gateways": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "const": "conservationtv"
+                        },
+                        "builtin": {
+                          "type": "boolean",
+                          "const": true
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "networkId": {
+                          "type": "null"
+                        },
+                        "settings": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "createdAt": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "builtin": {
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "networkId": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "settings": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "tls": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "hostname": {
+                                  "type": "string"
+                                },
+                                "address": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "issuedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "notAfter": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "attemptedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "error": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "hostname",
+                                "address",
+                                "issuedAt",
+                                "notAfter",
+                                "attemptedAt",
+                                "error"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt",
+                        "tls"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "streams": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "sourceDeviceId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "exposures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "gatewayId": {
+                            "type": "string"
+                          },
+                          "renditions": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Rendition"
+                            }
+                          },
+                          "publisherDeviceId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "upstreamExposureId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "gatewayId",
+                          "renditions",
+                          "publisherDeviceId",
+                          "upstreamExposureId"
+                        ]
+                      }
+                    },
+                    "recorders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "exposureId": {
+                            "type": "string"
+                          },
+                          "rendition": {
+                            "$ref": "#/components/schemas/Rendition"
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "kind",
+                          "exposureId",
+                          "rendition"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "createdAt",
+                    "sourceDeviceId",
+                    "exposures",
+                    "recorders"
+                  ]
+                }
+              },
+              "shows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "width": {
+                      "type": "number"
+                    },
+                    "height": {
+                      "type": "number"
+                    },
+                    "fps": {
+                      "type": "number"
+                    },
+                    "bitrateKbps": {
+                      "type": "number"
+                    },
+                    "keyframeSeconds": {
+                      "type": "number"
+                    },
+                    "output": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "createdAt": {
+                              "type": "string"
+                            },
+                            "deviceId": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "createdAt",
+                            "deviceId"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "recorders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "obs"
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "kind"
+                        ]
+                      }
+                    },
+                    "forwards": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "channelId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "enabled",
+                          "channelId"
+                        ]
+                      }
+                    },
+                    "previews": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "gatewayId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "gatewayId"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "createdAt",
+                    "width",
+                    "height",
+                    "fps",
+                    "bitrateKbps",
+                    "keyframeSeconds",
+                    "output",
+                    "recorders",
+                    "forwards",
+                    "previews"
+                  ]
+                }
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "twitch",
+                        "rtmp"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "externalId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "externalLogin": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "name",
+                    "externalId",
+                    "externalLogin",
+                    "createdAt"
+                  ]
+                }
+              },
+              "states": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "freshness": {
+                      "type": "string",
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "computedAt": {
+                      "type": "string"
+                    },
+                    "contributingReporterIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidenceReportIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "subjectId",
+                    "health",
+                    "state",
+                    "freshness",
+                    "observedAt",
+                    "expiresAt",
+                    "computedAt",
+                    "contributingReporterIds",
+                    "evidenceReportIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "broadcast",
+              "networks",
+              "devices",
+              "gateways",
+              "streams",
+              "shows",
+              "channels",
+              "states"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/topology": {
+          "get": {
+            "operationId": "organisations.topology.get",
+            "x-operation-version": 1,
+            "summary": "Read an organisation's whole topology",
+            "description": "Its networks, devices, gateways (the built-in ones first), streams, shows and channels, as their lists read them; every subject's current state, as `organisations.subjects.states.list` reads them; and the exposures its broadcast's composition places, in its order (none before it is composed), which every show follows for now.",
+            "responses": {
+              "200": {
+                "description": "The topology",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Topology"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
               },
               {
                 "in": "header",

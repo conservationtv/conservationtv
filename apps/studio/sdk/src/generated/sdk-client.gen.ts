@@ -96,6 +96,7 @@ import type { MetricQueryV1Input, MetricQueryV1Output } from '../versions/organi
 import type { ObservationListV1Input, ObservationListV1Output } from '../versions/organisations.subjects.observations.list-v1/flat-params.gen.js';
 import type { SubjectStateV1Input, SubjectStateV1Output } from '../versions/organisations.subjects.state-v1/flat-params.gen.js';
 import type { StateListV1Input, StateListV1Output } from '../versions/organisations.subjects.states.list-v1/flat-params.gen.js';
+import type { TopologyGetV1Input, TopologyGetV1Output } from '../versions/organisations.topology.get-v1/flat-params.gen.js';
 import type { OrganisationUpdateV1Input, OrganisationUpdateV1Output } from '../versions/organisations.update-v1/flat-params.gen.js';
 import type { ReportSubmitV1Input, ReportSubmitV1Output } from '../versions/reports.submit-v1/flat-params.gen.js';
 import type { WhoamiGetV1Output } from '../versions/whoami.get-v1/flat-params.gen.js';
@@ -621,6 +622,13 @@ export class Client extends ClientCore {
                         ]
                     }) })
             }
+        },
+        topology: {
+            get: this.versioned('organisations.topology.get', { v1: operation<TopologyGetV1Output, TopologyGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/topology',
+                    fields: [{ in: 'path', key: 'id' }]
+                }) })
         },
         shows: {
             list: this.versioned('organisations.shows.list', { v1: operation<ShowListV1Output, ShowListV1Input>({

@@ -34,7 +34,10 @@ export interface AuthDependencies {
  * `/device`, and the token it receives is sent as a bearer token on every request.
  */
 export function createAuth({ database, access, variables, deliverOtp, background }: AuthDependencies) {
-  const webApp = new URL(variables.WEB_ORIGINS[0]);
+  // The schema requires at least one origin, but arkenv's inferred type drops zod's non-empty tuple.
+  const [webOrigin] = variables.WEB_ORIGINS;
+  if (webOrigin === undefined) throw new Error('WEB_ORIGINS must name at least one origin');
+  const webApp = new URL(webOrigin);
   const ensureSelfGrant = async (userId: string): Promise<void> => {
     await access.at(users.$access.scope.at(userId)).grant({ principal: principalOf(userId), role: self });
   };

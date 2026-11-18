@@ -1,4 +1,4 @@
-import { Suspense, type ComponentProps, type FC } from 'react';
+import { Suspense, type FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { CheckCircleIcon, CircleIcon, WarningIcon } from '@phosphor-icons/react';
 import { Link } from 'react-router';
@@ -27,7 +27,8 @@ import {
   SectionHeading,
   SectionTitle
 } from '@/components/common/page';
-import { overviewOf, type Overview, type Problem, type SetupStep } from '@/components/overview/overview';
+import { overviewOf, type Problem, type SetupStep } from '@/components/overview/overview';
+import { OverviewSignal } from '@/components/overview/overview-signal';
 import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
 import { useOrganisation, useOrganisationId } from '@/hooks/use-organisation';
 import { agentListQueryOptions } from '@/queries/agents';
@@ -58,6 +59,9 @@ const OrganisationHomeRoute: FC = () => {
           <PageDescription>What’s on, what it runs on, and anything that needs looking at.</PageDescription>
         </PageHeading>
       </PageHeader>
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+        <OverviewSignal />
+      </Suspense>
       <Suspense fallback={<Skeleton className="h-64 w-full" />}>
         <OverviewSections />
       </Suspense>
@@ -109,7 +113,6 @@ const OverviewSections: FC = () => {
   });
   return (
     <>
-      <Tiles overview={overview} />
       {overview.setup.some(step => !step.done) && <Setup steps={overview.setup} />}
       <Health problems={overview.problems} reportingCount={overview.reportingCount} />
       {overview.fedStreams.length > 0 && (
@@ -141,70 +144,6 @@ const OverviewSections: FC = () => {
       )}
     </>
   );
-};
-
-interface TilesProps {
-  overview: Overview;
-}
-
-/** How much of each thing the organisation has, each count opening its page. */
-const Tiles: FC<TilesProps> = ({ overview }) => {
-  return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,9.5rem),1fr))] gap-3">
-      <Tile to="streams">
-        <TileValue>{overview.streamCount}</TileValue>
-        <TileLabel>Streams</TileLabel>
-        <TileNote>{overview.fedStreams.length} being fed</TileNote>
-      </Tile>
-      <Tile to="cameras">
-        <TileValue>{overview.cameraCount}</TileValue>
-        <TileLabel>Cameras</TileLabel>
-      </Tile>
-      <Tile to="agents">
-        <TileValue>{overview.agentCount}</TileValue>
-        <TileLabel>Agents</TileLabel>
-        <TileNote>{overview.activeAgentCount} active</TileNote>
-      </Tile>
-      <Tile to="networks">
-        <TileValue>{overview.networkCount}</TileValue>
-        <TileLabel>Networks</TileLabel>
-      </Tile>
-      <Tile to="shows">
-        <TileValue>{overview.showCount}</TileValue>
-        <TileLabel>Shows</TileLabel>
-        <TileNote>{overview.outputShowCount} with an output agent</TileNote>
-      </Tile>
-      <Tile to="channels">
-        <TileValue>{overview.channelCount}</TileValue>
-        <TileLabel>Channels</TileLabel>
-      </Tile>
-    </div>
-  );
-};
-
-/** A count that opens the page it counts. Holds a TileValue, a TileLabel and perhaps a TileNote. */
-const Tile: FC<ComponentProps<typeof Link>> = ({ className, ...props }) => {
-  return (
-    <Link
-      className={cn(
-        'flex min-h-24 flex-col rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-interaction-hover focus-visible:outline-2 focus-visible:outline-ring',
-        className
-      )}
-      {...props}
-    />
-  );
-};
-
-const TileValue: FC<ComponentProps<'span'>> = ({ className, ...props }) => {
-  return <span className={cn('text-custom-21 font-semibold text-foreground tabular-nums', className)} {...props} />;
-};
-
-const TileLabel: FC<ComponentProps<'span'>> = ({ className, ...props }) => {
-  return <span className={cn('text-custom-13 text-foreground', className)} {...props} />;
-};
-
-const TileNote: FC<ComponentProps<'span'>> = ({ className, ...props }) => {
-  return <span className={cn('mt-auto pt-1 text-custom-12 text-custom-text-secondary', className)} {...props} />;
 };
 
 interface SetupProps {

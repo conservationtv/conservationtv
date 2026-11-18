@@ -4,6 +4,7 @@ import type {
   Check,
   CheckState,
   ConversationEntry,
+  Diffmap,
   PullList,
   PullState,
   PullSummary,
@@ -18,6 +19,7 @@ import {
   CompareSchema,
   IssueCommentsSchema,
   PullDetailSchema,
+  type IssueComments,
   PullFilesSchema,
   PullListItemsSchema,
   ReviewCommentsSchema,
@@ -169,24 +171,55 @@ function reviewEntry(review: Reviews[number]): ConversationEntry[] {
   ];
 }
 
-/** The pull request's comments and submitted reviews with something to say, oldest first. */
-async function conversation(number: number): Promise<ConversationEntry[]> {
+/** The comment `.github/workflows/diffmap.yml` keeps, naming the gist it shared and the commit it was written from. */
+const DIFFMAP_MARKER = /<!-- diffmap gist=([0-9a-f]{32}) sha=([0-9a-f]{40}) -->/;
+/** Only the workflow's own comments count, so no one else can put a page in front of the review. */
+const DIFFMAP_AUTHOR = 'github-actions[bot]';
+
+/** The diffmap a comment names: null unless the workflow wrote it and it carries the whole marker. */
+function diffmapOf(comment: IssueComments[number]): Diffmap | null {
+  if (comment.user.login !== DIFFMAP_AUTHOR) return null;
+  const [, gistId, sha] = comment.body?.match(DIFFMAP_MARKER) ?? [];
+  if (!gistId || !sha) return null;
+  return { gistId, sha, url: `https://diffmap.dev/g/${gistId}` };
+}
+
+/** The latest diffmap the workflow shared; it edits one comment in place, but the newest wins either way. */
+function latestDiffmap(comments: IssueComments): Diffmap | null {
+  return comments.map(diffmapOf).findLast(found => found !== null) ?? null;
+}
+
+interface Conversation {
+  entries: ConversationEntry[];
+  diffmap: Diffmap | null;
+}
+
+/**
+ * The pull request's comments and submitted reviews with something to say, oldest first, and its diffmap. The diffmap
+ * comment is left out of the conversation: the files tab opens on the map itself.
+ */
+async function conversation(number: number): Promise<Conversation> {
   const [comments, reviews] = await Promise.all([
     allPages(`issues/${number}/comments`, IssueCommentsSchema, 'live'),
     allPages(`pulls/${number}/reviews`, ReviewsSchema, 'live')
   ]);
   const entries: ConversationEntry[] = [
-    ...comments.map(comment => ({
-      id: comment.id,
-      author: comment.user,
-      body: comment.body ?? '',
-      createdAt: comment.created_at,
-      url: comment.html_url,
-      review: null
-    })),
+    ...comments
+      .filter(comment => diffmapOf(comment) === null)
+      .map(comment => ({
+        id: comment.id,
+        author: comment.user,
+        body: comment.body ?? '',
+        createdAt: comment.created_at,
+        url: comment.html_url,
+        review: null
+      })),
     ...reviews.flatMap(reviewEntry)
   ];
-  return entries.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return {
+    entries: entries.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    diffmap: latestDiffmap(comments)
+  };
 }
 
 /** Line comments, gathered into the threads their replies form. */
@@ -219,7 +252,7 @@ async function threads(number: number): Promise<Thread[]> {
 export async function review(number: number): Promise<Review> {
   const github = useGitHub();
   const pull = await github.api(`pulls/${number}`, PullDetailSchema, 'live');
-  const [compare, changed, checkList, entries, threadList, pulls] = await Promise.all([
+  const [compare, changed, checkList, talk, threadList, pulls] = await Promise.all([
     github.api(`compare/${pull.base.sha}...${pull.head.sha}`, CompareSchema, 'immutable'),
     files(number, pull.changed_files),
     checks(pull.head.sha),
@@ -246,10 +279,11 @@ export async function review(number: number): Promise<Review> {
     },
     files: changed,
     checks: checkList,
-    conversation: entries,
+    conversation: talk.entries,
     threads: threadList,
     // The listing can lag this pull request's own state; this one is current.
     stack: stackOf(current, [current, ...pulls.filter(other => other.number !== number)]),
-    contracts: await contractChanges(changed, mergeBaseSha, pull.head.sha)
+    contracts: await contractChanges(changed, mergeBaseSha, pull.head.sha),
+    diffmap: talk.diffmap
   };
 }

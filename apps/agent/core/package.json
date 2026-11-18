@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/app.ts",
+    ".": "./src/index.ts",
     "./openapi.json": "./contracts/openapi.json"
   },
   "scripts": {

@@ -9,7 +9,7 @@ import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
  * Somewhere an organisation's shows go out to, such as a Twitch channel (src/channels). A show's output agent forwards
- * its programme to each channel the show has an enabled forward to (`show_forward`, apps/agent/core/src/runtimes/obs).
+ * its programme to each channel the show has an enabled forward to (`show_forward`, apps/agent/core/src/output/obs).
  * What reaches it, its stream key or OAuth tokens, is kept apart in `channel_credential`, under a role of its own.
  */
 export const channels = withAccess(

@@ -270,22 +270,30 @@ const ReviewPathBox: FC<ChecksProps> = ({ review }) => {
     <section className="box">
       <h3>Review path</h3>
       <ol className="review-path">
-        {chaptersOf(review).map(chapter => (
-          <li key={chapter.id}>
-            <Link to={`/pr/${review.pull.number}/files/${chapter.id}`}>{chapter.title}</Link>
-            <span className="muted">
-              {chapter.id === 'api'
-                ? `${review.contracts.length} operation${review.contracts.length === 1 ? '' : 's'}`
-                : `${chapter.files.length} file${chapter.files.length === 1 ? '' : 's'}`}
-            </span>
-            <span className="additions">
-              +{formatCount(chapter.files.reduce((sum, file) => sum + file.additions, 0))}
-            </span>
-            <span className="deletions">
-              −{formatCount(chapter.files.reduce((sum, file) => sum + file.deletions, 0))}
-            </span>
-          </li>
-        ))}
+        {chaptersOf(review).map(chapter =>
+          // The map is a spec, not files: it has nothing to count. The API chapter counts operations, the rest files.
+          chapter.id === 'map' ? (
+            <li key={chapter.id}>
+              <Link to={`/pr/${review.pull.number}/files/${chapter.id}`}>{chapter.title}</Link>
+              <span className="muted">diffmap</span>
+            </li>
+          ) : (
+            <li key={chapter.id}>
+              <Link to={`/pr/${review.pull.number}/files/${chapter.id}`}>{chapter.title}</Link>
+              <span className="muted">
+                {chapter.id === 'api'
+                  ? `${review.contracts.length} operation${review.contracts.length === 1 ? '' : 's'}`
+                  : `${chapter.files.length} file${chapter.files.length === 1 ? '' : 's'}`}
+              </span>
+              <span className="additions">
+                +{formatCount(chapter.files.reduce((sum, file) => sum + file.additions, 0))}
+              </span>
+              <span className="deletions">
+                −{formatCount(chapter.files.reduce((sum, file) => sum + file.deletions, 0))}
+              </span>
+            </li>
+          )
+        )}
       </ol>
       {review.files.some(file => file.category === 'generated') ? (
         <p className="muted small">

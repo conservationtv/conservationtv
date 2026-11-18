@@ -99,3 +99,4 @@ export * from './deviceConfiguration.get-v1/index.js';
 export * from './deviceAddresses.replace-v1/index.js';
 export * from './gatewayEndpoints.replace-v1/index.js';
 export * from './whoami.get-v1/index.js';
+export * from './organisations.topology.get-v1/index.js';

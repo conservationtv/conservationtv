@@ -1,0 +1,18 @@
+{
+  // Consumed from source: the studio API's Worker bundles it with Vite. This project only type-checks, without Node's
+  // types, so the emails stay renderable in a Worker.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
+    "types": [],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

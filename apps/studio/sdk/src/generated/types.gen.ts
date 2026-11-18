@@ -325,7 +325,7 @@ export type Subject = {
         computedAt: string;
         contributingReporterIds: Array<string>;
         evidenceReportIds: Array<string>;
-    };
+    } | null;
     reachable: boolean;
     opinions: Array<{
         reporterId: string;
@@ -364,6 +364,139 @@ export type Log = {
         context: {
             [key: string]: unknown;
         };
+    }>;
+};
+
+export type Topology = {
+    broadcast: {
+        placed: Array<string>;
+    };
+    networks: Array<{
+        name: string;
+        id: string;
+        createdAt: string;
+        activeAgent: {
+            id: string;
+        } | null;
+    }>;
+    devices: Array<{
+        id: string;
+        kind: 'agent' | 'camera' | 'browser';
+        name: string;
+        networkId: string | null;
+        publicKey: string;
+        publicId: string;
+        createdAt: string;
+    }>;
+    gateways: Array<{
+        id: 'conservationtv';
+        builtin: true;
+        name: string;
+        kind: string;
+        networkId: null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: null;
+    } | {
+        id: string;
+        builtin: boolean;
+        name: string;
+        kind: string;
+        networkId: string | null;
+        settings: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+        tls: {
+            hostname: string;
+            address: string | null;
+            issuedAt: string | null;
+            notAfter: string | null;
+            attemptedAt: string | null;
+            error: string | null;
+        } | null;
+    }>;
+    streams: Array<{
+        name: string;
+        id: string;
+        createdAt: string;
+        sourceDeviceId: string | null;
+        exposures: Array<{
+            params: {
+                [key: string]: unknown;
+            };
+            id: string;
+            createdAt: string;
+            gatewayId: string;
+            renditions: Array<Rendition>;
+            publisherDeviceId: string | null;
+            upstreamExposureId: string | null;
+        }>;
+        recorders: Array<{
+            params: {
+                [key: string]: unknown;
+            };
+            id: string;
+            createdAt: string;
+            kind: string;
+            exposureId: string;
+            rendition: Rendition;
+        }>;
+    }>;
+    shows: Array<{
+        name: string;
+        id: string;
+        createdAt: string;
+        width: number;
+        height: number;
+        fps: number;
+        bitrateKbps: number;
+        keyframeSeconds: number;
+        output: {
+            createdAt: string;
+            deviceId: string;
+        } | null;
+        recorders: Array<{
+            params: {
+                [key: string]: unknown;
+            };
+            id: string;
+            createdAt: string;
+            kind: 'obs';
+        }>;
+        forwards: Array<{
+            id: string;
+            createdAt: string;
+            enabled: boolean;
+            channelId: string;
+        }>;
+        previews: Array<{
+            id: string;
+            createdAt: string;
+            gatewayId: string;
+        }>;
+    }>;
+    channels: Array<{
+        id: string;
+        kind: 'twitch' | 'rtmp';
+        name: string;
+        externalId: string | null;
+        externalLogin: string | null;
+        createdAt: string;
+    }>;
+    states: Array<{
+        subjectId: string;
+        health: string;
+        state: {
+            [key: string]: unknown;
+        };
+        freshness: 'fresh' | 'stale';
+        observedAt: string;
+        expiresAt: string;
+        computedAt: string;
+        contributingReporterIds: Array<string>;
+        evidenceReportIds: Array<string>;
     }>;
 };
 
@@ -4361,6 +4494,52 @@ export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponses = {
 };
 
 export type GetOrganisationsByIdSubjectsBySubjectIdLogsResponse = GetOrganisationsByIdSubjectsBySubjectIdLogsResponses[keyof GetOrganisationsByIdSubjectsBySubjectIdLogsResponses];
+
+export type GetOrganisationsByIdTopologyData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/topology';
+};
+
+export type GetOrganisationsByIdTopologyErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdTopologyError = GetOrganisationsByIdTopologyErrors[keyof GetOrganisationsByIdTopologyErrors];
+
+export type GetOrganisationsByIdTopologyResponses = {
+    /**
+     * The topology
+     */
+    200: Topology;
+};
+
+export type GetOrganisationsByIdTopologyResponse = GetOrganisationsByIdTopologyResponses[keyof GetOrganisationsByIdTopologyResponses];
 
 export type GetOrganisationsByIdShowData = {
     body?: never;

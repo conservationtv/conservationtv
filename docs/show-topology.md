@@ -95,19 +95,19 @@ Agents built from `main` poll this operation; it must not change shape in place.
 
 An agent on `main` ignores what it doesn't know (`ObsSpecSchema` is a non-strict `z.object`).
 
-## Agent (`runtimes/obs`)
+## Agent (`output/obs`)
 
 - **Reporting:** read the program MediaMTX's metrics as the gateway MediaMTX's are read
-  (`runtimes/mediamtx/metrics.ts`), filed against `program:`, `forward:` and `preview:` subjects, splitting what
+  (`mediamtx/metrics-page.ts`), filed against `program:`, `forward:` and `preview:` subjects, splitting what
   `show/program` sends by reader as publisher egress is split now; and obs-websocket's `GetStats` and
   `GetStreamStatus` against `program:`. Each forwarded channel with `stats`, read with
   `organisations.channels.stats.get` every few seconds and reported against `channel:`: the agent decides when and how
-  often to read, and keeps nothing between reads. That is a key of its own, `channels` (`runtimes/channel-stats.ts`),
+  often to read, and keeps nothing between reads. That is a key of its own, `channels` (`output/channels/`),
   derived from the `obs` section's forwards, so it needs neither OBS nor a machine OBS runs on.
 - **Previews:** publish the programme to each preview: to conservation.tv by the `moq` CLI, as a stream's publishers
-  are (`builders/publishers.ts`); to a MediaMTX gateway by pushing to its publish URL.
+  are (`gateway/streams/builders/publishers.ts`); to a MediaMTX gateway by pushing to its publish URL.
 - **Recording:** with a recorder configured, OBS records alongside streaming (obs-websocket `StartRecord`), kept going
-  by the watchdog that keeps it streaming (`streaming.ts`), into the agent's data directory.
+  by the watchdog that keeps it streaming (`watchdog.ts`), into the agent's data directory.
 
 ## Studio
 

@@ -143,7 +143,7 @@
   --custom-text-body: oklch(0.34751 0.0715 61.43);
   --custom-text-tertiary: oklch(0.23758 0.05396 63.51);
   --custom-recording: oklch(0.56879 0.0281 65.26);
-  --custom-connection: oklch(0.56879 0.0281 65.26);
+  --custom-connection: oklch(0.67659 0.02108 65.26);
   --custom-comparison-trend: oklch(0.7576 0.02579 71.38);
   --custom-warning: oklch(0.74725 0.15952 58.18);
   --custom-warning-fill: oklch(0.74725 0.15952 58.18);
@@ -209,7 +209,7 @@
   --custom-text-body: oklch(0.89 0.0136 82.4);
   --custom-text-tertiary: oklch(0.79 0.01534 84.59);
   --custom-recording: oklch(0.759 0.04415 80.94);
-  --custom-connection: oklch(0.45735 0.01177 87.53);
+  --custom-connection: oklch(0.59301 0.00883 87.53);
   --custom-comparison-trend: oklch(0.54014 0.02193 98.49);
   --custom-warning: oklch(0.74614 0.10373 69.26);
   --custom-warning-fill: oklch(0.74614 0.10373 69.26);

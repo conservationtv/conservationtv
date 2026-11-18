@@ -12,7 +12,7 @@ import { CONNECTION_LIFETIME_SECONDS, provider, type ConnectionAction, type Conn
 
 // MediaMTX gateways admit connections by JWTs this API signs with the identity of the agent running the gateway: the
 // network's active agent's own Ed25519 key, which this API holds (src/topology/identity.ts) and the agent verifies
-// against on its own (apps/agent/core/src/runtimes/mediamtx/auth.ts), with nothing to fetch from here. A token is
+// against on its own (apps/agent/core/src/gateway/streams/auth.ts), with nothing to fetch from here. A token is
 // issued by `<APP_URL>`, for the gateway's ID as its audience, and admits one action on one path, at only the gateway
 // it was issued for. The agent also admits readers on its own machine without one. A MediaMTX run any other way can
 // check them itself (`authMethod: jwt`) against the JWKS the agent serves.
