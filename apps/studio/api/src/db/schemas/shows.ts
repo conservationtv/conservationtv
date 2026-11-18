@@ -59,7 +59,7 @@ export const shows = withAccess(
 
 /**
  * Where a show goes out: the agent that drives OBS for it, following the show and playing its streams
- * (apps/agent/core/src/runtimes/obs). A show has at most one output, and an agent is the output of at most one show,
+ * (apps/agent/core/src/output/obs). A show has at most one output, and an agent is the output of at most one show,
  * since it runs one OBS.
  */
 export const showOutputs = withAccess(

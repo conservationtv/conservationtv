@@ -1,6 +1,6 @@
 import { createStore } from '@conservationtv/store';
-import type { Peers } from './admission.ts';
-import type { MediamtxPorts } from './runtimes/mediamtx/ports.ts';
+import type { Peers } from './iroh/admission.ts';
+import type { MediamtxPorts } from './gateway/streams/ports.ts';
 
 /** How the agent runs MediaMTX. */
 export interface MediamtxSettings {
