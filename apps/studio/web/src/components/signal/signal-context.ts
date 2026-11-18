@@ -77,8 +77,8 @@ export function useSignalLayout(): SignalLayout {
 // The map: where its nodes are, for the links drawn between them.
 
 export interface SignalMapContextValue {
-  /** A ref for whatever links name by `id`: a node, a rail's line, a group's join. */
-  anchor: (id: string) => (element: HTMLElement | null) => void;
+  /** A ref for whatever links name by `id`: a node, a rail's line, a group's join. It cleans up after itself. */
+  anchor: (id: string) => (element: HTMLElement | null) => (() => void) | undefined;
   /** What has registered, by id. Read after layout, never while rendering. */
   anchors: Map<string, HTMLElement>;
   container: RefObject<HTMLDivElement | null>;

@@ -1,12 +1,4 @@
-import {
-  cloneElement,
-  use,
-  type ComponentProps,
-  type FC,
-  type MouseEvent,
-  type ReactElement,
-  type ReactNode
-} from 'react';
+import { use, type ComponentProps, type FC, type MouseEvent, type ReactNode } from 'react';
 import { useStore } from '@xstate/store-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CaretRightIcon, DotsThreeIcon, PencilSimpleIcon, PlusIcon } from '@phosphor-icons/react';
@@ -23,19 +15,38 @@ import {
 import { SignalStoreContext, useSignalColumnGap } from '@/components/signal/signal-context';
 import { spring } from '@/components/signal/signal-motion';
 import { Appear, Reveal, Swap, Tuck } from '@/components/signal/signal-presence';
+import { SignalThings } from '@/components/signal/signal';
 
 // Editing's parts, to set among a signal view's own: the control that turns editing on, and what it brings while
 // it's on (a press that edits instead of picking, a "more" button on a label, a dashed row to add by). None of them
-// does or shows anything until the page is being edited, nor anywhere there's no <SignalEditing> above it.
+// does or shows anything until the page is being edited, nor anywhere there's no <SignalEditing> above it. The press
+// is composed onto the view's things like any page's behaviour (<SignalThings>), so the view knows nothing of it.
 
 export interface SignalEditingProps {
   children: ReactNode;
 }
 
-/** Makes what's inside editable: it keeps whether the page is being edited, and what's been taken up to edit. */
+/**
+ * Makes what's inside editable: it keeps whether the page is being edited, and what's been taken up to edit; and while
+ * it's being edited, pressing a thing on the view edits it, in place of whatever a press did.
+ */
 export const SignalEditing: FC<SignalEditingProps> = ({ children }) => {
   const store = useStore(signalEditingStoreConfig);
-  return <SignalEditingContext value={store}>{children}</SignalEditingContext>;
+  return (
+    <SignalEditingContext value={store}>
+      <EditingPress>{children}</EditingPress>
+    </SignalEditingContext>
+  );
+};
+
+const EditingPress: FC<SignalEditingProps> = ({ children }) => {
+  const editing = useSignalEditing();
+  const edit = useEdit();
+  return (
+    <SignalThings props={(thing, inherited) => (editing ? { onClick: () => edit(thing) } : inherited)}>
+      {children}
+    </SignalThings>
+  );
 };
 
 /** Takes a target up to edit or add. */
@@ -95,30 +106,6 @@ export const SignalEditToggle: FC = () => {
       </Button>
     </div>
   );
-};
-
-/** What an edit trigger gives whatever it renders: something else for a press to do. */
-interface SignalEditTriggerTarget {
-  onPress?: () => void;
-}
-
-export interface SignalEditTriggerProps {
-  target: SignalTarget;
-  /** The thing itself: a SignalNode on the map, a SignalListItem in the stack. */
-  render: ReactElement<SignalEditTriggerTarget>;
-  children?: ReactNode;
-}
-
-/**
- * Something that's edited by pressing it, while the page is being edited; the rest of the time it's just what it
- * renders, and a press does what that does with one.
- */
-export const SignalEditTrigger: FC<SignalEditTriggerProps> = ({ target, render, children }) => {
-  const editing = useSignalEditing();
-  const edit = useEdit();
-  const press = editing ? { onPress: () => edit(target) } : undefined;
-  // With no children of its own it leaves the thing's as they are.
-  return children === undefined ? cloneElement(render, press) : cloneElement(render, press, children);
 };
 
 export interface SignalEditActionProps extends ComponentProps<typeof Button> {

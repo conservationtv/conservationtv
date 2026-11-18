@@ -50,9 +50,6 @@ export default [
     // The page an emailed invitation's link opens, carrying its one-time code.
     route('invitations/:invitationId', './routes/invitation.tsx')
   ]),
-  // The signal view as one working page on made-up data, not wired to the API: the map wide, the stack narrow, its
-  // state switchable.
-  route('prototype/signal-motion', './routes/signal-prototype-motion.tsx'),
   route('sign-in', './routes/sign-in.tsx'),
   route('device', './routes/device.tsx'),
   route('*', './routes/not-found.tsx')

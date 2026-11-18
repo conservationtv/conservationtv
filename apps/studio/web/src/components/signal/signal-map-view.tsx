@@ -2,13 +2,15 @@ import type { FC, ReactNode } from 'react';
 import { ArrowSquareInIcon, EyeIcon, FolderSimpleIcon, NetworkIcon, NetworkXIcon } from '@phosphor-icons/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import { SignalAdd, SignalEditAction, SignalEditTrigger } from '@/components/signal/editing/signal-editing';
+import { SignalAdd, SignalEditAction } from '@/components/signal/editing/signal-editing';
 import type { SignalTarget } from '@/components/signal/editing/signal-editing-store';
 import { useSignalGroup, useSignalTopology } from '@/components/signal/signal-context';
 import {
   SignalGroup,
   SignalGroupCaret,
   SignalGroupContent,
+  SignalGroupMember,
+  SignalGroupMembers,
   SignalGroupNote,
   SignalGroupShut,
   SignalGroupShutContent,
@@ -44,6 +46,7 @@ import {
 } from '@/components/signal/signal-node';
 import { Appear, Reveal, Swap } from '@/components/signal/signal-presence';
 import type { SignalBroadcast, SignalChannel, SignalNetwork } from '@/components/signal/signal-system';
+import { useSignalThing } from '@/components/signal/signal-things';
 import {
   broadcastTroubled,
   broadcastTrouble,
@@ -59,7 +62,7 @@ import {
 
 // The signal as a map, for a screen wide enough: channels, broadcasts and sources in three columns, the gateways as
 // rails between the last two, and the links drawn behind. A composition of the signal's parts, with editing's set
-// among them (they do nothing unless the page is editable).
+// among them (they do nothing unless the page is editable). What its things do is the page's (useSignalThing).
 
 /**
  * The three columns share the map's width equally, between a floor (below it the map scrolls sideways) and a ceiling
@@ -90,18 +93,14 @@ const ChannelNote: FC<ChannelProps> = ({ channel }) => {
 };
 
 const MapChannel: FC<ChannelProps> = ({ channel }) => {
+  const thing = useSignalThing({ kind: 'channel', id: channel.id });
   return (
-    <SignalEditTrigger
-      target={{ kind: 'channel', id: channel.id }}
-      render={
-        <SignalNode
-          id={channel.id}
-          status={channel.status}
-          off={channel.off}
-          pick
-          className="-mx-2 w-[calc(100%+1rem)] rounded-md px-2 hover:bg-muted/60"
-        />
-      }
+    <SignalNode
+      id={channel.id}
+      status={channel.status}
+      off={channel.off}
+      className="-mx-2 w-[calc(100%+1rem)] rounded-md px-2 hover:bg-muted/60"
+      {...thing}
     >
       <SignalNodeIcon>
         <PlatformIcon platform={channel.platform} />
@@ -113,7 +112,7 @@ const MapChannel: FC<ChannelProps> = ({ channel }) => {
       <Appear when={!channel.off && channel.status !== 'affected'}>
         <SignalBars level={channel.level} status={channel.status} />
       </Appear>
-    </SignalEditTrigger>
+    </SignalNode>
   );
 };
 
@@ -124,11 +123,9 @@ interface BroadcastProps {
 const MapBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
   const trouble = broadcastTrouble(broadcast);
   const target: SignalTarget = { kind: 'broadcast', id: broadcast.id };
+  const thing = useSignalThing(target);
   return (
-    <SignalEditTrigger
-      target={target}
-      render={<SignalNode id={broadcast.id} status={broadcast.status} variant="card" pick className="items-start" />}
-    >
+    <SignalNode id={broadcast.id} status={broadcast.status} variant="card" className="items-start" {...thing}>
       <SignalAspect width={broadcast.width} height={broadcast.height} />
       <SignalNodeBody>
         <SignalNodeTitle className="font-medium">{broadcast.name}</SignalNodeTitle>
@@ -146,23 +143,21 @@ const MapBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
         </Reveal>
       </SignalNodeBody>
       <SignalEditAction target={target} className="-my-1 -mr-1.5" />
-    </SignalEditTrigger>
+    </SignalNode>
   );
 };
 
 interface SourceProps {
   source: SourceView;
-  /** What editing it edits: a camera, or an ingest. */
+  /** What it is, to whatever's composed onto it: a camera, or an ingest. */
   kind: 'camera' | 'ingest';
 }
 
 /** A camera or an ingest, as a pill under its group's label. */
 const MapSource: FC<SourceProps> = ({ source, kind }) => {
+  const thing = useSignalThing({ kind, id: source.id });
   return (
-    <SignalEditTrigger
-      target={{ kind, id: source.id }}
-      render={<SignalNode id={source.id} status={source.seen} variant="pill" pick className="hover:bg-muted/60" />}
-    >
+    <SignalNode id={source.id} status={source.seen} variant="pill" className="hover:bg-muted/60" {...thing}>
       <SignalNodeIcon>
         <SourceIcon kind={source.kind} />
       </SignalNodeIcon>
@@ -171,7 +166,7 @@ const MapSource: FC<SourceProps> = ({ source, kind }) => {
         <SignalNodeFlag tone="destructive">Not sending</SignalNodeFlag>
       </Appear>
       <SignalHealth status={source.seen} />
-    </SignalEditTrigger>
+    </SignalNode>
   );
 };
 
@@ -226,16 +221,13 @@ const MapSubgroup: FC<SubgroupProps> = ({ subgroup }) => {
         </SignalGroupShut>
         <GroupAction target={{ kind: 'subgroup', id: subgroup.id }} />
       </SignalGroupTrigger>
-      <SignalGroupShutContent variant="raised" className="pt-0.5 pl-6">
-        {subgroup.stopped.map(source => (
-          <MapSource key={source.id} source={source} kind="camera" />
-        ))}
-      </SignalGroupShutContent>
-      <SignalGroupContent variant="raised" className="pt-0.5 pl-6">
+      <SignalGroupMembers variant="raised" className="pl-6">
         {subgroup.sources.map(source => (
-          <MapSource key={source.id} source={source} kind="camera" />
+          <SignalGroupMember key={source.id} kept={subgroup.stopped.some(each => each.id === source.id)}>
+            <MapSource source={source} kind="camera" />
+          </SignalGroupMember>
         ))}
-      </SignalGroupContent>
+      </SignalGroupMembers>
     </SignalGroup>
   );
 };
@@ -267,20 +259,29 @@ const MapNetwork: FC<NetworkProps> = ({ group, network }) => {
       <SignalGroupNote tone={group.trouble ? 'destructive' : 'default'}>
         {group.trouble ?? network.agent}
       </SignalGroupNote>
-      {/* Shut, whatever has stopped is on show anyway, straight under the label, whichever subgroup it's in. */}
+      {/* Shut, whatever has stopped is on show anyway, straight under the label, whichever subgroup it's in: those in
+          one, here, until they open into it; the network's own stay where they are (they're kept members). */}
       <SignalGroupShutContent variant="raised">
-        {group.stopped.map(source => (
-          <MapSource key={source.id} source={source} kind="camera" />
-        ))}
+        {group.subgroups
+          .flatMap(subgroup => subgroup.stopped)
+          .map(source => (
+            <MapSource key={source.id} source={source} kind="camera" />
+          ))}
       </SignalGroupShutContent>
-      <SignalGroupContent variant="raised">
-        {group.subgroups.map(subgroup => (
-          <MapSubgroup key={subgroup.id} subgroup={subgroup} />
-        ))}
+      {group.subgroups.length > 0 && (
+        <SignalGroupContent variant="raised">
+          {group.subgroups.map(subgroup => (
+            <MapSubgroup key={subgroup.id} subgroup={subgroup} />
+          ))}
+        </SignalGroupContent>
+      )}
+      <SignalGroupMembers variant="raised">
         {group.ungrouped.map(source => (
-          <MapSource key={source.id} source={source} kind="camera" />
+          <SignalGroupMember key={source.id} kept={group.stopped.some(each => each.id === source.id)}>
+            <MapSource source={source} kind="camera" />
+          </SignalGroupMember>
         ))}
-      </SignalGroupContent>
+      </SignalGroupMembers>
     </SignalGroup>
   );
 };

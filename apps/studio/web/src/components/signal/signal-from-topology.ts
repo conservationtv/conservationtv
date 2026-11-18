@@ -1,6 +1,12 @@
 import type { Topology } from '@conservationtv/studio-sdk';
 
-import { deviceSubjectId, forwardSubjectId, programSubjectId } from '@/components/devices/subjects';
+import {
+  channelSubjectId,
+  deviceSubjectId,
+  exposureSubjectId,
+  forwardSubjectId,
+  programSubjectId
+} from '@/components/devices/subjects';
 import type {
   SignalBroadcast,
   SignalChannel,
@@ -14,12 +20,11 @@ import { ownStatus, type SubjectStatusInput } from '@/components/streams/topolog
 
 // The signal view's system from an organisation's real topology (`organisations.topology.get`): its shows as the
 // broadcasts, each show's forwards as the channels they go out to, its networks with their active agents, the cameras
-// on them and the other devices streams come from, and the gateways the broadcast is reached through. Every show
+// on them and the other devices streams come from, and the internet-facing gateways the broadcast reads them at. Every show
 // follows the organisation's one broadcast for now, so a source feeds every show when the broadcast places one of its
 // streams, and none when it doesn't. Pure; the query that reads the topology hands it here.
 
 type TopologyDevice = Topology['devices'][number];
-type TopologyStream = Topology['streams'][number];
 type TopologyShow = Topology['shows'][number];
 
 /** The built-in gateway the broadcast reads its streams from (apps/studio/api/src/shows/broadcast.ts). */
@@ -28,29 +33,44 @@ const BROADCAST_GATEWAY = 'conservationtv';
 /** Something's status from what its subject last reported. */
 type StatusOf = (subjectId: string) => SignalStatus;
 
+/**
+ * Each subject's status from its state: as the studio's topology reads it (`ownStatus`), and degraded for a subject
+ * the state consumer judges working, but not as it should, while it is still reporting.
+ */
 function statusesOf(topology: Topology): StatusOf {
   const states = new Map<string, SubjectStatusInput>(topology.states.map(state => [state.subjectId, state]));
-  return subjectId => ownStatus(states.get(subjectId));
+  return subjectId => {
+    const state = states.get(subjectId);
+    if (state?.freshness === 'fresh' && state.health === 'degraded') return 'degraded';
+    return ownStatus(state);
+  };
 }
 
-/** The gateways each placed stream's exposure is delivered through on its way to the broadcast, nearest it first. */
-function chainOf(stream: TopologyStream, exposureId: string): string[] {
-  const byId = new Map(stream.exposures.map(exposure => [exposure.id, exposure]));
-  const gateways: string[] = [];
-  // Each exposure is published from the one upstream of it; a chain never loops, but a missing link ends it.
-  for (let exposure = byId.get(exposureId); exposure; exposure = byId.get(exposure.upstreamExposureId ?? '')) {
-    gateways.push(exposure.gatewayId);
-  }
-  return gateways;
+const SEVERITY = { unknown: 0, ok: 1, degraded: 2, affected: 3, failing: 4 } satisfies Record<SignalStatus, number>;
+
+/** The worst of `statuses`: unknown only when nothing is known, and when there are none. */
+function worstStatus(statuses: SignalStatus[]): SignalStatus {
+  return statuses.reduce<SignalStatus>((worst, each) => (SEVERITY[each] > SEVERITY[worst] ? each : worst), 'unknown');
 }
 
-/** What the broadcast places: the streams it reads, and the gateways each is delivered through. */
+/**
+ * A source's status from its streams' deliveries, as the state consumer judges a stream by its parts: nothing reports
+ * about a camera itself. A device no delivered stream comes from is as its own subject says, if anything does.
+ */
+function sourceStatusOf(topology: Topology, deviceId: string, statusOf: StatusOf): SignalStatus {
+  const exposures = topology.streams
+    .filter(stream => stream.sourceDeviceId === deviceId)
+    .flatMap(stream => stream.exposures.map(exposure => statusOf(exposureSubjectId(exposure.id))));
+  return exposures.length > 0 ? worstStatus(exposures) : statusOf(deviceSubjectId(deviceId));
+}
+
+/** What the broadcast places: the streams it reads, and the gateway it reads each at. */
 function placementsOf(topology: Topology) {
   const placed = new Set(topology.broadcast.placed);
   return topology.streams.flatMap(stream =>
     stream.exposures
       .filter(exposure => placed.has(exposure.id))
-      .map(exposure => ({ stream, gateways: chainOf(stream, exposure.id) }))
+      .map(exposure => ({ stream, gatewayId: exposure.gatewayId }))
   );
 }
 
@@ -76,7 +96,8 @@ function channelsOf(topology: Topology, broadcasts: SignalBroadcast[], statusOf:
     show.forwards.flatMap((forward): SignalChannel[] => {
       const channel = channels.get(forward.channelId);
       if (!channel) return [];
-      const own = statusOf(forwardSubjectId(forward.id));
+      // How the forward to it is sending, and whether the platform has it live.
+      const own = worstStatus([statusOf(forwardSubjectId(forward.id)), statusOf(channelSubjectId(channel.id))]);
       // Nothing reaches a channel whose broadcast is down.
       const status = broadcastStatus.get(show.id) === 'failing' ? 'affected' : own;
       return [
@@ -86,8 +107,8 @@ function channelsOf(topology: Topology, broadcasts: SignalBroadcast[], statusOf:
           handle: channel.kind === 'twitch' && channel.externalLogin ? `/${channel.externalLogin}` : channel.name,
           broadcast: show.id,
           status,
-          // Nothing measures how well a channel receives yet: full while it reports healthy, empty otherwise.
-          level: status === 'ok' ? 3 : 0,
+          // Nothing measures how well a channel receives yet: full while it reports healthy, one bar while degraded.
+          level: status === 'ok' ? 3 : status === 'degraded' ? 1 : 0,
           off: !forward.enabled
         }
       ];
@@ -115,29 +136,38 @@ interface Rails {
   routes: Record<string, string>;
 }
 
+/** The network a stream's source is on: none for a stream with no source, or from a device on no network. */
+function networkOf(stream: Placement['stream'], devices: Map<string, TopologyDevice>): string | null {
+  if (stream.sourceDeviceId === null) return null;
+  return devices.get(stream.sourceDeviceId)?.networkId ?? null;
+}
+
 /**
- * The gateways the broadcast is reached through, as rails: its own first, which everything is reached through unless
- * a route says otherwise; then any of the organisation's own gateways on a network, when a placed stream from a camera
- * there is delivered through it, as that network's route. A network's first such stream decides its route; a stream
- * from no network, or through no gateway on its network, keeps to the first rail.
+ * The internet-facing gateways the broadcast reads its streams at, as rails: a gateway on a network (an agent's
+ * MediaMTX, say) is how a stream leaves its site, not where the broadcast reads it, so it is never one. The built-in
+ * gateway comes first, and everything runs along it unless a route says otherwise; then any other gateway on the
+ * internet that a placed stream is read at, as the route of the network that stream's camera is on. A network's first
+ * such stream decides its route.
  */
 function railsOf(topology: Topology, devices: Map<string, TopologyDevice>, placements: Placement[]): Rails {
   const builtin = topology.gateways.find(gateway => gateway.id === BROADCAST_GATEWAY);
   const first: SignalGateway = { id: BROADCAST_GATEWAY, name: builtin?.name ?? 'conservation.tv', hosted: true };
+  const internet = new Map(
+    topology.gateways.filter(gateway => gateway.networkId === null).map(gateway => [gateway.id, gateway])
+  );
   const routes: Record<string, string> = {};
-  const onSite: SignalGateway[] = [];
-  for (const { stream, gateways } of placements) {
-    // Skip a stream from no network, or from one already routed; route the rest through the first gateway on their
-    // chain that sits on their network, if any, adding it as a rail the first time it is a route.
-    const network = stream.sourceDeviceId ? devices.get(stream.sourceDeviceId)?.networkId : null;
-    if (!network || routes[network] !== undefined) continue;
-    const gateway = topology.gateways.find(each => gateways.includes(each.id) && each.networkId === network);
-    if (!gateway) continue;
-    routes[network] = gateway.id;
-    if (!onSite.some(each => each.id === gateway.id))
-      onSite.push({ id: gateway.id, name: gateway.name, hosted: false });
+  const others: SignalGateway[] = [];
+  for (const { stream, gatewayId } of placements) {
+    // Read at the first rail, or somewhere not on the internet: nothing to add. Otherwise it is a rail of its own the
+    // first time any stream is read there, and the route of its camera's network unless that has one already.
+    const gateway = internet.get(gatewayId);
+    if (!gateway || gateway.id === first.id) continue;
+    if (!others.some(each => each.id === gateway.id))
+      others.push({ id: gateway.id, name: gateway.name, hosted: gateway.builtin });
+    const network = networkOf(stream, devices);
+    if (network && routes[network] === undefined) routes[network] = gateway.id;
   }
-  return { gateways: [first, ...onSite], routes };
+  return { gateways: [first, ...others], routes };
 }
 
 /** The kind of source a device that streams come from is, as the view draws it. */
@@ -163,7 +193,7 @@ export function signalSystemOf(topology: Topology): SignalSystem {
     name: device.name,
     device: network ? (networkAgents.get(network) ?? '') : device.kind,
     kind: sourceKindOf(device),
-    status: statusOf(deviceSubjectId(device.id)),
+    status: sourceStatusOf(topology, device.id, statusOf),
     feeds: feeding.has(device.id) ? everyShow : [],
     network
   });

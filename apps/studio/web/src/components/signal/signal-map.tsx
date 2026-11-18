@@ -19,22 +19,41 @@ import { drawing, item, quick, rail, spring } from '@/components/signal/signal-m
 // The signal path on one screen: columns of nodes side by side, the gateways as rails between them, and the links
 // drawn behind, measured from wherever the nodes rendered. Each is a part to compose.
 
-type AnchorRef = (element: HTMLElement | null) => void;
+type AnchorRef = (element: HTMLElement | null) => (() => void) | undefined;
 
-/** What has a place on the map, and a count that goes up as places come and go. */
+/**
+ * What has a place on the map, and a count that goes up as places come and go. One thing can be on the page twice for
+ * a moment: a stopped camera, shown while its group is shut, arrives among the open group's members as the shut one
+ * leaves. Its links go to whichever arrived last, and back to the other if that one goes first; each element takes
+ * away only its own place as it leaves, never one that has come since.
+ */
 function useAnchors() {
   const [anchors] = useState(() => new Map<string, HTMLElement>());
+  const [placed] = useState(() => new Map<string, HTMLElement[]>());
   const [refs] = useState(() => new Map<string, AnchorRef>());
   const [version, setVersion] = useState(0);
+  const settle = (id: string) => {
+    const latest = placed.get(id)?.at(-1);
+    if (anchors.get(id) === latest) return;
+    if (latest) anchors.set(id, latest);
+    else anchors.delete(id);
+    setVersion(count => count + 1);
+  };
   // One ref per id, kept, so a node re-rendering doesn't register again and have everything measured again.
   const anchor = (id: string): AnchorRef => {
     const existing = refs.get(id);
     if (existing) return existing;
     const ref: AnchorRef = element => {
-      if (anchors.get(id) === (element ?? undefined)) return;
-      if (element) anchors.set(id, element);
-      else anchors.delete(id);
-      setVersion(count => count + 1);
+      if (!element) return undefined;
+      placed.set(id, [...(placed.get(id) ?? []).filter(each => each !== element), element]);
+      settle(id);
+      // React calls this as this element leaves, in place of calling the ref with nothing.
+      return () => {
+        const rest = (placed.get(id) ?? []).filter(each => each !== element);
+        if (rest.length > 0) placed.set(id, rest);
+        else placed.delete(id);
+        settle(id);
+      };
     };
     refs.set(id, ref);
     return ref;

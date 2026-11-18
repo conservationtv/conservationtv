@@ -1,4 +1,4 @@
-import type { ComponentProps, FC, ReactNode } from 'react';
+import { use, type ComponentProps, type FC, type ReactNode } from 'react';
 import { useSelector, useStore } from '@xstate/store-react';
 import { Badge } from '@conservationtv/ui/components/badge';
 import { cn } from '@conservationtv/ui/lib/utils';
@@ -13,10 +13,11 @@ import {
 import { Swap } from '@/components/signal/signal-presence';
 import { signalStoreConfig } from '@/components/signal/signal-store';
 import type { SignalSystem } from '@/components/signal/signal-system';
+import { SignalThingsContext, type SignalThingLayer } from '@/components/signal/signal-things';
 import { focusOf, topologyOf } from '@/components/signal/signal-topology';
 
 // The signal view: an organisation's channels, broadcasts and sources, and how the signal runs between them. This is
-// its root and the page's furniture; the map, the stack and their parts go inside and read what they need from it.
+// its root and what goes around the map or the stack; they and their parts go inside and read what they need from it.
 // It only shows: anything a page lets people do to the system (editing, say) is a layer of its own, composed in.
 
 export interface SignalProps {
@@ -46,35 +47,22 @@ export const Signal: FC<SignalProps> = ({ system, defaultOpen = [], children }) 
   );
 };
 
-export interface SignalHeaderProps extends ComponentProps<'header'> {}
+export interface SignalThingsProps {
+  /** What a thing gets inside, given what it would get without this (signal-things.ts). */
+  props: SignalThingLayer;
+  children: ReactNode;
+}
 
-/** The page's header, kept in view: its title, and whatever controls the page has. */
-export const SignalHeader: FC<SignalHeaderProps> = ({ className, ...props }) => {
-  return (
-    <header
-      className={cn(
-        'sticky top-0 z-40 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-background/90 px-4 py-3 backdrop-blur lg:px-8',
-        className
-      )}
-      {...props}
-    />
-  );
+/**
+ * Composes behaviour onto every thing on the view inside it (a channel, a broadcast, a source), over whatever's
+ * composed outside it: what a press does, what a hover does. With none, a press picks.
+ */
+export const SignalThings: FC<SignalThingsProps> = ({ props, children }) => {
+  const outer = use(SignalThingsContext);
+  return <SignalThingsContext value={[...outer, props]}>{children}</SignalThingsContext>;
 };
 
-export interface SignalHeaderTextProps extends ComponentProps<'div'> {}
-
-/** The title and a line under it; it takes the header's whole width on a phone, pushing the controls below. */
-export const SignalHeaderText: FC<SignalHeaderTextProps> = ({ className, ...props }) => {
-  return <div className={cn('flex w-full min-w-0 flex-col sm:w-auto sm:flex-1', className)} {...props} />;
-};
-
-export interface SignalTitleProps extends ComponentProps<'h1'> {}
-
-export const SignalTitle: FC<SignalTitleProps> = ({ className, ...props }) => {
-  return <h1 className={cn('flex items-center gap-2 text-custom-15 font-semibold', className)} {...props} />;
-};
-
-/** How many things need looking at, beside the title; it swaps as that changes. */
+/** How many things need looking at, for beside a title; it swaps as that changes. */
 export const SignalAttention: FC = () => {
   const topology = useSignalTopology();
   const count = topology.attention;
@@ -89,16 +77,37 @@ export const SignalAttention: FC = () => {
 
 export interface SignalCanvasProps extends ComponentProps<'div'> {}
 
-/** Where the map or the stack goes. A press on the empty page lets go of the pick. */
+/**
+ * Where the map or the stack goes. A press on the empty page lets go of the pick. It is the container SignalWide and
+ * SignalNarrow measure, so what goes in it can choose by the room it has rather than by the window.
+ */
 export const SignalCanvas: FC<SignalCanvasProps> = ({ className, ...props }) => {
   const store = useSignalStore();
   return (
     <div
-      className={cn('flex-1 px-4 py-6 lg:px-8 lg:py-8', className)}
+      className={cn('@container/signal flex-1 px-4 py-6 lg:px-8 lg:py-8', className)}
       onClick={() => store.trigger.release()}
       {...props}
     />
   );
+};
+
+// What a canvas holds when it has room for the map, and when it doesn't: 53rem across, the room the map has in a page
+// of its own once the window is wide enough for it (useSignalLayout). Both stay drawn, one hidden, so moving between
+// them keeps what's open and picked; the map measures its links again as it's shown.
+
+export interface SignalWideProps extends ComponentProps<'div'> {}
+
+/** Shown while the canvas is wide enough for the map. */
+export const SignalWide: FC<SignalWideProps> = ({ className, ...props }) => {
+  return <div className={cn('@max-[53rem]/signal:hidden', className)} {...props} />;
+};
+
+export interface SignalNarrowProps extends ComponentProps<'div'> {}
+
+/** Shown while the canvas is too narrow for the map. */
+export const SignalNarrow: FC<SignalNarrowProps> = ({ className, ...props }) => {
+  return <div className={cn('@min-[53rem]/signal:hidden', className)} {...props} />;
 };
 
 export interface SignalHintProps {

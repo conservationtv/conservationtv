@@ -73,11 +73,11 @@ export interface SignalSubgroup {
   cameras: string[];
 }
 
-/** Where broadcasts are composed: a rail on the map, which the sources' links run along. */
+/** A gateway on the internet that broadcasts read their sources at: a rail on the map, which the sources' links run along. */
 export interface SignalGateway {
   id: string;
   name: string;
-  /** conservation.tv's own, in the cloud; otherwise one on site. */
+  /** conservation.tv's own, in the cloud; otherwise one of the organisation's own. */
   hosted: boolean;
 }
 

@@ -1,11 +1,10 @@
-import { use, type ComponentProps, type FC, type ReactElement } from 'react';
+import type { ComponentProps, FC, ReactElement } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
 import { StatusDot } from '@/components/common/status';
 import {
   SignalItemContext,
-  SignalStoreContext,
   useSignalAnchor,
   useSignalItem,
   useSignalStanding,
@@ -17,7 +16,8 @@ import { PRESSABLE, pressable } from '@/components/signal/signal-press';
 import type { SignalStatus } from '@/components/signal/signal-system';
 
 // One thing on the signal map, and the parts to compose inside it: its icon, its name, a line about it, its health.
-// Links attach to its edges, wherever it rendered.
+// Links attach to its edges, wherever it rendered. It's an element like any other: given an `onClick`, it's pressable
+// (what a thing on the view does is composed through <SignalThings>, and useSignalThing gives it its props).
 
 type NodeVariant = 'plain' | 'card' | 'pill';
 
@@ -29,10 +29,6 @@ export interface SignalNodeProps extends ComponentProps<'div'> {
   off?: boolean;
   /** A row of text; a raised card; or a pill, as the stream topology draws them. */
   variant?: NodeVariant;
-  /** Pressing it picks it: its whole path stays in full while everything else fades. Pressing it again lets go. */
-  pick?: boolean;
-  /** What a press does, in place of picking: opening the group it labels, say. */
-  onPress?: () => void;
 }
 
 const nodeVariants = {
@@ -79,35 +75,25 @@ function nodeClass({ variant, status, off, pressable: pressing, standing, classN
   );
 }
 
-/** What pressing the node does: what it was told to, or picking it; nothing, for a node that's only there to be read. */
-function useNodePress(id: string, pick: boolean, onPress: (() => void) | undefined) {
-  // Outside a <Signal> there's nothing to pick in.
-  const store = use(SignalStoreContext);
-  if (onPress) return onPress;
-  if (pick && store) return () => store.trigger.pick({ id });
-  return undefined;
-}
-
 /**
  * One thing on the map. Compose its icon, title, meta and health inside. It fades back when something else is picked
- * and it isn't on that thing's path; it gives a little under a press, if pressing picks it; and it comes in with its
- * siblings when it's one of a column's or an opened group's.
+ * and it isn't on that thing's path; it gives a little under a press, if it has one; and it comes in with its siblings
+ * when it's one of a column's or an opened group's.
  */
 export const SignalNode: FC<SignalNodeProps> = ({
   id,
   status = 'ok',
   off = false,
   variant = 'plain',
-  pick = false,
-  onPress,
+  onClick,
+  onKeyDown,
   className,
   ...props
 }) => {
   const anchor = useSignalAnchor(id);
   const standing = useSignalStanding(id);
   const isItem = useSignalItem();
-  const press = useNodePress(id, pick, onPress);
-  const pressing = press && pressable(press);
+  const pressing = pressable(onClick, onKeyDown);
   const node = (
     <SignalItemContext value={false}>
       <div
@@ -115,37 +101,38 @@ export const SignalNode: FC<SignalNodeProps> = ({
         data-status={status}
         data-variant={variant}
         data-off={off || undefined}
+        className={nodeClass({ variant, status, off, pressable: onClick !== undefined, standing, className })}
+        // Its own handlers are in `pressing`; what else it's given (a link's role, say) has the last word.
         {...pressing}
-        className={nodeClass({ variant, status, off, pressable: press !== undefined, standing, className })}
         {...props}
       />
     </SignalItemContext>
   );
   return (
-    <NodeBox pick={pick} isItem={isItem}>
+    <NodeBox pressable={onClick !== undefined} isItem={isItem}>
       {node}
     </NodeBox>
   );
 };
 
 interface NodeBoxProps {
-  pick: boolean;
+  pressable: boolean;
   isItem: boolean;
   children: ReactElement;
 }
 
 /**
  * What moves, around a node, so its own opacity stays free for fading back off a picked path: it gives under a press,
- * if pressing picks it; and one of a group's members slides to its new place when the order changes (something in the
+ * if it has one; and one of a group's members slides to its new place when the order changes (something in the
  * group has stopped, say). Nothing, for a node that does neither.
  */
-const NodeBox: FC<NodeBoxProps> = ({ pick, isItem, children }) => {
-  if (!pick && !isItem) return children;
+const NodeBox: FC<NodeBoxProps> = ({ pressable: pressing, isItem, children }) => {
+  if (!pressing && !isItem) return children;
   return (
     <motion.div
       variants={isItem ? item : undefined}
       layout={isItem ? 'position' : undefined}
-      whileTap={pick ? pressed : undefined}
+      whileTap={pressing ? pressed : undefined}
       transition={{ ...tap, layout: spring }}
     >
       {children}

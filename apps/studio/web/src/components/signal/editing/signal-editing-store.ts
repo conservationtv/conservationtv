@@ -2,6 +2,8 @@ import { createContext, use } from 'react';
 import { createStore, type StoreFromStoreConfig } from '@xstate/store';
 import { useSelector } from '@xstate/store-react';
 
+import type { SignalThing } from '@/components/signal/signal-things';
+
 // Editing the signal: a layer on top of the view, and none of the view's business. A page that wants it wraps its
 // view in <SignalEditing> and sets the editing parts where it wants them (signal-editing.tsx); the view's own parts
 // and its store know nothing of it. Without <SignalEditing> above them the editing parts do nothing and show nothing,
@@ -24,14 +26,11 @@ interface NewCameraTarget {
   network: string;
 }
 
-/** What can be edited, or added. */
+/** What can be edited, or added: anything on the view, the groups it's in, or something new. */
 export type SignalTarget =
-  | ExistingTarget<'channel'>
-  | ExistingTarget<'broadcast'>
+  | SignalThing
   | ExistingTarget<'network'>
   | ExistingTarget<'subgroup'>
-  | ExistingTarget<'camera'>
-  | ExistingTarget<'ingest'>
   | NewTarget<'add-channel'>
   | NewTarget<'add-broadcast'>
   | NewTarget<'add-source'>

@@ -2,17 +2,14 @@ import type { FC } from 'react';
 import { ArrowSquareInIcon, FolderSimpleIcon, NetworkIcon, NetworkXIcon } from '@phosphor-icons/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import {
-  SignalEditAction,
-  SignalEditChevron,
-  SignalEditTrigger,
-  SignalTierAdd
-} from '@/components/signal/editing/signal-editing';
+import { SignalEditAction, SignalEditChevron, SignalTierAdd } from '@/components/signal/editing/signal-editing';
 import { useSignalFocus, useSignalTopology } from '@/components/signal/signal-context';
 import {
   SignalGroup,
   SignalGroupCaret,
   SignalGroupContent,
+  SignalGroupMember,
+  SignalGroupMembers,
   SignalGroupShut,
   SignalGroupShutContent,
   SignalGroupTrigger
@@ -40,6 +37,7 @@ import {
   SignalTierTitle
 } from '@/components/signal/signal-stack';
 import type { SignalBroadcast, SignalChannel } from '@/components/signal/signal-system';
+import { useSignalThing } from '@/components/signal/signal-things';
 import {
   broadcastTrouble,
   channelTrouble,
@@ -51,7 +49,7 @@ import {
 
 // The signal as a quiet stack, for a screen too narrow for the map: a tier each for channels, broadcasts and
 // sources, a row a thing. A composition of the signal's parts, with editing's set among them (they do nothing unless
-// the page is editable).
+// the page is editable). What its things do is the page's (useSignalThing).
 
 /** How far in a group's members sit, and a subgroup's further. */
 const MEMBER = 'min-h-9 border-t border-border/60 py-1.5 text-custom-12';
@@ -63,8 +61,9 @@ interface ChannelProps {
 /** A channel's row: a second line only when something's wrong, and its bars (or, cut off, a dot) at the end. */
 const StackChannel: FC<ChannelProps> = ({ channel }) => {
   const trouble = channelTrouble(channel);
+  const thing = useSignalThing({ kind: 'channel', id: channel.id });
   return (
-    <SignalEditTrigger target={{ kind: 'channel', id: channel.id }} render={<SignalListItem id={channel.id} pick />}>
+    <SignalListItem id={channel.id} {...thing}>
       <SignalNodeIcon>
         <PlatformIcon platform={channel.platform} />
       </SignalNodeIcon>
@@ -83,7 +82,7 @@ const StackChannel: FC<ChannelProps> = ({ channel }) => {
           )}
         </SignalEditChevron>
       </SignalListTrail>
-    </SignalEditTrigger>
+    </SignalListItem>
   );
 };
 
@@ -97,11 +96,9 @@ const StackBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
   const trouble = broadcastTrouble(broadcast);
   const channels = system.channels.filter(channel => channel.broadcast === broadcast.id).length;
   const sources = groups.flatMap(group => group.sources).filter(source => source.feeds.includes(broadcast.id)).length;
+  const thing = useSignalThing({ kind: 'broadcast', id: broadcast.id });
   return (
-    <SignalEditTrigger
-      target={{ kind: 'broadcast', id: broadcast.id }}
-      render={<SignalListItem id={broadcast.id} pick />}
-    >
+    <SignalListItem id={broadcast.id} {...thing}>
       <SignalAspect width={broadcast.width} height={broadcast.height} />
       <SignalListText>
         {broadcast.name}
@@ -121,13 +118,13 @@ const StackBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
           <SignalHealth status={broadcast.status} />
         </SignalEditChevron>
       </SignalListTrail>
-    </SignalEditTrigger>
+    </SignalListItem>
   );
 };
 
 interface SourceProps {
   source: SourceView;
-  /** What editing it edits: a camera, or an ingest. */
+  /** What it is, to whatever's composed onto it: a camera, or an ingest. */
   kind: 'camera' | 'ingest';
   /** How far in it sits: under its network, or further in under its subgroup. */
   className: string;
@@ -135,11 +132,9 @@ interface SourceProps {
 
 /** A camera or an ingest, as a row under its group's. */
 const StackSource: FC<SourceProps> = ({ source, kind, className }) => {
+  const thing = useSignalThing({ kind, id: source.id });
   return (
-    <SignalEditTrigger
-      target={{ kind, id: source.id }}
-      render={<SignalListItem id={source.id} pick className={cn(MEMBER, className)} />}
-    >
+    <SignalListItem id={source.id} className={cn(MEMBER, className)} {...thing}>
       <SignalListIcon>
         <SourceIcon kind={source.kind} />
       </SignalListIcon>
@@ -154,7 +149,7 @@ const StackSource: FC<SourceProps> = ({ source, kind, className }) => {
           <SignalHealth status={source.seen} />
         </SignalEditChevron>
       </SignalListTrail>
-    </SignalEditTrigger>
+    </SignalListItem>
   );
 };
 
@@ -185,16 +180,13 @@ const StackSubgroup: FC<SubgroupProps> = ({ subgroup }) => {
           <SignalEditAction target={{ kind: 'subgroup', id: subgroup.id }} aria-label={`Edit ${subgroup.name}`} />
         </SignalListTrail>
       </SignalGroupTrigger>
-      <SignalGroupShutContent>
-        {subgroup.stopped.map(source => (
-          <StackSource key={source.id} source={source} kind="camera" className="pl-[4.25rem]" />
-        ))}
-      </SignalGroupShutContent>
-      <SignalGroupContent>
+      <SignalGroupMembers>
         {subgroup.sources.map(source => (
-          <StackSource key={source.id} source={source} kind="camera" className="pl-[4.25rem]" />
+          <SignalGroupMember key={source.id} kept={subgroup.stopped.some(each => each.id === source.id)}>
+            <StackSource source={source} kind="camera" className="pl-[4.25rem]" />
+          </SignalGroupMember>
         ))}
-      </SignalGroupContent>
+      </SignalGroupMembers>
     </SignalGroup>
   );
 };
@@ -226,20 +218,27 @@ const StackNetwork: FC<GroupProps> = ({ group }) => {
           <SignalEditAction target={{ kind: 'network', id: group.id }} aria-label={`Edit ${group.name}`} />
         </SignalListTrail>
       </SignalGroupTrigger>
-      {/* Shut, whatever has stopped is listed anyway, straight under the network, whichever subgroup it's in. */}
+      {/* Shut, whatever has stopped is listed anyway, straight under the network, whichever subgroup it's in: those in
+          one, here, until they open into it; the network's own stay where they are (they're kept members). */}
       <SignalGroupShutContent>
-        {group.stopped.map(source => (
-          <StackSource key={source.id} source={source} kind="camera" className="pl-10" />
-        ))}
+        {group.subgroups
+          .flatMap(subgroup => subgroup.stopped)
+          .map(source => (
+            <StackSource key={source.id} source={source} kind="camera" className="pl-10" />
+          ))}
       </SignalGroupShutContent>
       <SignalGroupContent>
         {group.subgroups.map(subgroup => (
           <StackSubgroup key={subgroup.id} subgroup={subgroup} />
         ))}
-        {group.ungrouped.map(source => (
-          <StackSource key={source.id} source={source} kind="camera" className="pl-10" />
-        ))}
       </SignalGroupContent>
+      <SignalGroupMembers>
+        {group.ungrouped.map(source => (
+          <SignalGroupMember key={source.id} kept={group.stopped.some(each => each.id === source.id)}>
+            <StackSource source={source} kind="camera" className="pl-10" />
+          </SignalGroupMember>
+        ))}
+      </SignalGroupMembers>
     </SignalGroup>
   );
 };

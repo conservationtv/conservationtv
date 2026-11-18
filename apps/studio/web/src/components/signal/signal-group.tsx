@@ -1,5 +1,5 @@
-import { Children, cloneElement, use, type FC, type ReactElement, type ReactNode } from 'react';
-import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
+import { Children, cloneElement, createContext, use, type FC, type ReactElement, type ReactNode } from 'react';
+import { AnimatePresence, motion, type HTMLMotionProps, type Variants } from 'motion/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
 import {
@@ -59,7 +59,7 @@ export const SignalGroup: FC<SignalGroupProps> = ({ id, open: fixed, className, 
 
 /** What a group's trigger gives whatever it renders: something for a press to do, and whether it's open. */
 interface SignalGroupTriggerTarget {
-  onPress?: () => void;
+  onClick?: () => void;
   'aria-expanded'?: boolean | 'true' | 'false';
 }
 
@@ -72,7 +72,7 @@ export interface SignalGroupTriggerProps {
 /** The group's label, pressed to open it and again to shut it. */
 export const SignalGroupTrigger: FC<SignalGroupTriggerProps> = ({ render, children }) => {
   const group = useSignalGroup();
-  return cloneElement(render, { onPress: group.toggle, 'aria-expanded': group.open }, children);
+  return cloneElement(render, { onClick: group.toggle, 'aria-expanded': group.open }, children);
 };
 
 /** The group's caret, turning as it opens. */
@@ -174,11 +174,75 @@ export const SignalGroupContent: FC<SignalGroupContentProps> = props => {
 };
 
 /**
- * Those of the group's members that are on show even while it's shut (whatever has stopped), there only while it is:
- * open, they're among the rest in its content. Put it before the SignalGroupContent, and give it nothing when there's
- * nothing to show.
+ * What's on show while the group is shut that has a place of its own once it's open, there only while it's shut: a
+ * network's stopped cameras that are in its subgroups, say, which open into their subgroups instead. Put it before the
+ * group's content, and give it nothing when there's nothing to show. A member of the group's own is no such thing:
+ * that is one SignalGroupMember, kept (so it never leaves the page, and its links never let go of it).
  */
 export const SignalGroupShutContent: FC<SignalGroupContentProps> = props => {
   const group = useSignalGroup();
   return <Members shown={!group.open && Children.count(props.children) > 0} {...props} />;
+};
+
+/** The room between one member and the next, and above the first, in pixels. */
+const MemberGapContext = createContext(0);
+
+const memberGaps = { plain: 0, raised: 6 } satisfies Record<NonNullable<SignalGroupContentProps['variant']>, number>;
+
+/**
+ * The group's own members, each coming and going by itself (SignalGroupMember), rather than all at once as its
+ * content does: so one that's on show either way (a stopped camera) stays put, the same element, while the rest open
+ * in around it. Put it after the group's content.
+ */
+export const SignalGroupMembers: FC<SignalGroupContentProps> = ({ variant = 'plain', className, children }) => {
+  return (
+    <MemberGapContext value={memberGaps[variant]}>
+      <SignalItemContext value>
+        <div className={cn('flex flex-col', className)}>{children}</div>
+      </SignalItemContext>
+    </MemberGapContext>
+  );
+};
+
+/** A member as it comes and goes: its height opens, and the room above it with it; clipped only while it moves. */
+const member: Variants = {
+  shut: { height: 0, opacity: 0, marginTop: 0, overflow: 'clip' },
+  open: (gap: number) => ({
+    height: 'auto',
+    opacity: 1,
+    marginTop: gap,
+    transition: spring,
+    transitionEnd: { overflow: 'visible' }
+  })
+};
+
+export interface SignalGroupMemberProps {
+  /** On show even while the group is shut: a camera that has stopped, say. */
+  kept?: boolean;
+  children: ReactNode;
+}
+
+/** One of a SignalGroupMembers: there while the group is open, or while it's kept. */
+export const SignalGroupMember: FC<SignalGroupMemberProps> = ({ kept = false, children }) => {
+  const group = useSignalGroup();
+  const gap = use(MemberGapContext);
+  return (
+    <AnimatePresence initial={false}>
+      {(group.open || kept) && (
+        <motion.div
+          key="member"
+          // Room for a raised card's shadow, while it's clipped.
+          className="-mx-2 px-2"
+          transition={spring}
+          custom={gap}
+          variants={member}
+          initial="shut"
+          animate="open"
+          exit="shut"
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 };

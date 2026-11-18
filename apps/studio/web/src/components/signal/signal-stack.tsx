@@ -1,13 +1,8 @@
-import { use, type ComponentProps, type FC, type ReactNode } from 'react';
+import type { ComponentProps, FC, ReactNode } from 'react';
 import { motion, type HTMLMotionProps } from 'motion/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import {
-  SignalItemContext,
-  SignalStoreContext,
-  useSignalItem,
-  useSignalStanding
-} from '@/components/signal/signal-context';
+import { SignalItemContext, useSignalItem, useSignalStanding } from '@/components/signal/signal-context';
 import { drawing, item } from '@/components/signal/signal-motion';
 import { PRESSABLE, pressable } from '@/components/signal/signal-press';
 
@@ -91,44 +86,32 @@ export const SignalList: FC<SignalListProps> = ({ className, ...props }) => {
 export interface SignalListItemProps extends ComponentProps<'div'> {
   /** What it is on the signal path: it's tinted when picked, and fades when something off its path is. */
   id?: string;
-  /** Pressing it picks it: its whole path stays in full while everything else fades. Pressing it again lets go. */
-  pick?: boolean;
-  /** What a press does, in place of picking: opening the group it heads, say. */
-  onPress?: () => void;
   children?: ReactNode;
-}
-
-/** What pressing the row does: what it was told to, or picking it; nothing, for a row that's only there to be read. */
-function useRowPress(id: string | undefined, pick: boolean, onPress: (() => void) | undefined) {
-  const store = use(SignalStoreContext);
-  if (onPress) return onPress;
-  if (pick && store && id !== undefined) return () => store.trigger.pick({ id });
-  return undefined;
 }
 
 /**
  * One row: an icon, a name (and, only when something needs saying, a second line), its health at the end. One of an
- * opened group's rows comes in with its siblings.
+ * opened group's rows comes in with its siblings. It's an element like any other: given an `onClick`, it's pressable.
  */
-export const SignalListItem: FC<SignalListItemProps> = ({ id, pick = false, onPress, className, ...props }) => {
+export const SignalListItem: FC<SignalListItemProps> = ({ id, onClick, onKeyDown, className, ...props }) => {
   const standing = useSignalStanding(id);
   const isItem = useSignalItem();
-  const press = useRowPress(id, pick, onPress);
-  const pressing = press && pressable(press);
+  const pressing = pressable(onClick, onKeyDown);
   const row = (
     <SignalItemContext value={false}>
       <div
         data-picked={standing.picked || undefined}
-        {...pressing}
         className={cn(
           'flex min-h-11 items-center gap-3 px-3 py-2 text-custom-13 [&>*]:transition-opacity [&>[aria-hidden]]:text-muted-foreground',
           standing.picked && '!bg-muted',
           // The row's contents fade, not the row, so the surface stays opaque over the hairlines behind it.
           standing.dimmed && '[&>*]:opacity-35',
           className,
-          press && PRESSABLE,
+          onClick && PRESSABLE,
           'transition-colors duration-200'
         )}
+        // Its own handlers are in `pressing`; what else it's given (a link's role, say) has the last word.
+        {...pressing}
         {...props}
       />
     </SignalItemContext>
