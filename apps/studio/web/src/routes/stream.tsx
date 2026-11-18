@@ -66,6 +66,7 @@ import { streamDetailOf, type Delivery, type StreamDetail } from '@/components/s
 import { DeleteStreamDialog, RenameStreamDialog, SourceSelect } from '@/components/streams/stream-dialogs';
 import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { StreamTrafficChart } from '@/components/streams/stream-traffic';
+import { isGoingOut } from '@/components/streams/topology';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate } from '@/lib/format';
@@ -238,7 +239,7 @@ const StreamTabs: FC<StreamTabsProps> = ({ detail, choices, cameras }) => {
           className="flex w-full max-w-3xl flex-col gap-2 self-center"
         >
           <CTVMoQPreview stream={detail.stream.id} />
-          {detail.liveness.status !== 'ok' && (
+          {!isGoingOut(detail.liveness.status) && (
             <p className="text-custom-12 text-muted-foreground">
               Nothing reports this stream as live, so the picture may stay dark.
             </p>
