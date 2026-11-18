@@ -422,10 +422,10 @@ stream, is `null`, and the studio rolls it up from its parts) forms the reporter
 
 1. `context`: what the subject is meant to be doing, from the topology, such as whether a forward is switched on.
 2. `evaluate`: a verdict and its findings, from the reporter's metrics, which it reads as it needs them through a
-   client scoped to the subject, the reporter and the newest report's time (`src/health/metrics.ts`: `latest` and
-   `over(seconds)`, an hour back at most). Usually the worst of a few checks (`allOf` of `share`, `floor` and
-   `ceiling` in `src/health/checks.ts`), each judging the worst series of its metric, such as an exposure's worst
-   rendition, and citing it.
+   client scoped to the subject, the reporter and the newest report's time (`src/health/metrics.ts`: `over(seconds)`,
+   an hour back at most, so each finding says what window it judged). Usually the worst of a few checks (`allOf` of
+   `share`, `floor` and `ceiling` in `src/health/checks.ts`), each judging the worst series of its metric, such as an
+   exposure's worst rendition, and citing it.
 3. `settle`: whether to take the verdict yet (`hysteresis`, by time: worse at once, better after a minute, unless the
    evaluator says otherwise), so a subject doesn't flap.
 

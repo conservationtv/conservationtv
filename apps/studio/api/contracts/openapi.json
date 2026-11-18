@@ -1574,17 +1574,7 @@
                             "type": "string"
                           },
                           "read": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "latest"
-                                ]
-                              },
-                              {
-                                "type": "number"
-                              }
-                            ]
+                            "type": "number"
                           },
                           "seriesIds": {
                             "type": "array",
@@ -29993,17 +29983,7 @@
                                 "type": "string"
                               },
                               "read": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "latest"
-                                    ]
-                                  },
-                                  {
-                                    "type": "number"
-                                  }
-                                ]
+                                "type": "number"
                               },
                               "seriesIds": {
                                 "type": "array",

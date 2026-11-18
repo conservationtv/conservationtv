@@ -1,5 +1,6 @@
 import type { MetricDefinition, MetricDimensions, MetricSummary } from '@conservationtv/reports';
-import { and, desc, eq, gt, lte, sql } from 'drizzle-orm';
+import { and, eq, gt, lte, sql } from 'drizzle-orm';
+import pLimit from 'p-limit';
 import { metricPoints, metricSeries } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import type { Consulted } from './health.ts';
@@ -32,8 +33,6 @@ export interface MetricScope {
 
 /** One reporter's metrics about one subject, as of the evaluation's time. Each read returns every matching series. */
 export interface SubjectMetrics {
-  /** Each series' newest point, from the last hour. */
-  latest(metric: MetricDefinition, dimensions?: MetricDimensions): Promise<Reading[]>;
   /**
    * Each series' points over the last `seconds`, summarised as one: the least and greatest values, the mean weighted
    * by samples, the last value and how many samples. A series with no points then is absent.
@@ -45,8 +44,8 @@ export interface SubjectMetrics {
 export function subjectMetrics(scope: MetricScope) {
   const asked = new Map<string, Promise<Reading[]>>();
   const consulted: Consulted[] = [];
-  /** The read under way, which the next waits on. */
-  let turn: Promise<unknown> = Promise.resolve();
+  /** One read at a time: a transaction is one connection. A failed read fails only the question it answers. */
+  const inTurn = pLimit(1);
 
   /** Read once per evaluation, and record what was read. */
   const remember = (
@@ -58,19 +57,15 @@ export function subjectMetrics(scope: MetricScope) {
     const key = JSON.stringify([metric.name, metric.unit, read, dimensions]);
     const known = asked.get(key);
     if (known !== undefined) return known;
-    const readings = turn.then(load).then(rows => {
+    const readings = inTurn(load).then(rows => {
       consulted.push({ metric: metric.name, read, seriesIds: rows.map(({ seriesId }) => seriesId) });
       return rows;
     });
-    // A failed read fails only the question it answers; the next still takes its turn.
-    turn = readings.catch(() => undefined);
     asked.set(key, readings);
     return readings;
   };
 
   const metrics: SubjectMetrics = {
-    latest: (metric, dimensions = {}) =>
-      remember(metric, 'latest', dimensions, () => latestPoints(scope, metric, dimensions)),
     over: (metric, seconds, dimensions = {}) => {
       if (seconds <= 0 || seconds > MAX_LOOKBACK_SECONDS)
         throw new Error(`An evaluation reads at most ${MAX_LOOKBACK_SECONDS} seconds back, not ${seconds}`);
@@ -98,27 +93,6 @@ function pointsOf(scope: MetricScope, metric: MetricDefinition, dimensions: Metr
 function secondsBefore(at: Date, seconds: number) {
   const time = at.getTime();
   return new Date(time - seconds * 1000);
-}
-
-async function latestPoints(scope: MetricScope, metric: MetricDefinition, dimensions: MetricDimensions) {
-  const db = useDB({ trusted: true });
-  const from = secondsBefore(scope.at, MAX_LOOKBACK_SECONDS);
-  const rows = await db
-    .selectDistinctOn([metricPoints.seriesId], {
-      seriesId: metricPoints.seriesId,
-      dimensions: metricSeries.dimensions,
-      observedAt: metricPoints.observedAt,
-      min: metricPoints.min,
-      max: metricPoints.max,
-      avg: metricPoints.avg,
-      last: metricPoints.last,
-      count: metricPoints.count
-    })
-    .from(metricPoints)
-    .innerJoin(metricSeries, eq(metricSeries.id, metricPoints.seriesId))
-    .where(pointsOf(scope, metric, dimensions, from))
-    .orderBy(metricPoints.seriesId, desc(metricPoints.observedAt));
-  return rows.map(readingOf);
 }
 
 async function summarisedPoints(

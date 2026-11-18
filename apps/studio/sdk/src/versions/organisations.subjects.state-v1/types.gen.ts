@@ -54,7 +54,7 @@ export type Subject = {
             }>;
             consulted: Array<{
                 metric: string;
-                read: 'latest' | number;
+                read: number;
                 seriesIds: Array<string>;
             }>;
             since: string;

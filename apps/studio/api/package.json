@@ -49,6 +49,7 @@
     "http-message-sig": "0.3.0",
     "httpbis-digest-headers": "2.0.0",
     "jose": "6.2.12",
+    "p-limit": "7.3.3",
     "pg": "catalog:",
     "react": "^19.3.0",
     "zod": "catalog:"

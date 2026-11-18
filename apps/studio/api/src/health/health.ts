@@ -5,6 +5,9 @@ import type { MetricDimensions } from '@conservationtv/reports';
 // doing its job). `unknown` is having nothing to judge by, which never outweighs a judgement. Whether a subject is
 // still reporting at all is its freshness, evaluated when read, not its health.
 
+/** The locale findings' summaries are written in: they are English sentences, so their numbers are too. */
+export const FINDINGS_LOCALE = 'en';
+
 export const HEALTHS = ['healthy', 'degraded', 'unhealthy', 'unknown'] as const;
 export type Health = (typeof HEALTHS)[number];
 
@@ -42,8 +45,8 @@ export interface Finding {
 /** A metric the evaluation read: what an opinion was formed from, whatever its findings cite. */
 export interface Consulted {
   metric: string;
-  /** `latest`, or the seconds a summary was taken `over`. */
-  read: 'latest' | number;
+  /** The seconds back it was read `over`. */
+  read: number;
   seriesIds: string[];
 }
 

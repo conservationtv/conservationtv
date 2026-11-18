@@ -1,6 +1,13 @@
-import type { MetricDefinition, MetricDimensions, MetricSummary } from '@conservationtv/reports';
+import {
+  formatMetric,
+  formatSeconds,
+  formatShare,
+  type MetricDefinition,
+  type MetricDimensions,
+  type MetricSummary
+} from '@conservationtv/reports';
 import type { Check } from './evaluator.ts';
-import type { Evidence, Finding, Health } from './health.ts';
+import { type Evidence, FINDINGS_LOCALE, type Finding, type Health } from './health.ts';
 import type { Reading } from './metrics.ts';
 
 // Checks evaluators are made of (src/health/evaluators.ts): each reads one metric over a window and judges it against
@@ -35,7 +42,7 @@ export function share(metric: MetricDefinition, options: ShareOptions): Check<un
     if (worst === undefined) return nothingIn(metric, over);
     const value = worst.summary.avg;
     const health = below(value, unhealthyBelow, degradedBelow);
-    const summary = `${metric.label} ${percent(value)} of the last ${duration(over)}`;
+    const summary = `${metric.label} ${formatShare(value, FINDINGS_LOCALE)} of the last ${period(over)}`;
     return { check: metric.name, health, summary, evidence: [evidenceOf(worst, value)] };
   };
 }
@@ -99,7 +106,7 @@ export function nothingIn(metric: MetricDefinition, over: number): Finding {
   return {
     check: metric.name,
     health: 'unknown',
-    summary: `${metric.label}: nothing reported in the last ${duration(over)}`,
+    summary: `${metric.label}: nothing reported in the last ${period(over)}`,
     evidence: []
   };
 }
@@ -134,37 +141,13 @@ function above(value: number, unhealthyAbove: number | undefined, degradedAbove:
   return 'healthy';
 }
 
-/** `Ingest bitrate 2.4 Mbps (mean of the last 2 min)`. */
+/** `Ingest bitrate 2.4 Mb/s (mean of the last 2 min)`. */
 function described(metric: MetricDefinition, of: Statistic, value: number, over: number) {
-  const formatted = formatValue(value, metric.unit);
-  return `${metric.label} ${formatted} (${STATISTIC_WORDS[of]} of the last ${duration(over)})`;
+  const formatted = formatMetric(value, metric.unit, FINDINGS_LOCALE);
+  return `${metric.label} ${formatted} (${STATISTIC_WORDS[of]} of the last ${period(over)})`;
 }
 
-/** A value in its unit, for people. */
-export function formatValue(value: number, unit: string): string {
-  if (unit === 'boolean') return percent(value);
-  if (unit === 'percent') return `${round(value)}%`;
-  if (unit === 'ratio') return round(value, 2);
-  if (unit === 'bits/s') {
-    if (value >= 1_000_000) return `${round(value / 1_000_000, 1)} Mbps`;
-    if (value >= 1_000) return `${round(value / 1_000)} kbps`;
-    return `${round(value)} bps`;
-  }
-  return `${round(value, 1)} ${unit}`;
-}
-
-export function percent(value: number): string {
-  return `${round(value * 100)}%`;
-}
-
-/** Seconds, as `2 min` or `45 s`. */
-export function duration(seconds: number): string {
-  if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60} min`;
-  return `${seconds} s`;
-}
-
-function round(value: number, places = 0): string {
-  const factor = 10 ** places;
-  const rounded = Math.round(value * factor) / factor;
-  return String(rounded);
+/** A window of seconds, as findings write it: `2 min`. */
+export function period(seconds: number): string {
+  return formatSeconds(seconds, FINDINGS_LOCALE);
 }

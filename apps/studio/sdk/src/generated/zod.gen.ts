@@ -405,10 +405,7 @@ export const SubjectSchema = z.object({
             })),
             consulted: z.array(z.object({
                 metric: z.string(),
-                read: z.union([
-                    z.enum(['latest']),
-                    z.number()
-                ]),
+                read: z.number(),
                 seriesIds: z.array(z.string())
             })),
             since: z.string(),

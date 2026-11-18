@@ -1,6 +1,7 @@
 import type { ComponentProps, FC } from 'react';
 import { z } from 'zod';
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
+import { formatBitrate } from '@conservationtv/reports';
 import {
   ChartContainer,
   ChartTooltip,
@@ -183,12 +184,10 @@ function tidyCeiling(value: number): number {
   return tidy * magnitude;
 }
 
-/** A scale label: bits a second in the largest unit that keeps it whole or a single decimal. */
+/** A scale label: bits a second, as the tooltip writes them, but a bare zero at the foot. */
 function formatBitrateTick(bits: number): string {
   if (bits === 0) return '0';
-  if (bits >= 1e6) return `${Number((bits / 1e6).toFixed(1))} Mb/s`;
-  if (bits >= 1e3) return `${Math.round(bits / 1e3)} kb/s`;
-  return `${Math.round(bits)} b/s`;
+  return formatBitrate(bits);
 }
 
 /** The row under the tooltip, as Recharts hands it back untyped. */
@@ -198,11 +197,4 @@ type HoveredRow = z.output<typeof HoveredRowSchema>;
 function formatTime(row: HoveredRow | undefined): string {
   const parsed = HoveredRowSchema.safeParse(row);
   return parsed.success ? timeFormat.format(parsed.data.at) : '';
-}
-
-/** Bits per second, in the largest unit that keeps it above one. */
-function formatBitrate(bits: number): string {
-  if (bits >= 1e6) return `${(bits / 1e6).toFixed(1)} Mb/s`;
-  if (bits >= 1e3) return `${Math.round(bits / 1e3)} kb/s`;
-  return `${Math.round(bits)} b/s`;
 }

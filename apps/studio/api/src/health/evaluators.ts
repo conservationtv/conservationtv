@@ -1,5 +1,6 @@
 import {
   channelMetrics,
+  formatShare,
   forwardMetrics,
   machineMetrics,
   pathMetrics,
@@ -13,7 +14,7 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { showForwards, shows } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
-import { ceiling, duration, evidenceOf, floor, nothingIn, percent, share, worstOf } from './checks.ts';
+import { ceiling, evidenceOf, floor, nothingIn, period, share, worstOf } from './checks.ts';
 import {
   allOf,
   type Check,
@@ -23,7 +24,7 @@ import {
   type Subject,
   verdictOf
 } from './evaluator.ts';
-import type { Finding, Health } from './health.ts';
+import { FINDINGS_LOCALE, type Finding, type Health } from './health.ts';
 
 // The state consumer's opinion of each kind of subject (src/health/consumer.ts): one evaluator per kind that is
 // reported about, or `null` for one that isn't judged from its own reports. A stream, an agent or a network is judged
@@ -48,7 +49,7 @@ interface FreeThresholds {
   degradedBelow: number;
 }
 
-/** The free share of a capacity, from two metrics' newest points: free memory of memory, free disk of disk. */
+/** The free share of a capacity, from two metrics' last values in the window: free memory of memory, free disk of disk. */
 function freeShare(
   label: string,
   free: MetricDefinition,
@@ -56,8 +57,9 @@ function freeShare(
   { unhealthyBelow, degradedBelow }: FreeThresholds
 ): Check<unknown> {
   return async ({ metrics }) => {
-    // Nothing to judge without both, or a capacity of nothing; otherwise the least free of the greatest capacity.
-    const [frees, totals] = await Promise.all([metrics.latest(free), metrics.latest(total)]);
+    // Nothing to judge without both in the window, or a capacity of nothing; otherwise the least free of the greatest
+    // capacity, as each was last reported.
+    const [frees, totals] = await Promise.all([metrics.over(free, WINDOW), metrics.over(total, WINDOW)]);
     const worstFree = worstOf(frees, 'last', 'least');
     const worstTotal = worstOf(totals, 'last', 'greatest');
     if (worstFree === undefined || worstTotal === undefined || worstTotal.summary.last <= 0)
@@ -67,7 +69,7 @@ function freeShare(
     return {
       check: free.name,
       health,
-      summary: `${label} ${percent(value)} free`,
+      summary: `${label} ${formatShare(value, FINDINGS_LOCALE)} free`,
       evidence: [evidenceOf(worstFree, value)]
     };
   };
@@ -154,7 +156,7 @@ const program = defineEvaluator({
       findings.push({
         check: programMetrics.fallback.name,
         health: 'degraded',
-        summary: `On the offline segment ${percent(value)} of the last ${duration(WINDOW)}`,
+        summary: `On the offline segment ${formatShare(value, FINDINGS_LOCALE)} of the last ${period(WINDOW)}`,
         evidence: [evidenceOf(mostlyOffline, value)]
       });
       // Wholly on the offline segment: OBS isn't publishing, so there is nothing more of it to judge.

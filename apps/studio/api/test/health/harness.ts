@@ -1,7 +1,7 @@
 import type { MetricDefinition, MetricDimensions, MetricSummary } from '@conservationtv/reports';
 import { type Evaluator, formOpinion, type Opinion, type Subject } from '../../src/health/evaluator.ts';
 import type { Consulted, Finding } from '../../src/health/health.ts';
-import { MAX_LOOKBACK_SECONDS, type Reading, type SubjectMetrics } from '../../src/health/metrics.ts';
+import type { Reading, SubjectMetrics } from '../../src/health/metrics.ts';
 
 // A harness for judging an evaluator on its own, as the state consumer would, without a database or the topology:
 // a reporter that reports about one subject minute by minute, as agents submit summaries, and after each minute's
@@ -127,19 +127,18 @@ class MetricStore {
   /** A `SubjectMetrics` as of `at`, and what it was asked. */
   as(at: Date) {
     const reads: Consulted[] = [];
-    const read = (metric: MetricDefinition, kind: Consulted['read'], dimensions: MetricDimensions, seconds: number) => {
+    const read = (metric: MetricDefinition, dimensions: MetricDimensions, seconds: number) => {
       const from = at.getTime() - seconds * 1000;
       const readings = this.matching(metric, dimensions).flatMap(series => {
         const points = series.points.filter(({ observedAt }) => observedAt.getTime() > from && observedAt <= at);
-        const reading = kind === 'latest' ? newestOf(series, points) : summarised(series, points);
+        const reading = summarised(series, points);
         return reading === undefined ? [] : [reading];
       });
-      reads.push({ metric: metric.name, read: kind, seriesIds: readings.map(({ seriesId }) => seriesId) });
+      reads.push({ metric: metric.name, read: seconds, seriesIds: readings.map(({ seriesId }) => seriesId) });
       return readings;
     };
     const metrics: SubjectMetrics = {
-      latest: async (metric, dimensions = {}) => read(metric, 'latest', dimensions, MAX_LOOKBACK_SECONDS),
-      over: async (metric, seconds, dimensions = {}) => read(metric, seconds, dimensions, seconds)
+      over: async (metric, seconds, dimensions = {}) => read(metric, dimensions, seconds)
     };
     return { metrics, reads };
   }
@@ -153,17 +152,6 @@ class MetricStore {
         wanted.every(([key, value]) => series.dimensions[key] === value)
     );
   }
-}
-
-function newestOf(series: StoredSeries, points: StoredPoint[]): Reading | undefined {
-  const newest = points.at(-1);
-  if (newest === undefined) return undefined;
-  return {
-    seriesId: series.seriesId,
-    dimensions: series.dimensions,
-    observedAt: newest.observedAt,
-    summary: newest.summary
-  };
 }
 
 function summarised(series: StoredSeries, points: StoredPoint[]): Reading | undefined {
