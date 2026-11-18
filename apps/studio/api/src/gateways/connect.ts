@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { exposures, gateways, showOutputs, showPreviews } from '../db/schema.ts';
+import { exposures, gateways, outputDevices, outputPreviews } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { transaction, trustedTransaction, useDB } from '../db/transaction.ts';
 import { useDevice } from '../middleware/device.ts';
@@ -13,16 +13,17 @@ import type {
   StatsConnection
 } from './provider.ts';
 import { getOrganisation } from '../services/organisations.ts';
-import { selectOutputShow } from '../services/shows.ts';
+import { selectDeviceOutput } from '../services/outputs.ts';
 import { useEnvironment } from '../env/env.ts';
 
-// Who may connect to an exposure or a show's preview, and which provider gives them its connection details: the same
+// Who may connect to an exposure or an output's preview, and which provider gives them its connection details: the same
 // gateway providers for both, each a delivery at its gateway. Members read, signed in. Devices connect for what they
 // publish: a device publishes the exposures it is the pinned publisher of (a browser publishing directly is one), and
 // reads the upstreams of those. Nothing else is published: exposures without a pinned publisher wait for the
-// configuration builders to choose one. A show's output (src/db/schemas/shows.ts) also reads what its organisation's
-// broadcast currently places, as its object says (src/shows/host.tsx), to play it in OBS, and publishes the show's
-// previews. A preview offers only the `default` rendition: the program is one encoding.
+// configuration builders to choose one. An output's agent (src/db/schemas/outputs.ts) also reads, to play in OBS, what
+// the show it follows currently places, as the show's object says (src/shows/host.tsx), or, under `external` control,
+// any of its organisation's exposures; and publishes the output's previews. A preview offers only the `default`
+// rendition: the programme is one encoding.
 
 /** An exposure, by where its connections are made: `organisations/{organisationId}/streams/{streamId}/exposures/{exposureId}`. */
 export interface ExposureLocation {
@@ -31,10 +32,10 @@ export interface ExposureLocation {
   exposureId: string;
 }
 
-/** A show's preview, by where its connections are made: `organisations/{organisationId}/shows/{showId}/previews/{previewId}`. */
+/** An output's preview, by where its connections are made: `organisations/{organisationId}/outputs/{outputId}/previews/{previewId}`. */
 export interface PreviewLocation {
   organisationId: string;
-  showId: string;
+  outputId: string;
   previewId: string;
 }
 
@@ -66,18 +67,18 @@ async function selectExposure(location: ExposureLocation) {
 }
 type VisibleExposure = NonNullable<Awaited<ReturnType<typeof selectExposure>>>;
 
-/** The preview, with its show's output device (null for none), if it is visible to the transaction. */
+/** The preview, with its output's device (null for none), if it is visible to the transaction. */
 async function selectPreview(location: PreviewLocation) {
   const db = useDB();
   const [preview] = await db
-    .select({ id: showPreviews.id, gatewayId: showPreviews.gatewayId, outputDeviceId: showOutputs.deviceId })
-    .from(showPreviews)
-    .leftJoin(showOutputs, eq(showOutputs.showId, showPreviews.showId))
+    .select({ id: outputPreviews.id, gatewayId: outputPreviews.gatewayId, outputDeviceId: outputDevices.deviceId })
+    .from(outputPreviews)
+    .leftJoin(outputDevices, eq(outputDevices.outputId, outputPreviews.outputId))
     .where(
       and(
-        eq(showPreviews.organisationId, location.organisationId),
-        eq(showPreviews.showId, location.showId),
-        eq(showPreviews.id, location.previewId)
+        eq(outputPreviews.organisationId, location.organisationId),
+        eq(outputPreviews.outputId, location.outputId),
+        eq(outputPreviews.id, location.previewId)
       )
     );
   return preview;
@@ -113,21 +114,24 @@ async function publishesFrom(deviceId: string, location: ExposureLocation) {
   return downstream !== undefined;
 }
 
-/** Whether the device may read the exposure: an upstream of one it publishes, or one its show places. */
+/** Whether the device may read the exposure: an upstream of one it publishes, or one its output plays. */
 async function reads(deviceId: string, location: ExposureLocation) {
   if (await publishesFrom(deviceId, location)) return true;
-  return showPlaces(deviceId, location);
+  return outputReads(deviceId, location);
 }
 
 /**
- * Whether the device is the output of one of the exposure's organisation's shows, and the show places it. Every show
- * follows its organisation's one broadcast for now, keyed by the organisation.
+ * Whether the device runs one of the exposure's organisation's outputs, and that output may play it: under `external`
+ * control any of the organisation's exposures, as whatever drives its OBS chooses; under `show` control, what the show
+ * it follows places, and nothing while it follows none.
  */
-async function showPlaces(deviceId: string, location: ExposureLocation) {
-  const output = await selectOutputShow(deviceId);
+async function outputReads(deviceId: string, location: ExposureLocation) {
+  const output = await selectDeviceOutput(deviceId);
   if (output?.organisationId !== location.organisationId) return false;
+  if (output.control === 'external') return true;
+  if (output.showId === null) return false;
   const environment = useEnvironment();
-  const broadcast = environment.broadcasts.get(output.organisationId);
+  const broadcast = environment.broadcasts.get(output.showId);
   return broadcast.places(location.exposureId);
 }
 
@@ -181,7 +185,7 @@ async function callerConnection(location: ExposureLocation, action: ConnectionAc
 
 /**
  * What the caller may connect to of a preview. A member decides in their request session, and only reads. A device is
- * decided by trusted code, and only publishes, and only the output of the preview's show.
+ * decided by trusted code, and only publishes, and only the agent the preview's output runs on.
  */
 async function callerPreviewConnection(location: PreviewLocation, action: ConnectionAction) {
   const caller = usePrincipal();
@@ -217,14 +221,13 @@ export async function connectExposure(location: ExposureLocation, ask: Connectio
   return connectTarget(target, ask);
 }
 
-/** Connect the caller to a show's preview, as `connectTarget` does. */
 /**
  * How a preview at a MediaMTX gateway is read: by HLS alone. OBS encodes the programme with B-frames, which WebRTC
  * refuses, and HLS is what readers of a preview are pointed at; its publisher pushes by RTMP, which stays open.
  */
 const MEDIAMTX_PREVIEW_READ_PROTOCOLS: ReadonlySet<string> = new Set(['hls']);
 
-/** Where the caller reads or publishes a show's preview: `unsupported_protocol` to read a MediaMTX one but by HLS. */
+/** Where the caller reads or publishes an output's preview: `unsupported_protocol` to read a MediaMTX one but by HLS. */
 export async function connectPreview(location: PreviewLocation, ask: ConnectionAsk): Promise<ConnectionDetails> {
   const target = await callerPreviewConnection(location, ask.action);
   const mediamtx = target.gateway.kind === 'mediamtx';

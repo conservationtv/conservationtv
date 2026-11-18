@@ -15,9 +15,16 @@ export const RenditionSchema = z.enum([
 ]);
 
 export const TopologySchema = z.object({
-    broadcast: z.object({
-        placed: z.array(z.string())
-    }),
+    shows: z.array(z.object({
+        placed: z.array(z.string()),
+        name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
+        outputs: z.array(z.object({
+            name: z.string(),
+            id: z.string()
+        }))
+    })),
     networks: z.array(z.object({
         name: z.string(),
         id: z.string(),
@@ -87,16 +94,18 @@ export const TopologySchema = z.object({
             rendition: RenditionSchema
         }))
     })),
-    shows: z.array(z.object({
+    outputs: z.array(z.object({
         name: z.string(),
         id: z.string(),
         createdAt: z.string(),
+        control: z.enum(['external', 'show']),
+        showId: z.string().nullable(),
         width: z.number(),
         height: z.number(),
         fps: z.number(),
         bitrateKbps: z.number(),
         keyframeSeconds: z.number(),
-        output: z.object({
+        device: z.object({
             createdAt: z.string(),
             deviceId: z.string()
         }).nullable(),

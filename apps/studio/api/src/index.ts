@@ -9,8 +9,9 @@ export default {
       admin: env.HYPERDRIVE_ADMIN.connectionString,
       app: env.HYPERDRIVE_APP.connectionString,
       cache: kvCache(env.CACHE),
-      // The Worker's own ShowHost export, through its loopback binding: one object per organisation, named by its ID.
-      broadcasts: { get: organisationId => ctx.exports.ShowHost.getByName(organisationId) },
+      // The Worker's own ShowHost export, through its loopback binding: one object per show, named by its ID. A show made
+      // before shows were their own has its organisation's ID, which its object was named by.
+      broadcasts: { get: showId => ctx.exports.ShowHost.getByName(showId) },
       background: task => ctx.waitUntil(task),
       assets: env.ASSETS
     });

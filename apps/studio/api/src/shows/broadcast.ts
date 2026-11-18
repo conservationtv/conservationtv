@@ -23,31 +23,31 @@ export interface ShowBundle {
   frameBuild?: string;
 }
 
-/** An organisation's broadcast, as request handling reaches it: its object (src/shows/host.tsx), by RPC. */
+/** A show, as request handling reaches it: its object (src/shows/host.tsx), by RPC. */
 export interface Broadcast {
-  /** Set what the broadcast is composed from: compose it, and send it to everyone following it. */
+  /** Set what the show is composed from: compose it, and send it to everyone following it. */
   setComposition(presentation: Presentation): Promise<void>;
-  /** Whether the broadcast's composition places the exposure: what its output may read. */
+  /** Whether the show's composition places the exposure: what the outputs following it may read. */
   places(exposureId: string): Promise<boolean>;
-  /** The exposures the broadcast's composition places, in its order: none before it is composed. */
+  /** The exposures the show's composition places, in its order: none before it is composed. */
   placed(): Promise<string[]>;
   /**
-   * Hand a WebSocket upgrade to the broadcast, to follow it, or a frame page's to follow its source
+   * Hand a WebSocket upgrade to the show, to follow it, or a frame page's to follow its source
    * (`…/stream?source=`): 404 until it has been composed.
    */
   fetch(request: Request): Promise<Response>;
 }
 
-/** Every organisation's broadcast, by the organisation's ID. */
+/** Every show's object, by the show's ID. */
 export interface Broadcasts {
-  get(organisationId: string): Broadcast;
+  get(showId: string): Broadcast;
 }
 
 /** The built-in gateway readers reach by MoQ (src/gateways/conservationtv.ts): the only one a broadcast can watch. */
 const MOQ_GATEWAY: BuiltinGatewayId = 'conservationtv';
 
 /**
- * A composition for the organisation's broadcast, from its streams as the caller sees them: those delivered to
+ * A composition for one of the organisation's shows, from its streams as the caller sees them: those delivered to
  * conservation.tv, each at its first exposure there, in a random order, as many as there are slots, maybe none.
  * Random only while it is set by a temporary button; choosing cameras is what a show's controls will do.
  */
@@ -75,12 +75,12 @@ export const SHOW_BUNDLE_PATH = '/show/';
 
 /**
  * Where what the broadcast's targets fetch is served, all by this API: the bundle's assets and frame page, and the
- * stream a frame page follows (narrowed to its own source), at the organisation's broadcast. The stream is a WebSocket
- * (`wss:`, or `ws:` for a local API on `http:`), which is how a frame page knows to follow it by one.
+ * stream a frame page follows (narrowed to its own source), at the show's. The stream is a WebSocket (`wss:`, or `ws:`
+ * for a local API on `http:`), which is how a frame page knows to follow it by one.
  */
-export function broadcastServe(organisationId: string, apiUrl: string): Serve {
+export function broadcastServe(organisationId: string, showId: string, apiUrl: string): Serve {
   const bundle = new URL(SHOW_BUNDLE_PATH, apiUrl);
-  const stream = new URL(`/organisations/${organisationId}/show/stream`, apiUrl);
+  const stream = new URL(`/organisations/${organisationId}/shows/${showId}/stream`, apiUrl);
   stream.protocol = stream.protocol === 'https:' ? 'wss:' : 'ws:';
   return {
     assets: new URL('assets/', bundle).href,

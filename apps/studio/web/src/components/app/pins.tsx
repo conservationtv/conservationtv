@@ -6,6 +6,7 @@ import {
   MonitorPlayIcon,
   NetworkIcon,
   PushPinSimpleIcon,
+  ScreencastIcon,
   VideoCameraIcon,
   VideoIcon
 } from '@phosphor-icons/react';
@@ -19,6 +20,7 @@ import { pinListQueryOptions, useTogglePin } from '@/queries/this-device';
 const kindIcons = {
   stream: <VideoIcon aria-hidden="true" />,
   show: <MonitorPlayIcon aria-hidden="true" />,
+  output: <ScreencastIcon aria-hidden="true" />,
   camera: <VideoCameraIcon aria-hidden="true" />,
   agent: <HardDrivesIcon aria-hidden="true" />,
   network: <NetworkIcon aria-hidden="true" />,

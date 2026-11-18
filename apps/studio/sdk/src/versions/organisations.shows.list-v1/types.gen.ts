@@ -14,33 +14,9 @@ export type Show = {
         name: string;
         id: string;
         createdAt: string;
-        width: number;
-        height: number;
-        fps: number;
-        bitrateKbps: number;
-        keyframeSeconds: number;
-        output: {
-            createdAt: string;
-            deviceId: string;
-        } | null;
-        recorders: Array<{
-            params: {
-                [key: string]: unknown;
-            };
+        outputs: Array<{
+            name: string;
             id: string;
-            createdAt: string;
-            kind: 'obs';
-        }>;
-        forwards: Array<{
-            id: string;
-            createdAt: string;
-            enabled: boolean;
-            channelId: string;
-        }>;
-        previews: Array<{
-            id: string;
-            createdAt: string;
-            gatewayId: string;
         }>;
     }>;
 };
@@ -80,7 +56,7 @@ export type GetOrganisationsByIdShowsError = GetOrganisationsByIdShowsErrors[key
 
 export type GetOrganisationsByIdShowsResponses = {
     /**
-     * The shows, oldest first, each with its forwards, previews and recorders, oldest first
+     * The shows, oldest first
      */
     200: Show;
 };

@@ -46,7 +46,8 @@ export const relations = defineRelations(schema, r => ({
     browsers: r.many.browsers({ from: r.organisations.id, to: r.browsers.organisationId }),
     gateways: r.many.gateways({ from: r.organisations.id, to: r.gateways.organisationId }),
     streams: r.many.streams({ from: r.organisations.id, to: r.streams.organisationId }),
-    shows: r.many.shows({ from: r.organisations.id, to: r.shows.organisationId })
+    shows: r.many.shows({ from: r.organisations.id, to: r.shows.organisationId }),
+    outputs: r.many.outputs({ from: r.organisations.id, to: r.outputs.organisationId })
   },
   organisationMemberships: {
     organisation: r.one.organisations({ from: r.organisationMemberships.organisationId, to: r.organisations.id }),
@@ -150,27 +151,33 @@ export const relations = defineRelations(schema, r => ({
     stream: r.one.streams({ from: r.recorders.streamId, to: r.streams.id }),
     exposure: r.one.exposures({ from: r.recorders.exposureId, to: r.exposures.id })
   },
-  // A show going out, and each hop of its way out.
+  // A show, and the outputs that follow it.
   shows: {
     organisation: r.one.organisations({ from: r.shows.organisationId, to: r.organisations.id }),
-    output: r.one.showOutputs({ from: r.shows.id, to: r.showOutputs.showId }),
-    forwards: r.many.showForwards({ from: r.shows.id, to: r.showForwards.showId }),
-    previews: r.many.showPreviews({ from: r.shows.id, to: r.showPreviews.showId }),
-    recorders: r.many.showRecorders({ from: r.shows.id, to: r.showRecorders.showId })
+    outputs: r.many.outputs({ from: r.shows.id, to: r.outputs.showId })
   },
-  showOutputs: {
-    show: r.one.shows({ from: r.showOutputs.showId, to: r.shows.id }),
-    device: r.one.devices({ from: r.showOutputs.deviceId, to: r.devices.id })
+  // Something going out, and each hop of its way out.
+  outputs: {
+    organisation: r.one.organisations({ from: r.outputs.organisationId, to: r.organisations.id }),
+    show: r.one.shows({ from: r.outputs.showId, to: r.shows.id }),
+    device: r.one.outputDevices({ from: r.outputs.id, to: r.outputDevices.outputId }),
+    forwards: r.many.outputForwards({ from: r.outputs.id, to: r.outputForwards.outputId }),
+    previews: r.many.outputPreviews({ from: r.outputs.id, to: r.outputPreviews.outputId }),
+    recorders: r.many.outputRecorders({ from: r.outputs.id, to: r.outputRecorders.outputId })
   },
-  showForwards: {
-    show: r.one.shows({ from: r.showForwards.showId, to: r.shows.id }),
-    channel: r.one.channels({ from: r.showForwards.channelId, to: r.channels.id })
+  outputDevices: {
+    output: r.one.outputs({ from: r.outputDevices.outputId, to: r.outputs.id }),
+    device: r.one.devices({ from: r.outputDevices.deviceId, to: r.devices.id })
   },
-  showPreviews: {
-    show: r.one.shows({ from: r.showPreviews.showId, to: r.shows.id })
+  outputForwards: {
+    output: r.one.outputs({ from: r.outputForwards.outputId, to: r.outputs.id }),
+    channel: r.one.channels({ from: r.outputForwards.channelId, to: r.channels.id })
   },
-  showRecorders: {
-    show: r.one.shows({ from: r.showRecorders.showId, to: r.shows.id })
+  outputPreviews: {
+    output: r.one.outputs({ from: r.outputPreviews.outputId, to: r.outputs.id })
+  },
+  outputRecorders: {
+    output: r.one.outputs({ from: r.outputRecorders.outputId, to: r.outputs.id })
   },
   // Reports name their reporter and subject by convention (`@conservationtv/reports`), recorded as given rather than
   // referenced, so their only relation is their organisation.

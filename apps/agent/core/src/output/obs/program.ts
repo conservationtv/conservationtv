@@ -11,9 +11,13 @@ import { listening } from './loopback.ts';
 // The program MediaMTX: a MediaMTX of the obs runtime's own, between OBS and everything it sends or plays, so OBS can
 // come and go without anyone downstream noticing (docs/obs-agent.md):
 //
-//   cams/<source>  each stream the show places, pushed in by its `moq` relay (ctv-stream.ts) and played by OBS from here.
-//                  When the stream's catalog says which tracks it has, the path is always available: while the relay
-//                  is down OBS keeps playing, MediaMTX's offline segment in place of the camera.
+//   inputs/<stream>/<exposure>
+//                  each exposure OBS plays, by whoever drives its scenes, pushed in by a `moq` relay the agent starts
+//                  when OBS first reads the path, and stops once nothing has for a while (inputs.ts). Any such path is
+//                  read on demand: its `runOnDemand` tells the agent it is wanted. Once the exposure's catalog says
+//                  which tracks it has, the path is written as its own, always available, its `runOnRead` telling the
+//                  agent each reader: while the relay is down OBS keeps playing MediaMTX's offline segment in place
+//                  of the camera.
 //   show/program   what OBS streams (its profile's custom server `rtmp://…/show`, key `program`), forwarded to each
 //                  channel's ingest. Always available, with the program's own tracks (H.264 and AAC-LC 48 kHz stereo), so
 //                  while OBS is gone the forwards carry the offline segment and Twitch never goes offline.
@@ -27,7 +31,8 @@ import { listening } from './loopback.ts';
 // apart (`destinations`, program-metrics.ts).
 //
 // Everything listens on loopback only, and only loopback may publish or read. The config is rewritten whenever a
-// forward, a preview or a camera changes, which a running MediaMTX reloads by itself. Its log goes to the process's
+// forward, a preview or an input changes, which a running MediaMTX reloads by itself. Writing an input's own path
+// drops the reader waiting on it once, which OBS's media source reconnects from within a second. Its log goes to the process's
 // log file, so every publish, read, and forward is recorded there. Its metrics page is read for the program's reports
 // (program-metrics.ts).
 
@@ -42,6 +47,14 @@ const PROGRAM_TRACKS: AlwaysAvailableTrack[] = [
   { codec: 'H264' },
   { codec: 'MPEG4Audio', sampleRate: 48_000, channelCount: 2 }
 ];
+
+/**
+ * How long a reader waits for an input's relay to start: asking for a session, reading the catalog and starting `moq`
+ * take a few seconds.
+ */
+const INPUT_START_TIMEOUT = '30s';
+/** How long an input read on demand is wanted after its last reader goes. */
+const INPUT_CLOSE_AFTER = '10s';
 
 /** Where the program MediaMTX listens, on loopback. */
 export interface ProgramPorts {
@@ -97,8 +110,8 @@ export interface ProgramDestination {
   subject: string;
 }
 
-/** A camera's path, as the status reports it. */
-export interface CameraStatus {
+/** An input's path, as the status reports it. */
+export interface InputStatus {
   /** Whether it falls back to the offline segment while its relay is down. */
   fallback: boolean;
 }
@@ -114,19 +127,40 @@ export interface ProgramStatus extends ProcessStatus {
   forwards: string[];
   /** The previews it is published to. */
   previews: string[];
-  /** The sources with a path of their own, by source. */
-  cameras: Record<string, CameraStatus>;
+  /** The inputs with a path of their own, by path. */
+  inputs: Record<string, InputStatus>;
 }
 
-const STOPPED: ProgramStatus = { ...PROCESS_STOPPED, forwards: [], previews: [], cameras: {} };
+const STOPPED: ProgramStatus = { ...PROCESS_STOPPED, forwards: [], previews: [], inputs: {} };
 
 /** The part of MediaMTX's path status the relays are probed by. */
 const PathOnlineSchema = z.object({ online: z.boolean().default(false) });
 export type PathOnline = z.output<typeof PathOnlineSchema>;
 
-/** A camera path's name for a source: MediaMTX names take letters, digits and `_-.~` only. */
-export function cameraPath(sourceId: string): string {
-  return `cams/${sourceId.replaceAll(/[^\w.~-]/gu, '_')}`;
+/** Where an input's paths are: `inputs/<stream>/<exposure>`, each a UUID. */
+const INPUT_APP = 'inputs';
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+/** Every input's path, as a MediaMTX path pattern, whose groups are the stream and the exposure. */
+const INPUT_PATTERN = `~^${INPUT_APP}/(${UUID})/(${UUID})$`;
+const INPUT_PATH = new RegExp(INPUT_PATTERN.slice(1), 'u');
+
+/** An exposure OBS reads, by its stream. */
+export interface InputExposure {
+  streamId: string;
+  exposureId: string;
+}
+
+/** The path OBS reads an exposure at. */
+export function inputPath({ streamId, exposureId }: InputExposure): string {
+  return `${INPUT_APP}/${streamId}/${exposureId}`;
+}
+
+/** The exposure an input's path names, if it is one. */
+export function inputOf(path: string): InputExposure | undefined {
+  const match = INPUT_PATH.exec(path);
+  if (match === null) return undefined;
+  const [, streamId, exposureId] = match;
+  return { streamId: streamId!, exposureId: exposureId! };
 }
 
 /** The path a preview published by MoQ is read from by its moq CLI. */
@@ -148,8 +182,10 @@ export class ProgramMediamtx {
   private previews: ProgramPreview[] = [];
   /** The moq CLI the MoQ previews are published by, once installed. */
   private moq: string | undefined = undefined;
-  /** Each camera's tracks, or null when its catalog could not be read. */
-  private readonly cameras = new Map<string, AlwaysAvailableTrack[] | null>();
+  /** Each input with a path of its own, by path: its tracks, or null when its catalog could not be read. */
+  private readonly inputs = new Map<string, AlwaysAvailableTrack[] | null>();
+  /** What MediaMTX runs to tell the agent an input is wanted (inputs.ts); none reads inputs until it is set. */
+  private demand: string | undefined = undefined;
   private writing: Promise<void> = Promise.resolve();
   private readonly watching;
 
@@ -175,17 +211,22 @@ export class ProgramMediamtx {
     return `http://127.0.0.1:${String(this.ports.metrics)}/metrics`;
   }
 
-  /** Where a camera's relay pushes and OBS plays from. */
-  cameraUrl(sourceId: string): string {
-    return `rtmp://127.0.0.1:${String(this.ports.rtmp)}/${cameraPath(sourceId)}`;
+  /** Where an input's relay pushes and OBS plays from: a path of this MediaMTX, by its name. */
+  pathUrl(path: string): string {
+    return `rtmp://127.0.0.1:${String(this.ports.rtmp)}/${path}`;
+  }
+
+  /** Where OBS reads any exposure, with `{streamId}` and `{exposureId}` in place of the stream and the exposure. */
+  get inputTemplate(): string {
+    return this.pathUrl(inputPath({ streamId: '{streamId}', exposureId: '{exposureId}' }));
   }
 
   /**
-   * Whether something publishes to the source's path now: MediaMTX's `online`, which, unlike `ready`, stays false
-   * while the path only plays its offline segment. False if MediaMTX doesn't answer, or has no such path.
+   * Whether something publishes to the path now: MediaMTX's `online`, which, unlike `ready`, stays false while the
+   * path only plays its offline segment. False if MediaMTX doesn't answer, or has no such path.
    */
-  async publishing(sourceId: string, signal: AbortSignal): Promise<boolean> {
-    const url = `http://127.0.0.1:${String(this.ports.api)}/v3/paths/get/${cameraPath(sourceId)}`;
+  async publishing(path: string, signal: AbortSignal): Promise<boolean> {
+    const url = `http://127.0.0.1:${String(this.ports.api)}/v3/paths/get/${path}`;
     try {
       const response = await fetch(url, { signal });
       if (!response.ok) return false;
@@ -245,14 +286,20 @@ export class ProgramMediamtx {
     return new Map(published.map(preview => [previewPath(preview.previewId), previewSubject(preview.previewId)]));
   }
 
-  /** Give the source a path, falling back to the offline segment when `tracks` says what the stream carries. */
-  async setCamera(sourceId: string, tracks: AlwaysAvailableTrack[] | null): Promise<void> {
-    this.cameras.set(sourceId, tracks);
+  /** Read inputs on demand, running `command` to say each is wanted; or, with none, read none. */
+  async setDemand(command: string | undefined): Promise<void> {
+    this.demand = command;
     await this.write();
   }
 
-  async removeCamera(sourceId: string): Promise<void> {
-    if (!this.cameras.delete(sourceId)) return;
+  /** Give the input a path of its own, falling back to the offline segment when `tracks` says what it carries. */
+  async setInput(path: string, tracks: AlwaysAvailableTrack[] | null): Promise<void> {
+    this.inputs.set(path, tracks);
+    await this.write();
+  }
+
+  async removeInput(path: string): Promise<void> {
+    if (!this.inputs.delete(path)) return;
     await this.write();
   }
 
@@ -272,10 +319,12 @@ export class ProgramMediamtx {
       await mkdir(this.directory, { recursive: true });
       const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
       if (written !== config) await writeFile(this.configFile, config, { mode: 0o600 });
-      const cameras = Object.fromEntries([...this.cameras].map(([id, tracks]) => [id, { fallback: tracks !== null }]));
+      const inputs = Object.fromEntries(
+        [...this.inputs].map(([path, tracks]) => [path, { fallback: tracks !== null }])
+      );
       const forwards = this.forwards.map(forward => forward.channelId);
       const previews = this.previews.map(preview => preview.previewId);
-      this.update({ forwards, previews, cameras });
+      this.update({ forwards, previews, inputs });
     });
     return this.writing;
   }
@@ -304,14 +353,26 @@ export class ProgramMediamtx {
         runOnInitRestart: true
       };
     }
-    for (const [sourceId, tracks] of this.cameras) {
-      paths[cameraPath(sourceId)] =
-        tracks === null
-          ? { source: 'publisher' }
-          : { source: 'publisher', alwaysAvailable: true, alwaysAvailableTracks: tracks };
+    if (this.demand !== undefined) {
+      // An input with tracks to fall back with is a path of its own; any other is read on demand.
+      for (const [path, tracks] of this.inputs) {
+        if (tracks === null) continue;
+        paths[path] = {
+          source: 'publisher',
+          alwaysAvailable: true,
+          alwaysAvailableTracks: tracks,
+          runOnRead: this.demand,
+          runOnReadRestart: true
+        };
+      }
+      paths[INPUT_PATTERN] = {
+        source: 'publisher',
+        runOnDemand: this.demand,
+        runOnDemandRestart: true,
+        runOnDemandStartTimeout: INPUT_START_TIMEOUT,
+        runOnDemandCloseAfter: INPUT_CLOSE_AFTER
+      };
     }
-    // A relay can publish before its path is written: always available only once it is.
-    paths['~^cams/.+$'] = { source: 'publisher' };
     return {
       logLevel: 'info',
       logDestinations: ['stdout'],

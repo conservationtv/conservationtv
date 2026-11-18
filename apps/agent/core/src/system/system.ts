@@ -13,7 +13,7 @@ import { specFile } from './spec-file.ts';
 //
 //   machine                            always: the machine the agent runs on (machine/)
 //   streams, metrics, relayTraffic     the configuration's `mediamtx` section: the gateway (gateway/)
-//   obs, channels                      the configuration's `obs` section: the show it sends out (output/)
+//   obs, channels, show                the configuration's `obs` and `show` sections: the output it sends out (output/)
 //
 // It starts from the spec it last accepted, saved in the agent's directory (spec-file.ts), or on a first start from
 // `INITIAL_SPEC`; the studio configuration (configuration.ts) then sets each key's spec, or leaves it out, which
@@ -38,7 +38,8 @@ function controllers(context: SystemContext) {
     metrics: gateway.metrics,
     relayTraffic: gateway.relayTraffic,
     obs: output.obs,
-    channels: output.channels
+    channels: output.channels,
+    show: output.show
   };
 }
 
@@ -87,6 +88,8 @@ export function startSystem(context: SystemContext): Promise<AgentSystem> {
           else draft.obs = specs.obs;
           if (specs.channels === undefined) delete draft.channels;
           else draft.channels = specs.channels;
+          if (specs.show === undefined) delete draft.show;
+          else draft.show = specs.show;
         })
       )
   });

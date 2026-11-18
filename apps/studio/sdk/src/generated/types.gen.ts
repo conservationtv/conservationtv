@@ -63,7 +63,7 @@ export type StatsConnect = {
 
 export type PreviewConnect = {
     id: string;
-    showId: string;
+    outputId: string;
     previewId: string;
     action: 'publish';
     protocol: string;
@@ -362,9 +362,16 @@ export type Log = {
 };
 
 export type Topology = {
-    broadcast: {
+    shows: Array<{
         placed: Array<string>;
-    };
+        name: string;
+        id: string;
+        createdAt: string;
+        outputs: Array<{
+            name: string;
+            id: string;
+        }>;
+    }>;
     networks: Array<{
         name: string;
         id: string;
@@ -438,16 +445,18 @@ export type Topology = {
             rendition: Rendition;
         }>;
     }>;
-    shows: Array<{
+    outputs: Array<{
         name: string;
         id: string;
         createdAt: string;
+        control: 'external' | 'show';
+        showId: string | null;
         width: number;
         height: number;
         fps: number;
         bitrateKbps: number;
         keyframeSeconds: number;
-        output: {
+        device: {
             createdAt: string;
             deviceId: string;
         } | null;
@@ -494,22 +503,28 @@ export type Topology = {
     }>;
 };
 
-export type Output = {
-    showId: string;
-    deviceId: string;
-    createdAt: string;
-};
-
 export type Show = {
     name: string;
     id: string;
     createdAt: string;
+    outputs: Array<{
+        name: string;
+        id: string;
+    }>;
+};
+
+export type Output = {
+    name: string;
+    id: string;
+    createdAt: string;
+    control: 'external' | 'show';
+    showId: string | null;
     width: number;
     height: number;
     fps: number;
     bitrateKbps: number;
     keyframeSeconds: number;
-    output: {
+    device: {
         createdAt: string;
         deviceId: string;
     } | null;
@@ -532,6 +547,15 @@ export type Show = {
         createdAt: string;
         gatewayId: string;
     }>;
+};
+
+export type Control = {
+    deviceId: string;
+    websocketPort: number;
+    websocketPassword: string;
+    sceneCollection: string;
+    inputUrl: string;
+    reportedAt: string;
 };
 
 export type Forward = {
@@ -596,11 +620,12 @@ export type DeviceConfiguration = {
         }>;
     };
     obs?: {
-        show: {
-            id: string;
-            url: string;
-        };
         output: {
+            id: string;
+            organisationId: string;
+            control: 'external' | 'show';
+        };
+        encoding: {
             width: number;
             height: number;
             fps: number;
@@ -611,9 +636,9 @@ export type DeviceConfiguration = {
             organisationId: string;
             channelId: string;
             forwardId: string;
-            stats?: boolean;
+            stats: boolean;
         }>;
-        previews?: Array<{
+        previews: Array<{
             previewId: string;
             gatewayId: string;
             connect: PreviewConnect;
@@ -625,9 +650,13 @@ export type DeviceConfiguration = {
                 [key: string]: unknown;
             };
         };
-        program?: {
+        program: {
             subjectId: string;
         };
+    };
+    show?: {
+        id: string;
+        url: string;
     };
 };
 
@@ -4218,7 +4247,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4264,7 +4293,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdObservationsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4319,7 +4348,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4381,7 +4410,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
         /**
@@ -4448,7 +4477,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdLogsData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };
@@ -4541,236 +4570,6 @@ export type GetOrganisationsByIdTopologyResponses = {
 
 export type GetOrganisationsByIdTopologyResponse = GetOrganisationsByIdTopologyResponses[keyof GetOrganisationsByIdTopologyResponses];
 
-export type GetOrganisationsByIdShowData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/show';
-};
-
-export type GetOrganisationsByIdShowErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The request is not a WebSocket handshake
-     */
-    426: unknown;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type GetOrganisationsByIdShowError = GetOrganisationsByIdShowErrors[keyof GetOrganisationsByIdShowErrors];
-
-export type PostOrganisationsByIdShowComposeData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/show/compose';
-};
-
-export type PostOrganisationsByIdShowComposeErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PostOrganisationsByIdShowComposeError = PostOrganisationsByIdShowComposeErrors[keyof PostOrganisationsByIdShowComposeErrors];
-
-export type PostOrganisationsByIdShowComposeResponses = {
-    /**
-     * Composed
-     */
-    204: void;
-};
-
-export type PostOrganisationsByIdShowComposeResponse = PostOrganisationsByIdShowComposeResponses[keyof PostOrganisationsByIdShowComposeResponses];
-
-export type DeleteOrganisationsByIdShowOutputData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/show/output';
-};
-
-export type DeleteOrganisationsByIdShowOutputErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type DeleteOrganisationsByIdShowOutputError = DeleteOrganisationsByIdShowOutputErrors[keyof DeleteOrganisationsByIdShowOutputErrors];
-
-export type DeleteOrganisationsByIdShowOutputResponses = {
-    /**
-     * Stopped
-     */
-    204: void;
-};
-
-export type DeleteOrganisationsByIdShowOutputResponse = DeleteOrganisationsByIdShowOutputResponses[keyof DeleteOrganisationsByIdShowOutputResponses];
-
-export type GetOrganisationsByIdShowOutputData = {
-    body?: never;
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/show/output';
-};
-
-export type GetOrganisationsByIdShowOutputErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource does not exist or is not visible to this account
-     */
-    404: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type GetOrganisationsByIdShowOutputError = GetOrganisationsByIdShowOutputErrors[keyof GetOrganisationsByIdShowOutputErrors];
-
-export type GetOrganisationsByIdShowOutputResponses = {
-    /**
-     * The output
-     */
-    200: Output;
-};
-
-export type GetOrganisationsByIdShowOutputResponse = GetOrganisationsByIdShowOutputResponses[keyof GetOrganisationsByIdShowOutputResponses];
-
-export type PutOrganisationsByIdShowOutputData = {
-    body: {
-        /**
-         * The agent that drives OBS for the broadcast: one of the organisation's.
-         */
-        deviceId: string;
-    };
-    path: {
-        /**
-         * The organisation.
-         */
-        id: string;
-    };
-    query?: never;
-    url: '/organisations/{id}/show/output';
-};
-
-export type PutOrganisationsByIdShowOutputErrors = {
-    /**
-     * The request is malformed
-     */
-    400: Error;
-    /**
-     * No signed-in session was presented
-     */
-    401: Error;
-    /**
-     * The resource is visible, but this account may not do this to it
-     */
-    403: Error;
-    /**
-     * The selected operation version is not served
-     */
-    412: Error;
-    /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
-     */
-    422: Error;
-    /**
-     * The database is unavailable
-     */
-    503: Error;
-};
-
-export type PutOrganisationsByIdShowOutputError = PutOrganisationsByIdShowOutputErrors[keyof PutOrganisationsByIdShowOutputErrors];
-
-export type PutOrganisationsByIdShowOutputResponses = {
-    /**
-     * The output
-     */
-    200: Output;
-};
-
-export type PutOrganisationsByIdShowOutputResponse = PutOrganisationsByIdShowOutputResponses[keyof PutOrganisationsByIdShowOutputResponses];
-
 export type GetOrganisationsByIdShowsData = {
     body?: never;
     path: {
@@ -4806,40 +4605,16 @@ export type GetOrganisationsByIdShowsError = GetOrganisationsByIdShowsErrors[key
 
 export type GetOrganisationsByIdShowsResponses = {
     /**
-     * The shows, oldest first, each with its forwards, previews and recorders, oldest first
+     * The shows, oldest first
      */
     200: {
         shows: Array<{
             name: string;
             id: string;
             createdAt: string;
-            width: number;
-            height: number;
-            fps: number;
-            bitrateKbps: number;
-            keyframeSeconds: number;
-            output: {
-                createdAt: string;
-                deviceId: string;
-            } | null;
-            recorders: Array<{
-                params: {
-                    [key: string]: unknown;
-                };
+            outputs: Array<{
+                name: string;
                 id: string;
-                createdAt: string;
-                kind: 'obs';
-            }>;
-            forwards: Array<{
-                id: string;
-                createdAt: string;
-                enabled: boolean;
-                channelId: string;
-            }>;
-            previews: Array<{
-                id: string;
-                createdAt: string;
-                gatewayId: string;
             }>;
         }>;
     };
@@ -4853,26 +4628,6 @@ export type PostOrganisationsByIdShowsData = {
          * What the show is called in the studio.
          */
         name: string;
-        /**
-         * The program's width in pixels: even.
-         */
-        width?: number;
-        /**
-         * The program's height in pixels: even.
-         */
-        height?: number;
-        /**
-         * The program's frame rate.
-         */
-        fps?: number;
-        /**
-         * The program's constant video bitrate, in kbps.
-         */
-        bitrateKbps?: number;
-        /**
-         * The program's keyframe interval, in seconds.
-         */
-        keyframeSeconds?: number;
     };
     path: {
         /**
@@ -4916,11 +4671,6 @@ export type PostOrganisationsByIdShowsResponses = {
     201: {
         id: string;
         name: string;
-        width: number;
-        height: number;
-        fps: number;
-        bitrateKbps: number;
-        keyframeSeconds: number;
         createdAt: string;
     };
 };
@@ -5036,27 +4786,7 @@ export type PatchOrganisationsByIdShowsByShowIdData = {
         /**
          * What the show is called in the studio.
          */
-        name?: string;
-        /**
-         * The program's width in pixels: even.
-         */
-        width?: number;
-        /**
-         * The program's height in pixels: even.
-         */
-        height?: number;
-        /**
-         * The program's frame rate.
-         */
-        fps?: number;
-        /**
-         * The program's constant video bitrate, in kbps.
-         */
-        bitrateKbps?: number;
-        /**
-         * The program's keyframe interval, in seconds.
-         */
-        keyframeSeconds?: number;
+        name: string;
     };
     path: {
         /**
@@ -5103,11 +4833,265 @@ export type PatchOrganisationsByIdShowsByShowIdError = PatchOrganisationsByIdSho
 
 export type PatchOrganisationsByIdShowsByShowIdResponses = {
     /**
-     * The updated show, without its output, forwards, previews and recorders
+     * The updated show, without its outputs
      */
     200: {
         id: string;
         name: string;
+        createdAt: string;
+    };
+};
+
+export type PatchOrganisationsByIdShowsByShowIdResponse = PatchOrganisationsByIdShowsByShowIdResponses[keyof PatchOrganisationsByIdShowsByShowIdResponses];
+
+export type GetOrganisationsByIdShowsByShowIdFollowData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/follow';
+};
+
+export type GetOrganisationsByIdShowsByShowIdFollowErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The request is not a WebSocket handshake
+     */
+    426: unknown;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdShowsByShowIdFollowError = GetOrganisationsByIdShowsByShowIdFollowErrors[keyof GetOrganisationsByIdShowsByShowIdFollowErrors];
+
+export type PostOrganisationsByIdShowsByShowIdComposeData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/compose';
+};
+
+export type PostOrganisationsByIdShowsByShowIdComposeErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdComposeError = PostOrganisationsByIdShowsByShowIdComposeErrors[keyof PostOrganisationsByIdShowsByShowIdComposeErrors];
+
+export type PostOrganisationsByIdShowsByShowIdComposeResponses = {
+    /**
+     * Composed
+     */
+    204: void;
+};
+
+export type PostOrganisationsByIdShowsByShowIdComposeResponse = PostOrganisationsByIdShowsByShowIdComposeResponses[keyof PostOrganisationsByIdShowsByShowIdComposeResponses];
+
+export type GetOrganisationsByIdOutputsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs';
+};
+
+export type GetOrganisationsByIdOutputsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdOutputsError = GetOrganisationsByIdOutputsErrors[keyof GetOrganisationsByIdOutputsErrors];
+
+export type GetOrganisationsByIdOutputsResponses = {
+    /**
+     * The outputs, oldest first, each with its forwards, previews and recorders, oldest first
+     */
+    200: {
+        outputs: Array<{
+            name: string;
+            id: string;
+            createdAt: string;
+            control: 'external' | 'show';
+            showId: string | null;
+            width: number;
+            height: number;
+            fps: number;
+            bitrateKbps: number;
+            keyframeSeconds: number;
+            device: {
+                createdAt: string;
+                deviceId: string;
+            } | null;
+            recorders: Array<{
+                params: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                createdAt: string;
+                kind: 'obs';
+            }>;
+            forwards: Array<{
+                id: string;
+                createdAt: string;
+                enabled: boolean;
+                channelId: string;
+            }>;
+            previews: Array<{
+                id: string;
+                createdAt: string;
+                gatewayId: string;
+            }>;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdOutputsResponse = GetOrganisationsByIdOutputsResponses[keyof GetOrganisationsByIdOutputsResponses];
+
+export type PostOrganisationsByIdOutputsData = {
+    body: {
+        /**
+         * What the output is called in the studio.
+         */
+        name: string;
+        /**
+         * Who drives OBS's scenes: `show`, the show the output follows, or `external`, something outside the studio, for which the output reads any of the organisation's exposures and follows no show.
+         */
+        control?: 'show' | 'external';
+        /**
+         * The show the output follows: one of the organisation's, or null for none. Only under `show` control.
+         */
+        showId?: string | null;
+        /**
+         * The programme's width in pixels: even.
+         */
+        width?: number;
+        /**
+         * The programme's height in pixels: even.
+         */
+        height?: number;
+        /**
+         * The programme's frame rate.
+         */
+        fps?: number;
+        /**
+         * The programme's constant video bitrate, in kbps.
+         */
+        bitrateKbps?: number;
+        /**
+         * The programme's keyframe interval, in seconds.
+         */
+        keyframeSeconds?: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs';
+};
+
+export type PostOrganisationsByIdOutputsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdOutputsError = PostOrganisationsByIdOutputsErrors[keyof PostOrganisationsByIdOutputsErrors];
+
+export type PostOrganisationsByIdOutputsResponses = {
+    /**
+     * The new output
+     */
+    201: {
+        id: string;
+        name: string;
+        control: 'external' | 'show';
+        showId: string | null;
         width: number;
         height: number;
         fps: number;
@@ -5117,9 +5101,9 @@ export type PatchOrganisationsByIdShowsByShowIdResponses = {
     };
 };
 
-export type PatchOrganisationsByIdShowsByShowIdResponse = PatchOrganisationsByIdShowsByShowIdResponses[keyof PatchOrganisationsByIdShowsByShowIdResponses];
+export type PostOrganisationsByIdOutputsResponse = PostOrganisationsByIdOutputsResponses[keyof PostOrganisationsByIdOutputsResponses];
 
-export type DeleteOrganisationsByIdShowsByShowIdOutputData = {
+export type DeleteOrganisationsByIdOutputsByOutputIdData = {
     body?: never;
     path: {
         /**
@@ -5127,15 +5111,15 @@ export type DeleteOrganisationsByIdShowsByShowIdOutputData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/output';
+    url: '/organisations/{id}/outputs/{outputId}';
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdOutputErrors = {
+export type DeleteOrganisationsByIdOutputsByOutputIdErrors = {
     /**
      * The request is malformed
      */
@@ -5162,18 +5146,18 @@ export type DeleteOrganisationsByIdShowsByShowIdOutputErrors = {
     503: Error;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdOutputError = DeleteOrganisationsByIdShowsByShowIdOutputErrors[keyof DeleteOrganisationsByIdShowsByShowIdOutputErrors];
+export type DeleteOrganisationsByIdOutputsByOutputIdError = DeleteOrganisationsByIdOutputsByOutputIdErrors[keyof DeleteOrganisationsByIdOutputsByOutputIdErrors];
 
-export type DeleteOrganisationsByIdShowsByShowIdOutputResponses = {
+export type DeleteOrganisationsByIdOutputsByOutputIdResponses = {
     /**
-     * Stopped
+     * Deleted
      */
     204: void;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdOutputResponse = DeleteOrganisationsByIdShowsByShowIdOutputResponses[keyof DeleteOrganisationsByIdShowsByShowIdOutputResponses];
+export type DeleteOrganisationsByIdOutputsByOutputIdResponse = DeleteOrganisationsByIdOutputsByOutputIdResponses[keyof DeleteOrganisationsByIdOutputsByOutputIdResponses];
 
-export type GetOrganisationsByIdShowsByShowIdOutputData = {
+export type GetOrganisationsByIdOutputsByOutputIdData = {
     body?: never;
     path: {
         /**
@@ -5181,15 +5165,15 @@ export type GetOrganisationsByIdShowsByShowIdOutputData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/output';
+    url: '/organisations/{id}/outputs/{outputId}';
 };
 
-export type GetOrganisationsByIdShowsByShowIdOutputErrors = {
+export type GetOrganisationsByIdOutputsByOutputIdErrors = {
     /**
      * The request is malformed
      */
@@ -5212,27 +5196,51 @@ export type GetOrganisationsByIdShowsByShowIdOutputErrors = {
     503: Error;
 };
 
-export type GetOrganisationsByIdShowsByShowIdOutputError = GetOrganisationsByIdShowsByShowIdOutputErrors[keyof GetOrganisationsByIdShowsByShowIdOutputErrors];
+export type GetOrganisationsByIdOutputsByOutputIdError = GetOrganisationsByIdOutputsByOutputIdErrors[keyof GetOrganisationsByIdOutputsByOutputIdErrors];
 
-export type GetOrganisationsByIdShowsByShowIdOutputResponses = {
+export type GetOrganisationsByIdOutputsByOutputIdResponses = {
     /**
      * The output
      */
-    200: {
-        showId: string;
-        deviceId: string;
-        createdAt: string;
-    };
+    200: Output;
 };
 
-export type GetOrganisationsByIdShowsByShowIdOutputResponse = GetOrganisationsByIdShowsByShowIdOutputResponses[keyof GetOrganisationsByIdShowsByShowIdOutputResponses];
+export type GetOrganisationsByIdOutputsByOutputIdResponse = GetOrganisationsByIdOutputsByOutputIdResponses[keyof GetOrganisationsByIdOutputsByOutputIdResponses];
 
-export type PutOrganisationsByIdShowsByShowIdOutputData = {
+export type PatchOrganisationsByIdOutputsByOutputIdData = {
     body: {
         /**
-         * The agent that drives OBS for the show: one of the organisation's, and no other show's output.
+         * What the output is called in the studio.
          */
-        deviceId: string;
+        name?: string;
+        /**
+         * Who drives OBS's scenes: `show`, the show the output follows, or `external`, something outside the studio, for which the output reads any of the organisation's exposures and follows no show.
+         */
+        control?: 'show' | 'external';
+        /**
+         * The show the output follows: one of the organisation's, or null for none. Only under `show` control.
+         */
+        showId?: string | null;
+        /**
+         * The programme's width in pixels: even.
+         */
+        width?: number;
+        /**
+         * The programme's height in pixels: even.
+         */
+        height?: number;
+        /**
+         * The programme's frame rate.
+         */
+        fps?: number;
+        /**
+         * The programme's constant video bitrate, in kbps.
+         */
+        bitrateKbps?: number;
+        /**
+         * The programme's keyframe interval, in seconds.
+         */
+        keyframeSeconds?: number;
     };
     path: {
         /**
@@ -5240,15 +5248,15 @@ export type PutOrganisationsByIdShowsByShowIdOutputData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/output';
+    url: '/organisations/{id}/outputs/{outputId}';
 };
 
-export type PutOrganisationsByIdShowsByShowIdOutputErrors = {
+export type PatchOrganisationsByIdOutputsByOutputIdErrors = {
     /**
      * The request is malformed
      */
@@ -5266,7 +5274,7 @@ export type PutOrganisationsByIdShowsByShowIdOutputErrors = {
      */
     404: Error;
     /**
-     * The agent is the output of another show: an agent runs one OBS
+     * The change conflicts with the current state of the resource
      */
     409: Error;
     /**
@@ -5283,29 +5291,332 @@ export type PutOrganisationsByIdShowsByShowIdOutputErrors = {
     503: Error;
 };
 
-export type PutOrganisationsByIdShowsByShowIdOutputError = PutOrganisationsByIdShowsByShowIdOutputErrors[keyof PutOrganisationsByIdShowsByShowIdOutputErrors];
+export type PatchOrganisationsByIdOutputsByOutputIdError = PatchOrganisationsByIdOutputsByOutputIdErrors[keyof PatchOrganisationsByIdOutputsByOutputIdErrors];
 
-export type PutOrganisationsByIdShowsByShowIdOutputResponses = {
+export type PatchOrganisationsByIdOutputsByOutputIdResponses = {
     /**
-     * The output
+     * The updated output, without its device, forwards, previews and recorders
      */
     200: {
-        showId: string;
+        id: string;
+        name: string;
+        control: 'external' | 'show';
+        showId: string | null;
+        width: number;
+        height: number;
+        fps: number;
+        bitrateKbps: number;
+        keyframeSeconds: number;
+        createdAt: string;
+    };
+};
+
+export type PatchOrganisationsByIdOutputsByOutputIdResponse = PatchOrganisationsByIdOutputsByOutputIdResponses[keyof PatchOrganisationsByIdOutputsByOutputIdResponses];
+
+export type DeleteOrganisationsByIdOutputsByOutputIdDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The output.
+         */
+        outputId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs/{outputId}/device';
+};
+
+export type DeleteOrganisationsByIdOutputsByOutputIdDeviceErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdOutputsByOutputIdDeviceError = DeleteOrganisationsByIdOutputsByOutputIdDeviceErrors[keyof DeleteOrganisationsByIdOutputsByOutputIdDeviceErrors];
+
+export type DeleteOrganisationsByIdOutputsByOutputIdDeviceResponses = {
+    /**
+     * Stopped
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdOutputsByOutputIdDeviceResponse = DeleteOrganisationsByIdOutputsByOutputIdDeviceResponses[keyof DeleteOrganisationsByIdOutputsByOutputIdDeviceResponses];
+
+export type GetOrganisationsByIdOutputsByOutputIdDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The output.
+         */
+        outputId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs/{outputId}/device';
+};
+
+export type GetOrganisationsByIdOutputsByOutputIdDeviceErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdOutputsByOutputIdDeviceError = GetOrganisationsByIdOutputsByOutputIdDeviceErrors[keyof GetOrganisationsByIdOutputsByOutputIdDeviceErrors];
+
+export type GetOrganisationsByIdOutputsByOutputIdDeviceResponses = {
+    /**
+     * The device
+     */
+    200: {
+        outputId: string;
         deviceId: string;
         createdAt: string;
     };
 };
 
-export type PutOrganisationsByIdShowsByShowIdOutputResponse = PutOrganisationsByIdShowsByShowIdOutputResponses[keyof PutOrganisationsByIdShowsByShowIdOutputResponses];
+export type GetOrganisationsByIdOutputsByOutputIdDeviceResponse = GetOrganisationsByIdOutputsByOutputIdDeviceResponses[keyof GetOrganisationsByIdOutputsByOutputIdDeviceResponses];
 
-export type PostOrganisationsByIdShowsByShowIdForwardsData = {
+export type PutOrganisationsByIdOutputsByOutputIdDeviceData = {
+    body: {
+        /**
+         * The agent that runs the output's OBS: one of the organisation's, and no other output's.
+         */
+        deviceId: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The output.
+         */
+        outputId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs/{outputId}/device';
+};
+
+export type PutOrganisationsByIdOutputsByOutputIdDeviceErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The agent runs another output: an agent runs one OBS
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdOutputsByOutputIdDeviceError = PutOrganisationsByIdOutputsByOutputIdDeviceErrors[keyof PutOrganisationsByIdOutputsByOutputIdDeviceErrors];
+
+export type PutOrganisationsByIdOutputsByOutputIdDeviceResponses = {
+    /**
+     * The device
+     */
+    200: {
+        outputId: string;
+        deviceId: string;
+        createdAt: string;
+    };
+};
+
+export type PutOrganisationsByIdOutputsByOutputIdDeviceResponse = PutOrganisationsByIdOutputsByOutputIdDeviceResponses[keyof PutOrganisationsByIdOutputsByOutputIdDeviceResponses];
+
+export type GetOrganisationsByIdOutputsByOutputIdControlData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The output.
+         */
+        outputId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs/{outputId}/control';
+};
+
+export type GetOrganisationsByIdOutputsByOutputIdControlErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdOutputsByOutputIdControlError = GetOrganisationsByIdOutputsByOutputIdControlErrors[keyof GetOrganisationsByIdOutputsByOutputIdControlErrors];
+
+export type GetOrganisationsByIdOutputsByOutputIdControlResponses = {
+    /**
+     * How to drive it
+     */
+    200: Control;
+};
+
+export type GetOrganisationsByIdOutputsByOutputIdControlResponse = GetOrganisationsByIdOutputsByOutputIdControlResponses[keyof GetOrganisationsByIdOutputsByOutputIdControlResponses];
+
+export type PutOrganisationsByIdOutputsByOutputIdControlData = {
+    body: {
+        /**
+         * The port obs-websocket listens on.
+         */
+        websocketPort: number;
+        /**
+         * obs-websocket's password.
+         */
+        websocketPassword: string;
+        /**
+         * The scene collection OBS runs: the agent's own for a show, kept apart from an external controller's.
+         */
+        sceneCollection: string;
+        /**
+         * Where OBS, on its own machine, reads any exposure the output may read, with `{streamId}` and `{exposureId}` in place of the stream and the exposure: for a media source.
+         */
+        inputUrl: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The output.
+         */
+        outputId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs/{outputId}/control';
+};
+
+export type PutOrganisationsByIdOutputsByOutputIdControlErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The signing device is not the agent the output runs on
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdOutputsByOutputIdControlError = PutOrganisationsByIdOutputsByOutputIdControlErrors[keyof PutOrganisationsByIdOutputsByOutputIdControlErrors];
+
+export type PutOrganisationsByIdOutputsByOutputIdControlResponses = {
+    /**
+     * Kept
+     */
+    204: void;
+};
+
+export type PutOrganisationsByIdOutputsByOutputIdControlResponse = PutOrganisationsByIdOutputsByOutputIdControlResponses[keyof PutOrganisationsByIdOutputsByOutputIdControlResponses];
+
+export type PostOrganisationsByIdOutputsByOutputIdForwardsData = {
     body: {
         /**
          * The channel: one of the organisation's.
          */
         channelId: string;
         /**
-         * Whether the program goes out to the channel.
+         * Whether the programme goes out to the channel.
          */
         enabled?: boolean;
     };
@@ -5315,15 +5626,15 @@ export type PostOrganisationsByIdShowsByShowIdForwardsData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/forwards';
+    url: '/organisations/{id}/outputs/{outputId}/forwards';
 };
 
-export type PostOrganisationsByIdShowsByShowIdForwardsErrors = {
+export type PostOrganisationsByIdOutputsByOutputIdForwardsErrors = {
     /**
      * The request is malformed
      */
@@ -5358,18 +5669,18 @@ export type PostOrganisationsByIdShowsByShowIdForwardsErrors = {
     503: Error;
 };
 
-export type PostOrganisationsByIdShowsByShowIdForwardsError = PostOrganisationsByIdShowsByShowIdForwardsErrors[keyof PostOrganisationsByIdShowsByShowIdForwardsErrors];
+export type PostOrganisationsByIdOutputsByOutputIdForwardsError = PostOrganisationsByIdOutputsByOutputIdForwardsErrors[keyof PostOrganisationsByIdOutputsByOutputIdForwardsErrors];
 
-export type PostOrganisationsByIdShowsByShowIdForwardsResponses = {
+export type PostOrganisationsByIdOutputsByOutputIdForwardsResponses = {
     /**
      * The new forward
      */
     201: Forward;
 };
 
-export type PostOrganisationsByIdShowsByShowIdForwardsResponse = PostOrganisationsByIdShowsByShowIdForwardsResponses[keyof PostOrganisationsByIdShowsByShowIdForwardsResponses];
+export type PostOrganisationsByIdOutputsByOutputIdForwardsResponse = PostOrganisationsByIdOutputsByOutputIdForwardsResponses[keyof PostOrganisationsByIdOutputsByOutputIdForwardsResponses];
 
-export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdData = {
+export type DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdData = {
     body?: never;
     path: {
         /**
@@ -5377,19 +5688,19 @@ export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
         /**
          * The forward.
          */
         forwardId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}';
+    url: '/organisations/{id}/outputs/{outputId}/forwards/{forwardId}';
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors = {
+export type DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdErrors = {
     /**
      * The request is malformed
      */
@@ -5416,21 +5727,21 @@ export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors = {
     503: Error;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdError = DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors[keyof DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors];
+export type DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdError = DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdErrors[keyof DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdErrors];
 
-export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses = {
+export type DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses = {
     /**
      * Removed
      */
     204: void;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse = DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses[keyof DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses];
+export type DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponse = DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses[keyof DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses];
 
-export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdData = {
+export type PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdData = {
     body: {
         /**
-         * Whether the program goes out to the channel.
+         * Whether the programme goes out to the channel.
          */
         enabled: boolean;
     };
@@ -5440,19 +5751,19 @@ export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
         /**
          * The forward.
          */
         forwardId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}';
+    url: '/organisations/{id}/outputs/{outputId}/forwards/{forwardId}';
 };
 
-export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors = {
+export type PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdErrors = {
     /**
      * The request is malformed
      */
@@ -5479,21 +5790,21 @@ export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors = {
     503: Error;
 };
 
-export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdError = PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors[keyof PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdErrors];
+export type PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdError = PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdErrors[keyof PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdErrors];
 
-export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses = {
+export type PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses = {
     /**
      * The updated forward
      */
     200: Forward;
 };
 
-export type PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse = PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses[keyof PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponses];
+export type PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponse = PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses[keyof PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses];
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsData = {
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsData = {
     body: {
         /**
-         * The gateway the program is published to and read from: built in, or the organisation's own.
+         * The gateway the programme is published to and read from: built in, or the organisation's own.
          */
         gatewayId: 'conservationtv' | string;
     };
@@ -5503,15 +5814,15 @@ export type PostOrganisationsByIdShowsByShowIdPreviewsData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/previews';
+    url: '/organisations/{id}/outputs/{outputId}/previews';
 };
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsErrors = {
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsErrors = {
     /**
      * The request is malformed
      */
@@ -5546,18 +5857,18 @@ export type PostOrganisationsByIdShowsByShowIdPreviewsErrors = {
     503: Error;
 };
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsError = PostOrganisationsByIdShowsByShowIdPreviewsErrors[keyof PostOrganisationsByIdShowsByShowIdPreviewsErrors];
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsError = PostOrganisationsByIdOutputsByOutputIdPreviewsErrors[keyof PostOrganisationsByIdOutputsByOutputIdPreviewsErrors];
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsResponses = {
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsResponses = {
     /**
      * The new preview
      */
     201: Preview;
 };
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsResponse = PostOrganisationsByIdShowsByShowIdPreviewsResponses[keyof PostOrganisationsByIdShowsByShowIdPreviewsResponses];
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsResponse = PostOrganisationsByIdOutputsByOutputIdPreviewsResponses[keyof PostOrganisationsByIdOutputsByOutputIdPreviewsResponses];
 
-export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdData = {
+export type DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdData = {
     body?: never;
     path: {
         /**
@@ -5565,19 +5876,19 @@ export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
         /**
          * The preview.
          */
         previewId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/previews/{previewId}';
+    url: '/organisations/{id}/outputs/{outputId}/previews/{previewId}';
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors = {
+export type DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdErrors = {
     /**
      * The request is malformed
      */
@@ -5604,18 +5915,18 @@ export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors = {
     503: Error;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdError = DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors[keyof DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdErrors];
+export type DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdError = DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdErrors[keyof DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdErrors];
 
-export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses = {
+export type DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdResponses = {
     /**
      * Removed
      */
     204: void;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponse = DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses[keyof DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponses];
+export type DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdResponse = DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdResponses[keyof DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdResponses];
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsData = {
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsData = {
     body: {
         /**
          * Whether to read the preview from its gateway, or publish it there.
@@ -5633,19 +5944,19 @@ export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsData
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
         /**
          * The preview.
          */
         previewId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/previews/{previewId}/connections';
+    url: '/organisations/{id}/outputs/{outputId}/previews/{previewId}/connections';
 };
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors = {
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsErrors = {
     /**
      * The request is malformed
      */
@@ -5655,7 +5966,7 @@ export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErro
      */
     401: Error;
     /**
-     * The caller may see the preview but not connect to it like this: members only read, and only the show's output publishes it
+     * The caller may see the preview but not connect to it like this: members only read, and only the agent the output runs on publishes it
      */
     403: Error;
     /**
@@ -5676,9 +5987,9 @@ export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErro
     503: Error;
 };
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsError = PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors[keyof PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsErrors];
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsError = PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsErrors[keyof PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsErrors];
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses = {
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsResponses = {
     /**
      * The connection details
      */
@@ -5699,12 +6010,12 @@ export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResp
     };
 };
 
-export type PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponse = PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses[keyof PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponses];
+export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsResponse = PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsResponses[keyof PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsResponses];
 
-export type PostOrganisationsByIdShowsByShowIdRecordersData = {
+export type PostOrganisationsByIdOutputsByOutputIdRecordersData = {
     body: {
         /**
-         * How the program is recorded: `obs`, by OBS alongside streaming it.
+         * How the programme is recorded: `obs`, by OBS alongside streaming it.
          */
         kind: 'obs';
         /**
@@ -5720,15 +6031,15 @@ export type PostOrganisationsByIdShowsByShowIdRecordersData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/recorders';
+    url: '/organisations/{id}/outputs/{outputId}/recorders';
 };
 
-export type PostOrganisationsByIdShowsByShowIdRecordersErrors = {
+export type PostOrganisationsByIdOutputsByOutputIdRecordersErrors = {
     /**
      * The request is malformed
      */
@@ -5759,9 +6070,9 @@ export type PostOrganisationsByIdShowsByShowIdRecordersErrors = {
     503: Error;
 };
 
-export type PostOrganisationsByIdShowsByShowIdRecordersError = PostOrganisationsByIdShowsByShowIdRecordersErrors[keyof PostOrganisationsByIdShowsByShowIdRecordersErrors];
+export type PostOrganisationsByIdOutputsByOutputIdRecordersError = PostOrganisationsByIdOutputsByOutputIdRecordersErrors[keyof PostOrganisationsByIdOutputsByOutputIdRecordersErrors];
 
-export type PostOrganisationsByIdShowsByShowIdRecordersResponses = {
+export type PostOrganisationsByIdOutputsByOutputIdRecordersResponses = {
     /**
      * The new recorder
      */
@@ -5775,9 +6086,9 @@ export type PostOrganisationsByIdShowsByShowIdRecordersResponses = {
     };
 };
 
-export type PostOrganisationsByIdShowsByShowIdRecordersResponse = PostOrganisationsByIdShowsByShowIdRecordersResponses[keyof PostOrganisationsByIdShowsByShowIdRecordersResponses];
+export type PostOrganisationsByIdOutputsByOutputIdRecordersResponse = PostOrganisationsByIdOutputsByOutputIdRecordersResponses[keyof PostOrganisationsByIdOutputsByOutputIdRecordersResponses];
 
-export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdData = {
+export type DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdData = {
     body?: never;
     path: {
         /**
@@ -5785,19 +6096,19 @@ export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
         /**
          * The recorder.
          */
         recorderId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}';
+    url: '/organisations/{id}/outputs/{outputId}/recorders/{recorderId}';
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors = {
+export type DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdErrors = {
     /**
      * The request is malformed
      */
@@ -5824,21 +6135,21 @@ export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors = {
     503: Error;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdError = DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors[keyof DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors];
+export type DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdError = DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdErrors[keyof DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdErrors];
 
-export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses = {
+export type DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponses = {
     /**
      * Removed
      */
     204: void;
 };
 
-export type DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse = DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses[keyof DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses];
+export type DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponse = DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponses[keyof DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponses];
 
-export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdData = {
+export type PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdData = {
     body: {
         /**
-         * How the program is recorded: `obs`, by OBS alongside streaming it.
+         * How the programme is recorded: `obs`, by OBS alongside streaming it.
          */
         kind?: 'obs';
         /**
@@ -5854,19 +6165,19 @@ export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdData = {
          */
         id: string;
         /**
-         * The show.
+         * The output.
          */
-        showId: string;
+        outputId: string;
         /**
          * The recorder.
          */
         recorderId: string;
     };
     query?: never;
-    url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}';
+    url: '/organisations/{id}/outputs/{outputId}/recorders/{recorderId}';
 };
 
-export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors = {
+export type PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdErrors = {
     /**
      * The request is malformed
      */
@@ -5897,9 +6208,9 @@ export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors = {
     503: Error;
 };
 
-export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdError = PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors[keyof PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdErrors];
+export type PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdError = PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdErrors[keyof PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdErrors];
 
-export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses = {
+export type PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponses = {
     /**
      * The updated recorder
      */
@@ -5913,7 +6224,7 @@ export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses = 
     };
 };
 
-export type PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse = PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses[keyof PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponses];
+export type PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponse = PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponses[keyof PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponses];
 
 export type GetOrganisationsByIdChannelsData = {
     body?: never;
@@ -6579,7 +6890,7 @@ export type PostReportsData = {
         reports: Array<{
             kind: 'event';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -6595,7 +6906,7 @@ export type PostReportsData = {
         } | {
             kind: 'metric';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;
@@ -6623,7 +6934,7 @@ export type PostReportsData = {
         } | {
             kind: 'log';
             /**
-             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+             * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
              */
             subjectId: string;
             observedAt: string;

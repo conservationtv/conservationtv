@@ -1,10 +1,13 @@
 // What the studio draws as a topology: nodes, each fed by its parent, placed in delivery order (depth first, so each
 // branch follows what feeds it) and grouped into sections, the network they're on or the internet, each drawn as a
-// tree. A stream's is its source device, then each exposure along the chain it publishes from (`layoutTopology`); a
-// show's is its output agent, its programme, then its forwards and previews (components/shows/show-topology.ts). What
+// tree. A stream's is its source device, then each exposure along the chain it publishes from (`layoutTopology`); an
+// output's is its agent, its programme, then its forwards and previews (components/outputs/output-detail.ts). What
 // a node reports decides its status, and a failing node's status flows downstream: whatever it feeds is affected.
 
-/** What a node is, which decides its icon: a stream's camera, server or cloud gateway; a show's programme or channel. */
+/**
+ * What a node is, which decides its icon: a stream's camera, server or cloud gateway; an output's programme or
+ * channel.
+ */
 export type NodeKind = 'camera' | 'server' | 'cloud' | 'programme' | 'twitch' | 'channel';
 
 /**
@@ -26,7 +29,7 @@ export interface TopologyNode {
   indent: number;
   /** Whether a recorder records it. */
   recording: boolean;
-  /** Whether it is switched off, as a show's forward can be: it stays in place, but nothing is sent to it. */
+  /** Whether it is switched off, as an output's forward can be: it stays in place, but nothing is sent to it. */
   off: boolean;
 }
 
@@ -167,7 +170,7 @@ function sectionsOf(nodes: TopologyNode[], networks: NetworkInput[]): TopologySe
   return sections;
 }
 
-/** What each status says beside a part's name: a delivery's, or a show's forward or preview. */
+/** What each status says beside a part's name: a delivery's, or an output's forward or preview. */
 export const statusLabels = {
   ok: 'Healthy',
   unknown: 'No reports',

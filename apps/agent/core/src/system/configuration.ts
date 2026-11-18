@@ -10,8 +10,8 @@ import { type DeviceConfiguration, useStudio } from '../studio.ts';
 //   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device): a section
 //      for each part of the agent it is to run, and none for those it isn't;
 //   2. has each part turn its section into its keys' specs: the `mediamtx` section into the gateway's `streams`,
-//      `metrics` and `relayTraffic` (gateway/configuration.ts), and the `obs` section into the output's `obs` and
-//      `channels` (output/configuration.ts);
+//      `metrics` and `relayTraffic` (gateway/configuration.ts), and the `obs` and `show` sections into the output's
+//      `obs`, `channels` and `show` (output/configuration.ts);
 //   3. hands them to converge (system.ts), where each key changes what runs only when its spec changed, and is
 //      finalised when its section is left out, or, for `relayTraffic` and `channels`, when it has nothing to read: no
 //      relay's stats, or no channel with any.
@@ -76,7 +76,7 @@ async function studioSpecs(configuration: DeviceConfiguration, studio: Client, l
     specs = { ...specs, ...gateway };
   }
   if (configuration.obs !== undefined) {
-    const output = await outputSpecs(configuration.obs, studio, leases.output);
+    const output = await outputSpecs(configuration.obs, configuration.show, studio, leases.output);
     specs = { ...specs, ...output };
   }
   return specs;

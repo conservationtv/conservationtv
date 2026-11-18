@@ -11,6 +11,7 @@ import { listDevices } from '../services/devices.ts';
 import { listGateways } from '../services/gateways.ts';
 import { listNetworks } from '../services/networks.ts';
 import { getOrganisation } from '../services/organisations.ts';
+import { listOutputs } from '../services/outputs.ts';
 import { listShows } from '../services/shows.ts';
 import { listStreams } from '../services/streams.ts';
 import { listSubjectStates } from '../services/subjects.ts';
@@ -27,11 +28,11 @@ import {
 const OrganisationParamsSchema = z.object({ id: z.uuid().describe('The organisation.') });
 export type OrganisationParams = z.output<typeof OrganisationParamsSchema>;
 
-// An organisation's whole topology in one read: everything its lists have, as they have it, beside what its broadcast
-// places, which only the broadcast's object knows (src/shows/host.tsx). For a view of how the signal runs from the
-// cameras through the broadcast to the channels, read whole and refreshed together, rather than as eight lists.
-// The broadcast's object does not run under row-level security, so the organisation is first read as the caller:
-// members of other organisations get `not_found`, as following the broadcast does (src/routes/broadcast.ts).
+// An organisation's whole topology in one read: everything its lists have, as they have it, beside what each show
+// places, which only the show's object knows (src/shows/host.tsx). For a view of how the signal runs from the cameras
+// through the shows and outputs to the channels, read whole and refreshed together, rather than as nine lists.
+// A show's object does not run under row-level security, so the organisation is first read as the caller: members of
+// other organisations get `not_found`, as following a show does (src/routes/shows.ts).
 
 export default new Hono().get(
   '/',
@@ -40,7 +41,7 @@ export default new Hono().get(
     ...operationVersion(1),
     summary: "Read an organisation's whole topology",
     description:
-      "Its networks, devices, gateways (the built-in ones first), streams, shows and channels, as their lists read them; every subject's current state, as `organisations.subjects.states.list` reads them; and the exposures its broadcast's composition places, in its order (none before it is composed), which every show follows for now.",
+      "Its networks, devices, gateways (the built-in ones first), streams, shows, outputs and channels, as their lists read them, each show with the exposures its composition places, in its order (`placed`, none before it is composed); and every subject's current state, as `organisations.subjects.states.list` reads them.",
     responses: {
       200: { description: 'The topology' },
       400: invalidRequest,
@@ -62,16 +63,31 @@ export default new Hono().get(
       const gateways = await listGateways(id, {});
       const streams = await listStreams(id);
       const shows = await listShows(id);
+      const outputs = await listOutputs(id);
       const channels = await listChannels(id);
       const states = await listSubjectStates(id, {});
-      return { networks, devices, gateways: [...builtinGateways, ...gateways], streams, shows, channels, states };
+      return {
+        networks,
+        devices,
+        gateways: [...builtinGateways, ...gateways],
+        streams,
+        shows,
+        outputs,
+        channels,
+        states
+      };
     });
-    // TODO: surface what the broadcast places somewhere other than its object (a table its composing writes, say), so
-    // this reads it in the transaction above, under row-level security, rather than asking the object after it.
+    // TODO: surface what a show places somewhere other than its object (a table its composing writes, say), so this
+    // reads it in the transaction above, under row-level security, rather than asking each object after it.
     const environment = useEnvironment();
-    const broadcast = environment.broadcasts.get(id);
-    const placed = await broadcast.placed();
+    const shows = await Promise.all(
+      topology.shows.map(async show => {
+        const broadcast = environment.broadcasts.get(show.id);
+        const placed = await broadcast.placed();
+        return { ...show, placed };
+      })
+    );
     c.header('Cache-Control', 'no-store');
-    return c.json({ ...topology, broadcast: { placed } }, 200);
+    return c.json({ ...topology, shows }, 200);
   }
 );
