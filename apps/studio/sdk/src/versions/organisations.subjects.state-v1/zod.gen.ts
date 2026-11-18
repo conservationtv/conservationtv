@@ -10,8 +10,30 @@ export const ErrorSchema = z.object({
 export const SubjectSchema = z.object({
     subjectId: z.string(),
     state: z.object({
-        health: z.string(),
-        state: z.record(z.string(), z.unknown()),
+        health: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]),
+        state: z.object({
+            findings: z.array(z.object({
+                reporterId: z.string(),
+                check: z.string(),
+                health: z.enum([
+                    'unknown',
+                    'healthy',
+                    'degraded',
+                    'unhealthy'
+                ]),
+                summary: z.string(),
+                evidence: z.array(z.object({
+                    seriesId: z.string(),
+                    dimensions: z.record(z.string(), z.string()),
+                    value: z.number()
+                }))
+            }))
+        }),
         freshness: z.enum(['fresh', 'stale']),
         observedAt: z.string(),
         expiresAt: z.string(),
@@ -22,8 +44,47 @@ export const SubjectSchema = z.object({
     reachable: z.boolean(),
     opinions: z.array(z.object({
         reporterId: z.string(),
-        health: z.string(),
-        state: z.record(z.string(), z.unknown()),
+        health: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]),
+        state: z.object({
+            findings: z.array(z.object({
+                check: z.string(),
+                health: z.enum([
+                    'unknown',
+                    'healthy',
+                    'degraded',
+                    'unhealthy'
+                ]),
+                summary: z.string(),
+                evidence: z.array(z.object({
+                    seriesId: z.string(),
+                    dimensions: z.record(z.string(), z.string()),
+                    value: z.number()
+                }))
+            })),
+            consulted: z.array(z.object({
+                metric: z.string(),
+                read: z.union([
+                    z.enum(['latest']),
+                    z.number()
+                ]),
+                seriesIds: z.array(z.string())
+            })),
+            since: z.string(),
+            pending: z.object({
+                health: z.enum([
+                    'unknown',
+                    'healthy',
+                    'degraded',
+                    'unhealthy'
+                ]),
+                since: z.string()
+            }).nullable()
+        }),
         freshness: z.enum(['fresh', 'stale']),
         observedAt: z.string(),
         expiresAt: z.string(),

@@ -401,10 +401,42 @@ minute, so reading a month of one series stays small. When retention is needed, 
 cluster's configuration before migrating.
 
 Not built yet: provisioning an agent or camera with its private key, rotating or revoking a device identity, the
-state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns
-`state: null`, stale, until it exists), failover from expired agent state, choosing a
+failover from expired agent state, choosing a
 publisher for an exposure that pins none (`deviceConfiguration.get` plans only the active agent's MediaMTX gateway and
 what is pinned to it), transcoding renditions a camera cannot produce, and sharing across organisations.
+
+### Health
+
+The state consumer (`src/health/`) judges each subject from what its reporters send, as `reporter_opinion` (one per
+reporter) and `subject_state` (all of them combined) rows, which `…/state` and `…/states` read. Health is `healthy`,
+`degraded` (working, but not as it should), `unhealthy` or `unknown` (nothing to judge by); whether a subject still
+reports at all is its freshness, evaluated when read, so it goes stale without a job.
+
+After a batch is stored, ingestion judges each subject its metrics are about, before responding: the request's
+connections close once the response is sent. A subject that fails to be judged is logged, and the batch stays stored.
+Each subject is judged in a trusted transaction of its own, under a lock on the subject, from what is stored rather
+than from the batch, so a failure is put right by the next batch, and a late batch, older than the opinion, is skipped.
+
+One evaluator per subject kind (`src/health/evaluators.ts`; a kind that isn't judged by its own reports, such as a
+stream, is `null`, and the studio rolls it up from its parts) forms the reporter's opinion in three steps:
+
+1. `context`: what the subject is meant to be doing, from the topology, such as whether a forward is switched on.
+2. `evaluate`: a verdict and its findings, from the reporter's metrics, which it reads as it needs them through a
+   client scoped to the subject, the reporter and the newest report's time (`src/health/metrics.ts`: `latest` and
+   `over(seconds)`, an hour back at most). Usually the worst of a few checks (`allOf` of `share`, `floor` and
+   `ceiling` in `src/health/checks.ts`), each judging the worst series of its metric, such as an exposure's worst
+   rendition, and citing it.
+3. `settle`: whether to take the verdict yet (`hysteresis`, by time: worse at once, better after a minute, unless the
+   evaluator says otherwise), so a subject doesn't flap.
+
+The opinion keeps its findings (`Ready 62% of the last 2 min`), what it read, since when it has held its health, and a
+change it is waiting to take. It holds for its evaluator's `ttl`, three report intervals. The subject's state is the
+worst of its fresh opinions, with their findings; with none fresh, it keeps the health it had, and is stale. The
+thresholds are a first opinion, to be tuned against what the fleet reports.
+
+Some checks judge a window's greatest sample rather than its mean, where any of it is the outage: one reconnection of
+a show's programme, however brief, holds it unhealthy until the reconnection leaves the two-minute window, and then
+for the minute recovery waits, even once it has moved to the offline segment.
 
 ## Encrypted columns
 

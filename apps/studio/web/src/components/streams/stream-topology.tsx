@@ -204,6 +204,7 @@ const Connectors: FC<ConnectorsProps> = ({ connectors, statuses }) => {
 const connectorStroke = {
   ok: 'stroke-border',
   unknown: 'stroke-border',
+  degraded: 'stroke-amber-500',
   failing: 'stroke-destructive',
   affected: 'stroke-destructive/40'
 } satisfies Record<NodeStatus, string>;
@@ -265,6 +266,7 @@ const kindIcons = {
 const statusDescriptions = {
   ok: 'healthy',
   unknown: 'not reported yet',
+  degraded: 'degraded',
   failing: 'failing',
   affected: 'affected by a failure upstream'
 } satisfies Record<NodeStatus, string>;

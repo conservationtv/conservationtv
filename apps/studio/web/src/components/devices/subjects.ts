@@ -52,5 +52,18 @@ export function healthOf(state: SubjectState | undefined): string {
   if (!state) return 'No reports';
   if (state.freshness === 'stale') return 'Gone quiet';
   if (state.health === 'unhealthy') return 'Unhealthy';
+  if (state.health === 'degraded') return 'Degraded';
+  if (state.health === 'unknown') return 'Nothing to judge';
   return 'Healthy';
+}
+
+/**
+ * Why the subject is as it is, a line for each of the state consumer's findings that isn't healthy: `Ready 62% of the
+ * last 2 min`. Undefined when there are none.
+ */
+export function reasonsOf(state: SubjectState | undefined): string | undefined {
+  const findings = state?.state.findings ?? [];
+  const reasons = findings.filter(finding => finding.health !== 'healthy').map(finding => finding.summary);
+  if (reasons.length === 0) return undefined;
+  return reasons.join('\n');
 }

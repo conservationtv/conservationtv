@@ -222,12 +222,15 @@ function showNodes({ show, outputAgent, channels, gateways }: ShowNodeInputs): U
 
 /**
  * The show's status. Without an output it isn't going out at all. Anything failing says so first; then it is going out
- * once every part that is on reports healthy. Otherwise nothing has reported yet.
+ * once every part that is on reports healthy, or degraded once each is healthy or degraded. Otherwise nothing has
+ * reported yet.
  */
 function livenessOf(show: Show, topology: Topology, statuses: Map<string, NodeStatus>): ShowLiveness {
   if (!show.output) return { status: 'unknown', label: 'No output' };
   const on = topology.nodes.filter(node => !node.off).map(node => statuses.get(node.id) ?? 'unknown');
   if (on.some(status => status === 'failing' || status === 'affected')) return { status: 'failing', label: 'Failing' };
   if (on.every(status => status === 'ok')) return { status: 'ok', label: 'Going out' };
+  if (on.every(status => status === 'ok' || status === 'degraded'))
+    return { status: 'degraded', label: 'Going out, degraded' };
   return { status: 'unknown', label: 'No reports' };
 }

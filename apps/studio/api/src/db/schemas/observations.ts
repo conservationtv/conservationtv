@@ -1,11 +1,13 @@
 import { withAccess } from '@conservationtv/umbrella';
 import { sql } from 'drizzle-orm';
 import { type AnyPgColumn, check, index, jsonb, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { HEALTHS, type Health, type OpinionState, type SubjectHealthState } from '../../health/health.ts';
 import type { Settings } from '../../topology/settings.ts';
 import { organisations } from './organisations.ts';
 import { observationAccess } from './report-access.ts';
 
-const healthCheck = (column: AnyPgColumn) => sql`${column} in ('healthy', 'unhealthy', 'unknown')`;
+const healthCheck = (column: AnyPgColumn) =>
+  sql`${column} in (${sql.raw(HEALTHS.map(health => `'${health}'`).join(', '))})`;
 
 /**
  * An accepted event report: the single logical event stream that the state consumer reads, in receipt order by its
@@ -35,8 +37,9 @@ export const observations = withAccess(
 );
 
 /**
- * One reporter's current opinion about one subject, maintained by the state consumer. Each expires on its own:
- * another reporter's evidence never renews it. Expiry leaves `health` as last observed.
+ * One reporter's current opinion about one subject, formed by the state consumer (src/health/consumer.ts) from the
+ * reporter's metrics, and why (`state`). Each expires on its own: another reporter's evidence never renews it. Expiry
+ * leaves `health` as last observed.
  */
 export const reporterOpinions = withAccess(
   pgTable(
@@ -47,8 +50,8 @@ export const reporterOpinions = withAccess(
         .references(() => organisations.id, { onDelete: 'cascade' }),
       subjectId: text('subject_id').notNull(),
       reporterId: text('reporter_id').notNull(),
-      health: text('health').notNull(),
-      state: jsonb('state').$type<Settings>().default({}).notNull(),
+      health: text('health').$type<Health>().notNull(),
+      state: jsonb('state').$type<OpinionState>().notNull(),
       observedAt: timestamp('observed_at').notNull(),
       expiresAt: timestamp('expires_at').notNull(),
       evidenceReportIds: uuid('evidence_report_ids').array().default([]).notNull()
@@ -59,7 +62,7 @@ export const reporterOpinions = withAccess(
 );
 
 /**
- * The state consumer's combined opinion about a subject, from its reporters' opinions. Freshness is evaluated against
+ * The state consumer's combined opinion about a subject, from its reporters' opinions, with their findings. Freshness is evaluated against
  * `expires_at` when read, so a subject goes stale (unreachable) without a new report, and keeps its last health.
  */
 export const subjectStates = withAccess(
@@ -70,8 +73,8 @@ export const subjectStates = withAccess(
         .notNull()
         .references(() => organisations.id, { onDelete: 'cascade' }),
       subjectId: text('subject_id').notNull(),
-      health: text('health').notNull(),
-      state: jsonb('state').$type<Settings>().default({}).notNull(),
+      health: text('health').$type<Health>().notNull(),
+      state: jsonb('state').$type<SubjectHealthState>().notNull(),
       observedAt: timestamp('observed_at').notNull(),
       expiresAt: timestamp('expires_at').notNull(),
       computedAt: timestamp('computed_at').notNull(),

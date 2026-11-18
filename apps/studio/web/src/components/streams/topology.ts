@@ -8,10 +8,10 @@
 export type NodeKind = 'camera' | 'server' | 'cloud' | 'programme' | 'twitch' | 'channel';
 
 /**
- * `ok`: reporting healthy. `unknown`: nothing reported yet. `failing`: reporting unhealthy, or gone quiet.
- * `affected`: fed by a failing node.
+ * `ok`: reporting healthy. `unknown`: nothing reported yet, or nothing to judge by. `degraded`: working, but not as it
+ * should, such as dropping frames. `failing`: reporting unhealthy, or gone quiet. `affected`: fed by a failing node.
  */
-export type NodeStatus = 'ok' | 'unknown' | 'failing' | 'affected';
+export type NodeStatus = 'ok' | 'unknown' | 'degraded' | 'failing' | 'affected';
 
 export interface TopologyNode {
   id: string;
@@ -171,6 +171,7 @@ function sectionsOf(nodes: TopologyNode[], networks: NetworkInput[]): TopologySe
 export const statusLabels = {
   ok: 'Healthy',
   unknown: 'No reports',
+  degraded: 'Degraded',
   failing: 'Failing',
   affected: 'Affected upstream'
 } satisfies Record<NodeStatus, string>;
@@ -185,10 +186,15 @@ export interface SubjectStatusInput {
 export function ownStatus(state: SubjectStatusInput | undefined): NodeStatus {
   if (!state) return 'unknown';
   if (state.freshness === 'stale' || state.health === 'unhealthy') return 'failing';
+  if (state.health === 'degraded') return 'degraded';
+  if (state.health === 'unknown') return 'unknown';
   return 'ok';
 }
 
-/** Every node's status, with failures flowing downstream: a node fed by a failing or affected one is affected. */
+/**
+ * Every node's status, with failures flowing downstream: a node fed by a failing or affected one is affected. A
+ * degraded node still feeds what it feeds, so it affects nothing.
+ */
 export function statusesOf(nodes: TopologyNode[], own: Map<string, NodeStatus>): Map<string, NodeStatus> {
   const statuses = new Map<string, NodeStatus>();
   for (const node of nodes) {
