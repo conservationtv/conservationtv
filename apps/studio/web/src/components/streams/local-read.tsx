@@ -38,7 +38,7 @@ import { useCopy } from '@/hooks/use-copy';
 import type { ProtocolRead, ProtocolReadable, ProtocolReadQueryOptions } from '@/queries/streams';
 
 // How a reader on the network reads something at its MediaMTX gateway: a stream's delivery, or a show's preview. Every
-// address needs a read token from the studio (apps/agent/core/src/runtimes/mediamtx/auth.ts): MediaMTX admits anyone else only with one, signed for that
+// address needs a read token from the studio (apps/agent/core/src/gateway/streams/auth.ts): MediaMTX admits anyone else only with one, signed for that
 // gateway, path and action. Each protocol is offered at the gateway's hostname and at the IP it points at (the agent's
 // preferred address), for a reader whose DNS doesn't resolve the name. Where the token can ride in the URL (`?jwt=`),
 // pressing a variant copies the whole working URL; WebRTC's WHEP is given as a URL and a bearer header, in a dialog.
