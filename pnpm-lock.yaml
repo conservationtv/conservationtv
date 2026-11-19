@@ -701,6 +701,9 @@ importers:
       '@conservationtv/controlplane-sdk':
         specifier: workspace:*
         version: link:../../controlplane/sdk
+      '@conservationtv/email':
+        specifier: workspace:*
+        version: link:../../../packages/email
       '@conservationtv/reports':
         specifier: workspace:*
         version: link:../../../packages/reports

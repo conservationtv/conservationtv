@@ -14,7 +14,8 @@ export default {
       broadcasts: { get: showId => ctx.exports.ShowHost.getByName(showId) },
       background: task => ctx.waitUntil(task),
       assets: env.ASSETS,
-      tracing: ctx.tracing
+      tracing: ctx.tracing,
+      mail: env.MAIL
     });
     try {
       return await withEnvironment(environment, () => app.fetch(request));

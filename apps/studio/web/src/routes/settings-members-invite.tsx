@@ -23,8 +23,7 @@ export const meta: Route.MetaFunction = () => [{ title: 'Invite someone · conse
 
 /**
  * Inviting someone by email address, as a dialog over the members page at `settings/members/invite`, closing back to
- * it once the invitation is made. Email isn't wired in to the API
- * yet (apps/studio/api/src/organisations/delivery.ts): the link is written to its log, and the dialog says so.
+ * it once the invitation is made. The API emails the link (apps/studio/api/src/organisations/delivery.tsx).
  */
 const SettingsMembersInviteRoute: FC = () => {
   const organisationId = useOrganisationId();
@@ -47,10 +46,7 @@ const SettingsMembersInviteRoute: FC = () => {
         >
           <DialogHeader>
             <DialogTitle>Invite someone</DialogTitle>
-            <DialogDescription>
-              They’re sent a link to join, open for 14 days. Until the studio sends email, the link is written to the
-              API server’s log instead.
-            </DialogDescription>
+            <DialogDescription>They’re emailed a link to join, open for 14 days.</DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-4">
             <form.Field name="email">

@@ -188,6 +188,16 @@ export function getMembership(organisationId: string, userId: string) {
   });
 }
 
+/** How the organisation's members see the user: their profile's display name, if it is visible. */
+export async function getDisplayName(organisationId: string, userId: string) {
+  const db = useDB();
+  const profile = await db.query.organisationProfiles.findFirst({
+    columns: { displayName: true },
+    where: { organisationId, userId }
+  });
+  return profile?.displayName;
+}
+
 /** Make the user a member: the membership, its profile and the member grant. `already_member` if they are one. */
 export async function addMember(organisationId: string, userId: string, payload: NewMember) {
   const db = useDB({ trusted: true });

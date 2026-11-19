@@ -11,7 +11,7 @@ import type { Variables } from '../env/config.ts';
 import { trustedTransaction } from '../db/transaction.ts';
 import { deleteSessionBrowsers } from '../services/browsers.ts';
 import type { Background } from '../env/env.ts';
-import type { OtpDelivery } from './otp.ts';
+import { OTP_LIFETIME_SECONDS, type OtpDelivery } from './otp.tsx';
 
 /** The device-flow clients this API issues sessions to. */
 const DEVICE_CLIENTS = new Set(['studio-cli']);
@@ -70,7 +70,7 @@ export function createAuth({ database, access, variables, deliverOtp, background
       }
     },
     plugins: [
-      emailOTP({ sendVerificationOTP: deliverOtp, disableSignUp: false }),
+      emailOTP({ sendVerificationOTP: deliverOtp, expiresIn: OTP_LIFETIME_SECONDS, disableSignUp: false }),
       // Passkeys are registered and used in the web app, and a browser only accepts a relying party that is the page's
       // own host or a parent of it, so the relying party is the web app's host rather than this API's.
       passkey({

@@ -35,6 +35,14 @@ const gatewayCertificateSecrets = process.env.GATEWAY_DOMAIN
   ? { CLOUDFLARE_API_TOKEN: bindings.secret(), ACME_ACCOUNT_KEY: bindings.secret() }
   : undefined;
 
+/**
+ * How emails reach people (src/email/mailer.ts): every stack sends them; local development logs them unless the
+ * environment says `EMAIL_DELIVERY=send`, which sends real email through the account's `MAIL` binding.
+ */
+const emailDelivery = stack ? 'send' : (process.env.EMAIL_DELIVERY ?? 'log');
+/** The address emails are sent from, on the zone's mail.conservation.tv sending subdomain. */
+const mailFrom = 'noreply@mail.conservation.tv';
+
 /** Each stack's own Worker: `studio-api` for prod, `studio-api-<stack>` otherwise. */
 const workerName = stack?.workerName ?? 'studio-api';
 
@@ -107,8 +115,19 @@ export default defineConfig({
       ACME_DIRECTORY_URL: bindings.text(
         process.env.ACME_DIRECTORY_URL ?? 'https://acme-staging-v02.api.letsencrypt.org/directory'
       ),
-      /** How sign-in codes reach people. Only `log` exists; a deployment needs an email provider first. */
-      OTP_DELIVERY: bindings.text('log')
+      /** How emails reach people: `send` through `MAIL`, or `log` to the Worker's log; see `emailDelivery`. */
+      EMAIL_DELIVERY: bindings.text(emailDelivery),
+      /** The address emails are sent from: the only one `MAIL` may send as. */
+      MAIL_FROM: bindings.text(mailFrom),
+      /**
+       * Cloudflare Email Sending from mail.conservation.tv, the zone's sending subdomain. Local development reaches the
+       * real one only when it sends (`EMAIL_DELIVERY=send`), which needs `CLOUDFLARE_ACCOUNT_ID` set to the zone's
+       * account when `cf` is signed in to more than one.
+       */
+      MAIL: bindings.sendEmail({
+        allowedSenderAddresses: [mailFrom],
+        dev: { remote: emailDelivery === 'send' }
+      })
     }
   }
 });

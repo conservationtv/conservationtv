@@ -18,13 +18,17 @@ import { defineConfig } from 'vite';
 // readable stack traces), and three dependencies the Worker never runs are swapped for stubs that throw if called
 // (src/stubs/): Kysely and Better Auth's Kysely adapter, which Better Auth imports though it uses the Drizzle adapter
 // here, and zod-to-json-schema, with zod's v3 layer behind it. Together they take the bundle from 3.9MB to 1.6MB.
+// Prettier is stubbed too: React Email's renderer imports it only to format HTML, which the emails never ask for. The
+// emails themselves (src/email/mailer.ts) are imported dynamically, so they are evaluated only when one is sent.
 export default defineConfig({
   plugins: [cloudflare()],
   resolve: {
     alias: {
       kysely: fileURLToPath(new URL('src/stubs/kysely.ts', import.meta.url)),
       '@better-auth/kysely-adapter': fileURLToPath(new URL('src/stubs/kysely-adapter.ts', import.meta.url)),
-      'zod-to-json-schema': fileURLToPath(new URL('src/stubs/zod-to-json-schema.ts', import.meta.url))
+      'zod-to-json-schema': fileURLToPath(new URL('src/stubs/zod-to-json-schema.ts', import.meta.url)),
+      'prettier/standalone': fileURLToPath(new URL('src/stubs/prettier.ts', import.meta.url)),
+      'prettier/plugins/html': fileURLToPath(new URL('src/stubs/prettier.ts', import.meta.url))
     }
   },
   publicDir: 'contracts',

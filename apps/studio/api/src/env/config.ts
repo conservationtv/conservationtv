@@ -4,9 +4,10 @@ import type { Principal } from '@conservationtv/umbrella';
 import { z } from 'zod';
 import { authorization } from '../access.ts';
 import { createAuth, type Auth } from '../auth/auth.ts';
-import { otpDelivery } from '../auth/otp.ts';
+import { otpDelivery } from '../auth/otp.tsx';
 import type { Cache } from '../cache/cache.ts';
 import { connectLazily } from '../db/client.ts';
+import { mailer, type MailBinding } from '../email/mailer.ts';
 import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
 import type { Broadcasts } from '../shows/broadcast.ts';
 import type { Tracer } from '../tracing/trace.ts';
@@ -54,8 +55,13 @@ export const config = {
   /** The Twitch application channels are connected through (src/channels/twitch.ts): its client ID, and its secret. */
   TWITCH_CLIENT_ID: z.string().min(1),
   TWITCH_CLIENT_SECRET: z.string().min(1),
-  /** Only logging exists; see src/auth/otp.ts. */
-  OTP_DELIVERY: z.literal('log'),
+  /**
+   * How emails (sign-in codes, invitations) reach people: `log` writes them to the Worker's log, for local development;
+   * `send` sends them through the `MAIL` binding. See src/email/mailer.ts.
+   */
+  EMAIL_DELIVERY: z.enum(['log', 'send']),
+  /** The address emails are sent from, the only one the `MAIL` binding may send as. */
+  MAIL_FROM: z.email(),
   BETTER_AUTH_SECRET: z.string().min(32),
   /** The master key for encrypted columns and blind indexes, as base64; its 32 bytes. See src/db/encrypted.ts. */
   FIELD_KEY: z
@@ -80,6 +86,8 @@ export interface Bindings {
   assets: StaticAssets;
   /** The runtime's tracing of this invocation: `ctx.tracing` (src/tracing/trace.ts). */
   tracing: Tracer;
+  /** Cloudflare Email Sending, from the mail.conservation.tv domain: the `MAIL` binding. */
+  mail: MailBinding;
 }
 
 /** Static assets as the `ASSETS` binding serves them: a request in, the matching file (or a 304) out. */
@@ -114,6 +122,9 @@ export const services = (variables: Variables, bindings: Bindings) => {
     };
   })();
 
+  /** Sends the studio's emails, or logs them, by `EMAIL_DELIVERY`. */
+  const mail = mailer(variables, bindings.mail);
+
   /** The owning role's connection. Request handlers use `session()` instead. */
   const admin = connectLazily(bindings.admin, 'admin');
   /** The application role's connection, enforced by row-level security. */
@@ -131,7 +142,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
           database,
           access: authorization.access(database),
           variables,
-          deliverOtp: otpDelivery(variables.OTP_DELIVERY),
+          deliverOtp: otpDelivery(mail),
           background: bindings.background
         })
       );
@@ -151,6 +162,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
     assets: bindings.assets,
     broadcasts: bindings.broadcasts,
     tracing: bindings.tracing,
+    mail,
     gatekeeper,
     gatewayCertificates,
     close: () => Promise.all([admin.close(), app.close()])
