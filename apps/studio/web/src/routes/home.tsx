@@ -46,7 +46,7 @@ const NoOrganisation: FC = () => {
   });
   const invitations = invitationsQuery.data;
   return (
-    <Page className="pt-20">
+    <Page className="pt-12 @2xl/page:pt-20">
       <Empty className="border">
         <EmptyHeader>
           <EmptyMedia variant="icon">

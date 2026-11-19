@@ -19,6 +19,7 @@ import {
 import type { Route } from './+types/channels';
 import { ChannelPlatformState } from '@/components/channels/platform-state';
 import { FormError } from '@/components/common/form-error';
+import { Page, PageDescription, PageHeader, PageHeading, PageTitle } from '@/components/common/page';
 import { channelListQueryOptions, useConnectTwitch, useDeleteChannel } from '@/queries/channels';
 import { showListQueryOptions } from '@/queries/shows';
 
@@ -44,14 +45,16 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
   });
   const { channels } = channelsQuery.data;
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-10 py-10">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-custom-21 font-semibold text-foreground">Channels</h1>
-        <p className="max-w-2xl text-custom-13 leading-(--leading-custom-body) text-custom-text-secondary">
-          Where shows go out to. A show’s output sends the broadcast to each channel the show forwards to, and keeps
-          them live with a holding picture while OBS restarts.
-        </p>
-      </header>
+    <Page>
+      <PageHeader>
+        <PageHeading>
+          <PageTitle>Channels</PageTitle>
+          <PageDescription>
+            Where shows go out to. A show’s output sends the broadcast to each channel the show forwards to, and keeps
+            them live with a holding picture while OBS restarts.
+          </PageDescription>
+        </PageHeading>
+      </PageHeader>
       <ConnectOutcome />
       <div className="flex flex-wrap items-center gap-2">
         <ConnectTwitchButton organisationId={organisationId} />
@@ -86,7 +89,7 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
       )}
       {/* A dialog routed over the page: adding an RTMP destination at `rtmp/new`. */}
       <Outlet />
-    </div>
+    </Page>
   );
 };
 
