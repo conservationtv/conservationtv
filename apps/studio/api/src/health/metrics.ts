@@ -38,6 +38,11 @@ export interface SubjectMetrics {
    * by samples, the last value and how many samples. A series with no points then is absent.
    */
   over(metric: MetricDefinition, seconds: number, dimensions?: MetricDimensions): Promise<Reading[]>;
+  /**
+   * The same reporter's metrics about another subject, as of the same time: the hop before this one, such as the
+   * exposure a publisher reads, or the programme a forward sends. Its reads are recorded with this subject's.
+   */
+  about(subjectId: string): SubjectMetrics;
 }
 
 /** A `SubjectMetrics` over the database, in the trusted transaction the caller is in, and what it was asked. */
@@ -49,12 +54,13 @@ export function subjectMetrics(scope: MetricScope) {
 
   /** Read once per evaluation, and record what was read. */
   const remember = (
+    about: string,
     metric: MetricDefinition,
     read: Consulted['read'],
     dimensions: MetricDimensions,
     load: () => Promise<Reading[]>
   ) => {
-    const key = JSON.stringify([metric.name, metric.unit, read, dimensions]);
+    const key = JSON.stringify([about, metric.name, metric.unit, read, dimensions]);
     const known = asked.get(key);
     if (known !== undefined) return known;
     const readings = inTurn(load).then(rows => {
@@ -65,14 +71,18 @@ export function subjectMetrics(scope: MetricScope) {
     return readings;
   };
 
-  const metrics: SubjectMetrics = {
+  const metricsAbout = (subjectId: string): SubjectMetrics => ({
     over: (metric, seconds, dimensions = {}) => {
       if (seconds <= 0 || seconds > MAX_LOOKBACK_SECONDS)
         throw new Error(`An evaluation reads at most ${MAX_LOOKBACK_SECONDS} seconds back, not ${seconds}`);
-      return remember(metric, seconds, dimensions, () => summarisedPoints(scope, metric, seconds, dimensions));
-    }
-  };
-  return { metrics, consulted };
+      const about = { ...scope, subjectId };
+      return remember(subjectId, metric, seconds, dimensions, () =>
+        summarisedPoints(about, metric, seconds, dimensions)
+      );
+    },
+    about: metricsAbout
+  });
+  return { metrics: metricsAbout(scope.subjectId), consulted };
 }
 
 /** The series of `metric` in scope with all of `dimensions`, whose points were observed after `from`. */

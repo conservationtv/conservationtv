@@ -3,9 +3,11 @@ import { cn } from "@conservationtv/ui/lib/utils"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
+    // A container (`@container/table`), so a column can drop out when the table is narrow
+    // (`@max-2xl/table:hidden` on its head and cells) rather than the whole table scrolling sideways.
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="@container/table relative w-full overflow-x-auto"
     >
       <table
         data-slot="table"

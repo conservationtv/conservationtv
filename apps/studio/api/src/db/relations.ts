@@ -199,5 +199,8 @@ export const relations = defineRelations(schema, r => ({
   },
   subjectStates: {
     organisation: r.one.organisations({ from: r.subjectStates.organisationId, to: r.organisations.id })
+  },
+  subjectTransitions: {
+    organisation: r.one.organisations({ from: r.subjectTransitions.organisationId, to: r.organisations.id })
   }
 }));

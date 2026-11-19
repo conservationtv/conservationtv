@@ -4,14 +4,17 @@ import { cn } from '@conservationtv/ui/lib/utils';
 // How something is doing, as a dot and a word. The statuses are the stream topology's
 // (src/components/streams/topology.ts): what a subject's reports say about it, or a failure upstream of it.
 
-export type Status = 'ok' | 'unknown' | 'degraded' | 'failing' | 'affected';
+export type Status = 'ok' | 'unknown' | 'degraded' | 'failing' | 'affected' | 'idle' | 'off';
 
 const dotColours = {
   ok: 'bg-emerald-500',
   unknown: 'bg-muted-foreground/40',
   degraded: 'bg-amber-500',
   failing: 'bg-destructive',
-  affected: 'bg-destructive/40'
+  affected: 'bg-destructive/40',
+  // Not judged: on with nothing asking for it, or switched off. Neither is a colour of its own, only quieter.
+  idle: 'bg-muted-foreground/70',
+  off: 'bg-muted-foreground/25'
 } satisfies Record<Status, string>;
 
 export interface StatusDotProps extends ComponentProps<'span'> {

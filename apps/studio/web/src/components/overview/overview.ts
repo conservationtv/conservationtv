@@ -6,7 +6,6 @@ import {
   programSubjectId
 } from '@/components/devices/subjects';
 import { isFed } from '@/components/streams/stream-page';
-import { ownStatus, type SubjectStatusInput } from '@/components/streams/topology';
 
 // The organisation's overview, worked out from its lists: what is live, what is failing, and what a new organisation
 // still has to set up. Pure derivation; the page reads the lists once, together.
@@ -55,8 +54,27 @@ interface ListedChannel {
   id: string;
   name: string;
 }
-interface ListedState extends SubjectStatusInput {
+/** A root cause, as the organisation's status names it (`organisations.status.get`). */
+interface StatusProblem {
   subjectId: string;
+  kind: string;
+  name: string;
+  status: 'failing' | 'degraded';
+  reasons: string[];
+  affects: AffectedGroup[];
+}
+interface AffectedGroup {
+  kind: string;
+  name: string;
+}
+interface StatusSubject {
+  freshness: 'fresh' | 'stale' | null;
+}
+/** The parts of the organisation's status the overview reads. */
+interface OrganisationStatus {
+  summary: string;
+  problems: StatusProblem[];
+  subjects: StatusSubject[];
 }
 interface Identified {
   id: string;
@@ -70,16 +88,24 @@ export interface OverviewInputs {
   gateways: ListedGateway[];
   outputs: ListedOutput[];
   channels: ListedChannel[];
-  states: ListedState[];
+  status: OrganisationStatus;
 }
 
-/** Something reporting unhealthy, or gone quiet: what it is, by name, and where to look at it. */
+/**
+ * A root cause of something not working: a subject failing or degraded itself, rather than fed by one that is. What it
+ * is, by name, why, what that affects, and where to look at it.
+ */
 export interface Problem {
   /** The subject it is filed under: unique among problems. */
   subjectId: string;
   name: string;
   /** What kind of thing it is, in a word or two. */
   kind: string;
+  status: 'failing' | 'degraded';
+  /** Why, as its state's findings say: `Reachable 0% of the last 2 min`. */
+  reasons: string[];
+  /** What it affects, by name: `Tortoise, Broadcast`. Empty when nothing downstream of it is. */
+  affects: string[];
   /** The page to open, relative to the organisation. */
   to: string;
 }
@@ -96,13 +122,15 @@ export interface Overview {
   /** The streams being fed, as the streams page counts them active (`isFed`). */
   fedStreams: ListedStream[];
   problems: Problem[];
+  /** The organisation's status in a sentence or two, as the API sums it up. */
+  summary: string;
   /** How many subjects have reported at all: with none, "nothing failing" would say more than is known. */
   reportingCount: number;
   setup: SetupStep[];
 }
 
 /** A problem's subject and what it is, before any is known to be failing. */
-type NamedSubject = [subjectId: string, subject: Omit<Problem, 'subjectId'>];
+type NamedSubject = [subjectId: string, subject: Pick<Problem, 'name' | 'kind' | 'to'>];
 
 function cameraSubject(camera: ListedCamera): NamedSubject {
   return [
@@ -153,17 +181,22 @@ function namedSubjects({ streams, cameras, agents, gateways, outputs, channels }
 }
 
 export function overviewOf(inputs: OverviewInputs): Overview {
-  const { streams, cameras, agents, networks, states } = inputs;
+  const { streams, cameras, agents, networks, status } = inputs;
   const named = namedSubjects(inputs);
-  // A failing subject that names nothing the organisation still has (a removed camera's last report) isn't a problem.
-  const problems = states.flatMap((state): Problem[] => {
-    const subject = named.get(state.subjectId);
-    return subject && ownStatus(state) === 'failing' ? [{ subjectId: state.subjectId, ...subject }] : [];
+  // The API names the root causes; here each only gains the page it is looked at on. One that has no page here (a
+  // channel, say) isn't listed.
+  const problems = status.problems.flatMap((problem): Problem[] => {
+    const subject = named.get(problem.subjectId);
+    if (!subject) return [];
+    const { subjectId, reasons } = problem;
+    const affects = [...new Set(problem.affects.map(group => group.name))].filter(name => name !== subject.name);
+    return [{ ...subject, subjectId, status: problem.status, reasons, affects }];
   });
   return {
     fedStreams: streams.filter(stream => isFed(stream, cameras)),
     problems,
-    reportingCount: states.length,
+    summary: status.summary,
+    reportingCount: status.subjects.filter(subject => subject.freshness !== null).length,
     setup: [
       { label: 'Add a network: the site your cameras are on', to: 'networks', done: networks.length > 0 },
       { label: 'Add an agent to it, and start it on a machine there', to: 'agents', done: agents.length > 0 },

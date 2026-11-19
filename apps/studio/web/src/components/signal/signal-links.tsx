@@ -20,7 +20,9 @@ const linkStroke = {
   unknown: 'stroke-custom-connection',
   degraded: 'stroke-custom-warning',
   failing: 'stroke-destructive',
-  affected: 'stroke-destructive/40'
+  affected: 'stroke-destructive/40',
+  idle: 'stroke-custom-connection',
+  off: 'stroke-custom-connection'
 } satisfies Record<SignalStatus, string>;
 
 interface DrawnWireProps {

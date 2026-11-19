@@ -13,8 +13,9 @@ export type NodeKind = 'camera' | 'server' | 'cloud' | 'programme' | 'twitch' | 
 /**
  * `ok`: reporting healthy. `unknown`: nothing reported yet, or nothing to judge by. `degraded`: working, but not as it
  * should, such as dropping frames. `failing`: reporting unhealthy, or gone quiet. `affected`: fed by a failing node.
+ * `idle`: on, but nothing is asking for it, so it isn't judged. `off`: switched off, so it isn't either.
  */
-export type NodeStatus = 'ok' | 'unknown' | 'degraded' | 'failing' | 'affected';
+export type NodeStatus = 'ok' | 'unknown' | 'degraded' | 'failing' | 'affected' | 'idle' | 'off';
 
 export interface TopologyNode {
   id: string;
@@ -176,19 +177,28 @@ export const statusLabels = {
   unknown: 'No reports',
   degraded: 'Degraded',
   failing: 'Failing',
-  affected: 'Affected upstream'
+  affected: 'Affected upstream',
+  idle: 'Idle',
+  off: 'Off'
 } satisfies Record<NodeStatus, string>;
 
 /** The parts of a subject's state that decide its status. */
 export interface SubjectStatusInput {
   health: string;
+  /** Whether it is meant to be working, so judged: `active`, or `idle` or `off`. */
+  activity: string;
   freshness: 'fresh' | 'stale';
 }
 
 /** A node's own status, from its subject's state: undefined when nothing has been derived for it yet. */
 export function ownStatus(state: SubjectStatusInput | undefined): NodeStatus {
   if (!state) return 'unknown';
-  if (state.freshness === 'stale' || state.health === 'unhealthy') return 'failing';
+  // As the organisation's status reads a state (`organisations.status.get`): what is switched off stays off, however
+  // long ago it said so; what has gone quiet is failing; what nothing asks for is idle.
+  if (state.activity === 'off') return 'off';
+  if (state.freshness === 'stale') return 'failing';
+  if (state.activity === 'idle') return 'idle';
+  if (state.health === 'unhealthy') return 'failing';
   if (state.health === 'degraded') return 'degraded';
   if (state.health === 'unknown') return 'unknown';
   return 'ok';
@@ -203,7 +213,9 @@ const DOWN = {
   unknown: false,
   degraded: false,
   failing: true,
-  affected: true
+  affected: true,
+  idle: false,
+  off: false
 } satisfies Record<NodeStatus, boolean>;
 
 /** Whether a node is going out: working, if not as it should. */
@@ -212,17 +224,11 @@ const GOING_OUT = {
   unknown: false,
   degraded: true,
   failing: false,
-  affected: false
+  affected: false,
+  // Ready to, the moment something asks.
+  idle: true,
+  off: false
 } satisfies Record<NodeStatus, boolean>;
-
-/** How much each status weighs in a whole stream's or show's: down outweighs not knowing, which outweighs degraded. */
-const OVERALL_WEIGHT = {
-  ok: 0,
-  degraded: 1,
-  unknown: 2,
-  affected: 3,
-  failing: 3
-} satisfies Record<NodeStatus, number>;
 
 export function isDown(status: NodeStatus): boolean {
   return DOWN[status];
@@ -235,14 +241,18 @@ export function isGoingOut(status: NodeStatus): boolean {
 /** A whole stream's or show's status: a failure upstream of a part is the whole's own failure. */
 export type OverallStatus = Exclude<NodeStatus, 'affected'>;
 
+/** What a whole is when no part of it is down, by the first of these any part is. */
+const OVERALL_ORDER = ['degraded', 'ok', 'idle', 'off'] as const satisfies OverallStatus[];
+
 /**
- * The status of a whole made of `statuses`: failing when any part is down; otherwise unknown when any part hasn't
- * reported; otherwise degraded when any part is; otherwise ok, as a whole of no parts is.
+ * The status of a whole made of `statuses`, as the organisation's status sums a group up (`organisations.status.get`):
+ * failing when any part is down; otherwise degraded when any is; otherwise ok when any is, whatever else is idle, off
+ * or yet to report; otherwise idle, then off, and at last unknown, as a whole of no parts is.
  */
 export function overallStatus(statuses: Iterable<NodeStatus>): OverallStatus {
-  let worst: NodeStatus = 'ok';
-  for (const status of statuses) if (OVERALL_WEIGHT[status] > OVERALL_WEIGHT[worst]) worst = status;
-  return worst === 'affected' ? 'failing' : worst;
+  const parts = [...statuses];
+  if (parts.some(isDown)) return 'failing';
+  return OVERALL_ORDER.find(status => parts.includes(status)) ?? 'unknown';
 }
 
 /**
@@ -257,7 +267,9 @@ export function statusesOf(nodes: TopologyNode[], own: Map<string, NodeStatus>):
     const self = own.get(node.id) ?? 'unknown';
     const parent = node.parentId ? statuses.get(node.parentId) : undefined;
     const upstreamDown = parent !== undefined && isDown(parent);
-    statuses.set(node.id, self === 'failing' ? 'failing' : upstreamDown ? 'affected' : self);
+    // Cut off from what feeds it, whatever it says of itself is a consequence, as the organisation's status has it
+    // (`organisations.status.get`): only what is switched off stays as it is.
+    statuses.set(node.id, upstreamDown && self !== 'off' ? 'affected' : self);
   }
   return statuses;
 }

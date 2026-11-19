@@ -65,3 +65,19 @@ export function useDeleteOrganisation(organisationId: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ['organisations', 'list'] })
   });
 }
+
+/**
+ * What the organisation's subjects' states add up to, as the API works it out from its topology
+ * (`organisations.status.get`): whether it is working, and the root causes if not, each with why and what it affects.
+ * Refreshed while the page is open, as what is healthy changes with nothing here changing it.
+ */
+export const organisationStatusQueryOptions = (organisationId: string) =>
+  queryOptions({
+    queryKey: ['organisations', organisationId, 'status'] as const,
+    queryFn: async () => {
+      const result = await api.organisations.status.get.v1({ id: organisationId });
+      if (result instanceof Error) throw result;
+      return result;
+    },
+    refetchInterval: 30_000
+  });

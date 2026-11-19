@@ -4,6 +4,7 @@ import type { AccountGetV1Output } from '../versions/account.get-v1/flat-params.
 import type { AccountUpdateV1Input, AccountUpdateV1Output } from '../versions/account.update-v1/flat-params.gen.js';
 import type { DeviceAddressReplaceV1Input, DeviceAddressReplaceV1Output } from '../versions/deviceAddresses.replace-v1/flat-params.gen.js';
 import type { DeviceConfigurationGetV1Output } from '../versions/deviceConfiguration.get-v1/flat-params.gen.js';
+import type { DeviceConfigurationGetV2Output } from '../versions/deviceConfiguration.get-v2/flat-params.gen.js';
 import type { GatewayEndpointReplaceV1Input, GatewayEndpointReplaceV1Output } from '../versions/gatewayEndpoints.replace-v1/flat-params.gen.js';
 import type { InvitationAcceptV1Input, InvitationAcceptV1Output } from '../versions/invitations.accept-v1/flat-params.gen.js';
 import type { InvitationDeclineV1Input, InvitationDeclineV1Output } from '../versions/invitations.decline-v1/flat-params.gen.js';
@@ -84,6 +85,7 @@ import type { ShowDeleteV1Input, ShowDeleteV1Output } from '../versions/organisa
 import type { ShowGetV1Input, ShowGetV1Output } from '../versions/organisations.shows.get-v1/flat-params.gen.js';
 import type { ShowListV1Input, ShowListV1Output } from '../versions/organisations.shows.list-v1/flat-params.gen.js';
 import type { ShowUpdateV1Input, ShowUpdateV1Output } from '../versions/organisations.shows.update-v1/flat-params.gen.js';
+import type { StatusGetV1Input, StatusGetV1Output } from '../versions/organisations.status.get-v1/flat-params.gen.js';
 import type { StreamCreateV1Input, StreamCreateV1Output } from '../versions/organisations.streams.create-v1/flat-params.gen.js';
 import type { StreamDeleteV1Input, StreamDeleteV1Output } from '../versions/organisations.streams.delete-v1/flat-params.gen.js';
 import type { ExposureConnectV1Input, ExposureConnectV1Output } from '../versions/organisations.streams.exposures.connect-v1/flat-params.gen.js';
@@ -102,8 +104,12 @@ import type { MetricListV1Input, MetricListV1Output } from '../versions/organisa
 import type { MetricQueryV1Input, MetricQueryV1Output } from '../versions/organisations.subjects.metrics.query-v1/flat-params.gen.js';
 import type { ObservationListV1Input, ObservationListV1Output } from '../versions/organisations.subjects.observations.list-v1/flat-params.gen.js';
 import type { SubjectStateV1Input, SubjectStateV1Output } from '../versions/organisations.subjects.state-v1/flat-params.gen.js';
+import type { SubjectStateV2Input, SubjectStateV2Output } from '../versions/organisations.subjects.state-v2/flat-params.gen.js';
 import type { StateListV1Input, StateListV1Output } from '../versions/organisations.subjects.states.list-v1/flat-params.gen.js';
+import type { StateListV2Input, StateListV2Output } from '../versions/organisations.subjects.states.list-v2/flat-params.gen.js';
+import type { TransitionListV1Input, TransitionListV1Output } from '../versions/organisations.subjects.transitions.list-v1/flat-params.gen.js';
 import type { TopologyGetV1Input, TopologyGetV1Output } from '../versions/organisations.topology.get-v1/flat-params.gen.js';
+import type { TopologyGetV2Input, TopologyGetV2Output } from '../versions/organisations.topology.get-v2/flat-params.gen.js';
 import type { OrganisationUpdateV1Input, OrganisationUpdateV1Output } from '../versions/organisations.update-v1/flat-params.gen.js';
 import type { ReportSubmitV1Input, ReportSubmitV1Output } from '../versions/reports.submit-v1/flat-params.gen.js';
 import type { WhoamiGetV1Output } from '../versions/whoami.get-v1/flat-params.gen.js';
@@ -575,6 +581,23 @@ export class Client extends ClientCore {
                         method: 'GET',
                         url: '/organisations/{id}/subjects/states',
                         fields: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }]
+                    }), v2: operation<StateListV2Output, StateListV2Input>({
+                        method: 'GET',
+                        url: '/organisations/{id}/subjects/states',
+                        fields: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }]
+                    }) })
+            },
+            transitions: {
+                list: this.versioned('organisations.subjects.transitions.list', { v1: operation<TransitionListV1Output, TransitionListV1Input>({
+                        method: 'GET',
+                        url: '/organisations/{id}/subjects/transitions',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'query', key: 'limit' },
+                            { in: 'query', key: 'before' },
+                            { in: 'query', key: 'subjectId' },
+                            { in: 'query', key: 'beforeId' }
+                        ]
                     }) })
             },
             metrics: {
@@ -616,6 +639,10 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/subjects/{subjectId}/state',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'subjectId' }]
+                }), v2: operation<SubjectStateV2Output, SubjectStateV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/subjects/{subjectId}/state',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'subjectId' }]
                 }) }),
             observations: {
                 list: this.versioned('organisations.subjects.observations.list', { v1: operation<ObservationListV1Output, ObservationListV1Input>({
@@ -646,6 +673,17 @@ export class Client extends ClientCore {
             get: this.versioned('organisations.topology.get', { v1: operation<TopologyGetV1Output, TopologyGetV1Input>({
                     method: 'GET',
                     url: '/organisations/{id}/topology',
+                    fields: [{ in: 'path', key: 'id' }]
+                }), v2: operation<TopologyGetV2Output, TopologyGetV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/topology',
+                    fields: [{ in: 'path', key: 'id' }]
+                }) })
+        },
+        status: {
+            get: this.versioned('organisations.status.get', { v1: operation<StatusGetV1Output, StatusGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/status',
                     fields: [{ in: 'path', key: 'id' }]
                 }) })
         },
@@ -925,7 +963,7 @@ export class Client extends ClientCore {
         create: this.versioned('irohSessions.create', { v1: operation<IrohSessionCreateV1Output>({ method: 'POST', url: '/iroh-sessions' }) })
     };
     readonly deviceConfiguration = {
-        get: this.versioned('deviceConfiguration.get', { v1: operation<DeviceConfigurationGetV1Output>({ method: 'GET', url: '/device-configuration' }) })
+        get: this.versioned('deviceConfiguration.get', { v1: operation<DeviceConfigurationGetV1Output>({ method: 'GET', url: '/device-configuration' }), v2: operation<DeviceConfigurationGetV2Output>({ method: 'GET', url: '/device-configuration' }) })
     };
     readonly deviceAddresses = {
         replace: this.versioned('deviceAddresses.replace', { v1: operation<DeviceAddressReplaceV1Output, DeviceAddressReplaceV1Input>({

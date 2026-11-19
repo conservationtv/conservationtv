@@ -280,7 +280,9 @@ const barColours = {
   degraded: 'bg-custom-warning',
   failing: 'bg-destructive',
   affected: 'bg-destructive/40',
-  unknown: 'bg-muted-foreground/40'
+  unknown: 'bg-muted-foreground/40',
+  idle: 'bg-muted-foreground/70',
+  off: 'bg-muted-foreground/25'
 } satisfies Record<SignalStatus, string>;
 
 /** Health as three rising bars: how well a channel is receiving, not just whether. */

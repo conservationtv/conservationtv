@@ -2,7 +2,9 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import { gatewaySpecs, type GatewayLeases, type GatewaySpecs } from '../gateway/index.ts';
+import type { ProbesSpec } from '../cameras/index.ts';
 import { outputSpecs, type OutputLeases, type OutputSpecs } from '../output/index.ts';
+import { REPORT_INTERVAL_MS } from '../reporting/sampler.ts';
 import { type DeviceConfiguration, useStudio } from '../studio.ts';
 
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
@@ -10,8 +12,8 @@ import { type DeviceConfiguration, useStudio } from '../studio.ts';
 //   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device): a section
 //      for each part of the agent it is to run, and none for those it isn't;
 //   2. has each part turn its section into its keys' specs: the `mediamtx` section into the gateway's `streams`,
-//      `metrics` and `relayTraffic` (gateway/configuration.ts), and the `obs` and `show` sections into the output's
-//      `obs`, `channels` and `show` (output/configuration.ts);
+//      `metrics` and `relayTraffic` (gateway/configuration.ts), and its cameras into `probes`; and the `obs` and `show`
+//      sections into the output's `obs`, `channels` and `show` (output/configuration.ts);
 //   3. hands them to converge (system.ts), where each key changes what runs only when its spec changed, and is
 //      finalised when its section is left out, or, for `relayTraffic` and `channels`, when it has nothing to read: no
 //      relay's stats, or no channel with any.
@@ -27,7 +29,12 @@ const INTERVAL_MS = 30_000;
 const logger = getLogger(['agent', 'studio']);
 
 /** The specs the configuration gives each key: absent for a runtime it leaves out. */
-export type StudioSpecs = Partial<GatewaySpecs & OutputSpecs>;
+export type StudioSpecs = Partial<GatewaySpecs & OutputSpecs & ProbeSpecs>;
+
+/** The `probes` key's spec. */
+interface ProbeSpecs {
+  probes: ProbesSpec;
+}
 
 /** What converge is told: each key's spec, or that it is absent. */
 export type ApplyStudioSpecs = (specs: StudioSpecs) => Promise<void>;
@@ -60,12 +67,21 @@ export async function watchStudioConfiguration(signal: AbortSignal, apply: Apply
   }
 }
 
-/** One answer from the studio API, signed as the agent's device. */
-async function askConfiguration(studio: Client) {
+/**
+ * One answer from the studio API, signed as the agent's device: at version 2, which says what to probe, where the API
+ * serves it, and otherwise at version 1, as an API from before cameras were probed gives it, with nothing to probe.
+ */
+async function askConfiguration(studio: Client): Promise<DeviceConfiguration> {
   await studio.handshake();
+  if (studio.deviceConfiguration.get.version === 2) {
+    const configuration = await studio.deviceConfiguration.get.v2();
+    if (configuration instanceof Error) throw configuration;
+    return configuration;
+  }
   const configuration = await studio.deviceConfiguration.get.v1();
   if (configuration instanceof Error) throw configuration;
-  return configuration;
+  const { mediamtx } = configuration;
+  return { ...configuration, mediamtx: mediamtx && { ...mediamtx, probes: [] } };
 }
 
 /** The spec of each key the configuration has a section for. */
@@ -74,6 +90,9 @@ async function studioSpecs(configuration: DeviceConfiguration, studio: Client, l
   if (configuration.mediamtx !== undefined) {
     const gateway = await gatewaySpecs(configuration.mediamtx, studio, leases.gateway);
     specs = { ...specs, ...gateway };
+    // With no camera to probe the key is left out, and its runtime finalised.
+    const cameras = configuration.mediamtx.probes;
+    if (cameras.length > 0) specs = { ...specs, probes: { intervalMs: REPORT_INTERVAL_MS, cameras } };
   }
   if (configuration.obs !== undefined) {
     const output = await outputSpecs(configuration.obs, configuration.show, studio, leases.output);

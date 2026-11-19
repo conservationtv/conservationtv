@@ -131,6 +131,32 @@ export type System = {
             attempt: number;
         };
     };
+    probes: {
+        runtime: {
+            running: boolean;
+            pending: number;
+            submitted: number;
+            lastSubmittedAt: string | null;
+            lastError: string | null;
+            cameras: number;
+            unreachable: {
+                [key: string]: string;
+            };
+            lastProbedAt: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
     obs: {
         runtime: {
             version: string | null;
@@ -210,7 +236,7 @@ export type System = {
     show: {
         runtime: {
             show: string | null;
-            phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
+            phase: 'idle' | 'error' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
         };
         apply: {
             state: 'applying';
@@ -353,6 +379,13 @@ export type GetSystemSpecResponses = {
             exposures: Array<{
                 exposureId: string;
                 prefix: string;
+            }>;
+        };
+        probes?: {
+            intervalMs: number;
+            cameras: Array<{
+                subjectId: string;
+                url: string;
             }>;
         };
         obs?: {

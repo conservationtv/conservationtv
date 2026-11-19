@@ -1,4 +1,5 @@
-import { programSubject } from '@conservationtv/reports';
+import { deviceSubject, programSubject } from '@conservationtv/reports';
+import { cameraOrigin } from '../../cameras/drivers.ts';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
 import { trustedTransaction } from '../../db/transaction.ts';
 import { ensureGatewayTls } from '../../gateways/certificates.ts';
@@ -21,10 +22,11 @@ import {
   selectStreams
 } from './helpers.ts';
 import type {
-  MediamtxConfiguration,
   ObsConfiguration,
-  PlannedConfiguration,
+  ProbingConfiguration,
+  ProbingMediamtxConfiguration,
   PlannedPath,
+  PlannedProbe,
   PlannedPublisher,
   ShowConfiguration
 } from './types.ts';
@@ -53,7 +55,7 @@ export type * from './types.ts';
 // (src/gateways/certificates.ts): pointed at the agent's preferred address, and issued or renewed when due.
 
 /** The signing device's configuration, read by trusted code: a device principal cannot read the topology. */
-export async function planConfiguration(device: AuthenticatedDevice): Promise<PlannedConfiguration> {
+export async function planConfiguration(device: AuthenticatedDevice): Promise<ProbingConfiguration> {
   if (device.kind !== 'agent') {
     throw new Error('Currently planning configuration is only supported for agents.');
   }
@@ -70,7 +72,7 @@ const PREVIEW_RENDITION: Rendition = 'default';
  * The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway: its streams' paths and
  * publishers, and a path for each output's preview delivered to its gateway.
  */
-async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfiguration | undefined> {
+async function planMediamtx(device: AuthenticatedDevice): Promise<ProbingMediamtxConfiguration | undefined> {
   const planned = await trustedTransaction(
     async () => {
       const gatewayId = await selectLocalGateway(device);
@@ -173,7 +175,7 @@ interface PlanningInput {
   streams: StreamInput[];
 }
 
-function planActiveAgent(input: PlanningInput): MediamtxConfiguration {
+function planActiveAgent(input: PlanningInput): ProbingMediamtxConfiguration {
   const paths: PlannedPath[] = [];
   const publishers: PlannedPublisher[] = [];
   const auth = mediamtxAuth(input.gatewayId);
@@ -257,7 +259,25 @@ function planActiveAgent(input: PlanningInput): MediamtxConfiguration {
   }
 
   const stats = statsGateways(input, publishers).map(gatewayId => ({ id: input.organisationId, gatewayId }));
-  return { gatewayId: input.gatewayId, auth, paths, publishers, stats };
+  return { gatewayId: input.gatewayId, auth, paths, publishers, stats, probes: cameraProbes(input.streams) };
+}
+
+/**
+ * Each camera the agent's streams come from, to probe as it is itself: its `default` rendition, which every driver
+ * has. Only while it is enabled; each once, however many streams it is the source of.
+ */
+function cameraProbes(streams: StreamInput[]): PlannedProbe[] {
+  const probes = new Map<string, PlannedProbe>();
+  for (const stream of streams) {
+    // Only a stream whose source is a camera that is switched on, and has a rendition of its own to ask for.
+    const camera = stream.sourceDevice?.camera;
+    if (stream.sourceDeviceId === null || !camera || camera.state !== 'enabled') continue;
+    const url = cameraOrigin(camera.settings, camera.credentials ?? undefined, 'default');
+    if (url === undefined) continue;
+    const subjectId = deviceSubject(stream.sourceDeviceId);
+    probes.set(subjectId, { subjectId, url });
+  }
+  return [...probes.values()];
 }
 
 /** The gateways the agent publishes to whose relays publish the traffic stats of what they carry, each once. */

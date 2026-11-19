@@ -45,7 +45,7 @@ export const subjectStateListQueryOptions = (organisationId: string) =>
   queryOptions({
     queryKey: ['subjects', organisationId, 'states'] as const,
     queryFn: async () => {
-      const result = await api.organisations.subjects.states.list.v1({ id: organisationId });
+      const result = await api.organisations.subjects.states.list.v2({ id: organisationId });
       if (result instanceof Error) throw result;
       return result.states;
     },

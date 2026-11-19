@@ -27,7 +27,7 @@ import {
   ItemTitle
 } from '@conservationtv/ui/components/item';
 import { Skeleton } from '@conservationtv/ui/components/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@conservationtv/ui/components/tabs';
+import { Tabs, TabsContent } from '@conservationtv/ui/components/tabs';
 import { Link } from 'react-router';
 import { parseAsBoolean, useQueryState } from 'nuqs';
 
@@ -77,6 +77,13 @@ import {
   RemovePreviewDialog
 } from '@/components/outputs/output-parts';
 import { OutputTraffic } from '@/components/outputs/output-traffic';
+import {
+  PageTabsActionLabel,
+  PageTabsActions,
+  PageTabsBar,
+  PageTabsList,
+  PageTabsTrigger
+} from '@/components/common/page-tabs';
 import { BroadcastStage } from '@/components/shows/broadcast-stage';
 import { DeliveryRow } from '@/components/streams/delivery-list';
 import { LocalRead } from '@/components/streams/local-read';
@@ -218,31 +225,27 @@ const OutputTabs: FC<OutputTabsProps> = ({ detail, choices }) => {
   const [watching, setWatching] = useQueryState('watch', watchParser);
   return (
     <Tabs {...tabs} className="gap-8">
-      <div className="flex items-center justify-between gap-4 border-b border-border pb-1">
-        <TabsList variant="line" className="justify-start">
-          <TabsTrigger value="configuration" className="flex-none px-2 text-custom-13">
-            Configuration
-          </TabsTrigger>
-          <TabsTrigger value="previews" className="flex-none px-2 text-custom-13">
+      <PageTabsBar>
+        <PageTabsList>
+          <PageTabsTrigger value="configuration">Configuration</PageTabsTrigger>
+          <PageTabsTrigger value="previews">
             Previews
             {detail.previews.length > 0 && (
               <span className="text-muted-foreground tabular-nums">{detail.previews.length}</span>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="recording" className="flex-none px-2 text-custom-13">
-            Recording
-          </TabsTrigger>
-          <TabsTrigger value="traffic" className="flex-none px-2 text-custom-13">
-            Traffic
-          </TabsTrigger>
-        </TabsList>
+          </PageTabsTrigger>
+          <PageTabsTrigger value="recording">Recording</PageTabsTrigger>
+          <PageTabsTrigger value="traffic">Traffic</PageTabsTrigger>
+        </PageTabsList>
         {show && (
-          <Button variant="ghost" size="sm" aria-pressed={watching} onClick={() => setWatching(!watching)}>
-            {watching ? <XIcon /> : <PlayIcon />}
-            {watching ? 'Close show' : 'Watch show'}
-          </Button>
+          <PageTabsActions>
+            <Button variant="ghost" size="sm" aria-pressed={watching} onClick={() => setWatching(!watching)}>
+              {watching ? <XIcon /> : <PlayIcon />}
+              <PageTabsActionLabel>{watching ? 'Close show' : 'Watch show'}</PageTabsActionLabel>
+            </Button>
+          </PageTabsActions>
         )}
-      </div>
+      </PageTabsBar>
       {show && watching && (
         <div
           ref={element => element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })}

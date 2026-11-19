@@ -34,6 +34,26 @@ const maps = new Set([
   'security'
 ]);
 const literals = new Set(['const', 'enum', 'default']);
+/**
+ * Keywords whose list is a set: the order its members are written in means nothing on the wire, and follows the order
+ * TypeScript happened to meet their types in, which an unrelated change elsewhere in the program can alter.
+ */
+const sets = new Set(['enum', 'required']);
+
+/** A set's members in one order, whatever order they were written in. */
+function ordered(members: Json[]): Json[] {
+  const keyed = members.map(member => [JSON.stringify(member), member] as const);
+  return keyed.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, member]) => member);
+}
+
+/**
+ * `value` with its members in one order when it is the list of a set keyword of a schema, rather than a property or
+ * literal data of that name; otherwise as it is.
+ */
+function unordered(key: string, value: Json, state: CanonicalState): Json {
+  const set = !state.mapKeys && !state.literal && sets.has(key) && Array.isArray(value);
+  return set ? ordered(value) : value;
+}
 
 interface CanonicalState {
   references: Set<string>;
@@ -86,7 +106,7 @@ class ContractCanonicalizer {
         .filter(([key]) => state.mapKeys || state.literal || !prose.has(key))
         .map(([key, value]) => [
           key,
-          this.canonical(value, {
+          this.canonical(unordered(key, value, state), {
             references: resolved.state.references,
             mapKeys: !state.mapKeys && maps.has(key),
             literal: state.literal || (!state.mapKeys && literals.has(key))

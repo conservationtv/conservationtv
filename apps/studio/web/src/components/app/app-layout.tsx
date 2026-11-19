@@ -1,15 +1,15 @@
 import { Suspense, type ComponentProps, type FC } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { PushPinSimpleIcon, SignOutIcon, UserCircleGearIcon } from '@phosphor-icons/react';
-import { NavLink, Outlet, useNavigate } from 'react-router';
+import { NavLink, Outlet } from 'react-router';
 import { Spinner } from '@conservationtv/ui/components/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@conservationtv/ui/components/tooltip';
 import { cn } from '@conservationtv/ui/lib/utils';
 
 import { PinIcon } from '@/components/app/pins';
 import { BrandMark } from '@/components/brand/brand-mark';
+import { useSignOutOfStudio } from '@/hooks/use-sign-out-of-studio';
 import { appHomePath } from '@/lib/route-guards';
-import { useSignOut } from '@/queries/session';
 import { pinListQueryOptions } from '@/queries/this-device';
 
 const railItemClassName =
@@ -17,12 +17,13 @@ const railItemClassName =
 
 /**
  * The app: a narrow rail down the left (home, the pages pinned on this browser, the account and signing out) beside
- * the pane every page under it renders in.
+ * the pane every page under it renders in, framed on the canvas. On a phone there's no room for the rail: the pane
+ * fills the screen, and the layout inside it puts an AppBar over its page with what the rail holds.
  */
 export const AppLayout: FC = () => {
   return (
-    <div className="flex h-dvh overflow-hidden bg-linear-to-b from-custom-canvas-top to-custom-canvas-bottom py-1.5 pr-1.5">
-      <aside className="flex min-h-0 w-12 shrink-0 flex-col overflow-y-auto px-2 py-2">
+    <div className="flex h-dvh overflow-hidden bg-linear-to-b from-custom-canvas-top to-custom-canvas-bottom md:py-1.5 md:pr-1.5">
+      <aside className="hidden min-h-0 w-12 shrink-0 flex-col overflow-y-auto px-2 py-2 md:flex">
         <nav aria-label="Main navigation" className="flex flex-1 flex-col items-center gap-3">
           <Tooltip>
             <TooltipTrigger render={<NavLink to={appHomePath} end className={railItemClassName} />}>
@@ -48,7 +49,7 @@ export const AppLayout: FC = () => {
         </nav>
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background shadow-[0_0_12px_0_var(--custom-surface-shadow)]">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:rounded-lg md:border md:border-border md:shadow-[0_0_12px_0_var(--custom-surface-shadow)]">
         {/* Route pages fill this pane and own their scrolling regions. The rail stays while they load. */}
         <Suspense fallback={<Spinner className="m-auto size-6 text-muted-foreground" />}>
           <Outlet />
@@ -80,17 +81,16 @@ const RailPins: FC = () => {
 
 /** Signs out, then leaves for the sign-in page: everything under the app needs a session. */
 const SignOutButton: FC<ComponentProps<'button'>> = ({ className, ...props }) => {
-  const navigate = useNavigate();
-  const signOut = useSignOut();
+  const signOut = useSignOutOfStudio();
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <button
             type="button"
-            className={cn(className, signOut.isPending && 'opacity-50')}
-            disabled={signOut.isPending}
-            onClick={() => signOut.mutate(undefined, { onSuccess: () => navigate('/sign-in', { replace: true }) })}
+            className={cn(className, signOut.pending && 'opacity-50')}
+            disabled={signOut.pending}
+            onClick={signOut.signOut}
             {...props}
           />
         }

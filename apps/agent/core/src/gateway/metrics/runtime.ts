@@ -3,6 +3,7 @@ import { map, type Observable } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../../config.ts';
 import { type PathReading, type Read, publisherRates, readMetricsPage } from '../../mediamtx/metrics-page.ts';
+import { type Journal, useJournal } from '../../reporting/journal.ts';
 import { type MetricReporter, useMetricReporter } from '../../reporting/reporter.ts';
 import {
   addRate,
@@ -26,6 +27,10 @@ import { type PathIndex, PathAttributionsSchema, pathIndexOf } from '../streams/
 // loopback (streams/builders/publishers.ts), all of it for as long as they run, so those readers' bytes are its publisher
 // egress, and everything else it sends, to any other reader, its LAN egress. What actually reaches the relay is the
 // relay's to count (relay-traffic/). Per-session and per-protocol samples are not shipped.
+//
+// A path is pulled from its source only while it is read, so whether it is ready means nothing without whether it was
+// read: `path.read` says so, sample by sample. A publisher's connection coming or going between two reads is an event
+// about the path's exposure (`publisher.connected`, `publisher.dropped`), since its rate alone doesn't say it restarted.
 //
 // Reading the page, and the rates between two reads, are shared with the program MediaMTX's reports
 // (mediamtx/metrics-page.ts).
@@ -93,6 +98,7 @@ function addRates(
 const PATH_METRICS = [
   pathMetrics.ready,
   pathMetrics.readers,
+  pathMetrics.read,
   pathMetrics.ingestBitrate,
   pathMetrics.lanEgressBitrate,
   pathMetrics.publisherEgressBitrate,
@@ -122,6 +128,7 @@ export class MediamtxMetricsRuntime {
   readonly status$: Observable<MetricsStatus>;
   private readonly url: string;
   private readonly reporter: MetricReporter;
+  private readonly journal: Journal;
   private readonly sampler: Sampler<MetricsReads>;
   private intervalMs = 0;
   /** The last read, for the rates the next one moves at. */
@@ -136,6 +143,7 @@ export class MediamtxMetricsRuntime {
   ) {
     this.url = url;
     this.reporter = useMetricReporter();
+    this.journal = useJournal();
     this.sampler = new Sampler<MetricsReads>({
       stopped: { intervalMs: null, subjectId: null, lastScrapedAt: null, samples: 0 },
       sample: samples => this.sample(samples),
@@ -195,10 +203,26 @@ export class MediamtxMetricsRuntime {
       // A path in the read samples its state and readers, and its rates when the previous read had it too.
       samples.add(path, pathMetrics.ready, reading.ready > 0 ? 1 : 0);
       samples.add(path, pathMetrics.readers, reading.readers);
+      samples.add(path, pathMetrics.read, reading.readers > 0 ? 1 : 0);
       const before = previous?.paths.get(path);
       if (since !== undefined && before !== undefined) addRates(samples, path, reading, before, since);
     }
+    if (previous !== undefined) this.journalPublishers(read, previous);
     this.previous = read;
+  }
+
+  /** Say which publishers' connections came or went since the previous read, each about its path's exposure. */
+  private journalPublishers(read: Read, previous: Read): void {
+    for (const [id, { path }] of read.publishers)
+      if (!previous.publishers.has(id)) this.journalPublisher('publisher.connected', path);
+    for (const [id, { path }] of previous.publishers)
+      if (!read.publishers.has(id)) this.journalPublisher('publisher.dropped', path);
+  }
+
+  private journalPublisher(type: string, path: string): void {
+    const target = this.targetOf(path);
+    if (target === undefined) return;
+    this.journal.event(type, { path, ...target.dimensions }, target.subjectId);
   }
 
   /** A path the spec names is reported about its exposure; with no spec paths, any is about the device. */

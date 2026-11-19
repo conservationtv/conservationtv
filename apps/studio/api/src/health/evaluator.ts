@@ -1,4 +1,5 @@
 import {
+  type Activity,
   type Consulted,
   type Finding,
   type Health,
@@ -36,6 +37,8 @@ export interface Subject {
 /** A reporter's opinion of a subject as last saved, if it has one. */
 export interface PreviousOpinion {
   health: Health;
+  /** `active` for an opinion saved before activity was kept. */
+  activity?: Activity;
   state: OpinionState;
   observedAt: Date;
 }
@@ -45,11 +48,27 @@ export interface EvaluationInput<Context> {
   metrics: SubjectMetrics;
   context: Context;
   previous: PreviousOpinion | undefined;
+  /**
+   * The most seconds back to judge, when fewer than a check would: set while the subject is recovering, so that what
+   * went wrong before it came back doesn't hold it down for a whole window (`formOpinion`). Read with `windowOf`.
+   */
+  window?: number;
 }
 
-/** What an evaluation concluded, and why. */
+/** A window to judge over: at most `window` seconds, when the evaluation has one. */
+interface Windowed {
+  window?: number;
+}
+
+/** The seconds back a check judges: all it asks for, or fewer while the subject is recovering. */
+export function windowOf({ window }: Windowed, over: number): number {
+  return window === undefined ? over : Math.min(over, window);
+}
+
+/** What an evaluation concluded, and why. Only what is `active` is judged: otherwise its health is `unknown`. */
 export interface Verdict {
   health: Health;
+  activity: Activity;
   findings: Finding[];
 }
 
@@ -86,6 +105,8 @@ export interface Judging<Context> {
   /** Undefined when the subject is no longer in the topology. */
   context: Context | undefined;
   previous: PreviousOpinion | undefined;
+  /** As `EvaluationInput`'s. */
+  window?: number;
 }
 
 /**
@@ -102,6 +123,7 @@ export interface Evaluator<Context = unknown> {
 /** A reporter's opinion of a subject, as it is saved. */
 export interface Opinion {
   health: Health;
+  activity: Activity;
   state: OpinionState;
   observedAt: Date;
   expiresAt: Date;
@@ -114,8 +136,16 @@ export async function formOpinion<Context>(
   consulted: Consulted[]
 ): Promise<Opinion> {
   const { subject, previous } = judging;
-  const verdict = await evaluator.judge(judging);
-  const settled = evaluator.settle(verdict, previous, subject.at);
+  // Going idle or off, or coming back, is a fact about the subject, not a judgement that might flap: taken at once,
+  // and what follows is settled as a first opinion. So is a recovery: it is judged over a short window of its own,
+  // which is the time it has held for.
+  const wasActive = previous !== undefined && (previous.activity ?? 'active') === 'active';
+  const recovered = wasActive ? await recovery(evaluator, judging) : undefined;
+  const verdict = recovered ?? (await evaluator.judge({ ...judging, window: establishedWindow(judging) }));
+  const judged = verdict.activity === 'active' && wasActive && recovered === undefined;
+  const settled = judged
+    ? evaluator.settle(verdict, previous, subject.at)
+    : firstOpinion(verdict, previous, subject.at);
   const state: OpinionState = {
     findings: verdict.findings,
     consulted,
@@ -123,7 +153,52 @@ export async function formOpinion<Context>(
     pending: settled.pending
   };
   const expiresAt = new Date(subject.at.getTime() + evaluator.ttl * 1000);
-  return { health: settled.health, state, observedAt: subject.at, expiresAt };
+  return { health: settled.health, activity: verdict.activity, state, observedAt: subject.at, expiresAt };
+}
+
+/**
+ * Seconds a subject must have been well for to have recovered: three of an agent's reports. Judging a recovery over
+ * the evaluators' whole window would keep a subject down for as long again as it was, however soon it came back.
+ */
+export const RECOVERY_WINDOW = 45;
+
+const WELL = { healthy: true, degraded: true, unhealthy: false, unknown: false } satisfies Record<Health, boolean>;
+
+/**
+ * The verdict of a subject that was unwell and has been better for the recovery window: judged over that alone.
+ * Undefined when it wasn't unwell, isn't better over it, or said too little in it to tell, as a reporter that reports
+ * less often than the window is long does: then it is judged as ever.
+ */
+async function recovery<Context>(
+  evaluator: Evaluator<Context>,
+  judging: Judging<Context>
+): Promise<Verdict | undefined> {
+  const { previous } = judging;
+  if (previous === undefined || previous.health === 'healthy' || previous.health === 'unknown') return undefined;
+  const recent = await evaluator.judge({ ...judging, window: RECOVERY_WINDOW });
+  const better = recent.activity === 'active' && WELL[recent.health] && isWorse(previous.health, recent.health);
+  return better ? recent : undefined;
+}
+
+/**
+ * The most seconds back an opinion is judged over: as long as it has held its health, and the recovery window before
+ * that, which is what it was last taken on. What came before is what it changed from, and has been judged already: a
+ * subject taken as recovered would otherwise be found unwell again by the same outage, for as long as that stayed in
+ * a check's window. Undefined for a first opinion, judged over all a check asks for.
+ */
+function establishedWindow<Context>({ previous, subject }: Judging<Context>): number | undefined {
+  if (previous === undefined) return undefined;
+  const since = new Date(previous.state.since);
+  return (subject.at.getTime() - since.getTime()) / 1000 + RECOVERY_WINDOW;
+}
+
+/** A verdict taken as it is: since now, unless the opinion already held just that. */
+function firstOpinion(verdict: Verdict, previous: PreviousOpinion | undefined, at: Date): Settled {
+  const same =
+    previous !== undefined &&
+    previous.health === verdict.health &&
+    (previous.activity ?? 'active') === verdict.activity;
+  return { health: verdict.health, since: same ? new Date(previous.state.since) : at, pending: null };
 }
 
 /**
@@ -140,10 +215,14 @@ export function defineEvaluator<Context = null>(definition: EvaluatorDefinition<
     ttl,
     settle,
     context: load,
-    async judge({ subject, metrics, context, previous }) {
+    async judge({ subject, metrics, context, previous, window }) {
       if (context === undefined)
-        return { health: 'unknown', findings: [unknownFinding('context', 'No longer in the topology')] };
-      return evaluate({ subject, metrics, context, previous });
+        return {
+          health: 'unknown',
+          activity: 'active',
+          findings: [unknownFinding('context', 'No longer in the topology')]
+        };
+      return evaluate({ subject, metrics, context, previous, window });
     }
   };
 }
@@ -160,7 +239,15 @@ export function allOf<Context>(...checks: Check<Context>[]): (input: EvaluationI
 /** A verdict of the worst of `findings`. */
 export function verdictOf(findings: Finding[]): Verdict {
   const health = worstHealth(findings.map(finding => finding.health));
-  return { health, findings };
+  return { health, activity: 'active', findings };
+}
+
+/**
+ * A verdict of something that isn't judged, and why: `idle` when nothing is asking for it, `off` when it is switched
+ * off in the topology.
+ */
+export function inactive(activity: Exclude<Activity, 'active'>, check: string, summary: string): Verdict {
+  return { health: 'unknown', activity, findings: [unknownFinding(check, summary)] };
 }
 
 /** A finding of nothing to judge by. */

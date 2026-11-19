@@ -22,9 +22,23 @@ import { cn } from '@conservationtv/ui/lib/utils';
 //     </Section>
 //   </Page>
 
-/** The page's column. Lists and forms read best narrow (`max-w-3xl`, the default); pass a wider class for grids. */
+/**
+ * The page's column. Lists and forms read best narrow (`max-w-3xl`, the default); pass a wider class for grids. Its
+ * margins follow the room the page has, not the window: close in on a phone or beside a sidebar, wider once there's
+ * space for them. The wrapper is what it measures (`@container/page`).
+ */
 export const Page: FC<ComponentProps<'div'>> = ({ className, ...props }) => {
-  return <div className={cn('mx-auto flex w-full max-w-3xl flex-col gap-8 px-10 py-10', className)} {...props} />;
+  return (
+    <div className="@container/page">
+      <div
+        className={cn(
+          'mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 @md/page:px-6 @2xl/page:px-10 @2xl/page:py-10',
+          className
+        )}
+        {...props}
+      />
+    </div>
+  );
 };
 
 /**
@@ -46,13 +60,17 @@ export const BackLink: FC<ComponentProps<typeof Link>> = ({ className, children,
   );
 };
 
-/** The heading on the left, the actions on the right, level with the title. */
+/**
+ * The heading on the left, the actions on the right, level with the title. Where there isn't room for both side by
+ * side, the actions go beneath the heading rather than squeezing it.
+ */
 export const PageHeader: FC<ComponentProps<'header'>> = ({ className, ...props }) => {
-  return <header className={cn('flex items-start justify-between gap-6', className)} {...props} />;
+  return <header className={cn('flex flex-wrap items-start justify-between gap-x-6 gap-y-4', className)} {...props} />;
 };
 
+/** Takes what's left beside the actions, down to 16rem; narrower than that, the actions wrap beneath it. */
 export const PageHeading: FC<ComponentProps<'div'>> = ({ className, ...props }) => {
-  return <div className={cn('flex min-w-0 flex-1 flex-col gap-2', className)} {...props} />;
+  return <div className={cn('flex min-w-0 flex-[1_1_16rem] flex-col gap-2', className)} {...props} />;
 };
 
 export const PageTitle: FC<ComponentProps<'h1'>> = ({ className, ...props }) => {
@@ -82,8 +100,9 @@ export const SectionHeader: FC<ComponentProps<'div'>> = ({ className, ...props }
   return <div className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-2', className)} {...props} />;
 };
 
+/** As a PageHeading: what's left beside the section's actions, down to 16rem, before they wrap beneath it. */
 export const SectionHeading: FC<ComponentProps<'div'>> = ({ className, ...props }) => {
-  return <div className={cn('flex min-w-0 flex-col gap-1', className)} {...props} />;
+  return <div className={cn('flex min-w-0 flex-[1_1_16rem] flex-col gap-1', className)} {...props} />;
 };
 
 export const SectionTitle: FC<ComponentProps<'h2'>> = ({ className, ...props }) => {
