@@ -5,6 +5,7 @@ import { createMiddleware } from 'hono/factory';
 import { ApiFailure } from '../errors.ts';
 import { useEnvironment } from '../env/env.ts';
 import { recordActor } from '../requests/record.ts';
+import { traced } from '../tracing/trace.ts';
 import { requireDevice } from './device.ts';
 
 /** Who the request runs as: a signed-in account, or a device that signed it. */
@@ -25,6 +26,15 @@ export function useUser(): UserPrincipal {
   return user(principal.id);
 }
 
+/** The session the request presents, looked up in its own `authenticate` span; null without one. */
+function presentedSession(headers: Headers) {
+  return traced('authenticate', { 'studio.authentication.method': 'session' }, async () => {
+    const environment = useEnvironment();
+    const auth = await environment.auth();
+    return auth.api.getSession({ headers });
+  });
+}
+
 /**
  * Resolve the request to its umbrella principal: the device that signed it, when it carries a signature
  * (`requireDevice`), and otherwise the session (cookie, or the CLI's bearer token); 401 without one. Row-level security
@@ -32,9 +42,7 @@ export function useUser(): UserPrincipal {
  */
 export const requirePrincipal = createMiddleware(async (c, next) => {
   if (c.req.header('signature') !== undefined) return requireDevice(c, next);
-  const environment = useEnvironment();
-  const auth = await environment.auth();
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  const session = await presentedSession(c.req.raw.headers);
   if (!session) throw new ApiFailure('unauthenticated');
   const principal = user(session.user.id);
   recordActor({ principal, sessionId: session.session.id });

@@ -126,10 +126,13 @@ async function findOrCreate(gateway: CertifiedGateway, domain: string): Promise<
 }
 
 function update(gatewayId: string, changes: Partial<CertificateRow>) {
-  return trustedTransaction(async () => {
-    const db = useDB({ trusted: true });
-    await db.update(gatewayCertificates).set(changes).where(eq(gatewayCertificates.gatewayId, gatewayId));
-  });
+  return trustedTransaction(
+    async () => {
+      const db = useDB({ trusted: true });
+      await db.update(gatewayCertificates).set(changes).where(eq(gatewayCertificates.gatewayId, gatewayId));
+    },
+    { name: 'gateway_certificate.update' }
+  );
 }
 
 /** Points the hostname at the address, when there is one and it does not already. Refusals are logged, not thrown. */
@@ -179,7 +182,7 @@ export async function ensureGatewayTls(
   const environment = useEnvironment();
   const issuer = environment.gatewayCertificates;
   if (issuer === undefined) return undefined;
-  let row = await trustedTransaction(() => findOrCreate(gateway, issuer.domain));
+  let row = await trustedTransaction(() => findOrCreate(gateway, issuer.domain), { name: 'gateway_certificate.find' });
   await pointAt(row, address, issuer.zone);
 
   const now = environment.clock();

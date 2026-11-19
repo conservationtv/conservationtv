@@ -1,3 +1,4 @@
+import type { Context } from 'hono';
 import type { H, RouterRoute } from 'hono/types';
 import type { Router, Result, Params } from 'hono/router';
 import { TrieRouter } from 'hono/router/trie-router';
@@ -24,13 +25,19 @@ export interface SelectedOperation {
   params: Record<string, string>;
 }
 
+/** The operation's handlers, from its first: its validators, middleware and handler, through `next`. */
+export type OperationRun = () => Promise<Response | void>;
+
 export interface OperationRouterOptions {
   /**
-   * Told which operation a request was routed to, once, as the operation's first handler is about to run: after the
-   * middleware registered before it, before its own validators and handlers, in the request's own async context.
-   * Requests no operation serves (CORS preflights, unknown paths, unversioned routes) are never reported.
+   * Runs the operation a request was routed to, once: told which it is as its first handler is about to run (after the
+   * middleware registered before it, in the request's own async context), and given `run`, its handlers, to call
+   * exactly once and return what it returns. Whatever the hook keeps open around `run` (a span, a store) is open for
+   * all of them. A failure they throw has been rendered by the app's error handler by the time `run` settles, so
+   * `c.res` is the response sent. Requests no operation serves (CORS preflights, unknown paths, unversioned routes)
+   * never reach it.
    */
-  onSelect?: (selected: SelectedOperation) => void;
+  aroundOperation?: (c: Context, selected: SelectedOperation, run: OperationRun) => Promise<Response | void>;
 }
 
 interface OperationDescription extends DescribeRouteOptions {
@@ -137,9 +144,11 @@ export class OperationRouter implements Router<Entry> {
           );
         }
         if (selected !== owner) return next();
+        const { aroundOperation } = this.options;
+        if (route !== owner.routes[0] || !aroundOperation) return handler(c, next);
         // The parameters as this route matched them, decoded, while it is the route being dispatched.
-        if (route === owner.routes[0]) this.options.onSelect?.({ operation: owner, params: c.req.param() });
-        return handler(c, next);
+        const params = c.req.param();
+        return aroundOperation(c, { operation: owner, params }, async () => handler(c, next));
       };
       return [[guarded, route], params];
     });

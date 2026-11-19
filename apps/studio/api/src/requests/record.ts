@@ -71,7 +71,7 @@ function currentRecord(): RequestRecord | undefined {
 /** An organisation route's own: `/organisations/:id` and everything under it. */
 const ORGANISATION_PATH = /^\/organisations\/:id(\/|$)/;
 
-/** The router's `onSelect`: the operation the request was routed to, and its organisation if its path names one. */
+/** The operation the router selected (`aroundOperation`, src/app.ts), and its organisation if its path names one. */
 export function recordOperation({ operation, params }: SelectedOperation) {
   const record = currentRecord();
   if (!record) return;

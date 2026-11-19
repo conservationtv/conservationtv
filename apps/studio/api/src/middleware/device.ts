@@ -1,6 +1,7 @@
 import { createStore } from '@conservationtv/store';
 import { device as devicePrincipal, type Principal } from '@conservationtv/umbrella';
 import { and, eq, isNull } from 'drizzle-orm';
+import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { verifySignature, webcrypto, isSignatureError, type Verifier } from 'http-message-sig';
 import { verifyContentDigest } from 'httpbis-digest-headers';
@@ -9,6 +10,7 @@ import { ApiFailure } from '../errors.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
 import { recordActor, recordDeviceOrganisation } from '../requests/record.ts';
+import { traced } from '../tracing/trace.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
 import { withPrincipal } from './principal.ts';
 
@@ -17,7 +19,10 @@ import { withPrincipal } from './principal.ts';
 // method, the URL and an RFC 9530 `Content-Digest` of the body (of empty content, for a request without one), and the
 // content type when there is one, with `created` and `expires`, within a minute of signing. The body must match the
 // signed digest. Nothing stops a captured request being sent again within that minute: the window bounds a replay, and
-// a request carries no secret the TLS it travels over does not already protect. Every failure is `invalid_signature`.
+// a request carries no secret the TLS it travels over does not already protect. A replay is not always harmless: it
+// can store a report batch twice, or put back a value a later PUT replaced. Any route `requirePrincipal` guards accepts
+// a device's signature, so this holds for every operation a device may call; one that must not run twice needs its own
+// guard. Every failure is `invalid_signature`.
 
 /** The device a request was signed by. */
 export interface AuthenticatedDevice {
@@ -46,20 +51,23 @@ interface DeviceVerifier extends Verifier {
  */
 async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerifier> {
   if (publicId === undefined) throw new ApiFailure('invalid_signature');
-  const [row] = await trustedTransaction(async () => {
-    const db = useDB({ trusted: true });
-    return db
-      .select({
-        id: devices.id,
-        organisationId: devices.organisationId,
-        kind: devices.kind,
-        publicId: devices.publicId,
-        publicKey: devices.publicKey
-      })
-      .from(devices)
-      .innerJoin(organisations, eq(organisations.id, devices.organisationId))
-      .where(and(eq(devices.publicId, publicId), isNull(organisations.deletedAt)));
-  });
+  const [row] = await trustedTransaction(
+    async () => {
+      const db = useDB({ trusted: true });
+      return db
+        .select({
+          id: devices.id,
+          organisationId: devices.organisationId,
+          kind: devices.kind,
+          publicId: devices.publicId,
+          publicKey: devices.publicKey
+        })
+        .from(devices)
+        .innerJoin(organisations, eq(organisations.id, devices.organisationId))
+        .where(and(eq(devices.publicId, publicId), isNull(organisations.deletedAt)));
+    },
+    { name: 'device.lookup' }
+  );
   if (!row) throw new ApiFailure('invalid_signature');
   const key = await crypto.subtle.importKey('raw', Buffer.from(row.publicKey, 'base64url'), 'Ed25519', false, [
     'verify'
@@ -110,16 +118,22 @@ async function bodyMatchesDigest(body: ArrayBuffer, digest: string) {
   }
 }
 
-/**
- * Require a device's signature on the request (see above). Downstream, `useDevice()` is the device, and
- * `usePrincipal()` its principal.
- */
-export const requireDevice = createMiddleware(async (c, next) => {
+/** The device that signed the request, its body checked; `invalid_signature` otherwise. */
+async function signingDevice(c: Context) {
   const signature = await verifiedSignature(c.req.raw);
   const { device } = signature.verifier;
   // The signature covers the digest, so it is present; the body is cached for the handler.
   const body = await c.req.arrayBuffer();
   if (!(await bodyMatchesDigest(body, c.req.header('content-digest') ?? ''))) throw new ApiFailure('invalid_signature');
+  return device;
+}
+
+/**
+ * Require a device's signature on the request (see above), checked in its own `authenticate` span. Downstream,
+ * `useDevice()` is the device, and `usePrincipal()` its principal.
+ */
+export const requireDevice = createMiddleware(async (c, next) => {
+  const device = await traced('authenticate', { 'studio.authentication.method': 'signature' }, () => signingDevice(c));
   recordActor({ principal: device.principal, deviceKind: device.kind });
   recordDeviceOrganisation(device.organisationId);
   await withDevice(device, () => withPrincipal(device.principal, next));
