@@ -107,7 +107,7 @@ bindings:
 | ---------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
 | `HYPERDRIVE_ADMIN`     | Hyperdrive | the owning role: migrations, Better Auth, grants                                                                     |
 | `HYPERDRIVE_APP`       | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                                                     |
-| `CACHE`                | KV         | the key-value cache: device request nonces                                                                           |
+| `CACHE`                | KV         | the key-value cache: Twitch connection state until its callback                                                      |
 | `BETTER_AUTH_SECRET`   | secret     | Better Auth's signing secret                                                                                         |
 | `FIELD_KEY`            | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
 | `APP_URL`              | text       | where the API is served; Better Auth's base URL                                                                      |
@@ -341,20 +341,20 @@ stay quick; the agent keeps the certificate it had until it expires. Nothing run
 Devices sign their requests with their own identity: no other credential exists for them. `requireDevice`
 (`src/middleware/device.ts`) verifies an RFC 9421 HTTP Message Signature (`http-message-sig`) by the device's Ed25519
 key, with its public ID as `keyid`. The signature must cover `@method`, `@target-uri`, the RFC 9530 `Content-Digest`
-(of empty content for a request without a body) and `Content-Type` when present, with `created`, `expires` and a
-`nonce`; it may be at most a minute old, with five seconds' clock skew. The body must match the signed digest
-(`httpbis-digest-headers`), and each nonce is accepted once, kept in the cache for as long as the signature could still
-be valid; it is spent only once everything else holds. Every failure is 401 `invalid_signature`, and a retry
-needs a fresh signature. Downstream, `useDevice()` is the device and its principal.
+(of empty content for a request without a body) and `Content-Type` when present, with `created` and `expires`; it may
+be at most a minute old, with five seconds' clock skew. The body must match the signed digest (`httpbis-digest-headers`).
+Nothing stops a captured request being sent again within that minute: the window bounds a replay, and a request
+carries no secret the TLS it travels over does not already protect. A replay is not always harmless: it can store a
+report batch twice, or put back a value a later PUT replaced (an output's control report, an address, an endpoint).
+`requirePrincipal` accepts a device's signature, so every operation a device may call can be replayed this way; one
+that must not run twice needs its own guard. Every failure is 401 `invalid_signature`, and a
+retry needs a fresh signature. Downstream, `useDevice()` is the device and its principal.
 
 ### Cache
 
 `Cache` (`src/cache/cache.ts`) is a key-value cache for short-lived values, bound per request by the entrypoint and
-read with `useEnvironment().cache`: `get`, `put` and `add` (store only if absent), all with a TTL. The first implementation is
-Workers KV (`src/cache/kv.ts`, the `CACHE` binding), which raises TTLs to KV's minimum of a minute. KV is eventually
-consistent and has no conditional write, so its `add` reads, then writes: two concurrent adds, or two within the time
-a write takes to propagate (up to a minute), can both succeed. Nonces are therefore best effort until a cache with an
-atomic `add`, such as a Durable Object, implements the interface.
+read with `useEnvironment().cache`: `get` and `put`, with a TTL. The implementation is Workers KV (`src/cache/kv.ts`,
+the `CACHE` binding), which raises TTLs to KV's minimum of a minute and is eventually consistent.
 
 The only triggers are umbrella's `authz_immutable`, which refuse request sessions' changes to immutable columns.
 
@@ -363,8 +363,8 @@ the body is `{ reports: [...] }`, up to 1000 reports of any kind (`event`, `metr
 its own `observedAt`, and at most 1 MiB. Any device may report, and is the reporter of what it sends. Ingestion is
 trusted code (`src/reports/ingest.ts`): it refuses malformed reports and those observed more than five minutes ahead,
 and stores the batch in the device's organisation. A batch is stored or refused whole, and only for trust or shape.
-The signature's nonce stops a request from being stored twice, but nothing else deduplicates events and logs: a retry
-is signed again, and may store them twice. A metric point is keyed by its series and time, so a retried one is skipped. A report's reporter is named in the subject convention below, always
+Nothing deduplicates events and logs: a retried batch, or one replayed within its signature's minute, may be stored
+twice. A metric point is keyed by its series and time, so a retried one is skipped. A report's reporter is named in the subject convention below, always
 `device:<id>` for the signing device, and like its subject is recorded as given rather than referenced, so reports
 stay when their device is deleted, and when their organisation is. Request sessions only
 read reports.

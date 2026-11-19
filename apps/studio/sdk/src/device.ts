@@ -4,7 +4,9 @@ import { createContentDigestHeader } from 'httpbis-digest-headers';
 
 // Acting as a device, the way the studio API's device operations (`reports.submit`, `irohSessions.create`) require: an
 // RFC 9421 HTTP Message Signature by the device's Ed25519 identity, named by its public ID, over the method, the URL,
-// an RFC 9530 `Content-Digest` of the body and its content type, with `created`, `expires` and a single-use `nonce`.
+// an RFC 9530 `Content-Digest` of the body and its content type, with `created` and `expires`. It still signs a
+// `nonce`, which the API no longer requires or checks, so that a signer built from this SDK (the agent, the `ctv` CLI)
+// is accepted by an API that still does. Drop it once every deployed API ignores it.
 
 /** How long a signature is valid for: the API accepts signatures up to a minute old. */
 const LIFETIME_SECONDS = 60;
