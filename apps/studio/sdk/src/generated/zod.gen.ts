@@ -297,6 +297,11 @@ export const StateSchema = z.object({
             'degraded',
             'unhealthy'
         ]),
+        activity: z.enum([
+            'active',
+            'idle',
+            'off'
+        ]),
         state: z.object({
             findings: z.array(z.object({
                 reporterId: z.string(),
@@ -321,6 +326,52 @@ export const StateSchema = z.object({
         computedAt: z.string(),
         contributingReporterIds: z.array(z.string()),
         evidenceReportIds: z.array(z.string())
+    }))
+});
+
+export const TransitionSchema = z.object({
+    transitions: z.array(z.object({
+        id: z.string(),
+        subjectId: z.string(),
+        at: z.string(),
+        health: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]),
+        activity: z.enum([
+            'active',
+            'idle',
+            'off'
+        ]),
+        previousHealth: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]).nullable(),
+        previousActivity: z.enum([
+            'active',
+            'idle',
+            'off'
+        ]).nullable(),
+        findings: z.array(z.object({
+            reporterId: z.string(),
+            check: z.string(),
+            health: z.enum([
+                'unknown',
+                'healthy',
+                'degraded',
+                'unhealthy'
+            ]),
+            summary: z.string(),
+            evidence: z.array(z.object({
+                seriesId: z.string(),
+                dimensions: z.record(z.string(), z.string()),
+                value: z.number()
+            }))
+        }))
     }))
 });
 
@@ -352,6 +403,11 @@ export const SubjectSchema = z.object({
             'healthy',
             'degraded',
             'unhealthy'
+        ]),
+        activity: z.enum([
+            'active',
+            'idle',
+            'off'
         ]),
         state: z.object({
             findings: z.array(z.object({
@@ -386,6 +442,11 @@ export const SubjectSchema = z.object({
             'healthy',
             'degraded',
             'unhealthy'
+        ]),
+        activity: z.enum([
+            'active',
+            'idle',
+            'off'
         ]),
         state: z.object({
             findings: z.array(z.object({
@@ -578,6 +639,11 @@ export const TopologySchema = z.object({
             'degraded',
             'unhealthy'
         ]),
+        activity: z.enum([
+            'active',
+            'idle',
+            'off'
+        ]),
         state: z.object({
             findings: z.array(z.object({
                 reporterId: z.string(),
@@ -602,6 +668,134 @@ export const TopologySchema = z.object({
         computedAt: z.string(),
         contributingReporterIds: z.array(z.string()),
         evidenceReportIds: z.array(z.string())
+    }))
+});
+
+export const StatusSchema = z.object({
+    status: z.enum([
+        'unknown',
+        'healthy',
+        'degraded',
+        'idle',
+        'off',
+        'failing'
+    ]),
+    summary: z.string(),
+    problems: z.array(z.object({
+        subjectId: z.string(),
+        kind: z.string(),
+        name: z.string(),
+        status: z.enum(['degraded', 'failing']),
+        reasons: z.array(z.string()),
+        affects: z.array(z.object({
+            kind: z.enum([
+                'output',
+                'stream',
+                'show',
+                'channel'
+            ]),
+            id: z.string(),
+            name: z.string()
+        }))
+    })),
+    streams: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        status: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'idle',
+            'off',
+            'failing'
+        ]),
+        summary: z.string(),
+        subjectIds: z.array(z.string()),
+        causes: z.array(z.string())
+    })),
+    shows: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        status: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'idle',
+            'off',
+            'failing'
+        ]),
+        summary: z.string(),
+        subjectIds: z.array(z.string()),
+        causes: z.array(z.string())
+    })),
+    outputs: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        status: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'idle',
+            'off',
+            'failing'
+        ]),
+        summary: z.string(),
+        subjectIds: z.array(z.string()),
+        causes: z.array(z.string())
+    })),
+    channels: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        status: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'idle',
+            'off',
+            'failing'
+        ]),
+        summary: z.string(),
+        subjectIds: z.array(z.string()),
+        causes: z.array(z.string())
+    })),
+    subjects: z.array(z.object({
+        status: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'idle',
+            'off',
+            'failing',
+            'affected'
+        ]),
+        own: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'idle',
+            'off',
+            'failing',
+            'affected'
+        ]),
+        health: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]).nullable(),
+        activity: z.enum([
+            'active',
+            'idle',
+            'off'
+        ]).nullable(),
+        freshness: z.enum(['fresh', 'stale']).nullable(),
+        reasons: z.array(z.string()),
+        causedBy: z.array(z.string()),
+        subjectId: z.string(),
+        kind: z.string(),
+        name: z.string(),
+        fedBy: z.array(z.string()),
+        unreported: z.string().optional()
     }))
 });
 
@@ -699,6 +893,10 @@ export const IrohSessionSchema = z.object({
 
 export const DeviceConfigurationSchema = z.object({
     mediamtx: z.object({
+        probes: z.array(z.object({
+            subjectId: z.string(),
+            url: z.string()
+        })),
         gatewayId: z.string(),
         auth: MediamtxAuthSchema,
         tls: MediamtxTlsSchema.optional(),
@@ -2085,6 +2283,29 @@ export const GetOrganisationsByIdSubjectsStatesQuerySchema = z.object({
  */
 export const GetOrganisationsByIdSubjectsStatesResponseSchema = StateSchema;
 
+export const GetOrganisationsByIdSubjectsTransitionsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+export const GetOrganisationsByIdSubjectsTransitionsQuerySchema = z.object({
+    limit: z.int().gte(1).lte(1000).register(z.globalRegistry, {
+        description: 'At most this many, newest first.'
+    }).optional().default(100),
+    before: z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$/).register(z.globalRegistry, {
+        description: 'Only those observed before this time, to page back.'
+    }).optional(),
+    subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
+        description: 'Only this subject\'s.'
+    }).optional()
+});
+
+/**
+ * The transitions
+ */
+export const GetOrganisationsByIdSubjectsTransitionsResponseSchema = TransitionSchema;
+
 export const PostOrganisationsByIdSubjectsMetricsQueryBodySchema = z.object({
     subjectIds: z.array(z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
         description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
@@ -2269,6 +2490,17 @@ export const GetOrganisationsByIdTopologyPathSchema = z.object({
  * The topology
  */
 export const GetOrganisationsByIdTopologyResponseSchema = TopologySchema;
+
+export const GetOrganisationsByIdStatusPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The status
+ */
+export const GetOrganisationsByIdStatusResponseSchema = StatusSchema;
 
 export const GetOrganisationsByIdShowsPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {

@@ -1,10 +1,10 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { reporterOpinions, subjectStates } from '../db/schema.ts';
+import { reporterOpinions, subjectStates, subjectTransitions } from '../db/schema.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
 import { type Evaluator, formOpinion, type Subject } from './evaluator.ts';
 import { evaluatorOf } from './evaluators.ts';
-import { type ReportedFinding, worstHealth } from './health.ts';
+import { mostActive, type ReportedFinding, worstHealth } from './health.ts';
 import { subjectMetrics } from './metrics.ts';
 
 // The state consumer: after a batch is stored (src/reports/ingest.ts), each subject its metrics are about is judged
@@ -47,6 +47,7 @@ async function evaluateSubject(evaluator: Evaluator, subject: Subject) {
   const [previous] = await db
     .select({
       health: reporterOpinions.health,
+      activity: reporterOpinions.activity,
       state: reporterOpinions.state,
       observedAt: reporterOpinions.observedAt
     })
@@ -74,8 +75,10 @@ async function evaluateSubject(evaluator: Evaluator, subject: Subject) {
 }
 
 /**
- * The subject's state from its reporters' opinions: the worst of those still fresh, with their findings. When none
- * is, the subject keeps the health it had, and goes stale with the newest of them.
+ * The subject's state from its reporters' opinions: of those still fresh, the most active's activity, and the worst
+ * health of those that judged it (the `active` ones), with their findings. When none is fresh, the subject keeps what
+ * it had, and goes stale with the newest of them. A state that differs in health or activity from the one before is a
+ * transition, kept (`subject_transition`).
  */
 async function combine(organisationId: string, subjectId: string) {
   const db = useDB({ trusted: true });
@@ -85,6 +88,7 @@ async function combine(organisationId: string, subjectId: string) {
     .select({
       reporterId: reporterOpinions.reporterId,
       health: reporterOpinions.health,
+      activity: reporterOpinions.activity,
       state: reporterOpinions.state,
       observedAt: reporterOpinions.observedAt,
       expiresAt: reporterOpinions.expiresAt
@@ -95,7 +99,10 @@ async function combine(organisationId: string, subjectId: string) {
   if (opinions.length === 0) return;
 
   const fresh = opinions.filter(opinion => opinion.expiresAt > now);
-  const contributing = fresh.length > 0 ? fresh : opinions;
+  const reporting = fresh.length > 0 ? fresh : opinions;
+  // One reporter that is asked for it judges it, whatever another finds idle: only those opinions are of its health.
+  const activity = mostActive(reporting.map(opinion => opinion.activity));
+  const contributing = reporting.filter(opinion => opinion.activity === activity);
   const health = worstHealth(contributing.map(opinion => opinion.health));
   // What couldn't be judged, such as a relay that isn't published to, only says something when nothing could be.
   const findings: ReportedFinding[] = contributing.flatMap(({ reporterId, state }) =>
@@ -107,6 +114,7 @@ async function combine(organisationId: string, subjectId: string) {
   const expiresAt = new Date(Math.max(...contributing.map(opinion => opinion.expiresAt.getTime())));
   const state = {
     health,
+    activity,
     state: { findings },
     observedAt,
     expiresAt,
@@ -114,6 +122,23 @@ async function combine(organisationId: string, subjectId: string) {
     contributingReporterIds: contributing.map(opinion => opinion.reporterId),
     evidenceReportIds: []
   };
+  const [before] = await db
+    .select({ health: subjectStates.health, activity: subjectStates.activity })
+    .from(subjectStates)
+    .where(and(eq(subjectStates.organisationId, organisationId), eq(subjectStates.subjectId, subjectId)));
+  if (before === undefined || before.health !== health || before.activity !== activity) {
+    // A first state, or one that differs in health or activity from the one before, is a transition.
+    await db.insert(subjectTransitions).values({
+      organisationId,
+      subjectId,
+      at: observedAt,
+      health,
+      activity,
+      previousHealth: before?.health ?? null,
+      previousActivity: before?.activity ?? null,
+      findings
+    });
+  }
   await db
     .insert(subjectStates)
     .values({ organisationId, subjectId, ...state })

@@ -2,6 +2,7 @@ export { formatBitrate, formatMetric, formatSeconds, formatShare } from './forma
 export {
   MetricDimensionsSchema,
   MetricSummarySchema,
+  cameraMetrics,
   channelMetrics,
   forwardMetrics,
   machineMetrics,

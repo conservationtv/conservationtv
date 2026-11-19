@@ -1,5 +1,13 @@
 import { and, asc, desc, eq, gte, inArray, like, lt, sql } from 'drizzle-orm';
-import { logRecords, metricPoints, metricSeries, observations, reporterOpinions, subjectStates } from '../db/schema.ts';
+import {
+  logRecords,
+  metricPoints,
+  metricSeries,
+  observations,
+  reporterOpinions,
+  subjectStates,
+  subjectTransitions
+} from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 
 // What devices report about a subject, and what the state consumer derives from it. A subject is a string
@@ -37,6 +45,7 @@ export async function getSubjectState(organisationId: string, subjectId: string)
   const [row] = await db
     .select({
       health: subjectStates.health,
+      activity: subjectStates.activity,
       state: subjectStates.state,
       freshness: sql<'fresh' | 'stale'>`case when ${subjectStates.expiresAt} > now() then 'fresh' else 'stale' end`,
       observedAt: subjectStates.observedAt,
@@ -65,6 +74,7 @@ export function listSubjectStates(organisationId: string, filter: SubjectStateFi
     .select({
       subjectId: subjectStates.subjectId,
       health: subjectStates.health,
+      activity: subjectStates.activity,
       state: subjectStates.state,
       freshness: sql<'fresh' | 'stale'>`case when ${subjectStates.expiresAt} > now() then 'fresh' else 'stale' end`,
       observedAt: subjectStates.observedAt,
@@ -90,6 +100,7 @@ export function listReporterOpinions(organisationId: string, subjectId: string) 
     .select({
       reporterId: reporterOpinions.reporterId,
       health: reporterOpinions.health,
+      activity: reporterOpinions.activity,
       state: reporterOpinions.state,
       freshness: sql<'fresh' | 'stale'>`case when ${reporterOpinions.expiresAt} > now() then 'fresh' else 'stale' end`,
       observedAt: reporterOpinions.observedAt,
@@ -99,6 +110,40 @@ export function listReporterOpinions(organisationId: string, subjectId: string) 
     .from(reporterOpinions)
     .where(and(eq(reporterOpinions.organisationId, organisationId), eq(reporterOpinions.subjectId, subjectId)))
     .orderBy(reporterOpinions.reporterId);
+}
+
+export interface TransitionFilter {
+  /** Only this subject's. */
+  subjectId?: string;
+}
+
+/**
+ * The changes of the organisation's subjects' states, newest first: what each became, what it was, and the findings it
+ * became it for. Optionally one subject's.
+ */
+export function listSubjectTransitions(organisationId: string, filter: TransitionFilter, page: HistoryPage) {
+  const db = useDB();
+  return db
+    .select({
+      id: subjectTransitions.id,
+      subjectId: subjectTransitions.subjectId,
+      at: subjectTransitions.at,
+      health: subjectTransitions.health,
+      activity: subjectTransitions.activity,
+      previousHealth: subjectTransitions.previousHealth,
+      previousActivity: subjectTransitions.previousActivity,
+      findings: subjectTransitions.findings
+    })
+    .from(subjectTransitions)
+    .where(
+      and(
+        eq(subjectTransitions.organisationId, organisationId),
+        filter.subjectId === undefined ? undefined : eq(subjectTransitions.subjectId, filter.subjectId),
+        page.before === undefined ? undefined : lt(subjectTransitions.at, new Date(page.before))
+      )
+    )
+    .orderBy(desc(subjectTransitions.at), desc(subjectTransitions.id))
+    .limit(page.limit);
 }
 
 /** The events reported about the subject, newest observation first. */

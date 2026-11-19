@@ -18,6 +18,8 @@ export interface Report {
   metric: MetricDefinition;
   summary: MetricSummary;
   dimensions: MetricDimensions;
+  /** The subject it is about, when not the one judged: the hop before it, read with `metrics.about`. */
+  about?: string;
 }
 
 /** What a minute's samples were: their mean, and any of their least, greatest and last that differ from it. */
@@ -33,6 +35,11 @@ export function reportSamples(metric: MetricDefinition, samples: Samples, dimens
   // Whatever isn't given is the mean, as if every sample were: six samples, one every ten seconds.
   const { avg, min = avg, max = avg, last = avg, count = 6 } = samples;
   return { metric, dimensions, summary: { min, max, avg, last, count } };
+}
+
+/** The same point, about another subject: what the reporter says of the hop before the one judged. */
+export function about(subjectId: string, point: Report): Report {
+  return { ...point, about: subjectId };
 }
 
 export interface ReporterOptions<Context> {
@@ -95,6 +102,8 @@ interface StoredPoint {
 
 interface StoredSeries {
   seriesId: string;
+  /** The subject it is about, when not the one judged. */
+  about: string | undefined;
   name: string;
   unit: string;
   dimensions: MetricDimensions;
@@ -108,12 +117,13 @@ interface StoredSeries {
 class MetricStore {
   private readonly series = new Map<string, StoredSeries>();
 
-  add({ metric, dimensions, summary }: Report, observedAt: Date) {
-    const key = JSON.stringify([metric.name, metric.unit, Object.entries(dimensions).sort()]);
+  add({ metric, dimensions, summary, about }: Report, observedAt: Date) {
+    const key = JSON.stringify([about, metric.name, metric.unit, Object.entries(dimensions).sort()]);
     let series = this.series.get(key);
     if (series === undefined) {
       series = {
         seriesId: `series-${this.series.size + 1}`,
+        about,
         name: metric.name,
         unit: metric.unit,
         dimensions,
@@ -127,9 +137,14 @@ class MetricStore {
   /** A `SubjectMetrics` as of `at`, and what it was asked. */
   as(at: Date) {
     const reads: Consulted[] = [];
-    const read = (metric: MetricDefinition, dimensions: MetricDimensions, seconds: number) => {
+    const read = (
+      subjectId: string | undefined,
+      metric: MetricDefinition,
+      dimensions: MetricDimensions,
+      seconds: number
+    ) => {
       const from = at.getTime() - seconds * 1000;
-      const readings = this.matching(metric, dimensions).flatMap(series => {
+      const readings = this.matching(subjectId, metric, dimensions).flatMap(series => {
         const points = series.points.filter(({ observedAt }) => observedAt.getTime() > from && observedAt <= at);
         const reading = summarised(series, points);
         return reading === undefined ? [] : [reading];
@@ -137,16 +152,18 @@ class MetricStore {
       reads.push({ metric: metric.name, read: seconds, seriesIds: readings.map(({ seriesId }) => seriesId) });
       return readings;
     };
-    const metrics: SubjectMetrics = {
-      over: async (metric, seconds, dimensions = {}) => read(metric, dimensions, seconds)
-    };
-    return { metrics, reads };
+    const metricsAbout = (subjectId: string | undefined): SubjectMetrics => ({
+      over: async (metric, seconds, dimensions = {}) => read(subjectId, metric, dimensions, seconds),
+      about: metricsAbout
+    });
+    return { metrics: metricsAbout(undefined), reads };
   }
 
-  private matching(metric: MetricDefinition, dimensions: MetricDimensions) {
+  private matching(about: string | undefined, metric: MetricDefinition, dimensions: MetricDimensions) {
     const wanted = Object.entries(dimensions);
     return [...this.series.values()].filter(
       series =>
+        series.about === about &&
         series.name === metric.name &&
         series.unit === metric.unit &&
         wanted.every(([key, value]) => series.dimensions[key] === value)

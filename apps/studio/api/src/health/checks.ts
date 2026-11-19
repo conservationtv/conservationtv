@@ -6,7 +6,7 @@ import {
   type MetricDimensions,
   type MetricSummary
 } from '@conservationtv/reports';
-import type { Check } from './evaluator.ts';
+import { type Check, windowOf } from './evaluator.ts';
 import { type Evidence, FINDINGS_LOCALE, type Finding, type Health } from './health.ts';
 import type { Reading } from './metrics.ts';
 
@@ -35,9 +35,10 @@ export interface ShareOptions {
  * last 2 min`.
  */
 export function share(metric: MetricDefinition, options: ShareOptions): Check<unknown> {
-  const { over, unhealthyBelow, degradedBelow, dimensions } = options;
-  return async ({ metrics }) => {
-    const readings = await metrics.over(metric, over, dimensions);
+  const { unhealthyBelow, degradedBelow, dimensions } = options;
+  return async input => {
+    const over = windowOf(input, options.over);
+    const readings = await input.metrics.over(metric, over, dimensions);
     const worst = worstOf(readings, 'avg', 'least');
     if (worst === undefined) return nothingIn(metric, over);
     const value = worst.summary.avg;
@@ -50,6 +51,11 @@ export function share(metric: MetricDefinition, options: ShareOptions): Check<un
 export interface ThresholdOptions {
   /** Seconds back to judge. */
   over: number;
+  /**
+   * Judge all of `over` even while the subject is recovering: for what should hold it down until it has left the
+   * window, such as a reconnection.
+   */
+  whole?: boolean;
   /** Which of the window's values to judge: its mean by default. */
   of?: Statistic;
   dimensions?: MetricDimensions;
@@ -62,9 +68,10 @@ export interface CeilingOptions extends ThresholdOptions {
 
 /** A metric that should stay low, such as dropped frames: judged by the series that went highest. */
 export function ceiling(metric: MetricDefinition, options: CeilingOptions): Check<unknown> {
-  const { over, of = 'avg', degradedAbove, unhealthyAbove, dimensions } = options;
-  return async ({ metrics }) => {
-    const readings = await metrics.over(metric, over, dimensions);
+  const { of = 'avg', degradedAbove, unhealthyAbove, dimensions } = options;
+  return async input => {
+    const over = options.whole ? options.over : windowOf(input, options.over);
+    const readings = await input.metrics.over(metric, over, dimensions);
     const worst = worstOf(readings, of, 'greatest');
     if (worst === undefined) return nothingIn(metric, over);
     const value = worst.summary[of];
@@ -85,9 +92,10 @@ export interface FloorOptions extends ThresholdOptions {
 
 /** A metric that should stay high, such as a bitrate: judged by the series that went lowest. */
 export function floor(metric: MetricDefinition, options: FloorOptions): Check<unknown> {
-  const { over, of = 'avg', degradedBelow, unhealthyBelow, dimensions } = options;
-  return async ({ metrics }) => {
-    const readings = await metrics.over(metric, over, dimensions);
+  const { of = 'avg', degradedBelow, unhealthyBelow, dimensions } = options;
+  return async input => {
+    const over = options.whole ? options.over : windowOf(input, options.over);
+    const readings = await input.metrics.over(metric, over, dimensions);
     const worst = worstOf(readings, of, 'least');
     if (worst === undefined) return nothingIn(metric, over);
     const value = worst.summary[of];

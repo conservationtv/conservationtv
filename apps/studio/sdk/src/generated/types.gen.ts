@@ -272,6 +272,7 @@ export type State = {
     states: Array<{
         subjectId: string;
         health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+        activity: 'active' | 'idle' | 'off';
         state: {
             findings: Array<{
                 reporterId: string;
@@ -293,6 +294,31 @@ export type State = {
         computedAt: string;
         contributingReporterIds: Array<string>;
         evidenceReportIds: Array<string>;
+    }>;
+};
+
+export type Transition = {
+    transitions: Array<{
+        id: string;
+        subjectId: string;
+        at: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+        activity: 'active' | 'idle' | 'off';
+        previousHealth: 'unknown' | 'healthy' | 'degraded' | 'unhealthy' | null;
+        previousActivity: 'active' | 'idle' | 'off' | null;
+        findings: Array<{
+            reporterId: string;
+            check: string;
+            health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+            summary: string;
+            evidence: Array<{
+                seriesId: string;
+                dimensions: {
+                    [key: string]: string;
+                };
+                value: number;
+            }>;
+        }>;
     }>;
 };
 
@@ -322,6 +348,7 @@ export type Subject = {
     subjectId: string;
     state: {
         health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+        activity: 'active' | 'idle' | 'off';
         state: {
             findings: Array<{
                 reporterId: string;
@@ -348,6 +375,7 @@ export type Subject = {
     opinions: Array<{
         reporterId: string;
         health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+        activity: 'active' | 'idle' | 'off';
         state: {
             findings: Array<{
                 check: string;
@@ -536,6 +564,7 @@ export type Topology = {
     states: Array<{
         subjectId: string;
         health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+        activity: 'active' | 'idle' | 'off';
         state: {
             findings: Array<{
                 reporterId: string;
@@ -557,6 +586,69 @@ export type Topology = {
         computedAt: string;
         contributingReporterIds: Array<string>;
         evidenceReportIds: Array<string>;
+    }>;
+};
+
+export type Status = {
+    status: 'unknown' | 'healthy' | 'degraded' | 'idle' | 'off' | 'failing';
+    summary: string;
+    problems: Array<{
+        subjectId: string;
+        kind: string;
+        name: string;
+        status: 'degraded' | 'failing';
+        reasons: Array<string>;
+        affects: Array<{
+            kind: 'output' | 'stream' | 'show' | 'channel';
+            id: string;
+            name: string;
+        }>;
+    }>;
+    streams: Array<{
+        id: string;
+        name: string;
+        status: 'unknown' | 'healthy' | 'degraded' | 'idle' | 'off' | 'failing';
+        summary: string;
+        subjectIds: Array<string>;
+        causes: Array<string>;
+    }>;
+    shows: Array<{
+        id: string;
+        name: string;
+        status: 'unknown' | 'healthy' | 'degraded' | 'idle' | 'off' | 'failing';
+        summary: string;
+        subjectIds: Array<string>;
+        causes: Array<string>;
+    }>;
+    outputs: Array<{
+        id: string;
+        name: string;
+        status: 'unknown' | 'healthy' | 'degraded' | 'idle' | 'off' | 'failing';
+        summary: string;
+        subjectIds: Array<string>;
+        causes: Array<string>;
+    }>;
+    channels: Array<{
+        id: string;
+        name: string;
+        status: 'unknown' | 'healthy' | 'degraded' | 'idle' | 'off' | 'failing';
+        summary: string;
+        subjectIds: Array<string>;
+        causes: Array<string>;
+    }>;
+    subjects: Array<{
+        status: 'unknown' | 'healthy' | 'degraded' | 'idle' | 'off' | 'failing' | 'affected';
+        own: 'unknown' | 'healthy' | 'degraded' | 'idle' | 'off' | 'failing' | 'affected';
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy' | null;
+        activity: 'active' | 'idle' | 'off' | null;
+        freshness: 'fresh' | 'stale' | null;
+        reasons: Array<string>;
+        causedBy: Array<string>;
+        subjectId: string;
+        kind: string;
+        name: string;
+        fedBy: Array<string>;
+        unreported?: string;
     }>;
 };
 
@@ -656,6 +748,10 @@ export type IrohSession = {
 
 export type DeviceConfiguration = {
     mediamtx?: {
+        probes: Array<{
+            subjectId: string;
+            url: string;
+        }>;
         gatewayId: string;
         auth: MediamtxAuth;
         tls?: MediamtxTls;
@@ -4210,6 +4306,61 @@ export type GetOrganisationsByIdSubjectsStatesResponses = {
 
 export type GetOrganisationsByIdSubjectsStatesResponse = GetOrganisationsByIdSubjectsStatesResponses[keyof GetOrganisationsByIdSubjectsStatesResponses];
 
+export type GetOrganisationsByIdSubjectsTransitionsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: {
+        /**
+         * At most this many, newest first.
+         */
+        limit?: number;
+        /**
+         * Only those observed before this time, to page back.
+         */
+        before?: string;
+        /**
+         * Only this subject's.
+         */
+        subjectId?: string;
+    };
+    url: '/organisations/{id}/subjects/transitions';
+};
+
+export type GetOrganisationsByIdSubjectsTransitionsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdSubjectsTransitionsError = GetOrganisationsByIdSubjectsTransitionsErrors[keyof GetOrganisationsByIdSubjectsTransitionsErrors];
+
+export type GetOrganisationsByIdSubjectsTransitionsResponses = {
+    /**
+     * The transitions
+     */
+    200: Transition;
+};
+
+export type GetOrganisationsByIdSubjectsTransitionsResponse = GetOrganisationsByIdSubjectsTransitionsResponses[keyof GetOrganisationsByIdSubjectsTransitionsResponses];
+
 export type PostOrganisationsByIdSubjectsMetricsQueryData = {
     body: {
         /**
@@ -4626,6 +4777,52 @@ export type GetOrganisationsByIdTopologyResponses = {
 };
 
 export type GetOrganisationsByIdTopologyResponse = GetOrganisationsByIdTopologyResponses[keyof GetOrganisationsByIdTopologyResponses];
+
+export type GetOrganisationsByIdStatusData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/status';
+};
+
+export type GetOrganisationsByIdStatusErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdStatusError = GetOrganisationsByIdStatusErrors[keyof GetOrganisationsByIdStatusErrors];
+
+export type GetOrganisationsByIdStatusResponses = {
+    /**
+     * The status
+     */
+    200: Status;
+};
+
+export type GetOrganisationsByIdStatusResponse = GetOrganisationsByIdStatusResponses[keyof GetOrganisationsByIdStatusResponses];
 
 export type GetOrganisationsByIdShowsData = {
     body?: never;

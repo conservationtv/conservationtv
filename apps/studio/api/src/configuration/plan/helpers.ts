@@ -77,7 +77,7 @@ function delivered(agentId: string, gatewayId: string) {
 export function selectStreams(agentId: string, gatewayId: string) {
   const db = useDB({ trusted: true });
   return db.query.streams.findMany({
-    columns: { id: true },
+    columns: { id: true, sourceDeviceId: true },
     with: {
       sourceDevice: {
         columns: { kind: true },

@@ -35,6 +35,16 @@ export interface PlannedPreviewPath {
   previewId: string;
 }
 
+/**
+ * A camera the agent probes, whether or not anything reads its streams, since it is otherwise pulled from only while
+ * read: the URL to ask for a stream description (RTSP `DESCRIBE`), credentials included, and the subject to report
+ * what it finds about (`camera.reachable`), the camera's device.
+ */
+export interface PlannedProbe {
+  subjectId: string;
+  url: string;
+}
+
 /** The `connect` ask (`organisations.streams.exposures.connect`) for where a publisher publishes, and its token. */
 export const PublisherConnectSchema = z
   .object({
@@ -109,6 +119,14 @@ export interface MediamtxConfiguration {
    * don't read it, and serve no previews.
    */
   previews?: PlannedPreviewPath[];
+}
+
+/**
+ * The `mediamtx` runtime from version 2 of `deviceConfiguration.get`, which also probes the cameras of the streams it
+ * delivers. Agents built from earlier releases ask for version 1, and don't probe.
+ */
+export interface ProbingMediamtxConfiguration extends MediamtxConfiguration {
+  probes: PlannedProbe[];
 }
 
 /** The output an agent runs: the output, its organisation, and who drives its OBS's scenes. */
@@ -217,6 +235,13 @@ export interface ShowConfiguration {
 /** What a device runs: each runtime it is to run, by its key. A runtime left out is one it doesn't. */
 export interface PlannedConfiguration {
   mediamtx?: MediamtxConfiguration;
+  obs?: ObsConfiguration;
+  show?: ShowConfiguration;
+}
+
+/** What a device runs, from version 2 of `deviceConfiguration.get`. */
+export interface ProbingConfiguration {
+  mediamtx?: ProbingMediamtxConfiguration;
   obs?: ObsConfiguration;
   show?: ShowConfiguration;
 }

@@ -172,13 +172,18 @@
       1
     ],
     "organisations.subjects.states.list": [
+      1,
+      2
+    ],
+    "organisations.subjects.transitions.list": [
       1
     ],
     "organisations.subjects.metrics.query": [
       1
     ],
     "organisations.subjects.state": [
-      1
+      1,
+      2
     ],
     "organisations.subjects.observations.list": [
       1
@@ -193,6 +198,10 @@
       1
     ],
     "organisations.topology.get": [
+      1,
+      2
+    ],
+    "organisations.status.get": [
       1
     ],
     "organisations.shows.list": [
@@ -310,7 +319,8 @@
       1
     ],
     "deviceConfiguration.get": [
-      1
+      1,
+      2
     ],
     "deviceAddresses.replace": [
       1

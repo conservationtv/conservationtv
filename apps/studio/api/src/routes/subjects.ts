@@ -15,6 +15,7 @@ import {
   listObservations,
   listReporterOpinions,
   listSubjectStates,
+  listSubjectTransitions,
   queryMetrics
 } from '../services/subjects.ts';
 import {
@@ -103,6 +104,47 @@ const SubjectKindSchema = z
   .describe('Only subjects of this kind: the part of their ID before the colon.');
 export type SubjectKind = z.output<typeof SubjectKindSchema>;
 
+const TransitionsQuerySchema = HistoryQuerySchema.extend({
+  subjectId: SubjectIdSchema.optional().describe("Only this subject's.")
+});
+export type TransitionsQuery = z.output<typeof TransitionsQuerySchema>;
+
+// Version 1 of the reads of states and opinions returns them as they were before activity was kept: each field named,
+// in the order it always was, since a frozen contract is compared as it is written.
+
+type ListedState = Awaited<ReturnType<typeof listSubjectStates>>[number];
+type ReadState = NonNullable<Awaited<ReturnType<typeof getSubjectState>>>;
+type ReadOpinion = Awaited<ReturnType<typeof listReporterOpinions>>[number];
+
+/** A listed state, as version 1 returns it. */
+export function listedStateV1(row: ListedState) {
+  const { subjectId, health, state, freshness, observedAt, expiresAt, computedAt } = row;
+  const { contributingReporterIds, evidenceReportIds } = row;
+  return {
+    subjectId,
+    health,
+    state,
+    freshness,
+    observedAt,
+    expiresAt,
+    computedAt,
+    contributingReporterIds,
+    evidenceReportIds
+  };
+}
+
+/** A subject's state, as version 1 returns it. */
+function stateV1(row: ReadState) {
+  const { health, state, freshness, observedAt, expiresAt, computedAt, contributingReporterIds, evidenceReportIds } =
+    row;
+  return { health, state, freshness, observedAt, expiresAt, computedAt, contributingReporterIds, evidenceReportIds };
+}
+
+/** A reporter's opinion, as version 1 returns it. */
+function opinionV1({ reporterId, health, state, freshness, observedAt, expiresAt, evidenceReportIds }: ReadOpinion) {
+  return { reporterId, health, state, freshness, observedAt, expiresAt, evidenceReportIds };
+}
+
 export default new Hono()
   .get(
     '/states',
@@ -128,7 +170,61 @@ export default new Hono()
       const filter = c.req.valid('query');
       const rows = await transaction(() => listSubjectStates(id, filter));
       c.header('Cache-Control', 'no-store');
+      return c.json({ states: rows.map(listedStateV1) }, 200);
+    }
+  )
+  .get(
+    '/states',
+    describeRoute({
+      operationId: 'organisations.subjects.states.list',
+      ...operationVersion(2),
+      summary: "List the organisation's subjects' current states",
+      description:
+        "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Each has its `activity`: only an `active` subject is judged, so one that is `idle` (nothing is asking for it) or `off` (switched off) has `unknown` health, and its findings say why. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
+      responses: {
+        200: { description: 'The states, by subject ID' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    validator('query', z.object({ kind: SubjectKindSchema.optional() })),
+    async c => {
+      const { id } = c.req.valid('param');
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listSubjectStates(id, filter));
+      c.header('Cache-Control', 'no-store');
       return c.json({ states: rows }, 200);
+    }
+  )
+  .get(
+    '/transitions',
+    describeRoute({
+      operationId: 'organisations.subjects.transitions.list',
+      ...operationVersion(1),
+      summary: "List the changes of the organisation's subjects' states",
+      description:
+        "Each change of a subject's combined health or activity, newest first: what it became, what it was before (null for its first state), when the reports it was derived from were observed, and the findings it became it for. Optionally one subject's. A subject going stale is not a change, since freshness is evaluated when read: the change after a silence shows it by its time.",
+      responses: {
+        200: { description: 'The transitions' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    validator('query', TransitionsQuerySchema),
+    async c => {
+      const { id } = c.req.valid('param');
+      const { subjectId, ...page } = c.req.valid('query');
+      const rows = await transaction(() => listSubjectTransitions(id, { subjectId }, page));
+      c.header('Cache-Control', 'no-store');
+      return c.json({ transitions: rows }, 200);
     }
   )
   .post(
@@ -166,6 +262,35 @@ export default new Hono()
       summary: "Read a subject's current state",
       description:
         "The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one.",
+      responses: {
+        200: { description: 'The state, with opinions oldest reporter first' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', SubjectParamsSchema),
+    async c => {
+      const { id, subjectId } = c.req.valid('param');
+      const { state, opinions } = await transaction(async () => {
+        const combined = await getSubjectState(id, subjectId);
+        const reporters = await listReporterOpinions(id, subjectId);
+        return { state: combined ? stateV1(combined) : null, opinions: reporters.map(opinionV1) };
+      });
+      c.header('Cache-Control', 'no-store');
+      return c.json({ subjectId, state, reachable: state?.freshness === 'fresh', opinions }, 200);
+    }
+  )
+  .get(
+    '/:subjectId/state',
+    describeRoute({
+      operationId: 'organisations.subjects.state',
+      ...operationVersion(2),
+      summary: "Read a subject's current state",
+      description:
+        "The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one. The state and each opinion have their `activity`: only an `active` subject is judged, so one that is `idle` or `off` has `unknown` health, and its findings say why.",
       responses: {
         200: { description: 'The state, with opinions oldest reporter first' },
         400: invalidRequest,

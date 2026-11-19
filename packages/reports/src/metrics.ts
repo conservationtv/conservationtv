@@ -53,6 +53,11 @@ export const pathMetrics = {
   /** 1 while the path is ready, else 0: a summary's mean is the share of its interval the path was ready. */
   ready: { name: 'path.ready', unit: 'boolean', label: 'Ready' },
   readers: { name: 'path.readers', unit: 'readers', label: 'Readers' },
+  /**
+   * 1 while anything reads the path, else 0: a summary's mean is the share of its interval the path was asked for. A
+   * path is pulled from its source only while it is read, so this is what its being ready is judged against.
+   */
+  read: { name: 'path.read', unit: 'boolean', label: 'Read' },
   ingestBitrate: { name: 'path.ingest.bitrate', unit: 'bits/s', label: 'Ingest bitrate' },
   /** What the path sends to readers on the network: every reader but the agent's own MoQ publishers. */
   lanEgressBitrate: { name: 'path.egress.lan.bitrate', unit: 'bits/s', label: 'LAN egress bitrate' },
@@ -66,7 +71,8 @@ export const pathMetrics = {
 
 /**
  * What a MoQ relay carries of an exposure the agent publishes there, as the relay counts it in the traffic stats it
- * publishes: about the exposure, summed over its broadcasts and the relay's nodes.
+ * publishes: about the exposure, summed over its broadcasts and the relay's nodes. And whether the relay has it at all
+ * (`announced`), as the agent finds reading it back.
  */
 export const relayMetrics = {
   /** What the relay received of the exposure: what actually left the agent for the internet. */
@@ -74,7 +80,14 @@ export const relayMetrics = {
   /** What the relay sent on to the exposure's viewers. */
   egressBitrate: { name: 'relay.egress.bitrate', unit: 'bits/s', label: 'Relay egress bitrate' },
   /** Sessions watching the exposure: of its broadcasts, the most watched. */
-  viewers: { name: 'relay.viewers', unit: 'sessions', label: 'Relay viewers' }
+  viewers: { name: 'relay.viewers', unit: 'sessions', label: 'Relay viewers' },
+  /**
+   * 1 while the relay has one of the exposure's renditions to give, else 0, with the rendition as a dimension: its
+   * broadcast is announced there, and the agent has read its catalog back through the relay. A relay asks a publisher
+   * only for what viewers take, so what it receives says how much is watched, not whether it works; this says whether
+   * a viewer who asked would be served, whether or not anyone is.
+   */
+  announced: { name: 'relay.announced', unit: 'boolean', label: 'On the relay' }
 } as const satisfies Record<string, MetricDefinition>;
 
 /** The machine an agent runs on, and the agent itself, about the agent's device: one sample each per interval. */
@@ -95,6 +108,17 @@ export const machineMetrics = {
   diskTotal: { name: 'machine.disk.total', unit: 'bytes', label: 'Disk' },
   diskFree: { name: 'machine.disk.free', unit: 'bytes', label: 'Free disk' },
   agentMemory: { name: 'agent.memory.rss', unit: 'bytes', label: 'Agent memory' }
+} as const satisfies Record<string, MetricDefinition>;
+
+/**
+ * A camera as an agent on its network reaches it, about the camera's device: a probe of its RTSP server every few
+ * seconds, whether or not anything reads its streams, since a camera is otherwise only pulled from while it is read.
+ */
+export const cameraMetrics = {
+  /** 1 when the camera answered the probe with a stream description, else 0. */
+  reachable: { name: 'camera.reachable', unit: 'boolean', label: 'Reachable' },
+  /** How long the camera took to answer; only when it did. */
+  probeDuration: { name: 'camera.probe.duration', unit: 'seconds', label: 'Probe time' }
 } as const satisfies Record<string, MetricDefinition>;
 
 /**
