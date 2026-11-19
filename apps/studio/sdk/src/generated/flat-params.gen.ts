@@ -2,8 +2,8 @@
 
 import * as z from 'zod';
 
-import type { DeleteOrganisationsByIdAgentsByAgentIdResponse, DeleteOrganisationsByIdCamerasByCameraIdResponse, DeleteOrganisationsByIdChannelsByChannelIdResponse, DeleteOrganisationsByIdGatewaysByGatewayIdResponse, DeleteOrganisationsByIdInvitationsByInvitationIdResponse, DeleteOrganisationsByIdMembersByUserIdAdminResponse, DeleteOrganisationsByIdMembersByUserIdResponse, DeleteOrganisationsByIdNetworksByNetworkIdResponse, DeleteOrganisationsByIdResponse, DeleteOrganisationsByIdShowOutputResponse, DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse, DeleteOrganisationsByIdShowsByShowIdOutputResponse, DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponse, DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse, DeleteOrganisationsByIdShowsByShowIdResponse, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse, DeleteOrganisationsByIdStreamsByStreamIdResponse, GetAccountResponse, GetDeviceConfigurationResponse, GetHealthResponse, GetInvitationsByIdResponse, GetInvitationsResponse, GetOrganisationsByIdAgentsByAgentIdResponse, GetOrganisationsByIdAgentsResponse, GetOrganisationsByIdCamerasByCameraIdResponse, GetOrganisationsByIdCamerasResponse, GetOrganisationsByIdChannelsByChannelIdResponse, GetOrganisationsByIdChannelsByChannelIdStatsResponse, GetOrganisationsByIdChannelsResponse, GetOrganisationsByIdDevicesAllowlistResponse, GetOrganisationsByIdDevicesByDeviceIdAddressesResponse, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponse, GetOrganisationsByIdDevicesByDeviceIdResponse, GetOrganisationsByIdDevicesResponse, GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponse, GetOrganisationsByIdGatewaysByGatewayIdResponse, GetOrganisationsByIdGatewaysResponse, GetOrganisationsByIdInvitationsResponse, GetOrganisationsByIdMembersResponse, GetOrganisationsByIdNetworksByNetworkIdResponse, GetOrganisationsByIdNetworksResponse, GetOrganisationsByIdResponse, GetOrganisationsByIdShowOutputResponse, GetOrganisationsByIdShowsByShowIdOutputResponse, GetOrganisationsByIdShowsByShowIdResponse, GetOrganisationsByIdShowsResponse, GetOrganisationsByIdStreamsByStreamIdResponse, GetOrganisationsByIdStreamsResponse, GetOrganisationsByIdSubjectsBySubjectIdLogsResponse, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponse, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponse, GetOrganisationsByIdSubjectsBySubjectIdStateResponse, GetOrganisationsByIdSubjectsStatesResponse, GetOrganisationsByIdTopologyResponse, GetOrganisationsResponse, GetWhoamiResponse, PatchAccountResponse, PatchOrganisationsByIdAgentsByAgentIdResponse, PatchOrganisationsByIdCamerasByCameraIdResponse, PatchOrganisationsByIdChannelsByChannelIdResponse, PatchOrganisationsByIdDevicesByDeviceIdResponse, PatchOrganisationsByIdGatewaysByGatewayIdResponse, PatchOrganisationsByIdMembersMeResponse, PatchOrganisationsByIdNetworksByNetworkIdResponse, PatchOrganisationsByIdResponse, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse, PatchOrganisationsByIdShowsByShowIdResponse, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse, PatchOrganisationsByIdStreamsByStreamIdResponse, PostInvitationsByIdAcceptResponse, PostInvitationsByIdDeclineResponse, PostIrohSessionsResponse, PostOrganisationsByIdAgentsResponse, PostOrganisationsByIdCamerasResponse, PostOrganisationsByIdChannelsByChannelIdIngestResponse, PostOrganisationsByIdChannelsResponse, PostOrganisationsByIdChannelsTwitchAuthorizeResponse, PostOrganisationsByIdGatewaysByGatewayIdStatsResponse, PostOrganisationsByIdGatewaysResponse, PostOrganisationsByIdInvitationsResponse, PostOrganisationsByIdNetworksResponse, PostOrganisationsByIdShowComposeResponse, PostOrganisationsByIdShowsByShowIdForwardsResponse, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponse, PostOrganisationsByIdShowsByShowIdPreviewsResponse, PostOrganisationsByIdShowsByShowIdRecordersResponse, PostOrganisationsByIdShowsResponse, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponse, PostOrganisationsByIdStreamsByStreamIdExposuresResponse, PostOrganisationsByIdStreamsByStreamIdRecordersResponse, PostOrganisationsByIdStreamsResponse, PostOrganisationsByIdSubjectsMetricsQueryResponse, PostOrganisationsResponse, PostReportsResponse, PutDeviceAddressesResponse, PutGatewayEndpointsResponse, PutOrganisationsByIdBrowserResponse, PutOrganisationsByIdMembersByUserIdAdminResponse, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponse, PutOrganisationsByIdShowOutputResponse, PutOrganisationsByIdShowsByShowIdOutputResponse, Rendition, Schema0 } from './types.gen.js';
-import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdCamerasByCameraIdPathSchema, DeleteOrganisationsByIdChannelsByChannelIdPathSchema, DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdShowOutputPathSchema, DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema, DeleteOrganisationsByIdShowsByShowIdOutputPathSchema, DeleteOrganisationsByIdShowsByShowIdPathSchema, DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdPathSchema, DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdCamerasByCameraIdPathSchema, GetOrganisationsByIdCamerasPathSchema, GetOrganisationsByIdChannelsByChannelIdPathSchema, GetOrganisationsByIdChannelsByChannelIdStatsPathSchema, GetOrganisationsByIdChannelsPathSchema, GetOrganisationsByIdDevicesAllowlistPathSchema, GetOrganisationsByIdDevicesByDeviceIdAddressesPathSchema, GetOrganisationsByIdDevicesByDeviceIdKeyPairPathSchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdDevicesQuerySchema, GetOrganisationsByIdGatewaysByGatewayIdEndpointsPathSchema, GetOrganisationsByIdGatewaysByGatewayIdPathSchema, GetOrganisationsByIdGatewaysPathSchema, GetOrganisationsByIdGatewaysQuerySchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdShowOutputPathSchema, GetOrganisationsByIdShowPathSchema, GetOrganisationsByIdShowsByShowIdOutputPathSchema, GetOrganisationsByIdShowsByShowIdPathSchema, GetOrganisationsByIdShowsPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema, GetOrganisationsByIdSubjectsStatesPathSchema, GetOrganisationsByIdSubjectsStatesQuerySchema, GetOrganisationsByIdTopologyPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdPathSchema, PatchOrganisationsByIdChannelsByChannelIdBodySchema, PatchOrganisationsByIdChannelsByChannelIdPathSchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdGatewaysByGatewayIdBodySchema, PatchOrganisationsByIdGatewaysByGatewayIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdShowsByShowIdBodySchema, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdBodySchema, PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema, PatchOrganisationsByIdShowsByShowIdPathSchema, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdCamerasBodySchema, PostOrganisationsByIdCamerasPathSchema, PostOrganisationsByIdChannelsBodySchema, PostOrganisationsByIdChannelsByChannelIdIngestPathSchema, PostOrganisationsByIdChannelsPathSchema, PostOrganisationsByIdChannelsTwitchAuthorizePathSchema, PostOrganisationsByIdGatewaysBodySchema, PostOrganisationsByIdGatewaysByGatewayIdStatsPathSchema, PostOrganisationsByIdGatewaysPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdShowComposePathSchema, PostOrganisationsByIdShowsBodySchema, PostOrganisationsByIdShowsByShowIdForwardsBodySchema, PostOrganisationsByIdShowsByShowIdForwardsPathSchema, PostOrganisationsByIdShowsByShowIdPreviewsBodySchema, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsBodySchema, PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsPathSchema, PostOrganisationsByIdShowsByShowIdPreviewsPathSchema, PostOrganisationsByIdShowsByShowIdRecordersBodySchema, PostOrganisationsByIdShowsByShowIdRecordersPathSchema, PostOrganisationsByIdShowsPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PostOrganisationsByIdSubjectsMetricsQueryBodySchema, PostOrganisationsByIdSubjectsMetricsQueryPathSchema, PostReportsBodySchema, PutDeviceAddressesBodySchema, PutGatewayEndpointsBodySchema, PutOrganisationsByIdBrowserPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema, PutOrganisationsByIdShowOutputBodySchema, PutOrganisationsByIdShowOutputPathSchema, PutOrganisationsByIdShowsByShowIdOutputBodySchema, PutOrganisationsByIdShowsByShowIdOutputPathSchema } from './zod.gen.js';
+import type { DeleteOrganisationsByIdAgentsByAgentIdResponse, DeleteOrganisationsByIdCamerasByCameraIdResponse, DeleteOrganisationsByIdChannelsByChannelIdResponse, DeleteOrganisationsByIdGatewaysByGatewayIdResponse, DeleteOrganisationsByIdInvitationsByInvitationIdResponse, DeleteOrganisationsByIdMembersByUserIdAdminResponse, DeleteOrganisationsByIdMembersByUserIdResponse, DeleteOrganisationsByIdNetworksByNetworkIdResponse, DeleteOrganisationsByIdOutputsByOutputIdDeviceResponse, DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponse, DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdResponse, DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponse, DeleteOrganisationsByIdOutputsByOutputIdResponse, DeleteOrganisationsByIdResponse, DeleteOrganisationsByIdShowsByShowIdResponse, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse, DeleteOrganisationsByIdStreamsByStreamIdResponse, GetAccountResponse, GetDeviceConfigurationResponse, GetHealthResponse, GetInvitationsByIdResponse, GetInvitationsResponse, GetOrganisationsByIdAgentsByAgentIdResponse, GetOrganisationsByIdAgentsResponse, GetOrganisationsByIdCamerasByCameraIdResponse, GetOrganisationsByIdCamerasResponse, GetOrganisationsByIdChannelsByChannelIdResponse, GetOrganisationsByIdChannelsByChannelIdStatsResponse, GetOrganisationsByIdChannelsResponse, GetOrganisationsByIdDevicesAllowlistResponse, GetOrganisationsByIdDevicesByDeviceIdAddressesResponse, GetOrganisationsByIdDevicesByDeviceIdKeyPairResponse, GetOrganisationsByIdDevicesByDeviceIdResponse, GetOrganisationsByIdDevicesResponse, GetOrganisationsByIdGatewaysByGatewayIdEndpointsResponse, GetOrganisationsByIdGatewaysByGatewayIdResponse, GetOrganisationsByIdGatewaysResponse, GetOrganisationsByIdInvitationsResponse, GetOrganisationsByIdMembersResponse, GetOrganisationsByIdNetworksByNetworkIdResponse, GetOrganisationsByIdNetworksResponse, GetOrganisationsByIdOutputsByOutputIdControlResponse, GetOrganisationsByIdOutputsByOutputIdDeviceResponse, GetOrganisationsByIdOutputsByOutputIdResponse, GetOrganisationsByIdOutputsResponse, GetOrganisationsByIdResponse, GetOrganisationsByIdShowsByShowIdResponse, GetOrganisationsByIdShowsResponse, GetOrganisationsByIdStreamsByStreamIdResponse, GetOrganisationsByIdStreamsResponse, GetOrganisationsByIdSubjectsBySubjectIdLogsResponse, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdResponse, GetOrganisationsByIdSubjectsBySubjectIdMetricsResponse, GetOrganisationsByIdSubjectsBySubjectIdObservationsResponse, GetOrganisationsByIdSubjectsBySubjectIdStateResponse, GetOrganisationsByIdSubjectsStatesResponse, GetOrganisationsByIdTopologyResponse, GetOrganisationsResponse, GetWhoamiResponse, PatchAccountResponse, PatchOrganisationsByIdAgentsByAgentIdResponse, PatchOrganisationsByIdCamerasByCameraIdResponse, PatchOrganisationsByIdChannelsByChannelIdResponse, PatchOrganisationsByIdDevicesByDeviceIdResponse, PatchOrganisationsByIdGatewaysByGatewayIdResponse, PatchOrganisationsByIdMembersMeResponse, PatchOrganisationsByIdNetworksByNetworkIdResponse, PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponse, PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponse, PatchOrganisationsByIdOutputsByOutputIdResponse, PatchOrganisationsByIdResponse, PatchOrganisationsByIdShowsByShowIdResponse, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdResponse, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdResponse, PatchOrganisationsByIdStreamsByStreamIdResponse, PostInvitationsByIdAcceptResponse, PostInvitationsByIdDeclineResponse, PostIrohSessionsResponse, PostOrganisationsByIdAgentsResponse, PostOrganisationsByIdCamerasResponse, PostOrganisationsByIdChannelsByChannelIdIngestResponse, PostOrganisationsByIdChannelsResponse, PostOrganisationsByIdChannelsTwitchAuthorizeResponse, PostOrganisationsByIdGatewaysByGatewayIdStatsResponse, PostOrganisationsByIdGatewaysResponse, PostOrganisationsByIdInvitationsResponse, PostOrganisationsByIdNetworksResponse, PostOrganisationsByIdOutputsByOutputIdForwardsResponse, PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsResponse, PostOrganisationsByIdOutputsByOutputIdPreviewsResponse, PostOrganisationsByIdOutputsByOutputIdRecordersResponse, PostOrganisationsByIdOutputsResponse, PostOrganisationsByIdShowsByShowIdComposeResponse, PostOrganisationsByIdShowsResponse, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsResponse, PostOrganisationsByIdStreamsByStreamIdExposuresResponse, PostOrganisationsByIdStreamsByStreamIdRecordersResponse, PostOrganisationsByIdStreamsResponse, PostOrganisationsByIdSubjectsMetricsQueryResponse, PostOrganisationsResponse, PostReportsResponse, PutDeviceAddressesResponse, PutGatewayEndpointsResponse, PutOrganisationsByIdBrowserResponse, PutOrganisationsByIdMembersByUserIdAdminResponse, PutOrganisationsByIdNetworksByNetworkIdActiveAgentResponse, PutOrganisationsByIdOutputsByOutputIdControlResponse, PutOrganisationsByIdOutputsByOutputIdDeviceResponse, Rendition, Schema0 } from './types.gen.js';
+import { DeleteOrganisationsByIdAgentsByAgentIdPathSchema, DeleteOrganisationsByIdCamerasByCameraIdPathSchema, DeleteOrganisationsByIdChannelsByChannelIdPathSchema, DeleteOrganisationsByIdGatewaysByGatewayIdPathSchema, DeleteOrganisationsByIdInvitationsByInvitationIdPathSchema, DeleteOrganisationsByIdMembersByUserIdAdminPathSchema, DeleteOrganisationsByIdMembersByUserIdPathSchema, DeleteOrganisationsByIdNetworksByNetworkIdPathSchema, DeleteOrganisationsByIdOutputsByOutputIdDevicePathSchema, DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema, DeleteOrganisationsByIdOutputsByOutputIdPathSchema, DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdPathSchema, DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema, DeleteOrganisationsByIdPathSchema, DeleteOrganisationsByIdShowsByShowIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdPathSchema, DeleteOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, GetInvitationsByIdPathSchema, GetOrganisationsByIdAgentsByAgentIdPathSchema, GetOrganisationsByIdAgentsPathSchema, GetOrganisationsByIdAgentsQuerySchema, GetOrganisationsByIdCamerasByCameraIdPathSchema, GetOrganisationsByIdCamerasPathSchema, GetOrganisationsByIdChannelsByChannelIdPathSchema, GetOrganisationsByIdChannelsByChannelIdStatsPathSchema, GetOrganisationsByIdChannelsPathSchema, GetOrganisationsByIdDevicesAllowlistPathSchema, GetOrganisationsByIdDevicesByDeviceIdAddressesPathSchema, GetOrganisationsByIdDevicesByDeviceIdKeyPairPathSchema, GetOrganisationsByIdDevicesByDeviceIdPathSchema, GetOrganisationsByIdDevicesPathSchema, GetOrganisationsByIdDevicesQuerySchema, GetOrganisationsByIdGatewaysByGatewayIdEndpointsPathSchema, GetOrganisationsByIdGatewaysByGatewayIdPathSchema, GetOrganisationsByIdGatewaysPathSchema, GetOrganisationsByIdGatewaysQuerySchema, GetOrganisationsByIdInvitationsPathSchema, GetOrganisationsByIdMembersPathSchema, GetOrganisationsByIdNetworksByNetworkIdPathSchema, GetOrganisationsByIdNetworksPathSchema, GetOrganisationsByIdOutputsByOutputIdControlPathSchema, GetOrganisationsByIdOutputsByOutputIdDevicePathSchema, GetOrganisationsByIdOutputsByOutputIdPathSchema, GetOrganisationsByIdOutputsPathSchema, GetOrganisationsByIdPathSchema, GetOrganisationsByIdShowsByShowIdFollowPathSchema, GetOrganisationsByIdShowsByShowIdPathSchema, GetOrganisationsByIdShowsPathSchema, GetOrganisationsByIdStreamsByStreamIdPathSchema, GetOrganisationsByIdStreamsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema, GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema, GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema, GetOrganisationsByIdSubjectsStatesPathSchema, GetOrganisationsByIdSubjectsStatesQuerySchema, GetOrganisationsByIdTopologyPathSchema, PatchAccountBodySchema, PatchOrganisationsByIdAgentsByAgentIdBodySchema, PatchOrganisationsByIdAgentsByAgentIdPathSchema, PatchOrganisationsByIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdBodySchema, PatchOrganisationsByIdCamerasByCameraIdPathSchema, PatchOrganisationsByIdChannelsByChannelIdBodySchema, PatchOrganisationsByIdChannelsByChannelIdPathSchema, PatchOrganisationsByIdDevicesByDeviceIdBodySchema, PatchOrganisationsByIdDevicesByDeviceIdPathSchema, PatchOrganisationsByIdGatewaysByGatewayIdBodySchema, PatchOrganisationsByIdGatewaysByGatewayIdPathSchema, PatchOrganisationsByIdMembersMeBodySchema, PatchOrganisationsByIdMembersMePathSchema, PatchOrganisationsByIdNetworksByNetworkIdBodySchema, PatchOrganisationsByIdNetworksByNetworkIdPathSchema, PatchOrganisationsByIdOutputsByOutputIdBodySchema, PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdBodySchema, PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema, PatchOrganisationsByIdOutputsByOutputIdPathSchema, PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema, PatchOrganisationsByIdPathSchema, PatchOrganisationsByIdShowsByShowIdBodySchema, PatchOrganisationsByIdShowsByShowIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdPathSchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySchema, PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdPathSchema, PostInvitationsByIdAcceptBodySchema, PostInvitationsByIdAcceptPathSchema, PostInvitationsByIdDeclineBodySchema, PostInvitationsByIdDeclinePathSchema, PostOrganisationsBodySchema, PostOrganisationsByIdAgentsBodySchema, PostOrganisationsByIdAgentsPathSchema, PostOrganisationsByIdCamerasBodySchema, PostOrganisationsByIdCamerasPathSchema, PostOrganisationsByIdChannelsBodySchema, PostOrganisationsByIdChannelsByChannelIdIngestPathSchema, PostOrganisationsByIdChannelsPathSchema, PostOrganisationsByIdChannelsTwitchAuthorizePathSchema, PostOrganisationsByIdGatewaysBodySchema, PostOrganisationsByIdGatewaysByGatewayIdStatsPathSchema, PostOrganisationsByIdGatewaysPathSchema, PostOrganisationsByIdInvitationsBodySchema, PostOrganisationsByIdInvitationsPathSchema, PostOrganisationsByIdNetworksBodySchema, PostOrganisationsByIdNetworksPathSchema, PostOrganisationsByIdOutputsBodySchema, PostOrganisationsByIdOutputsByOutputIdForwardsBodySchema, PostOrganisationsByIdOutputsByOutputIdForwardsPathSchema, PostOrganisationsByIdOutputsByOutputIdPreviewsBodySchema, PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsBodySchema, PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsPathSchema, PostOrganisationsByIdOutputsByOutputIdPreviewsPathSchema, PostOrganisationsByIdOutputsByOutputIdRecordersBodySchema, PostOrganisationsByIdOutputsByOutputIdRecordersPathSchema, PostOrganisationsByIdOutputsPathSchema, PostOrganisationsByIdShowsBodySchema, PostOrganisationsByIdShowsByShowIdComposePathSchema, PostOrganisationsByIdShowsPathSchema, PostOrganisationsByIdStreamsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsBodySchema, PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema, PostOrganisationsByIdStreamsByStreamIdExposuresPathSchema, PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema, PostOrganisationsByIdStreamsByStreamIdRecordersPathSchema, PostOrganisationsByIdStreamsPathSchema, PostOrganisationsByIdSubjectsMetricsQueryBodySchema, PostOrganisationsByIdSubjectsMetricsQueryPathSchema, PostReportsBodySchema, PutDeviceAddressesBodySchema, PutGatewayEndpointsBodySchema, PutOrganisationsByIdBrowserPathSchema, PutOrganisationsByIdMembersByUserIdAdminPathSchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentBodySchema, PutOrganisationsByIdNetworksByNetworkIdActiveAgentPathSchema, PutOrganisationsByIdOutputsByOutputIdControlBodySchema, PutOrganisationsByIdOutputsByOutputIdControlPathSchema, PutOrganisationsByIdOutputsByOutputIdDeviceBodySchema, PutOrganisationsByIdOutputsByOutputIdDevicePathSchema } from './zod.gen.js';
 
 export const HealthGetParamsSchema = z.object({});
 
@@ -949,7 +949,7 @@ export type MetricQueryOutput = PostOrganisationsByIdSubjectsMetricsQueryRespons
 
 export const SubjectStateParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.')
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.')
 });
 
 export type SubjectStateParams = z.infer<typeof SubjectStateParamsSchema>;
@@ -963,7 +963,7 @@ export type SubjectStateOutput = GetOrganisationsByIdSubjectsBySubjectIdStateRes
 
 export const ObservationListParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdObservationsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
     limit: GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
     before: GetOrganisationsByIdSubjectsBySubjectIdObservationsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.')
 });
@@ -981,7 +981,7 @@ export type ObservationListOutput = GetOrganisationsByIdSubjectsBySubjectIdObser
 
 export const MetricListParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
     name: GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema.shape.name.optional().describe('Only series of this metric.')
 });
 
@@ -997,7 +997,7 @@ export type MetricListOutput = GetOrganisationsByIdSubjectsBySubjectIdMetricsRes
 
 export const MetricGetParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
     seriesId: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdPathSchema.shape.seriesId.nonoptional().describe('The series.'),
     from: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.from.nonoptional().describe('Points observed at or after this time.'),
     to: GetOrganisationsByIdSubjectsBySubjectIdMetricsBySeriesIdQuerySchema.shape.to.optional().describe('Points observed before this time; now by default.'),
@@ -1019,7 +1019,7 @@ export type MetricGetOutput = GetOrganisationsByIdSubjectsBySubjectIdMetricsBySe
 
 export const LogListParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdLogsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
     limit: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
     before: GetOrganisationsByIdSubjectsBySubjectIdLogsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.')
 });
@@ -1047,68 +1047,6 @@ export type TopologyGetInput = {
 
 export type TopologyGetOutput = GetOrganisationsByIdTopologyResponse;
 
-export const ShowFollowParamsSchema = z.object({
-    id: GetOrganisationsByIdShowPathSchema.shape.id.nonoptional().describe('The organisation.')
-});
-
-export type ShowFollowParams = z.infer<typeof ShowFollowParamsSchema>;
-
-export type ShowFollowInput = {
-    id: string;
-};
-
-export type ShowFollowOutput = unknown;
-
-export const ShowComposeParamsSchema = z.object({
-    id: PostOrganisationsByIdShowComposePathSchema.shape.id.nonoptional().describe('The organisation.')
-});
-
-export type ShowComposeParams = z.infer<typeof ShowComposeParamsSchema>;
-
-export type ShowComposeInput = {
-    id: string;
-};
-
-export type ShowComposeOutput = PostOrganisationsByIdShowComposeResponse;
-
-export const OutputDeleteParamsSchema = z.object({
-    id: DeleteOrganisationsByIdShowOutputPathSchema.shape.id.nonoptional().describe('The organisation.')
-});
-
-export type OutputDeleteParams = z.infer<typeof OutputDeleteParamsSchema>;
-
-export type OutputDeleteInput = {
-    id: string;
-};
-
-export type OutputDeleteOutput = DeleteOrganisationsByIdShowOutputResponse;
-
-export const OutputGetParamsSchema = z.object({
-    id: GetOrganisationsByIdShowOutputPathSchema.shape.id.nonoptional().describe('The organisation.')
-});
-
-export type OutputGetParams = z.infer<typeof OutputGetParamsSchema>;
-
-export type OutputGetInput = {
-    id: string;
-};
-
-export type OutputGetOutput = GetOrganisationsByIdShowOutputResponse;
-
-export const OutputSetParamsSchema = z.object({
-    id: PutOrganisationsByIdShowOutputPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    deviceId: PutOrganisationsByIdShowOutputBodySchema.shape.deviceId.nonoptional().describe('The agent that drives OBS for the broadcast: one of the organisation\'s.')
-});
-
-export type OutputSetParams = z.infer<typeof OutputSetParamsSchema>;
-
-export type OutputSetInput = {
-    id: string;
-    deviceId: string;
-};
-
-export type OutputSetOutput = PutOrganisationsByIdShowOutputResponse;
-
 export const ShowListParamsSchema = z.object({
     id: GetOrganisationsByIdShowsPathSchema.shape.id.nonoptional().describe('The organisation.')
 });
@@ -1123,12 +1061,7 @@ export type ShowListOutput = GetOrganisationsByIdShowsResponse;
 
 export const ShowCreateParamsSchema = z.object({
     id: PostOrganisationsByIdShowsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    name: PostOrganisationsByIdShowsBodySchema.shape.name.nonoptional().describe('What the show is called in the studio.'),
-    width: PostOrganisationsByIdShowsBodySchema.shape.width.optional().describe('The program\'s width in pixels: even.'),
-    height: PostOrganisationsByIdShowsBodySchema.shape.height.optional().describe('The program\'s height in pixels: even.'),
-    fps: PostOrganisationsByIdShowsBodySchema.shape.fps.optional().describe('The program\'s frame rate.'),
-    bitrateKbps: PostOrganisationsByIdShowsBodySchema.shape.bitrateKbps.optional().describe('The program\'s constant video bitrate, in kbps.'),
-    keyframeSeconds: PostOrganisationsByIdShowsBodySchema.shape.keyframeSeconds.optional().describe('The program\'s keyframe interval, in seconds.')
+    name: PostOrganisationsByIdShowsBodySchema.shape.name.nonoptional().describe('What the show is called in the studio.')
 });
 
 export type ShowCreateParams = z.infer<typeof ShowCreateParamsSchema>;
@@ -1136,11 +1069,6 @@ export type ShowCreateParams = z.infer<typeof ShowCreateParamsSchema>;
 export type ShowCreateInput = {
     id: string;
     name: string;
-    width?: number;
-    height?: number;
-    fps?: number;
-    bitrateKbps?: number;
-    keyframeSeconds?: number;
 };
 
 export type ShowCreateOutput = PostOrganisationsByIdShowsResponse;
@@ -1176,12 +1104,7 @@ export type ShowGetOutput = GetOrganisationsByIdShowsByShowIdResponse;
 export const ShowUpdateParamsSchema = z.object({
     id: PatchOrganisationsByIdShowsByShowIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     showId: PatchOrganisationsByIdShowsByShowIdPathSchema.shape.showId.nonoptional().describe('The show.'),
-    name: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.name.optional().describe('What the show is called in the studio.'),
-    width: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.width.optional().describe('The program\'s width in pixels: even.'),
-    height: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.height.optional().describe('The program\'s height in pixels: even.'),
-    fps: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.fps.optional().describe('The program\'s frame rate.'),
-    bitrateKbps: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.bitrateKbps.optional().describe('The program\'s constant video bitrate, in kbps.'),
-    keyframeSeconds: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.keyframeSeconds.optional().describe('The program\'s keyframe interval, in seconds.')
+    name: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.name.nonoptional().describe('What the show is called in the studio.')
 });
 
 export type ShowUpdateParams = z.infer<typeof ShowUpdateParamsSchema>;
@@ -1189,7 +1112,70 @@ export type ShowUpdateParams = z.infer<typeof ShowUpdateParamsSchema>;
 export type ShowUpdateInput = {
     id: string;
     showId: string;
-    name?: string;
+    name: string;
+};
+
+export type ShowUpdateOutput = PatchOrganisationsByIdShowsByShowIdResponse;
+
+export const ShowFollowParamsSchema = z.object({
+    id: GetOrganisationsByIdShowsByShowIdFollowPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    showId: GetOrganisationsByIdShowsByShowIdFollowPathSchema.shape.showId.nonoptional().describe('The show.')
+});
+
+export type ShowFollowParams = z.infer<typeof ShowFollowParamsSchema>;
+
+export type ShowFollowInput = {
+    id: string;
+    showId: string;
+};
+
+export type ShowFollowOutput = unknown;
+
+export const ShowComposeParamsSchema = z.object({
+    id: PostOrganisationsByIdShowsByShowIdComposePathSchema.shape.id.nonoptional().describe('The organisation.'),
+    showId: PostOrganisationsByIdShowsByShowIdComposePathSchema.shape.showId.nonoptional().describe('The show.')
+});
+
+export type ShowComposeParams = z.infer<typeof ShowComposeParamsSchema>;
+
+export type ShowComposeInput = {
+    id: string;
+    showId: string;
+};
+
+export type ShowComposeOutput = PostOrganisationsByIdShowsByShowIdComposeResponse;
+
+export const OutputListParamsSchema = z.object({
+    id: GetOrganisationsByIdOutputsPathSchema.shape.id.nonoptional().describe('The organisation.')
+});
+
+export type OutputListParams = z.infer<typeof OutputListParamsSchema>;
+
+export type OutputListInput = {
+    id: string;
+};
+
+export type OutputListOutput = GetOrganisationsByIdOutputsResponse;
+
+export const OutputCreateParamsSchema = z.object({
+    id: PostOrganisationsByIdOutputsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    name: PostOrganisationsByIdOutputsBodySchema.shape.name.nonoptional().describe('What the output is called in the studio.'),
+    control: PostOrganisationsByIdOutputsBodySchema.shape.control.optional().describe('Who drives OBS\'s scenes: `show`, the show the output follows, or `external`, something outside the studio, for which the output reads any of the organisation\'s exposures and follows no show.'),
+    showId: PostOrganisationsByIdOutputsBodySchema.shape.showId.optional().describe('The show the output follows: one of the organisation\'s, or null for none. Only under `show` control.'),
+    width: PostOrganisationsByIdOutputsBodySchema.shape.width.optional().describe('The programme\'s width in pixels: even.'),
+    height: PostOrganisationsByIdOutputsBodySchema.shape.height.optional().describe('The programme\'s height in pixels: even.'),
+    fps: PostOrganisationsByIdOutputsBodySchema.shape.fps.optional().describe('The programme\'s frame rate.'),
+    bitrateKbps: PostOrganisationsByIdOutputsBodySchema.shape.bitrateKbps.optional().describe('The programme\'s constant video bitrate, in kbps.'),
+    keyframeSeconds: PostOrganisationsByIdOutputsBodySchema.shape.keyframeSeconds.optional().describe('The programme\'s keyframe interval, in seconds.')
+});
+
+export type OutputCreateParams = z.infer<typeof OutputCreateParamsSchema>;
+
+export type OutputCreateInput = {
+    id: string;
+    name: string;
+    control?: 'show' | 'external';
+    showId?: string | null;
     width?: number;
     height?: number;
     fps?: number;
@@ -1197,207 +1183,301 @@ export type ShowUpdateInput = {
     keyframeSeconds?: number;
 };
 
-export type ShowUpdateOutput = PatchOrganisationsByIdShowsByShowIdResponse;
+export type OutputCreateOutput = PostOrganisationsByIdOutputsResponse;
 
-export const ShowDeleteOutputParamsSchema = z.object({
-    id: DeleteOrganisationsByIdShowsByShowIdOutputPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: DeleteOrganisationsByIdShowsByShowIdOutputPathSchema.shape.showId.nonoptional().describe('The show.')
+export const OutputDeleteParamsSchema = z.object({
+    id: DeleteOrganisationsByIdOutputsByOutputIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: DeleteOrganisationsByIdOutputsByOutputIdPathSchema.shape.outputId.nonoptional().describe('The output.')
 });
 
-export type ShowDeleteOutputParams = z.infer<typeof ShowDeleteOutputParamsSchema>;
+export type OutputDeleteParams = z.infer<typeof OutputDeleteParamsSchema>;
 
-export type ShowDeleteOutputInput = {
+export type OutputDeleteInput = {
     id: string;
-    showId: string;
+    outputId: string;
 };
 
-export type ShowDeleteOutputOutput = DeleteOrganisationsByIdShowsByShowIdOutputResponse;
+export type OutputDeleteOutput = DeleteOrganisationsByIdOutputsByOutputIdResponse;
 
-export const ShowGetOutputParamsSchema = z.object({
-    id: GetOrganisationsByIdShowsByShowIdOutputPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: GetOrganisationsByIdShowsByShowIdOutputPathSchema.shape.showId.nonoptional().describe('The show.')
+export const OutputGetParamsSchema = z.object({
+    id: GetOrganisationsByIdOutputsByOutputIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: GetOrganisationsByIdOutputsByOutputIdPathSchema.shape.outputId.nonoptional().describe('The output.')
 });
 
-export type ShowGetOutputParams = z.infer<typeof ShowGetOutputParamsSchema>;
+export type OutputGetParams = z.infer<typeof OutputGetParamsSchema>;
 
-export type ShowGetOutputInput = {
+export type OutputGetInput = {
     id: string;
-    showId: string;
+    outputId: string;
 };
 
-export type ShowGetOutputOutput = GetOrganisationsByIdShowsByShowIdOutputResponse;
+export type OutputGetOutput = GetOrganisationsByIdOutputsByOutputIdResponse;
 
-export const ShowSetOutputParamsSchema = z.object({
-    id: PutOrganisationsByIdShowsByShowIdOutputPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: PutOrganisationsByIdShowsByShowIdOutputPathSchema.shape.showId.nonoptional().describe('The show.'),
-    deviceId: PutOrganisationsByIdShowsByShowIdOutputBodySchema.shape.deviceId.nonoptional().describe('The agent that drives OBS for the show: one of the organisation\'s, and no other show\'s output.')
+export const OutputUpdateParamsSchema = z.object({
+    id: PatchOrganisationsByIdOutputsByOutputIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PatchOrganisationsByIdOutputsByOutputIdPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    name: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.name.optional().describe('What the output is called in the studio.'),
+    control: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.control.optional().describe('Who drives OBS\'s scenes: `show`, the show the output follows, or `external`, something outside the studio, for which the output reads any of the organisation\'s exposures and follows no show.'),
+    showId: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.showId.optional().describe('The show the output follows: one of the organisation\'s, or null for none. Only under `show` control.'),
+    width: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.width.optional().describe('The programme\'s width in pixels: even.'),
+    height: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.height.optional().describe('The programme\'s height in pixels: even.'),
+    fps: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.fps.optional().describe('The programme\'s frame rate.'),
+    bitrateKbps: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.bitrateKbps.optional().describe('The programme\'s constant video bitrate, in kbps.'),
+    keyframeSeconds: PatchOrganisationsByIdOutputsByOutputIdBodySchema.shape.keyframeSeconds.optional().describe('The programme\'s keyframe interval, in seconds.')
 });
 
-export type ShowSetOutputParams = z.infer<typeof ShowSetOutputParamsSchema>;
+export type OutputUpdateParams = z.infer<typeof OutputUpdateParamsSchema>;
 
-export type ShowSetOutputInput = {
+export type OutputUpdateInput = {
     id: string;
-    showId: string;
+    outputId: string;
+    name?: string;
+    control?: 'show' | 'external';
+    showId?: string | null;
+    width?: number;
+    height?: number;
+    fps?: number;
+    bitrateKbps?: number;
+    keyframeSeconds?: number;
+};
+
+export type OutputUpdateOutput = PatchOrganisationsByIdOutputsByOutputIdResponse;
+
+export const OutputDeleteDeviceParamsSchema = z.object({
+    id: DeleteOrganisationsByIdOutputsByOutputIdDevicePathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: DeleteOrganisationsByIdOutputsByOutputIdDevicePathSchema.shape.outputId.nonoptional().describe('The output.')
+});
+
+export type OutputDeleteDeviceParams = z.infer<typeof OutputDeleteDeviceParamsSchema>;
+
+export type OutputDeleteDeviceInput = {
+    id: string;
+    outputId: string;
+};
+
+export type OutputDeleteDeviceOutput = DeleteOrganisationsByIdOutputsByOutputIdDeviceResponse;
+
+export const OutputGetDeviceParamsSchema = z.object({
+    id: GetOrganisationsByIdOutputsByOutputIdDevicePathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: GetOrganisationsByIdOutputsByOutputIdDevicePathSchema.shape.outputId.nonoptional().describe('The output.')
+});
+
+export type OutputGetDeviceParams = z.infer<typeof OutputGetDeviceParamsSchema>;
+
+export type OutputGetDeviceInput = {
+    id: string;
+    outputId: string;
+};
+
+export type OutputGetDeviceOutput = GetOrganisationsByIdOutputsByOutputIdDeviceResponse;
+
+export const OutputSetDeviceParamsSchema = z.object({
+    id: PutOrganisationsByIdOutputsByOutputIdDevicePathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PutOrganisationsByIdOutputsByOutputIdDevicePathSchema.shape.outputId.nonoptional().describe('The output.'),
+    deviceId: PutOrganisationsByIdOutputsByOutputIdDeviceBodySchema.shape.deviceId.nonoptional().describe('The agent that runs the output\'s OBS: one of the organisation\'s, and no other output\'s.')
+});
+
+export type OutputSetDeviceParams = z.infer<typeof OutputSetDeviceParamsSchema>;
+
+export type OutputSetDeviceInput = {
+    id: string;
+    outputId: string;
     deviceId: string;
 };
 
-export type ShowSetOutputOutput = PutOrganisationsByIdShowsByShowIdOutputResponse;
+export type OutputSetDeviceOutput = PutOrganisationsByIdOutputsByOutputIdDeviceResponse;
+
+export const ControlGetParamsSchema = z.object({
+    id: GetOrganisationsByIdOutputsByOutputIdControlPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: GetOrganisationsByIdOutputsByOutputIdControlPathSchema.shape.outputId.nonoptional().describe('The output.')
+});
+
+export type ControlGetParams = z.infer<typeof ControlGetParamsSchema>;
+
+export type ControlGetInput = {
+    id: string;
+    outputId: string;
+};
+
+export type ControlGetOutput = GetOrganisationsByIdOutputsByOutputIdControlResponse;
+
+export const ControlReportParamsSchema = z.object({
+    id: PutOrganisationsByIdOutputsByOutputIdControlPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PutOrganisationsByIdOutputsByOutputIdControlPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    websocketPort: PutOrganisationsByIdOutputsByOutputIdControlBodySchema.shape.websocketPort.nonoptional().describe('The port obs-websocket listens on.'),
+    websocketPassword: PutOrganisationsByIdOutputsByOutputIdControlBodySchema.shape.websocketPassword.nonoptional().describe('obs-websocket\'s password.'),
+    sceneCollection: PutOrganisationsByIdOutputsByOutputIdControlBodySchema.shape.sceneCollection.nonoptional().describe('The scene collection OBS runs: the agent\'s own for a show, kept apart from an external controller\'s.'),
+    inputUrl: PutOrganisationsByIdOutputsByOutputIdControlBodySchema.shape.inputUrl.nonoptional().describe('Where OBS, on its own machine, reads any exposure the output may read, with `{streamId}` and `{exposureId}` in place of the stream and the exposure: for a media source.')
+});
+
+export type ControlReportParams = z.infer<typeof ControlReportParamsSchema>;
+
+export type ControlReportInput = {
+    id: string;
+    outputId: string;
+    websocketPort: number;
+    websocketPassword: string;
+    sceneCollection: string;
+    inputUrl: string;
+};
+
+export type ControlReportOutput = PutOrganisationsByIdOutputsByOutputIdControlResponse;
 
 export const ForwardCreateParamsSchema = z.object({
-    id: PostOrganisationsByIdShowsByShowIdForwardsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: PostOrganisationsByIdShowsByShowIdForwardsPathSchema.shape.showId.nonoptional().describe('The show.'),
-    channelId: PostOrganisationsByIdShowsByShowIdForwardsBodySchema.shape.channelId.nonoptional().describe('The channel: one of the organisation\'s.'),
-    enabled: PostOrganisationsByIdShowsByShowIdForwardsBodySchema.shape.enabled.optional().describe('Whether the program goes out to the channel.')
+    id: PostOrganisationsByIdOutputsByOutputIdForwardsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PostOrganisationsByIdOutputsByOutputIdForwardsPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    channelId: PostOrganisationsByIdOutputsByOutputIdForwardsBodySchema.shape.channelId.nonoptional().describe('The channel: one of the organisation\'s.'),
+    enabled: PostOrganisationsByIdOutputsByOutputIdForwardsBodySchema.shape.enabled.optional().describe('Whether the programme goes out to the channel.')
 });
 
 export type ForwardCreateParams = z.infer<typeof ForwardCreateParamsSchema>;
 
 export type ForwardCreateInput = {
     id: string;
-    showId: string;
+    outputId: string;
     channelId: string;
     enabled?: boolean;
 };
 
-export type ForwardCreateOutput = PostOrganisationsByIdShowsByShowIdForwardsResponse;
+export type ForwardCreateOutput = PostOrganisationsByIdOutputsByOutputIdForwardsResponse;
 
 export const ForwardDeleteParamsSchema = z.object({
-    id: DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema.shape.showId.nonoptional().describe('The show.'),
-    forwardId: DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema.shape.forwardId.nonoptional().describe('The forward.')
+    id: DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    forwardId: DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema.shape.forwardId.nonoptional().describe('The forward.')
 });
 
 export type ForwardDeleteParams = z.infer<typeof ForwardDeleteParamsSchema>;
 
 export type ForwardDeleteInput = {
     id: string;
-    showId: string;
+    outputId: string;
     forwardId: string;
 };
 
-export type ForwardDeleteOutput = DeleteOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse;
+export type ForwardDeleteOutput = DeleteOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponse;
 
 export const ForwardUpdateParamsSchema = z.object({
-    id: PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema.shape.showId.nonoptional().describe('The show.'),
-    forwardId: PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdPathSchema.shape.forwardId.nonoptional().describe('The forward.'),
-    enabled: PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdBodySchema.shape.enabled.nonoptional().describe('Whether the program goes out to the channel.')
+    id: PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    forwardId: PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchema.shape.forwardId.nonoptional().describe('The forward.'),
+    enabled: PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdBodySchema.shape.enabled.nonoptional().describe('Whether the programme goes out to the channel.')
 });
 
 export type ForwardUpdateParams = z.infer<typeof ForwardUpdateParamsSchema>;
 
 export type ForwardUpdateInput = {
     id: string;
-    showId: string;
+    outputId: string;
     forwardId: string;
     enabled: boolean;
 };
 
-export type ForwardUpdateOutput = PatchOrganisationsByIdShowsByShowIdForwardsByForwardIdResponse;
+export type ForwardUpdateOutput = PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponse;
 
 export const PreviewCreateParamsSchema = z.object({
-    id: PostOrganisationsByIdShowsByShowIdPreviewsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: PostOrganisationsByIdShowsByShowIdPreviewsPathSchema.shape.showId.nonoptional().describe('The show.'),
-    gatewayId: PostOrganisationsByIdShowsByShowIdPreviewsBodySchema.shape.gatewayId.nonoptional().describe('The gateway the program is published to and read from: built in, or the organisation\'s own.')
+    id: PostOrganisationsByIdOutputsByOutputIdPreviewsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PostOrganisationsByIdOutputsByOutputIdPreviewsPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    gatewayId: PostOrganisationsByIdOutputsByOutputIdPreviewsBodySchema.shape.gatewayId.nonoptional().describe('The gateway the programme is published to and read from: built in, or the organisation\'s own.')
 });
 
 export type PreviewCreateParams = z.infer<typeof PreviewCreateParamsSchema>;
 
 export type PreviewCreateInput = {
     id: string;
-    showId: string;
+    outputId: string;
     gatewayId: 'conservationtv' | string;
 };
 
-export type PreviewCreateOutput = PostOrganisationsByIdShowsByShowIdPreviewsResponse;
+export type PreviewCreateOutput = PostOrganisationsByIdOutputsByOutputIdPreviewsResponse;
 
 export const PreviewDeleteParamsSchema = z.object({
-    id: DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdPathSchema.shape.showId.nonoptional().describe('The show.'),
-    previewId: DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdPathSchema.shape.previewId.nonoptional().describe('The preview.')
+    id: DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    previewId: DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdPathSchema.shape.previewId.nonoptional().describe('The preview.')
 });
 
 export type PreviewDeleteParams = z.infer<typeof PreviewDeleteParamsSchema>;
 
 export type PreviewDeleteInput = {
     id: string;
-    showId: string;
+    outputId: string;
     previewId: string;
 };
 
-export type PreviewDeleteOutput = DeleteOrganisationsByIdShowsByShowIdPreviewsByPreviewIdResponse;
+export type PreviewDeleteOutput = DeleteOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdResponse;
 
 export const PreviewConnectParamsSchema = z.object({
-    id: PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsPathSchema.shape.showId.nonoptional().describe('The show.'),
-    previewId: PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsPathSchema.shape.previewId.nonoptional().describe('The preview.'),
-    action: PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsBodySchema.shape.action.nonoptional().describe('Whether to read the preview from its gateway, or publish it there.'),
-    protocol: PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'),
-    rendition: PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsBodySchema.shape.rendition.optional()
+    id: PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    previewId: PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsPathSchema.shape.previewId.nonoptional().describe('The preview.'),
+    action: PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsBodySchema.shape.action.nonoptional().describe('Whether to read the preview from its gateway, or publish it there.'),
+    protocol: PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsBodySchema.shape.protocol.nonoptional().describe('One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'),
+    rendition: PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsBodySchema.shape.rendition.optional()
 });
 
 export type PreviewConnectParams = z.infer<typeof PreviewConnectParamsSchema>;
 
 export type PreviewConnectInput = {
     id: string;
-    showId: string;
+    outputId: string;
     previewId: string;
     action: 'read' | 'publish';
     protocol: string;
     rendition?: Rendition;
 };
 
-export type PreviewConnectOutput = PostOrganisationsByIdShowsByShowIdPreviewsByPreviewIdConnectionsResponse;
+export type PreviewConnectOutput = PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsResponse;
 
-export const ShowCreateRecorderParamsSchema = z.object({
-    id: PostOrganisationsByIdShowsByShowIdRecordersPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: PostOrganisationsByIdShowsByShowIdRecordersPathSchema.shape.showId.nonoptional().describe('The show.'),
-    kind: PostOrganisationsByIdShowsByShowIdRecordersBodySchema.shape.kind.nonoptional().describe('How the program is recorded: `obs`, by OBS alongside streaming it.'),
-    params: PostOrganisationsByIdShowsByShowIdRecordersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
+export const OutputCreateRecorderParamsSchema = z.object({
+    id: PostOrganisationsByIdOutputsByOutputIdRecordersPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PostOrganisationsByIdOutputsByOutputIdRecordersPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    kind: PostOrganisationsByIdOutputsByOutputIdRecordersBodySchema.shape.kind.nonoptional().describe('How the programme is recorded: `obs`, by OBS alongside streaming it.'),
+    params: PostOrganisationsByIdOutputsByOutputIdRecordersBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });
 
-export type ShowCreateRecorderParams = z.infer<typeof ShowCreateRecorderParamsSchema>;
+export type OutputCreateRecorderParams = z.infer<typeof OutputCreateRecorderParamsSchema>;
 
-export type ShowCreateRecorderInput = {
+export type OutputCreateRecorderInput = {
     id: string;
-    showId: string;
+    outputId: string;
     kind: 'obs';
     params?: {
         [key: string]: Schema0;
     };
 };
 
-export type ShowCreateRecorderOutput = PostOrganisationsByIdShowsByShowIdRecordersResponse;
+export type OutputCreateRecorderOutput = PostOrganisationsByIdOutputsByOutputIdRecordersResponse;
 
-export const ShowDeleteRecorderParamsSchema = z.object({
-    id: DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema.shape.showId.nonoptional().describe('The show.'),
-    recorderId: DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.')
+export const OutputDeleteRecorderParamsSchema = z.object({
+    id: DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    recorderId: DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.')
 });
 
-export type ShowDeleteRecorderParams = z.infer<typeof ShowDeleteRecorderParamsSchema>;
+export type OutputDeleteRecorderParams = z.infer<typeof OutputDeleteRecorderParamsSchema>;
 
-export type ShowDeleteRecorderInput = {
+export type OutputDeleteRecorderInput = {
     id: string;
-    showId: string;
+    outputId: string;
     recorderId: string;
 };
 
-export type ShowDeleteRecorderOutput = DeleteOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse;
+export type OutputDeleteRecorderOutput = DeleteOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponse;
 
-export const ShowUpdateRecorderParamsSchema = z.object({
-    id: PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    showId: PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema.shape.showId.nonoptional().describe('The show.'),
-    recorderId: PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.'),
-    kind: PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdBodySchema.shape.kind.optional().describe('How the program is recorded: `obs`, by OBS alongside streaming it.'),
-    params: PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
+export const OutputUpdateRecorderParamsSchema = z.object({
+    id: PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
+    outputId: PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema.shape.outputId.nonoptional().describe('The output.'),
+    recorderId: PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdPathSchema.shape.recorderId.nonoptional().describe('The recorder.'),
+    kind: PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdBodySchema.shape.kind.optional().describe('How the programme is recorded: `obs`, by OBS alongside streaming it.'),
+    params: PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdBodySchema.shape.params.optional().describe('Settings validated by the implementation that reads them.')
 });
 
-export type ShowUpdateRecorderParams = z.infer<typeof ShowUpdateRecorderParamsSchema>;
+export type OutputUpdateRecorderParams = z.infer<typeof OutputUpdateRecorderParamsSchema>;
 
-export type ShowUpdateRecorderInput = {
+export type OutputUpdateRecorderInput = {
     id: string;
-    showId: string;
+    outputId: string;
     recorderId: string;
     kind?: 'obs';
     params?: {
@@ -1405,7 +1485,7 @@ export type ShowUpdateRecorderInput = {
     };
 };
 
-export type ShowUpdateRecorderOutput = PatchOrganisationsByIdShowsByShowIdRecordersByRecorderIdResponse;
+export type OutputUpdateRecorderOutput = PatchOrganisationsByIdOutputsByOutputIdRecordersByRecorderIdResponse;
 
 export const ChannelListParamsSchema = z.object({
     id: GetOrganisationsByIdChannelsPathSchema.shape.id.nonoptional().describe('The organisation.')
@@ -1579,7 +1659,7 @@ export type ReportSubmitInput = {
     reports: Array<{
         kind: 'event';
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
         observedAt: string;
@@ -1595,7 +1675,7 @@ export type ReportSubmitInput = {
     } | {
         kind: 'metric';
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
         observedAt: string;
@@ -1623,7 +1703,7 @@ export type ReportSubmitInput = {
     } | {
         kind: 'log';
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
         observedAt: string;

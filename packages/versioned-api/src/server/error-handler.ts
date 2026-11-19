@@ -22,25 +22,51 @@ export const handleNotFound = (c: Context) => apiError(c, 'not_found', 'Route no
 /** An API's own failures, rendered before the common ones. Return nothing to fall through. */
 export type ErrorRenderer = (error: Error, c: Context) => Response | undefined;
 
+/** The failures the handler renders itself, when the API's renderer falls through. */
+export type CommonFailureCode = 'not_found' | 'operation_version_mismatch' | 'invalid_request' | 'server_error';
+
+export interface ErrorHandlerOptions {
+  /** Told the code of each common failure as it is rendered; the API's renderer knows its own. */
+  onRender?(code: CommonFailureCode): void;
+}
+
+/** A common failure's code, description, status and headers. */
+interface CommonFailure {
+  code: CommonFailureCode;
+  description: string;
+  status: ContentfulStatusCode;
+  headers?: Record<string, string>;
+}
+
+/** Routing and version selection, then validation (Hono's 400s), and finally an opaque 500 logged with its cause. */
+function commonFailure(error: Error): CommonFailure {
+  if (error instanceof NotFoundError) return { code: 'not_found', description: error.message, status: 404 };
+  if (error instanceof OperationVersionMismatchError) {
+    const served = error.served.length ? error.served.join(',') : 'versionless';
+    return {
+      code: 'operation_version_mismatch',
+      description: error.message,
+      status: 412,
+      headers: { [OPERATION_VERSION_HEADER]: served }
+    };
+  }
+  if (error instanceof HTTPException && error.status === 400) {
+    return { code: 'invalid_request', description: error.message, status: 400 };
+  }
+  console.error(error);
+  return { code: 'server_error', description: 'Unexpected server error', status: 500 };
+}
+
 /**
- * Every failure renders as `{ error, error_description }`: the API's own errors first, then routing and version
- * selection, then validation (Hono's 400s), and finally an opaque 500 that is logged with its cause.
+ * Every failure renders as `{ error, error_description }`: the API's own errors first, then the common ones
+ * (`commonFailure`), most specific first.
  */
-export function createErrorHandler(render?: ErrorRenderer): ErrorHandler {
+export function createErrorHandler(render?: ErrorRenderer, options: ErrorHandlerOptions = {}): ErrorHandler {
   return (error, c) => {
-    // Most specific first: the API's own classes, then this package's, then Hono's validation failures.
     const rendered = render?.(error, c);
     if (rendered) return rendered;
-    if (error instanceof NotFoundError) return apiError(c, 'not_found', error.message, 404);
-    if (error instanceof OperationVersionMismatchError) {
-      return apiError(c, 'operation_version_mismatch', error.message, 412, {
-        [OPERATION_VERSION_HEADER]: error.served.length ? error.served.join(',') : 'versionless'
-      });
-    }
-    if (error instanceof HTTPException && error.status === 400) {
-      return apiError(c, 'invalid_request', error.message, 400);
-    }
-    console.error(error);
-    return apiError(c, 'server_error', 'Unexpected server error', 500);
+    const { code, description, status, headers } = commonFailure(error);
+    options.onRender?.(code);
+    return apiError(c, code, description, status, headers);
   };
 }

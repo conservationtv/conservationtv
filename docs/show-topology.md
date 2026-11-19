@@ -1,5 +1,8 @@
 # A show's topology
 
+> Superseded in part by [outputs.md](outputs.md): what this calls a show (output, encoding, forwards, previews,
+> recorders) is now an **output**, and a show is only what is on screen.
+
 A stream is a picture delivered: a source, exposures carrying it to gateways, recorders. Each hop has an ID, reports
 are filed against it, and the studio draws, colours and charts the whole chain from one list read. A show going out had
 none of that: an organisation-wide broadcast, one `show_output` row naming the agent that runs OBS, and channels that

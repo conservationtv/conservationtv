@@ -200,10 +200,10 @@ interface ObsRuntimeProps {
   obs: System['obs'];
 }
 
-/** OBS, which an agent that sends a show out runs; a line saying it isn't in use on one that doesn't. */
+/** OBS, which an agent that runs an output runs; a line saying it isn't in use on one that doesn't. */
 const ObsRuntime: FC<ObsRuntimeProps> = ({ obs }) => {
   const { runtime, apply } = obs;
-  const idle = runtime.show === null && runtime.state === 'stopped';
+  const idle = runtime.output === null && runtime.state === 'stopped';
   return (
     <RuntimeRow
       title="OBS"
@@ -212,7 +212,8 @@ const ObsRuntime: FC<ObsRuntimeProps> = ({ obs }) => {
       apply={apply}
       error={runtime.lastError}
     >
-      {idle ? 'This agent isn’t a show’s output.' : (runtime.version ?? 'No version yet')}
+      {idle ? 'This agent doesn’t run an output.' : (runtime.version ?? 'No version yet')}
+      {runtime.control === 'external' ? ' · driven from outside' : null}
       {runtime.streaming ? ` · ${runtime.streaming}` : null}
       {runtime.program ? ` · forwarding to ${runtime.program.forwards.length} channels` : null}
     </RuntimeRow>

@@ -12,7 +12,7 @@ import {
   SUBJECT_KINDS
 } from '@conservationtv/reports';
 import { and, eq } from 'drizzle-orm';
-import { showForwards, shows } from '../db/schema.ts';
+import { outputForwards, outputs } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { ceiling, evidenceOf, floor, nothingIn, period, share, worstOf } from './checks.ts';
 import {
@@ -106,19 +106,19 @@ const exposure = defineEvaluator({
   )
 });
 
-/** What a show's programme is meant to be: its frame rate, as the show encodes it. */
+/** What an output's programme is meant to be: its frame rate, as the output encodes it. */
 async function programContext({ organisationId, entityId }: Subject): Promise<ProgramContext | undefined> {
   const db = useDB({ trusted: true });
-  const [show] = await db
-    .select({ fps: shows.fps })
-    .from(shows)
-    .where(and(eq(shows.organisationId, organisationId), eq(shows.id, entityId)));
-  return show;
+  const [output] = await db
+    .select({ fps: outputs.fps })
+    .from(outputs)
+    .where(and(eq(outputs.organisationId, organisationId), eq(outputs.id, entityId)));
+  return output;
 }
 
-/** What a show's programme is meant to be. */
+/** What an output's programme is meant to be. */
 interface ProgramContext {
-  /** The frames a second the show encodes at. */
+  /** The frames a second the output encodes at. */
   fps: number;
 }
 
@@ -141,8 +141,8 @@ const obsChecks = allOf<ProgramContext>(
 );
 
 /**
- * A show's programme, from its output: whether `show/program` is ready, and whether OBS is publishing to it, at the
- * show's frame rate, without dropping frames or struggling to send them. On the offline segment, the programme still
+ * An output's programme: whether `show/program` is ready, and whether OBS is publishing to it, at the output's
+ * frame rate, without dropping frames or struggling to send them. On the offline segment, the programme still
  * goes out, so it is degraded rather than unhealthy, and OBS isn't judged.
  */
 const program = defineEvaluator({
@@ -171,13 +171,13 @@ const program = defineEvaluator({
   }
 });
 
-/** Whether a show's forward is switched on. */
+/** Whether an output's forward is switched on. */
 async function forwardContext({ organisationId, entityId }: Subject) {
   const db = useDB({ trusted: true });
   const [forward] = await db
-    .select({ enabled: showForwards.enabled })
-    .from(showForwards)
-    .where(and(eq(showForwards.organisationId, organisationId), eq(showForwards.id, entityId)));
+    .select({ enabled: outputForwards.enabled })
+    .from(outputForwards)
+    .where(and(eq(outputForwards.organisationId, organisationId), eq(outputForwards.id, entityId)));
   return forward;
 }
 
@@ -186,7 +186,7 @@ const forwardChecks = allOf(
   floor(forwardMetrics.egressBitrate, { over: WINDOW, unhealthyBelow: 1 })
 );
 
-/** A show's forward to a channel, while it is switched on: whether it is connected to the channel's ingest, sending. */
+/** An output's forward to a channel, while it is switched on: whether it is connected to the channel's ingest, sending. */
 const forward = defineEvaluator({
   ttl: TTL,
   context: forwardContext,
@@ -197,7 +197,7 @@ const forward = defineEvaluator({
   }
 });
 
-/** A show's preview: whether its publisher is reading the programme, and sent anything. */
+/** An output's preview: whether its publisher is reading the programme, and sent anything. */
 const preview = defineEvaluator({
   ttl: TTL,
   evaluate: allOf(
@@ -206,23 +206,23 @@ const preview = defineEvaluator({
   )
 });
 
-/** A show's recorder: OBS records whenever the show has one, so not recording is a failure. */
+/** An output's recorder: OBS records whenever the output has one, so not recording is a failure. */
 const recorder = defineEvaluator({
   ttl: TTL,
   evaluate: allOf(share(recorderMetrics.active, { over: WINDOW, unhealthyBelow: 0.5, degradedBelow: 0.99 }))
 });
 
-/** Whether any show's forward to a channel is switched on, so the channel should be live. */
+/** Whether any output's forward to a channel is switched on, so the channel should be live. */
 async function channelContext({ organisationId, entityId }: Subject) {
   const db = useDB({ trusted: true });
   const [forwarded] = await db
-    .select({ id: showForwards.id })
-    .from(showForwards)
+    .select({ id: outputForwards.id })
+    .from(outputForwards)
     .where(
       and(
-        eq(showForwards.organisationId, organisationId),
-        eq(showForwards.channelId, entityId),
-        eq(showForwards.enabled, true)
+        eq(outputForwards.organisationId, organisationId),
+        eq(outputForwards.channelId, entityId),
+        eq(outputForwards.enabled, true)
       )
     )
     .limit(1);
@@ -232,7 +232,7 @@ async function channelContext({ organisationId, entityId }: Subject) {
 const channelChecks = allOf(share(channelMetrics.live, { over: WINDOW, unhealthyBelow: 0.5, degradedBelow: 0.99 }));
 
 /**
- * A channel a show goes out to, as its platform says: live while a forward sends to it. The platform takes a while to
+ * A channel an output goes out to, as its platform says: live while a forward sends to it. The platform takes a while to
  * notice a stream starting, so the opinion waits two minutes before taking a worse verdict.
  */
 const channel = defineEvaluator({

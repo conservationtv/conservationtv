@@ -1,4 +1,4 @@
-import { and, eq, getColumnTable, is, or, sql } from 'drizzle-orm';
+import { and, eq, getColumns, getColumnTable, is, or, sql } from 'drizzle-orm';
 import { PgAsyncTransaction, type PgAsyncDatabase, type PgTransactionConfig } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { roleAssignments, type Assignment } from './assignments.js';
@@ -113,6 +113,21 @@ export interface RevokeOptions<R extends RoleRef> {
 interface ListOptions {
   includeInherited?: boolean;
 }
+/**
+ * A change to the stored grants: `granted` when a grant is stored (not when an identical one already was), `revoked`
+ * for each grant removed. Reported once the statement that made it succeeds, inside the caller's transaction, so a
+ * caller that wants only committed changes collects them and keeps them when its transaction commits.
+ */
+export interface AccessChange {
+  change: 'granted' | 'revoked';
+  assignment: Assignment;
+}
+export interface AccessOptions {
+  /** Told of each grant stored or removed through this management API. */
+  onChange?: (change: AccessChange) => void;
+}
+type Observer = (change: AccessChange) => void;
+const unobserved: Observer = () => {};
 /** A scope as stored in assignments: the root's ID is empty, others are PostgreSQL's text rendering of the key. */
 interface StoredScope {
   name: string;
@@ -122,6 +137,11 @@ interface ScopeRow {
   id: string;
   parentId: string | null;
 }
+/** Report each removed grant, and how many there were. */
+function revoked(assignments: Assignment[], observe: Observer): number {
+  for (const assignment of assignments) observe({ change: 'revoked', assignment });
+  return assignments.length;
+}
 function validDate(value: Date | undefined): Date | null {
   return value === undefined ? null : authorizationTime(value);
 }
@@ -129,7 +149,8 @@ export class AccessAt<S extends ScopeRef> {
   constructor(
     private readonly db: Database,
     private readonly schema: AccessSchema,
-    private readonly scope: S
+    private readonly scope: S,
+    private readonly observe: Observer = unobserved
   ) {}
   /** Existing scope rows from this scope upward, with IDs in their stored form. */
   private async path(inherited: boolean): Promise<StoredScope[]> {
@@ -190,8 +211,11 @@ export class AccessAt<S extends ScopeRef> {
         // Keep the stored ID and return it atomically, including for concurrent duplicate calls.
         set: { id: sql`${roleAssignments.id}` }
       })
-      .returning();
-    return result[0]!;
+      // A row this statement inserted has no xmax; one it only touched on conflict has its transaction's.
+      .returning({ ...getColumns(roleAssignments), inserted: sql<boolean>`xmax = 0` });
+    const { inserted, ...assignment } = result[0]!;
+    if (inserted) this.observe({ change: 'granted', assignment });
+    return assignment;
   }
   /** Grants stored at exactly this scope, matched by its stored ID even if the scope row was already deleted. */
   private atThisScope() {
@@ -218,18 +242,15 @@ export class AccessAt<S extends ScopeRef> {
           role && eq(roleAssignments.role, role.name)
         )
       )
-      .returning({ id: roleAssignments.id });
-    return result.length;
+      .returning();
+    return revoked(result, this.observe);
   }
   /** Every grant at this scope, whoever holds it: revoke them all when deleting the scope's row. */
   get all() {
     return {
       revoke: async (): Promise<number> => {
-        const result = await this.db
-          .delete(roleAssignments)
-          .where(this.atThisScope())
-          .returning({ id: roleAssignments.id });
-        return result.length;
+        const result = await this.db.delete(roleAssignments).where(this.atThisScope()).returning();
+        return revoked(result, this.observe);
       }
     };
   }
@@ -262,22 +283,20 @@ export interface AuthorizationOptions {
 /** The privileged management API: grants, revocation, catalog and reports, bound to the owning connection. */
 export type Access = ReturnType<typeof createAccess>;
 
-function createAccess(admin: Database, schema: AccessSchema, clock: () => Date) {
+function createAccess(admin: Database, schema: AccessSchema, clock: () => Date, options: AccessOptions) {
+  const observe = options.onChange ?? unobserved;
   return {
     ...createAccessQueries(admin, schema, clock),
     root(): AccessAt<RootScope> {
-      return new AccessAt(admin, schema, { ...root });
+      return new AccessAt(admin, schema, { ...root }, observe);
     },
     at<const S extends ScopeRef>(scope: S): AccessAt<S> {
       schema.scope(scope);
-      return new AccessAt(admin, schema, { ...scope });
+      return new AccessAt(admin, schema, { ...scope }, observe);
     },
     async revoke(id: string): Promise<boolean> {
-      const result = await admin
-        .delete(roleAssignments)
-        .where(eq(roleAssignments.id, id))
-        .returning({ id: roleAssignments.id });
-      return result.length > 0;
+      const result = await admin.delete(roleAssignments).where(eq(roleAssignments.id, id)).returning();
+      return revoked(result, observe) > 0;
     }
   };
 }
@@ -291,8 +310,11 @@ export interface Authorization {
    * connection is checked for that once, in the first transaction's own setup statement.
    */
   as<D extends Database>(app: D, subject: Principal): Session<D>;
-  /** The management API over the owning connection. Never hand it to request handlers. */
-  access(admin: Database): Access;
+  /**
+   * The management API over the owning connection. Never hand it to request handlers. `onChange` is told of each grant
+   * it stores or removes.
+   */
+  access(admin: Database, options?: AccessOptions): Access;
 }
 
 /**
@@ -316,7 +338,7 @@ export function defineAuthorization(options: AuthorizationOptions): Authorizatio
   return {
     catalog: () => structuredClone(definitions),
     as: (app, subject) => new Session(app, subject, connection(app)),
-    access: admin => createAccess(admin, schema, clock)
+    access: (admin, accessOptions = {}) => createAccess(admin, schema, clock, accessOptions)
   };
 }
 

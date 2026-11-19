@@ -2,7 +2,7 @@ import { Suspense, type FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { Link, Outlet, useSearchParams } from 'react-router';
 import { BroadcastIcon, PlusIcon, TwitchLogoIcon } from '@phosphor-icons/react';
-import type { Channel, Show } from '@conservationtv/studio-sdk';
+import type { Channel, Output } from '@conservationtv/studio-sdk';
 import { Alert, AlertDescription, AlertTitle } from '@conservationtv/ui/components/alert';
 import { Button } from '@conservationtv/ui/components/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
@@ -20,7 +20,7 @@ import type { Route } from './+types/channels';
 import { ChannelPlatformState } from '@/components/channels/platform-state';
 import { FormError } from '@/components/common/form-error';
 import { channelListQueryOptions, useConnectTwitch, useDeleteChannel } from '@/queries/channels';
-import { showListQueryOptions } from '@/queries/shows';
+import { outputListQueryOptions } from '@/queries/outputs';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Channels · conservation.tv studio' }];
 
@@ -33,14 +33,14 @@ const CONNECT_ERRORS = new Map([
 const CONNECT_FAILED = 'Twitch couldn’t be reached, or didn’t answer as expected. Try again in a moment.';
 
 /**
- * Where the organisation's shows go out to: Twitch channels, connected on Twitch, and any RTMP(S) destination by its
- * server URL and stream key. A show's output agent forwards its program to each channel the show forwards to. Stream
+ * Where the organisation's outputs go out to: Twitch channels, connected on Twitch, and any RTMP(S) destination by its
+ * server URL and stream key. An output's agent forwards its programme to each channel the output forwards to. Stream
  * keys are never shown again once saved: only output agents read them.
  */
 const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
   const { organisationId } = params;
-  const [channelsQuery, showsQuery] = useSuspenseQueries({
-    queries: [channelListQueryOptions(organisationId), showListQueryOptions(organisationId)]
+  const [channelsQuery, outputsQuery] = useSuspenseQueries({
+    queries: [channelListQueryOptions(organisationId), outputListQueryOptions(organisationId)]
   });
   const { channels } = channelsQuery.data;
   return (
@@ -48,8 +48,8 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
       <header className="flex flex-col gap-2">
         <h1 className="text-custom-21 font-semibold text-foreground">Channels</h1>
         <p className="max-w-2xl text-custom-13 leading-(--leading-custom-body) text-custom-text-secondary">
-          Where shows go out to. A show’s output sends the broadcast to each channel the show forwards to, and keeps
-          them live with a holding picture while OBS restarts.
+          Where outputs go out to. An output sends its programme to each channel it forwards to, and keeps them live
+          with a holding picture while OBS restarts.
         </p>
       </header>
       <ConnectOutcome />
@@ -67,7 +67,9 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
               key={channel.id}
               organisationId={organisationId}
               channel={channel}
-              shows={showsQuery.data.filter(show => show.forwards.some(forward => forward.channelId === channel.id))}
+              outputs={outputsQuery.data.filter(output =>
+                output.forwards.some(forward => forward.channelId === channel.id)
+              )}
             />
           ))}
         </ItemGroup>
@@ -79,7 +81,7 @@ const ChannelsRoute: FC<Route.ComponentProps> = ({ params }) => {
             </EmptyMedia>
             <EmptyTitle>No channels yet</EmptyTitle>
             <EmptyDescription>
-              Connect a Twitch channel, or add an RTMP destination, to send the show out.
+              Connect a Twitch channel, or add an RTMP destination, to send an output to.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -105,7 +107,7 @@ const ConnectOutcome: FC = () => {
       <TwitchLogoIcon />
       <AlertTitle>{error ? 'Couldn’t connect Twitch' : 'Twitch connected'}</AlertTitle>
       <AlertDescription>
-        {message ?? 'The show goes out to it whenever its output is running.'}{' '}
+        {message ?? 'An output forwarded to it goes out to it whenever the output is running.'}{' '}
         <button type="button" className="underline underline-offset-2" onClick={dismiss}>
           Dismiss
         </button>
@@ -134,12 +136,12 @@ const ConnectTwitchButton: FC<ConnectTwitchButtonProps> = ({ organisationId }) =
 interface ChannelRowProps {
   organisationId: string;
   channel: Channel;
-  /** The shows forwarded to it, on or off. */
-  shows: Show[];
+  /** The outputs forwarded to it, on or off. */
+  outputs: Output[];
 }
 
-/** A channel: what it is, what its platform last said of it, the shows that go out on it, and removing it. */
-const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel, shows }) => {
+/** A channel: what it is, what its platform last said of it, the outputs that go out on it, and removing it. */
+const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel, outputs }) => {
   const remove = useDeleteChannel(organisationId);
   return (
     <Item variant="outline">
@@ -156,7 +158,7 @@ const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel, shows }) => 
             ? `twitch.tv/${channel.externalLogin}`
             : 'RTMP destination'}
         </ItemDescription>
-        <ChannelShows channelId={channel.id} shows={shows} />
+        <ChannelOutputs channelId={channel.id} outputs={outputs} />
         <FormError error={remove.error} />
       </ItemContent>
       <ItemActions>
@@ -168,27 +170,31 @@ const ChannelRow: FC<ChannelRowProps> = ({ organisationId, channel, shows }) => 
   );
 };
 
-interface ChannelShowsProps {
+interface ChannelOutputsProps {
   channelId: string;
-  /** The shows forwarded to the channel. */
-  shows: Show[];
+  /** The outputs forwarded to the channel. */
+  outputs: Output[];
 }
 
-/** Which shows go out on the channel, each opening its page, and which of them have it switched off. */
-const ChannelShows: FC<ChannelShowsProps> = ({ channelId, shows }) => {
-  if (shows.length === 0) {
-    return <ItemDescription>No show goes out on it. Add it to a show from the show’s page.</ItemDescription>;
+/** Which outputs go out on the channel, each opening its page, and which of them have it switched off. */
+const ChannelOutputs: FC<ChannelOutputsProps> = ({ channelId, outputs }) => {
+  if (outputs.length === 0) {
+    return <ItemDescription>No output goes out on it. Add it to an output from the output’s page.</ItemDescription>;
   }
   return (
     <ItemDescription>
       On{' '}
-      {shows.map((show, index) => {
-        const enabled = show.forwards.some(forward => forward.channelId === channelId && forward.enabled);
+      {outputs.map((output, index) => {
+        const enabled = output.forwards.some(forward => forward.channelId === channelId && forward.enabled);
         return (
-          <span key={show.id}>
+          <span key={output.id}>
             {index > 0 && ', '}
-            <Link to={`../shows/${show.id}`} relative="path" className="text-foreground underline underline-offset-2">
-              {show.name}
+            <Link
+              to={`../outputs/${output.id}`}
+              relative="path"
+              className="text-foreground underline underline-offset-2"
+            >
+              {output.name}
             </Link>
             {!enabled && ' (off)'}
           </span>

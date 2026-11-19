@@ -4,28 +4,33 @@ import { type DeviceConfiguration, leased, withToken } from '../studio.ts';
 import type { ChannelsSpec, ReportedChannel } from './channels/runtime.ts';
 import type { PreviewPublish } from './obs/program.ts';
 import type { ObsSpec } from './obs/runtime.ts';
+import type { ShowSpec } from './show/runtime.ts';
 
-// The output's keys, from the configuration's `obs` section, the show the agent sends out (system/configuration.ts):
+// The output's keys, from the configuration's `obs` and `show` sections, the output the agent sends out
+// (system/configuration.ts):
 //
-//   obs       as the section is, but for each preview, with where to publish it from
-//             `organisations.shows.previews.connect`, kept until shortly before it expires;
+//   obs       the `obs` section as it is, but for each preview, with where to publish it from
+//             `organisations.outputs.previews.connect`, kept until shortly before it expires;
 //   channels  its forwards whose channels have stats, each channel once, which the runtime reads with
-//             `organisations.channels.stats.get` as it reports, so no credential is kept for them.
+//             `organisations.channels.stats.get` as it reports, so no credential is kept for them;
+//   show      the `show` section as it is: the show driving OBS's scenes, absent when nothing in the studio does.
 
 const logger = getLogger(['agent', 'studio']);
 
-/** The configuration's `obs` section. */
+/** The configuration's `obs` and `show` sections. */
 type ObsSection = NonNullable<DeviceConfiguration['obs']>;
+type ShowSection = DeviceConfiguration['show'];
 
-/** The output's keys' specs: `channels` absent with no channel to read. */
+/** The output's keys' specs: `channels` absent with no channel to read, `show` absent with no show to follow. */
 export interface OutputSpecs {
   obs: ObsSpec;
   channels: ChannelsSpec | undefined;
+  show: ShowSpec | undefined;
 }
 
-/** The connection details `organisations.shows.previews.connect` returns, whichever protocol. */
+/** The connection details `organisations.outputs.previews.connect` returns, whichever protocol. */
 type PreviewConnection = Exclude<
-  Awaited<ReturnType<Client['organisations']['shows']['previews']['connect']['v1']>>,
+  Awaited<ReturnType<Client['organisations']['outputs']['previews']['connect']['v1']>>,
   Error
 >;
 
@@ -34,9 +39,14 @@ export interface OutputLeases {
   previews: Map<string, PreviewConnection>;
 }
 
-/** The `obs` and `channels` specs of the `obs` section. */
-export async function outputSpecs(obs: ObsSection, studio: Client, leases: OutputLeases): Promise<OutputSpecs> {
-  return { obs: await obsSpec(obs, studio, leases), channels: channelsSpec(obs) };
+/** The `obs` and `channels` specs of the `obs` section, and the `show` spec of the `show` section. */
+export async function outputSpecs(
+  obs: ObsSection,
+  show: ShowSection,
+  studio: Client,
+  leases: OutputLeases
+): Promise<OutputSpecs> {
+  return { obs: await obsSpec(obs, studio, leases), channels: channelsSpec(obs), show };
 }
 
 /** The `channels` key's spec: each channel the `obs` section forwards to that has stats, once; absent for none. */
@@ -52,7 +62,7 @@ function channelsSpec(obs: ObsSection): ChannelsSpec | undefined {
 /** The `obs` key's spec from the `obs` section: as it is, but for each preview, with where to publish it. */
 async function obsSpec(obs: ObsSection, studio: Client, leases: OutputLeases): Promise<ObsSpec> {
   const previews: ObsSpec['previews'] = [];
-  for (const { previewId, connect: ask } of obs.previews ?? []) {
+  for (const { previewId, connect: ask } of obs.previews) {
     // One whose credentials cannot be had is left out, and tried again next time.
     try {
       const publish = await previewTarget(studio, leases.previews, ask);
@@ -61,8 +71,8 @@ async function obsSpec(obs: ObsSection, studio: Client, leases: OutputLeases): P
       logger.error('Preview {previewId} is unavailable: {error}', { previewId, error });
     }
   }
-  const { show, output, forwards, recording, program } = obs;
-  return { show, output, forwards, previews, recording, program };
+  const { output, encoding, forwards, recording, program } = obs;
+  return { output, encoding, forwards, previews, recording, program };
 }
 
 /** The `previews.connect` ask the configuration gives for where to publish a preview. */
@@ -78,7 +88,7 @@ async function previewTarget(
   connections: OutputLeases['previews'],
   ask: PreviewConnect
 ): Promise<PreviewPublish> {
-  const renew = () => studio.organisations.shows.previews.connect.v1(ask);
+  const renew = () => studio.organisations.outputs.previews.connect.v1(ask);
   const connection = await leased(connections, ask.previewId, renew);
   if ('relay' in connection) {
     const url = new URL(connection.path, connection.relay);

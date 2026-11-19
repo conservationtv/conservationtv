@@ -4,6 +4,7 @@ import { user } from '@conservationtv/umbrella';
 import { createMiddleware } from 'hono/factory';
 import { ApiFailure } from '../errors.ts';
 import { useEnvironment } from '../env/env.ts';
+import { recordActor } from '../requests/record.ts';
 import { requireDevice } from './device.ts';
 
 /** Who the request runs as: a signed-in account, or a device that signed it. */
@@ -36,5 +37,6 @@ export const requirePrincipal = createMiddleware(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) throw new ApiFailure('unauthenticated');
   const principal = user(session.user.id);
+  recordActor({ principal, sessionId: session.session.id });
   await withPrincipal(principal, () => withAuthSession(session.session.id, next));
 });

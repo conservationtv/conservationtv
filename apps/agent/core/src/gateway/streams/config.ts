@@ -1,6 +1,7 @@
-import { pipeline, toYaml } from '@conservationtv/mediamtx';
+import { pipeline } from '@conservationtv/mediamtx';
 import { PublisherSchema, type MediamtxAuth } from '@conservationtv/studio-sdk';
 import { z } from 'zod';
+import { common, renderYaml } from '../../mediamtx/config.ts';
 import { auth } from './builders/auth.ts';
 import { paths } from './builders/paths.ts';
 import { publishers } from './builders/publishers.ts';
@@ -11,9 +12,9 @@ import type { MediamtxPorts } from './ports.ts';
 import type { MediamtxReach } from './reach.ts';
 import type { TlsFiles } from './tls.ts';
 
-// The config MediaMTX serves, assembled by the steps in builders/ from the ports its servers listen on, the paths the
-// spec names and those shows' previews are published to, the exposures it publishes, who it admits and the
-// certificate it serves TLS with.
+// The config MediaMTX serves, assembled by the common step (mediamtx/config.ts) and the steps in builders/ from the
+// ports its servers listen on, the paths the spec names and those shows' previews are published to, the exposures it
+// publishes, who it admits and the certificate it serves TLS with.
 
 /** Where MediaMTX's servers and the agent's listen (ports.ts), and how they reach each other (reach.ts). */
 export interface MediamtxListening {
@@ -54,14 +55,9 @@ export interface MediamtxServing {
   tls?: TlsFiles;
 }
 
-export const mediamtxConfig = pipeline(server, paths, publishers, auth, tls);
+export const mediamtxConfig = pipeline(common, server, paths, publishers, auth, tls);
 
 /** The config file's text. Throws if the config is unfit to serve, naming what made it so. */
-export async function renderConfig(params: MediamtxListening & MediamtxServing): Promise<string> {
-  const { config, diagnostics } = await mediamtxConfig.render(params);
-  const errors = diagnostics.filter(diagnostic => diagnostic.severity === 'error');
-  if (errors.length > 0) {
-    throw new Error(`The MediaMTX config is unfit to serve: ${errors.map(error => error.message).join('; ')}`);
-  }
-  return toYaml(config);
+export function renderConfig(params: MediamtxListening & MediamtxServing): Promise<string> {
+  return renderYaml(mediamtxConfig, params);
 }

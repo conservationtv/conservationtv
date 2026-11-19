@@ -10,33 +10,13 @@ export const ErrorSchema = z.object({
 export const ShowSchema = z.object({
     id: z.string(),
     name: z.string(),
-    width: z.number(),
-    height: z.number(),
-    fps: z.number(),
-    bitrateKbps: z.number(),
-    keyframeSeconds: z.number(),
     createdAt: z.string()
 });
 
 export const PatchOrganisationsByIdShowsByShowIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'What the show is called in the studio.'
-    }).optional(),
-    width: z.int().gte(160).lte(3840).register(z.globalRegistry, {
-        description: 'The program\'s width in pixels: even.'
-    }).optional(),
-    height: z.int().gte(90).lte(2160).register(z.globalRegistry, {
-        description: 'The program\'s height in pixels: even.'
-    }).optional(),
-    fps: z.int().gte(1).lte(60).register(z.globalRegistry, {
-        description: 'The program\'s frame rate.'
-    }).optional(),
-    bitrateKbps: z.int().gte(500).lte(50000).register(z.globalRegistry, {
-        description: 'The program\'s constant video bitrate, in kbps.'
-    }).optional(),
-    keyframeSeconds: z.int().gte(1).lte(10).register(z.globalRegistry, {
-        description: 'The program\'s keyframe interval, in seconds.'
-    }).optional()
+    })
 });
 
 export const PatchOrganisationsByIdShowsByShowIdPathSchema = z.object({
@@ -49,6 +29,6 @@ export const PatchOrganisationsByIdShowsByShowIdPathSchema = z.object({
 });
 
 /**
- * The updated show, without its output, forwards, previews and recorders
+ * The updated show, without its outputs
  */
 export const PatchOrganisationsByIdShowsByShowIdResponseSchema = ShowSchema;

@@ -1,6 +1,6 @@
 import type { State } from '@conservationtv/studio-sdk';
 
-// What agents report about the organisation's subjects (`device:<id>`, `exposure:<id>`, and a show's `program:`,
+// What agents report about the organisation's subjects (`device:<id>`, `exposure:<id>`, and an output's `program:`,
 // `forward:`, `preview:` and `recorder:`, as packages/reports names them), as pages look it up while
 // rendering: read once for the whole organisation (subjectStateListQueryOptions), never per subject.
 
@@ -14,27 +14,27 @@ export function exposureSubjectId(exposureId: string): string {
   return `exposure:${exposureId}`;
 }
 
-/** What a show's output reports about its programme under: what OBS sends, and the program MediaMTX it goes to. */
-export function programSubjectId(showId: string): string {
-  return `program:${showId}`;
+/** What an output's agent reports about its programme under: what OBS sends, and the program MediaMTX it goes to. */
+export function programSubjectId(outputId: string): string {
+  return `program:${outputId}`;
 }
 
-/** What a show's output reports about one of its forwards to a channel under. */
+/** What an output's agent reports about one of its forwards to a channel under. */
 export function forwardSubjectId(forwardId: string): string {
   return `forward:${forwardId}`;
 }
 
-/** What a show's output reports about one of its previews at a gateway under. */
+/** What an output's agent reports about one of its previews at a gateway under. */
 export function previewSubjectId(previewId: string): string {
   return `preview:${previewId}`;
 }
 
-/** What a show's output reports about a channel it forwards to under: whether the platform has it live. */
+/** What an output's agent reports about a channel it forwards to under: whether the platform has it live. */
 export function channelSubjectId(channelId: string): string {
   return `channel:${channelId}`;
 }
 
-/** What a show's output reports about its recording under. */
+/** What an output's agent reports about its recording under. */
 export function recorderSubjectId(recorderId: string): string {
   return `recorder:${recorderId}`;
 }

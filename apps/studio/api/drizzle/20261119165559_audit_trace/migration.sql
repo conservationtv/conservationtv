@@ -1,0 +1,1 @@
+ALTER TABLE "audit_entry" ADD COLUMN "trace_id" text;

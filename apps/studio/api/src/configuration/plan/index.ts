@@ -6,7 +6,7 @@ import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
 import type { Rendition } from '../../topology/settings.ts';
 import { useEnvironment } from '../../env/env.ts';
-import { selectOutputPlan, selectOutputShow } from '../../services/shows.ts';
+import { selectDeviceOutput, selectOutputPlan } from '../../services/outputs.ts';
 import {
   type ExposureInput,
   type Feed,
@@ -25,7 +25,8 @@ import type {
   ObsConfiguration,
   PlannedConfiguration,
   PlannedPath,
-  PlannedPublisher
+  PlannedPublisher,
+  ShowConfiguration
 } from './types.ts';
 
 export type * from './types.ts';
@@ -33,10 +34,10 @@ export type * from './types.ts';
 // A device's configuration: what it should be doing, derived from the topology whenever it asks, never stored. Only
 // agents have one so far, with a section for each runtime it runs, and none for those it doesn't. The network's active
 // agent runs the MediaMTX gateway on its network (`mediamtx`), and delivers each exposure of a stream that is a hop of
-// it: its gateway's, and those pinned to it on other gateways; and takes each show's preview delivered to its gateway,
-// on a path a show's output publishes to. A show's output runs OBS (`obs`), following the show;
-// what it plays comes with the show, so here are only which show, and where its program goes: the show's encoding, its
-// enabled forwards, its previews and its recorder.
+// it: its gateway's, and those pinned to it on other gateways; and takes each output's preview delivered to its gateway,
+// on a path an output's agent publishes to. An output's agent runs OBS (`obs`): the output's encoding, its enabled
+// forwards, its previews and its recorder, and who drives its scenes; and, while the output follows a show under `show`
+// control, the show (`show`), which drives them. What the show plays comes with the show.
 //
 // A hop takes its media from its upstream, or with none from the stream's source, which only a camera can be so far.
 // What the agent does with it depends on where the hop is delivered:
@@ -58,8 +59,8 @@ export async function planConfiguration(device: AuthenticatedDevice): Promise<Pl
   }
   // One after the other: each is a trusted transaction, on the one admin connection.
   const mediamtx = await planMediamtx(device);
-  const obs = await planObs(device);
-  return { mediamtx, obs };
+  const { obs, show } = await planOutput(device);
+  return { mediamtx, obs, show };
 }
 
 /** The one rendition a preview is published at: the program, as it is encoded (src/gateways/connect.ts). */
@@ -67,7 +68,7 @@ const PREVIEW_RENDITION: Rendition = 'default';
 
 /**
  * The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway: its streams' paths and
- * publishers, and a path for each show's preview delivered to its gateway.
+ * publishers, and a path for each output's preview delivered to its gateway.
  */
 async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfiguration | undefined> {
   const planned = await trustedTransaction(async () => {
@@ -94,26 +95,32 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<MediamtxConfig
   return configuration;
 }
 
-/** The `obs` runtime, for a show's output: the show, where its stream is followed, and where its program goes. */
-async function planObs(device: AuthenticatedDevice): Promise<ObsConfiguration | undefined> {
+/** The output's runtimes, for the agent it runs on: `obs`, and `show` while it follows a show. */
+interface PlannedOutput {
+  obs?: ObsConfiguration;
+  show?: ShowConfiguration;
+}
+
+/**
+ * The `obs` runtime, for an output's agent: the output, how its programme is encoded and where it goes; and the `show`
+ * runtime, for the show it follows under `show` control, where the show is followed.
+ */
+async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
   const planned = await trustedTransaction(async () => {
-    const output = await selectOutputShow(device.id);
+    const output = await selectDeviceOutput(device.id);
     if (output === undefined) return undefined;
-    const show = await selectOutputPlan(output.showId);
+    const plan = await selectOutputPlan(output.outputId);
     const gatewayKinds = await selectGatewayKinds(output.organisationId);
-    return { output, show: show!, gatewayKinds };
+    return { output, plan: plan!, gatewayKinds };
   });
-  if (planned === undefined) return undefined;
-  const { output, show, gatewayKinds } = planned;
-  const { organisationId, showId } = output;
-  const environment = useEnvironment();
-  // Every show follows its organisation's one broadcast for now, at the organisation's (src/routes/broadcast.ts).
-  const url = new URL(`/organisations/${organisationId}/show`, environment.variables.APP_URL);
-  const { forwards, previews, recorders, ...encoding } = show;
+  if (planned === undefined) return {};
+  const { output, plan, gatewayKinds } = planned;
+  const { outputId, organisationId, control, showId } = output;
+  const { forwards, previews, recorders, ...encoding } = plan;
   const [recorder] = recorders;
-  return {
-    show: { id: showId, url: url.href },
-    output: encoding,
+  const obs: ObsConfiguration = {
+    output: { id: outputId, organisationId, control },
+    encoding,
     forwards: forwards.map(forward => ({
       organisationId,
       channelId: forward.channelId,
@@ -125,15 +132,19 @@ async function planObs(device: AuthenticatedDevice): Promise<ObsConfiguration | 
       gatewayId: preview.gatewayId,
       connect: {
         id: organisationId,
-        showId,
+        outputId,
         previewId: preview.id,
         action: 'publish',
         protocol: previewProtocol(preview.gatewayId, gatewayKinds)
       }
     })),
     ...(recorder && { recording: { recorderId: recorder.id, kind: recorder.kind, params: recorder.params } }),
-    program: { subjectId: programSubject(showId) }
+    program: { subjectId: programSubject(outputId) }
   };
+  if (control !== 'show' || showId === null) return { obs };
+  const environment = useEnvironment();
+  const url = new URL(`/organisations/${organisationId}/shows/${showId}/follow`, environment.variables.APP_URL);
+  return { obs, show: { id: showId, url: url.href } };
 }
 
 /** How an output publishes a preview: by MoQ to a gateway that takes it as tracks of one broadcast, otherwise RTMP. */

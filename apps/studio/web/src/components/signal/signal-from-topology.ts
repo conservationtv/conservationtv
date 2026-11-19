@@ -18,16 +18,17 @@ import type {
 } from '@/components/signal/signal-system';
 import { ownStatus, type SubjectStatusInput } from '@/components/streams/topology';
 
-// The signal view's system from an organisation's real topology (`organisations.topology.get`): its shows as the
-// broadcasts, each show's forwards as the channels they go out to, its networks with their active agents, the cameras
-// on them and the other devices streams come from, and the internet-facing gateways the broadcast reads them at. Every show
-// follows the organisation's one broadcast for now, so a source feeds every show when the broadcast places one of its
-// streams, and none when it doesn't. Pure; the query that reads the topology hands it here.
+// The signal view's system from an organisation's real topology (`organisations.topology.get`): its outputs as the
+// broadcasts, each a programme going out from OBS on an agent; each output's forwards as the channels they go out to;
+// its networks with their active agents, the cameras on them and the other devices streams come from; and the
+// internet-facing gateways its shows read them at. A source feeds the outputs following a show that places one of its
+// streams (each show's `placed`), and none otherwise. An output driven from outside the studio follows no show, so
+// nothing feeds it: it starts the way out on its own. Pure; the query that reads the topology hands it here.
 
 type TopologyDevice = Topology['devices'][number];
-type TopologyShow = Topology['shows'][number];
+type TopologyOutput = Topology['outputs'][number];
 
-/** The built-in gateway the broadcast reads its streams from (apps/studio/api/src/shows/broadcast.ts). */
+/** The built-in gateway a show reads its streams from (apps/studio/api/src/shows/broadcast.ts). */
 const BROADCAST_GATEWAY = 'conservationtv';
 
 /** Something's status from what its subject last reported. */
@@ -64,48 +65,54 @@ function sourceStatusOf(topology: Topology, deviceId: string, statusOf: StatusOf
   return exposures.length > 0 ? worstStatus(exposures) : statusOf(deviceSubjectId(deviceId));
 }
 
-/** What the broadcast places: the streams it reads, and the gateway it reads each at. */
+/** What each show places: the streams it reads, and the gateway it reads each at. */
 function placementsOf(topology: Topology) {
-  const placed = new Set(topology.broadcast.placed);
-  return topology.streams.flatMap(stream =>
-    stream.exposures
-      .filter(exposure => placed.has(exposure.id))
-      .map(exposure => ({ stream, gatewayId: exposure.gatewayId }))
-  );
+  return topology.shows.flatMap(show => {
+    const placed = new Set(show.placed);
+    return topology.streams.flatMap(stream =>
+      stream.exposures
+        .filter(exposure => placed.has(exposure.id))
+        .map(exposure => ({ showId: show.id, stream, gatewayId: exposure.gatewayId }))
+    );
+  });
 }
 
-function broadcastOf(show: TopologyShow, devices: Map<string, TopologyDevice>, statusOf: StatusOf): SignalBroadcast {
-  const agent = show.output ? devices.get(show.output.deviceId) : undefined;
+function broadcastOf(
+  output: TopologyOutput,
+  devices: Map<string, TopologyDevice>,
+  statusOf: StatusOf
+): SignalBroadcast {
+  const agent = output.device ? devices.get(output.device.deviceId) : undefined;
   return {
-    id: show.id,
-    name: show.name,
-    width: show.width,
-    height: show.height,
-    recording: show.recorders.length > 0,
-    agent: agent?.name ?? 'No output agent',
-    // With no output, nothing runs it to report on it.
-    status: show.output ? statusOf(programSubjectId(show.id)) : 'unknown'
+    id: output.id,
+    name: output.name,
+    width: output.width,
+    height: output.height,
+    recording: output.recorders.length > 0,
+    agent: agent?.name ?? 'No agent',
+    // With no agent, nothing runs it to report on it.
+    status: output.device ? statusOf(programSubjectId(output.id)) : 'unknown'
   };
 }
 
-/** A show's forwards, each as the channel it goes out to: a channel forwarded by two shows is there twice. */
+/** An output's forwards, each as the channel it goes out to: a channel forwarded by two outputs is there twice. */
 function channelsOf(topology: Topology, broadcasts: SignalBroadcast[], statusOf: StatusOf): SignalChannel[] {
   const channels = new Map(topology.channels.map(channel => [channel.id, channel]));
   const broadcastStatus = new Map(broadcasts.map(broadcast => [broadcast.id, broadcast.status]));
-  return topology.shows.flatMap(show =>
-    show.forwards.flatMap((forward): SignalChannel[] => {
+  return topology.outputs.flatMap(output =>
+    output.forwards.flatMap((forward): SignalChannel[] => {
       const channel = channels.get(forward.channelId);
       if (!channel) return [];
       // How the forward to it is sending, and whether the platform has it live.
       const own = worstStatus([statusOf(forwardSubjectId(forward.id)), statusOf(channelSubjectId(channel.id))]);
-      // Nothing reaches a channel whose broadcast is down.
-      const status = broadcastStatus.get(show.id) === 'failing' ? 'affected' : own;
+      // Nothing reaches a channel whose output is down.
+      const status = broadcastStatus.get(output.id) === 'failing' ? 'affected' : own;
       return [
         {
           id: forward.id,
           platform: channel.kind,
           handle: channel.kind === 'twitch' && channel.externalLogin ? `/${channel.externalLogin}` : channel.name,
-          broadcast: show.id,
+          broadcast: output.id,
           status,
           // Nothing measures how well a channel receives yet: full while it reports healthy, one bar while degraded.
           level: status === 'ok' ? 3 : status === 'degraded' ? 1 : 0,
@@ -143,8 +150,8 @@ function networkOf(stream: Placement['stream'], devices: Map<string, TopologyDev
 }
 
 /**
- * The internet-facing gateways the broadcast reads its streams at, as rails: a gateway on a network (an agent's
- * MediaMTX, say) is how a stream leaves its site, not where the broadcast reads it, so it is never one. The built-in
+ * The internet-facing gateways the shows read their streams at, as rails: a gateway on a network (an agent's
+ * MediaMTX, say) is how a stream leaves its site, not where a show reads it, so it is never one. The built-in
  * gateway comes first, and everything runs along it unless a route says otherwise; then any other gateway on the
  * internet that a placed stream is read at, as the route of the network that stream's camera is on. A network's first
  * such stream decides its route.
@@ -181,20 +188,25 @@ export function signalSystemOf(topology: Topology): SignalSystem {
   const statusOf = statusesOf(topology);
   const devices = new Map(topology.devices.map(device => [device.id, device]));
   const placements = placementsOf(topology);
-  const broadcasts = topology.shows.map(show => broadcastOf(show, devices, statusOf));
+  const broadcasts = topology.outputs.map(output => broadcastOf(output, devices, statusOf));
   const networks = networksOf(topology, devices, statusOf);
   const networkAgents = new Map(networks.map(network => [network.id, network.agent]));
 
-  // Every show follows the one broadcast, so what it places feeds them all.
-  const everyShow = broadcasts.map(broadcast => broadcast.id);
-  const feeding = new Set(placements.flatMap(({ stream }) => (stream.sourceDeviceId ? [stream.sourceDeviceId] : [])));
+  // What a show places feeds the outputs following it; an output driven from outside follows none.
+  const following = (showId: string) =>
+    topology.outputs.filter(output => output.control === 'show' && output.showId === showId).map(output => output.id);
+  const feedsOf = (deviceId: string) => [
+    ...new Set(
+      placements.filter(({ stream }) => stream.sourceDeviceId === deviceId).flatMap(({ showId }) => following(showId))
+    )
+  ];
   const sourceOf = (device: TopologyDevice, network: string | undefined): SignalSource => ({
     id: device.id,
     name: device.name,
     device: network ? (networkAgents.get(network) ?? '') : device.kind,
     kind: sourceKindOf(device),
     status: sourceStatusOf(topology, device.id, statusOf),
-    feeds: feeding.has(device.id) ? everyShow : [],
+    feeds: feedsOf(device.id),
     network
   });
 

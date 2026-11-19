@@ -64,7 +64,7 @@ import { formatDate, formatRelative, shortPublicId } from '@/lib/format';
 import { agentListQueryOptions, useDeleteAgent, useUpdateAgent } from '@/queries/agents';
 import { deviceAddressListQueryOptions, useUpdateDevice } from '@/queries/devices';
 import { networkListQueryOptions, useSetActiveAgent } from '@/queries/networks';
-import { showListQueryOptions } from '@/queries/shows';
+import { outputListQueryOptions } from '@/queries/outputs';
 import { subjectStateListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Agent · conservation.tv studio' }];
@@ -77,12 +77,12 @@ export const meta: Route.MetaFunction = () => [{ title: 'Agent · conservation.t
 const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
   const organisationId = useOrganisationId();
   const administrator = useIsAdministrator();
-  const [agentsQuery, networksQuery, statesQuery, showsQuery] = useSuspenseQueries({
+  const [agentsQuery, networksQuery, statesQuery, outputsQuery] = useSuspenseQueries({
     queries: [
       agentListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
       subjectStateListQueryOptions(organisationId),
-      showListQueryOptions(organisationId)
+      outputListQueryOptions(organisationId)
     ]
   });
   const agent = agentsQuery.data.find(candidate => candidate.id === params.agentId);
@@ -112,7 +112,7 @@ const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
         name={agent.device.name}
         network={network}
         state={statesQuery.data.find(state => state.subjectId === deviceSubjectId(agent.id))}
-        show={showsQuery.data.find(show => show.output?.deviceId === agent.id)}
+        output={outputsQuery.data.find(output => output.device?.deviceId === agent.id)}
       />
 
       <Section>
@@ -192,8 +192,8 @@ const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
 
 export default AgentRoute;
 
-/** A show, as the agent's header names the one it sends out. */
-interface OutputShow {
+/** An output, as the agent's header names the one it runs. */
+interface AgentOutput {
   id: string;
   name: string;
 }
@@ -204,12 +204,12 @@ interface AgentHeaderProps {
   network: Network | undefined;
   /** What has been reported to the studio about it: undefined when nothing has. */
   state: SubjectState | undefined;
-  /** The show this agent sends out, if it is one's output. */
-  show: OutputShow | undefined;
+  /** The output this agent runs OBS for, if any. */
+  output: AgentOutput | undefined;
 }
 
 /** The way back, the agent's name with how it is doing and what it is for, and its pin. */
-const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, show }) => {
+const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, output }) => {
   const site = network?.name ?? 'its network';
   return (
     <>
@@ -222,9 +222,9 @@ const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, show }
             <PageTitle>{name}</PageTitle>
             <SubjectHealth state={state} />
             {agent.active ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">Standby</Badge>}
-            {show && (
-              <Badge variant="outline" render={<Link to={`../../shows/${show.id}`} relative="path" />}>
-                Sends {show.name} out
+            {output && (
+              <Badge variant="outline" render={<Link to={`../../outputs/${output.id}`} relative="path" />}>
+                Runs {output.name}
               </Badge>
             )}
           </div>
@@ -371,7 +371,7 @@ const DeleteAgentDialog: FC<DeleteAgentDialogProps> = ({ agent, name }) => {
           <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
           <AlertDialogDescription>
             Its identity is deleted with it, so a machine still running it is refused from then on. It can’t be removed
-            while a stream is published by it, or while it sends the show out.
+            while a stream is published by it, or while it runs an output.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <FormError error={remove.error} />

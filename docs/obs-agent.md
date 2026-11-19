@@ -1,5 +1,7 @@
 # The OBS agent, unattended
 
+> The OBS runtime now belongs to an **output**, which a show may or may not drive: see [outputs.md](outputs.md).
+
 Sketch: an agent that is a show's output runs OBS without anyone at it. It owns OBS's profile, scene collection and
 streaming lifecycle; OBS streams only to a MediaMTX of the agent's own, which forwards the program to the show's
 channels (Twitch first) and keeps them live, with a slate, when OBS restarts. Channels are connected once, in the
@@ -41,7 +43,7 @@ writes obs-websocket, `user.ini` and clears the crash sentinel):
   creates (`vignette/<show>/…`). The agent never edits scenes; the show does.
 - **Launch**: `--profile vignette --collection vignette --startstreaming`, plus today's flags. `--startstreaming`
   makes "streaming" part of OBS being up: a restarted OBS streams again on its own.
-- **Lifecycle** in the runtime: OBS is healthy when obs-websocket answers *and* `GetStreamStatus.outputActive`; if the
+- **Lifecycle** in the runtime: OBS is healthy when obs-websocket answers _and_ `GetStreamStatus.outputActive`; if the
   output stops while OBS runs (it gave up reconnecting to MediaMTX, say), call `StartStream`; if OBS dies, the
   process supervisor restarts it (as now) and `--startstreaming` resumes the stream.
 - **Spec**: the `obs` section gains what the profile needs, so it's the API's to decide, not the machine's:
@@ -59,7 +61,7 @@ paths:
   program:
     # OBS publishes here over RTMP from 127.0.0.1; nothing else may.
     alwaysAvailable: true
-    alwaysAvailableFile: /…/obs/slate.mp4      # "We'll be right back", H.264/AAC matching the output profile
+    alwaysAvailableFile: /…/obs/slate.mp4 # "We'll be right back", H.264/AAC matching the output profile
     forward:
       - dest: rtmps://ingest.global-contribute.live-video.net/app#<stream key>
       # - dest: moqt://…  the program to conservation.tv's relay, as a stream of the organisation
@@ -68,7 +70,7 @@ paths:
 - **Never offline.** While OBS is up, `program` carries its stream; when OBS's RTMP connection drops, MediaMTX plays
   the slate on repeat (`alwaysAvailable`), so the forward to Twitch never ends. When OBS reconnects it takes over.
   Twitch sees one continuous broadcast.
-- **Slate.** MediaMTX joins the offline segment and the live stream *without re-encoding any frame*
+- **Slate.** MediaMTX joins the offline segment and the live stream _without re-encoding any frame_
   ([always-available](https://github.com/bluenviron/mediamtx/blob/v1.21.2/docs/2-features/08-always-available.md)),
   so the slate MP4 must be interchangeable with OBS's output (see "Encoding"). The agent renders it once per output
   profile with ffmpeg (or OBS itself), from a still or a short loop, and keeps it beside the MediaMTX config. Later it

@@ -1,7 +1,10 @@
 import { createStore } from '@conservationtv/store';
+import type { AccessChange } from '@conservationtv/umbrella';
 import { authorization } from '../access.ts';
 import { useEnvironment } from '../env/env.ts';
 import { usePrincipal } from '../middleware/principal.ts';
+import { recordAccessChanges } from '../requests/record.ts';
+import { traced } from '../tracing/trace.ts';
 import type { Database } from './client.ts';
 
 // Every query runs in a transaction, and code reads the one it is in through `useDB()` rather than threading it
@@ -9,12 +12,15 @@ import type { Database } from './client.ts';
 // connection, so row-level security decides what it reads and writes. A trusted transaction (`trustedTransaction`)
 // runs on the owning connection, for writes row-level security cannot authorise, such as grants; `useDB()` sees it
 // too, and `useDB({ trusted: true })` sees only it. Neither nests: the two run on different connections, so one inside
-// the other would be neither atomic with it nor safe from waiting on its locks.
+// the other would be neither atomic with it nor safe from waiting on its locks. A trusted transaction collects the
+// grants it changes, and adds them to the request's record (src/requests/record.ts) only once it has committed. Each
+// transaction is a span of its own in the request's trace (src/tracing/trace.ts).
 
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 const [withTransaction, useTransaction] = createStore<Transaction>('transaction');
 const [withTrustedTransaction, useTrustedTransaction] = createStore<Transaction>('trustedTransaction');
+const [withAccessChanges, useAccessChanges] = createStore<AccessChange[]>('accessChanges');
 
 export interface UseDBOptions {
   /** Only a trusted transaction: throws in a request transaction. */
@@ -30,7 +36,8 @@ export function useDB(options?: UseDBOptions) {
 /** The management API over the trusted transaction the caller is in, which may write grants. */
 export function useAccess() {
   const db = useDB({ trusted: true });
-  return authorization.access(db);
+  const changes = useAccessChanges();
+  return authorization.access(db, { onChange: change => changes.push(change) });
 }
 
 function refuseNesting() {
@@ -48,7 +55,9 @@ export async function transaction<Result>(run: () => Promise<Result>) {
   const environment = useEnvironment();
   const principal = usePrincipal();
   const session = await environment.session(principal);
-  return session.transaction(tx => withTransaction(tx, run));
+  return traced('transaction', { 'studio.transaction.kind': 'request' }, () =>
+    session.transaction(tx => withTransaction(tx, run))
+  );
 }
 
 /** Run `run` in a trusted transaction on the owning connection. */
@@ -56,5 +65,12 @@ export async function trustedTransaction<Result>(run: () => Promise<Result>) {
   refuseNesting();
   const environment = useEnvironment();
   const admin = await environment.admin();
-  return admin.transaction(tx => withTrustedTransaction(tx, () => withTransaction(tx, run)));
+  const changes: AccessChange[] = [];
+  const result = await traced('transaction', { 'studio.transaction.kind': 'trusted' }, () =>
+    admin.transaction(tx =>
+      withTrustedTransaction(tx, () => withTransaction(tx, () => withAccessChanges(changes, run)))
+    )
+  );
+  recordAccessChanges(changes);
+  return result;
 }

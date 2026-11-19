@@ -135,14 +135,15 @@ export type System = {
         runtime: {
             version: string | null;
             installing: boolean;
-            show: string | null;
-            phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
+            output: string | null;
+            control: 'external' | 'show' | null;
+            collection: string | null;
             streaming: 'reconnecting' | 'starting' | 'streaming' | null;
             recording: 'recording' | 'starting' | 'stopping' | null;
             program: {
                 forwards: Array<string>;
                 previews: Array<string>;
-                cameras: {
+                inputs: {
                     [key: string]: {
                         fallback: boolean;
                     };
@@ -152,6 +153,11 @@ export type System = {
                 restarts: number;
                 lastError: string | null;
             } | null;
+            inputs: {
+                reading: {
+                    [key: string]: number;
+                };
+            };
             reports: {
                 running: boolean;
                 pending: number;
@@ -187,6 +193,24 @@ export type System = {
             lastError: string | null;
             channels: number;
             lastReadAt: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    show: {
+        runtime: {
+            show: string | null;
+            phase: 'error' | 'idle' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
         };
         apply: {
             state: 'applying';
@@ -332,11 +356,12 @@ export type GetSystemSpecResponses = {
             }>;
         };
         obs?: {
-            show: {
-                id: string;
-                url: string;
-            };
             output: {
+                id: string;
+                organisationId: string;
+                control: 'external' | 'show';
+            };
+            encoding: {
                 width: number;
                 height: number;
                 fps: number;
@@ -346,7 +371,7 @@ export type GetSystemSpecResponses = {
             forwards: Array<{
                 organisationId: string;
                 channelId: string;
-                forwardId?: string;
+                forwardId: string;
             }>;
             previews: Array<{
                 previewId: string;
@@ -359,12 +384,12 @@ export type GetSystemSpecResponses = {
                     url: string;
                 };
             }>;
+            program: {
+                subjectId: string;
+            };
             recording?: {
                 recorderId: string;
                 kind: string;
-            };
-            program?: {
-                subjectId: string;
             };
         };
         channels?: {
@@ -372,6 +397,10 @@ export type GetSystemSpecResponses = {
                 organisationId: string;
                 channelId: string;
             }>;
+        };
+        show?: {
+            id: string;
+            url: string;
         };
     };
 };

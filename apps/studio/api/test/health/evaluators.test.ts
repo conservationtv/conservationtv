@@ -64,7 +64,7 @@ describe('exposure', () => {
 });
 
 describe('program', () => {
-  const show = { fps: 30 };
+  const encoding = { fps: 30 };
 
   /** A minute of OBS publishing the programme at `fps`. */
   function publishing(fps: number) {
@@ -79,27 +79,27 @@ describe('program', () => {
     ];
   }
 
-  it('is healthy at the frame rate the show encodes at', async () => {
-    const output = reporter(evaluators.program, { context: show });
+  it('is healthy at the frame rate the output encodes at', async () => {
+    const output = reporter(evaluators.program, { context: encoding });
     expect((await output.minute(...publishing(30))).health).toBe('healthy');
   });
 
-  it("is degraded below the show's frame rate", async () => {
-    const output = reporter(evaluators.program, { context: show });
+  it("is degraded below the output's frame rate", async () => {
+    const output = reporter(evaluators.program, { context: encoding });
     const opinion = await output.minute(...publishing(20));
     expect(opinion.health).toBe('degraded');
     expect(findingOf(opinion, programMetrics.fps.name)?.health).toBe('degraded');
   });
 
   it('is unhealthy for any reconnection in the window, however brief', async () => {
-    const output = reporter(evaluators.program, { context: show });
+    const output = reporter(evaluators.program, { context: encoding });
     const blip = reportSamples(programMetrics.reconnecting, { min: 0, max: 1, avg: 0.1, last: 0 });
     const opinion = await output.minute(...publishing(30).slice(0, -1), blip);
     expect(opinion.health).toBe('unhealthy');
   });
 
   it("is degraded on the offline segment, and doesn't judge OBS by stats it isn't sending", async () => {
-    const output = reporter(evaluators.program, { context: show });
+    const output = reporter(evaluators.program, { context: encoding });
     const opinion = await output.minute(report(programMetrics.ready, 1), report(programMetrics.fallback, 1));
     expect(opinion.health).toBe('degraded');
     expect(findingOf(opinion, programMetrics.fallback.name)?.summary).toBe(
@@ -108,7 +108,7 @@ describe('program', () => {
     expect(output.reads).not.toContain(programMetrics.fps.name);
   });
 
-  it('is unknown once its show is gone', async () => {
+  it('is unknown once its output is gone', async () => {
     const output = reporter(evaluators.program, { context: undefined });
     expect((await output.minute(...publishing(30))).health).toBe('unknown');
   });
