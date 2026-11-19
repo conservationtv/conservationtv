@@ -15,8 +15,9 @@ import { withPrincipal } from './principal.ts';
 // Devices authenticate with their own identity (src/topology/identity.ts): each request carries an RFC 9421 HTTP
 // Message Signature by the device's Ed25519 key, named by its public ID as `keyid`. The signature must cover the
 // method, the URL and an RFC 9530 `Content-Digest` of the body (of empty content, for a request without one), and the
-// content type when there is one, with `created`, `expires` and a `nonce`. The body must match the signed digest, and
-// each nonce is accepted once (src/cache/cache.ts), within a minute of signing. Every failure is `invalid_signature`.
+// content type when there is one, with `created` and `expires`, within a minute of signing. The body must match the
+// signed digest. Nothing stops a captured request being sent again within that minute: the window bounds a replay, and
+// a request carries no secret the TLS it travels over does not already protect. Every failure is `invalid_signature`.
 
 /** The device a request was signed by. */
 export interface AuthenticatedDevice {
@@ -85,7 +86,7 @@ async function verifiedSignature(request: Request) {
           'content-digest',
           ...(request.headers.has('content-type') ? ['content-type'] : [])
         ],
-        requiredParameters: ['keyid', 'created', 'expires', 'nonce'],
+        requiredParameters: ['keyid', 'created', 'expires'],
         maxAge: MAX_AGE_SECONDS,
         clockSkew: CLOCK_SKEW_SECONDS,
         now
@@ -119,14 +120,6 @@ export const requireDevice = createMiddleware(async (c, next) => {
   // The signature covers the digest, so it is present; the body is cached for the handler.
   const body = await c.req.arrayBuffer();
   if (!(await bodyMatchesDigest(body, c.req.header('content-digest') ?? ''))) throw new ApiFailure('invalid_signature');
-  // Only after everything else holds, so a rejected request cannot spend a nonce.
-  const environment = useEnvironment();
-  const fresh = await environment.cache.add(
-    `nonce:${device.id}:${signature.parameters.nonce}`,
-    '1',
-    MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
-  );
-  if (!fresh) throw new ApiFailure('invalid_signature');
   recordActor({ principal: device.principal, deviceKind: device.kind });
   recordDeviceOrganisation(device.organisationId);
   await withDevice(device, () => withPrincipal(device.principal, next));

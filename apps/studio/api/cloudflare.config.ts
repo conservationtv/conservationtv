@@ -70,7 +70,7 @@ export default defineConfig({
         id: stack?.appHyperdriveId ?? placeholderHyperdriveIds.app,
         dev: { connectionString: LOCAL_POOLED_APP_DATABASE_URL }
       }),
-      /** The key-value cache (src/cache.ts): device request nonces and report idempotency. Local in development. */
+      /** The key-value cache (src/cache/cache.ts): Twitch connection state until its callback. Local in development. */
       CACHE: bindings.kv({ id: stack?.cacheId ?? placeholderCacheId }),
       /** Better Auth's signing secret; see .dev.vars.example. */
       BETTER_AUTH_SECRET: bindings.secret(),

@@ -19,14 +19,13 @@ import { SettingsSchema } from '../topology/settings.ts';
 // authenticates the reporter (src/middleware/device.ts). Any device reports, in batches, about whichever subjects it
 // names (`@conservationtv/reports`): which subjects a device may report about is not restricted yet.
 //
-// A batch is accepted or refused whole, and only for trust or shape: an unsigned, tampered or replayed request, a
+// A batch is accepted or refused whole, and only for trust or shape: an unsigned, tampered or expired request, a
 // malformed report or one observed in the future. Everything else is stored as given. Events and logs are cheap
-// operational signals, so nothing deduplicates them beyond the signature's single-use nonce: a device that retries a
-// batch signs it again, and they may be stored twice. A metric point is keyed by its series and time, so a retried one
-// is skipped. Ordering, late reports and their effect on state are the state consumer's concern
-// (src/health/consumer.ts), which judges the subjects a batch's metrics are about once the batch is stored. It runs
-// before the response rather than in the background, since the request's connections close once the response is sent;
-// a subject it fails to judge is logged, never refusing the stored batch.
+// operational signals, so nothing deduplicates them: a retried or replayed batch may be stored twice. A metric point is
+// keyed by its series and time, so a retried one is skipped. Ordering, late reports and their effect on state are the
+// state consumer's concern (src/health/consumer.ts), which judges the subjects a batch's metrics are about once the
+// batch is stored. It runs before the response rather than in the background, since the request's connections close
+// once the response is sent; a subject it fails to judge is logged, never refusing the stored batch.
 
 /** How far ahead of the control plane's clock a report's observation time may be. */
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;

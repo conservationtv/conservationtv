@@ -4,7 +4,7 @@ import { createContentDigestHeader } from 'httpbis-digest-headers';
 
 // Acting as a device, the way the studio API's device operations (`reports.submit`, `irohSessions.create`) require: an
 // RFC 9421 HTTP Message Signature by the device's Ed25519 identity, named by its public ID, over the method, the URL,
-// an RFC 9530 `Content-Digest` of the body and its content type, with `created`, `expires` and a single-use `nonce`.
+// an RFC 9530 `Content-Digest` of the body and its content type, with `created` and `expires`.
 
 /** How long a signature is valid for: the API accepts signatures up to a minute old. */
 const LIFETIME_SECONDS = 60;
@@ -83,7 +83,7 @@ export class DeviceIdentity {
         'content-digest',
         ...(headers.has('content-type') ? ['content-type'] : [])
       ],
-      parameters: { keyid: this.publicId, created, expires: created + LIFETIME_SECONDS, nonce: crypto.randomUUID() },
+      parameters: { keyid: this.publicId, created, expires: created + LIFETIME_SECONDS },
       signer: webcrypto.signer(this.signingKey)
     });
     // A copy of the headers, with the signature fields added.
