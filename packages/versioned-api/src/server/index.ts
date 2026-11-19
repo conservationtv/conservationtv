@@ -6,6 +6,7 @@ export {
   routeDescription,
   type OperationRoute,
   type OperationRouterOptions,
+  type OperationRun,
   type SelectedOperation
 } from './operation-router.js';
 export {

@@ -14,7 +14,13 @@ import type { Database } from './client.ts';
 // too, and `useDB({ trusted: true })` sees only it. Neither nests: the two run on different connections, so one inside
 // the other would be neither atomic with it nor safe from waiting on its locks. A trusted transaction collects the
 // grants it changes, and adds them to the request's record (src/requests/record.ts) only once it has committed. Each
-// transaction is a span of its own in the request's trace (src/tracing/trace.ts).
+// transaction is a span of its own in the request's trace (src/tracing/trace.ts): `transaction`, or the name it is given
+// where it does something other than its operation's own work (`audit.write`, `device.lookup`).
+
+export interface TransactionOptions {
+  /** What the transaction is for, as its span is named; `transaction` by default. */
+  name?: string;
+}
 
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
@@ -50,23 +56,23 @@ function refuseNesting() {
 }
 
 /** Run `run` in a transaction as the request's principal, over the application connection. */
-export async function transaction<Result>(run: () => Promise<Result>) {
+export async function transaction<Result>(run: () => Promise<Result>, options: TransactionOptions = {}) {
   refuseNesting();
   const environment = useEnvironment();
   const principal = usePrincipal();
   const session = await environment.session(principal);
-  return traced('transaction', { 'studio.transaction.kind': 'request' }, () =>
+  return traced(options.name ?? 'transaction', { 'studio.transaction.kind': 'request' }, () =>
     session.transaction(tx => withTransaction(tx, run))
   );
 }
 
 /** Run `run` in a trusted transaction on the owning connection. */
-export async function trustedTransaction<Result>(run: () => Promise<Result>) {
+export async function trustedTransaction<Result>(run: () => Promise<Result>, options: TransactionOptions = {}) {
   refuseNesting();
   const environment = useEnvironment();
   const admin = await environment.admin();
   const changes: AccessChange[] = [];
-  const result = await traced('transaction', { 'studio.transaction.kind': 'trusted' }, () =>
+  const result = await traced(options.name ?? 'transaction', { 'studio.transaction.kind': 'trusted' }, () =>
     admin.transaction(tx =>
       withTrustedTransaction(tx, () => withTransaction(tx, () => withAccessChanges(changes, run)))
     )

@@ -121,70 +121,75 @@ function reportedOf(device: AuthenticatedDevice, batch: Batch): Reported {
 }
 
 function storeBatch(device: AuthenticatedDevice, batch: Batch) {
-  return trustedTransaction(async () => {
-    const db = useDB({ trusted: true });
-    // Refuse the whole batch if any report is from the future, then store each kind with one insert.
-    const environment = useEnvironment();
-    const now = environment.clock();
-    if (batch.reports.some(report => Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS))
-      throw new ApiFailure('invalid_report');
+  return trustedTransaction(
+    async () => {
+      const db = useDB({ trusted: true });
+      // Refuse the whole batch if any report is from the future, then store each kind with one insert.
+      const environment = useEnvironment();
+      const now = environment.clock();
+      if (batch.reports.some(report => Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS))
+        throw new ApiFailure('invalid_report');
 
-    const reported = (report: EventReport | MetricReport | LogReport) => ({
-      organisationId: device.organisationId,
-      reporterId: deviceSubject(device.id),
-      subjectId: report.subjectId,
-      observedAt: new Date(report.observedAt)
-    });
-    const events = batch.reports.filter(report => report.kind === 'event');
-    const metrics = batch.reports.filter(report => report.kind === 'metric');
-    const logs = batch.reports.filter(report => report.kind === 'log');
-    if (events.length > 0)
-      await db
-        .insert(observations)
-        .values(events.map(report => ({ ...reported(report), type: report.payload.type, data: report.payload.data })));
-    if (metrics.length > 0) {
-      // Make the series the batch names that do not exist yet, then look every one of them up: a series another
-      // batch made meanwhile is skipped by the first statement, and seen by the second.
-      const organisationId = device.organisationId;
-      const reporterId = deviceSubject(device.id);
-      const series = metrics.map(({ subjectId, payload: { name, unit, dimensions } }) => ({
-        organisationId,
-        reporterId,
-        subjectId,
-        name,
-        unit,
-        dimensions
-      }));
-      await db.insert(metricSeries).values(series).onConflictDoNothing();
-      const subjectIds = [...new Set(series.map(({ subjectId }) => subjectId))];
-      const names = [...new Set(series.map(({ name }) => name))];
-      const known = await db
-        .select({
-          id: metricSeries.id,
-          subjectId: metricSeries.subjectId,
-          name: metricSeries.name,
-          unit: metricSeries.unit,
-          dimensions: metricSeries.dimensions
-        })
-        .from(metricSeries)
-        .where(
-          and(
-            eq(metricSeries.organisationId, organisationId),
-            eq(metricSeries.reporterId, reporterId),
-            inArray(metricSeries.subjectId, subjectIds),
-            inArray(metricSeries.name, names)
-          )
-        );
-      const ids = new Map(known.map(row => [seriesKey(row.subjectId, row), row.id]));
-      const points = metrics.map(({ subjectId, observedAt, payload }) => {
-        const seriesId = ids.get(seriesKey(subjectId, payload));
-        if (seriesId === undefined) throw new Error(`No series for ${payload.name} about ${subjectId}`);
-        return { seriesId, organisationId, observedAt: new Date(observedAt), ...summaryOf(payload) };
+      const reported = (report: EventReport | MetricReport | LogReport) => ({
+        organisationId: device.organisationId,
+        reporterId: deviceSubject(device.id),
+        subjectId: report.subjectId,
+        observedAt: new Date(report.observedAt)
       });
-      await db.insert(metricPoints).values(points).onConflictDoNothing();
-    }
-    if (logs.length > 0)
-      await db.insert(logRecords).values(logs.map(report => ({ ...reported(report), ...report.payload })));
-    return { accepted: batch.reports.length };
-  });
+      const events = batch.reports.filter(report => report.kind === 'event');
+      const metrics = batch.reports.filter(report => report.kind === 'metric');
+      const logs = batch.reports.filter(report => report.kind === 'log');
+      if (events.length > 0)
+        await db
+          .insert(observations)
+          .values(
+            events.map(report => ({ ...reported(report), type: report.payload.type, data: report.payload.data }))
+          );
+      if (metrics.length > 0) {
+        // Make the series the batch names that do not exist yet, then look every one of them up: a series another
+        // batch made meanwhile is skipped by the first statement, and seen by the second.
+        const organisationId = device.organisationId;
+        const reporterId = deviceSubject(device.id);
+        const series = metrics.map(({ subjectId, payload: { name, unit, dimensions } }) => ({
+          organisationId,
+          reporterId,
+          subjectId,
+          name,
+          unit,
+          dimensions
+        }));
+        await db.insert(metricSeries).values(series).onConflictDoNothing();
+        const subjectIds = [...new Set(series.map(({ subjectId }) => subjectId))];
+        const names = [...new Set(series.map(({ name }) => name))];
+        const known = await db
+          .select({
+            id: metricSeries.id,
+            subjectId: metricSeries.subjectId,
+            name: metricSeries.name,
+            unit: metricSeries.unit,
+            dimensions: metricSeries.dimensions
+          })
+          .from(metricSeries)
+          .where(
+            and(
+              eq(metricSeries.organisationId, organisationId),
+              eq(metricSeries.reporterId, reporterId),
+              inArray(metricSeries.subjectId, subjectIds),
+              inArray(metricSeries.name, names)
+            )
+          );
+        const ids = new Map(known.map(row => [seriesKey(row.subjectId, row), row.id]));
+        const points = metrics.map(({ subjectId, observedAt, payload }) => {
+          const seriesId = ids.get(seriesKey(subjectId, payload));
+          if (seriesId === undefined) throw new Error(`No series for ${payload.name} about ${subjectId}`);
+          return { seriesId, organisationId, observedAt: new Date(observedAt), ...summaryOf(payload) };
+        });
+        await db.insert(metricPoints).values(points).onConflictDoNothing();
+      }
+      if (logs.length > 0)
+        await db.insert(logRecords).values(logs.map(report => ({ ...reported(report), ...report.payload })));
+      return { accepted: batch.reports.length };
+    },
+    { name: 'reports.store' }
+  );
 }

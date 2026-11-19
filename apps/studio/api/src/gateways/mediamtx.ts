@@ -51,7 +51,9 @@ export const mediamtxPath = (deliveryId: string, rendition: Rendition) => `${del
 async function serverUrl(request: ConnectionRequest, protocol: MediamtxProtocol, settings: MediamtxSettings) {
   const override = settings.urls[protocol];
   if (override !== undefined) return override;
-  const registered = await trustedTransaction(() => registeredEndpointUrls(request.organisationId, request.gatewayId));
+  const registered = await trustedTransaction(() => registeredEndpointUrls(request.organisationId, request.gatewayId), {
+    name: 'gateway.endpoints'
+  });
   const url = registered.get(protocol);
   if (url === undefined) throw new ApiFailure('gateway_unavailable', { cause: `No ${protocol} server is registered` });
   return url;
@@ -79,19 +81,22 @@ function endpoint(protocol: MediamtxProtocol, base: string, path: string, action
  * active there, since no one would be running the MediaMTX to admit the connection anyway.
  */
 async function signingIdentity(organisationId: string, gatewayId: string) {
-  const [agent] = await trustedTransaction(() => {
-    const db = useDB({ trusted: true });
-    return db
-      .select({ publicId: devices.publicId, publicKey: devices.publicKey, privateKey: devices.privateKey })
-      .from(gateways)
-      .innerJoin(
-        agents,
-        and(eq(agents.organisationId, gateways.organisationId), eq(agents.networkId, gateways.networkId))
-      )
-      .innerJoin(devices, eq(devices.id, agents.id))
-      .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId), eq(agents.active, true)))
-      .limit(1);
-  });
+  const [agent] = await trustedTransaction(
+    () => {
+      const db = useDB({ trusted: true });
+      return db
+        .select({ publicId: devices.publicId, publicKey: devices.publicKey, privateKey: devices.privateKey })
+        .from(gateways)
+        .innerJoin(
+          agents,
+          and(eq(agents.organisationId, gateways.organisationId), eq(agents.networkId, gateways.networkId))
+        )
+        .innerJoin(devices, eq(devices.id, agents.id))
+        .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId), eq(agents.active, true)))
+        .limit(1);
+    },
+    { name: 'gateway.signing_identity' }
+  );
   if (agent === undefined) throw new ApiFailure('gateway_unavailable', { cause: 'No active agent runs this gateway' });
   const d = Buffer.from(agent.privateKey).toString('base64url');
   const key = await importJWK({ kty: 'OKP', crv: 'Ed25519', x: agent.publicKey, d }, GATEWAY_SIGNING_ALGORITHM);

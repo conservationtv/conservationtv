@@ -1,14 +1,16 @@
 import {
   OPERATION_MANIFEST_PATH,
   OperationRouter,
-  PUBLISHED_DOCUMENT_PATH
+  PUBLISHED_DOCUMENT_PATH,
+  type OperationRun,
+  type SelectedOperation
 } from '@conservationtv/versioned-api/server';
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { describeRoute } from 'hono-openapi';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import { recordOperation, recordRequest } from './requests/record.ts';
-import { traceRequest } from './tracing/trace.ts';
+import { traceOperation, traceRequest } from './tracing/trace.ts';
 import account from './routes/account.ts';
 import agents from './routes/agents.ts';
 import browsers from './routes/browsers.ts';
@@ -46,11 +48,17 @@ const serveStaticAsset = async (c: Context) => {
   return new Response(asset.body, asset);
 };
 
-export const operationRouter = new OperationRouter({ onSelect: recordOperation });
+/** Each operation the router selects: noted on the request's record, then run in a span of its own (src/tracing/). */
+function aroundOperation(c: Context, selected: SelectedOperation, run: OperationRun) {
+  recordOperation(selected);
+  return traceOperation(c, selected.operation.operationId, run);
+}
+
+export const operationRouter = new OperationRouter({ aroundOperation });
 
 const app = new Hono({ router: operationRouter })
-  // What each request did (src/requests/record.ts), from before anything else runs, and described on its trace once it
-  // has been handled (src/tracing/).
+  // What each request did (src/requests/record.ts), from before anything else runs, and its span named by its route
+  // once it has been handled (src/tracing/).
   .use(recordRequest)
   .use(traceRequest)
   // The studio web app calls with its session cookie, so its origins are allowed explicitly, never `*`.
