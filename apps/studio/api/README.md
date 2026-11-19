@@ -344,7 +344,10 @@ key, with its public ID as `keyid`. The signature must cover `@method`, `@target
 (of empty content for a request without a body) and `Content-Type` when present, with `created` and `expires`; it may
 be at most a minute old, with five seconds' clock skew. The body must match the signed digest (`httpbis-digest-headers`).
 Nothing stops a captured request being sent again within that minute: the window bounds a replay, and a request
-carries no secret the TLS it travels over does not already protect. Every failure is 401 `invalid_signature`, and a
+carries no secret the TLS it travels over does not already protect. A replay is not always harmless: it can store a
+report batch twice, or put back a value a later PUT replaced (an output's control report, an address, an endpoint).
+`requirePrincipal` accepts a device's signature, so every operation a device may call can be replayed this way; one
+that must not run twice needs its own guard. Every failure is 401 `invalid_signature`, and a
 retry needs a fresh signature. Downstream, `useDevice()` is the device and its principal.
 
 ### Cache
