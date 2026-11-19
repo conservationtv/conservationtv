@@ -163,3 +163,22 @@ export function compatibilityChanges(previous: ReleaseDocument, current: Release
   }
   return changes;
 }
+
+export interface ContractChanges {
+  added: string[];
+  changed: string[];
+  removed: string[];
+}
+
+/** Every operation version added, changed or removed from one bundle to the next, for release notes and versioning. */
+export function contractChanges(previous: ReleaseDocument | undefined, current: ReleaseDocument): ContractChanges {
+  const before = previous ? contractsOf(previous) : new Map<string, string>();
+  const after = contractsOf(current);
+  return {
+    added: [...after.keys()].filter(operation => !before.has(operation)),
+    changed: [...after]
+      .filter(([operation, contract]) => before.has(operation) && before.get(operation) !== contract)
+      .map(([operation]) => operation),
+    removed: [...before.keys()].filter(operation => !after.has(operation))
+  };
+}

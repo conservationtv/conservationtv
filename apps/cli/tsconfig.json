@@ -5,6 +5,7 @@
     "lib": ["ES2022", "ESNext.Disposable", "DOM"],
     "module": "preserve",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "types": ["node"],
     "strict": true,
     "noEmit": true,

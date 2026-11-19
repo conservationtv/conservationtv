@@ -70,8 +70,9 @@ reads a stream's.
   relations, as `organisations.streams.list` is). `create` (`name`, encoding optional), `get`, `update` (name,
   encoding), `delete`.
 - `organisations.shows.output.get|set|delete`, by show. The organisation-level `organisations.show.output.*`,
-  `organisations.show.follow` and `organisations.show.compose` keep working unchanged: the output ones act on the
-  organisation's show whose ID is the organisation's, while it exists.
+  `organisations.show.follow` and `organisations.show.compose` keep working: the output ones act on the
+  organisation's show whose ID is the organisation's, while it exists. All three are versionless, so none is part of
+  the released v1 contract.
 - `organisations.shows.forwards.create` (`channelId`, `enabled`), `update` (`enabled`), `delete`.
 - `organisations.shows.previews.create` (`gatewayId`), `delete`, and `connect` (`action` read or publish,
   `protocol`, `rendition`), as `organisations.streams.exposures.connect`: members read; the show's output device
