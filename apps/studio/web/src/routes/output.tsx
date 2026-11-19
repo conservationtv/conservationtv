@@ -398,8 +398,9 @@ const ControlSection: FC<RowProps> = ({ detail }) => {
             Whatever drives it (a script, a vision mixer, a control surface) connects to obs-websocket on the agent’s
             network and switches the scenes in the scene collection below. To play one of the organisation’s streams in
             OBS, add a media source reading the stream input, with the stream’s and its delivery’s IDs in place of
-            <code>{'{streamId}'}</code> and <code>{'{exposureId}'}</code>. The studio still keeps OBS running,
-            streaming, forwarded, previewed and recorded.
+            <code>{'{streamId}'}</code> and <code>{'{exposureId}'}</code>, and its reconnect delay set to 1 second: the
+            first time a stream is read, OBS is dropped from it once as it is set up, and OBS’s default delay leaves it
+            blank for 10 seconds. The studio still keeps OBS running, streaming, forwarded, previewed and recorded.
           </SectionDescription>
         </SectionHeading>
       </SectionHeader>

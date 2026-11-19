@@ -25,7 +25,9 @@ import { type InputExposure, inputOf, inputPath, type ProgramMediamtx } from './
 //
 // The launcher is a small Node script the agent writes, run by the agent's own Node, whose one request says which path
 // is wanted (MediaMTX gives it `MTX_PATH`) and, by staying open, for how long: MediaMTX stops it once nothing reads the
-// path. The first time an exposure is wanted, the agent asks for a read session as its device (the studio API admits
+// path. A launcher also gives up its request once MediaMTX is gone (its parent changes): outside Windows, MediaMTX
+// starts commands in their own process group and doesn't kill them when it dies, so a crashed MediaMTX's launchers
+// would otherwise hold their paths, and keep their relays running, forever. The first time an exposure is wanted, the agent asks for a read session as its device (the studio API admits
 // what the output may play: src/gateways/connect.ts), reads the stream's tracks from its catalog, and gives the path
 // its own config, always available with those tracks and telling the agent of each reader (`runOnRead`): so while the
 // relay restarts for a new session, OBS plays MediaMTX's offline segment rather than losing the stream. A relay is
@@ -57,7 +59,7 @@ const MAX_AGE = '100ms';
 /** The launcher MediaMTX runs for a wanted path: one request to the demand server, held open until it is stopped. */
 const LAUNCHER = `import { request } from 'node:http';
 // Written by the conservation.tv agent (output/obs/inputs.ts): tells it, for as long as this runs, that MediaMTX's
-// path MTX_PATH is wanted.
+// path MTX_PATH is wanted, and stops once MediaMTX, its parent, is gone.
 const [port, secret] = process.argv.slice(2);
 const path = process.env.MTX_PATH ?? '';
 const held = request({ host: '127.0.0.1', port: Number(port), path: '/' + secret + '/' + path }, response => {
@@ -72,6 +74,10 @@ const stop = () => {
 };
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
+const parent = process.ppid;
+setInterval(() => {
+  if (process.ppid !== parent) stop();
+}, 1000).unref();
 `;
 
 /** What the relays need: the studio API, as the device, the program MediaMTX, and a folder of their own. */
@@ -134,20 +140,25 @@ export class InputRelays {
     return this.options.program.pathUrl(inputPath(exposure));
   }
 
-  /** Stop relaying anything, and stop listening. */
+  /**
+   * Stop relaying anything, and stop listening. Launchers' requests still held are cut: `close` alone waits for them,
+   * and one whose MediaMTX has gone may never end its own.
+   */
   async stop(): Promise<void> {
     this.releaseAll();
     await this.options.program.setDemand(undefined);
-    await new Promise<void>(resolve => {
-      if (this.server === undefined) resolve();
-      else this.server.close(() => resolve());
-    });
+    const { server } = this;
     this.server = undefined;
+    if (server === undefined) return;
+    const closed = new Promise<void>(resolve => server.close(() => resolve()));
+    server.closeAllConnections();
+    await closed;
   }
 
   dispose(): void {
     this.releaseAll();
     this.server?.close();
+    this.server?.closeAllConnections();
     this.server = undefined;
   }
 

@@ -34,7 +34,8 @@ import { listening } from './loopback.ts';
 // Everything listens on loopback only, and only loopback may publish or read. The config is assembled by the common
 // step (mediamtx/config.ts) and the program's own below, and rewritten whenever a forward, a preview or an input
 // changes, which a running MediaMTX reloads by itself. Writing an input's own path drops the reader waiting on it
-// once, which OBS's media source reconnects from within a second. Its log goes to the process's log file, so every
+// once, which a media source reconnects from after its reconnect delay: a second for the show's (ctv-stream.ts), ten
+// by OBS's default. Its log goes to the process's log file, so every
 // publish, read, and forward is recorded there. Its metrics page is read for the program's reports (program-metrics.ts).
 
 /** The path OBS streams to, as the RTMP application and stream key its profile names. */
