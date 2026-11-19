@@ -55,6 +55,10 @@ export type GetOrganisationsByIdSubjectsTransitionsData = {
          * Only this subject's.
          */
         subjectId?: string;
+        /**
+         * With `before`, the ID of the last transition read: page back from it, past those observed at the same time. Many transitions share a time, since a batch's are observed together.
+         */
+        beforeId?: string;
     };
     url: '/organisations/{id}/subjects/transitions';
 };

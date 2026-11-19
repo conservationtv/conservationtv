@@ -595,7 +595,8 @@ export class Client extends ClientCore {
                             { in: 'path', key: 'id' },
                             { in: 'query', key: 'limit' },
                             { in: 'query', key: 'before' },
-                            { in: 'query', key: 'subjectId' }
+                            { in: 'query', key: 'subjectId' },
+                            { in: 'query', key: 'beforeId' }
                         ]
                     }) })
             },

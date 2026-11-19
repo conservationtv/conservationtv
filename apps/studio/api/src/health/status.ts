@@ -25,8 +25,10 @@ import type { Activity, Health } from './health.ts';
 // A state only says something while something is set to report about its subject: an output's parts while an agent
 // runs the output, a delivery while an agent delivers it (the one it is pinned to, the active agent on its gateway's
 // network, or whichever delivers the exposure it is published from), a camera while an agent delivering one of its
-// streams probes it, a channel while an output with an agent forwards to it. With nothing set to, silence is not a
-// failure, and whatever was last said is history: the subject is `off`, and says why.
+// streams probes it, a channel while an output with an agent forwards to it. A camera that is switched off feeds
+// nothing and is probed by nothing, so neither it nor its streams' deliveries are set to report; nor is a forward that
+// is switched off, which its output's agent isn't sent. With nothing set to, silence is not a failure, and whatever was
+// last said is history: the subject is `off`, and says why.
 
 /**
  * How a subject is doing, its upstream considered. `healthy`, `degraded` and `failing` are its own (`failing` is
@@ -99,6 +101,11 @@ interface Identified {
 interface DeviceInput extends NamedInput {
   kind: string;
 }
+/** A camera's state: only an `enabled` one feeds its streams, and is probed. */
+interface CameraInput {
+  id: string;
+  state: string;
+}
 
 interface GatewayInput extends NamedInput {
   /** The network it is on: null on the internet. */
@@ -113,6 +120,7 @@ interface AgentInput {
 
 export interface StatusInputs {
   devices: DeviceInput[];
+  cameras: CameraInput[];
   agents: AgentInput[];
   gateways: GatewayInput[];
   streams: StreamInput[];
@@ -265,19 +273,32 @@ const TROUBLED = {
   unknown: false
 } satisfies Record<Status, boolean>;
 
-/** A stream's source, when it has one the organisation still has: probed by whichever agent delivers the stream. */
-function sourceNode(stream: StreamInput, devices: DeviceInput[], probed: boolean): Node | undefined {
+/** Why a camera isn't probed, nor its streams delivered, when it is switched off: undefined while it is on. */
+function switchedOff(deviceId: string | null, cameras: CameraInput[]): string | undefined {
+  const camera = cameras.find(candidate => candidate.id === deviceId);
+  return camera !== undefined && camera.state !== 'enabled' ? 'Switched off' : undefined;
+}
+
+/**
+ * A stream's source, when it has one the organisation still has: probed by whichever agent delivers the stream, unless
+ * it is a camera that is switched off.
+ */
+function sourceNode(stream: StreamInput, { devices, cameras }: StatusInputs, probed: boolean): Node | undefined {
   const source = devices.find(device => device.id === stream.sourceDeviceId);
   if (source === undefined) return undefined;
   const kind = source.kind === 'camera' ? 'Camera' : 'Source';
-  const unreported = probed ? undefined : 'No agent delivers its stream, so nothing probes it';
+  const unreported =
+    switchedOff(source.id, cameras) ?? (probed ? undefined : 'No agent delivers its stream, so nothing probes it');
   return { subjectId: deviceSubject(source.id), kind, name: source.name, fedBy: [], unreported };
 }
 
 /** A stream's nodes: its source, then its exposures, each fed by its upstream, or the source without one. */
 function streamNodes(stream: StreamInput, inputs: StatusInputs): Node[] {
   const delivered = deliveredExposures(stream, inputs);
-  const source = sourceNode(stream, inputs.devices, delivered.size > 0);
+  const source = sourceNode(stream, inputs, delivered.size > 0);
+  // A camera that is switched off feeds none of its stream's deliveries: nothing is asked to deliver them.
+  const cameraOff =
+    switchedOff(stream.sourceDeviceId, inputs.cameras) === undefined ? undefined : 'Its camera is switched off';
   const exposures = stream.exposures.map((exposure): Node => {
     // Named for its gateway; fed by its upstream when the stream has it, else by the source when there is one.
     const gateway = inputs.gateways.find(candidate => candidate.id === exposure.gatewayId);
@@ -288,7 +309,7 @@ function streamNodes(stream: StreamInput, inputs: StatusInputs): Node[] {
       kind: `Delivery to ${gateway?.name ?? 'a gateway'}`,
       name: stream.name,
       fedBy: feeder === undefined ? [] : [feeder],
-      unreported: delivered.has(exposure.id) ? undefined : 'No agent is set to deliver it'
+      unreported: cameraOff ?? (delivered.has(exposure.id) ? undefined : 'No agent is set to deliver it')
     };
   });
   return source === undefined ? exposures : [source, ...exposures];
@@ -314,7 +335,9 @@ function programmeParts(output: OutputInput, { gateways, channels }: StatusInput
   const forwards = output.forwards.map((forward): Node => {
     const channel = channels.find(candidate => candidate.id === forward.channelId);
     const kind = `Forward to ${channel?.name ?? 'a channel'}`;
-    return { subjectId: forwardSubject(forward.id), kind, name, fedBy, unreported };
+    // A forward that is switched off isn't sent to the output's agent, so nothing reports about it.
+    const reason = forward.enabled ? unreported : 'Switched off';
+    return { subjectId: forwardSubject(forward.id), kind, name, fedBy, unreported: reason };
   });
   const previews = output.previews.map((preview): Node => {
     const gateway = gateways.find(candidate => candidate.id === preview.gatewayId);
@@ -512,7 +535,9 @@ export function organisationStatus(inputs: StatusInputs): OrganisationStatus {
   const others = reporting.map((device): Node => {
     // A camera reached only here is no stream's source, so no agent probes it; an agent reports about itself.
     const camera = device.kind === 'camera';
-    const unreported = camera ? 'No stream comes from it, so nothing probes it' : undefined;
+    const unreported = camera
+      ? (switchedOff(device.id, inputs.cameras) ?? 'No stream comes from it, so nothing probes it')
+      : undefined;
     return {
       subjectId: deviceSubject(device.id),
       kind: camera ? 'Camera' : 'Agent',

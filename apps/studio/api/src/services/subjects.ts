@@ -117,11 +117,25 @@ export interface TransitionFilter {
   subjectId?: string;
 }
 
+/** A page of transitions: with `beforeId`, after the one read last, since many transitions share their time. */
+export interface TransitionPage extends HistoryPage {
+  /** With `before`, the ID of the last transition read. */
+  beforeId?: string;
+}
+
+/** Those before the page's cursor: by time, then by ID among those at the cursor's time, as the list is ordered. */
+function beforeTransition({ before, beforeId }: TransitionPage) {
+  if (before === undefined) return undefined;
+  const at = new Date(before);
+  if (beforeId === undefined) return lt(subjectTransitions.at, at);
+  return sql`(${subjectTransitions.at}, ${subjectTransitions.id}) < (${at.toISOString()}::timestamp, ${beforeId}::uuid)`;
+}
+
 /**
  * The changes of the organisation's subjects' states, newest first: what each became, what it was, and the findings it
  * became it for. Optionally one subject's.
  */
-export function listSubjectTransitions(organisationId: string, filter: TransitionFilter, page: HistoryPage) {
+export function listSubjectTransitions(organisationId: string, filter: TransitionFilter, page: TransitionPage) {
   const db = useDB();
   return db
     .select({
@@ -139,7 +153,7 @@ export function listSubjectTransitions(organisationId: string, filter: Transitio
       and(
         eq(subjectTransitions.organisationId, organisationId),
         filter.subjectId === undefined ? undefined : eq(subjectTransitions.subjectId, filter.subjectId),
-        page.before === undefined ? undefined : lt(subjectTransitions.at, new Date(page.before))
+        beforeTransition(page)
       )
     )
     .orderBy(desc(subjectTransitions.at), desc(subjectTransitions.id))

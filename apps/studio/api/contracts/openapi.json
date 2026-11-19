@@ -11728,6 +11728,16 @@
               "pattern": "^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
             },
             "description": "Only this subject's."
+          },
+          {
+            "in": "query",
+            "name": "beforeId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "description": "With `before`, the ID of the last transition read: page back from it, past those observed at the same time. Many transitions share a time, since a batch's are observed together."
           }
         ],
         "x-operation-versions": [
@@ -12645,7 +12655,7 @@
         "operationId": "organisations.status.get",
         "x-operation-version": 1,
         "summary": "Read an organisation's status",
-        "description": "Whether the organisation is working, and what is wrong if not. Each subject's own status is from its state (`failing` is reporting unhealthy, or gone quiet; `idle` and `off` aren't judged, since nothing asks for it or it is switched off; `unknown` has reported nothing to judge by); failures then flow along the signal's path, from a camera through its stream's deliveries, and from an output's agent through its programme to its forwards, previews, recorders and channels, so what a failing subject feeds is `affected` (`causedBy` what) rather than a problem of its own. A subject nothing is set to report about (an output with no agent's parts, a delivery no agent delivers, a camera no agent probes) is `off`, whatever was last said of it, and says why. `streams`, `shows` (the exposures each places), `outputs` and `channels` sum their parts up, each in a sentence, and `status` and `summary` the whole. `problems` are only the root causes: each subject failing or degraded itself, why (`reasons`, its state's findings in words), and what that affects.",
+        "description": "Whether the organisation is working, and what is wrong if not. Each subject's own status is from its state (`failing` is reporting unhealthy, or gone quiet; `idle` and `off` aren't judged, since nothing asks for it or it is switched off; `unknown` has reported nothing to judge by); failures then flow along the signal's path, from a camera through its stream's deliveries, and from an output's agent through its programme to its forwards, previews, recorders and channels, so what a failing subject feeds is `affected` (`causedBy` what) rather than a problem of its own. A subject nothing is set to report about (an output with no agent's parts, a delivery no agent delivers, a camera no agent probes, a camera that is switched off and its streams' deliveries, a forward that is switched off) is `off`, whatever was last said of it, and says why. `streams`, `shows` (the exposures each places), `outputs` and `channels` sum their parts up, each in a sentence, and `status` and `summary` the whole. `problems` are only the root causes: each subject failing or degraded itself, why (`reasons`, its state's findings in words), and what that affects.",
         "responses": {
           "200": {
             "description": "The status",
@@ -31632,6 +31642,16 @@
                 "description": "Only this subject's."
               },
               {
+                "in": "query",
+                "name": "beforeId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "description": "With `before`, the ID of the last transition read: page back from it, past those observed at the same time. Many transitions share a time, since a batch's are observed together."
+              },
+              {
                 "in": "header",
                 "name": "Operation-Version",
                 "required": true,
@@ -36019,7 +36039,7 @@
             "operationId": "organisations.status.get",
             "x-operation-version": 1,
             "summary": "Read an organisation's status",
-            "description": "Whether the organisation is working, and what is wrong if not. Each subject's own status is from its state (`failing` is reporting unhealthy, or gone quiet; `idle` and `off` aren't judged, since nothing asks for it or it is switched off; `unknown` has reported nothing to judge by); failures then flow along the signal's path, from a camera through its stream's deliveries, and from an output's agent through its programme to its forwards, previews, recorders and channels, so what a failing subject feeds is `affected` (`causedBy` what) rather than a problem of its own. A subject nothing is set to report about (an output with no agent's parts, a delivery no agent delivers, a camera no agent probes) is `off`, whatever was last said of it, and says why. `streams`, `shows` (the exposures each places), `outputs` and `channels` sum their parts up, each in a sentence, and `status` and `summary` the whole. `problems` are only the root causes: each subject failing or degraded itself, why (`reasons`, its state's findings in words), and what that affects.",
+            "description": "Whether the organisation is working, and what is wrong if not. Each subject's own status is from its state (`failing` is reporting unhealthy, or gone quiet; `idle` and `off` aren't judged, since nothing asks for it or it is switched off; `unknown` has reported nothing to judge by); failures then flow along the signal's path, from a camera through its stream's deliveries, and from an output's agent through its programme to its forwards, previews, recorders and channels, so what a failing subject feeds is `affected` (`causedBy` what) rather than a problem of its own. A subject nothing is set to report about (an output with no agent's parts, a delivery no agent delivers, a camera no agent probes, a camera that is switched off and its streams' deliveries, a forward that is switched off) is `off`, whatever was last said of it, and says why. `streams`, `shows` (the exposures each places), `outputs` and `channels` sum their parts up, each in a sentence, and `status` and `summary` the whole. `problems` are only the root causes: each subject failing or degraded itself, why (`reasons`, its state's findings in words), and what that affects.",
             "responses": {
               "200": {
                 "description": "The status",

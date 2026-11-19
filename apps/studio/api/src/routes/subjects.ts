@@ -105,8 +105,14 @@ const SubjectKindSchema = z
 export type SubjectKind = z.output<typeof SubjectKindSchema>;
 
 const TransitionsQuerySchema = HistoryQuerySchema.extend({
-  subjectId: SubjectIdSchema.optional().describe("Only this subject's.")
-});
+  subjectId: SubjectIdSchema.optional().describe("Only this subject's."),
+  beforeId: z
+    .uuid()
+    .optional()
+    .describe(
+      "With `before`, the ID of the last transition read: page back from it, past those observed at the same time. Many transitions share a time, since a batch's are observed together."
+    )
+}).refine(query => query.beforeId === undefined || query.before !== undefined, '`beforeId` is given with `before`.');
 export type TransitionsQuery = z.output<typeof TransitionsQuerySchema>;
 
 // Version 1 of the reads of states and opinions returns them as they were before activity was kept: each field named,

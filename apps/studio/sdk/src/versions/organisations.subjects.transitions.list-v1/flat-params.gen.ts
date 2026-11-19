@@ -9,7 +9,8 @@ export const TransitionListV1ParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsTransitionsPathSchema.shape.id.nonoptional().describe('The organisation.'),
     limit: GetOrganisationsByIdSubjectsTransitionsQuerySchema.shape.limit.optional().describe('At most this many, newest first.'),
     before: GetOrganisationsByIdSubjectsTransitionsQuerySchema.shape.before.optional().describe('Only those observed before this time, to page back.'),
-    subjectId: GetOrganisationsByIdSubjectsTransitionsQuerySchema.shape.subjectId.optional().describe('Only this subject\'s.')
+    subjectId: GetOrganisationsByIdSubjectsTransitionsQuerySchema.shape.subjectId.optional().describe('Only this subject\'s.'),
+    beforeId: GetOrganisationsByIdSubjectsTransitionsQuerySchema.shape.beforeId.optional().describe('With `before`, the ID of the last transition read: page back from it, past those observed at the same time. Many transitions share a time, since a batch\'s are observed together.')
 });
 
 export type TransitionListV1Params = z.infer<typeof TransitionListV1ParamsSchema>;
@@ -19,6 +20,7 @@ export type TransitionListV1Input = {
     limit?: number;
     before?: string;
     subjectId?: string;
+    beforeId?: string;
 };
 
 export type TransitionListV1Output = GetOrganisationsByIdSubjectsTransitionsResponse;
