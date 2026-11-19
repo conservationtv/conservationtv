@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useState, useSyncExternalStore, type RefObject } from 'react';
+import { createContext, use, useEffect, useState, type RefObject } from 'react';
 import { useSelector } from '@xstate/store-react';
 
 import { intro } from '@/components/signal/signal-motion';
@@ -52,24 +52,14 @@ export function useSignalStanding(id: string | undefined): SignalStanding {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Wide enough for the map; narrower gets the stack.
+// Wide enough for the map; narrower gets the stack. The canvas decides, by its own width (SignalCanvas), so whatever
+// else follows the layout (where editing's forms show) agrees with what is on show.
 
 export type SignalLayout = 'map' | 'stack';
 
-const WIDE_QUERY = '(min-width: 880px)';
-
-function subscribeToWidth(onChange: () => void) {
-  const query = window.matchMedia(WIDE_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-}
-
 export function useSignalLayout(): SignalLayout {
-  const wide = useSyncExternalStore(
-    subscribeToWidth,
-    () => window.matchMedia(WIDE_QUERY).matches,
-    () => true
-  );
+  const store = useSignalStore();
+  const wide = useSelector(store, snapshot => snapshot.context.wide);
   return wide ? 'map' : 'stack';
 }
 

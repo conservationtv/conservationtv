@@ -1,8 +1,9 @@
 import type { StoreFromStoreConfig } from '@xstate/store';
 
 /**
- * How the signal view is being looked at: what's open, and what's picked. Nothing else: what the view is of comes in
- * as data (<Signal system>), and anything a page adds on top (editing, say) keeps its own state.
+ * How the signal view is being looked at: what's open, what's picked, and whether it has the room for the map. Nothing
+ * else: what the view is of comes in as data (<Signal system>), and anything a page adds on top (editing, say) keeps
+ * its own state.
  */
 interface SignalView {
   /**
@@ -12,6 +13,8 @@ interface SignalView {
   open: string[];
   /** A thing whose path stays in full while the rest fades. */
   picked: string | null;
+  /** Whether its canvas is wide enough for the map, as SignalCanvas measures it; the stack shows while it isn't. */
+  wide: boolean;
 }
 
 interface ToggleEvent {
@@ -24,9 +27,13 @@ interface PickEvent {
   id: string;
 }
 
+interface MeasureEvent {
+  wide: boolean;
+}
+
 /** `open` is what's open to begin with. */
 export function signalStoreConfig(open: string[]) {
-  const context: SignalView = { open, picked: null };
+  const context: SignalView = { open, picked: null, wide: true };
   return {
     context,
     on: {
@@ -40,7 +47,10 @@ export function signalStoreConfig(open: string[]) {
         ...view,
         picked: view.picked === event.id ? null : event.id
       }),
-      release: (view: SignalView): SignalView => ({ ...view, picked: null })
+      release: (view: SignalView): SignalView => ({ ...view, picked: null }),
+      /** The canvas has been measured, wider or narrower than the map needs. */
+      measure: (view: SignalView, event: MeasureEvent): SignalView =>
+        view.wide === event.wide ? view : { ...view, wide: event.wide }
     }
   };
 }
