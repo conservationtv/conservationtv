@@ -27,7 +27,7 @@ export const SubjectIdSchema = z
   .string()
   .regex(SUBJECT_ID)
   .describe(
-    "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else."
+    "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else."
   );
 export type SubjectId = z.output<typeof SubjectIdSchema>;
 
@@ -37,17 +37,17 @@ export const deviceSubject = (deviceId: string): SubjectId => `device:${deviceId
 /** An exposure, as a subject: what the paths delivering it report about. */
 export const exposureSubject = (exposureId: string): SubjectId => `exposure:${exposureId}`;
 
-/** A show's program, as a subject: what its output reports about what OBS sends out. */
-export const programSubject = (showId: string): SubjectId => `program:${showId}`;
+/** An output's programme, as a subject: what its agent reports about what OBS sends out. */
+export const programSubject = (outputId: string): SubjectId => `program:${outputId}`;
 
-/** A show's forward to a channel, as a subject. */
+/** An output's forward to a channel, as a subject. */
 export const forwardSubject = (forwardId: string): SubjectId => `forward:${forwardId}`;
 
-/** A show's preview, as a subject. */
+/** An output's preview, as a subject. */
 export const previewSubject = (previewId: string): SubjectId => `preview:${previewId}`;
 
-/** A show's recorder, as a subject. */
+/** An output's recorder, as a subject. */
 export const recorderSubject = (recorderId: string): SubjectId => `recorder:${recorderId}`;
 
-/** A channel a show goes out to, as a subject: what its platform says of it, as the show's output reads it. */
+/** A channel an output goes out to, as a subject: what its platform says of it, as the output's agent reads it. */
 export const channelSubject = (channelId: string): SubjectId => `channel:${channelId}`;

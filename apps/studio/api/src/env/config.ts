@@ -9,6 +9,7 @@ import type { Cache } from '../cache/cache.ts';
 import { connectLazily } from '../db/client.ts';
 import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
 import type { Broadcasts } from '../shows/broadcast.ts';
+import type { Tracer } from '../tracing/trace.ts';
 import type { Background, Clock, Environment } from './env.ts';
 
 // Building the environment loads the database schema, Better Auth and the authorization client. It is kept apart from
@@ -72,11 +73,13 @@ export interface Bindings {
   /** Where the application role connects: the `HYPERDRIVE_APP` binding. */
   app: string;
   cache: Cache;
-  /** Each organisation's broadcast: the Worker's own `ShowHost` objects, through `ctx.exports` (src/shows/host.tsx). */
+  /** Each show's object, by the show's ID: the Worker's own `ShowHost` objects, through `ctx.exports` (src/shows/host.tsx). */
   broadcasts: Broadcasts;
   background: Background;
   /** The Worker's static assets: the published OpenAPI document. */
   assets: StaticAssets;
+  /** The runtime's tracing of this invocation: `ctx.tracing` (src/tracing/trace.ts). */
+  tracing: Tracer;
 }
 
 /** Static assets as the `ASSETS` binding serves them: a request in, the matching file (or a 304) out. */
@@ -147,6 +150,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
     cache: bindings.cache,
     assets: bindings.assets,
     broadcasts: bindings.broadcasts,
+    tracing: bindings.tracing,
     gatekeeper,
     gatewayCertificates,
     close: () => Promise.all([admin.close(), app.close()])

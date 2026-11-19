@@ -1,6 +1,6 @@
 import { and, arrayContained, eq, not, notInArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { exposures, gateways, recorders, showPreviews } from '../db/schema.ts';
+import { exposures, gateways, outputPreviews, recorders } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { useDB } from '../db/transaction.ts';
 import { isBuiltinGateway } from '../gateways/index.ts';
@@ -35,9 +35,9 @@ export async function checkGatewayUnused(gatewayId: string) {
     .limit(1);
   if (used) throw new ApiFailure('in_use');
   const [previewed] = await db
-    .select({ id: showPreviews.id })
-    .from(showPreviews)
-    .where(eq(showPreviews.gatewayId, gatewayId))
+    .select({ id: outputPreviews.id })
+    .from(outputPreviews)
+    .where(eq(outputPreviews.gatewayId, gatewayId))
     .limit(1);
   if (previewed) throw new ApiFailure('in_use');
 }

@@ -12,9 +12,21 @@ export type Error = {
 export type Subject = {
     subjectId: string;
     state: {
-        health: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
         state: {
-            [key: string]: unknown;
+            findings: Array<{
+                reporterId: string;
+                check: string;
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                summary: string;
+                evidence: Array<{
+                    seriesId: string;
+                    dimensions: {
+                        [key: string]: string;
+                    };
+                    value: number;
+                }>;
+            }>;
         };
         freshness: 'fresh' | 'stale';
         observedAt: string;
@@ -22,13 +34,34 @@ export type Subject = {
         computedAt: string;
         contributingReporterIds: Array<string>;
         evidenceReportIds: Array<string>;
-    };
+    } | null;
     reachable: boolean;
     opinions: Array<{
         reporterId: string;
-        health: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
         state: {
-            [key: string]: unknown;
+            findings: Array<{
+                check: string;
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                summary: string;
+                evidence: Array<{
+                    seriesId: string;
+                    dimensions: {
+                        [key: string]: string;
+                    };
+                    value: number;
+                }>;
+            }>;
+            consulted: Array<{
+                metric: string;
+                read: number;
+                seriesIds: Array<string>;
+            }>;
+            since: string;
+            pending: {
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                since: string;
+            } | null;
         };
         freshness: 'fresh' | 'stale';
         observedAt: string;
@@ -45,7 +78,7 @@ export type GetOrganisationsByIdSubjectsBySubjectIdStateData = {
          */
         id: string;
         /**
-         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show's program (by the show's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
+         * What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.
          */
         subjectId: string;
     };

@@ -4,9 +4,9 @@ import type { Channel } from '@conservationtv/studio-sdk';
 import type { RtmpChannel } from '@/forms/schemas';
 import { api } from '@/lib/api';
 
-// Where the organisation's shows go out to (apps/studio/api/src/routes/channels.ts). The studio lists, adds and removes
-// channels, and starts connecting Twitch; it never reads a channel's stream key or tokens. Which shows go out to a
-// channel is each show's forwards.
+// Where the organisation's outputs go out to (apps/studio/api/src/routes/channels.ts). The studio lists, adds and
+// removes channels, and starts connecting Twitch; it never reads a channel's stream key or tokens. Which outputs go out
+// to a channel is each output's forwards.
 
 /** The organisation's channels, oldest first, and whether this deployment can connect Twitch. */
 export const channelListQueryOptions = (organisationId: string) =>
@@ -19,8 +19,8 @@ export const channelListQueryOptions = (organisationId: string) =>
     }
   });
 
-// The output agent's metrics about a channel (`channel:<channelId>`), as @conservationtv/reports names them
-// (channelMetrics): what the channel's platform says of it, read by the output of a show forwarded to it.
+// An output's agent's metrics about a channel (`channel:<channelId>`), as @conservationtv/reports names them
+// (channelMetrics): what the channel's platform says of it, read by an output forwarded to it.
 const CHANNEL_LIVE = 'channel.live';
 const CHANNEL_VIEWERS = 'channel.viewers';
 
@@ -29,7 +29,7 @@ const PLATFORM_STATE_WINDOW_MS = 5 * 60_000;
 /** The buckets it is read in: one per report interval. */
 const PLATFORM_STATE_STEP_SECONDS = 60;
 
-/** What a channel's platform last said of it, as a show's output reported it. */
+/** What a channel's platform last said of it, as an output reported it. */
 export interface ChannelPlatformState {
   live: boolean;
   viewers: number | undefined;
@@ -38,9 +38,9 @@ export interface ChannelPlatformState {
 }
 
 /**
- * What the platforms of the given channels last said of them, by channel ID, as the outputs of the shows forwarded to
- * them reported it: whether each is live, and its viewers. One read across every channel's subject; a channel nobody
- * reported about in the last few minutes is absent. Read again every minute, as the outputs report.
+ * What the platforms of the given channels last said of them, by channel ID, as the outputs forwarded to them reported
+ * it: whether each is live, and its viewers. One read across every channel's subject; a channel nobody reported about
+ * in the last few minutes is absent. Read again every minute, as the outputs report.
  */
 export const channelPlatformStateQueryOptions = (organisationId: string, channelIds: string[]) =>
   queryOptions({
@@ -118,7 +118,7 @@ export function useCreateRtmpChannel(organisationId: string) {
   });
 }
 
-/** Remove a channel, and its stream key with it. Every show's forward to it goes too. */
+/** Remove a channel, and its stream key with it. Every output's forward to it goes too. */
 export function useDeleteChannel(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
@@ -129,7 +129,7 @@ export function useDeleteChannel(organisationId: string) {
     onSuccess: () =>
       Promise.all([
         client.invalidateQueries({ queryKey: ['channels', organisationId] }),
-        client.invalidateQueries({ queryKey: ['shows', organisationId] })
+        client.invalidateQueries({ queryKey: ['outputs', organisationId] })
       ])
   });
 }

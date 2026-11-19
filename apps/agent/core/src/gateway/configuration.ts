@@ -1,5 +1,6 @@
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
+import { REPORT_INTERVAL_MS } from '../reporting/sampler.ts';
 import { type DeviceConfiguration, leased, withToken } from '../studio.ts';
 import type { MetricsSpec } from './metrics/runtime.ts';
 import type { RelayStatsSource, RelayTrafficSpec } from './relay-traffic/runtime.ts';
@@ -19,9 +20,6 @@ import type { StreamsSpec } from './streams/runtime.ts';
 // relay with credentials from `organisations.streams.exposures.connect`. Those, and the stats', are kept until shortly
 // before they expire. A renewal changes the spec: the relays' traffic follows a renewed stats URL afresh, and has no
 // rates for a sample or two after it (relay-traffic/runtime.ts).
-
-/** How often the streams' metrics are shipped. */
-const METRICS_INTERVAL_MS = 60_000;
 
 const logger = getLogger(['agent', 'studio']);
 
@@ -86,7 +84,7 @@ export async function gatewaySpecs(
   const previews = mediamtx.previews ?? [];
   const streams: StreamsSpec = { gatewayId, paths, previews, auth, tls, publishers };
   const attributions = paths.map(({ name, exposureId, rendition }) => ({ name, exposureId, rendition }));
-  const metrics: MetricsSpec = { intervalMs: METRICS_INTERVAL_MS, paths: attributions };
+  const metrics: MetricsSpec = { intervalMs: REPORT_INTERVAL_MS, paths: attributions };
   const relayTraffic = relayTrafficSpec(stats, publishers);
   return { streams, metrics, relayTraffic };
 }

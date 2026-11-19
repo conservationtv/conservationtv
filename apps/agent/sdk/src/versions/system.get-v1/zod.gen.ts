@@ -19,6 +19,7 @@ export const SystemSchema = z.object({
                 cpuCount: z.number(),
                 load: z.number(),
                 memory: z.object({
+                    available: z.number(),
                     total: z.number(),
                     free: z.number()
                 }),
@@ -149,17 +150,9 @@ export const SystemSchema = z.object({
         runtime: z.object({
             version: z.string().nullable(),
             installing: z.boolean(),
-            show: z.string().nullable(),
-            phase: z.enum([
-                'error',
-                'idle',
-                'connecting',
-                'downloading-assets',
-                'synchronising',
-                'settled',
-                'disconnected',
-                'disposed'
-            ]).nullable(),
+            output: z.string().nullable(),
+            control: z.enum(['external', 'show']).nullable(),
+            collection: z.string().nullable(),
             streaming: z.enum([
                 'reconnecting',
                 'starting',
@@ -173,7 +166,7 @@ export const SystemSchema = z.object({
             program: z.object({
                 forwards: z.array(z.string()),
                 previews: z.array(z.string()),
-                cameras: z.record(z.string(), z.object({
+                inputs: z.record(z.string(), z.object({
                     fallback: z.boolean()
                 })),
                 state: z.enum([
@@ -186,6 +179,9 @@ export const SystemSchema = z.object({
                 restarts: z.number(),
                 lastError: z.string().nullable()
             }).nullable(),
+            inputs: z.object({
+                reading: z.record(z.string(), z.number())
+            }),
             reports: z.object({
                 running: z.boolean(),
                 pending: z.number(),
@@ -230,6 +226,37 @@ export const SystemSchema = z.object({
             lastError: z.string().nullable(),
             channels: z.number(),
             lastReadAt: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
+    show: z.object({
+        runtime: z.object({
+            show: z.string().nullable(),
+            phase: z.enum([
+                'error',
+                'idle',
+                'connecting',
+                'downloading-assets',
+                'synchronising',
+                'settled',
+                'disconnected',
+                'disposed'
+            ]).nullable()
         }),
         apply: z.union([
             z.object({

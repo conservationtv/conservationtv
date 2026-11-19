@@ -74,11 +74,12 @@ export const SystemSchema = z.object({
         }))
     }).optional(),
     obs: z.object({
-        show: z.object({
-            id: z.string(),
-            url: z.string()
-        }),
         output: z.object({
+            id: z.string(),
+            organisationId: z.string(),
+            control: z.enum(['external', 'show'])
+        }),
+        encoding: z.object({
             width: z.number(),
             height: z.number(),
             fps: z.number(),
@@ -88,7 +89,7 @@ export const SystemSchema = z.object({
         forwards: z.array(z.object({
             organisationId: z.string(),
             channelId: z.string(),
-            forwardId: z.string().optional()
+            forwardId: z.string()
         })),
         previews: z.array(z.object({
             previewId: z.string(),
@@ -104,12 +105,12 @@ export const SystemSchema = z.object({
                 })
             ])
         })),
+        program: z.object({
+            subjectId: z.string()
+        }),
         recording: z.object({
             recorderId: z.string(),
             kind: z.string()
-        }).optional(),
-        program: z.object({
-            subjectId: z.string()
         }).optional()
     }).optional(),
     channels: z.object({
@@ -117,6 +118,10 @@ export const SystemSchema = z.object({
             organisationId: z.string(),
             channelId: z.string()
         }))
+    }).optional(),
+    show: z.object({
+        id: z.string(),
+        url: z.string()
     }).optional()
 });
 

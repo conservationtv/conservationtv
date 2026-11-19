@@ -53,7 +53,7 @@ export const StatsConnectSchema = z.object({
 
 export const PreviewConnectSchema = z.object({
     id: z.string(),
-    showId: z.string(),
+    outputId: z.string(),
     previewId: z.string(),
     action: z.literal('publish'),
     protocol: z.string()
@@ -85,11 +85,12 @@ export const DeviceConfigurationSchema = z.object({
         })).optional()
     }).optional(),
     obs: z.object({
-        show: z.object({
-            id: z.string(),
-            url: z.string()
-        }),
         output: z.object({
+            id: z.string(),
+            organisationId: z.string(),
+            control: z.enum(['external', 'show'])
+        }),
+        encoding: z.object({
             width: z.number(),
             height: z.number(),
             fps: z.number(),
@@ -100,13 +101,13 @@ export const DeviceConfigurationSchema = z.object({
             organisationId: z.string(),
             channelId: z.string(),
             forwardId: z.string(),
-            stats: z.boolean().optional()
+            stats: z.boolean()
         })),
         previews: z.array(z.object({
             previewId: z.string(),
             gatewayId: z.string(),
             connect: PreviewConnectSchema
-        })).optional(),
+        })),
         recording: z.object({
             recorderId: z.string(),
             kind: z.string(),
@@ -114,7 +115,11 @@ export const DeviceConfigurationSchema = z.object({
         }).optional(),
         program: z.object({
             subjectId: z.string()
-        }).optional()
+        })
+    }).optional(),
+    show: z.object({
+        id: z.string(),
+        url: z.string()
     }).optional()
 });
 

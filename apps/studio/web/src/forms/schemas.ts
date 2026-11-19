@@ -57,6 +57,26 @@ export const NameSchema = z.object({
 export type Name = z.output<typeof NameSchema>;
 export type NameInput = z.input<typeof NameSchema>;
 
+/** The choice that has an output driven from outside the studio, among the shows it can follow. */
+export const EXTERNAL_DRIVER = 'external';
+
+/**
+ * A new output: its name, and what drives its scenes, as one choice: a show's ID, empty for no show yet, or
+ * `EXTERNAL_DRIVER` for something outside the studio. Becomes the API's `control` and `showId`.
+ */
+export const NewOutputSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Enter a name.').max(120, 'Use 120 characters or fewer.'),
+    driver: z.string()
+  })
+  .transform(({ name, driver }) =>
+    driver === EXTERNAL_DRIVER
+      ? { name, control: 'external' as const, showId: null }
+      : { name, control: 'show' as const, showId: driver || null }
+  );
+export type NewOutput = z.output<typeof NewOutputSchema>;
+export type NewOutputInput = z.input<typeof NewOutputSchema>;
+
 /** An agent: its name, the network it is on, and its priority among that network's agents, typed as text. */
 export const NewAgentSchema = z.object({
   name: z.string().trim().min(1, 'Enter a name.').max(120, 'Use 120 characters or fewer.'),

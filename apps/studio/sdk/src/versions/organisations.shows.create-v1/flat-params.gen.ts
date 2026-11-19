@@ -7,12 +7,7 @@ import { PostOrganisationsByIdShowsBodySchema, PostOrganisationsByIdShowsPathSch
 
 export const ShowCreateV1ParamsSchema = z.object({
     id: PostOrganisationsByIdShowsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    name: PostOrganisationsByIdShowsBodySchema.shape.name.nonoptional().describe('What the show is called in the studio.'),
-    width: PostOrganisationsByIdShowsBodySchema.shape.width.optional().describe('The program\'s width in pixels: even.'),
-    height: PostOrganisationsByIdShowsBodySchema.shape.height.optional().describe('The program\'s height in pixels: even.'),
-    fps: PostOrganisationsByIdShowsBodySchema.shape.fps.optional().describe('The program\'s frame rate.'),
-    bitrateKbps: PostOrganisationsByIdShowsBodySchema.shape.bitrateKbps.optional().describe('The program\'s constant video bitrate, in kbps.'),
-    keyframeSeconds: PostOrganisationsByIdShowsBodySchema.shape.keyframeSeconds.optional().describe('The program\'s keyframe interval, in seconds.')
+    name: PostOrganisationsByIdShowsBodySchema.shape.name.nonoptional().describe('What the show is called in the studio.')
 });
 
 export type ShowCreateV1Params = z.infer<typeof ShowCreateV1ParamsSchema>;
@@ -20,11 +15,6 @@ export type ShowCreateV1Params = z.infer<typeof ShowCreateV1ParamsSchema>;
 export type ShowCreateV1Input = {
     id: string;
     name: string;
-    width?: number;
-    height?: number;
-    fps?: number;
-    bitrateKbps?: number;
-    keyframeSeconds?: number;
 };
 
 export type ShowCreateV1Output = PostOrganisationsByIdShowsResponse;

@@ -401,7 +401,7 @@ export const ChannelFields: FC = () => {
             <Kbd>⌘V</Kbd>
           </InputGroupAddon>
         </InputGroup>
-        <FieldDescription>Kept apart from everything else; only the output agent reads it.</FieldDescription>
+        <FieldDescription>Kept apart from everything else; only the output’s agent reads it.</FieldDescription>
       </Field>
     </FieldGroup>
   );

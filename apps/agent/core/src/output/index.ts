@@ -9,17 +9,23 @@ import { useStudio } from '../studio.ts';
 import { ChannelStatsRuntime, ChannelsSpecSchema } from './channels/runtime.ts';
 import { DEFAULT_PROGRAM_PORTS } from './obs/program.ts';
 import { ObsRuntime, ObsSpecSchema } from './obs/runtime.ts';
+import { ShowRuntime, ShowSpecSchema } from './show/runtime.ts';
 
-// The output: the show the agent sends out. Its keys, both from the configuration's `obs` section (configuration.ts):
+// The output: what the agent sends out (docs/outputs.md). Its keys, from the configuration's `obs` and `show` sections
+// (configuration.ts):
 //
-//   obs       an OBS of the agent's own following the show, with the program MediaMTX between it and the channels and
-//             previews it goes to, and the program's reports (obs/);
-//   channels  what the channels' platforms say of them, which needs no OBS (channels/).
+//   obs       an OBS of the agent's own, streaming whatever is on its programme to the program MediaMTX, between it
+//             and the channels, previews and recordings it goes to, and the exposures it plays; and the programme's
+//             reports (obs/). It drives no scenes;
+//   channels  what the channels' platforms say of them, which needs no OBS (channels/);
+//   show      the show driving OBS's scenes, while the output follows one (show/). Without it, something outside the
+//             studio drives them, or nothing does.
 //
-// In obs/: settings.ts says where OBS's configuration lives and what the agent writes there, show-stream.ts how the
-// show is followed, ctv-stream.ts how the streams it places are played, program.ts the program MediaMTX between OBS and
-// everything downstream, watchdog.ts what keeps OBS streaming and recording, program-metrics.ts what is reported of the
-// program, and runtime.ts puts them together. The releases it runs are in binaries/.
+// In obs/: settings.ts says where OBS's configuration lives and what the agent writes there, program.ts the program
+// MediaMTX between OBS and everything up- and downstream, inputs.ts how the exposures OBS reads are relayed, watchdog.ts
+// what keeps OBS streaming and recording, program-metrics.ts what is reported of the programme, and runtime.ts puts
+// them together. In show/: show-stream.ts how the show is followed, ctv-stream.ts how the exposures it places are
+// played, and runtime.ts the target driving OBS. The releases they run are in binaries/.
 
 export { outputSpecs, type OutputLeases, type OutputSpecs } from './configuration.ts';
 
@@ -36,9 +42,9 @@ export function outputControllers(config: AgentConfiguration, identity: DeviceId
     mediamtx: MEDIAMTX_MANIFEST,
     programPorts: DEFAULT_PROGRAM_PORTS,
     websocketPort: config.obsWebsocketPort ?? DEFAULT_OBS_WEBSOCKET_PORT,
-    studio,
-    identity
+    studio
   });
+  const show = new ShowRuntime(obs, identity);
   const channels = new ChannelStatsRuntime();
   return {
     obs: controller({
@@ -54,6 +60,13 @@ export function outputControllers(config: AgentConfiguration, identity: DeviceId
       execute: spec => channels.apply(spec),
       finalize: () => channels.teardown(),
       dispose: () => channels.dispose()
+    }),
+    show: controller({
+      spec: ShowSpecSchema,
+      status: show.status$,
+      execute: spec => show.execute(spec),
+      finalize: () => show.finalize(),
+      dispose: () => show.dispose()
     })
   };
 }

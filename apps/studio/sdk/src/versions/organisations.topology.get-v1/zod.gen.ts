@@ -15,9 +15,16 @@ export const RenditionSchema = z.enum([
 ]);
 
 export const TopologySchema = z.object({
-    broadcast: z.object({
-        placed: z.array(z.string())
-    }),
+    shows: z.array(z.object({
+        placed: z.array(z.string()),
+        name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
+        outputs: z.array(z.object({
+            name: z.string(),
+            id: z.string()
+        }))
+    })),
     networks: z.array(z.object({
         name: z.string(),
         id: z.string(),
@@ -87,16 +94,18 @@ export const TopologySchema = z.object({
             rendition: RenditionSchema
         }))
     })),
-    shows: z.array(z.object({
+    outputs: z.array(z.object({
         name: z.string(),
         id: z.string(),
         createdAt: z.string(),
+        control: z.enum(['external', 'show']),
+        showId: z.string().nullable(),
         width: z.number(),
         height: z.number(),
         fps: z.number(),
         bitrateKbps: z.number(),
         keyframeSeconds: z.number(),
-        output: z.object({
+        device: z.object({
             createdAt: z.string(),
             deviceId: z.string()
         }).nullable(),
@@ -128,8 +137,30 @@ export const TopologySchema = z.object({
     })),
     states: z.array(z.object({
         subjectId: z.string(),
-        health: z.string(),
-        state: z.record(z.string(), z.unknown()),
+        health: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]),
+        state: z.object({
+            findings: z.array(z.object({
+                reporterId: z.string(),
+                check: z.string(),
+                health: z.enum([
+                    'unknown',
+                    'healthy',
+                    'degraded',
+                    'unhealthy'
+                ]),
+                summary: z.string(),
+                evidence: z.array(z.object({
+                    seriesId: z.string(),
+                    dimensions: z.record(z.string(), z.string()),
+                    value: z.number()
+                }))
+            }))
+        }),
         freshness: z.enum(['fresh', 'stale']),
         observedAt: z.string(),
         expiresAt: z.string(),

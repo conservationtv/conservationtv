@@ -2,6 +2,7 @@ import { apiError, createErrorHandler } from '@conservationtv/versioned-api/serv
 import { DrizzleQueryError } from 'drizzle-orm';
 import pg from 'pg';
 import { ApiFailure } from '../errors.ts';
+import { recordFailure } from '../requests/record.ts';
 
 export { handleNotFound } from '@conservationtv/versioned-api/server';
 
@@ -22,10 +23,17 @@ function refusal(cause: unknown) {
   return undefined;
 }
 
-/** The API's own failures and database refusals first; the common handler renders routing, version and validation failures. */
-export const handleError = createErrorHandler((error, c) => {
-  const failure = error instanceof ApiFailure ? error : refusal(error);
-  if (failure === undefined) return undefined;
-  if (failure.cause !== undefined) console.warn(JSON.stringify({ event: failure.code, cause: String(failure.cause) }));
-  return apiError(c, failure.code, failure.message, failure.status);
-});
+/**
+ * The API's own failures and database refusals first; the common handler renders routing, version and validation
+ * failures and unexpected errors. Each failure's code goes to the request record, whichever renders it.
+ */
+export const handleError = createErrorHandler(
+  (error, c) => {
+    const failure = error instanceof ApiFailure ? error : refusal(error);
+    if (failure === undefined) return undefined;
+    recordFailure(failure.code);
+    if (failure.cause !== undefined) console.warn(JSON.stringify({ event: failure.code, cause: String(failure.cause) }));
+    return apiError(c, failure.code, failure.message, failure.status);
+  },
+  { onRender: recordFailure }
+);

@@ -210,40 +210,61 @@
     "organisations.shows.delete": [
       1
     ],
-    "organisations.shows.getOutput": [
+    "organisations.outputs.list": [
       1
     ],
-    "organisations.shows.setOutput": [
+    "organisations.outputs.create": [
       1
     ],
-    "organisations.shows.deleteOutput": [
+    "organisations.outputs.get": [
       1
     ],
-    "organisations.shows.forwards.create": [
+    "organisations.outputs.update": [
       1
     ],
-    "organisations.shows.forwards.update": [
+    "organisations.outputs.delete": [
       1
     ],
-    "organisations.shows.forwards.delete": [
+    "organisations.outputs.getDevice": [
       1
     ],
-    "organisations.shows.previews.create": [
+    "organisations.outputs.setDevice": [
       1
     ],
-    "organisations.shows.previews.delete": [
+    "organisations.outputs.deleteDevice": [
       1
     ],
-    "organisations.shows.previews.connect": [
+    "organisations.outputs.control.get": [
       1
     ],
-    "organisations.shows.createRecorder": [
+    "organisations.outputs.control.report": [
       1
     ],
-    "organisations.shows.updateRecorder": [
+    "organisations.outputs.forwards.create": [
       1
     ],
-    "organisations.shows.deleteRecorder": [
+    "organisations.outputs.forwards.update": [
+      1
+    ],
+    "organisations.outputs.forwards.delete": [
+      1
+    ],
+    "organisations.outputs.previews.create": [
+      1
+    ],
+    "organisations.outputs.previews.delete": [
+      1
+    ],
+    "organisations.outputs.previews.connect": [
+      1
+    ],
+    "organisations.outputs.createRecorder": [
+      1
+    ],
+    "organisations.outputs.updateRecorder": [
+      1
+    ],
+    "organisations.outputs.deleteRecorder": [
       1
     ],
     "organisations.channels.list": [

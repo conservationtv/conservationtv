@@ -23,6 +23,7 @@ export const SystemSchema = z.object({
                 cpuCount: z.number(),
                 load: z.number(),
                 memory: z.object({
+                    available: z.number(),
                     total: z.number(),
                     free: z.number()
                 }),
@@ -153,17 +154,9 @@ export const SystemSchema = z.object({
         runtime: z.object({
             version: z.string().nullable(),
             installing: z.boolean(),
-            show: z.string().nullable(),
-            phase: z.enum([
-                'error',
-                'idle',
-                'connecting',
-                'downloading-assets',
-                'synchronising',
-                'settled',
-                'disconnected',
-                'disposed'
-            ]).nullable(),
+            output: z.string().nullable(),
+            control: z.enum(['external', 'show']).nullable(),
+            collection: z.string().nullable(),
             streaming: z.enum([
                 'reconnecting',
                 'starting',
@@ -177,7 +170,7 @@ export const SystemSchema = z.object({
             program: z.object({
                 forwards: z.array(z.string()),
                 previews: z.array(z.string()),
-                cameras: z.record(z.string(), z.object({
+                inputs: z.record(z.string(), z.object({
                     fallback: z.boolean()
                 })),
                 state: z.enum([
@@ -190,6 +183,9 @@ export const SystemSchema = z.object({
                 restarts: z.number(),
                 lastError: z.string().nullable()
             }).nullable(),
+            inputs: z.object({
+                reading: z.record(z.string(), z.number())
+            }),
             reports: z.object({
                 running: z.boolean(),
                 pending: z.number(),
@@ -234,6 +230,37 @@ export const SystemSchema = z.object({
             lastError: z.string().nullable(),
             channels: z.number(),
             lastReadAt: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
+    show: z.object({
+        runtime: z.object({
+            show: z.string().nullable(),
+            phase: z.enum([
+                'error',
+                'idle',
+                'connecting',
+                'downloading-assets',
+                'synchronising',
+                'settled',
+                'disconnected',
+                'disposed'
+            ]).nullable()
         }),
         apply: z.union([
             z.object({
@@ -334,11 +361,12 @@ export const GetSystemSpecResponseSchema = z.object({
         }))
     }).optional(),
     obs: z.object({
-        show: z.object({
-            id: z.string(),
-            url: z.string()
-        }),
         output: z.object({
+            id: z.string(),
+            organisationId: z.string(),
+            control: z.enum(['external', 'show'])
+        }),
+        encoding: z.object({
             width: z.number(),
             height: z.number(),
             fps: z.number(),
@@ -348,7 +376,7 @@ export const GetSystemSpecResponseSchema = z.object({
         forwards: z.array(z.object({
             organisationId: z.string(),
             channelId: z.string(),
-            forwardId: z.string().optional()
+            forwardId: z.string()
         })),
         previews: z.array(z.object({
             previewId: z.string(),
@@ -364,12 +392,12 @@ export const GetSystemSpecResponseSchema = z.object({
                 })
             ])
         })),
+        program: z.object({
+            subjectId: z.string()
+        }),
         recording: z.object({
             recorderId: z.string(),
             kind: z.string()
-        }).optional(),
-        program: z.object({
-            subjectId: z.string()
         }).optional()
     }).optional(),
     channels: z.object({
@@ -377,6 +405,10 @@ export const GetSystemSpecResponseSchema = z.object({
             organisationId: z.string(),
             channelId: z.string()
         }))
+    }).optional(),
+    show: z.object({
+        id: z.string(),
+        url: z.string()
     }).optional()
 }).register(z.globalRegistry, {
     description: 'The current system specification'

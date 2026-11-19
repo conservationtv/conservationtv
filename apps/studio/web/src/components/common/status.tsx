@@ -1,14 +1,15 @@
 import type { ComponentProps, FC } from 'react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-// How something is doing, as a dot and a word. The four statuses are the stream topology's
+// How something is doing, as a dot and a word. The statuses are the stream topology's
 // (src/components/streams/topology.ts): what a subject's reports say about it, or a failure upstream of it.
 
-export type Status = 'ok' | 'unknown' | 'failing' | 'affected';
+export type Status = 'ok' | 'unknown' | 'degraded' | 'failing' | 'affected';
 
 const dotColours = {
   ok: 'bg-emerald-500',
   unknown: 'bg-muted-foreground/40',
+  degraded: 'bg-amber-500',
   failing: 'bg-destructive',
   affected: 'bg-destructive/40'
 } satisfies Record<Status, string>;

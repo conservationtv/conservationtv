@@ -10,20 +10,78 @@ export const ErrorSchema = z.object({
 export const SubjectSchema = z.object({
     subjectId: z.string(),
     state: z.object({
-        health: z.string(),
-        state: z.record(z.string(), z.unknown()),
+        health: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]),
+        state: z.object({
+            findings: z.array(z.object({
+                reporterId: z.string(),
+                check: z.string(),
+                health: z.enum([
+                    'unknown',
+                    'healthy',
+                    'degraded',
+                    'unhealthy'
+                ]),
+                summary: z.string(),
+                evidence: z.array(z.object({
+                    seriesId: z.string(),
+                    dimensions: z.record(z.string(), z.string()),
+                    value: z.number()
+                }))
+            }))
+        }),
         freshness: z.enum(['fresh', 'stale']),
         observedAt: z.string(),
         expiresAt: z.string(),
         computedAt: z.string(),
         contributingReporterIds: z.array(z.string()),
         evidenceReportIds: z.array(z.string())
-    }),
+    }).nullable(),
     reachable: z.boolean(),
     opinions: z.array(z.object({
         reporterId: z.string(),
-        health: z.string(),
-        state: z.record(z.string(), z.unknown()),
+        health: z.enum([
+            'unknown',
+            'healthy',
+            'degraded',
+            'unhealthy'
+        ]),
+        state: z.object({
+            findings: z.array(z.object({
+                check: z.string(),
+                health: z.enum([
+                    'unknown',
+                    'healthy',
+                    'degraded',
+                    'unhealthy'
+                ]),
+                summary: z.string(),
+                evidence: z.array(z.object({
+                    seriesId: z.string(),
+                    dimensions: z.record(z.string(), z.string()),
+                    value: z.number()
+                }))
+            })),
+            consulted: z.array(z.object({
+                metric: z.string(),
+                read: z.number(),
+                seriesIds: z.array(z.string())
+            })),
+            since: z.string(),
+            pending: z.object({
+                health: z.enum([
+                    'unknown',
+                    'healthy',
+                    'degraded',
+                    'unhealthy'
+                ]),
+                since: z.string()
+            }).nullable()
+        }),
         freshness: z.enum(['fresh', 'stale']),
         observedAt: z.string(),
         expiresAt: z.string(),
@@ -36,7 +94,7 @@ export const GetOrganisationsByIdSubjectsBySubjectIdStatePathSchema = z.object({
         description: 'The organisation.'
     }),
     subjectId: z.string().regex(/^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\S.{0,499})$/).register(z.globalRegistry, {
-        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
+        description: 'What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'
     })
 });
 

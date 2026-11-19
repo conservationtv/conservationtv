@@ -60,23 +60,30 @@ import type { NetworkGetV1Input, NetworkGetV1Output } from '../versions/organisa
 import type { NetworkListV1Input, NetworkListV1Output } from '../versions/organisations.networks.list-v1/flat-params.gen.js';
 import type { NetworkSetActiveAgentV1Input, NetworkSetActiveAgentV1Output } from '../versions/organisations.networks.setActiveAgent-v1/flat-params.gen.js';
 import type { NetworkUpdateV1Input, NetworkUpdateV1Output } from '../versions/organisations.networks.update-v1/flat-params.gen.js';
+import type { ControlGetV1Input, ControlGetV1Output } from '../versions/organisations.outputs.control.get-v1/flat-params.gen.js';
+import type { ControlReportV1Input, ControlReportV1Output } from '../versions/organisations.outputs.control.report-v1/flat-params.gen.js';
+import type { OutputCreateV1Input, OutputCreateV1Output } from '../versions/organisations.outputs.create-v1/flat-params.gen.js';
+import type { OutputCreateRecorderV1Input, OutputCreateRecorderV1Output } from '../versions/organisations.outputs.createRecorder-v1/flat-params.gen.js';
+import type { OutputDeleteV1Input, OutputDeleteV1Output } from '../versions/organisations.outputs.delete-v1/flat-params.gen.js';
+import type { OutputDeleteDeviceV1Input, OutputDeleteDeviceV1Output } from '../versions/organisations.outputs.deleteDevice-v1/flat-params.gen.js';
+import type { OutputDeleteRecorderV1Input, OutputDeleteRecorderV1Output } from '../versions/organisations.outputs.deleteRecorder-v1/flat-params.gen.js';
+import type { ForwardCreateV1Input, ForwardCreateV1Output } from '../versions/organisations.outputs.forwards.create-v1/flat-params.gen.js';
+import type { ForwardDeleteV1Input, ForwardDeleteV1Output } from '../versions/organisations.outputs.forwards.delete-v1/flat-params.gen.js';
+import type { ForwardUpdateV1Input, ForwardUpdateV1Output } from '../versions/organisations.outputs.forwards.update-v1/flat-params.gen.js';
+import type { OutputGetV1Input, OutputGetV1Output } from '../versions/organisations.outputs.get-v1/flat-params.gen.js';
+import type { OutputGetDeviceV1Input, OutputGetDeviceV1Output } from '../versions/organisations.outputs.getDevice-v1/flat-params.gen.js';
+import type { OutputListV1Input, OutputListV1Output } from '../versions/organisations.outputs.list-v1/flat-params.gen.js';
+import type { PreviewConnectV1Input, PreviewConnectV1Output } from '../versions/organisations.outputs.previews.connect-v1/flat-params.gen.js';
+import type { PreviewCreateV1Input, PreviewCreateV1Output } from '../versions/organisations.outputs.previews.create-v1/flat-params.gen.js';
+import type { PreviewDeleteV1Input, PreviewDeleteV1Output } from '../versions/organisations.outputs.previews.delete-v1/flat-params.gen.js';
+import type { OutputSetDeviceV1Input, OutputSetDeviceV1Output } from '../versions/organisations.outputs.setDevice-v1/flat-params.gen.js';
+import type { OutputUpdateV1Input, OutputUpdateV1Output } from '../versions/organisations.outputs.update-v1/flat-params.gen.js';
+import type { OutputUpdateRecorderV1Input, OutputUpdateRecorderV1Output } from '../versions/organisations.outputs.updateRecorder-v1/flat-params.gen.js';
 import type { ShowCreateV1Input, ShowCreateV1Output } from '../versions/organisations.shows.create-v1/flat-params.gen.js';
-import type { ShowCreateRecorderV1Input, ShowCreateRecorderV1Output } from '../versions/organisations.shows.createRecorder-v1/flat-params.gen.js';
 import type { ShowDeleteV1Input, ShowDeleteV1Output } from '../versions/organisations.shows.delete-v1/flat-params.gen.js';
-import type { ShowDeleteOutputV1Input, ShowDeleteOutputV1Output } from '../versions/organisations.shows.deleteOutput-v1/flat-params.gen.js';
-import type { ShowDeleteRecorderV1Input, ShowDeleteRecorderV1Output } from '../versions/organisations.shows.deleteRecorder-v1/flat-params.gen.js';
-import type { ForwardCreateV1Input, ForwardCreateV1Output } from '../versions/organisations.shows.forwards.create-v1/flat-params.gen.js';
-import type { ForwardDeleteV1Input, ForwardDeleteV1Output } from '../versions/organisations.shows.forwards.delete-v1/flat-params.gen.js';
-import type { ForwardUpdateV1Input, ForwardUpdateV1Output } from '../versions/organisations.shows.forwards.update-v1/flat-params.gen.js';
 import type { ShowGetV1Input, ShowGetV1Output } from '../versions/organisations.shows.get-v1/flat-params.gen.js';
-import type { ShowGetOutputV1Input, ShowGetOutputV1Output } from '../versions/organisations.shows.getOutput-v1/flat-params.gen.js';
 import type { ShowListV1Input, ShowListV1Output } from '../versions/organisations.shows.list-v1/flat-params.gen.js';
-import type { PreviewConnectV1Input, PreviewConnectV1Output } from '../versions/organisations.shows.previews.connect-v1/flat-params.gen.js';
-import type { PreviewCreateV1Input, PreviewCreateV1Output } from '../versions/organisations.shows.previews.create-v1/flat-params.gen.js';
-import type { PreviewDeleteV1Input, PreviewDeleteV1Output } from '../versions/organisations.shows.previews.delete-v1/flat-params.gen.js';
-import type { ShowSetOutputV1Input, ShowSetOutputV1Output } from '../versions/organisations.shows.setOutput-v1/flat-params.gen.js';
 import type { ShowUpdateV1Input, ShowUpdateV1Output } from '../versions/organisations.shows.update-v1/flat-params.gen.js';
-import type { ShowUpdateRecorderV1Input, ShowUpdateRecorderV1Output } from '../versions/organisations.shows.updateRecorder-v1/flat-params.gen.js';
 import type { StreamCreateV1Input, StreamCreateV1Output } from '../versions/organisations.streams.create-v1/flat-params.gen.js';
 import type { StreamDeleteV1Input, StreamDeleteV1Output } from '../versions/organisations.streams.delete-v1/flat-params.gen.js';
 import type { ExposureConnectV1Input, ExposureConnectV1Output } from '../versions/organisations.streams.exposures.connect-v1/flat-params.gen.js';
@@ -103,7 +110,7 @@ import type { WhoamiGetV1Output } from '../versions/whoami.get-v1/flat-params.ge
 import { buildClientParams, createClient, mergeHeaders } from './client/index.js';
 import { ClientCore, operation } from '@conservationtv/versioned-api/client';
 
-import type { HealthGetOutput, OutputDeleteInput, OutputDeleteOutput, OutputGetInput, OutputGetOutput, OutputSetInput, OutputSetOutput, ShowComposeInput, ShowComposeOutput, ShowFollowInput, ShowFollowOutput } from './flat-params.gen.js';
+import type { HealthGetOutput, ShowComposeInput, ShowComposeOutput, ShowFollowInput, ShowFollowOutput } from './flat-params.gen.js';
 
 /**
  * The SDK for servers running any release since the oldest supported snapshot. Call `handshake()` before versioned operations.
@@ -118,34 +125,46 @@ export class Client extends ClientCore {
         get: this.versionless(operation<HealthGetOutput>({ method: 'GET', url: '/health' }))
     };
     readonly organisations = {
-        show: {
+        shows: {
             follow: this.webSocket(operation<ShowFollowOutput, ShowFollowInput>({
                 method: 'GET',
-                url: '/organisations/{id}/show',
-                fields: [{ in: 'path', key: 'id' }]
+                url: '/organisations/{id}/shows/{showId}/follow',
+                fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
             })),
             compose: this.versionless(operation<ShowComposeOutput, ShowComposeInput>({
                 method: 'POST',
-                url: '/organisations/{id}/show/compose',
-                fields: [{ in: 'path', key: 'id' }]
+                url: '/organisations/{id}/shows/{showId}/compose',
+                fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
             })),
-            output: {
-                get: this.versionless(operation<OutputGetOutput, OutputGetInput>({
+            list: this.versioned('organisations.shows.list', { v1: operation<ShowListV1Output, ShowListV1Input>({
                     method: 'GET',
-                    url: '/organisations/{id}/show/output',
+                    url: '/organisations/{id}/shows',
                     fields: [{ in: 'path', key: 'id' }]
-                })),
-                set: this.versionless(operation<OutputSetOutput, OutputSetInput>({
-                    method: 'PUT',
-                    url: '/organisations/{id}/show/output',
-                    fields: [{ in: 'path', key: 'id' }, { in: 'body', key: 'deviceId' }]
-                })),
-                delete: this.versionless(operation<OutputDeleteOutput, OutputDeleteInput>({
+                }) }),
+            create: this.versioned('organisations.shows.create', { v1: operation<ShowCreateV1Output, ShowCreateV1Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/shows',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'body', key: 'name' }]
+                }) }),
+            get: this.versioned('organisations.shows.get', { v1: operation<ShowGetV1Output, ShowGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/shows/{showId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
+                }) }),
+            update: this.versioned('organisations.shows.update', { v1: operation<ShowUpdateV1Output, ShowUpdateV1Input>({
+                    method: 'PATCH',
+                    url: '/organisations/{id}/shows/{showId}',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'showId' },
+                        { in: 'body', key: 'name' }
+                    ]
+                }) }),
+            delete: this.versioned('organisations.shows.delete', { v1: operation<ShowDeleteV1Output, ShowDeleteV1Input>({
                     method: 'DELETE',
-                    url: '/organisations/{id}/show/output',
-                    fields: [{ in: 'path', key: 'id' }]
-                }))
-            }
+                    url: '/organisations/{id}/shows/{showId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
+                }) })
         },
         list: this.versioned('organisations.list', { v1: operation<OrganisationListV1Output>({ method: 'GET', url: '/organisations' }) }),
         create: this.versioned('organisations.create', { v1: operation<OrganisationCreateV1Output, OrganisationCreateV1Input>({
@@ -630,18 +649,20 @@ export class Client extends ClientCore {
                     fields: [{ in: 'path', key: 'id' }]
                 }) })
         },
-        shows: {
-            list: this.versioned('organisations.shows.list', { v1: operation<ShowListV1Output, ShowListV1Input>({
+        outputs: {
+            list: this.versioned('organisations.outputs.list', { v1: operation<OutputListV1Output, OutputListV1Input>({
                     method: 'GET',
-                    url: '/organisations/{id}/shows',
+                    url: '/organisations/{id}/outputs',
                     fields: [{ in: 'path', key: 'id' }]
                 }) }),
-            create: this.versioned('organisations.shows.create', { v1: operation<ShowCreateV1Output, ShowCreateV1Input>({
+            create: this.versioned('organisations.outputs.create', { v1: operation<OutputCreateV1Output, OutputCreateV1Input>({
                     method: 'POST',
-                    url: '/organisations/{id}/shows',
+                    url: '/organisations/{id}/outputs',
                     fields: [
                         { in: 'path', key: 'id' },
                         { in: 'body', key: 'name' },
+                        { in: 'body', key: 'control' },
+                        { in: 'body', key: 'showId' },
                         { in: 'body', key: 'width' },
                         { in: 'body', key: 'height' },
                         { in: 'body', key: 'fps' },
@@ -649,18 +670,20 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'keyframeSeconds' }
                     ]
                 }) }),
-            get: this.versioned('organisations.shows.get', { v1: operation<ShowGetV1Output, ShowGetV1Input>({
+            get: this.versioned('organisations.outputs.get', { v1: operation<OutputGetV1Output, OutputGetV1Input>({
                     method: 'GET',
-                    url: '/organisations/{id}/shows/{showId}',
-                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
+                    url: '/organisations/{id}/outputs/{outputId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'outputId' }]
                 }) }),
-            update: this.versioned('organisations.shows.update', { v1: operation<ShowUpdateV1Output, ShowUpdateV1Input>({
+            update: this.versioned('organisations.outputs.update', { v1: operation<OutputUpdateV1Output, OutputUpdateV1Input>({
                     method: 'PATCH',
-                    url: '/organisations/{id}/shows/{showId}',
+                    url: '/organisations/{id}/outputs/{outputId}',
                     fields: [
                         { in: 'path', key: 'id' },
-                        { in: 'path', key: 'showId' },
+                        { in: 'path', key: 'outputId' },
                         { in: 'body', key: 'name' },
+                        { in: 'body', key: 'control' },
+                        { in: 'body', key: 'showId' },
                         { in: 'body', key: 'width' },
                         { in: 'body', key: 'height' },
                         { in: 'body', key: 'fps' },
@@ -668,86 +691,105 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'keyframeSeconds' }
                     ]
                 }) }),
-            delete: this.versioned('organisations.shows.delete', { v1: operation<ShowDeleteV1Output, ShowDeleteV1Input>({
+            delete: this.versioned('organisations.outputs.delete', { v1: operation<OutputDeleteV1Output, OutputDeleteV1Input>({
                     method: 'DELETE',
-                    url: '/organisations/{id}/shows/{showId}',
-                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
+                    url: '/organisations/{id}/outputs/{outputId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'outputId' }]
                 }) }),
-            getOutput: this.versioned('organisations.shows.getOutput', { v1: operation<ShowGetOutputV1Output, ShowGetOutputV1Input>({
+            getDevice: this.versioned('organisations.outputs.getDevice', { v1: operation<OutputGetDeviceV1Output, OutputGetDeviceV1Input>({
                     method: 'GET',
-                    url: '/organisations/{id}/shows/{showId}/output',
-                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
+                    url: '/organisations/{id}/outputs/{outputId}/device',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'outputId' }]
                 }) }),
-            setOutput: this.versioned('organisations.shows.setOutput', { v1: operation<ShowSetOutputV1Output, ShowSetOutputV1Input>({
+            setDevice: this.versioned('organisations.outputs.setDevice', { v1: operation<OutputSetDeviceV1Output, OutputSetDeviceV1Input>({
                     method: 'PUT',
-                    url: '/organisations/{id}/shows/{showId}/output',
+                    url: '/organisations/{id}/outputs/{outputId}/device',
                     fields: [
                         { in: 'path', key: 'id' },
-                        { in: 'path', key: 'showId' },
+                        { in: 'path', key: 'outputId' },
                         { in: 'body', key: 'deviceId' }
                     ]
                 }) }),
-            deleteOutput: this.versioned('organisations.shows.deleteOutput', { v1: operation<ShowDeleteOutputV1Output, ShowDeleteOutputV1Input>({
+            deleteDevice: this.versioned('organisations.outputs.deleteDevice', { v1: operation<OutputDeleteDeviceV1Output, OutputDeleteDeviceV1Input>({
                     method: 'DELETE',
-                    url: '/organisations/{id}/shows/{showId}/output',
-                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
+                    url: '/organisations/{id}/outputs/{outputId}/device',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'outputId' }]
                 }) }),
-            forwards: {
-                create: this.versioned('organisations.shows.forwards.create', { v1: operation<ForwardCreateV1Output, ForwardCreateV1Input>({
-                        method: 'POST',
-                        url: '/organisations/{id}/shows/{showId}/forwards',
+            control: {
+                get: this.versioned('organisations.outputs.control.get', { v1: operation<ControlGetV1Output, ControlGetV1Input>({
+                        method: 'GET',
+                        url: '/organisations/{id}/outputs/{outputId}/control',
+                        fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'outputId' }]
+                    }) }),
+                report: this.versioned('organisations.outputs.control.report', { v1: operation<ControlReportV1Output, ControlReportV1Input>({
+                        method: 'PUT',
+                        url: '/organisations/{id}/outputs/{outputId}/control',
                         fields: [
                             { in: 'path', key: 'id' },
-                            { in: 'path', key: 'showId' },
+                            { in: 'path', key: 'outputId' },
+                            { in: 'body', key: 'websocketPort' },
+                            { in: 'body', key: 'websocketPassword' },
+                            { in: 'body', key: 'sceneCollection' },
+                            { in: 'body', key: 'inputUrl' }
+                        ]
+                    }) })
+            },
+            forwards: {
+                create: this.versioned('organisations.outputs.forwards.create', { v1: operation<ForwardCreateV1Output, ForwardCreateV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/outputs/{outputId}/forwards',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'outputId' },
                             { in: 'body', key: 'channelId' },
                             { in: 'body', key: 'enabled' }
                         ]
                     }) }),
-                update: this.versioned('organisations.shows.forwards.update', { v1: operation<ForwardUpdateV1Output, ForwardUpdateV1Input>({
+                update: this.versioned('organisations.outputs.forwards.update', { v1: operation<ForwardUpdateV1Output, ForwardUpdateV1Input>({
                         method: 'PATCH',
-                        url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}',
+                        url: '/organisations/{id}/outputs/{outputId}/forwards/{forwardId}',
                         fields: [
                             { in: 'path', key: 'id' },
-                            { in: 'path', key: 'showId' },
+                            { in: 'path', key: 'outputId' },
                             { in: 'path', key: 'forwardId' },
                             { in: 'body', key: 'enabled' }
                         ]
                     }) }),
-                delete: this.versioned('organisations.shows.forwards.delete', { v1: operation<ForwardDeleteV1Output, ForwardDeleteV1Input>({
+                delete: this.versioned('organisations.outputs.forwards.delete', { v1: operation<ForwardDeleteV1Output, ForwardDeleteV1Input>({
                         method: 'DELETE',
-                        url: '/organisations/{id}/shows/{showId}/forwards/{forwardId}',
+                        url: '/organisations/{id}/outputs/{outputId}/forwards/{forwardId}',
                         fields: [
                             { in: 'path', key: 'id' },
-                            { in: 'path', key: 'showId' },
+                            { in: 'path', key: 'outputId' },
                             { in: 'path', key: 'forwardId' }
                         ]
                     }) })
             },
             previews: {
-                create: this.versioned('organisations.shows.previews.create', { v1: operation<PreviewCreateV1Output, PreviewCreateV1Input>({
+                create: this.versioned('organisations.outputs.previews.create', { v1: operation<PreviewCreateV1Output, PreviewCreateV1Input>({
                         method: 'POST',
-                        url: '/organisations/{id}/shows/{showId}/previews',
+                        url: '/organisations/{id}/outputs/{outputId}/previews',
                         fields: [
                             { in: 'path', key: 'id' },
-                            { in: 'path', key: 'showId' },
+                            { in: 'path', key: 'outputId' },
                             { in: 'body', key: 'gatewayId' }
                         ]
                     }) }),
-                delete: this.versioned('organisations.shows.previews.delete', { v1: operation<PreviewDeleteV1Output, PreviewDeleteV1Input>({
+                delete: this.versioned('organisations.outputs.previews.delete', { v1: operation<PreviewDeleteV1Output, PreviewDeleteV1Input>({
                         method: 'DELETE',
-                        url: '/organisations/{id}/shows/{showId}/previews/{previewId}',
+                        url: '/organisations/{id}/outputs/{outputId}/previews/{previewId}',
                         fields: [
                             { in: 'path', key: 'id' },
-                            { in: 'path', key: 'showId' },
+                            { in: 'path', key: 'outputId' },
                             { in: 'path', key: 'previewId' }
                         ]
                     }) }),
-                connect: this.versioned('organisations.shows.previews.connect', { v1: operation<PreviewConnectV1Output, PreviewConnectV1Input>({
+                connect: this.versioned('organisations.outputs.previews.connect', { v1: operation<PreviewConnectV1Output, PreviewConnectV1Input>({
                         method: 'POST',
-                        url: '/organisations/{id}/shows/{showId}/previews/{previewId}/connections',
+                        url: '/organisations/{id}/outputs/{outputId}/previews/{previewId}/connections',
                         fields: [
                             { in: 'path', key: 'id' },
-                            { in: 'path', key: 'showId' },
+                            { in: 'path', key: 'outputId' },
                             { in: 'path', key: 'previewId' },
                             { in: 'body', key: 'action' },
                             { in: 'body', key: 'protocol' },
@@ -755,33 +797,33 @@ export class Client extends ClientCore {
                         ]
                     }) })
             },
-            createRecorder: this.versioned('organisations.shows.createRecorder', { v1: operation<ShowCreateRecorderV1Output, ShowCreateRecorderV1Input>({
+            createRecorder: this.versioned('organisations.outputs.createRecorder', { v1: operation<OutputCreateRecorderV1Output, OutputCreateRecorderV1Input>({
                     method: 'POST',
-                    url: '/organisations/{id}/shows/{showId}/recorders',
+                    url: '/organisations/{id}/outputs/{outputId}/recorders',
                     fields: [
                         { in: 'path', key: 'id' },
-                        { in: 'path', key: 'showId' },
+                        { in: 'path', key: 'outputId' },
                         { in: 'body', key: 'kind' },
                         { in: 'body', key: 'params' }
                     ]
                 }) }),
-            updateRecorder: this.versioned('organisations.shows.updateRecorder', { v1: operation<ShowUpdateRecorderV1Output, ShowUpdateRecorderV1Input>({
+            updateRecorder: this.versioned('organisations.outputs.updateRecorder', { v1: operation<OutputUpdateRecorderV1Output, OutputUpdateRecorderV1Input>({
                     method: 'PATCH',
-                    url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}',
+                    url: '/organisations/{id}/outputs/{outputId}/recorders/{recorderId}',
                     fields: [
                         { in: 'path', key: 'id' },
-                        { in: 'path', key: 'showId' },
+                        { in: 'path', key: 'outputId' },
                         { in: 'path', key: 'recorderId' },
                         { in: 'body', key: 'kind' },
                         { in: 'body', key: 'params' }
                     ]
                 }) }),
-            deleteRecorder: this.versioned('organisations.shows.deleteRecorder', { v1: operation<ShowDeleteRecorderV1Output, ShowDeleteRecorderV1Input>({
+            deleteRecorder: this.versioned('organisations.outputs.deleteRecorder', { v1: operation<OutputDeleteRecorderV1Output, OutputDeleteRecorderV1Input>({
                     method: 'DELETE',
-                    url: '/organisations/{id}/shows/{showId}/recorders/{recorderId}',
+                    url: '/organisations/{id}/outputs/{outputId}/recorders/{recorderId}',
                     fields: [
                         { in: 'path', key: 'id' },
-                        { in: 'path', key: 'showId' },
+                        { in: 'path', key: 'outputId' },
                         { in: 'path', key: 'recorderId' }
                     ]
                 }) })
