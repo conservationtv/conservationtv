@@ -2,7 +2,9 @@
 
 import type { StatusGetV1Output } from '../versions/status.get-v1/flat-params.gen.js';
 import type { SystemGetV1Output } from '../versions/system.get-v1/flat-params.gen.js';
+import type { SystemGetV2Output } from '../versions/system.get-v2/flat-params.gen.js';
 import type { SystemSpecV1Output } from '../versions/system.spec-v1/flat-params.gen.js';
+import type { SystemSpecV2Output } from '../versions/system.spec-v2/flat-params.gen.js';
 import { buildClientParams, createClient, mergeHeaders } from './client/index.js';
 import { ClientCore, operation } from '@conservationtv/versioned-api/client';
 
@@ -19,7 +21,7 @@ export class Client extends ClientCore {
         get: this.versioned('status.get', { v1: operation<StatusGetV1Output>({ method: 'GET', url: '/status' }) })
     };
     readonly system = {
-        get: this.versioned('system.get', { v1: operation<SystemGetV1Output>({ method: 'GET', url: '/system' }) }),
-        spec: this.versioned('system.spec', { v1: operation<SystemSpecV1Output>({ method: 'GET', url: '/system/spec' }) })
+        get: this.versioned('system.get', { v1: operation<SystemGetV1Output>({ method: 'GET', url: '/system' }), v2: operation<SystemGetV2Output>({ method: 'GET', url: '/system' }) }),
+        spec: this.versioned('system.spec', { v1: operation<SystemSpecV1Output>({ method: 'GET', url: '/system/spec' }), v2: operation<SystemSpecV2Output>({ method: 'GET', url: '/system/spec' }) })
     };
 }

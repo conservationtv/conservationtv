@@ -4,8 +4,9 @@ import { createStore } from '@conservationtv/store';
 import type { AgentConfiguration } from '../config.ts';
 import { useStudio } from '../studio.ts';
 
-// Metric reports to the studio API (`reports.submit`), signed as the agent's device, and about it, `device:<id>`,
-// unless queued about another subject, such as an exposure. The agent knows only its key, so it asks the studio API
+// Reports to the studio API (`reports.submit`), signed as the agent's device, and about it, `device:<id>`, unless
+// queued about another subject, such as an exposure: its monitors' metrics, from a queue each, and what the agent did
+// or said, its events and logs, from its journal (journal.ts). The agent knows only its key, so it asks the studio API
 // who it is (`whoami.get`) before its first submission, and again until it gets an answer.
 //
 // The agent has one reporter, which asks that once for all of its monitors, and each monitor a queue of its own from
@@ -26,6 +27,14 @@ interface PendingMetric {
   observedAt: string;
   subjectId: string | undefined;
   payload: Metric;
+}
+
+/** A report of any kind not yet accepted. Without a subject it is about the device, known on submission. */
+export type PendingReport = WithoutSubject<Report>;
+/** Each kind of report, its subject optional. */
+type WithoutSubject<Each> = Each extends Report ? Omit<Each, 'subjectId'> & OptionalSubject : never;
+interface OptionalSubject {
+  subjectId?: string;
 }
 
 /** The studio API, signed as the agent's device, and the subject that device reports about itself as. */
@@ -73,14 +82,15 @@ export class MetricReporter {
   }
 
   /** Submit `metrics`, returning what the studio API accepted. Throws if that fails. */
-  async submit(metrics: PendingMetric[]): Promise<Submission> {
+  submit(metrics: PendingMetric[]): Promise<Submission> {
+    return this.send(metrics.map(metric => ({ kind: 'metric', ...metric })));
+  }
+
+  /** Submit reports of any kind, returning what the studio API accepted. Throws if that fails. */
+  async send(pending: PendingReport[]): Promise<Submission> {
     const studio = await this.connect();
-    const reports = metrics.map(({ observedAt, subjectId, payload }): Report => ({
-      kind: 'metric',
-      subjectId: subjectId ?? studio.subjectId,
-      observedAt,
-      payload
-    }));
+    // SAFETY: each report keeps its kind's payload, and gains only the subject it was left without.
+    const reports = pending.map(report => ({ ...report, subjectId: report.subjectId ?? studio.subjectId }) as Report);
     const result = await studio.client.reports.submit.v1({ reports });
     if (result instanceof Error) throw result;
     const now = new Date();

@@ -1,6 +1,9 @@
+import { exposureSubject, relayMetrics } from '@conservationtv/reports';
 import { getLogger } from '@logtape/logtape';
 import * as Moq from '@moq/net';
 import { z } from 'zod';
+import { type Journal, useJournal } from '../../reporting/journal.ts';
+import { type IntervalSamples, REPORT_INTERVAL_MS, Sampler } from '../../reporting/sampler.ts';
 import type { MoqPublisher } from './config.ts';
 
 const logger = getLogger(['agent', 'mediamtx', 'joiner']);
@@ -19,6 +22,12 @@ const logger = getLogger(['agent', 'mediamtx', 'joiner']);
 //
 // The joined catalog follows the renditions': it is rewritten whenever one of theirs changes, and keeps a rendition's
 // last catalog while its publisher restarts.
+//
+// Reading each rendition's catalog back through the relay also says whether the relay has the rendition to give: its
+// broadcast is announced there, and its catalog came back. That is reported about the exposure, per rendition
+// (`relay.announced`), and a rendition appearing on the relay or going from it is an event about it
+// (`rendition.announced`, `rendition.withdrawn`). It is the one thing about the relay that doesn't depend on anyone
+// watching: a relay asks a publisher only for what viewers take.
 
 /** The track every hang broadcast describes itself on. */
 const CATALOG_TRACK = 'catalog.json';
@@ -77,25 +86,36 @@ export function joinCatalogs(catalogs: RenditionCatalog[]): Catalog {
 /** How long to wait before subscribing to a rendition's catalog again, after a subscription failed or ended. */
 const RESUBSCRIBE_MS = 1_000;
 
+/** Whether the relay has each of an exposure's renditions to give, by rendition: what reading them back finds. */
+type Announced = Map<string, boolean>;
+
 /**
  * A rendition broadcast's catalog, as it is published: undefined until it first is, then its latest. A subscription
  * that fails or ends, as when the rendition's publisher restarts, is made again after `RESUBSCRIBE_MS`, keeping the
- * last catalog meanwhile, until the join closes.
+ * last catalog meanwhile, until the join closes. `announced` says whether the broadcast is on the relay now, and has
+ * given a catalog since it was.
  */
 function followCatalog(
   effect: Moq.Signals.Effect,
   consumed: Moq.Origin.Producer,
-  rendition: string
+  rendition: string,
+  announced: Announced
 ): Moq.Signals.Getter<Catalog | undefined> {
   const latest = new Moq.Signals.Signal<Catalog | undefined>(undefined);
   const request = consumed.request(Moq.Path.from(rendition), { announced: true });
   effect.cleanup(() => request.close());
+  effect.cleanup(() => announced.set(rendition, false));
   effect.run(following => {
+    // Each announcement of the broadcast is read anew: the relay has it once a catalog has come back from this one.
+    announced.set(rendition, false);
     const active = following.get(request.active);
     if (active === undefined) return;
     following.spawn(async () => {
       for (;;) {
-        await readCatalogs(following, active, latest);
+        await readCatalogs(following, active, catalog => {
+          latest.set(catalog);
+          announced.set(rendition, true);
+        });
         // Torn down while waiting (the join closed, or the broadcast went): stop; otherwise subscribe again.
         const waited = await following.race(
           new Promise<true>(resolve => setTimeout(() => resolve(true), RESUBSCRIBE_MS))
@@ -107,17 +127,17 @@ function followCatalog(
   return latest;
 }
 
-/** Reads one subscription to a broadcast's catalog into `latest`, each group a version, until it fails or ends. */
+/** Reads one subscription to a broadcast's catalog, giving `read` each group, a version, until it fails or ends. */
 async function readCatalogs(
   following: Moq.Signals.Effect,
   broadcast: Moq.Broadcast.Consumer,
-  latest: Moq.Signals.Signal<Catalog | undefined>
+  read: (catalog: Catalog) => void
 ): Promise<void> {
   const track = broadcast.track(CATALOG_TRACK).subscribe({ priority: 0 });
   try {
     for (let group = await following.race(track.recvGroup()); group; group = await following.race(track.recvGroup())) {
       const catalog = CatalogSchema.safeParse(await following.race(group.readJson()));
-      if (catalog.success) latest.set(catalog.data);
+      if (catalog.success) read(catalog.data);
     }
   } catch (error) {
     logger.debug('A rendition catalog subscription ended: {error}', { error });
@@ -161,9 +181,9 @@ function writeCatalog(
 /**
  * Joins one exposure's renditions into its broadcast, on a connection of its own to the relay, reconnecting if it
  * drops, until the returned function closes it. New credentials are a new join, as they restart the renditions'
- * publishers too.
+ * publishers too. `announced` is kept as each rendition comes onto the relay, or goes from it.
  */
-function joinBroadcast(publisher: MoqPublisher): () => void {
+function joinBroadcast(publisher: MoqPublisher, announced: Announced): () => void {
   const effect = new Moq.Signals.Effect();
   const published = new Moq.Origin.Producer();
   const consumed = new Moq.Origin.Producer();
@@ -186,7 +206,7 @@ function joinBroadcast(publisher: MoqPublisher): () => void {
   // In the publisher's order, so the joined catalog lists the renditions as it does.
   const followed = publisher.renditions.map(({ rendition }) => ({
     rendition,
-    catalog: followCatalog(effect, consumed, rendition)
+    catalog: followCatalog(effect, consumed, rendition, announced)
   }));
   writeCatalog(effect, broadcast.createTrack(CATALOG_TRACK), watching =>
     joinCatalogs(
@@ -199,25 +219,103 @@ function joinBroadcast(publisher: MoqPublisher): () => void {
   return () => effect.close();
 }
 
-/** The joined broadcasts of the exposures MediaMTX publishes, each joined while its publisher is wanted. */
+/** A joined broadcast: how to close it, the exposure it is of, and whether the relay has each of its renditions. */
+interface Joined {
+  exposureId: string;
+  announced: Announced;
+  close(): void;
+}
+
+/** How often each rendition is sampled for whether the relay has it; summarised every `REPORT_INTERVAL_MS`. */
+const SAMPLE_MS = 5_000;
+
+/** What tells one rendition's series from another's: its exposure, then its rendition. */
+function seriesKey(exposureId: string, rendition: string): string {
+  return `${exposureId}/${rendition}`;
+}
+
+/**
+ * The joined broadcasts of the exposures MediaMTX publishes, each joined while its publisher is wanted, and whether the
+ * relay has each of their renditions, reported while there are any.
+ */
 export class BroadcastJoiner {
-  /** Each joined broadcast's close, by the publisher it joins for, as JSON. */
-  private readonly joined = new Map<string, () => void>();
+  /** Each joined broadcast, by the publisher it joins for, as JSON. */
+  private readonly joined = new Map<string, Joined>();
+  private readonly sampler: Sampler<object>;
+  private readonly journal: Journal;
+  /** The renditions the relay had at the last sample, by series key: what a change is told from. */
+  private had = new Set<string>();
+
+  constructor() {
+    this.journal = useJournal();
+    this.sampler = new Sampler<object>({
+      stopped: {},
+      sample: samples => this.sample(samples),
+      target: key => {
+        const [exposureId = '', rendition = ''] = key.split('/');
+        return { subjectId: exposureSubject(exposureId), dimensions: { rendition } };
+      }
+    });
+  }
 
   /** Joins the broadcast of each publisher, and no other: a publisher that changed at all is joined anew. */
   set(publishers: MoqPublisher[]): void {
     const wanted = new Map(publishers.map(publisher => [JSON.stringify(publisher), publisher]));
-    for (const [key, close] of this.joined) {
+    for (const [key, join] of this.joined) {
       if (wanted.has(key)) continue;
-      close();
+      join.close();
       this.joined.delete(key);
     }
     for (const [key, publisher] of wanted) {
-      if (!this.joined.has(key)) this.joined.set(key, joinBroadcast(publisher));
+      if (this.joined.has(key)) continue;
+      const announced: Announced = new Map(publisher.renditions.map(({ rendition }) => [rendition, false]));
+      const close = joinBroadcast(publisher, announced);
+      this.joined.set(key, { exposureId: publisher.exposureId, announced, close });
     }
+    this.report();
   }
 
   close(): void {
     this.set([]);
   }
+
+  /** Stop the timer for good when the agent stops, and close every join. */
+  dispose(): void {
+    this.close();
+    this.sampler.dispose();
+  }
+
+  /** Sample while there is anything joined, and not otherwise. */
+  private report(): void {
+    const joining = this.joined.size > 0;
+    if (joining && !this.sampler.running) this.sampler.start({ sampleMs: SAMPLE_MS, reportMs: REPORT_INTERVAL_MS });
+    if (!joining && this.sampler.running) this.sampler.stop();
+    if (!joining) this.had = new Set();
+  }
+
+  /** Sample whether the relay has each rendition, and say which came onto it or went since the last sample. */
+  private sample(samples: IntervalSamples): void {
+    const has = new Set<string>();
+    for (const { exposureId, announced } of this.joined.values())
+      for (const [rendition, there] of announced) this.sampleRendition(samples, has, { exposureId, rendition, there });
+    this.had = has;
+  }
+
+  /** One rendition's sample, kept in `has` when the relay has it, and an event when that has changed. */
+  private sampleRendition(samples: IntervalSamples, has: Set<string>, sampled: SampledRendition): void {
+    const { exposureId, rendition, there } = sampled;
+    const key = seriesKey(exposureId, rendition);
+    samples.add(key, relayMetrics.announced, there ? 1 : 0);
+    if (there) has.add(key);
+    if (there === this.had.has(key)) return;
+    const type = there ? 'rendition.announced' : 'rendition.withdrawn';
+    this.journal.event(type, { rendition }, exposureSubject(exposureId));
+  }
+}
+
+/** A rendition as it was sampled: whether the relay has it. */
+interface SampledRendition {
+  exposureId: string;
+  rendition: string;
+  there: boolean;
 }
