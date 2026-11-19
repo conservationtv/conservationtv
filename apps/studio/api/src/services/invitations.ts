@@ -57,8 +57,13 @@ async function hashCode(code: string) {
 
 const open = sql`${organisationInvitations.expiresAt} > now()`;
 
-/** Delete the organisation's expired invitations to the recipient, which a new one replaces. */
-export async function deleteExpiredInvitations(organisationId: string, recipient: Recipient) {
+/**
+ * Delete the organisation's invitations to the recipient that a new one replaces: every one to an email address, open
+ * or expired, so inviting an address again sends it a new link (whether the last email failed to send or never
+ * arrived) and the old link stops working; only expired ones to an account, which is never emailed, so a second
+ * invitation to it is still `already_invited`.
+ */
+export async function deleteReplacedInvitations(organisationId: string, recipient: Recipient) {
   const db = useDB();
   await db
     .delete(organisationInvitations)
@@ -67,8 +72,10 @@ export async function deleteExpiredInvitations(organisationId: string, recipient
         eq(organisationInvitations.organisationId, organisationId),
         'email' in recipient
           ? sql`lower(${organisationInvitations.email}) = lower(${recipient.email})`
-          : eq(organisationInvitations.userId, recipient.userId),
-        lte(organisationInvitations.expiresAt, sql`now()`)
+          : and(
+              eq(organisationInvitations.userId, recipient.userId),
+              lte(organisationInvitations.expiresAt, sql`now()`)
+            )
       )
     );
 }

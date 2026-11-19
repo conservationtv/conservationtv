@@ -5211,7 +5211,7 @@
         "operationId": "organisations.invitations.create",
         "x-operation-version": 1,
         "summary": "Invite someone",
-        "description": "Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days.",
+        "description": "Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days. Inviting an address again replaces its open invitation and sends a new link; the old one stops working.",
         "responses": {
           "201": {
             "description": "The invitation",
@@ -20761,7 +20761,7 @@
             "operationId": "organisations.invitations.create",
             "x-operation-version": 1,
             "summary": "Invite someone",
-            "description": "Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days.",
+            "description": "Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days. Inviting an address again replaces its open invitation and sends a new link; the old one stops working.",
             "responses": {
               "201": {
                 "description": "The invitation",

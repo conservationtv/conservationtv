@@ -199,7 +199,8 @@ Postgres's `uuidv7()` (so Postgres 18 or newer):
   organisation.
 - `organisation_invitation`: an open invitation, to either an account (`user_id`) or an `email` address, lasting 14
   days. An emailed invitation is sent a link to `<first WEB_ORIGINS entry>/invitations/{id}?code=…` (delivered by
-  `EMAIL_DELIVERY`); only the code's hash is stored, and the application role cannot read it.
+  `EMAIL_DELIVERY`); inviting the same address again replaces its invitation, open or expired, with a new link, so a
+  failed or lost email is put right by inviting again. Only the code's hash is stored, and the application role cannot read it.
   Whoever signs in and presents the code may accept, so an invitation can be passed on to another address. An
   invitation to an account is accepted by signing in as it.
 

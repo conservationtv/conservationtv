@@ -9,7 +9,7 @@ import { audited } from '../audit/audit.ts';
 import { deleteMemberBrowsers } from '../services/browsers.ts';
 import {
   createInvitation,
-  deleteExpiredInvitations,
+  deleteReplacedInvitations,
   deleteInvitation,
   invitationCode,
   listOrganisationInvitations,
@@ -419,7 +419,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Invite someone',
       description:
-        'Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days.',
+        'Administrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days. Inviting an address again replaces its open invitation and sends a new link; the old one stops working.',
       responses: {
         201: { description: 'The invitation' },
         400: invalidRequest,
@@ -454,14 +454,15 @@ export default new Hono()
       const recipient: Recipient = c.req.valid('json');
       const principal = useUser();
       // An emailed invitation is sent a link with a one-time code; one to an account is found by it under
-      // `/invitations`. An expired invitation to the same recipient is replaced.
+      // `/invitations`. A new invitation to an address replaces its last, open or not, and sends a new link, so a
+      // failed or lost email is put right by inviting again; one to an account replaces only an expired one.
       const code = 'email' in recipient ? invitationCode() : null;
       const { invitation, organisation, inviter } = await transaction(async () => {
         const visible = await getOrganisation(id);
         if (!visible) throw new ApiFailure('not_found');
         const member = 'userId' in recipient ? await getMembership(id, recipient.userId) : undefined;
         if (member) throw new ApiFailure('already_member');
-        await deleteExpiredInvitations(id, recipient);
+        await deleteReplacedInvitations(id, recipient);
         const created = await createInvitation(id, { recipient, invitedBy: principal.id, code });
         const inviter = await getDisplayName(id, principal.id);
         return { invitation: created, organisation: visible, inviter };
