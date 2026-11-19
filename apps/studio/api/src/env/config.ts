@@ -115,9 +115,9 @@ export const services = (variables: Variables, bindings: Bindings) => {
   })();
 
   /** The owning role's connection. Request handlers use `session()` instead. */
-  const admin = connectLazily(bindings.admin);
+  const admin = connectLazily(bindings.admin, 'admin');
   /** The application role's connection, enforced by row-level security. */
-  const app = connectLazily(bindings.app);
+  const app = connectLazily(bindings.app, 'app');
 
   /** The principal's request session over the application connection: every protected query runs inside it. */
   const session = async (principal: Principal) => authorization.as(await app.database(), principal);

@@ -63,7 +63,10 @@ export function createAuth({ database, access, variables, deliverOtp, background
         // A session's browser devices end with it (src/services/browsers.ts). Before, because the browser rows refer
         // to the session; Better Auth runs this for every session it deletes, one at a time or in bulk, on the owning
         // connection it uses.
-        delete: { before: ended => trustedTransaction(() => deleteSessionBrowsers(ended.id)) }
+        delete: {
+          before: ended =>
+            trustedTransaction(() => deleteSessionBrowsers(ended.id), { name: 'session.browsers.delete' })
+        }
       }
     },
     plugins: [

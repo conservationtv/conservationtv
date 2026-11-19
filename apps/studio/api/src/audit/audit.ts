@@ -132,7 +132,7 @@ export function audited(category: AuditCategory) {
     const entry = auditEntry(category, record, c.res.status, body);
     if (!entry) return;
     try {
-      await trustedTransaction(() => insertAuditEntry(entry));
+      await trustedTransaction(() => insertAuditEntry(entry), { name: 'audit.write' });
     } catch (error) {
       console.error(JSON.stringify({ event: 'audit_failed', operation: entry.operationId, cause: String(error) }));
     }

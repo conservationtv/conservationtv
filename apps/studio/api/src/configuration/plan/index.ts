@@ -73,22 +73,30 @@ const PREVIEW_RENDITION: Rendition = 'default';
  * publishers, and a path for each output's preview delivered to its gateway.
  */
 async function planMediamtx(device: AuthenticatedDevice): Promise<ProbingMediamtxConfiguration | undefined> {
-  const planned = await trustedTransaction(async () => {
-    const gatewayId = await selectLocalGateway(device);
-    if (!gatewayId) return undefined;
+  const planned = await trustedTransaction(
+    async () => {
+      const gatewayId = await selectLocalGateway(device);
+      if (!gatewayId) return undefined;
 
-    const streams = await selectStreams(device.id, gatewayId);
-    const gatewayKinds = await selectGatewayKinds(device.organisationId);
-    const gateway = await selectGatewayIdentity(gatewayId);
-    const address = await selectPreferredAddress(device.id);
-    const previews = await selectGatewayPreviews(device.organisationId, gatewayId);
-    const configuration = planActiveAgent({ organisationId: device.organisationId, gatewayId, gatewayKinds, streams });
-    configuration.previews = previews.map(preview => ({
-      name: mediamtxPath(preview.id, PREVIEW_RENDITION),
-      previewId: preview.id
-    }));
-    return { configuration, gateway, address };
-  });
+      const streams = await selectStreams(device.id, gatewayId);
+      const gatewayKinds = await selectGatewayKinds(device.organisationId);
+      const gateway = await selectGatewayIdentity(gatewayId);
+      const address = await selectPreferredAddress(device.id);
+      const previews = await selectGatewayPreviews(device.organisationId, gatewayId);
+      const configuration = planActiveAgent({
+        organisationId: device.organisationId,
+        gatewayId,
+        gatewayKinds,
+        streams
+      });
+      configuration.previews = previews.map(preview => ({
+        name: mediamtxPath(preview.id, PREVIEW_RENDITION),
+        previewId: preview.id
+      }));
+      return { configuration, gateway, address };
+    },
+    { name: 'configuration.mediamtx' }
+  );
   if (planned === undefined) return undefined;
 
   const { configuration, gateway, address } = planned;
@@ -108,13 +116,16 @@ interface PlannedOutput {
  * runtime, for the show it follows under `show` control, where the show is followed.
  */
 async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
-  const planned = await trustedTransaction(async () => {
-    const output = await selectDeviceOutput(device.id);
-    if (output === undefined) return undefined;
-    const plan = await selectOutputPlan(output.outputId);
-    const gatewayKinds = await selectGatewayKinds(output.organisationId);
-    return { output, plan: plan!, gatewayKinds };
-  });
+  const planned = await trustedTransaction(
+    async () => {
+      const output = await selectDeviceOutput(device.id);
+      if (output === undefined) return undefined;
+      const plan = await selectOutputPlan(output.outputId);
+      const gatewayKinds = await selectGatewayKinds(output.organisationId);
+      return { output, plan: plan!, gatewayKinds };
+    },
+    { name: 'configuration.output' }
+  );
   if (planned === undefined) return {};
   const { output, plan, gatewayKinds } = planned;
   const { outputId, organisationId, control, showId } = output;
