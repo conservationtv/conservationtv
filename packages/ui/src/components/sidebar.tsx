@@ -142,7 +142,7 @@ function Sidebar({
 }: React.ComponentProps<"div"> & {
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
-  collapsible?: "offcanvas" | "icon" | "none"
+  collapsible?: "offcanvas" | "icon" | "peek" | "none"
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -187,6 +187,14 @@ function Sidebar({
     )
   }
 
+  if (collapsible === "peek") {
+    return (
+      <SidebarPeek className={className} {...props}>
+        {children}
+      </SidebarPeek>
+    )
+  }
+
   return (
     <div
       className="group peer hidden text-sidebar-foreground md:block"
@@ -228,6 +236,61 @@ function Sidebar({
         >
           {children}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * `collapsible="peek"`: a column in the layout's flow, where it is put (inside a pane, say) rather than fixed to the
+ * window. Expanded, it is the full column. Collapsed (the provider closed), it keeps only the icons' width in the flow
+ * and shows them alone; pointed at, or tabbed into, it opens out to its full width over what's beside it, which stays
+ * where it is, and folds away again as the pointer or focus leaves. A click's focus doesn't hold it open.
+ */
+function SidebarPeek({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  const { state } = useSidebar()
+  const [pointed, setPointed] = React.useState(false)
+  const [focused, setFocused] = React.useState(false)
+  const collapsed = state === "collapsed"
+  const peeking = collapsed && (pointed || focused)
+
+  return (
+    <div
+      data-slot="sidebar-gap"
+      data-state={state}
+      className="relative w-(--sidebar-width) shrink-0 transition-[width] duration-200 ease-linear data-[state=collapsed]:w-(--sidebar-width-icon)"
+    >
+      <div
+        data-slot="sidebar"
+        data-sidebar="sidebar"
+        data-state={state}
+        data-collapsible={collapsed && !peeking ? "icon" : ""}
+        data-peeking={peeking || undefined}
+        className={cn(
+          "group absolute inset-y-0 left-0 z-20 flex w-(--sidebar-width) flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width,box-shadow] duration-200 ease-out data-[collapsible=icon]:w-(--sidebar-width-icon) data-peeking:shadow-lg data-peeking:shadow-custom-surface-shadow",
+          className
+        )}
+        onPointerEnter={(event) => {
+          if (event.pointerType !== "touch") setPointed(true)
+        }}
+        onPointerLeave={() => setPointed(false)}
+        onFocus={(event) => {
+          // Only keyboard focus: a click leaves its focus behind, which would hold the column open after the pointer
+          // has gone.
+          if (event.target.matches(":focus-visible")) setFocused(true)
+        }}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            setFocused(false)
+          }
+        }}
+        {...props}
+      >
+        {children}
       </div>
     </div>
   )

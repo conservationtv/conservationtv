@@ -46,15 +46,13 @@ import { organisationListQueryOptions } from '@/queries/organisations';
 
 /**
  * An organisation's section navigation: what is on air first, then what that runs on, and the organisation itself at
- * the foot. Beside the pages, a fixed column that doesn't collapse; on a phone, where there's no room for it, a sheet
- * the app bar's button slides out, put away again as one of its pages is opened. Needs a SidebarProvider and the
- * organisation layout above it.
+ * the foot. Beside the pages, a column; collapsed (the organisation layout collapses it on a tablet), its icons, opening
+ * out over the page while pointed at; on a phone, where there's no room for it, a sheet the app bar's button slides
+ * out, put away again as one of its pages is opened. Needs a SidebarProvider and the organisation layout above it.
  */
 export const OrganisationSidebar: FC = () => {
-  const sidebar = useSidebar();
-  const collapsible = sidebar.isMobile ? 'offcanvas' : 'none';
   return (
-    <Sidebar collapsible={collapsible} className="min-h-0 border-r border-border">
+    <Sidebar collapsible="peek" className="border-r border-border">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
