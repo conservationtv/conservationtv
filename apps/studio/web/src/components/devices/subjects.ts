@@ -50,7 +50,9 @@ export function statesBySubject(states: SubjectState[]): Map<string, SubjectStat
 /** How a subject is doing, in a word or two: what its status dot means. */
 export function healthOf(state: SubjectState | undefined): string {
   if (!state) return 'No reports';
+  if (state.activity === 'off') return 'Off';
   if (state.freshness === 'stale') return 'Gone quiet';
+  if (state.activity === 'idle') return 'Idle';
   if (state.health === 'unhealthy') return 'Unhealthy';
   if (state.health === 'degraded') return 'Degraded';
   if (state.health === 'unknown') return 'Nothing to judge';
@@ -63,6 +65,7 @@ export function healthOf(state: SubjectState | undefined): string {
  */
 export function reasonsOf(state: SubjectState | undefined): string | undefined {
   const findings = state?.state.findings ?? [];
+  // Why it isn't judged reads oddly as a reason once its label already says so: `Idle`, then "Idle: nothing reads it".
   const reasons = findings.filter(finding => finding.health !== 'healthy').map(finding => finding.summary);
   if (reasons.length === 0) return undefined;
   return reasons.join('\n');

@@ -11,7 +11,7 @@ export const topologyQueryOptions = (organisationId: string) =>
   queryOptions({
     queryKey: ['topology', organisationId] as const,
     queryFn: async () => {
-      const result = await api.organisations.topology.get.v1({ id: organisationId });
+      const result = await api.organisations.topology.get.v2({ id: organisationId });
       if (result instanceof Error) throw result;
       return result;
     },

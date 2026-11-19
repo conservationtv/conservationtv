@@ -37,7 +37,8 @@ import { channelListQueryOptions } from '@/queries/channels';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
 import { outputListQueryOptions } from '@/queries/outputs';
-import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
+import { streamListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Overview · conservation.tv studio' }];
 
@@ -88,7 +89,7 @@ const OverviewSections: FC = () => {
     gatewaysQuery,
     outputsQuery,
     channelsQuery,
-    statesQuery
+    statusQuery
   ] = useSuspenseQueries({
     queries: [
       streamListQueryOptions(organisationId),
@@ -98,7 +99,7 @@ const OverviewSections: FC = () => {
       gatewayListQueryOptions(organisationId),
       outputListQueryOptions(organisationId),
       channelListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId)
+      organisationStatusQueryOptions(organisationId)
     ]
   });
   const overview = overviewOf({
@@ -109,12 +110,12 @@ const OverviewSections: FC = () => {
     gateways: gatewaysQuery.data,
     outputs: outputsQuery.data,
     channels: channelsQuery.data.channels,
-    states: statesQuery.data
+    status: statusQuery.data
   });
   return (
     <>
       {overview.setup.some(step => !step.done) && <Setup steps={overview.setup} />}
-      <Health problems={overview.problems} reportingCount={overview.reportingCount} />
+      <Health problems={overview.problems} summary={overview.summary} reportingCount={overview.reportingCount} />
       {overview.fedStreams.length > 0 && (
         <Section>
           <SectionHeader>
@@ -178,11 +179,23 @@ const Setup: FC<SetupProps> = ({ steps }) => {
 
 interface HealthProps {
   problems: Problem[];
+  /** The organisation's status in a sentence or two. */
+  summary: string;
   reportingCount: number;
 }
 
-/** What is reporting unhealthy or has gone quiet, each opening its page; or that nothing is, or that nothing reports. */
-const Health: FC<HealthProps> = ({ problems, reportingCount }) => {
+/** A problem in a line: what kind of thing it is, why, and what it affects. */
+function problemLine({ kind, status, reasons, affects }: Problem): string {
+  const why = reasons[0] ?? (status === 'failing' ? 'Failing' : 'Degraded');
+  const affected = affects.length > 0 ? ` · affects ${affects.join(', ')}` : '';
+  return `${kind} · ${why}${affected}`;
+}
+
+/**
+ * The root causes of what isn't working, each opening its page, with why and what it affects; or that nothing is
+ * failing, or that nothing reports. What is fed by a failure, idle or switched off is not listed.
+ */
+const Health: FC<HealthProps> = ({ problems, summary, reportingCount }) => {
   return (
     <Section>
       <SectionHeader>
@@ -193,20 +206,18 @@ const Health: FC<HealthProps> = ({ problems, reportingCount }) => {
           {problems.map(problem => (
             <Item key={problem.subjectId} variant="outline" size="sm" render={<Link to={problem.to} />}>
               <ItemMedia variant="icon">
-                <WarningIcon className="text-destructive" />
+                <WarningIcon className={problem.status === 'failing' ? 'text-destructive' : 'text-amber-500'} />
               </ItemMedia>
               <ItemContent>
                 <ItemTitle>{problem.name}</ItemTitle>
-                <ItemDescription>{problem.kind} · reporting unhealthy, or gone quiet</ItemDescription>
+                <ItemDescription>{problemLine(problem)}</ItemDescription>
               </ItemContent>
             </Item>
           ))}
         </ItemGroup>
       ) : (
         <p className="text-custom-13 text-custom-text-secondary">
-          {reportingCount > 0
-            ? 'Nothing. Everything that reports is healthy.'
-            : 'Nothing has reported yet, so there is nothing to say either way.'}
+          {reportingCount > 0 ? `${summary}.` : 'Nothing has reported yet, so there is nothing to say either way.'}
         </p>
       )}
     </Section>

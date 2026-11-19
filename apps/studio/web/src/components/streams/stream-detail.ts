@@ -147,7 +147,9 @@ const streamLabels = {
   ok: 'Live',
   degraded: 'Live, degraded',
   unknown: 'No reports',
-  failing: 'Failing'
+  failing: 'Failing',
+  idle: 'Idle: nothing is asking for it',
+  off: 'Switched off'
 } satisfies Record<OverallStatus, string>;
 
 /**
