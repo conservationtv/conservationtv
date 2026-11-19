@@ -1,8 +1,14 @@
 import type { FC } from 'react';
-import { CloudSlashIcon, SignInIcon, SquaresFourIcon, UserCircleGearIcon } from '@phosphor-icons/react';
+import { CloudSlashIcon, ListIcon, SignInIcon, SquaresFourIcon, UserCircleGearIcon } from '@phosphor-icons/react';
 import { motion, type Transition } from 'motion/react';
 import { NavLink } from 'react-router';
 import { Button } from '@conservationtv/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@conservationtv/ui/components/dropdown-menu';
 import { Separator } from '@conservationtv/ui/components/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@conservationtv/ui/components/tooltip';
 import { cn } from '@conservationtv/ui/lib/utils';
@@ -112,7 +118,7 @@ const AccountMenu: FC = () => {
       className="flex items-center gap-2"
     >
       {menu.pins.length > 0 && (
-        <>
+        <div className="hidden items-center gap-2 sm:flex">
           <nav aria-label="Pinned" className="flex gap-0.5">
             {menu.pins.map(pin => (
               <Tooltip key={pin.to}>
@@ -128,21 +134,39 @@ const AccountMenu: FC = () => {
             orientation="vertical"
             className="bg-sidebar-foreground/40 data-vertical:h-5 data-vertical:self-auto"
           />
-        </>
+        </div>
       )}
       <nav aria-label="Studio" className="flex gap-0.5">
         <NavLink to={appHomePath} className={headerLinkClassName}>
           <SquaresFourIcon aria-hidden="true" />
-          <span>Open studio</span>
+          <span className="max-sm:sr-only">Open studio</span>
         </NavLink>
       </nav>
       <nav aria-label="Account" className="flex gap-0.5">
         <NavLink to="/account" className={headerLinkClassName}>
           <UserCircleGearIcon aria-hidden="true" />
-          <span>My account</span>
+          <span className="max-sm:sr-only">My account</span>
         </NavLink>
       </nav>
     </motion.div>
+  );
+};
+
+/** The site's sections, folded into a menu on a phone, where they don't fit beside the logo and the account menu. */
+const SectionsMenu: FC = () => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<button type="button" aria-label="Sections" className={cn(headerLinkClassName, 'px-2 md:hidden')} />}
+      >
+        <ListIcon aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-44">
+        <DropdownMenuItem render={<NavLink to="/" />}>About</DropdownMenuItem>
+        <DropdownMenuItem render={<a href="#" />}>Case studies</DropdownMenuItem>
+        <DropdownMenuItem render={<a href="#" />}>Tools</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
@@ -165,13 +189,14 @@ const AboutRoute: FC = () => {
           className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-b from-white/60 to-transparent mask-b-from-50% backdrop-blur-md min-[100rem]:hidden dark:from-[#151412]/60"
         />
         {/* The logo and the site's sections, on the left: always there, so they don't animate. Case studies and tools are
-            placeholders. */}
-        <div className="flex items-center gap-6">
+            placeholders. On a phone the sections fold into a menu before the logo. */}
+        <div className="flex items-center gap-2 md:gap-6">
+          <SectionsMenu />
           <div className="flex items-center gap-2">
             <BrandMark className="h-6" />
             <span className="text-lg leading-none font-semibold tracking-tight">conservation.tv</span>
           </div>
-          <nav aria-label="Sections" className="flex gap-0.5">
+          <nav aria-label="Sections" className="hidden gap-0.5 md:flex">
             <NavLink to="/" className={headerLinkClassName}>
               <span>About</span>
             </NavLink>
