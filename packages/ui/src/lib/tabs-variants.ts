@@ -9,7 +9,8 @@ export const tabsListVariants = cva(
     variants: {
       variant: {
         default: "bg-muted",
-        line: "gap-1 bg-transparent",
+        // A line that doesn't fit scrolls sideways within itself, without a scrollbar, rather than widening the page.
+        line: "gap-1 bg-transparent group-data-horizontal/tabs:max-w-full group-data-horizontal/tabs:overflow-x-auto group-data-horizontal/tabs:overflow-y-hidden group-data-horizontal/tabs:overscroll-x-contain group-data-horizontal/tabs:[scrollbar-width:none]",
       },
       // Compact: a shorter list with smaller labels, for tabs inside a card rather than across a page.
       size: {
