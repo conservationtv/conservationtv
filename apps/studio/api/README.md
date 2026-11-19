@@ -380,7 +380,7 @@ URL-encoded.
 A metric report is a point in a series: a metric's `name`, `unit` and `dimensions` about its subject, from the
 reporting device, such as `path.ingest.bitrate` in `bits/s` for `{ path: "cam1" }`. Its point is one sample's `value`,
 or a `summary` of the interval ending at `observedAt`: the `min`, `max`, `avg` and `last` of `count` samples, so a
-reporter that samples often and reports once a minute keeps the dips and spikes in between. Two tables, in
+reporter that samples often and reports every 15 seconds keeps the dips and spikes in between. Two tables, in
 `src/db/schemas/metrics.ts`:
 
 - `metric_series`: one row per series, made the first time a report names it. Two reporters measuring the same thing
@@ -395,8 +395,10 @@ bucket without points is absent, so gaps are times nothing was reported.
 
 Only TimescaleDB's Apache-licensed features are used, because PlanetScale ships no others: hypertables, `time_bucket`,
 `last` and `drop_chunks`, but no continuous aggregates, compression or retention policies. Local Postgres runs the
-`-oss` image, which has nothing else. Nothing rolls points up or drops old chunks yet: each series has a point a
-minute, so reading a month of one series stays small. When retention is needed, one scheduled
+`-oss` image, which has nothing else. Nothing rolls points up or drops old chunks yet. An agent's series have a point
+every 15 seconds (`REPORT_INTERVAL_MS`), about 173,000 a month, and channels' a point a minute; a read is bucketed to at
+most 1000 steps, so a month of one series is still one bounded query, but the table grows four times faster than it
+did at a minute. When retention is needed, one scheduled
 `select drop_chunks('metric_point', older_than => interval '…')` is enough. On PlanetScale, enable the extension in the
 cluster's configuration before migrating.
 
