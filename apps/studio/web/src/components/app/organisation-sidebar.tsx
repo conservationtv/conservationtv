@@ -39,17 +39,22 @@ import {
   SidebarMenuItem,
   SidebarMenuSkeleton
 } from '@conservationtv/ui/components/sidebar';
+import { useSidebar } from '@conservationtv/ui/hooks/use-sidebar';
 
 import { useOrganisation, useOrganisationId } from '@/hooks/use-organisation';
 import { organisationListQueryOptions } from '@/queries/organisations';
 
 /**
- * An organisation's section navigation: a fixed column that doesn't collapse, with what is on air first, then what
- * that runs on, and the organisation itself at the foot. Needs a SidebarProvider and the organisation layout above it.
+ * An organisation's section navigation: what is on air first, then what that runs on, and the organisation itself at
+ * the foot. Beside the pages, a fixed column that doesn't collapse; on a phone, where there's no room for it, a sheet
+ * the app bar's button slides out, put away again as one of its pages is opened. Needs a SidebarProvider and the
+ * organisation layout above it.
  */
 export const OrganisationSidebar: FC = () => {
+  const sidebar = useSidebar();
+  const collapsible = sidebar.isMobile ? 'offcanvas' : 'none';
   return (
-    <Sidebar collapsible="none" className="min-h-0 border-r border-border">
+    <Sidebar collapsible={collapsible} className="min-h-0 border-r border-border">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -132,13 +137,20 @@ interface SidebarNavItemProps {
   children: ReactNode;
 }
 
-/** A sidebar entry for one of the organisation's pages, current while that page or one beneath it is open. */
+/**
+ * A sidebar entry for one of the organisation's pages, current while that page or one beneath it is open. Following
+ * it puts the phone's sheet away, for the page to have the screen.
+ */
 const SidebarNavItem: FC<SidebarNavItemProps> = ({ to, end = false, children }) => {
+  const sidebar = useSidebar();
   const path = useResolvedPath(to);
   const match = useMatch({ path: path.pathname, end });
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={match !== null} render={<NavLink to={to} end={end} />}>
+      <SidebarMenuButton
+        isActive={match !== null}
+        render={<NavLink to={to} end={end} onClick={() => sidebar.setOpenMobile(false)} />}
+      >
         {children}
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -150,6 +162,7 @@ const SidebarNavItem: FC<SidebarNavItemProps> = ({ to, end = false, children }) 
  * Suspends until the organisation and the list have loaded.
  */
 const OrganisationSwitcher: FC = () => {
+  const sidebar = useSidebar();
   const organisationId = useOrganisationId();
   const organisation = useOrganisation();
   const organisationsQuery = useSuspenseQuery(organisationListQueryOptions());
@@ -164,7 +177,11 @@ const OrganisationSwitcher: FC = () => {
         <DropdownMenuGroup>
           <DropdownMenuLabel>Organisations</DropdownMenuLabel>
           {organisationsQuery.data.map(listed => (
-            <DropdownMenuItem key={listed.id} render={<Link to={`/organisations/${listed.id}`} />}>
+            <DropdownMenuItem
+              key={listed.id}
+              render={<Link to={`/organisations/${listed.id}`} />}
+              onClick={() => sidebar.setOpenMobile(false)}
+            >
               <BuildingsIcon />
               <span className="truncate">{listed.name}</span>
               {listed.id === organisationId && <CheckIcon className="ml-auto" />}
@@ -173,7 +190,7 @@ const OrganisationSwitcher: FC = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link to="/organisations/new" />}>
+          <DropdownMenuItem render={<Link to="/organisations/new" />} onClick={() => sidebar.setOpenMobile(false)}>
             <PlusIcon />
             New organisation
           </DropdownMenuItem>
@@ -181,4 +198,10 @@ const OrganisationSwitcher: FC = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+};
+
+/** The organisation's name, for the app bar over its pages on a phone. Suspends until the organisation has loaded. */
+export const OrganisationName: FC = () => {
+  const organisation = useOrganisation();
+  return organisation.name;
 };

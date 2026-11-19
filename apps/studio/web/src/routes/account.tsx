@@ -1,7 +1,7 @@
 import { Suspense, type FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { BuildingsIcon, CaretRightIcon, PlusIcon } from '@phosphor-icons/react';
 import type { Account, GetOrganisationsResponse } from '@conservationtv/studio-sdk';
 import { Badge } from '@conservationtv/ui/components/badge';
@@ -40,11 +40,11 @@ import {
 } from '@/components/common/page';
 import { AccountNameSchema, PasskeyNameSchema, type AccountNameInput, type PasskeyNameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
+import { useSignOutOfStudio } from '@/hooks/use-sign-out-of-studio';
 import { accountQueryOptions, useUpdateAccount } from '@/queries/account';
 import { ownInvitationListQueryOptions } from '@/queries/invitations';
 import { organisationListQueryOptions } from '@/queries/organisations';
 import { passkeyListQueryOptions, useAddPasskey, useDeletePasskey, type ListedPasskey } from '@/queries/passkeys';
-import { useSignOut } from '@/queries/session';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Your account · conservation.tv studio' }];
 
@@ -266,7 +266,7 @@ const OrganisationsSection: FC<OrganisationsSectionProps> = ({ organisations }) 
   return (
     <Section>
       <SectionHeader>
-        <SectionHeading className="flex-1 basis-0">
+        <SectionHeading>
           <SectionTitle>Organisations</SectionTitle>
           <SectionDescription>The organisations you’re in, and what you are in each.</SectionDescription>
         </SectionHeading>
@@ -344,22 +344,17 @@ const InvitationsSection: FC<InvitationsSectionProps> = ({ invitations, accountN
 
 /** Signs out, then leaves for the sign-in page. */
 const SignOutSection: FC = () => {
-  const navigate = useNavigate();
-  const signOut = useSignOut();
+  const signOut = useSignOutOfStudio();
   return (
     <Section>
       <SectionHeader>
-        <SectionHeading className="flex-1 basis-0">
+        <SectionHeading>
           <SectionTitle>Sign out</SectionTitle>
           <SectionDescription>
             This browser still remembers your account afterwards, so signing in again takes one step.
           </SectionDescription>
         </SectionHeading>
-        <Button
-          variant="outline"
-          loading={signOut.isPending}
-          onClick={() => signOut.mutate(undefined, { onSuccess: () => navigate('/sign-in', { replace: true }) })}
-        >
+        <Button variant="outline" loading={signOut.pending} onClick={signOut.signOut}>
           Sign out
         </Button>
       </SectionHeader>
