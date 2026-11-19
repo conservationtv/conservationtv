@@ -14,12 +14,14 @@ import { z } from 'zod';
 //
 // What it writes: obs-websocket enabled on the agent's port, with a password of the agent's; the first-run wizard
 // marked as done; the crash sentinel cleared, so a stop the agent made (which OBS takes for a crash) doesn't bring
-// up the Safe Mode prompt, which would also leave obs-websocket off; and the `vignette` profile and scene collection
-// OBS is launched with (`--profile`, `--collection`). The profile is rewritten before every launch from the plan's
-// output: x264 at a constant bitrate, keyframes every `keyframeSeconds`, AAC 48 kHz stereo, streaming to the program
+// up the Safe Mode prompt, which would also leave obs-websocket off; and the `vignette` profile and the scene
+// collection OBS is launched with (`--profile`, `--collection`): `vignette` while a show drives the scenes, `external`
+// while something outside the studio does, so neither's scenes are lost to the other's. The profile is rewritten before
+// every launch from the plan's encoding: x264 at a constant bitrate, keyframes every `keyframeSeconds`, AAC 48 kHz stereo, streaming to the program
 // MediaMTX (program.ts), whose fallback has the same tracks. OBS never sees a channel's stream key. The collection is
-// written when missing or sceneless, with one empty scene to start on: OBS keeps it, and vignette's target owns the
-// scenes it adds, putting the show's `activeScene` on program once it has (packages/shows/src/broadcast.show.tsx).
+// written when missing or sceneless, with one empty scene to start on: OBS keeps it, and whatever drives the scenes
+// owns those it adds; vignette's target puts the show's `activeScene` on program once it has
+// (packages/shows/src/broadcast.show.tsx).
 
 /** How OBS is started for an install: the executable, its arguments, where it runs, and its environment. */
 export interface ObsLaunch {
@@ -30,29 +32,31 @@ export interface ObsLaunch {
   config: string;
 }
 
-/** The profile and scene collection the agent writes, and launches OBS with. */
+/** The profile the agent writes, and launches OBS with. */
 export const OBS_PROFILE = 'vignette';
-export const OBS_COLLECTION = 'vignette';
 
 /**
  * Arguments for every launch: no updater, no dialogs about missing files, no refusing to run beside another OBS, the
- * agent's profile and collection, and streaming from the start, so a restarted OBS streams again by itself.
+ * agent's profile, the scene collection, and streaming from the start, so a restarted OBS streams again by itself.
  */
-const ARGS = [
-  ['--disable-updater', '--disable-missing-files-check', '--multi'],
-  ['--profile', OBS_PROFILE, '--collection', OBS_COLLECTION, '--startstreaming']
-].flat();
+function launchArgs(collection: string): string[] {
+  return [
+    ['--disable-updater', '--disable-missing-files-check', '--multi'],
+    ['--profile', OBS_PROFILE, '--collection', collection, '--startstreaming']
+  ].flat();
+}
 
-/** How to launch the OBS at `executable`, keeping a macOS home under `directory`. */
-export function obsLaunch(executable: string, directory: string): ObsLaunch {
+/** How to launch the OBS at `executable` on `collection`, keeping a macOS home under `directory`. */
+export function obsLaunch(executable: string, directory: string, collection: string): ObsLaunch {
+  const args = launchArgs(collection);
   if (process.platform === 'win32') {
     const binaries = dirname(executable);
     const install = dirname(dirname(binaries));
-    return { args: ['--portable', ...ARGS], cwd: binaries, env: {}, config: join(install, 'config', 'obs-studio') };
+    return { args: ['--portable', ...args], cwd: binaries, env: {}, config: join(install, 'config', 'obs-studio') };
   }
   const home = join(directory, 'home');
   return {
-    args: ARGS,
+    args,
     cwd: directory,
     env: { CFFIXED_USER_HOME: home },
     config: join(home, 'Library', 'Application Support', 'obs-studio')
@@ -107,8 +111,8 @@ export async function websocketPassword(directory: string): Promise<string> {
   return password;
 }
 
-/** How the program is encoded, as the plan gives it. */
-export interface ObsOutput {
+/** How the programme is encoded, as the plan gives it. */
+export interface ObsEncoding {
   width: number;
   height: number;
   fps: number;
@@ -136,8 +140,13 @@ function ini(sections: Record<string, Record<string, string | number | boolean>>
     .concat('\n');
 }
 
-/** Writes the `vignette` profile, encoding `output` and streaming to `target`, and the collection if it is missing. */
-export async function writeObsProfile(config: string, output: ObsOutput, target: ObsStreamTarget): Promise<void> {
+/** Writes the `vignette` profile, encoding as `output` says and streaming to `target`, and `collection` if missing. */
+export async function writeObsProfile(
+  config: string,
+  output: ObsEncoding,
+  target: ObsStreamTarget,
+  collection: string
+): Promise<void> {
   const profile = join(config, 'basic', 'profiles', OBS_PROFILE);
   await mkdir(profile, { recursive: true });
   const basic = ini({
@@ -186,7 +195,7 @@ export async function writeObsProfile(config: string, output: ObsOutput, target:
   await writeFile(join(profile, 'basic.ini'), basic);
   await writeFile(join(profile, 'streamEncoder.json'), JSON.stringify(encoder, null, 2));
   await writeFile(join(profile, 'service.json'), JSON.stringify(service, null, 2));
-  await writeCollection(join(config, 'basic', 'scenes', `${OBS_COLLECTION}.json`));
+  await writeCollection(join(config, 'basic', 'scenes', `${collection}.json`), collection);
 }
 
 /**
@@ -204,7 +213,7 @@ export type Collection = z.output<typeof CollectionSchema>;
  * when missing, and again when it has no scenes: an OBS that loads a collection with none has no current scene, and
  * obs-websocket then crashes OBS (a null name in `strlen`) as soon as a client asks for the program scene.
  */
-async function writeCollection(file: string): Promise<void> {
+async function writeCollection(file: string, name: string): Promise<void> {
   const text = await readFile(file, 'utf8').catch(() => undefined);
   const kept = text === undefined ? undefined : CollectionSchema.safeParse(JSON.parse(text));
   if (kept?.success && kept.data.scene_order.length > 0) return;
@@ -217,7 +226,7 @@ async function writeCollection(file: string): Promise<void> {
     settings: { items: [], id_counter: 0, custom_size: false }
   };
   const collection = {
-    name: OBS_COLLECTION,
+    name,
     current_scene: BASE_SCENE,
     current_program_scene: BASE_SCENE,
     scene_order: [{ name: BASE_SCENE }],

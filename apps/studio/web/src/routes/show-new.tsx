@@ -23,8 +23,8 @@ import { useCreateShow } from '@/queries/shows';
 export const meta: Route.MetaFunction = () => [{ title: 'New show · conservation.tv studio' }];
 
 /**
- * Making a show by name, its programme at the default encoding, as a dialog over the shows page at `shows/new`. Once
- * it is made, its page opens in the dialog's place.
+ * Making a show by name, as a dialog over the shows page at `shows/new`. Once it is made, its page opens in the
+ * dialog's place.
  */
 const ShowNewRoute: FC = () => {
   const organisationId = useOrganisationId();
@@ -54,8 +54,7 @@ const ShowNewRoute: FC = () => {
           <DialogHeader>
             <DialogTitle>New show</DialogTitle>
             <DialogDescription>
-              It follows the organisation’s broadcast, at 1080p and 30 frames a second until you change it. Choose the
-              agent that sends it out, and the channels it goes to, on its page.
+              It is on screen once it is composed, on its page. It goes out through each output you have follow it.
             </DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-4">

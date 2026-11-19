@@ -20,21 +20,21 @@ import { useSignalHoverPreview } from '@/components/signal/signal-things';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { topologyQueryOptions } from '@/queries/topology';
 
-// The organisation's signal on its overview: how it runs from the cameras, through the broadcast its shows follow, to
-// the channels they go out to, as it stands. Read-only: the signal view with no editing composed on. Resting the
+// The organisation's signal on its overview: how it runs from the cameras, through the shows that place them and the
+// outputs following those, to the channels the outputs go out to, as it stands. Read-only: the signal view with no editing composed on. Resting the
 // pointer on a thing previews its path; pressing it opens its page; pressing a network opens it.
 
 /** How long the pointer rests on a thing before its path is previewed, in milliseconds. */
 const PREVIEW_AFTER = 800;
 
 /**
- * Where each thing on the view has its page, under the organisation, by its id: a broadcast its show's; a channel the
- * show it's forwarded from (there's no page for a channel alone); a camera its own; any other source the first stream
- * from it.
+ * Where each thing on the view has its page, under the organisation, by its id: a broadcast its output's; a channel the
+ * output it's forwarded from (there's no page for a channel alone); a camera its own; any other source the first
+ * stream from it.
  */
 function pagesOf(topology: Topology): Map<string, string> {
-  const shows = topology.shows.flatMap(show =>
-    [show.id, ...show.forwards.map(forward => forward.id)].map(id => [id, `shows/${show.id}`] as const)
+  const outputs = topology.outputs.flatMap(output =>
+    [output.id, ...output.forwards.map(forward => forward.id)].map(id => [id, `outputs/${output.id}`] as const)
   );
   const cameras = topology.devices
     .filter(device => device.kind === 'camera')
@@ -43,7 +43,7 @@ function pagesOf(topology: Topology): Map<string, string> {
     stream.sourceDeviceId ? [[stream.sourceDeviceId, `streams/${stream.id}`] as const] : []
   );
   // A later entry wins: a camera's own page over its streams', and an ingest's first stream over its others.
-  return new Map([...ingests.toReversed(), ...cameras, ...shows]);
+  return new Map([...ingests.toReversed(), ...cameras, ...outputs]);
 }
 
 /** The view, and what it links to, from the topology: one select, so both are worked out once a refresh. */
@@ -70,7 +70,8 @@ export const OverviewSignal: FC = () => {
                 <SignalAttention />
               </SectionTitle>
               <SectionDescription>
-                From the cameras, through the broadcast every show follows, to the channels each show goes out to.
+                From the cameras, through the shows that place them and the outputs following those, to the channels
+                each output goes out to.
               </SectionDescription>
             </SectionHeading>
           </SectionHeader>

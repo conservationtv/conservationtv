@@ -9,7 +9,6 @@ import { describeRoute } from 'hono-openapi';
 import { handleError, handleNotFound } from './middleware/errors.ts';
 import account from './routes/account.ts';
 import agents from './routes/agents.ts';
-import broadcast from './routes/broadcast.ts';
 import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
 import channelCallbacks from './routes/channel-callbacks.ts';
@@ -25,6 +24,7 @@ import irohSessions from './routes/iroh-sessions.ts';
 import networks from './routes/networks.ts';
 import organisations from './routes/organisations.ts';
 import reports from './routes/reports.ts';
+import outputs from './routes/outputs.ts';
 import shows from './routes/shows.ts';
 import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
@@ -86,9 +86,9 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/streams', streams)
   .route('/organisations/:id/subjects', subjects)
   .route('/organisations/:id/topology', topology)
-  // The organisation's broadcast, followed over a WebSocket rather than called, and the shows that send it out.
-  .route('/organisations/:id/show', broadcast)
+  // What is on screen, each show followed over a WebSocket rather than called, and the outputs that send it out.
   .route('/organisations/:id/shows', shows)
+  .route('/organisations/:id/outputs', outputs)
   // Where the shows go out to, and Twitch's return from connecting one (a browser navigation).
   .route('/organisations/:id/channels', channels)
   .route('/channels', channelCallbacks)

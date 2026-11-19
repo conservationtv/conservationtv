@@ -11,31 +11,9 @@ export const ShowSchema = z.object({
     name: z.string(),
     id: z.string(),
     createdAt: z.string(),
-    width: z.number(),
-    height: z.number(),
-    fps: z.number(),
-    bitrateKbps: z.number(),
-    keyframeSeconds: z.number(),
-    output: z.object({
-        createdAt: z.string(),
-        deviceId: z.string()
-    }).nullable(),
-    recorders: z.array(z.object({
-        params: z.record(z.string(), z.unknown()),
-        id: z.string(),
-        createdAt: z.string(),
-        kind: z.literal('obs')
-    })),
-    forwards: z.array(z.object({
-        id: z.string(),
-        createdAt: z.string(),
-        enabled: z.boolean(),
-        channelId: z.string()
-    })),
-    previews: z.array(z.object({
-        id: z.string(),
-        createdAt: z.string(),
-        gatewayId: z.string()
+    outputs: z.array(z.object({
+        name: z.string(),
+        id: z.string()
     }))
 });
 

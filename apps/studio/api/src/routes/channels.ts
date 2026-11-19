@@ -63,10 +63,10 @@ export const connectStateKey = (state: string) => `channel-connect:twitch:${stat
 export const ConnectStateSchema = z.object({ organisationId: z.uuid(), userId: z.string() });
 export type ConnectState = z.output<typeof ConnectStateSchema>;
 
-// Where an organisation's shows go out to (src/services/channels.ts): members list them, administrators add, rename
-// and remove them; each show forwards to the channels it has an enabled forward to (src/routes/shows.ts). An RTMP
+// Where an organisation's outputs go out to (src/services/channels.ts): members list them, administrators add, rename
+// and remove them; each output forwards to the channels it has an enabled forward to (src/routes/outputs.ts). An RTMP
 // destination is entered by hand; a Twitch channel is connected by OAuth, starting here (`twitch.authorize`) and
-// finishing at /channels/twitch/callback (src/routes/channel-callbacks.ts). A show's output agent asks for the ingest of
+// finishing at /channels/twitch/callback (src/routes/channel-callbacks.ts). An output's agent asks for the ingest of
 // each channel it forwards to, signed as its device, when it forwards the programme, and for what a Twitch channel's
 // platform says of it (`stats.get`) whenever it reports on the channel: the API reads Twitch itself, so the
 // connection's tokens never leave it.
@@ -190,7 +190,7 @@ export default new Hono()
       operationId: 'organisations.channels.update',
       ...operationVersion(1),
       summary: 'Rename a channel',
-      description: 'Administrators only. Which shows go out to it is theirs: `organisations.shows.forwards.*`.',
+      description: 'Administrators only. Which outputs go out to it is theirs: `organisations.outputs.forwards.*`.',
       responses: {
         200: { description: 'The channel' },
         400: invalidRequest,
@@ -245,7 +245,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Read where to send the broadcast for a channel',
       description:
-        "Devices holding `channelBroadcaster` at the organisation only, which the show's output is granted while it is the output, signed as the device (an RFC 9421 HTTP Message Signature, as for `deviceConfiguration.get`): the RTMP(S) server URL and stream key to forward the program to. For Twitch, read from Twitch now, refreshing the connection's tokens as needed.",
+        "Devices holding `channelBroadcaster` at the organisation only, which an output's agent is granted while it runs the output, signed as the device (an RFC 9421 HTTP Message Signature, as for `deviceConfiguration.get`): the RTMP(S) server URL and stream key to forward the program to. For Twitch, read from Twitch now, refreshing the connection's tokens as needed.",
       responses: {
         200: { description: 'The ingest' },
         400: invalidRequest,
@@ -287,7 +287,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: "Read what a channel's platform says of it now",
       description:
-        "Devices holding `channelBroadcaster` at the organisation only, which the show's output is granted while it is the output, signed as the device (an RFC 9421 HTTP Message Signature, as for `deviceConfiguration.get`): whether the channel is `live` and, while it is, its `viewers`, when it went live (`startedAt`), its `title`, `category` and `language`, read from Twitch now, refreshing the connection's tokens as needed. `observedAt` is when it was read. The output reports these about `channel:<channelId>`. Only Twitch channels say anything: `unsupported_channel` for an RTMP destination.",
+        "Devices holding `channelBroadcaster` at the organisation only, which an output's agent is granted while it runs the output, signed as the device (an RFC 9421 HTTP Message Signature, as for `deviceConfiguration.get`): whether the channel is `live` and, while it is, its `viewers`, when it went live (`startedAt`), its `title`, `category` and `language`, read from Twitch now, refreshing the connection's tokens as needed. `observedAt` is when it was read. The output reports these about `channel:<channelId>`. Only Twitch channels say anything: `unsupported_channel` for an RTMP destination.",
       responses: {
         200: { description: 'What the platform says' },
         400: invalidRequest,

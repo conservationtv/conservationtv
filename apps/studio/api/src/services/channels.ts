@@ -4,10 +4,10 @@ import { channelCredentials, channels } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { unchanged } from '../topology/transaction.ts';
 
-// Where an organisation's shows go out to (src/db/schemas/channels.ts), all in the principal's request session: members
+// Where an organisation's outputs go out to (src/db/schemas/channels.ts), all in the principal's request session: members
 // see the channels, administrators connect and manage them, and their credentials (`channel_credential`) are read and
-// refreshed only by `channelBroadcaster`, which administrators hold and each show's output agent is granted. Which
-// shows forward to a channel is the shows' (`show_forward`, src/services/shows.ts).
+// refreshed only by `channelBroadcaster`, which administrators hold and each output's agent is granted. Which outputs
+// forward to a channel is the outputs' (`output_forward`, src/services/outputs.ts).
 // No trusted code reads a stream key: row-level security decides who does.
 
 /** What is listed of a channel. Its credentials are in a table of their own. */

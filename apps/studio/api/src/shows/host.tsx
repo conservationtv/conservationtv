@@ -12,7 +12,7 @@ import {
 import yoga from '@strangecyan/vignette/yoga.wasm';
 import type { Presentation } from './broadcast.ts';
 
-// One organisation's broadcast (packages/shows), composed here and followed over hibernating WebSockets. Its
+// One show (its broadcast, packages/shows), composed here and followed over hibernating WebSockets. Its
 // composition (the state the show is composed from) belongs to the object, and changes only when it is set: setting it
 // composes the show, keeps the result (what a new socket is sent first: setup, then the latest update) in storage, and
 // sends what changed to every socket. Following it changes nothing: a socket is sent what was kept, and refused until

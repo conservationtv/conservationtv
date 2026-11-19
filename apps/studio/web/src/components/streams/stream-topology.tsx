@@ -46,7 +46,7 @@ export interface TopologyDiagramProps {
 }
 
 /**
- * A topology drawn: a stream's source and exposures, or a show's output, programme, forwards and previews. Each
+ * A topology drawn: a stream's source and exposures, or an output's agent, programme, forwards and previews. Each
  * section (the network, the internet) is a tree of its nodes in delivery order, each node indented a step from what
  * feeds it, and the sections stand side by side, joined across by their connectors.
  */

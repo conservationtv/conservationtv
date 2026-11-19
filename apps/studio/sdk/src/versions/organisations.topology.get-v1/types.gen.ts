@@ -12,9 +12,16 @@ export type Error = {
 export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
 
 export type Topology = {
-    broadcast: {
+    shows: Array<{
         placed: Array<string>;
-    };
+        name: string;
+        id: string;
+        createdAt: string;
+        outputs: Array<{
+            name: string;
+            id: string;
+        }>;
+    }>;
     networks: Array<{
         name: string;
         id: string;
@@ -88,16 +95,18 @@ export type Topology = {
             rendition: Rendition;
         }>;
     }>;
-    shows: Array<{
+    outputs: Array<{
         name: string;
         id: string;
         createdAt: string;
+        control: 'external' | 'show';
+        showId: string | null;
         width: number;
         height: number;
         fps: number;
         bitrateKbps: number;
         keyframeSeconds: number;
-        output: {
+        device: {
             createdAt: string;
             deviceId: string;
         } | null;

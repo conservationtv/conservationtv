@@ -7,7 +7,7 @@ import { GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema, GetOrganisati
 
 export const MetricListV1ParamsSchema = z.object({
     id: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.id.nonoptional().describe('The organisation.'),
-    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, a show\'s program (by the show\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
+    subjectId: GetOrganisationsByIdSubjectsBySubjectIdMetricsPathSchema.shape.subjectId.nonoptional().describe('What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output\'s programme (by the output\'s ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else.'),
     name: GetOrganisationsByIdSubjectsBySubjectIdMetricsQuerySchema.shape.name.optional().describe('Only series of this metric.')
 });
 
