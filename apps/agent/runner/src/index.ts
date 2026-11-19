@@ -17,6 +17,16 @@ const logger = getLogger(['agent', 'runner']);
 
 const environment = createEnvironment();
 
+// The agent's warnings and errors also go to the studio API, with its events, once it has started.
+await configure({
+  reset: true,
+  sinks: { console: getConsoleSink({ formatter }), studio: environment.agent.logSink },
+  loggers: [
+    { category: 'agent', lowestLevel: 'info', sinks: ['console', 'studio'] },
+    { category: ['logtape', 'meta'], lowestLevel: 'warning', sinks: ['console'] }
+  ]
+});
+
 // A signal, an uncaught error or an unhandled rejection all stop the agent once. A second signal, or the delay
 // running out, exits immediately; an error exits non-zero.
 closeWithGrace({ delay: environment.variables.SHUTDOWN_DELAY_MS }, async ({ signal, err }) => {

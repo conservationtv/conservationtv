@@ -29,6 +29,7 @@ interface CameraInput {
 interface SubjectStateInput {
   subjectId: string;
   health: string;
+  activity: string;
   freshness: 'fresh' | 'stale';
 }
 

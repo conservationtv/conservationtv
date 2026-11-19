@@ -212,7 +212,9 @@ const connectorStroke = {
   unknown: 'stroke-border',
   degraded: 'stroke-amber-500',
   failing: 'stroke-destructive',
-  affected: 'stroke-destructive/40'
+  affected: 'stroke-destructive/40',
+  idle: 'stroke-border',
+  off: 'stroke-border'
 } satisfies Record<NodeStatus, string>;
 
 /** Straight across on one row; otherwise across to halfway, down, and across, with rounded corners. */
@@ -274,7 +276,9 @@ const statusDescriptions = {
   unknown: 'not reported yet',
   degraded: 'degraded',
   failing: 'failing',
-  affected: 'affected by a failure upstream'
+  affected: 'affected by a failure upstream',
+  idle: 'idle: nothing is asking for it',
+  off: 'switched off'
 } satisfies Record<NodeStatus, string>;
 
 interface NodePillProps {
@@ -289,7 +293,9 @@ const pillStyles = {
   unknown: 'border-border text-foreground [&_svg]:text-custom-icon-stream',
   degraded: 'border-amber-500 text-foreground [&_svg]:text-custom-icon-stream',
   failing: 'border-dashed border-destructive bg-destructive-subtle text-destructive shadow-none',
-  affected: 'border-dashed border-destructive/40 text-destructive/50 shadow-none'
+  affected: 'border-dashed border-destructive/40 text-destructive/50 shadow-none',
+  idle: 'border-border text-custom-text-secondary [&_svg]:text-custom-icon-stream',
+  off: 'border-dashed border-border text-custom-text-secondary shadow-none'
 } satisfies Record<NodeStatus, string>;
 
 /** A node, drawn for its status, or dashed and muted while off. */

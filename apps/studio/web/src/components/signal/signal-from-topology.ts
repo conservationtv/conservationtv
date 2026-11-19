@@ -47,11 +47,23 @@ function statusesOf(topology: Topology): StatusOf {
   };
 }
 
-const SEVERITY = { unknown: 0, ok: 1, degraded: 2, affected: 3, failing: 4 } satisfies Record<SignalStatus, number>;
+// What isn't judged says least: only when nothing else is known does a group read as off, then idle, then unknown.
+const SEVERITY = {
+  off: 0,
+  idle: 1,
+  unknown: 2,
+  ok: 3,
+  degraded: 4,
+  affected: 5,
+  failing: 6
+} satisfies Record<SignalStatus, number>;
 
 /** The worst of `statuses`: unknown only when nothing is known, and when there are none. */
 function worstStatus(statuses: SignalStatus[]): SignalStatus {
-  return statuses.reduce<SignalStatus>((worst, each) => (SEVERITY[each] > SEVERITY[worst] ? each : worst), 'unknown');
+  return statuses.reduce<SignalStatus>(
+    (worst, each) => (SEVERITY[each] > SEVERITY[worst] ? each : worst),
+    statuses[0] ?? 'unknown'
+  );
 }
 
 /**

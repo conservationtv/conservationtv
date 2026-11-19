@@ -31,6 +31,7 @@ import reports from './routes/reports.ts';
 import outputs from './routes/outputs.ts';
 import shows from './routes/shows.ts';
 import streams from './routes/streams.ts';
+import status from './routes/status.ts';
 import subjects from './routes/subjects.ts';
 import topology from './routes/topology.ts';
 import whoami from './routes/whoami.ts';
@@ -100,6 +101,7 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/streams', streams)
   .route('/organisations/:id/subjects', subjects)
   .route('/organisations/:id/topology', topology)
+  .route('/organisations/:id/status', status)
   // What is on screen, each show followed over a WebSocket rather than called, and the outputs that send it out.
   .route('/organisations/:id/shows', shows)
   .route('/organisations/:id/outputs', outputs)

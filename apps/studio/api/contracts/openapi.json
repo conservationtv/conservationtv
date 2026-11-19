@@ -1156,6 +1156,14 @@
                     "unhealthy"
                   ]
                 },
+                "activity": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "idle",
+                    "off"
+                  ]
+                },
                 "state": {
                   "type": "object",
                   "properties": {
@@ -1254,6 +1262,7 @@
               "required": [
                 "subjectId",
                 "health",
+                "activity",
                 "state",
                 "freshness",
                 "observedAt",
@@ -1267,6 +1276,147 @@
         },
         "required": [
           "states"
+        ]
+      },
+      "Transition": {
+        "type": "object",
+        "properties": {
+          "transitions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "subjectId": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "health": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "unhealthy"
+                  ]
+                },
+                "activity": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "idle",
+                    "off"
+                  ]
+                },
+                "previousHealth": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "previousActivity": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "idle",
+                        "off"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "findings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "reporterId": {
+                        "type": "string"
+                      },
+                      "check": {
+                        "type": "string"
+                      },
+                      "health": {
+                        "type": "string",
+                        "enum": [
+                          "unknown",
+                          "healthy",
+                          "degraded",
+                          "unhealthy"
+                        ]
+                      },
+                      "summary": {
+                        "type": "string"
+                      },
+                      "evidence": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "seriesId": {
+                              "type": "string"
+                            },
+                            "dimensions": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "string"
+                              }
+                            },
+                            "value": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "seriesId",
+                            "dimensions",
+                            "value"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "reporterId",
+                      "check",
+                      "health",
+                      "summary",
+                      "evidence"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "subjectId",
+                "at",
+                "health",
+                "activity",
+                "previousHealth",
+                "previousActivity",
+                "findings"
+              ]
+            }
+          }
+        },
+        "required": [
+          "transitions"
         ]
       },
       "Metric": {
@@ -1377,6 +1527,14 @@
                       "unhealthy"
                     ]
                   },
+                  "activity": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "idle",
+                      "off"
+                    ]
+                  },
                   "state": {
                     "type": "object",
                     "properties": {
@@ -1474,6 +1632,7 @@
                 },
                 "required": [
                   "health",
+                  "activity",
                   "state",
                   "freshness",
                   "observedAt",
@@ -1506,6 +1665,14 @@
                     "healthy",
                     "degraded",
                     "unhealthy"
+                  ]
+                },
+                "activity": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "idle",
+                    "off"
                   ]
                 },
                 "state": {
@@ -1652,6 +1819,7 @@
               "required": [
                 "reporterId",
                 "health",
+                "activity",
                 "state",
                 "freshness",
                 "observedAt",
@@ -2420,6 +2588,14 @@
                     "unhealthy"
                   ]
                 },
+                "activity": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "idle",
+                    "off"
+                  ]
+                },
                 "state": {
                   "type": "object",
                   "properties": {
@@ -2518,6 +2694,7 @@
               "required": [
                 "subjectId",
                 "health",
+                "activity",
                 "state",
                 "freshness",
                 "observedAt",
@@ -2538,6 +2715,413 @@
           "outputs",
           "channels",
           "states"
+        ]
+      },
+      "Status": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "healthy",
+              "degraded",
+              "idle",
+              "off",
+              "failing"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "subjectId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "degraded",
+                    "failing"
+                  ]
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "affects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "output",
+                          "stream",
+                          "show",
+                          "channel"
+                        ]
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "id",
+                      "name"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "subjectId",
+                "kind",
+                "name",
+                "status",
+                "reasons",
+                "affects"
+              ]
+            }
+          },
+          "streams": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "idle",
+                    "off",
+                    "failing"
+                  ]
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "subjectIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "causes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status",
+                "summary",
+                "subjectIds",
+                "causes"
+              ]
+            }
+          },
+          "shows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "idle",
+                    "off",
+                    "failing"
+                  ]
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "subjectIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "causes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status",
+                "summary",
+                "subjectIds",
+                "causes"
+              ]
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "idle",
+                    "off",
+                    "failing"
+                  ]
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "subjectIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "causes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status",
+                "summary",
+                "subjectIds",
+                "causes"
+              ]
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "idle",
+                    "off",
+                    "failing"
+                  ]
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "subjectIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "causes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status",
+                "summary",
+                "subjectIds",
+                "causes"
+              ]
+            }
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "idle",
+                    "off",
+                    "failing",
+                    "affected"
+                  ]
+                },
+                "own": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "idle",
+                    "off",
+                    "failing",
+                    "affected"
+                  ]
+                },
+                "health": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "activity": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "idle",
+                        "off"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "freshness": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "causedBy": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "subjectId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "fedBy": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "unreported": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "status",
+                "own",
+                "health",
+                "activity",
+                "freshness",
+                "reasons",
+                "causedBy",
+                "subjectId",
+                "kind",
+                "name",
+                "fedBy"
+              ]
+            }
+          }
+        },
+        "required": [
+          "status",
+          "summary",
+          "problems",
+          "streams",
+          "shows",
+          "outputs",
+          "channels",
+          "subjects"
         ]
       },
       "Show": {
@@ -2919,6 +3503,24 @@
           "mediamtx": {
             "type": "object",
             "properties": {
+              "probes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "subjectId",
+                    "url"
+                  ]
+                }
+              },
               "gatewayId": {
                 "type": "string"
               },
@@ -3009,6 +3611,7 @@
               }
             },
             "required": [
+              "probes",
               "gatewayId",
               "auth",
               "paths",
@@ -10931,9 +11534,9 @@
     "/organisations/{id}/subjects/states": {
       "get": {
         "operationId": "organisations.subjects.states.list",
-        "x-operation-version": 1,
+        "x-operation-version": 2,
         "summary": "List the organisation's subjects' current states",
-        "description": "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
+        "description": "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Each has its `activity`: only an `active` subject is judged, so one that is `idle` (nothing is asking for it) or `off` (switched off) has `unknown` health, and its findings say why. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
         "responses": {
           "200": {
             "description": "The states, by subject ID",
@@ -11018,6 +11621,123 @@
               ]
             },
             "description": "Only subjects of this kind: the part of their ID before the colon."
+          }
+        ],
+        "x-operation-versions": [
+          1,
+          2
+        ]
+      }
+    },
+    "/organisations/{id}/subjects/transitions": {
+      "get": {
+        "operationId": "organisations.subjects.transitions.list",
+        "x-operation-version": 1,
+        "summary": "List the changes of the organisation's subjects' states",
+        "description": "Each change of a subject's combined health or activity, newest first: what it became, what it was before (null for its first state), when the reports it was derived from were observed, and the findings it became it for. Optionally one subject's. A subject going stale is not a change, since freshness is evaluated when read: the change after a silence shows it by its time.",
+        "responses": {
+          "200": {
+            "description": "The transitions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transition"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "description": "At most this many, newest first."
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "description": "Only those observed before this time, to page back."
+          },
+          {
+            "in": "query",
+            "name": "subjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+            },
+            "description": "Only this subject's."
+          },
+          {
+            "in": "query",
+            "name": "beforeId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "description": "With `before`, the ID of the last transition read: page back from it, past those observed at the same time. Many transitions share a time, since a batch's are observed together."
           }
         ],
         "x-operation-versions": [
@@ -11262,9 +11982,9 @@
     "/organisations/{id}/subjects/{subjectId}/state": {
       "get": {
         "operationId": "organisations.subjects.state",
-        "x-operation-version": 1,
+        "x-operation-version": 2,
         "summary": "Read a subject's current state",
-        "description": "The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one.",
+        "description": "The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one. The state and each opinion have their `activity`: only an `active` subject is judged, so one that is `idle` or `off` has `unknown` health, and its findings say why.",
         "responses": {
           "200": {
             "description": "The state, with opinions oldest reporter first",
@@ -11341,7 +12061,8 @@
           }
         ],
         "x-operation-versions": [
-          1
+          1,
+          2
         ]
       }
     },
@@ -11845,9 +12566,9 @@
     "/organisations/{id}/topology": {
       "get": {
         "operationId": "organisations.topology.get",
-        "x-operation-version": 1,
+        "x-operation-version": 2,
         "summary": "Read an organisation's whole topology",
-        "description": "Its networks, devices, gateways (the built-in ones first), streams, shows, outputs and channels, as their lists read them, each show with the exposures its composition places, in its order (`placed`, none before it is composed); and every subject's current state, as `organisations.subjects.states.list` reads them.",
+        "description": "Its networks, devices, gateways (the built-in ones first), streams, shows, outputs and channels, as their lists read them, each show with the exposures its composition places, in its order (`placed`, none before it is composed); and every subject's current state, as `organisations.subjects.states.list` reads them. Each state has its `activity`: only an `active` subject is judged. What the states add up to is `organisations.status.get`.",
         "responses": {
           "200": {
             "description": "The topology",
@@ -11855,6 +12576,93 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Topology"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          }
+        ],
+        "x-operation-versions": [
+          1,
+          2
+        ]
+      }
+    },
+    "/organisations/{id}/status": {
+      "get": {
+        "operationId": "organisations.status.get",
+        "x-operation-version": 1,
+        "summary": "Read an organisation's status",
+        "description": "Whether the organisation is working, and what is wrong if not. Each subject's own status is from its state (`failing` is reporting unhealthy, or gone quiet; `idle` and `off` aren't judged, since nothing asks for it or it is switched off; `unknown` has reported nothing to judge by); failures then flow along the signal's path, from a camera through its stream's deliveries, and from an output's agent through its programme to its forwards, previews, recorders and channels, so what a failing subject feeds is `affected` (`causedBy` what) rather than a problem of its own. A subject nothing is set to report about (an output with no agent's parts, a delivery no agent delivers, a camera no agent probes, a camera that is switched off and its streams' deliveries, a forward that is switched off) is `off`, whatever was last said of it, and says why. `streams`, `shows` (the exposures each places), `outputs` and `channels` sum their parts up, each in a sentence, and `status` and `summary` the whole. `problems` are only the root causes: each subject failing or degraded itself, why (`reasons`, its state's findings in words), and what that affects.",
+        "responses": {
+          "200": {
+            "description": "The status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -17359,9 +18167,9 @@
     "/device-configuration": {
       "get": {
         "operationId": "deviceConfiguration.get",
-        "x-operation-version": 1,
+        "x-operation-version": 2,
         "summary": "Read the signing device's configuration",
-        "description": "What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for the agent an output runs on (`organisations.outputs.setDevice`): the `output`, its organisation, and its `control`, who drives OBS's scenes (`show`: the `show` runtime; `external`: something outside the studio, which reads how to reach OBS from `organisations.outputs.control.get`, the agent having reported it with `organisations.outputs.control.report`, and plays any of the organisation's exposures through it), the `encoding` the programme is sent at, the `forwards`, one for each channel the output has an enabled forward to, naming the forward and the channel whose server and stream key it reads with `organisations.channels.ingest`, and whether the channel has `stats` it reads with `organisations.channels.stats.get` and reports about `channel:<channelId>`, the `previews` it publishes the programme to, each with the `connect` ask (`organisations.outputs.previews.connect`) for where to and its token, the `recording` it makes alongside streaming, when the output has a recorder, and the `program`'s subject ID, to report about it against; it reads each exposure OBS plays with `organisations.streams.exposures.connect`. `show`, for that agent while the output follows a show under `show` control: the show's `id`, and the `url` it signs a WebSocket upgrade to as the device to follow it. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body.",
+        "description": "What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for the agent an output runs on (`organisations.outputs.setDevice`): the `output`, its organisation, and its `control`, who drives OBS's scenes (`show`: the `show` runtime; `external`: something outside the studio, which reads how to reach OBS from `organisations.outputs.control.get`, the agent having reported it with `organisations.outputs.control.report`, and plays any of the organisation's exposures through it), the `encoding` the programme is sent at, the `forwards`, one for each channel the output has an enabled forward to, naming the forward and the channel whose server and stream key it reads with `organisations.channels.ingest`, and whether the channel has `stats` it reads with `organisations.channels.stats.get` and reports about `channel:<channelId>`, the `previews` it publishes the programme to, each with the `connect` ask (`organisations.outputs.previews.connect`) for where to and its token, the `recording` it makes alongside streaming, when the output has a recorder, and the `program`'s subject ID, to report about it against; it reads each exposure OBS plays with `organisations.streams.exposures.connect`. `show`, for that agent while the output follows a show under `show` control: the show's `id`, and the `url` it signs a WebSocket upgrade to as the device to follow it. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body. From this version, `mediamtx` also has the `probes` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (`camera.reachable`), so a camera nothing is reading is still known to be there.",
         "responses": {
           "200": {
             "description": "The configuration",
@@ -17405,7 +18213,8 @@
           }
         },
         "x-operation-versions": [
-          1
+          1,
+          2
         ]
       }
     },
@@ -30301,6 +31110,598 @@
               "error_description"
             ]
           },
+          "State": {
+            "type": "object",
+            "properties": {
+              "states": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    "activity": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "idle",
+                        "off"
+                      ]
+                    },
+                    "state": {
+                      "type": "object",
+                      "properties": {
+                        "findings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "reporterId": {
+                                "type": "string"
+                              },
+                              "check": {
+                                "type": "string"
+                              },
+                              "health": {
+                                "type": "string",
+                                "enum": [
+                                  "unknown",
+                                  "healthy",
+                                  "degraded",
+                                  "unhealthy"
+                                ]
+                              },
+                              "summary": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "seriesId": {
+                                      "type": "string"
+                                    },
+                                    "dimensions": {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "seriesId",
+                                    "dimensions",
+                                    "value"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "reporterId",
+                              "check",
+                              "health",
+                              "summary",
+                              "evidence"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "findings"
+                      ]
+                    },
+                    "freshness": {
+                      "type": "string",
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "computedAt": {
+                      "type": "string"
+                    },
+                    "contributingReporterIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidenceReportIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "subjectId",
+                    "health",
+                    "activity",
+                    "state",
+                    "freshness",
+                    "observedAt",
+                    "expiresAt",
+                    "computedAt",
+                    "contributingReporterIds",
+                    "evidenceReportIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "states"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/states": {
+          "get": {
+            "operationId": "organisations.subjects.states.list",
+            "x-operation-version": 2,
+            "summary": "List the organisation's subjects' current states",
+            "description": "Every subject's combined state, as the state consumer last derived it, each with its freshness evaluated now: a stale subject is unreachable, and keeps the health last observed. Each has its `activity`: only an `active` subject is judged, so one that is `idle` (nothing is asking for it) or `off` (switched off) has `unknown` health, and its findings say why. Optionally only subjects of one kind. Subjects the consumer has derived no state for are absent. Read one subject with `organisations.subjects.state` for its reporters' opinions.",
+            "responses": {
+              "200": {
+                "description": "The states, by subject ID",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/State"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "query",
+                "name": "kind",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "network",
+                    "device",
+                    "agent",
+                    "stream",
+                    "exposure",
+                    "program",
+                    "forward",
+                    "preview",
+                    "recorder",
+                    "channel",
+                    "external"
+                  ]
+                },
+                "description": "Only subjects of this kind: the part of their ID before the colon."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "2"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Transition": {
+            "type": "object",
+            "properties": {
+              "transitions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "at": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    "activity": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "idle",
+                        "off"
+                      ]
+                    },
+                    "previousHealth": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "unknown",
+                            "healthy",
+                            "degraded",
+                            "unhealthy"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "previousActivity": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "active",
+                            "idle",
+                            "off"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "reporterId": {
+                            "type": "string"
+                          },
+                          "check": {
+                            "type": "string"
+                          },
+                          "health": {
+                            "type": "string",
+                            "enum": [
+                              "unknown",
+                              "healthy",
+                              "degraded",
+                              "unhealthy"
+                            ]
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "seriesId": {
+                                  "type": "string"
+                                },
+                                "dimensions": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "seriesId",
+                                "dimensions",
+                                "value"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "reporterId",
+                          "check",
+                          "health",
+                          "summary",
+                          "evidence"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "subjectId",
+                    "at",
+                    "health",
+                    "activity",
+                    "previousHealth",
+                    "previousActivity",
+                    "findings"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "transitions"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/transitions": {
+          "get": {
+            "operationId": "organisations.subjects.transitions.list",
+            "x-operation-version": 1,
+            "summary": "List the changes of the organisation's subjects' states",
+            "description": "Each change of a subject's combined health or activity, newest first: what it became, what it was before (null for its first state), when the reports it was derived from were observed, and the findings it became it for. Optionally one subject's. A subject going stale is not a change, since freshness is evaluated when read: the change after a silence shows it by its time.",
+            "responses": {
+              "200": {
+                "description": "The transitions",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Transition"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "query",
+                "name": "limit",
+                "schema": {
+                  "default": 100,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000
+                },
+                "description": "At most this many, newest first."
+              },
+              {
+                "in": "query",
+                "name": "before",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "description": "Only those observed before this time, to page back."
+              },
+              {
+                "in": "query",
+                "name": "subjectId",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+                },
+                "description": "Only this subject's."
+              },
+              {
+                "in": "query",
+                "name": "beforeId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "description": "With `before`, the ID of the last transition read: page back from it, past those observed at the same time. Many transitions share a time, since a batch's are observed together."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
           "Metric": {
             "type": "object",
             "properties": {
@@ -30988,6 +32389,469 @@
                 "schema": {
                   "type": "string",
                   "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Subject": {
+            "type": "object",
+            "properties": {
+              "subjectId": {
+                "type": "string"
+              },
+              "state": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "health": {
+                        "type": "string",
+                        "enum": [
+                          "unknown",
+                          "healthy",
+                          "degraded",
+                          "unhealthy"
+                        ]
+                      },
+                      "activity": {
+                        "type": "string",
+                        "enum": [
+                          "active",
+                          "idle",
+                          "off"
+                        ]
+                      },
+                      "state": {
+                        "type": "object",
+                        "properties": {
+                          "findings": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "reporterId": {
+                                  "type": "string"
+                                },
+                                "check": {
+                                  "type": "string"
+                                },
+                                "health": {
+                                  "type": "string",
+                                  "enum": [
+                                    "unknown",
+                                    "healthy",
+                                    "degraded",
+                                    "unhealthy"
+                                  ]
+                                },
+                                "summary": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "seriesId": {
+                                        "type": "string"
+                                      },
+                                      "dimensions": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "value": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "seriesId",
+                                      "dimensions",
+                                      "value"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "reporterId",
+                                "check",
+                                "health",
+                                "summary",
+                                "evidence"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "findings"
+                        ]
+                      },
+                      "freshness": {
+                        "type": "string",
+                        "enum": [
+                          "fresh",
+                          "stale"
+                        ]
+                      },
+                      "observedAt": {
+                        "type": "string"
+                      },
+                      "expiresAt": {
+                        "type": "string"
+                      },
+                      "computedAt": {
+                        "type": "string"
+                      },
+                      "contributingReporterIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "evidenceReportIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "health",
+                      "activity",
+                      "state",
+                      "freshness",
+                      "observedAt",
+                      "expiresAt",
+                      "computedAt",
+                      "contributingReporterIds",
+                      "evidenceReportIds"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reachable": {
+                "type": "boolean"
+              },
+              "opinions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "reporterId": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    "activity": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "idle",
+                        "off"
+                      ]
+                    },
+                    "state": {
+                      "type": "object",
+                      "properties": {
+                        "findings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "check": {
+                                "type": "string"
+                              },
+                              "health": {
+                                "type": "string",
+                                "enum": [
+                                  "unknown",
+                                  "healthy",
+                                  "degraded",
+                                  "unhealthy"
+                                ]
+                              },
+                              "summary": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "seriesId": {
+                                      "type": "string"
+                                    },
+                                    "dimensions": {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "seriesId",
+                                    "dimensions",
+                                    "value"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "check",
+                              "health",
+                              "summary",
+                              "evidence"
+                            ]
+                          }
+                        },
+                        "consulted": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "metric": {
+                                "type": "string"
+                              },
+                              "read": {
+                                "type": "number"
+                              },
+                              "seriesIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "metric",
+                              "read",
+                              "seriesIds"
+                            ]
+                          }
+                        },
+                        "since": {
+                          "type": "string"
+                        },
+                        "pending": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "health": {
+                                  "type": "string",
+                                  "enum": [
+                                    "unknown",
+                                    "healthy",
+                                    "degraded",
+                                    "unhealthy"
+                                  ]
+                                },
+                                "since": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "health",
+                                "since"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "findings",
+                        "consulted",
+                        "since",
+                        "pending"
+                      ]
+                    },
+                    "freshness": {
+                      "type": "string",
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "evidenceReportIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "reporterId",
+                    "health",
+                    "activity",
+                    "state",
+                    "freshness",
+                    "observedAt",
+                    "expiresAt",
+                    "evidenceReportIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "subjectId",
+              "state",
+              "reachable",
+              "opinions"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/subjects/{subjectId}/state": {
+          "get": {
+            "operationId": "organisations.subjects.state",
+            "x-operation-version": 2,
+            "summary": "Read a subject's current state",
+            "description": "The combined state and each reporter's opinion beneath it, as the state consumer last derived them, each with its freshness evaluated now. A stale subject is unreachable, and keeps the health last observed rather than becoming unhealthy. `state` is null until the consumer has derived one. The state and each opinion have their `activity`: only an `active` subject is judged, so one that is `idle` or `off` has `unknown` health, and its findings say why.",
+            "responses": {
+              "200": {
+                "description": "The state, with opinions oldest reporter first",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Subject"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "subjectId",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^(?:(?:network|device|agent|stream|exposure|program|forward|preview|recorder|channel):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|external:\\S.{0,499})$"
+                },
+                "required": true,
+                "description": "What the report is about: `<kind>:<id>` for a network, device, agent, stream or exposure, an output's programme (by the output's ID), one of its forwards, previews or recorders, or a channel it goes out to (lowercase ID), or `external:<name>` for anything else."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "2"
                 }
               }
             ]
@@ -32708,6 +34572,1481 @@
                   "application/json": {
                     "schema": {
                       "$ref": "#/components/schemas/Topology"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
+          "Topology": {
+            "type": "object",
+            "properties": {
+              "shows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "placed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "outputs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "id"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "placed",
+                    "name",
+                    "id",
+                    "createdAt",
+                    "outputs"
+                  ]
+                }
+              },
+              "networks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "activeAgent": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "createdAt",
+                    "activeAgent"
+                  ]
+                }
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "camera",
+                        "browser"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "networkId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "name",
+                    "networkId",
+                    "publicKey",
+                    "publicId",
+                    "createdAt"
+                  ]
+                }
+              },
+              "gateways": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "const": "conservationtv"
+                        },
+                        "builtin": {
+                          "type": "boolean",
+                          "const": true
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "networkId": {
+                          "type": "null"
+                        },
+                        "settings": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "createdAt": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "builtin": {
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "networkId": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "settings": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "tls": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "hostname": {
+                                  "type": "string"
+                                },
+                                "address": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "issuedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "notAfter": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "attemptedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "error": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "hostname",
+                                "address",
+                                "issuedAt",
+                                "notAfter",
+                                "attemptedAt",
+                                "error"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "builtin",
+                        "name",
+                        "kind",
+                        "networkId",
+                        "settings",
+                        "createdAt",
+                        "tls"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "streams": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "sourceDeviceId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "exposures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "gatewayId": {
+                            "type": "string"
+                          },
+                          "renditions": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Rendition"
+                            }
+                          },
+                          "publisherDeviceId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "upstreamExposureId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "gatewayId",
+                          "renditions",
+                          "publisherDeviceId",
+                          "upstreamExposureId"
+                        ]
+                      }
+                    },
+                    "recorders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "exposureId": {
+                            "type": "string"
+                          },
+                          "rendition": {
+                            "$ref": "#/components/schemas/Rendition"
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "kind",
+                          "exposureId",
+                          "rendition"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "createdAt",
+                    "sourceDeviceId",
+                    "exposures",
+                    "recorders"
+                  ]
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "control": {
+                      "type": "string",
+                      "enum": [
+                        "external",
+                        "show"
+                      ]
+                    },
+                    "showId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "width": {
+                      "type": "number"
+                    },
+                    "height": {
+                      "type": "number"
+                    },
+                    "fps": {
+                      "type": "number"
+                    },
+                    "bitrateKbps": {
+                      "type": "number"
+                    },
+                    "keyframeSeconds": {
+                      "type": "number"
+                    },
+                    "device": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "createdAt": {
+                              "type": "string"
+                            },
+                            "deviceId": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "createdAt",
+                            "deviceId"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "recorders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "obs"
+                          }
+                        },
+                        "required": [
+                          "params",
+                          "id",
+                          "createdAt",
+                          "kind"
+                        ]
+                      }
+                    },
+                    "forwards": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "channelId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "enabled",
+                          "channelId"
+                        ]
+                      }
+                    },
+                    "previews": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "gatewayId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "gatewayId"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "createdAt",
+                    "control",
+                    "showId",
+                    "width",
+                    "height",
+                    "fps",
+                    "bitrateKbps",
+                    "keyframeSeconds",
+                    "device",
+                    "recorders",
+                    "forwards",
+                    "previews"
+                  ]
+                }
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "twitch",
+                        "rtmp"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "externalId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "externalLogin": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "name",
+                    "externalId",
+                    "externalLogin",
+                    "createdAt"
+                  ]
+                }
+              },
+              "states": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
+                    },
+                    "activity": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "idle",
+                        "off"
+                      ]
+                    },
+                    "state": {
+                      "type": "object",
+                      "properties": {
+                        "findings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "reporterId": {
+                                "type": "string"
+                              },
+                              "check": {
+                                "type": "string"
+                              },
+                              "health": {
+                                "type": "string",
+                                "enum": [
+                                  "unknown",
+                                  "healthy",
+                                  "degraded",
+                                  "unhealthy"
+                                ]
+                              },
+                              "summary": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "seriesId": {
+                                      "type": "string"
+                                    },
+                                    "dimensions": {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "seriesId",
+                                    "dimensions",
+                                    "value"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "reporterId",
+                              "check",
+                              "health",
+                              "summary",
+                              "evidence"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "findings"
+                      ]
+                    },
+                    "freshness": {
+                      "type": "string",
+                      "enum": [
+                        "fresh",
+                        "stale"
+                      ]
+                    },
+                    "observedAt": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "computedAt": {
+                      "type": "string"
+                    },
+                    "contributingReporterIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidenceReportIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "subjectId",
+                    "health",
+                    "activity",
+                    "state",
+                    "freshness",
+                    "observedAt",
+                    "expiresAt",
+                    "computedAt",
+                    "contributingReporterIds",
+                    "evidenceReportIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "shows",
+              "networks",
+              "devices",
+              "gateways",
+              "streams",
+              "outputs",
+              "channels",
+              "states"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/topology": {
+          "get": {
+            "operationId": "organisations.topology.get",
+            "x-operation-version": 2,
+            "summary": "Read an organisation's whole topology",
+            "description": "Its networks, devices, gateways (the built-in ones first), streams, shows, outputs and channels, as their lists read them, each show with the exposures its composition places, in its order (`placed`, none before it is composed); and every subject's current state, as `organisations.subjects.states.list` reads them. Each state has its `activity`: only an `active` subject is judged. What the states add up to is `organisations.status.get`.",
+            "responses": {
+              "200": {
+                "description": "The topology",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Topology"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "2"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Status": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "healthy",
+                  "degraded",
+                  "idle",
+                  "off",
+                  "failing"
+                ]
+              },
+              "summary": {
+                "type": "string"
+              },
+              "problems": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "degraded",
+                        "failing"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "affects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "output",
+                              "stream",
+                              "show",
+                              "channel"
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "id",
+                          "name"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "subjectId",
+                    "kind",
+                    "name",
+                    "status",
+                    "reasons",
+                    "affects"
+                  ]
+                }
+              },
+              "streams": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "idle",
+                        "off",
+                        "failing"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "causes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "summary",
+                    "subjectIds",
+                    "causes"
+                  ]
+                }
+              },
+              "shows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "idle",
+                        "off",
+                        "failing"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "causes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "summary",
+                    "subjectIds",
+                    "causes"
+                  ]
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "idle",
+                        "off",
+                        "failing"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "causes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "summary",
+                    "subjectIds",
+                    "causes"
+                  ]
+                }
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "idle",
+                        "off",
+                        "failing"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "subjectIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "causes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "summary",
+                    "subjectIds",
+                    "causes"
+                  ]
+                }
+              },
+              "subjects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "idle",
+                        "off",
+                        "failing",
+                        "affected"
+                      ]
+                    },
+                    "own": {
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "idle",
+                        "off",
+                        "failing",
+                        "affected"
+                      ]
+                    },
+                    "health": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "unknown",
+                            "healthy",
+                            "degraded",
+                            "unhealthy"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "activity": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "active",
+                            "idle",
+                            "off"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "freshness": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "fresh",
+                            "stale"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "causedBy": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subjectId": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "fedBy": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "unreported": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "own",
+                    "health",
+                    "activity",
+                    "freshness",
+                    "reasons",
+                    "causedBy",
+                    "subjectId",
+                    "kind",
+                    "name",
+                    "fedBy"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "status",
+              "summary",
+              "problems",
+              "streams",
+              "shows",
+              "outputs",
+              "channels",
+              "subjects"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/status": {
+          "get": {
+            "operationId": "organisations.status.get",
+            "x-operation-version": 1,
+            "summary": "Read an organisation's status",
+            "description": "Whether the organisation is working, and what is wrong if not. Each subject's own status is from its state (`failing` is reporting unhealthy, or gone quiet; `idle` and `off` aren't judged, since nothing asks for it or it is switched off; `unknown` has reported nothing to judge by); failures then flow along the signal's path, from a camera through its stream's deliveries, and from an output's agent through its programme to its forwards, previews, recorders and channels, so what a failing subject feeds is `affected` (`causedBy` what) rather than a problem of its own. A subject nothing is set to report about (an output with no agent's parts, a delivery no agent delivers, a camera no agent probes, a camera that is switched off and its streams' deliveries, a forward that is switched off) is `off`, whatever was last said of it, and says why. `streams`, `shows` (the exposures each places), `outputs` and `channels` sum their parts up, each in a sentence, and `status` and `summary` the whole. `problems` are only the root causes: each subject failing or degraded itself, why (`reasons`, its state's findings in words), and what that affects.",
+            "responses": {
+              "200": {
+                "description": "The status",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Status"
                     }
                   }
                 }
@@ -41129,6 +44468,550 @@
                 "schema": {
                   "type": "string",
                   "const": "1"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "MediamtxAuth": {
+            "type": "object",
+            "properties": {
+              "issuer": {
+                "type": "string"
+              },
+              "audience": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "issuer",
+              "audience"
+            ]
+          },
+          "MediamtxTls": {
+            "type": "object",
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "certificate": {
+                "type": "string"
+              },
+              "privateKey": {
+                "type": "string"
+              },
+              "notAfter": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hostname",
+              "certificate",
+              "privateKey",
+              "notAfter"
+            ]
+          },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
+          "Publisher": {
+            "type": "object",
+            "properties": {
+              "exposureId": {
+                "type": "string"
+              },
+              "connect": {
+                "$ref": "#/components/schemas/PublisherConnect"
+              },
+              "layout": {
+                "type": "string",
+                "const": "tracks"
+              },
+              "renditions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublishedRendition"
+                }
+              }
+            },
+            "required": [
+              "exposureId",
+              "connect",
+              "layout",
+              "renditions"
+            ]
+          },
+          "PublisherConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "streamId": {
+                "type": "string"
+              },
+              "exposureId": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string",
+                "const": "publish"
+              },
+              "protocol": {
+                "type": "string",
+                "const": "moq"
+              }
+            },
+            "required": [
+              "id",
+              "streamId",
+              "exposureId",
+              "action",
+              "protocol"
+            ]
+          },
+          "PublishedRendition": {
+            "type": "object",
+            "properties": {
+              "rendition": {
+                "$ref": "#/components/schemas/Rendition"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "rendition",
+              "path"
+            ]
+          },
+          "StatsConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "gatewayId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "gatewayId"
+            ]
+          },
+          "PreviewConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "outputId": {
+                "type": "string"
+              },
+              "previewId": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string",
+                "const": "publish"
+              },
+              "protocol": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "outputId",
+              "previewId",
+              "action",
+              "protocol"
+            ]
+          },
+          "DeviceConfiguration": {
+            "type": "object",
+            "properties": {
+              "mediamtx": {
+                "type": "object",
+                "properties": {
+                  "probes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "subjectId": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "subjectId",
+                        "url"
+                      ]
+                    }
+                  },
+                  "gatewayId": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "$ref": "#/components/schemas/MediamtxAuth"
+                  },
+                  "tls": {
+                    "$ref": "#/components/schemas/MediamtxTls"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "rendition": {
+                          "$ref": "#/components/schemas/Rendition"
+                        },
+                        "source": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "path"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "exposureId",
+                        "rendition",
+                        "source"
+                      ]
+                    }
+                  },
+                  "publishers": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Publisher"
+                    }
+                  },
+                  "stats": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/StatsConnect"
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "previewId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "previewId"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "probes",
+                  "gatewayId",
+                  "auth",
+                  "paths",
+                  "publishers",
+                  "stats"
+                ]
+              },
+              "obs": {
+                "type": "object",
+                "properties": {
+                  "output": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "organisationId": {
+                        "type": "string"
+                      },
+                      "control": {
+                        "type": "string",
+                        "enum": [
+                          "external",
+                          "show"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "organisationId",
+                      "control"
+                    ]
+                  },
+                  "encoding": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "number"
+                      },
+                      "height": {
+                        "type": "number"
+                      },
+                      "fps": {
+                        "type": "number"
+                      },
+                      "bitrateKbps": {
+                        "type": "number"
+                      },
+                      "keyframeSeconds": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height",
+                      "fps",
+                      "bitrateKbps",
+                      "keyframeSeconds"
+                    ]
+                  },
+                  "forwards": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organisationId": {
+                          "type": "string"
+                        },
+                        "channelId": {
+                          "type": "string"
+                        },
+                        "forwardId": {
+                          "type": "string"
+                        },
+                        "stats": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "organisationId",
+                        "channelId",
+                        "forwardId",
+                        "stats"
+                      ]
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "previewId": {
+                          "type": "string"
+                        },
+                        "gatewayId": {
+                          "type": "string"
+                        },
+                        "connect": {
+                          "$ref": "#/components/schemas/PreviewConnect"
+                        }
+                      },
+                      "required": [
+                        "previewId",
+                        "gatewayId",
+                        "connect"
+                      ]
+                    }
+                  },
+                  "recording": {
+                    "type": "object",
+                    "properties": {
+                      "recorderId": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "params": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "recorderId",
+                      "kind",
+                      "params"
+                    ]
+                  },
+                  "program": {
+                    "type": "object",
+                    "properties": {
+                      "subjectId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectId"
+                    ]
+                  }
+                },
+                "required": [
+                  "output",
+                  "encoding",
+                  "forwards",
+                  "previews",
+                  "program"
+                ]
+              },
+              "show": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "paths": {
+        "/device-configuration": {
+          "get": {
+            "operationId": "deviceConfiguration.get",
+            "x-operation-version": 2,
+            "summary": "Read the signing device's configuration",
+            "description": "What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for the agent an output runs on (`organisations.outputs.setDevice`): the `output`, its organisation, and its `control`, who drives OBS's scenes (`show`: the `show` runtime; `external`: something outside the studio, which reads how to reach OBS from `organisations.outputs.control.get`, the agent having reported it with `organisations.outputs.control.report`, and plays any of the organisation's exposures through it), the `encoding` the programme is sent at, the `forwards`, one for each channel the output has an enabled forward to, naming the forward and the channel whose server and stream key it reads with `organisations.channels.ingest`, and whether the channel has `stats` it reads with `organisations.channels.stats.get` and reports about `channel:<channelId>`, the `previews` it publishes the programme to, each with the `connect` ask (`organisations.outputs.previews.connect`) for where to and its token, the `recording` it makes alongside streaming, when the output has a recorder, and the `program`'s subject ID, to report about it against; it reads each exposure OBS plays with `organisations.streams.exposures.connect`. `show`, for that agent while the output follows a show under `show` control: the show's `id`, and the `url` it signs a WebSocket upgrade to as the device to follow it. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body. From this version, `mediamtx` also has the `probes` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (`camera.reachable`), so a camera nothing is reading is still known to be there.",
+            "responses": {
+              "200": {
+                "description": "The configuration",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/DeviceConfiguration"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "2"
                 }
               }
             ]

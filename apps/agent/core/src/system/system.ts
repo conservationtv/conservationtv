@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { converge, type Convergence, type SystemSpec } from '@conservationtv/converge';
 import type { DeviceIdentity } from '@conservationtv/studio-sdk';
 import { createStore } from '@conservationtv/store';
+import { probesController } from '../cameras/index.ts';
 import type { ConservationTvConfiguration } from '../config.ts';
 import { gatewayControllers, type GatewaySetup } from '../gateway/index.ts';
 import { machineController } from '../machine/index.ts';
@@ -14,6 +15,7 @@ import { specFile } from './spec-file.ts';
 //
 //   machine                            always: the machine the agent runs on (machine/)
 //   streams, metrics, relayTraffic     the configuration's `mediamtx` section: the gateway (gateway/)
+//   probes                             that section's cameras, each asked whether it is there (cameras/)
 //   obs, channels, show                the configuration's `obs` and `show` sections: the output it sends out (output/)
 //
 // It starts from the spec it last accepted, saved in the agent's directory (spec-file.ts), or on a first start from
@@ -38,6 +40,7 @@ function controllers(context: SystemContext) {
     streams: gateway.streams,
     metrics: gateway.metrics,
     relayTraffic: gateway.relayTraffic,
+    probes: probesController(),
     obs: output.obs,
     channels: output.channels,
     show: output.show
@@ -85,6 +88,8 @@ export function startSystem(context: SystemContext): Promise<AgentSystem> {
           else draft.metrics = specs.metrics;
           if (specs.relayTraffic === undefined) delete draft.relayTraffic;
           else draft.relayTraffic = specs.relayTraffic;
+          if (specs.probes === undefined) delete draft.probes;
+          else draft.probes = specs.probes;
           if (specs.obs === undefined) delete draft.obs;
           else draft.obs = specs.obs;
           if (specs.channels === undefined) delete draft.channels;

@@ -3,3 +3,5 @@
 export * from './status.get-v1/index.js';
 export * from './system.get-v1/index.js';
 export * from './system.spec-v1/index.js';
+export * from './system.get-v2/index.js';
+export * from './system.spec-v2/index.js';

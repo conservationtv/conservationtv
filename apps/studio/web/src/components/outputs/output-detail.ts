@@ -240,7 +240,9 @@ const outputLabels = {
   ok: 'Going out',
   degraded: 'Going out, degraded',
   unknown: 'No reports',
-  failing: 'Failing'
+  failing: 'Failing',
+  idle: 'Idle',
+  off: 'Switched off'
 } satisfies Record<OverallStatus, string>;
 
 /** The output's status: without an agent it isn't going out at all; otherwise, its parts' that are on (`overallStatus`). */

@@ -150,6 +150,34 @@ export const SystemSchema = z.object({
             })
         ])
     }),
+    probes: z.object({
+        runtime: z.object({
+            running: z.boolean(),
+            pending: z.number(),
+            submitted: z.number(),
+            lastSubmittedAt: z.string().nullable(),
+            lastError: z.string().nullable(),
+            cameras: z.number(),
+            unreachable: z.record(z.string(), z.string()),
+            lastProbedAt: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
     obs: z.object({
         runtime: z.object({
             version: z.string().nullable(),
@@ -252,8 +280,8 @@ export const SystemSchema = z.object({
         runtime: z.object({
             show: z.string().nullable(),
             phase: z.enum([
-                'error',
                 'idle',
+                'error',
                 'connecting',
                 'downloading-assets',
                 'synchronising',
@@ -358,6 +386,13 @@ export const GetSystemSpecResponseSchema = z.object({
         exposures: z.array(z.object({
             exposureId: z.string(),
             prefix: z.string()
+        }))
+    }).optional(),
+    probes: z.object({
+        intervalMs: z.number(),
+        cameras: z.array(z.object({
+            subjectId: z.string(),
+            url: z.string()
         }))
     }).optional(),
     obs: z.object({

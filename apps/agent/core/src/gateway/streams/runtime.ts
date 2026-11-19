@@ -187,7 +187,7 @@ export class MediamtxRuntime {
   /** The agent is stopping, and MediaMTX goes with it, along with the joining and answering. */
   dispose(): void {
     for (const subscription of this.watching) subscription.unsubscribe();
-    this.joiner.close();
+    this.joiner.dispose();
     void this.answering?.close();
     this.process.dispose();
     this.status$.complete();

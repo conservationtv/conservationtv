@@ -54,7 +54,11 @@ function overviewOf(topology: Topology) {
 /** Nothing, for an organisation with nothing to draw yet: its setup steps say what comes first. */
 export const OverviewSignal: FC = () => {
   const organisationId = useOrganisationId();
-  const { data } = useSuspenseQuery({ ...topologyQueryOptions(organisationId), select: overviewOf });
+  const { data } = useSuspenseQuery({
+    ...topologyQueryOptions(organisationId),
+    select: overviewOf,
+    refetchInterval: 30_000
+  });
   const { system, pages } = data;
   if (system.broadcasts.length + system.cameras.length + system.ingests.length === 0) return null;
   // The first network open to begin with, so its cameras are on show; any other opens on a press.

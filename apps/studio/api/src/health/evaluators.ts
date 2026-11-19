@@ -1,18 +1,18 @@
 import {
+  cameraMetrics,
   channelMetrics,
   formatShare,
   forwardMetrics,
   machineMetrics,
-  pathMetrics,
   previewMetrics,
   programMetrics,
+  programSubject,
   recorderMetrics,
-  relayMetrics,
   type MetricDefinition,
   SUBJECT_KINDS
 } from '@conservationtv/reports';
 import { and, eq } from 'drizzle-orm';
-import { outputForwards, outputs } from '../db/schema.ts';
+import { cameras, devices, outputForwards, outputPreviews, outputs } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { ceiling, evidenceOf, floor, nothingIn, period, share, worstOf } from './checks.ts';
 import {
@@ -21,20 +21,30 @@ import {
   defineEvaluator,
   type Evaluator,
   hysteresis,
+  inactive,
   type Subject,
-  verdictOf
+  verdictOf,
+  windowOf
 } from './evaluator.ts';
+import { evaluateExposure, exposureContext } from './exposure.ts';
 import { FINDINGS_LOCALE, type Finding, type Health } from './health.ts';
 
 // The state consumer's opinion of each kind of subject (src/health/consumer.ts): one evaluator per kind that is
 // reported about, or `null` for one that isn't judged from its own reports. A stream, an agent or a network is judged
-// by its parts, as the studio's topology rolls their health up. Adding a kind to `SUBJECT_KINDS` doesn't compile until
-// it is given one or the other.
+// by its parts, as the organisation's status rolls their health up (src/health/status.ts). Adding a kind to
+// `SUBJECT_KINDS` doesn't compile until it is given one or the other.
+//
+// A subject is judged against what the topology expects of it, which its evaluator's `context` loads: what is switched
+// off is `off`, and what nothing is asking for is `idle`, neither of them judged. A hop that only passes on what it is
+// given is judged by how much of that it passed on, read from the hop before it, rather than by whether anything at
+// all flowed.
 //
 // Agents submit each subject's summaries every 15 seconds, and each channel's every minute; agents of earlier builds,
 // every minute. An opinion holds for three minutes before going stale, three of the slowest intervals, and checks judge
-// the last two minutes: eight summaries, or two of a channel's. The thresholds are a first opinion, to be tuned against
-// what the fleet reports.
+// the last two minutes: eight summaries, or two of a channel's. A subject that was unwell is judged over the last 45
+// seconds first, and taken as recovered at once when it is better over them (`formOpinion`, src/health/evaluator.ts):
+// otherwise it would stay down for two minutes more however soon it came back. The thresholds are a first opinion, to
+// be tuned against what the fleet reports.
 
 export type SubjectKind = (typeof SUBJECT_KINDS)[number];
 
@@ -60,14 +70,16 @@ function freeShare(
   total: MetricDefinition,
   { unhealthyBelow, degradedBelow }: FreeThresholds
 ): Check<unknown> {
-  return async ({ metrics }) => {
+  return async input => {
+    const { metrics } = input;
+    const over = windowOf(input, WINDOW);
     // Nothing to judge without both in the window, or a capacity of nothing; otherwise the least free of the greatest
     // capacity, as each was last reported.
-    const [frees, totals] = await Promise.all([metrics.over(free, WINDOW), metrics.over(total, WINDOW)]);
+    const [frees, totals] = await Promise.all([metrics.over(free, over), metrics.over(total, over)]);
     const worstFree = worstOf(frees, 'last', 'least');
     const worstTotal = worstOf(totals, 'last', 'greatest');
     if (worstFree === undefined || worstTotal === undefined || worstTotal.summary.last <= 0)
-      return nothingIn(free, WINDOW);
+      return nothingIn(free, over);
     const value = worstFree.summary.last / worstTotal.summary.last;
     const health: Health = value < unhealthyBelow ? 'unhealthy' : value < degradedBelow ? 'degraded' : 'healthy';
     return {
@@ -79,32 +91,57 @@ function freeShare(
   };
 }
 
+/** What a device is, and whether it is switched off, as a camera can be. */
+async function deviceContext({ organisationId, entityId }: Subject) {
+  const db = useDB({ trusted: true });
+  const [device] = await db
+    .select({ kind: devices.kind, cameraState: cameras.state })
+    .from(devices)
+    .leftJoin(cameras, eq(cameras.id, devices.id))
+    .where(and(eq(devices.organisationId, organisationId), eq(devices.id, entityId)));
+  return device;
+}
+
+/** What a device is. */
+interface DeviceContext {
+  kind: string;
+  /** A camera's state; null for any other device. */
+  cameraState: string | null;
+}
+
 /** An agent's machine: busy, or running out of memory or disk. */
-const device = defineEvaluator({
+const machineChecks = allOf(
+  ceiling(machineMetrics.cpuUtilisation, { over: WINDOW, degradedAbove: 85, unhealthyAbove: 97 }),
+  freeShare('Memory', machineMetrics.memoryAvailable, machineMetrics.memoryTotal, {
+    unhealthyBelow: 0.03,
+    degradedBelow: 0.1
+  }),
+  freeShare('Disk', machineMetrics.diskFree, machineMetrics.diskTotal, { unhealthyBelow: 0.03, degradedBelow: 0.1 })
+);
+
+/** A camera, as an agent on its network probes it: whether it answers, whatever is reading its streams. */
+const cameraChecks = allOf(share(cameraMetrics.reachable, { over: WINDOW, unhealthyBelow: 0.5, degradedBelow: 0.99 }));
+
+/**
+ * A device: an agent's machine, by what it reports of itself, or a camera, by what an agent's probe of it finds. A
+ * camera that is switched off isn't judged.
+ */
+const device = defineEvaluator<DeviceContext>({
   ttl: TTL,
-  evaluate: allOf(
-    ceiling(machineMetrics.cpuUtilisation, { over: WINDOW, degradedAbove: 85, unhealthyAbove: 97 }),
-    freeShare('Memory', machineMetrics.memoryAvailable, machineMetrics.memoryTotal, {
-      unhealthyBelow: 0.03,
-      degradedBelow: 0.1
-    }),
-    freeShare('Disk', machineMetrics.diskFree, machineMetrics.diskTotal, { unhealthyBelow: 0.03, degradedBelow: 0.1 })
-  )
+  context: deviceContext,
+  async evaluate(input) {
+    if (input.context.kind !== 'camera') return machineChecks(input);
+    if (input.context.cameraState !== null && input.context.cameraState !== 'enabled')
+      return inactive('off', 'state', 'Switched off');
+    return cameraChecks(input);
+  }
 });
 
 /**
- * One of a stream's deliveries, from the agent whose MediaMTX serves its paths (one per rendition) and publishes it to
- * a relay: whether its paths are ready and receiving, cleanly, and whether the relay receives what the agent publishes.
+ * One of a stream's deliveries, from the agent whose MediaMTX serves its paths or publishes it to a relay, judged
+ * against what is asked of it (src/health/exposure.ts).
  */
-const exposure = defineEvaluator({
-  ttl: TTL,
-  evaluate: allOf(
-    share(pathMetrics.ready, { over: WINDOW, unhealthyBelow: 0.5, degradedBelow: 0.99 }),
-    floor(pathMetrics.ingestBitrate, { over: WINDOW, unhealthyBelow: 1 }),
-    ceiling(pathMetrics.ingestFrameErrors, { over: WINDOW, degradedAbove: 0, unhealthyAbove: 5 }),
-    floor(relayMetrics.ingestBitrate, { over: WINDOW, unhealthyBelow: 1 })
-  )
-});
+const exposure = defineEvaluator({ ttl: TTL, context: exposureContext, evaluate: evaluateExposure });
 
 /** What an output's programme is meant to be: its frame rate, as the output encodes it. */
 async function programContext({ organisationId, entityId }: Subject): Promise<ProgramContext | undefined> {
@@ -137,7 +174,7 @@ const obsChecks = allOf<ProgramContext>(
   // greatest sample, so one blip holds the programme unhealthy until it leaves the window, two minutes on, and then
   // for the minute recovery waits; moving to the offline segment doesn't end it sooner, since the blip happened. On
   // purpose: a reconnection is the outage itself, not a sign of one.
-  ceiling(programMetrics.reconnecting, { over: WINDOW, of: 'max', unhealthyAbove: 0 })
+  ceiling(programMetrics.reconnecting, { over: WINDOW, of: 'max', unhealthyAbove: 0, whole: true })
 );
 
 /**
@@ -152,7 +189,8 @@ const program = defineEvaluator({
   // throughout, all there is to say; otherwise, OBS's own checks too.
   async evaluate(input) {
     const ready = await share(programMetrics.ready, { over: WINDOW, unhealthyBelow: 0.5, degradedBelow: 0.99 })(input);
-    const fallback = await input.metrics.over(programMetrics.fallback, WINDOW);
+    const over = windowOf(input, WINDOW);
+    const fallback = await input.metrics.over(programMetrics.fallback, over);
     const mostlyOffline = worstOf(fallback, 'avg', 'greatest');
     const findings: Finding[] = ready === undefined ? [] : [ready];
     if (mostlyOffline !== undefined && mostlyOffline.summary.avg > 0) {
@@ -160,7 +198,7 @@ const program = defineEvaluator({
       findings.push({
         check: programMetrics.fallback.name,
         health: 'degraded',
-        summary: `On the offline segment ${formatShare(value, FINDINGS_LOCALE)} of the last ${period(WINDOW)}`,
+        summary: `On the offline segment ${formatShare(value, FINDINGS_LOCALE)} of the last ${period(over)}`,
         evidence: [evidenceOf(mostlyOffline, value)]
       });
       // Wholly on the offline segment: OBS isn't publishing, so there is nothing more of it to judge.
@@ -171,19 +209,56 @@ const program = defineEvaluator({
   }
 });
 
-/** Whether an output's forward is switched on. */
+/** Whether an output's forward is switched on, and the output it forwards. */
 async function forwardContext({ organisationId, entityId }: Subject) {
   const db = useDB({ trusted: true });
   const [forward] = await db
-    .select({ enabled: outputForwards.enabled })
+    .select({ enabled: outputForwards.enabled, outputId: outputForwards.outputId })
     .from(outputForwards)
     .where(and(eq(outputForwards.organisationId, organisationId), eq(outputForwards.id, entityId)));
   return forward;
 }
 
-const forwardChecks = allOf(
+/** The output a part of it sends the programme of. */
+interface OutputPart {
+  outputId: string;
+}
+
+/**
+ * Whether a part of an output that sends the programme on, a forward or a preview, sent what the programme received:
+ * each is sent all of it, so far less is the part falling behind or stalled. Judged by whether it sent anything at all
+ * when the reporter says nothing of the programme.
+ */
+function sendsProgramme(egress: MetricDefinition, label: string): Check<OutputPart> {
+  return async input => {
+    // Nothing sent is nothing to judge; without the programme's own rate, only whether anything was sent at all;
+    // otherwise how much of what the programme received was sent on.
+    const over = windowOf(input, WINDOW);
+    const program = input.metrics.about(programSubject(input.context.outputId));
+    const [sent, received] = await Promise.all([
+      input.metrics.over(egress, over),
+      program.over(programMetrics.ingestBitrate, over)
+    ]);
+    const sending = worstOf(sent, 'avg', 'least');
+    if (sending === undefined) return nothingIn(egress, over);
+    const receiving = worstOf(received, 'avg', 'least');
+    if (receiving === undefined || receiving.summary.avg <= 0)
+      return floor(egress, { over: WINDOW, unhealthyBelow: 1 })(input);
+    const value = sending.summary.avg / receiving.summary.avg;
+    const health: Health = value < 0.5 ? 'unhealthy' : value < 0.9 ? 'degraded' : 'healthy';
+    const formatted = formatShare(Math.min(1, value), FINDINGS_LOCALE);
+    return {
+      check: egress.name,
+      health,
+      summary: `${label} sent ${formatted} of what the programme received in the last ${period(over)}`,
+      evidence: [evidenceOf(sending, value)]
+    };
+  };
+}
+
+const forwardChecks = allOf<OutputPart>(
   share(forwardMetrics.connected, { over: WINDOW, unhealthyBelow: 0.5, degradedBelow: 0.99 }),
-  floor(forwardMetrics.egressBitrate, { over: WINDOW, unhealthyBelow: 1 })
+  sendsProgramme(forwardMetrics.egressBitrate, 'The forward')
 );
 
 /** An output's forward to a channel, while it is switched on: whether it is connected to the channel's ingest, sending. */
@@ -191,18 +266,28 @@ const forward = defineEvaluator({
   ttl: TTL,
   context: forwardContext,
   async evaluate(input) {
-    if (!input.context.enabled)
-      return verdictOf([{ check: 'enabled', health: 'healthy', summary: 'Switched off', evidence: [] }]);
+    if (!input.context.enabled) return inactive('off', 'enabled', 'Switched off');
     return forwardChecks(input);
   }
 });
 
-/** An output's preview: whether its publisher is reading the programme, and sent anything. */
+/** The output a preview is of. */
+async function previewContext({ organisationId, entityId }: Subject) {
+  const db = useDB({ trusted: true });
+  const [preview] = await db
+    .select({ outputId: outputPreviews.outputId })
+    .from(outputPreviews)
+    .where(and(eq(outputPreviews.organisationId, organisationId), eq(outputPreviews.id, entityId)));
+  return preview;
+}
+
+/** An output's preview: whether its publisher is reading the programme, and sent what it read. */
 const preview = defineEvaluator({
   ttl: TTL,
-  evaluate: allOf(
+  context: previewContext,
+  evaluate: allOf<OutputPart>(
     share(previewMetrics.connected, { over: WINDOW, unhealthyBelow: 0.5, degradedBelow: 0.99 }),
-    floor(previewMetrics.egressBitrate, { over: WINDOW, unhealthyBelow: 1 })
+    sendsProgramme(previewMetrics.egressBitrate, 'The preview')
   )
 });
 
@@ -239,8 +324,7 @@ const channel = defineEvaluator({
   ttl: TTL,
   context: channelContext,
   async evaluate(input) {
-    if (!input.context.forwarded)
-      return verdictOf([{ check: 'forwarded', health: 'healthy', summary: 'Nothing forwards to it', evidence: [] }]);
+    if (!input.context.forwarded) return inactive('off', 'forwarded', 'Nothing forwards to it');
     return channelChecks(input);
   },
   settle: hysteresis({ worsenAfter: 120 })
