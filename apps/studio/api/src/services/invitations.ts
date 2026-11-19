@@ -4,7 +4,7 @@ import { organisationInvitations, organisations } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
-import { invitationDelivery } from '../organisations/delivery.ts';
+import { invitationDelivery } from '../organisations/delivery.tsx';
 
 // Invitations to organisations. Administrators' side runs in their request session: creating and cancelling one
 // changes no grants, so row-level security alone decides who may. The invitee's side is trusted code, because an
@@ -37,7 +37,10 @@ export interface InvitationProof {
 export interface InvitationLetter {
   email: string;
   organisationName: string;
+  /** The inviting administrator's name in the organisation, if they have a profile there. */
+  invitedBy: string | undefined;
   code: string;
+  expiresAt: Date;
 }
 
 const toHex = (bytes: ArrayBuffer | Uint8Array) =>
@@ -113,8 +116,14 @@ export async function sendInvitation(invitationId: string, letter: InvitationLet
   const environment = useEnvironment();
   const link = new URL(`/invitations/${invitationId}`, environment.variables.WEB_ORIGINS[0]);
   link.searchParams.set('code', letter.code);
-  const deliver = invitationDelivery(environment.variables.OTP_DELIVERY);
-  await deliver({ email: letter.email, organisationName: letter.organisationName, link: link.href });
+  const deliver = invitationDelivery(environment.mail);
+  await deliver({
+    email: letter.email,
+    organisationName: letter.organisationName,
+    invitedBy: letter.invitedBy,
+    link: link.href,
+    expiresAt: letter.expiresAt
+  });
 }
 
 /** An open invitation, for the page its link opens: readable by anyone who has the link. Trusted code. */

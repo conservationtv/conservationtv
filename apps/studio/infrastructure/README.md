@@ -119,14 +119,9 @@ head they vouch for (the run refuses if the head has moved since, even while it 
 `preview` environment, like `staging` and `prod`, admits only `main`'s workflows, so a branch cannot release with an
 edited copy. Each preview replaces the last, whichever pull request it was for; a restore takes about two minutes.
 
-Sign in with your staging account by code (written to `studio-api-preview`'s logs for now; see [Not deployed yet](#not-deployed-yet)): passkeys are bound to the web app's host, so staging's do not work
+Sign in with your staging account by emailed code: passkeys are bound to the web app's host, so staging's do not work
 on the preview. The preview is staging's gatekeeper's `preview` consumer, so its MoQ roots never meet staging's, but
 the agents and devices in its data are staging's real ones.
 
 Like `apiVersion`, `restorePoint` is not kept in the stack file: unset, the stack keeps the point restored now, so a
 plain `pulumi up` never restores again.
-
-## Not deployed yet
-
-- **Sign-in codes.** `OTP_DELIVERY` is `log` only, so codes are written to the Worker's logs, readable by anyone with
-  access to the Cloudflare account, and reach nobody else until an email provider is wired in.

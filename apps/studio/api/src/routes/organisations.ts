@@ -21,6 +21,7 @@ import {
   createOrganisation,
   deleteOrganisation,
   endMembership,
+  getDisplayName,
   getMembership,
   getOrganisation,
   grantAdmin,
@@ -455,17 +456,24 @@ export default new Hono()
       // An emailed invitation is sent a link with a one-time code; one to an account is found by it under
       // `/invitations`. An expired invitation to the same recipient is replaced.
       const code = 'email' in recipient ? invitationCode() : null;
-      const { invitation, organisation } = await transaction(async () => {
+      const { invitation, organisation, inviter } = await transaction(async () => {
         const visible = await getOrganisation(id);
         if (!visible) throw new ApiFailure('not_found');
         const member = 'userId' in recipient ? await getMembership(id, recipient.userId) : undefined;
         if (member) throw new ApiFailure('already_member');
         await deleteExpiredInvitations(id, recipient);
         const created = await createInvitation(id, { recipient, invitedBy: principal.id, code });
-        return { invitation: created, organisation: visible };
+        const inviter = await getDisplayName(id, principal.id);
+        return { invitation: created, organisation: visible, inviter };
       });
       if (code !== null && invitation.email !== null) {
-        await sendInvitation(invitation.id, { email: invitation.email, organisationName: organisation.name, code });
+        await sendInvitation(invitation.id, {
+          email: invitation.email,
+          organisationName: organisation.name,
+          invitedBy: inviter,
+          code,
+          expiresAt: invitation.expiresAt
+        });
       }
       c.header('Cache-Control', 'no-store');
       return c.json(invitation, 201);

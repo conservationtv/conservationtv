@@ -84,9 +84,12 @@ organisations are this API's own tables rather than Better Auth's (see [Organisa
 the rest of the request with its umbrella principal, `user(<account id>)`, which handlers read with `usePrincipal()`. Better Auth itself uses the admin connection and owns its
 tables; request handlers never query them.
 
-Codes are delivered according to `OTP_DELIVERY`. Only `log` exists, which prints the code to the Worker's log for
-local development; the configuration schema accepts nothing else, so a deployment fails closed until an email
-provider is wired into `src/auth/otp.ts`.
+Codes, like invitations, are delivered according to `EMAIL_DELIVERY` (`src/email/mailer.ts`). Deployed stacks `send`:
+the `@conservationtv/email` templates are rendered and sent from `noreply@mail.conservation.tv` through the `MAIL`
+binding, Cloudflare Email Sending on the zone's `mail.conservation.tv` subdomain. Local development defaults to `log`,
+which prints the code (`"event":"email_otp"`) or link (`"event":"organisation_invitation"`) to the dev server's log
+instead. `EMAIL_DELIVERY=send pnpm dev` sends real email locally, through the remote `MAIL` binding, so `cf` must be
+signed in to the account (with `CLOUDFLARE_ACCOUNT_ID` set to the zone's account if it can reach several). The emails' images are served from the API at `/email/` (`pnpm bundle:email`).
 
 ## Authorization
 
@@ -112,7 +115,9 @@ bindings:
 | `FIELD_KEY`            | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
 | `APP_URL`              | text       | where the API is served; Better Auth's base URL                                                                      |
 | `WEB_ORIGINS`          | text       | comma-separated browser origins allowed with credentials; the first hosts `/device` and is the passkey relying party |
-| `OTP_DELIVERY`         | text       | `log` only, see above                                                                                                |
+| `EMAIL_DELIVERY`       | text       | `send` (deployed) or `log` (local default), see above                                                                |
+| `MAIL_FROM`            | text       | the address emails are sent from, `noreply@mail.conservation.tv`                                                     |
+| `MAIL`                 | send email | Cloudflare Email Sending, as `MAIL_FROM` only; remote locally only with `EMAIL_DELIVERY=send`                        |
 | `GATEKEEPER_URL`       | text       | the control plane naming the iroh and MoQ relays, and admitting devices                                              |
 | `GATEKEEPER_TOKEN`     | secret     | that control plane environment's token for this consumer, whose MoQ paths it places beneath the consumer's namespace |
 | `TWITCH_CLIENT_ID`     | text       | the Twitch application channels are connected through                                                                |
@@ -194,7 +199,7 @@ Postgres's `uuidv7()` (so Postgres 18 or newer):
   organisation.
 - `organisation_invitation`: an open invitation, to either an account (`user_id`) or an `email` address, lasting 14
   days. An emailed invitation is sent a link to `<first WEB_ORIGINS entry>/invitations/{id}?code=…` (delivered by
-  `OTP_DELIVERY`, so only logged for now); only the code's hash is stored, and the application role cannot read it.
+  `EMAIL_DELIVERY`); only the code's hash is stored, and the application role cannot read it.
   Whoever signs in and presents the code may accept, so an invitation can be passed on to another address. An
   invitation to an account is accepted by signing in as it.
 
