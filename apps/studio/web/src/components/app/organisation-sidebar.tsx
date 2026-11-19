@@ -53,7 +53,7 @@ import { organisationListQueryOptions } from '@/queries/organisations';
 export const OrganisationSidebar: FC = () => {
   return (
     <Sidebar collapsible="peek" className="border-r border-border">
-      <SidebarContent>
+      <SidebarContent className="pt-2">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
