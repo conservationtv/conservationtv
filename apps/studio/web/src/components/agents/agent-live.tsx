@@ -66,6 +66,16 @@ function usedShare(total: number, free: number): string {
   return `${Math.round(((total - free) / total) * 100)}%`;
 }
 
+/**
+ * What of the machine's memory programs can still have, as its OS judges it. An agent from before `available` was
+ * reported sends only what is unused outright, which on macOS is near nothing, so it reads as nearly full.
+ */
+function availableMemory(memory: NonNullable<MachineSample>['memory']): number {
+  // SAFETY: the type is the current agent's; an older one leaves `available` out.
+  const available: number | undefined = memory.available;
+  return available ?? memory.free;
+}
+
 /** The machine the agent runs on, as it last sampled it. */
 const Machine: FC<MachineProps> = ({ machine }) => {
   if (!machine)
@@ -87,7 +97,7 @@ const Machine: FC<MachineProps> = ({ machine }) => {
       <Fact>
         <FactLabel>Memory</FactLabel>
         <FactValue>
-          {usedShare(machine.memory.total, machine.memory.free)} of {formatBytes(machine.memory.total)}
+          {usedShare(machine.memory.total, availableMemory(machine.memory))} of {formatBytes(machine.memory.total)}
         </FactValue>
       </Fact>
       <Fact>

@@ -12,6 +12,7 @@ import { ApiFailure } from '../errors.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import type { AuthenticatedDevice } from '../middleware/device.ts';
 import { useEnvironment } from '../env/env.ts';
+import { evaluateReported, type Reported } from '../health/consumer.ts';
 import { SettingsSchema } from '../topology/settings.ts';
 
 // Report ingestion: trusted code on the owning connection, because the device's signature, not a session,
@@ -22,7 +23,10 @@ import { SettingsSchema } from '../topology/settings.ts';
 // malformed report or one observed in the future. Everything else is stored as given. Events and logs are cheap
 // operational signals, so nothing deduplicates them beyond the signature's single-use nonce: a device that retries a
 // batch signs it again, and they may be stored twice. A metric point is keyed by its series and time, so a retried one
-// is skipped. Ordering, late reports and their effect on state are the state consumer's concern.
+// is skipped. Ordering, late reports and their effect on state are the state consumer's concern
+// (src/health/consumer.ts), which judges the subjects a batch's metrics are about once the batch is stored. It runs
+// before the response rather than in the background, since the request's connections close once the response is sent;
+// a subject it fails to judge is logged, never refusing the stored batch.
 
 /** How far ahead of the control plane's clock a report's observation time may be. */
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
@@ -96,8 +100,27 @@ export const BatchSchema = z.strictObject({
 });
 export type Batch = z.output<typeof BatchSchema>;
 
-/** Store every report in the batch, as the device that signed it. */
-export function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
+/** Store every report in the batch, as the device that signed it, then judge the subjects its metrics are about. */
+export async function ingestBatch(device: AuthenticatedDevice, batch: Batch) {
+  const accepted = await storeBatch(device, batch);
+  const reported = reportedOf(device, batch);
+  await evaluateReported(reported);
+  return accepted;
+}
+
+/** The subjects the batch reports metrics about, each as of its newest metric. */
+function reportedOf(device: AuthenticatedDevice, batch: Batch): Reported {
+  const subjects = new Map<string, Date>();
+  for (const report of batch.reports) {
+    if (report.kind !== 'metric') continue;
+    const observedAt = new Date(report.observedAt);
+    const newest = subjects.get(report.subjectId);
+    if (newest === undefined || observedAt > newest) subjects.set(report.subjectId, observedAt);
+  }
+  return { organisationId: device.organisationId, reporterId: deviceSubject(device.id), subjects };
+}
+
+function storeBatch(device: AuthenticatedDevice, batch: Batch) {
   return trustedTransaction(async () => {
     const db = useDB({ trusted: true });
     // Refuse the whole batch if any report is from the future, then store each kind with one insert.

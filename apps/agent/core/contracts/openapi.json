@@ -105,6 +105,9 @@
                           "memory": {
                             "type": "object",
                             "properties": {
+                              "available": {
+                                "type": "number"
+                              },
                               "total": {
                                 "type": "number"
                               },
@@ -113,6 +116,7 @@
                               }
                             },
                             "required": [
+                              "available",
                               "total",
                               "free"
                             ]
@@ -2202,6 +2206,9 @@
                               "memory": {
                                 "type": "object",
                                 "properties": {
+                                  "available": {
+                                    "type": "number"
+                                  },
                                   "total": {
                                     "type": "number"
                                   },
@@ -2210,6 +2217,7 @@
                                   }
                                 },
                                 "required": [
+                                  "available",
                                   "total",
                                   "free"
                                 ]

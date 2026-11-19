@@ -5,6 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import type { AgentConfiguration } from '../config.ts';
 import { AddressReporter, type LanAddress, lanAddresses } from './addresses.ts';
+import { availableMemory } from './memory.ts';
 import { type Metric, type MetricQueue, type MetricReporter, gauge, useMetricReporter } from '../reporting/reporter.ts';
 
 // Machine metrics: on an interval, sample the machine the agent runs on and submit the samples to the studio API as
@@ -27,6 +28,15 @@ export interface Capacity {
   free: number;
 }
 
+/** The machine's memory, in bytes. */
+export interface MemoryCapacity extends Capacity {
+  /**
+   * What the machine can give programs without swapping, counting the cache it would drop for them, as the OS judges
+   * it (memory.ts). What to judge memory by: `free` is what is unused outright, which macOS keeps near nothing.
+   */
+  available: number;
+}
+
 /** One sample of the machine. Byte counts are bytes; utilisation is a percentage of every core. */
 export interface MachineSample {
   /** ISO 8601. */
@@ -35,11 +45,11 @@ export interface MachineSample {
   cpuUtilisation: number | null;
   cpuCount: number;
   /**
-   * The kernel's 1-minute load average. Its 5- and 15-minute averages are not reported: sampled about once a minute,
+   * The kernel's 1-minute load average. Its 5- and 15-minute averages are not reported: sampled every 15 seconds,
    * this one is a record of load that longer windows can be computed from when it is read.
    */
   load: number;
-  memory: Capacity;
+  memory: MemoryCapacity;
   /** The filesystem the agent's working directory is on; `null` when it cannot be read. */
   disk: Capacity | null;
   uptimeSeconds: number;
@@ -106,7 +116,7 @@ function metricsOf(sample: MachineSample): Metric[] {
     gauge(machineMetrics.cpuCount, sample.cpuCount),
     gauge(machineMetrics.load, sample.load, { window: '1m' }),
     gauge(machineMetrics.memoryTotal, sample.memory.total),
-    gauge(machineMetrics.memoryFree, sample.memory.free),
+    gauge(machineMetrics.memoryAvailable, sample.memory.available),
     gauge(machineMetrics.uptime, sample.uptimeSeconds),
     gauge(machineMetrics.agentMemory, sample.agentRss)
   ];
@@ -182,6 +192,7 @@ export class MachineRuntime {
     const [load] = os.loadavg();
     const disk = await diskUsage();
     const addresses = await lanAddresses();
+    const available = await availableMemory();
     const memory = process.memoryUsage();
     const now = new Date();
     return {
@@ -189,7 +200,7 @@ export class MachineRuntime {
       cpuUtilisation,
       cpuCount: os.availableParallelism(),
       load: load!,
-      memory: { total: os.totalmem(), free: os.freemem() },
+      memory: { total: os.totalmem(), free: os.freemem(), available },
       disk,
       uptimeSeconds: os.uptime(),
       agentRss: memory.rss,

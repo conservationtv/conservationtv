@@ -1148,11 +1148,79 @@
                   "type": "string"
                 },
                 "health": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "unhealthy"
+                  ]
                 },
                 "state": {
                   "type": "object",
-                  "additionalProperties": {}
+                  "properties": {
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "reporterId": {
+                            "type": "string"
+                          },
+                          "check": {
+                            "type": "string"
+                          },
+                          "health": {
+                            "type": "string",
+                            "enum": [
+                              "unknown",
+                              "healthy",
+                              "degraded",
+                              "unhealthy"
+                            ]
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "seriesId": {
+                                  "type": "string"
+                                },
+                                "dimensions": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "seriesId",
+                                "dimensions",
+                                "value"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "reporterId",
+                          "check",
+                          "health",
+                          "summary",
+                          "evidence"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "findings"
+                  ]
                 },
                 "freshness": {
                   "type": "string",
@@ -1301,11 +1369,79 @@
                 "type": "object",
                 "properties": {
                   "health": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "healthy",
+                      "degraded",
+                      "unhealthy"
+                    ]
                   },
                   "state": {
                     "type": "object",
-                    "additionalProperties": {}
+                    "properties": {
+                      "findings": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "reporterId": {
+                              "type": "string"
+                            },
+                            "check": {
+                              "type": "string"
+                            },
+                            "health": {
+                              "type": "string",
+                              "enum": [
+                                "unknown",
+                                "healthy",
+                                "degraded",
+                                "unhealthy"
+                              ]
+                            },
+                            "summary": {
+                              "type": "string"
+                            },
+                            "evidence": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "seriesId": {
+                                    "type": "string"
+                                  },
+                                  "dimensions": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "value": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "seriesId",
+                                  "dimensions",
+                                  "value"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "reporterId",
+                            "check",
+                            "health",
+                            "summary",
+                            "evidence"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "findings"
+                    ]
                   },
                   "freshness": {
                     "type": "string",
@@ -1364,11 +1500,134 @@
                   "type": "string"
                 },
                 "health": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "unhealthy"
+                  ]
                 },
                 "state": {
                   "type": "object",
-                  "additionalProperties": {}
+                  "properties": {
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "check": {
+                            "type": "string"
+                          },
+                          "health": {
+                            "type": "string",
+                            "enum": [
+                              "unknown",
+                              "healthy",
+                              "degraded",
+                              "unhealthy"
+                            ]
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "seriesId": {
+                                  "type": "string"
+                                },
+                                "dimensions": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "seriesId",
+                                "dimensions",
+                                "value"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "check",
+                          "health",
+                          "summary",
+                          "evidence"
+                        ]
+                      }
+                    },
+                    "consulted": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "metric": {
+                            "type": "string"
+                          },
+                          "read": {
+                            "type": "number"
+                          },
+                          "seriesIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "metric",
+                          "read",
+                          "seriesIds"
+                        ]
+                      }
+                    },
+                    "since": {
+                      "type": "string"
+                    },
+                    "pending": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "health": {
+                              "type": "string",
+                              "enum": [
+                                "unknown",
+                                "healthy",
+                                "degraded",
+                                "unhealthy"
+                              ]
+                            },
+                            "since": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "health",
+                            "since"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "findings",
+                    "consulted",
+                    "since",
+                    "pending"
+                  ]
                 },
                 "freshness": {
                   "type": "string",
@@ -2153,11 +2412,79 @@
                   "type": "string"
                 },
                 "health": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "healthy",
+                    "degraded",
+                    "unhealthy"
+                  ]
                 },
                 "state": {
                   "type": "object",
-                  "additionalProperties": {}
+                  "properties": {
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "reporterId": {
+                            "type": "string"
+                          },
+                          "check": {
+                            "type": "string"
+                          },
+                          "health": {
+                            "type": "string",
+                            "enum": [
+                              "unknown",
+                              "healthy",
+                              "degraded",
+                              "unhealthy"
+                            ]
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "seriesId": {
+                                  "type": "string"
+                                },
+                                "dimensions": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "seriesId",
+                                "dimensions",
+                                "value"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "reporterId",
+                          "check",
+                          "health",
+                          "summary",
+                          "evidence"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "findings"
+                  ]
                 },
                 "freshness": {
                   "type": "string",
@@ -29708,11 +30035,79 @@
                       "type": "string"
                     },
                     "health": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
                     },
                     "state": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "findings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "reporterId": {
+                                "type": "string"
+                              },
+                              "check": {
+                                "type": "string"
+                              },
+                              "health": {
+                                "type": "string",
+                                "enum": [
+                                  "unknown",
+                                  "healthy",
+                                  "degraded",
+                                  "unhealthy"
+                                ]
+                              },
+                              "summary": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "seriesId": {
+                                      "type": "string"
+                                    },
+                                    "dimensions": {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "seriesId",
+                                    "dimensions",
+                                    "value"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "reporterId",
+                              "check",
+                              "health",
+                              "summary",
+                              "evidence"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "findings"
+                      ]
                     },
                     "freshness": {
                       "type": "string",
@@ -30203,11 +30598,79 @@
                     "type": "object",
                     "properties": {
                       "health": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                          "unknown",
+                          "healthy",
+                          "degraded",
+                          "unhealthy"
+                        ]
                       },
                       "state": {
                         "type": "object",
-                        "additionalProperties": {}
+                        "properties": {
+                          "findings": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "reporterId": {
+                                  "type": "string"
+                                },
+                                "check": {
+                                  "type": "string"
+                                },
+                                "health": {
+                                  "type": "string",
+                                  "enum": [
+                                    "unknown",
+                                    "healthy",
+                                    "degraded",
+                                    "unhealthy"
+                                  ]
+                                },
+                                "summary": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "seriesId": {
+                                        "type": "string"
+                                      },
+                                      "dimensions": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "value": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "seriesId",
+                                      "dimensions",
+                                      "value"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "reporterId",
+                                "check",
+                                "health",
+                                "summary",
+                                "evidence"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "findings"
+                        ]
                       },
                       "freshness": {
                         "type": "string",
@@ -30266,11 +30729,134 @@
                       "type": "string"
                     },
                     "health": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
                     },
                     "state": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "findings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "check": {
+                                "type": "string"
+                              },
+                              "health": {
+                                "type": "string",
+                                "enum": [
+                                  "unknown",
+                                  "healthy",
+                                  "degraded",
+                                  "unhealthy"
+                                ]
+                              },
+                              "summary": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "seriesId": {
+                                      "type": "string"
+                                    },
+                                    "dimensions": {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "seriesId",
+                                    "dimensions",
+                                    "value"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "check",
+                              "health",
+                              "summary",
+                              "evidence"
+                            ]
+                          }
+                        },
+                        "consulted": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "metric": {
+                                "type": "string"
+                              },
+                              "read": {
+                                "type": "number"
+                              },
+                              "seriesIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "metric",
+                              "read",
+                              "seriesIds"
+                            ]
+                          }
+                        },
+                        "since": {
+                          "type": "string"
+                        },
+                        "pending": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "health": {
+                                  "type": "string",
+                                  "enum": [
+                                    "unknown",
+                                    "healthy",
+                                    "degraded",
+                                    "unhealthy"
+                                  ]
+                                },
+                                "since": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "health",
+                                "since"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "findings",
+                        "consulted",
+                        "since",
+                        "pending"
+                      ]
                     },
                     "freshness": {
                       "type": "string",
@@ -31978,11 +32564,79 @@
                       "type": "string"
                     },
                     "health": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "unknown",
+                        "healthy",
+                        "degraded",
+                        "unhealthy"
+                      ]
                     },
                     "state": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "properties": {
+                        "findings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "reporterId": {
+                                "type": "string"
+                              },
+                              "check": {
+                                "type": "string"
+                              },
+                              "health": {
+                                "type": "string",
+                                "enum": [
+                                  "unknown",
+                                  "healthy",
+                                  "degraded",
+                                  "unhealthy"
+                                ]
+                              },
+                              "summary": {
+                                "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "seriesId": {
+                                      "type": "string"
+                                    },
+                                    "dimensions": {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "seriesId",
+                                    "dimensions",
+                                    "value"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "reporterId",
+                              "check",
+                              "health",
+                              "summary",
+                              "evidence"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "findings"
+                      ]
                     },
                     "freshness": {
                       "type": "string",

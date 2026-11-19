@@ -271,9 +271,21 @@ export type Recorder = {
 export type State = {
     states: Array<{
         subjectId: string;
-        health: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
         state: {
-            [key: string]: unknown;
+            findings: Array<{
+                reporterId: string;
+                check: string;
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                summary: string;
+                evidence: Array<{
+                    seriesId: string;
+                    dimensions: {
+                        [key: string]: string;
+                    };
+                    value: number;
+                }>;
+            }>;
         };
         freshness: 'fresh' | 'stale';
         observedAt: string;
@@ -309,9 +321,21 @@ export type Metric = {
 export type Subject = {
     subjectId: string;
     state: {
-        health: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
         state: {
-            [key: string]: unknown;
+            findings: Array<{
+                reporterId: string;
+                check: string;
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                summary: string;
+                evidence: Array<{
+                    seriesId: string;
+                    dimensions: {
+                        [key: string]: string;
+                    };
+                    value: number;
+                }>;
+            }>;
         };
         freshness: 'fresh' | 'stale';
         observedAt: string;
@@ -323,9 +347,30 @@ export type Subject = {
     reachable: boolean;
     opinions: Array<{
         reporterId: string;
-        health: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
         state: {
-            [key: string]: unknown;
+            findings: Array<{
+                check: string;
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                summary: string;
+                evidence: Array<{
+                    seriesId: string;
+                    dimensions: {
+                        [key: string]: string;
+                    };
+                    value: number;
+                }>;
+            }>;
+            consulted: Array<{
+                metric: string;
+                read: number;
+                seriesIds: Array<string>;
+            }>;
+            since: string;
+            pending: {
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                since: string;
+            } | null;
         };
         freshness: 'fresh' | 'stale';
         observedAt: string;
@@ -490,9 +535,21 @@ export type Topology = {
     }>;
     states: Array<{
         subjectId: string;
-        health: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
         state: {
-            [key: string]: unknown;
+            findings: Array<{
+                reporterId: string;
+                check: string;
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                summary: string;
+                evidence: Array<{
+                    seriesId: string;
+                    dimensions: {
+                        [key: string]: string;
+                    };
+                    value: number;
+                }>;
+            }>;
         };
         freshness: 'fresh' | 'stale';
         observedAt: string;

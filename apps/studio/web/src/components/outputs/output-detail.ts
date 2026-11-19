@@ -9,10 +9,12 @@ import {
 } from '@/components/devices/subjects';
 import type { ListedGateway } from '@/components/gateways/gateways';
 import {
+  overallStatus,
   ownStatus,
   placeTopology,
   statusesOf,
   type NodeStatus,
+  type OverallStatus,
   type SubjectStatusInput,
   type Topology,
   type UnplacedNode
@@ -233,14 +235,18 @@ function outputNodes({ output, outputAgent, channels, gateways }: OutputNodeInpu
   return [agent, programme, ...previews, ...forwards];
 }
 
-/**
- * The output's status. Without an agent it isn't going out at all. Anything failing says so first; then it is going
- * out once every part that is on reports healthy. Otherwise nothing has reported yet.
- */
+/** What the output's status says, once it has an agent. */
+const outputLabels = {
+  ok: 'Going out',
+  degraded: 'Going out, degraded',
+  unknown: 'No reports',
+  failing: 'Failing'
+} satisfies Record<OverallStatus, string>;
+
+/** The output's status: without an agent it isn't going out at all; otherwise, its parts' that are on (`overallStatus`). */
 function livenessOf(output: Output, topology: Topology, statuses: Map<string, NodeStatus>): OutputLiveness {
   if (!output.device) return { status: 'unknown', label: 'No agent' };
   const on = topology.nodes.filter(node => !node.off).map(node => statuses.get(node.id) ?? 'unknown');
-  if (on.some(status => status === 'failing' || status === 'affected')) return { status: 'failing', label: 'Failing' };
-  if (on.every(status => status === 'ok')) return { status: 'ok', label: 'Going out' };
-  return { status: 'unknown', label: 'No reports' };
+  const status = overallStatus(on);
+  return { status, label: outputLabels[status] };
 }

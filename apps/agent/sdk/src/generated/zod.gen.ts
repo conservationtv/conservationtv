@@ -23,6 +23,7 @@ export const SystemSchema = z.object({
                 cpuCount: z.number(),
                 load: z.number(),
                 memory: z.object({
+                    available: z.number(),
                     total: z.number(),
                     free: z.number()
                 }),

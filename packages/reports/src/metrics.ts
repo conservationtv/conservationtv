@@ -85,7 +85,11 @@ export const machineMetrics = {
   /** The kernel's load average, with its `window` as a dimension. */
   load: { name: 'machine.load', unit: 'processes', label: 'Load average' },
   memoryTotal: { name: 'machine.memory.total', unit: 'bytes', label: 'Memory' },
-  memoryFree: { name: 'machine.memory.free', unit: 'bytes', label: 'Free memory' },
+  /**
+   * What the machine can give programs without swapping, counting the cache it would drop for them, as its OS judges
+   * it: not the memory unused outright, which macOS keeps near nothing.
+   */
+  memoryAvailable: { name: 'machine.memory.available', unit: 'bytes', label: 'Available memory' },
   uptime: { name: 'machine.uptime', unit: 'seconds', label: 'Uptime' },
   /** The filesystem the agent's working directory is on. */
   diskTotal: { name: 'machine.disk.total', unit: 'bytes', label: 'Disk' },

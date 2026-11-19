@@ -41,7 +41,10 @@ export type ChannelsSpec = z.output<typeof ChannelsSpecSchema>;
  */
 const SAMPLE_INTERVAL_MS = 30_000;
 
-/** How often each channel's summary is submitted, as the program's are. */
+/**
+ * How often each channel's summary is submitted: two reads, so slower than the rest of the agent reports
+ * (`REPORT_INTERVAL_MS`), since a read learns nothing new sooner.
+ */
 const REPORT_INTERVAL_MS = 60_000;
 
 /** What the channels' reads add to their sampler's status. */

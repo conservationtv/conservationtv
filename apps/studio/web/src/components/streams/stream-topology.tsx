@@ -10,7 +10,13 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import type { NodeKind, NodeStatus, Topology, TopologyNode } from '@/components/streams/topology';
+import {
+  isDown,
+  type NodeKind,
+  type NodeStatus,
+  type Topology,
+  type TopologyNode
+} from '@/components/streams/topology';
 
 /** A connector from a parent to its child, in its layout's own coordinates, and the port it leaves from. */
 interface Connector {
@@ -183,7 +189,7 @@ const Connectors: FC<ConnectorsProps> = ({ connectors, statuses }) => {
             fill="none"
             strokeWidth={1}
             className={connectorStroke[status]}
-            strokeDasharray={status === 'failing' || status === 'affected' ? '2 3' : undefined}
+            strokeDasharray={isDown(status) ? '2 3' : undefined}
           />
         );
       })}
@@ -204,6 +210,7 @@ const Connectors: FC<ConnectorsProps> = ({ connectors, statuses }) => {
 const connectorStroke = {
   ok: 'stroke-border',
   unknown: 'stroke-border',
+  degraded: 'stroke-amber-500',
   failing: 'stroke-destructive',
   affected: 'stroke-destructive/40'
 } satisfies Record<NodeStatus, string>;
@@ -265,6 +272,7 @@ const kindIcons = {
 const statusDescriptions = {
   ok: 'healthy',
   unknown: 'not reported yet',
+  degraded: 'degraded',
   failing: 'failing',
   affected: 'affected by a failure upstream'
 } satisfies Record<NodeStatus, string>;
@@ -275,16 +283,23 @@ interface NodePillProps {
   status: NodeStatus;
 }
 
-/** A node: dashed and red while failing, faded while something upstream fails, dashed and muted while off. */
+/** How a node's pill is drawn for its status: dashed and red while failing, faded while something upstream fails. */
+const pillStyles = {
+  ok: 'border-border text-foreground [&_svg]:text-custom-icon-stream',
+  unknown: 'border-border text-foreground [&_svg]:text-custom-icon-stream',
+  degraded: 'border-amber-500 text-foreground [&_svg]:text-custom-icon-stream',
+  failing: 'border-dashed border-destructive bg-destructive-subtle text-destructive shadow-none',
+  affected: 'border-dashed border-destructive/40 text-destructive/50 shadow-none'
+} satisfies Record<NodeStatus, string>;
+
+/** A node, drawn for its status, or dashed and muted while off. */
 const NodePill: FC<NodePillProps> = ({ ref, node, status }) => {
   return (
     <div
       ref={ref}
       className={cn(
         'relative inline-flex h-8 items-center gap-2 rounded-lg border bg-card px-3 text-custom-13 whitespace-nowrap shadow-[0_0_6px_0_var(--custom-surface-shadow)] [&_svg]:size-4 [&_svg]:shrink-0',
-        status === 'failing' && 'border-dashed border-destructive bg-destructive-subtle text-destructive shadow-none',
-        status === 'affected' && 'border-dashed border-destructive/40 text-destructive/50 shadow-none',
-        (status === 'ok' || status === 'unknown') && 'border-border text-foreground [&_svg]:text-custom-icon-stream',
+        pillStyles[status],
         node.off && 'border-dashed text-muted-foreground shadow-none [&_svg]:text-muted-foreground'
       )}
     >
@@ -313,7 +328,7 @@ interface RecordingLabelProps {
 
 /** Beside or under a recorded exposure: whether it is recording now, which it is not while it or anything feeding it fails. */
 const RecordingLabel: FC<RecordingLabelProps> = ({ status }) => {
-  const stopped = status === 'failing' || status === 'affected';
+  const stopped = isDown(status);
   return (
     <span
       className={cn(

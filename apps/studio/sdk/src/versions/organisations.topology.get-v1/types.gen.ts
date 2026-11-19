@@ -140,9 +140,21 @@ export type Topology = {
     }>;
     states: Array<{
         subjectId: string;
-        health: string;
+        health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
         state: {
-            [key: string]: unknown;
+            findings: Array<{
+                reporterId: string;
+                check: string;
+                health: 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
+                summary: string;
+                evidence: Array<{
+                    seriesId: string;
+                    dimensions: {
+                        [key: string]: string;
+                    };
+                    value: number;
+                }>;
+            }>;
         };
         freshness: 'fresh' | 'stale';
         observedAt: string;

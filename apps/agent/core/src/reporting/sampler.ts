@@ -38,6 +38,13 @@ export interface SeriesTarget {
   dimensions: Record<string, string>;
 }
 
+/**
+ * How often the agent reports what it measures: the machine's samples, and each monitor's summaries, other than the
+ * channels' platforms, which learn nothing new more often than once a minute (output/channels/runtime.ts). The studio
+ * API judges each subject's health as its reports arrive, so this is also how soon a change in it can be seen.
+ */
+export const REPORT_INTERVAL_MS = 15_000;
+
 /** How often a sampler samples, and how often it reports what it sampled. */
 export interface SamplerTiming {
   sampleMs: number;

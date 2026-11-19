@@ -11,10 +11,10 @@
 export type NodeKind = 'camera' | 'server' | 'cloud' | 'programme' | 'twitch' | 'channel';
 
 /**
- * `ok`: reporting healthy. `unknown`: nothing reported yet. `failing`: reporting unhealthy, or gone quiet.
- * `affected`: fed by a failing node.
+ * `ok`: reporting healthy. `unknown`: nothing reported yet, or nothing to judge by. `degraded`: working, but not as it
+ * should, such as dropping frames. `failing`: reporting unhealthy, or gone quiet. `affected`: fed by a failing node.
  */
-export type NodeStatus = 'ok' | 'unknown' | 'failing' | 'affected';
+export type NodeStatus = 'ok' | 'unknown' | 'degraded' | 'failing' | 'affected';
 
 export interface TopologyNode {
   id: string;
@@ -174,6 +174,7 @@ function sectionsOf(nodes: TopologyNode[], networks: NetworkInput[]): TopologySe
 export const statusLabels = {
   ok: 'Healthy',
   unknown: 'No reports',
+  degraded: 'Degraded',
   failing: 'Failing',
   affected: 'Affected upstream'
 } satisfies Record<NodeStatus, string>;
@@ -188,10 +189,66 @@ export interface SubjectStatusInput {
 export function ownStatus(state: SubjectStatusInput | undefined): NodeStatus {
   if (!state) return 'unknown';
   if (state.freshness === 'stale' || state.health === 'unhealthy') return 'failing';
+  if (state.health === 'degraded') return 'degraded';
+  if (state.health === 'unknown') return 'unknown';
   return 'ok';
 }
 
-/** Every node's status, with failures flowing downstream: a node fed by a failing or affected one is affected. */
+// What each status means, as tables rather than comparisons, so a status added to `NodeStatus` doesn't compile until
+// each says where it stands.
+
+/** Whether a node is down: failing itself, or fed by something that is. What it feeds is then affected. */
+const DOWN = {
+  ok: false,
+  unknown: false,
+  degraded: false,
+  failing: true,
+  affected: true
+} satisfies Record<NodeStatus, boolean>;
+
+/** Whether a node is going out: working, if not as it should. */
+const GOING_OUT = {
+  ok: true,
+  unknown: false,
+  degraded: true,
+  failing: false,
+  affected: false
+} satisfies Record<NodeStatus, boolean>;
+
+/** How much each status weighs in a whole stream's or show's: down outweighs not knowing, which outweighs degraded. */
+const OVERALL_WEIGHT = {
+  ok: 0,
+  degraded: 1,
+  unknown: 2,
+  affected: 3,
+  failing: 3
+} satisfies Record<NodeStatus, number>;
+
+export function isDown(status: NodeStatus): boolean {
+  return DOWN[status];
+}
+
+export function isGoingOut(status: NodeStatus): boolean {
+  return GOING_OUT[status];
+}
+
+/** A whole stream's or show's status: a failure upstream of a part is the whole's own failure. */
+export type OverallStatus = Exclude<NodeStatus, 'affected'>;
+
+/**
+ * The status of a whole made of `statuses`: failing when any part is down; otherwise unknown when any part hasn't
+ * reported; otherwise degraded when any part is; otherwise ok, as a whole of no parts is.
+ */
+export function overallStatus(statuses: Iterable<NodeStatus>): OverallStatus {
+  let worst: NodeStatus = 'ok';
+  for (const status of statuses) if (OVERALL_WEIGHT[status] > OVERALL_WEIGHT[worst]) worst = status;
+  return worst === 'affected' ? 'failing' : worst;
+}
+
+/**
+ * Every node's status, with failures flowing downstream: a node fed by a failing or affected one is affected. A
+ * degraded node still feeds what it feeds, so it affects nothing.
+ */
 export function statusesOf(nodes: TopologyNode[], own: Map<string, NodeStatus>): Map<string, NodeStatus> {
   const statuses = new Map<string, NodeStatus>();
   for (const node of nodes) {
@@ -199,7 +256,7 @@ export function statusesOf(nodes: TopologyNode[], own: Map<string, NodeStatus>):
     // wins; otherwise a failure upstream makes it affected; otherwise it is as it reports.
     const self = own.get(node.id) ?? 'unknown';
     const parent = node.parentId ? statuses.get(node.parentId) : undefined;
-    const upstreamDown = parent === 'failing' || parent === 'affected';
+    const upstreamDown = parent !== undefined && isDown(parent);
     statuses.set(node.id, self === 'failing' ? 'failing' : upstreamDown ? 'affected' : self);
   }
   return statuses;
