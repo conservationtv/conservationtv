@@ -6,6 +6,7 @@ import { connectStats } from '../gateways/connect.ts';
 import { ApiFailure } from '../errors.ts';
 import { BUILTIN_GATEWAY_IDS, builtinGateways, GATEWAY_KIND_IDS, isBuiltinGateway } from '../gateways/index.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import { listGatewayEndpoints } from '../services/gateway-endpoints.ts';
 import { createGateway, deleteGateway, getGateway, listGateways, updateGateway } from '../services/gateways.ts';
 import { NetworkReferenceSchema, SettingsSchema } from '../topology/settings.ts';
@@ -90,6 +91,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator(
       'json',
@@ -191,6 +193,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', GatewayParamsSchema),
     validator(
       'json',
@@ -232,6 +235,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', GatewayParamsSchema),
     async c => {
       const { id, gatewayId } = c.req.valid('param');

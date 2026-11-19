@@ -13,6 +13,7 @@ import { transaction } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, usePrincipal, useUser } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import {
   createRtmpChannel,
   deleteChannel,
@@ -115,6 +116,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('secrets'),
     validator('param', OrganisationParamsSchema),
     validator('json', z.strictObject({ name: ChannelNameSchema, url: RtmpUrlSchema, key: StreamKeySchema })),
     async c => {
@@ -143,6 +145,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('secrets'),
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
@@ -202,6 +205,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('secrets'),
     validator('param', ChannelParamsSchema),
     validator('json', z.strictObject({ name: ChannelNameSchema })),
     async c => {
@@ -231,6 +235,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('secrets'),
     validator('param', ChannelParamsSchema),
     async c => {
       const { id, channelId } = c.req.valid('param');
@@ -257,6 +262,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('secrets'),
     validator('param', ChannelParamsSchema),
     async c => {
       const { id, channelId } = c.req.valid('param');

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import { createAgent, deleteAgent, getAgent, listAgents, updateAgent } from '../services/agents.ts';
 import { createDevice, deleteDevice, requireDevicePermission } from '../services/devices.ts';
 import { DeviceNameSchema } from './devices.ts';
@@ -77,6 +78,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator(
       'json',
@@ -146,6 +148,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', AgentParamsSchema),
     validator('json', z.strictObject({ priority: PrioritySchema })),
     async c => {
@@ -180,6 +183,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', AgentParamsSchema),
     async c => {
       const { id, agentId } = c.req.valid('param');

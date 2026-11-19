@@ -8,6 +8,7 @@ import { devices, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
+import { recordActor, recordDeviceOrganisation } from '../requests/record.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
 import { withPrincipal } from './principal.ts';
 
@@ -126,5 +127,7 @@ export const requireDevice = createMiddleware(async (c, next) => {
     MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
   );
   if (!fresh) throw new ApiFailure('invalid_signature');
+  recordActor({ principal: device.principal, deviceKind: device.kind });
+  recordDeviceOrganisation(device.organisationId);
   await withDevice(device, () => withPrincipal(device.principal, next));
 });

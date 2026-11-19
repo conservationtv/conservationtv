@@ -23,6 +23,8 @@ export {
   defineAuthorization,
   withAuthorization,
   type Access,
+  type AccessChange,
+  type AccessOptions,
   type Authorization,
   type AuthorizationDatabases,
   type AuthorizationOptions,

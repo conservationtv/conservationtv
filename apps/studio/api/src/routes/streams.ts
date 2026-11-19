@@ -6,6 +6,7 @@ import { ConnectionActionSchema } from '../gateways/provider.ts';
 import { transaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import {
   createExposure,
   createRecorder,
@@ -139,6 +140,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator('json', z.strictObject({ name: StreamNameSchema, sourceDeviceId: SourceDeviceSchema.default(null) })),
     async c => {
@@ -201,6 +203,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', StreamParamsSchema),
     validator(
       'json',
@@ -234,6 +237,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', StreamParamsSchema),
     async c => {
       const { id, streamId } = c.req.valid('param');
@@ -261,6 +265,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', StreamParamsSchema),
     validator(
       'json',
@@ -305,6 +310,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', ExposurePathParamsSchema),
     validator(
       'json',
@@ -345,6 +351,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', ExposurePathParamsSchema),
     async c => {
       const { id, streamId, exposureId } = c.req.valid('param');
@@ -409,6 +416,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', StreamParamsSchema),
     validator(
       'json',
@@ -450,6 +458,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', RecorderParamsSchema),
     validator(
       'json',
@@ -488,6 +497,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', RecorderParamsSchema),
     async c => {
       const { id, streamId, recorderId } = c.req.valid('param');

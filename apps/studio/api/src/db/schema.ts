@@ -23,3 +23,4 @@ export * from './schemas/channels.ts';
 export * from './schemas/observations.ts';
 export * from './schemas/metrics.ts';
 export * from './schemas/logs.ts';
+export * from './schemas/audit.ts';

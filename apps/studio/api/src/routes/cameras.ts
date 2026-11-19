@@ -6,6 +6,7 @@ import { CAMERA_STATES } from '../cameras/states.ts';
 import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import { createCamera, deleteCamera, getCamera, listCameras, updateCamera } from '../services/cameras.ts';
 import { createDevice, deleteDevice, requireDevicePermission } from '../services/devices.ts';
 import { NetworkReferenceSchema } from '../topology/settings.ts';
@@ -79,6 +80,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator(
       'json',
@@ -154,6 +156,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', CameraParamsSchema),
     validator(
       'json',
@@ -196,6 +199,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', CameraParamsSchema),
     async c => {
       const { id, cameraId } = c.req.valid('param');

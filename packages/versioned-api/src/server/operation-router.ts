@@ -18,6 +18,21 @@ export interface OperationRoute {
 
 type Entry = [H, RouterRoute];
 
+/** The operation a request was routed to, and the path parameters it matched. */
+export interface SelectedOperation {
+  operation: OperationRoute;
+  params: Record<string, string>;
+}
+
+export interface OperationRouterOptions {
+  /**
+   * Told which operation a request was routed to, once, as the operation's first handler is about to run: after the
+   * middleware registered before it, before its own validators and handlers, in the request's own async context.
+   * Requests no operation serves (CORS preflights, unknown paths, unversioned routes) are never reported.
+   */
+  onSelect?: (selected: SelectedOperation) => void;
+}
+
 interface OperationDescription extends DescribeRouteOptions {
   'x-operation-version'?: number;
 }
@@ -53,6 +68,8 @@ export class OperationRouter implements Router<Entry> {
   private readonly active = new Map<string, OperationRoute>();
   private readonly identities = new Set<string>();
   private readonly locations = new Map<string, string>();
+
+  constructor(private readonly options: OperationRouterOptions = {}) {}
 
   /** A description begins a complete route; subsequent validators and handlers belong to it. */
   add(method: string, path: string, entry: Entry): void {
@@ -119,7 +136,10 @@ export class OperationRouter implements Router<Entry> {
             requested!
           );
         }
-        return selected === owner ? handler(c, next) : next();
+        if (selected !== owner) return next();
+        // The parameters as this route matched them, decoded, while it is the route being dispatched.
+        if (route === owner.routes[0]) this.options.onSelect?.({ operation: owner, params: c.req.param() });
+        return handler(c, next);
       };
       return [[guarded, route], params];
     });

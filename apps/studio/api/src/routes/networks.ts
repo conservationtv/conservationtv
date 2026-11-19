@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { transaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import {
   activateAgent,
   createNetwork,
@@ -77,6 +78,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The network name.') })),
     async c => {
@@ -134,6 +136,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', NetworkParamsSchema),
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The network name.') })),
     async c => {
@@ -167,6 +170,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', NetworkParamsSchema),
     async c => {
       const { id, networkId } = c.req.valid('param');
@@ -195,6 +199,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', NetworkParamsSchema),
     validator(
       'json',

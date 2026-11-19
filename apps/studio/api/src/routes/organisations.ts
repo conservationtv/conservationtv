@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { recordOrganisation } from '../requests/record.ts';
+import { audited } from '../audit/audit.ts';
 import { deleteMemberBrowsers } from '../services/browsers.ts';
 import {
   createInvitation,
@@ -97,6 +99,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator(
       'json',
       z.strictObject({
@@ -114,6 +117,7 @@ export default new Hono()
         await grantAdmin(created.id, principal.id);
         return created;
       });
+      recordOrganisation(organisation.id);
       c.header('Cache-Control', 'no-store');
       return c.json(organisation, 201);
     }
@@ -162,6 +166,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator('json', z.strictObject({ name: z.string().trim().min(1).max(120).describe('The organisation name.') })),
     async c => {
@@ -190,6 +195,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', OrganisationParamsSchema),
     async c => {
       const { id } = c.req.valid('param');
@@ -285,6 +291,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', MemberParamsSchema),
     async c => {
       const principal = useUser();
@@ -322,6 +329,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', MemberParamsSchema),
     async c => {
       const principal = useUser();
@@ -357,6 +365,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', MemberParamsSchema),
     async c => {
       const principal = useUser();
@@ -422,6 +431,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', OrganisationParamsSchema),
     validator(
       'json',
@@ -478,6 +488,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('access'),
     validator('param', OrganisationParamsSchema.extend({ invitationId: z.uuid().describe('The invitation.') })),
     async c => {
       const { id, invitationId } = c.req.valid('param');

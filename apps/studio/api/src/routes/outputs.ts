@@ -7,6 +7,7 @@ import { connectPreview } from '../gateways/connect.ts';
 import { ConnectionActionSchema } from '../gateways/provider.ts';
 import { requireDevice, useDevice } from '../middleware/device.ts';
 import { requirePrincipal } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import {
   createOutput,
   createOutputForward,
@@ -206,6 +207,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OrganisationParamsSchema),
     validator(
       'json',
@@ -273,6 +275,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OutputParamsSchema),
     validator(
       'json',
@@ -313,6 +316,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OutputParamsSchema),
     async c => {
       const { id, outputId } = c.req.valid('param');
@@ -368,6 +372,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OutputParamsSchema),
     validator('json', z.strictObject({ deviceId: OutputDeviceSchema })),
     async c => {
@@ -400,6 +405,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OutputParamsSchema),
     async c => {
       const { id, outputId } = c.req.valid('param');
@@ -496,6 +502,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OutputParamsSchema),
     validator(
       'json',
@@ -533,6 +540,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', ForwardParamsSchema),
     validator('json', z.strictObject({ enabled: ForwardEnabledSchema })),
     async c => {
@@ -561,6 +569,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', ForwardParamsSchema),
     async c => {
       const { id, outputId, forwardId } = c.req.valid('param');
@@ -589,6 +598,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OutputParamsSchema),
     validator('json', z.strictObject({ gatewayId: PreviewGatewaySchema })),
     async c => {
@@ -620,6 +630,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', PreviewParamsSchema),
     async c => {
       const { id, outputId, previewId } = c.req.valid('param');
@@ -684,6 +695,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', OutputParamsSchema),
     validator('json', z.strictObject({ kind: RecorderKindSchema, params: SettingsSchema.default({}) })),
     async c => {
@@ -716,6 +728,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', RecorderParamsSchema),
     validator(
       'json',
@@ -749,6 +762,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', RecorderParamsSchema),
     async c => {
       const { id, outputId, recorderId } = c.req.valid('param');

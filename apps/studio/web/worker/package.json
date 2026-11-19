@@ -10,9 +10,9 @@
     "typecheck": "cf workers types && tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "beta",
+    "@cloudflare/vite-plugin": "catalog:",
     "@types/node": "24.10.1",
-    "cf": "^1.0.0-beta.5",
+    "cf": "catalog:",
     "typescript": "catalog:",
     "vite": "^8.3.0",
     "zod": "catalog:"
