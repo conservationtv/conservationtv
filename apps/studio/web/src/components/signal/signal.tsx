@@ -1,4 +1,4 @@
-import { use, type ComponentProps, type FC, type ReactNode } from 'react';
+import { use, useEffect, useRef, type ComponentProps, type FC, type ReactNode } from 'react';
 import { useSelector, useStore } from '@xstate/store-react';
 import { Badge } from '@conservationtv/ui/components/badge';
 import { cn } from '@conservationtv/ui/lib/utils';
@@ -15,6 +15,14 @@ import { signalStoreConfig } from '@/components/signal/signal-store';
 import type { SignalSystem } from '@/components/signal/signal-system';
 import { SignalThingsContext, type SignalThingLayer } from '@/components/signal/signal-things';
 import { focusOf, topologyOf } from '@/components/signal/signal-topology';
+
+/** How wide a canvas must be for the map, in rems: what SignalWide's and SignalNarrow's container queries say. */
+const MAP_WIDTH_REMS = 53;
+
+/** Rems in CSS pixels, at the document's font size, as container queries count them. */
+function remsInPixels(rems: number): number {
+  return rems * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
 
 // The signal view: an organisation's channels, broadcasts and sources, and how the signal runs between them. This is
 // its root and what goes around the map or the stack; they and their parts go inside and read what they need from it.
@@ -79,12 +87,25 @@ export interface SignalCanvasProps extends ComponentProps<'div'> {}
 
 /**
  * Where the map or the stack goes. A press on the empty page lets go of the pick. It is the container SignalWide and
- * SignalNarrow measure, so what goes in it can choose by the room it has rather than by the window.
+ * SignalNarrow measure, so what goes in it can choose by the room it has rather than by the window, and it tells the
+ * view the same (useSignalLayout), for what follows the layout outside it.
  */
 export const SignalCanvas: FC<SignalCanvasProps> = ({ className, ...props }) => {
   const store = useSignalStore();
+  const measured = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const canvas = measured.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      store.trigger.measure({ wide: entry.contentRect.width >= remsInPixels(MAP_WIDTH_REMS) });
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [store]);
   return (
     <div
+      ref={measured}
       className={cn('@container/signal flex-1 px-4 py-6 lg:px-8 lg:py-8', className)}
       onClick={() => store.trigger.release()}
       {...props}
@@ -92,9 +113,9 @@ export const SignalCanvas: FC<SignalCanvasProps> = ({ className, ...props }) => 
   );
 };
 
-// What a canvas holds when it has room for the map, and when it doesn't: 53rem across, the room the map has in a page
-// of its own once the window is wide enough for it (useSignalLayout). Both stay drawn, one hidden, so moving between
-// them keeps what's open and picked; the map measures its links again as it's shown.
+// What a canvas holds when it has room for the map, and when it doesn't: 53rem across (MAP_WIDTH_REMS, which the
+// container queries below spell out). Both stay drawn, one hidden, so moving between them keeps what's open and
+// picked; the map measures its links again as it's shown.
 
 export interface SignalWideProps extends ComponentProps<'div'> {}
 

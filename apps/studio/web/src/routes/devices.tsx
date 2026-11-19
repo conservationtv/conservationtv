@@ -5,11 +5,13 @@ import { DevicesIcon } from '@phosphor-icons/react';
 import type { Device, Network } from '@conservationtv/studio-sdk';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@conservationtv/ui/components/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@conservationtv/ui/components/tabs';
+import { Tabs, TabsContent } from '@conservationtv/ui/components/tabs';
+import { cn } from '@conservationtv/ui/lib/utils';
 
 import type { Route } from './+types/devices';
 import { CopyButton } from '@/components/common/copy-button';
 import { Page, PageDescription, PageHeader, PageHeading, PageTitle } from '@/components/common/page';
+import { PageTabsBar, PageTabsList, PageTabsTrigger } from '@/components/common/page-tabs';
 import { DeviceDetailsDialog } from '@/components/devices/device-details-dialog';
 import { DEVICE_KINDS, DeviceKindIcon } from '@/components/devices/device-kind';
 import { devicePathOf, networkNameOf } from '@/components/devices/devices';
@@ -47,20 +49,22 @@ const DevicesRoute: FC = () => {
         </PageHeading>
       </PageHeader>
       <Tabs {...tabs} className="gap-6">
-        <TabsList variant="line" className="w-full justify-start border-b border-border pb-1">
-          <TabsTrigger value="all" className="flex-none px-2 text-custom-13">
-            All
-            <span className="text-muted-foreground tabular-nums">{devices.length}</span>
-          </TabsTrigger>
-          {DEVICE_KINDS.map(({ kind, plural }) => (
-            <TabsTrigger key={kind} value={kind} className="flex-none px-2 text-custom-13">
-              {plural}
-              <span className="text-muted-foreground tabular-nums">
-                {devices.filter(device => device.kind === kind).length}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <PageTabsBar>
+          <PageTabsList>
+            <PageTabsTrigger value="all">
+              All
+              <span className="text-muted-foreground tabular-nums">{devices.length}</span>
+            </PageTabsTrigger>
+            {DEVICE_KINDS.map(({ kind, plural }) => (
+              <PageTabsTrigger key={kind} value={kind}>
+                {plural}
+                <span className="text-muted-foreground tabular-nums">
+                  {devices.filter(device => device.kind === kind).length}
+                </span>
+              </PageTabsTrigger>
+            ))}
+          </PageTabsList>
+        </PageTabsBar>
         <TabsContent value="all">
           <DeviceTable devices={devices} networks={networksQuery.data} />
         </TabsContent>
@@ -80,6 +84,14 @@ interface DeviceTableProps {
   devices: Device[];
   networks: Network[];
 }
+
+// Columns that drop out as the table narrows, beside a phone's sidebar or on a phone, leaving each device's name and
+// what can be done with it. Everything they show is in the device's details too.
+
+/** Shown while the table has room for everything (42rem): its network, public ID and age. */
+const WIDE = '@max-2xl/table:hidden';
+/** Shown until the table is too narrow for more than the name (28rem): its kind, which its icon also says. */
+const ROOMY = '@max-md/table:hidden';
 
 /** The devices as a table, one row each; an empty state when there are none. */
 const DeviceTable: FC<DeviceTableProps> = ({ devices, networks }) => {
@@ -101,10 +113,18 @@ const DeviceTable: FC<DeviceTableProps> = ({ devices, networks }) => {
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className="text-custom-12 font-normal text-custom-text-secondary">Name</TableHead>
-          <TableHead className="w-20 text-custom-12 font-normal text-custom-text-secondary">Kind</TableHead>
-          <TableHead className="w-28 text-custom-12 font-normal text-custom-text-secondary">Network</TableHead>
-          <TableHead className="w-36 text-custom-12 font-normal text-custom-text-secondary">Public ID</TableHead>
-          <TableHead className="w-28 text-custom-12 font-normal text-custom-text-secondary">Created</TableHead>
+          <TableHead className={cn('w-20 text-custom-12 font-normal text-custom-text-secondary', ROOMY)}>
+            Kind
+          </TableHead>
+          <TableHead className={cn('w-28 text-custom-12 font-normal text-custom-text-secondary', WIDE)}>
+            Network
+          </TableHead>
+          <TableHead className={cn('w-36 text-custom-12 font-normal text-custom-text-secondary', WIDE)}>
+            Public ID
+          </TableHead>
+          <TableHead className={cn('w-28 text-custom-12 font-normal text-custom-text-secondary', WIDE)}>
+            Created
+          </TableHead>
           <TableHead className="w-32">
             <span className="sr-only">Actions</span>
           </TableHead>
@@ -139,11 +159,11 @@ const DeviceRow: FC<DeviceRowProps> = ({ device, networks }) => {
           <DeviceName device={device} />
         </span>
       </TableCell>
-      <TableCell className="text-custom-text-secondary">{kind?.label ?? device.kind}</TableCell>
-      <TableCell className="truncate text-custom-text-secondary" title={networkName}>
+      <TableCell className={cn('text-custom-text-secondary', ROOMY)}>{kind?.label ?? device.kind}</TableCell>
+      <TableCell className={cn('truncate text-custom-text-secondary', WIDE)} title={networkName}>
         {networkName}
       </TableCell>
-      <TableCell>
+      <TableCell className={WIDE}>
         <span className="flex items-center gap-1">
           <span className="font-mono text-custom-12 text-custom-text-secondary" title={device.publicId}>
             {shortPublicId(device.publicId)}
@@ -151,7 +171,7 @@ const DeviceRow: FC<DeviceRowProps> = ({ device, networks }) => {
           <CopyButton value={device.publicId} label={`Copy ${device.name}’s public ID`} />
         </span>
       </TableCell>
-      <TableCell className="text-custom-text-secondary">{formatDate(device.createdAt)}</TableCell>
+      <TableCell className={cn('text-custom-text-secondary', WIDE)}>{formatDate(device.createdAt)}</TableCell>
       <TableCell>
         <span className="flex justify-end gap-1">
           <DeviceDetailsDialog device={device} networkName={networkName} />

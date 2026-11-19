@@ -1,6 +1,8 @@
 import type { FC, ReactNode } from 'react';
 import { NavLink, useLocation, useMatches, useResolvedPath } from 'react-router';
-import { Tabs, TabsList, TabsTrigger } from '@conservationtv/ui/components/tabs';
+import { Tabs } from '@conservationtv/ui/components/tabs';
+
+import { PageTabsBar, PageTabsList, PageTabsTrigger } from '@/components/common/page-tabs';
 
 // Line tabs whose tabs are links: the route decides which one is current, and choosing one navigates. Each tab's
 // value is the path it links to, so the current tab is the one whose path is the settings page that's open: the route
@@ -19,9 +21,9 @@ export const SettingsTabs: FC<SettingsTabsProps> = ({ children }) => {
   const page = matches[layout + 1]?.pathname ?? location.pathname;
   return (
     <Tabs value={withoutTrailingSlash(page)}>
-      <TabsList variant="line" className="w-full justify-start border-b border-border pb-1">
-        {children}
-      </TabsList>
+      <PageTabsBar>
+        <PageTabsList>{children}</PageTabsList>
+      </PageTabsBar>
     </Tabs>
   );
 };
@@ -36,14 +38,9 @@ export interface SettingsTabProps {
 export const SettingsTab: FC<SettingsTabProps> = ({ to, children }) => {
   const path = useResolvedPath(to);
   return (
-    <TabsTrigger
-      value={withoutTrailingSlash(path.pathname)}
-      nativeButton={false}
-      render={<NavLink to={to} end />}
-      className="flex-none px-2 text-custom-13"
-    >
+    <PageTabsTrigger value={withoutTrailingSlash(path.pathname)} nativeButton={false} render={<NavLink to={to} end />}>
       {children}
-    </TabsTrigger>
+    </PageTabsTrigger>
   );
 };
 

@@ -215,8 +215,7 @@ const InvitationsSection: FC<InvitationsSectionProps> = ({ members }) => {
   return (
     <Section>
       <SectionHeader>
-        {/* Grows from nothing, so the button beside it stays on the heading’s line however long the description. */}
-        <SectionHeading className="flex-1 basis-0">
+        <SectionHeading>
           <SectionTitle>Invitations</SectionTitle>
           <SectionDescription>
             Each is a link to join, open for 14 days, which whoever signs in with it can accept. The studio doesn’t send
