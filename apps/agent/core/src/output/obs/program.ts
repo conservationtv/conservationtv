@@ -1,11 +1,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { AttachedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
-import { type AlwaysAvailableTrack, type MediamtxConfig, toYaml } from '@conservationtv/mediamtx';
+import { type AlwaysAvailableTrack, MediamtxConfigBuilder, pipeline } from '@conservationtv/mediamtx';
 import { forwardSubject, previewSubject } from '@conservationtv/reports';
 import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import { moqPublishCommand } from '../../binaries/moq.ts';
+import { common, renderYaml } from '../../mediamtx/config.ts';
 import { listening } from './loopback.ts';
 
 // The program MediaMTX: a MediaMTX of the obs runtime's own, between OBS and everything it sends or plays, so OBS can
@@ -30,11 +31,11 @@ import { listening } from './loopback.ts';
 // publish URL its `connect` gave, carrying its token. Each forward's place in that list is how its metrics are told
 // apart (`destinations`, program-metrics.ts).
 //
-// Everything listens on loopback only, and only loopback may publish or read. The config is rewritten whenever a
-// forward, a preview or an input changes, which a running MediaMTX reloads by itself. Writing an input's own path
-// drops the reader waiting on it once, which OBS's media source reconnects from within a second. Its log goes to the process's
-// log file, so every publish, read, and forward is recorded there. Its metrics page is read for the program's reports
-// (program-metrics.ts).
+// Everything listens on loopback only, and only loopback may publish or read. The config is assembled by the common
+// step (mediamtx/config.ts) and the program's own below, and rewritten whenever a forward, a preview or an input
+// changes, which a running MediaMTX reloads by itself. Writing an input's own path drops the reader waiting on it
+// once, which OBS's media source reconnects from within a second. Its log goes to the process's log file, so every
+// publish, read, and forward is recorded there. Its metrics page is read for the program's reports (program-metrics.ts).
 
 /** The path OBS streams to, as the RTMP application and stream key its profile names. */
 export const PROGRAM_APP = 'show';
@@ -172,6 +173,87 @@ function previewPath(previewId: string): string {
 function isPushed(preview: ProgramPreview): preview is PushedPreview {
   return preview.publish.protocol !== 'moq';
 }
+
+/** What the program MediaMTX serves: where it listens, and what it forwards, publishes and plays. */
+interface ProgramServing {
+  ports: ProgramPorts;
+  forwards: readonly ProgramForward[];
+  previews: readonly ProgramPreview[];
+  /** The moq CLI the MoQ previews are published by; none until it is installed. */
+  moq: string | undefined;
+  /** Each input with a path of its own, by path: its tracks, or null when its catalog could not be read. */
+  inputs: ReadonlyMap<string, AlwaysAvailableTrack[] | null>;
+  /** What MediaMTX runs to tell the agent an input is wanted (inputs.ts); none reads inputs until it is set. */
+  demand: string | undefined;
+}
+
+/** RTMP alone, on loopback, and only loopback may publish, read, or use the control API and metrics page. */
+const programServer = new MediamtxConfigBuilder<ProgramServing>(({ ports }, config) => {
+  config.pprof = false;
+  config.playback = false;
+  config.rtsp = false;
+  config.hls = false;
+  config.webrtc = false;
+  config.srt = false;
+  config.moq = false;
+  config.rtmp = true;
+  config.rtmpAddress = `127.0.0.1:${String(ports.rtmp)}`;
+  config.rtmpEncryption = 'no';
+  config.authMethod = 'internal';
+  config.authInternalUsers = [
+    {
+      user: 'any',
+      ips: ['127.0.0.1', '::1'],
+      permissions: [{ action: 'publish' }, { action: 'read' }, { action: 'api' }, { action: 'metrics' }]
+    }
+  ];
+});
+
+/** `show/program` and its forwards, each MoQ preview's path, and the inputs', once they are read on demand. */
+const programPaths = new MediamtxConfigBuilder<ProgramServing>((serving, config) => {
+  // MediaMTX's RTMP(S) destinations take the stream key after `#`; a preview's token is in its URL's query.
+  const forwards = serving.forwards.map(forward => ({ dest: `${forward.url}#${forward.key}` }));
+  const previews = serving.previews.flatMap(preview => (isPushed(preview) ? [{ dest: preview.publish.url }] : []));
+  config.paths[PROGRAM_PATH] = {
+    source: 'publisher',
+    alwaysAvailable: true,
+    alwaysAvailableTracks: PROGRAM_TRACKS,
+    forward: [...forwards, ...previews]
+  };
+  const rtmp = `rtmp://127.0.0.1:${String(serving.ports.rtmp)}`;
+  for (const preview of serving.previews) {
+    // A MoQ preview's path, pulling the program, and its CLI, reading the path; none until the CLI is installed.
+    if (preview.publish.protocol !== 'moq' || serving.moq === undefined) continue;
+    const { connect, broadcast } = preview.publish;
+    const path = previewPath(preview.previewId);
+    config.paths[path] = {
+      source: `${rtmp}/${PROGRAM_PATH}`,
+      runOnInit: moqPublishCommand(serving.moq, connect, broadcast, `${rtmp}/${path}`),
+      runOnInitRestart: true
+    };
+  }
+  if (serving.demand === undefined) return;
+  // An input with tracks to fall back with is a path of its own; any other is read on demand.
+  for (const [path, tracks] of serving.inputs) {
+    if (tracks === null) continue;
+    config.paths[path] = {
+      source: 'publisher',
+      alwaysAvailable: true,
+      alwaysAvailableTracks: tracks,
+      runOnRead: serving.demand,
+      runOnReadRestart: true
+    };
+  }
+  config.paths[INPUT_PATTERN] = {
+    source: 'publisher',
+    runOnDemand: serving.demand,
+    runOnDemandRestart: true,
+    runOnDemandStartTimeout: INPUT_START_TIMEOUT,
+    runOnDemandCloseAfter: INPUT_CLOSE_AFTER
+  };
+});
+
+const programConfig = pipeline(common, programServer, programPaths);
 
 /** The program MediaMTX, run from an installed `mediamtx`, in `directory`. */
 export class ProgramMediamtx {
@@ -315,91 +397,20 @@ export class ProgramMediamtx {
   /** Writes the config if it has changed, one write at a time: MediaMTX reloads it whenever it is written. */
   private write(): Promise<void> {
     this.writing = this.writing.then(async () => {
-      const config = toYaml(this.config());
+      // As they are now: the inputs are copied, as one may change while the config renders.
+      const { ports, forwards, previews, moq, demand } = this;
+      const inputs = new Map(this.inputs);
+      const config = await renderYaml(programConfig, { ports, forwards, previews, moq, inputs, demand });
       await mkdir(this.directory, { recursive: true });
       const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
       if (written !== config) await writeFile(this.configFile, config, { mode: 0o600 });
-      const inputs = Object.fromEntries(
-        [...this.inputs].map(([path, tracks]) => [path, { fallback: tracks !== null }])
-      );
-      const forwards = this.forwards.map(forward => forward.channelId);
-      const previews = this.previews.map(preview => preview.previewId);
-      this.update({ forwards, previews, inputs });
+      this.update({
+        forwards: forwards.map(forward => forward.channelId),
+        previews: previews.map(preview => preview.previewId),
+        inputs: Object.fromEntries([...inputs].map(([path, tracks]) => [path, { fallback: tracks !== null }]))
+      });
     });
     return this.writing;
-  }
-
-  private config(): MediamtxConfig {
-    // MediaMTX's RTMP(S) destinations take the stream key after `#`; a preview's token is in its URL's query.
-    const forwards = this.forwards.map(forward => ({ dest: `${forward.url}#${forward.key}` }));
-    const previews = this.previews.flatMap(preview => (isPushed(preview) ? [{ dest: preview.publish.url }] : []));
-    const paths: NonNullable<MediamtxConfig['paths']> = {
-      [PROGRAM_PATH]: {
-        source: 'publisher',
-        alwaysAvailable: true,
-        alwaysAvailableTracks: PROGRAM_TRACKS,
-        forward: [...forwards, ...previews]
-      }
-    };
-    const rtmp = `rtmp://127.0.0.1:${String(this.ports.rtmp)}`;
-    for (const preview of this.previews) {
-      // A MoQ preview's path, pulling the program, and its CLI, reading the path; none until the CLI is installed.
-      if (preview.publish.protocol !== 'moq' || this.moq === undefined) continue;
-      const { connect, broadcast } = preview.publish;
-      const path = previewPath(preview.previewId);
-      paths[path] = {
-        source: `${rtmp}/${PROGRAM_PATH}`,
-        runOnInit: moqPublishCommand(this.moq, connect, broadcast, `${rtmp}/${path}`),
-        runOnInitRestart: true
-      };
-    }
-    if (this.demand !== undefined) {
-      // An input with tracks to fall back with is a path of its own; any other is read on demand.
-      for (const [path, tracks] of this.inputs) {
-        if (tracks === null) continue;
-        paths[path] = {
-          source: 'publisher',
-          alwaysAvailable: true,
-          alwaysAvailableTracks: tracks,
-          runOnRead: this.demand,
-          runOnReadRestart: true
-        };
-      }
-      paths[INPUT_PATTERN] = {
-        source: 'publisher',
-        runOnDemand: this.demand,
-        runOnDemandRestart: true,
-        runOnDemandStartTimeout: INPUT_START_TIMEOUT,
-        runOnDemandCloseAfter: INPUT_CLOSE_AFTER
-      };
-    }
-    return {
-      logLevel: 'info',
-      logDestinations: ['stdout'],
-      api: true,
-      apiAddress: `127.0.0.1:${String(this.ports.api)}`,
-      metrics: true,
-      metricsAddress: `127.0.0.1:${String(this.ports.metrics)}`,
-      pprof: false,
-      playback: false,
-      rtsp: false,
-      hls: false,
-      webrtc: false,
-      srt: false,
-      moq: false,
-      rtmp: true,
-      rtmpAddress: `127.0.0.1:${String(this.ports.rtmp)}`,
-      rtmpEncryption: 'no',
-      authMethod: 'internal',
-      authInternalUsers: [
-        {
-          user: 'any',
-          ips: ['127.0.0.1', '::1'],
-          permissions: [{ action: 'publish' }, { action: 'read' }, { action: 'api' }, { action: 'metrics' }]
-        }
-      ],
-      paths
-    };
   }
 
   private update(changes: Partial<ProgramStatus>): void {
