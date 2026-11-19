@@ -1,22 +1,43 @@
-import { appendFileSync, constants, copyFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, constants, copyFileSync, mkdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { z } from 'zod';
-import { releaseName, type ContractsProject } from './config.js';
+import { compareReleases, releaseName, type ContractsProject } from './config.js';
 import { generateBundle } from './openapi.js';
-import { compatibilityChanges, type ReleaseDocument } from './compare.js';
-import { checkReleasedContracts, checkSnapshotFiles, readBundleAt, readCurrent, readReleases } from './release.js';
-import { snapshotStatus } from './snapshot-status.js';
+import { compatibilityChanges, contractChanges, type ContractChanges, type ReleaseDocument } from './compare.js';
+import {
+  checkReleasedContracts,
+  checkSnapshotFiles,
+  readBundleAt,
+  readCurrent,
+  readReleases,
+  readSnapshot
+} from './release.js';
+import { snapshotNames, snapshotStatus } from './snapshot-status.js';
 
-/** Regenerate first; freeze a complete release bundle and never overwrite an existing snapshot. */
+/**
+ * Regenerate first; freeze a complete release bundle and never overwrite an existing snapshot. An API whose bundle is
+ * unchanged since its latest snapshot gets none: the release serves that snapshot's contracts.
+ */
 export async function snapshot(project: ContractsProject, tag: string | undefined): Promise<void> {
-  const name = releaseName(project, tag);
+  const name = releaseName(tag);
   checkSnapshotFiles(project);
   await generateBundle(project);
   checkReleasedContracts(project, readCurrent(project));
+  const latest = snapshotNames(project).at(-1);
+  if (latest !== undefined && compareReleases(name, latest) <= 0) {
+    throw new Error(`${name} is not newer than the latest snapshot, ${latest}`);
+  }
+  const status = snapshotStatus(project);
+  if (!status.required) {
+    console.log(`Unchanged since ${status.latest}, so ${name} serves that snapshot: none written.`);
+    return;
+  }
   mkdirSync(project.snapshots, { recursive: true });
   const file = join(project.snapshots, `${name}.json`);
   copyFileSync(project.document, file, constants.COPYFILE_EXCL);
-  console.log(`Wrote ${relative(project.dir, file)}. Commit it in the release PR, then tag that commit ${name}.`);
+  console.log(
+    `Wrote ${relative(project.dir, file)}. Commit it in the release PR; the release tags that commit ${name}.`
+  );
 }
 
 export interface CheckReleaseOptions {
@@ -24,14 +45,14 @@ export interface CheckReleaseOptions {
   tag?: string;
 }
 
+/** Frozen snapshots are unchanged and no released contract differs; with a tag, the bundle is what it serves. */
 export function checkRelease(project: ContractsProject, options: CheckReleaseOptions): void {
   checkSnapshotFiles(project, options.base ?? 'HEAD');
-  const current = readFileSync(project.document);
   checkReleasedContracts(project, readCurrent(project));
   if (options.tag !== undefined) {
-    const name = releaseName(project, options.tag);
-    const frozen = readFileSync(join(project.snapshots, `${name}.json`));
-    if (!current.equals(frozen)) throw new Error(`${name}: committed snapshot differs from openapi.json`);
+    const name = releaseName(options.tag);
+    const status = snapshotStatus(project, name);
+    if (status.required) throw new Error(`${name}: openapi.json differs from ${status.latest ?? 'every snapshot'}`);
   }
   console.log('Release contracts and snapshot immutability checked.');
 }
@@ -93,15 +114,46 @@ function warnCompatibility(
   if (!warnings.size) report(env, 'No changed or removed versioned contracts detected.');
 }
 
-/** Drift is advisory on main; an API release must pass both frozen-history and exact snapshot checks. */
+/**
+ * Drift is advisory on main; a release must pass both frozen-history and exact snapshot checks. The bundle must equal
+ * the release's own snapshot, or, when the API did not change in it, the latest one before it.
+ */
 function releaseGate(project: ContractsProject, env: CiEnvironment, current: ReleaseDocument): void {
-  const tag = releaseName(project, env.releaseTag);
+  const tag = releaseName(env.releaseTag);
   checkSnapshotFiles(project);
   checkReleasedContracts(project, current);
-  const status = snapshotStatus(project);
+  const status = snapshotStatus(project, tag);
   if (status.required) throw new Error(`Release blocked: snapshot required (${status.reason}).`);
-  if (status.latest !== tag) throw new Error(`Release blocked: ${tag} is not the latest snapshot (${status.latest}).`);
-  report(env, `${tag} is snapshot ready; frozen contracts and exact snapshot equality passed.`);
+  report(env, `${tag} serves ${status.latest}; frozen contracts and exact snapshot equality passed.`);
+}
+
+export interface Changes extends ContractChanges {
+  /** The snapshot compared with: the one before the release's, or the latest when comparing the current bundle. */
+  previous: string | null;
+}
+
+/**
+ * What a release changes in this API's contracts. With a tag: its snapshot against the one before it, or nothing when
+ * the API did not change in it. Without one: the current bundle against the latest snapshot, for the next release.
+ */
+export function changes(project: ContractsProject, tag: string | undefined): Changes {
+  const names = snapshotNames(project);
+  if (tag === undefined) {
+    const previous = names.at(-1) ?? null;
+    return {
+      previous,
+      ...contractChanges(previous ? readSnapshot(project, previous) : undefined, readCurrent(project))
+    };
+  }
+  const name = releaseName(tag);
+  const index = names.indexOf(name);
+  if (index === -1) {
+    const previous = names.filter(other => compareReleases(other, name) < 0).at(-1) ?? null;
+    return { previous, added: [], changed: [], removed: [] };
+  }
+  const previous = names[index - 1] ?? null;
+  const document = readSnapshot(project, name);
+  return { previous, ...contractChanges(previous ? readSnapshot(project, previous) : undefined, document) };
 }
 
 export function ci(project: ContractsProject, modeArgument: string | undefined, env: CiEnvironment): void {

@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import type { OutputControl } from '../../topology/output-recorder-kinds.ts';
 import { RenditionSchema, type Rendition, type Settings } from '../../topology/settings.ts';
 
 // The shapes of a device's planned configuration (src/configuration/plan/index.ts), which mirror what the agent runs:
-// MediaMTX paths and MoQ publishers reading them, and OBS following a show.
+// MediaMTX paths and MoQ publishers reading them, OBS sending an output out, and the show driving it.
 
 /** A URL MediaMTX pulls a path from while it is read, such as a camera's, credentials included. */
 export interface UrlSource {
@@ -26,8 +27,8 @@ export interface PlannedPath {
 }
 
 /**
- * A path the agent's MediaMTX takes a show's preview on: the show's output publishes the program there, with a token
- * `organisations.shows.previews.connect` signs as the agent for its gateway, and readers read it.
+ * A path the agent's MediaMTX takes an output's preview on: the output's agent publishes the programme there, with a
+ * token `organisations.outputs.previews.connect` signs as the agent for its gateway, and readers read it.
  */
 export interface PlannedPreviewPath {
   name: string;
@@ -93,7 +94,7 @@ export type MediamtxTls = z.output<typeof MediamtxTlsSchema>;
  * The `mediamtx` runtime, which a network's active agent runs: the MediaMTX gateway on its network, how it admits
  * readers and publishers (by tokens this API signs as it), and the hostname and certificate it serves TLS with when the
  * deployment issues them (src/gateways/certificates.ts); the paths it serves, what it publishes from them, and the
- * paths shows' outputs publish their previews to.
+ * paths outputs publish their previews to.
  */
 export interface MediamtxConfiguration {
   gatewayId: string;
@@ -104,40 +105,45 @@ export interface MediamtxConfiguration {
   /** Where to read the traffic stats of the gateways it publishes to, for those that publish them. */
   stats: StatsConnect[];
   /**
-   * The shows' previews delivered to its gateway, each a path publishers push to. Agents built from earlier releases
+   * The outputs' previews delivered to its gateway, each a path publishers push to. Agents built from earlier releases
    * don't read it, and serve no previews.
    */
   previews?: PlannedPreviewPath[];
 }
 
-/** The show an OBS output follows: the show, and the request a WebSocket follows it by, to sign as the device. */
-export interface ObsShow {
+/** The output an agent runs: the output, its organisation, and who drives its OBS's scenes. */
+export interface ObsOutput {
   id: string;
-  /** The `https:` (or, locally, `http:`) URL of the show's stream: signed as it is, and dialled as `wss:` (`ws:`). */
-  url: string;
+  organisationId: string;
+  /**
+   * `show`: the `show` runtime drives the scenes, while the output follows a show, in a scene collection of the agent's
+   * own. `external`: something outside the studio does, in a collection of its own, reading any of the organisation's
+   * exposures through the agent; the agent leaves scenes alone.
+   */
+  control: OutputControl;
 }
 
 /**
- * The `obs` runtime, which a show's output runs (src/db/schemas/shows.ts): OBS, following the show it sends out and
- * playing what it places. Where to read each stream it is asked for when it is placed, not here. Agents built from
- * earlier releases read only `show`, `output` and `forwards`, so those keep their shape, and what is added is optional.
+ * The `obs` runtime, which an output's agent runs (src/db/schemas/outputs.ts): OBS, streaming whatever is on its
+ * programme to the programme MediaMTX, which forwards, previews and records it, and plays the exposures OBS reads.
+ * Who drives its scenes is `output.control`.
  */
 export interface ObsConfiguration {
-  show: ObsShow;
-  /** What OBS encodes the program as: the show's encoding, which the program's fallback slate is encoded as too. */
   output: ObsOutput;
-  /** Where the program goes out to: each channel the show has an enabled forward to. */
+  /** What OBS encodes the programme as, which the programme's fallback slate is encoded as too. */
+  encoding: ObsEncoding;
+  /** Where the programme goes out to: each channel the output has an enabled forward to. */
   forwards: ObsForward[];
-  /** Where the program is published to be read from, as an exposure is: each of the show's previews. */
-  previews?: ObsPreview[];
-  /** How the program is recorded alongside streaming it, when the show has a recorder. */
+  /** Where the programme is published to be read from, as an exposure is: each of the output's previews. */
+  previews: ObsPreview[];
+  /** How the programme is recorded alongside streaming it, when the output has a recorder. */
   recording?: ObsRecording;
-  /** What the agent reports about the program against. */
-  program?: ObsProgram;
+  /** What the agent reports about the programme against. */
+  program: ObsProgram;
 }
 
-/** How the program is encoded: H.264 at a constant bitrate with AAC-LC 48 kHz stereo audio, as Twitch takes. */
-export interface ObsOutput {
+/** How the programme is encoded: H.264 at a constant bitrate with AAC-LC 48 kHz stereo audio, as Twitch takes. */
+export interface ObsEncoding {
   width: number;
   height: number;
   fps: number;
@@ -146,26 +152,26 @@ export interface ObsOutput {
 }
 
 /**
- * A channel the program goes out to: its ingest (server URL and stream key) is read with `organisations.channels.ingest`.
- * `forwardId` names the forward (`forward:<forwardId>`) in what the agent reports about it. `stats` says whether the
- * channel's platform says anything of it (`organisations.channels.stats.get`, Twitch's only), for the agent to report
- * about the channel (`channel:<channelId>`).
+ * A channel the programme goes out to: its ingest (server URL and stream key) is read with
+ * `organisations.channels.ingest`. `forwardId` names the forward (`forward:<forwardId>`) in what the agent reports
+ * about it. `stats` says whether the channel's platform says anything of it (`organisations.channels.stats.get`,
+ * Twitch's only), for the agent to report about the channel (`channel:<channelId>`).
  */
 export interface ObsForward {
   organisationId: string;
   channelId: string;
   forwardId: string;
-  stats?: boolean;
+  stats: boolean;
 }
 
 /**
- * The `connect` ask (`organisations.shows.previews.connect`) for where an output publishes a preview of its show's
- * program, and its token: by MoQ to a gateway that takes it, as tracks of one broadcast, otherwise by RTMP.
+ * The `connect` ask (`organisations.outputs.previews.connect`) for where an output's agent publishes a preview of its
+ * programme, and its token: by MoQ to a gateway that takes it, as tracks of one broadcast, otherwise by RTMP.
  */
 export const PreviewConnectSchema = z
   .object({
     id: z.string(),
-    showId: z.string(),
+    outputId: z.string(),
     previewId: z.string(),
     action: z.literal('publish'),
     protocol: z.string()
@@ -174,7 +180,7 @@ export const PreviewConnectSchema = z
 export type PreviewConnect = z.output<typeof PreviewConnectSchema>;
 
 /**
- * A preview the program is published to: its gateway, and the `connect` ask for where to (kept out of the plan, so a
+ * A preview the programme is published to: its gateway, and the `connect` ask for where to (kept out of the plan, so a
  * renewed token leaves the plan as it was). `previewId` names it (`preview:<previewId>`) in what the agent reports.
  */
 export interface ObsPreview {
@@ -184,8 +190,8 @@ export interface ObsPreview {
 }
 
 /**
- * The show's recorder: `obs`, OBS recording the program alongside streaming it, into the agent's data directory, with
- * the recorder's `params`. `recorderId` names it (`recorder:<recorderId>`) in what the agent reports.
+ * The output's recorder: `obs`, OBS recording the programme alongside streaming it, into the agent's data directory,
+ * with the recorder's `params`. `recorderId` names it (`recorder:<recorderId>`) in what the agent reports.
  */
 export interface ObsRecording {
   recorderId: string;
@@ -193,13 +199,24 @@ export interface ObsRecording {
   params: Settings;
 }
 
-/** The program as a subject of reports: `program:<showId>`. */
+/** The programme as a subject of reports: `program:<outputId>`. */
 export interface ObsProgram {
   subjectId: string;
+}
+
+/**
+ * The `show` runtime, which an output's agent runs while the output follows a show under `show` control: the show,
+ * and the request a WebSocket follows it by, to sign as the device. It drives the `obs` runtime's OBS.
+ */
+export interface ShowConfiguration {
+  id: string;
+  /** The `https:` (or, locally, `http:`) URL of the show's stream: signed as it is, and dialled as `wss:` (`ws:`). */
+  url: string;
 }
 
 /** What a device runs: each runtime it is to run, by its key. A runtime left out is one it doesn't. */
 export interface PlannedConfiguration {
   mediamtx?: MediamtxConfiguration;
   obs?: ObsConfiguration;
+  show?: ShowConfiguration;
 }

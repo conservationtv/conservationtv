@@ -41,13 +41,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/build-output-utils": "0.8.6",
-    "@cloudflare/vite-plugin": "beta",
+    "@cloudflare/build-output-utils": "catalog:",
+    "@cloudflare/vite-plugin": "catalog:",
     "@types/node": "24.10.1",
     "@types/pg": "catalog:",
-    "cf": "^1.0.0-beta.5",
+    "cf": "catalog:",
     "drizzle-kit": "catalog:",
-    "miniflare": "5.20261006.0-alpha",
+    "miniflare": "catalog:",
     "tsx": "4.23.15",
     "typescript": "catalog:",
     "vite": "^8.3.0",

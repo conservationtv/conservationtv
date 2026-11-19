@@ -37,7 +37,7 @@ interface ListedGateway {
   id: string;
   name: string;
 }
-interface ListedShow {
+interface ListedOutput {
   id: string;
   name: string;
   forwards: ListedForward[];
@@ -68,7 +68,7 @@ export interface OverviewInputs {
   agents: ListedAgent[];
   networks: Identified[];
   gateways: ListedGateway[];
-  shows: ListedShow[];
+  outputs: ListedOutput[];
   channels: ListedChannel[];
   states: ListedState[];
 }
@@ -127,27 +127,28 @@ function exposureSubjects(stream: ListedStream, gateways: ListedGateway[]): Name
   });
 }
 
-/** A show's programme, forwards and previews, each named for the show and what it is. */
-function showSubjects(show: ListedShow, channels: ListedChannel[], gateways: ListedGateway[]): NamedSubject[] {
-  const to = `shows/${show.id}`;
-  const forwards = show.forwards.map((forward): NamedSubject => {
+/** An output's programme, forwards and previews, each named for the output and what it is. */
+function outputSubjects(output: ListedOutput, channels: ListedChannel[], gateways: ListedGateway[]): NamedSubject[] {
+  const to = `outputs/${output.id}`;
+  const name = output.name;
+  const forwards = output.forwards.map((forward): NamedSubject => {
     const channel = channels.find(candidate => candidate.id === forward.channelId);
-    return [forwardSubjectId(forward.id), { name: show.name, kind: `Forward to ${channel?.name ?? 'a channel'}`, to }];
+    return [forwardSubjectId(forward.id), { name, kind: `Forward to ${channel?.name ?? 'a channel'}`, to }];
   });
-  const previews = show.previews.map((preview): NamedSubject => {
+  const previews = output.previews.map((preview): NamedSubject => {
     const gateway = gateways.find(candidate => candidate.id === preview.gatewayId);
-    return [previewSubjectId(preview.id), { name: show.name, kind: `Preview at ${gateway?.name ?? 'a gateway'}`, to }];
+    return [previewSubjectId(preview.id), { name, kind: `Preview at ${gateway?.name ?? 'a gateway'}`, to }];
   });
-  return [[programSubjectId(show.id), { name: show.name, kind: 'Programme', to }], ...forwards, ...previews];
+  return [[programSubjectId(output.id), { name, kind: 'Programme', to }], ...forwards, ...previews];
 }
 
 /** What each subject that can fail is called, and where its page is. */
-function namedSubjects({ streams, cameras, agents, gateways, shows, channels }: OverviewInputs) {
+function namedSubjects({ streams, cameras, agents, gateways, outputs, channels }: OverviewInputs) {
   return new Map([
     ...cameras.map(cameraSubject),
     ...agents.map(agentSubject),
     ...streams.flatMap(stream => exposureSubjects(stream, gateways)),
-    ...shows.flatMap(show => showSubjects(show, channels, gateways))
+    ...outputs.flatMap(output => outputSubjects(output, channels, gateways))
   ]);
 }
 

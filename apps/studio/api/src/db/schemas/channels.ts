@@ -8,8 +8,8 @@ import { organisations } from './organisations.ts';
 import { topologyActions, topologyRoles } from './topology-access.ts';
 
 /**
- * Somewhere an organisation's shows go out to, such as a Twitch channel (src/channels). A show's output agent forwards
- * its programme to each channel the show has an enabled forward to (`show_forward`, apps/agent/core/src/output/obs).
+ * Somewhere an organisation's outputs go out to, such as a Twitch channel (src/channels). An output's agent forwards
+ * its programme to each channel the output has an enabled forward to (`output_forward`, apps/agent/core/src/output/obs).
  * What reaches it, its stream key or OAuth tokens, is kept apart in `channel_credential`, under a role of its own.
  */
 export const channels = withAccess(
@@ -28,7 +28,7 @@ export const channels = withAccess(
       externalId: text('external_id'),
       externalLogin: text('external_login'),
       /**
-       * Unused: whether a show goes out to it is now each show's forward (`show_forward.enabled`). Kept for one release,
+       * Unused: whether an output goes out to it is now each output's forward (`output_forward.enabled`). Kept for one release,
        * because migrations run before the new API version is uploaded and the version still serving reads it; drop it
        * in a migration of its own once this version serves everywhere.
        */
@@ -63,7 +63,7 @@ export const channels = withAccess(
 
 /**
  * What reaches a channel: an RTMP URL and stream key, or a Twitch connection's OAuth tokens, encrypted. Members, who
- * read the channels, never read these: only `channelBroadcaster` does, which administrators hold and each show's output
+ * read the channels, never read these: only `channelBroadcaster` does, which administrators hold and each output's
  * agent is granted. Administrators write them when they add or connect a channel; the agent keeps refreshed tokens.
  */
 export const channelCredentials = withAccess(

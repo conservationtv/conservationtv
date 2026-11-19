@@ -4,6 +4,8 @@ packages:
   - tools/review
   # The generated PlanetScale SDK copies its package.json into its build output.
   - '!apps/controlplane/infrastructure/sdks/*/bin'
+  # The CLI's build writes a package.json into its output, for npm to publish; it is not a workspace project.
+  - '!apps/cli/dist'
 
 catalog:
   '@arkenv/standard': 1.0.0-rc.4
@@ -30,6 +32,14 @@ catalog:
   '@pulumi/random': 4.21.2
   '@pulumi/tls': 5.6.1
   '@pulumiverse/acme': 0.18.1
+  # The Cloudflare toolchain. cf runs dev, build and deploy (through the Vite plugin where a package declares it) and
+  # generates the runtime's types; gatekeeper's tests run its build output (read with build-output-utils) in miniflare
+  # directly. Each pins its miniflare, and so its workerd, and cf its build output's format: move them together, to
+  # releases that pin the same ones, so dev, tests and types share a runtime.
+  '@cloudflare/build-output-utils': 1.0.0-rc.1
+  '@cloudflare/vite-plugin': 2.0.0-rc.1
+  cf: 1.0.0-rc.1
+  miniflare: 5.20261117.0-beta
 
 # Keep providers and workspace packages on the same Pulumi runtime.
 overrides:

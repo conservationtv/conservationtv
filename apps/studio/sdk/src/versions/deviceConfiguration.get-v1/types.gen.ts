@@ -50,7 +50,7 @@ export type StatsConnect = {
 
 export type PreviewConnect = {
     id: string;
-    showId: string;
+    outputId: string;
     previewId: string;
     action: 'publish';
     protocol: string;
@@ -79,11 +79,12 @@ export type DeviceConfiguration = {
         }>;
     };
     obs?: {
-        show: {
-            id: string;
-            url: string;
-        };
         output: {
+            id: string;
+            organisationId: string;
+            control: 'external' | 'show';
+        };
+        encoding: {
             width: number;
             height: number;
             fps: number;
@@ -94,9 +95,9 @@ export type DeviceConfiguration = {
             organisationId: string;
             channelId: string;
             forwardId: string;
-            stats?: boolean;
+            stats: boolean;
         }>;
-        previews?: Array<{
+        previews: Array<{
             previewId: string;
             gatewayId: string;
             connect: PreviewConnect;
@@ -108,9 +109,13 @@ export type DeviceConfiguration = {
                 [key: string]: unknown;
             };
         };
-        program?: {
+        program: {
             subjectId: string;
         };
+    };
+    show?: {
+        id: string;
+        url: string;
     };
 };
 

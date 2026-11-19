@@ -105,6 +105,9 @@
                           "memory": {
                             "type": "object",
                             "properties": {
+                              "available": {
+                                "type": "number"
+                              },
                               "total": {
                                 "type": "number"
                               },
@@ -113,6 +116,7 @@
                               }
                             },
                             "required": [
+                              "available",
                               "total",
                               "free"
                             ]
@@ -806,7 +810,7 @@
                   "installing": {
                     "type": "boolean"
                   },
-                  "show": {
+                  "output": {
                     "anyOf": [
                       {
                         "type": "string"
@@ -816,20 +820,24 @@
                       }
                     ]
                   },
-                  "phase": {
+                  "control": {
                     "anyOf": [
                       {
                         "type": "string",
                         "enum": [
-                          "error",
-                          "idle",
-                          "connecting",
-                          "downloading-assets",
-                          "synchronising",
-                          "settled",
-                          "disconnected",
-                          "disposed"
+                          "external",
+                          "show"
                         ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "collection": {
+                    "anyOf": [
+                      {
+                        "type": "string"
                       },
                       {
                         "type": "null"
@@ -883,7 +891,7 @@
                               "type": "string"
                             }
                           },
-                          "cameras": {
+                          "inputs": {
                             "type": "object",
                             "additionalProperties": {
                               "type": "object",
@@ -933,7 +941,7 @@
                         "required": [
                           "forwards",
                           "previews",
-                          "cameras",
+                          "inputs",
                           "state",
                           "pid",
                           "restarts",
@@ -943,6 +951,20 @@
                       {
                         "type": "null"
                       }
+                    ]
+                  },
+                  "inputs": {
+                    "type": "object",
+                    "properties": {
+                      "reading": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "required": [
+                      "reading"
                     ]
                   },
                   "reports": {
@@ -1040,11 +1062,13 @@
                 "required": [
                   "version",
                   "installing",
-                  "show",
-                  "phase",
+                  "output",
+                  "control",
+                  "collection",
                   "streaming",
                   "recording",
                   "program",
+                  "inputs",
                   "reports",
                   "state",
                   "pid",
@@ -1284,6 +1308,135 @@
               "runtime",
               "apply"
             ]
+          },
+          "show": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "show": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "phase": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "error",
+                          "idle",
+                          "connecting",
+                          "downloading-assets",
+                          "synchronising",
+                          "settled",
+                          "disconnected",
+                          "disposed"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "show",
+                  "phase"
+                ]
+              },
+              "apply": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applying"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "applied"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "failed"
+                      },
+                      "revision": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "attempt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "revision",
+                      "error",
+                      "attempt"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "runtime",
+              "apply"
+            ]
           }
         },
         "required": [
@@ -1292,7 +1445,8 @@
           "metrics",
           "relayTraffic",
           "obs",
-          "channels"
+          "channels",
+          "show"
         ]
       }
     }
@@ -1633,22 +1787,30 @@
                     "obs": {
                       "type": "object",
                       "properties": {
-                        "show": {
+                        "output": {
                           "type": "object",
                           "properties": {
                             "id": {
                               "type": "string"
                             },
-                            "url": {
+                            "organisationId": {
                               "type": "string"
+                            },
+                            "control": {
+                              "type": "string",
+                              "enum": [
+                                "external",
+                                "show"
+                              ]
                             }
                           },
                           "required": [
                             "id",
-                            "url"
+                            "organisationId",
+                            "control"
                           ]
                         },
-                        "output": {
+                        "encoding": {
                           "type": "object",
                           "properties": {
                             "width": {
@@ -1692,7 +1854,8 @@
                             },
                             "required": [
                               "organisationId",
-                              "channelId"
+                              "channelId",
+                              "forwardId"
                             ]
                           }
                         },
@@ -1754,6 +1917,17 @@
                             ]
                           }
                         },
+                        "program": {
+                          "type": "object",
+                          "properties": {
+                            "subjectId": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "subjectId"
+                          ]
+                        },
                         "recording": {
                           "type": "object",
                           "properties": {
@@ -1768,24 +1942,14 @@
                             "recorderId",
                             "kind"
                           ]
-                        },
-                        "program": {
-                          "type": "object",
-                          "properties": {
-                            "subjectId": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "subjectId"
-                          ]
                         }
                       },
                       "required": [
-                        "show",
                         "output",
+                        "encoding",
                         "forwards",
-                        "previews"
+                        "previews",
+                        "program"
                       ]
                     },
                     "channels": {
@@ -1812,6 +1976,21 @@
                       },
                       "required": [
                         "channels"
+                      ]
+                    },
+                    "show": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "url"
                       ]
                     }
                   }
@@ -2027,6 +2206,9 @@
                               "memory": {
                                 "type": "object",
                                 "properties": {
+                                  "available": {
+                                    "type": "number"
+                                  },
                                   "total": {
                                     "type": "number"
                                   },
@@ -2035,6 +2217,7 @@
                                   }
                                 },
                                 "required": [
+                                  "available",
                                   "total",
                                   "free"
                                 ]
@@ -2728,7 +2911,7 @@
                       "installing": {
                         "type": "boolean"
                       },
-                      "show": {
+                      "output": {
                         "anyOf": [
                           {
                             "type": "string"
@@ -2738,20 +2921,24 @@
                           }
                         ]
                       },
-                      "phase": {
+                      "control": {
                         "anyOf": [
                           {
                             "type": "string",
                             "enum": [
-                              "error",
-                              "idle",
-                              "connecting",
-                              "downloading-assets",
-                              "synchronising",
-                              "settled",
-                              "disconnected",
-                              "disposed"
+                              "external",
+                              "show"
                             ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "collection": {
+                        "anyOf": [
+                          {
+                            "type": "string"
                           },
                           {
                             "type": "null"
@@ -2805,7 +2992,7 @@
                                   "type": "string"
                                 }
                               },
-                              "cameras": {
+                              "inputs": {
                                 "type": "object",
                                 "additionalProperties": {
                                   "type": "object",
@@ -2855,7 +3042,7 @@
                             "required": [
                               "forwards",
                               "previews",
-                              "cameras",
+                              "inputs",
                               "state",
                               "pid",
                               "restarts",
@@ -2865,6 +3052,20 @@
                           {
                             "type": "null"
                           }
+                        ]
+                      },
+                      "inputs": {
+                        "type": "object",
+                        "properties": {
+                          "reading": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "required": [
+                          "reading"
                         ]
                       },
                       "reports": {
@@ -2962,11 +3163,13 @@
                     "required": [
                       "version",
                       "installing",
-                      "show",
-                      "phase",
+                      "output",
+                      "control",
+                      "collection",
                       "streaming",
                       "recording",
                       "program",
+                      "inputs",
                       "reports",
                       "state",
                       "pid",
@@ -3206,6 +3409,135 @@
                   "runtime",
                   "apply"
                 ]
+              },
+              "show": {
+                "type": "object",
+                "properties": {
+                  "runtime": {
+                    "type": "object",
+                    "properties": {
+                      "show": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "phase": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "error",
+                              "idle",
+                              "connecting",
+                              "downloading-assets",
+                              "synchronising",
+                              "settled",
+                              "disconnected",
+                              "disposed"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "show",
+                      "phase"
+                    ]
+                  },
+                  "apply": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applying"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "applied"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "const": "failed"
+                          },
+                          "revision": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "attempt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "revision",
+                          "error",
+                          "attempt"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "runtime",
+                  "apply"
+                ]
               }
             },
             "required": [
@@ -3214,7 +3546,8 @@
               "metrics",
               "relayTraffic",
               "obs",
-              "channels"
+              "channels",
+              "show"
             ]
           }
         }
@@ -3559,22 +3892,30 @@
               "obs": {
                 "type": "object",
                 "properties": {
-                  "show": {
+                  "output": {
                     "type": "object",
                     "properties": {
                       "id": {
                         "type": "string"
                       },
-                      "url": {
+                      "organisationId": {
                         "type": "string"
+                      },
+                      "control": {
+                        "type": "string",
+                        "enum": [
+                          "external",
+                          "show"
+                        ]
                       }
                     },
                     "required": [
                       "id",
-                      "url"
+                      "organisationId",
+                      "control"
                     ]
                   },
-                  "output": {
+                  "encoding": {
                     "type": "object",
                     "properties": {
                       "width": {
@@ -3618,7 +3959,8 @@
                       },
                       "required": [
                         "organisationId",
-                        "channelId"
+                        "channelId",
+                        "forwardId"
                       ]
                     }
                   },
@@ -3680,6 +4022,17 @@
                       ]
                     }
                   },
+                  "program": {
+                    "type": "object",
+                    "properties": {
+                      "subjectId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectId"
+                    ]
+                  },
                   "recording": {
                     "type": "object",
                     "properties": {
@@ -3694,24 +4047,14 @@
                       "recorderId",
                       "kind"
                     ]
-                  },
-                  "program": {
-                    "type": "object",
-                    "properties": {
-                      "subjectId": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "subjectId"
-                    ]
                   }
                 },
                 "required": [
-                  "show",
                   "output",
+                  "encoding",
                   "forwards",
-                  "previews"
+                  "previews",
+                  "program"
                 ]
               },
               "channels": {
@@ -3738,6 +4081,21 @@
                 },
                 "required": [
                   "channels"
+                ]
+              },
+              "show": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url"
                 ]
               }
             }

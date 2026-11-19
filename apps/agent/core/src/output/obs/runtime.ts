@@ -1,17 +1,15 @@
 import { join } from 'node:path';
 import { BinaryStore, type Installed } from '@conservationtv/converge/binaries';
 import { AttachedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
-import { programSubject, recorderSubject } from '@conservationtv/reports';
-import type { Client, DeviceIdentity } from '@conservationtv/studio-sdk';
+import { recorderSubject } from '@conservationtv/reports';
+import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
-import type { Snapshot, Target, TargetPhase } from '@strangecyan/vignette';
-import { obsTarget } from '@strangecyan/vignette/obs';
 import { BehaviorSubject, type Subscription } from 'rxjs';
 import { z } from 'zod';
 import { type MediamtxManifest, mediamtxBinary } from '../../binaries/mediamtx.ts';
 import { type MoqManifest, moqBinary } from '../../binaries/moq.ts';
 import { type ObsManifest, obsBinary } from '../../binaries/obs.ts';
-import { ctvStreamObs } from './ctv-stream.ts';
+import { InputRelays, type InputsStatus } from './inputs.ts';
 import { listening } from './loopback.ts';
 import {
   PROGRAM_KEY,
@@ -23,53 +21,56 @@ import {
 } from './program.ts';
 import { ProgramMetrics, type ProgramMetricsStatus } from './program-metrics.ts';
 import { obsLaunch, websocketPassword, writeObsProfile, writeObsSettings } from './settings.ts';
-import { showStream } from './show-stream.ts';
-import { type RecordingState, type RecordingTarget, type StreamingState, StreamingWatchdog } from './watchdog.ts';
+import {
+  type ProgramScene,
+  type RecordingState,
+  type RecordingTarget,
+  type StreamingState,
+  StreamingWatchdog
+} from './watchdog.ts';
 
 const logger = getLogger(['agent', 'obs']);
 
-/** What the program is encoded as, as the studio API plans it. */
-const OutputSchema = z.object({
+/** What the programme is encoded as, as the studio API plans it. */
+const EncodingSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   fps: z.number().int().positive(),
   bitrateKbps: z.number().int().positive(),
   keyframeSeconds: z.number().int().positive()
 });
-export type Output = z.output<typeof OutputSchema>;
-
-/** Until the API plans one: 1080p30 at 6000 kbps with 2-second keyframes, what Twitch takes. */
-const DEFAULT_OUTPUT: Output = { width: 1920, height: 1080, fps: 30, bitrateKbps: 6000, keyframeSeconds: 2 };
+export type Encoding = z.output<typeof EncodingSchema>;
 
 /**
- * The show to send out: the one the agent is the output of, followed at `url`, how to encode it, the channels to
- * forward it to, whose ingests the agent asks for, the previews to publish it to, the recorder recording it, and the
- * subject its reports are about (src/configuration in the studio API). A forward with no `forwardId`, from an API that
- * doesn't name it, is forwarded to but not reported about; with no `program`, the reports are about `program:<show>`.
- * What the channels' platforms say of them is the `channels` key's to report (output/channels/).
+ * Who drives OBS's scenes: `show`, the agent's `show` key (output/show/), in the agent's own scene collection, or
+ * `external`, something outside the studio, in a collection of its own the agent never touches.
+ */
+const ControlSchema = z.enum(['show', 'external']);
+export type Control = z.output<typeof ControlSchema>;
+
+/**
+ * The output to send out (src/configuration in the studio API): the output, its organisation, and who drives its
+ * scenes; how to encode its programme, the channels to forward it to, whose ingests the agent asks for, the previews
+ * to publish it to, the recorder recording it, and the subject its reports are about. What the channels' platforms say
+ * of them is the `channels` key's to report (output/channels/); following a show is the `show` key's (output/show/).
  */
 export const ObsSpecSchema = z.object({
-  show: z.object({ id: z.string(), url: z.url() }),
-  output: OutputSchema.default(DEFAULT_OUTPUT),
-  forwards: z
-    .array(
-      z.object({
-        organisationId: z.string(),
-        channelId: z.string(),
-        forwardId: z.string().optional()
-      })
-    )
-    .default([]),
-  previews: z.array(ProgramPreviewSchema).default([]),
+  output: z.object({ id: z.string(), organisationId: z.string(), control: ControlSchema }),
+  encoding: EncodingSchema,
+  forwards: z.array(z.object({ organisationId: z.string(), channelId: z.string(), forwardId: z.string() })),
+  previews: z.array(ProgramPreviewSchema),
   recording: z.object({ recorderId: z.string(), kind: z.string() }).optional(),
-  program: z.object({ subjectId: z.string() }).optional()
+  program: z.object({ subjectId: z.string() })
 });
 export type ObsSpec = z.output<typeof ObsSpecSchema>;
 
+/** The scene collection OBS runs under each control: never the same, so neither overwrites the other's scenes. */
+const COLLECTIONS = { show: 'vignette', external: 'external' } as const satisfies Record<Control, string>;
+
 /** How often to ask for the channels' ingests again: a stream key reset on Twitch is picked up within this. */
 const INGEST_REFRESH_MS = 30 * 60_000;
-/** How soon to ask again when an ingest could not be read. */
-const INGEST_RETRY_MS = 60_000;
+/** How soon to ask again when an ingest could not be read, or how to reach OBS could not be reported. */
+const RETRY_MS = 60_000;
 
 /** The room the runtime is given, and the releases it runs. */
 export interface ObsRuntimeOptions {
@@ -77,18 +78,16 @@ export interface ObsRuntimeOptions {
   directory: string;
   /** The OBS release to run. */
   binary: ObsManifest;
-  /** The moq CLI release the streams are relayed by. */
+  /** The moq CLI release the exposures are relayed by. */
   moq: MoqManifest;
-  /** The MediaMTX release the program and the streams go through. */
+  /** The MediaMTX release the programme and the exposures go through. */
   mediamtx: MediamtxManifest;
   /** Where the program MediaMTX listens, on loopback. */
   programPorts: ProgramPorts;
   /** The port obs-websocket serves on, on this machine. */
   websocketPort: number;
-  /** The studio API, as the agent's device, for read sessions and the channels' ingests. */
+  /** The studio API, as the agent's device, for read sessions, the channels' ingests, and reporting control. */
   studio: Client;
-  /** The agent's identity, which following the show is signed as. */
-  identity: DeviceIdentity;
 }
 
 export interface ObsStatus extends ProcessStatus {
@@ -96,16 +95,19 @@ export interface ObsStatus extends ProcessStatus {
   version: string | null;
   /** Whether a binary is being downloaded and checked. */
   installing: boolean;
-  /** The show being sent out, and how far OBS has caught up with it. */
-  show: string | null;
-  phase: TargetPhase | null;
-  /** Whether OBS is streaming the program. */
+  /** The output being sent out, who drives its scenes, and the scene collection OBS runs for it. */
+  output: string | null;
+  control: Control | null;
+  collection: string | null;
+  /** Whether OBS is streaming the programme. */
   streaming: StreamingState;
-  /** Whether OBS is recording the program, while the show has a recorder. */
+  /** Whether OBS is recording the programme, while the output has a recorder. */
   recording: RecordingState | null;
   /** The program MediaMTX, and the channels and previews it sends to. */
   program: ProgramStatus | null;
-  /** The program's reports. */
+  /** The exposures relayed for OBS to play. */
+  inputs: InputsStatus;
+  /** The programme's reports. */
   reports: ProgramMetricsStatus | null;
 }
 
@@ -113,53 +115,68 @@ const STOPPED: ObsStatus = {
   ...PROCESS_STOPPED,
   version: null,
   installing: false,
-  show: null,
-  phase: null,
+  output: null,
+  control: null,
+  collection: null,
   streaming: null,
   recording: null,
   program: null,
+  inputs: { reading: {} },
   reports: null
 };
 
 /** OBS's executable name, as `ps` reports it. */
 const PROCESS_NAME = process.platform === 'win32' ? 'obs64' : 'OBS';
 
-/** The only recorder kind there is: OBS recording the program alongside streaming it. */
+/** The only recorder kind there is: OBS recording the programme alongside streaming it. */
 const OBS_RECORDER = 'obs';
 
 /** A first start scans plugins, and macOS checks a new app: OBS may take a while to answer. */
 const READY_TIMEOUT_MS = 60_000;
 
-/** The target sending one show out, and how to stop it following. */
-interface Following {
-  show: ObsSpec['show'];
-  target: Target;
-  stop: () => void;
-  watching: () => void;
+/** Where obs-websocket answers on this machine, and its password. */
+export interface ObsWebsocket {
+  url: string;
+  password: string;
+}
+
+/** What the agent reports of how to drive OBS from outside (`organisations.outputs.control.report`). */
+interface ControlReport {
+  id: string;
+  outputId: string;
+  websocketPort: number;
+  websocketPassword: string;
+  sceneCollection: string;
+  inputUrl: string;
 }
 
 /**
  * The `obs` key, fulfilled by an OBS of the agent's own: installed by the runtime, started with a configuration it
- * writes (obs-websocket on its port, with its password), and lived and died with the agent. Vignette's OBS target
- * converges it to the show the spec names, following the show's stream; the `ctv-stream` plugin plays the streams the
- * show places. OBS runs on Windows and macOS only (binaries/obs.ts).
+ * writes (obs-websocket on its port, with its password, and the scene collection of the output's control), and lived
+ * and died with the agent. OBS streams whatever is on its programme to the program MediaMTX, which forwards, previews
+ * and records it; the exposures OBS reads are relayed into the same MediaMTX (inputs.ts). What is on screen is not this
+ * runtime's: the `show` key drives the scenes, or something outside the studio does, which reads how to reach OBS
+ * from the studio API, as this reports it. OBS runs on Windows and macOS only (binaries/obs.ts).
  *
- * The target touches only what it made (`vignette/<show>/…` scenes and inputs), so anything an operator adds in OBS
- * stays. Stopping OBS is something it takes for a crash, so each launch clears that first (settings.ts).
+ * Stopping OBS is something it takes for a crash, so each launch clears that first (settings.ts).
  */
 export class ObsRuntime {
   readonly status$ = new BehaviorSubject<ObsStatus>(STOPPED);
+  /** The exposures OBS plays, relayed while it reads them: what the `show` key's sources read too. */
+  readonly inputs: InputRelays;
   private readonly binaries: BinaryStore;
   private readonly process: AttachedProcess;
   private readonly program: ProgramMediamtx;
   private readonly metrics: ProgramMetrics;
   private readonly watching: Subscription[];
-  private following: Following | undefined = undefined;
   private watchdog: StreamingWatchdog | undefined = undefined;
-  /** The OBS scene the followed show is on, as its latest snapshot says: what the watchdog keeps on program. */
-  private programScene: string | undefined = undefined;
+  /** The scene whatever drives OBS has on program: what the watchdog restores, and none to leave scenes alone. */
+  private programScene: ProgramScene | undefined = undefined;
   private forwards: ObsSpec['forwards'] = [];
   private refresh: ReturnType<typeof setTimeout> | undefined = undefined;
+  /** What was last reported of how to drive OBS, and when to try reporting again after a failure. */
+  private reported: string | undefined = undefined;
+  private reporting: ReturnType<typeof setTimeout> | undefined = undefined;
 
   constructor(private readonly options: ObsRuntimeOptions) {
     this.binaries = new BinaryStore({ directory: join(options.directory, 'binaries') });
@@ -169,26 +186,51 @@ export class ObsRuntime {
       readyTimeoutMs: READY_TIMEOUT_MS
     });
     this.program = new ProgramMediamtx(join(options.directory, 'program'), options.programPorts);
+    this.inputs = new InputRelays({
+      studio: options.studio,
+      program: this.program,
+      directory: join(options.directory, 'inputs')
+    });
     this.metrics = new ProgramMetrics(this.program, () => this.watchdog?.reading$.value ?? null);
     this.watching = [
       this.process.status$.subscribe(status => this.update(status)),
       this.program.status$.subscribe(program => this.update({ program })),
+      this.inputs.status$.subscribe(inputs => this.update({ inputs })),
       this.metrics.status$.subscribe(reports => this.update({ reports }))
     ];
   }
 
+  /** Where vignette's OBS target keeps the files OBS loads for its sources. */
+  get vignetteDirectory(): string {
+    return join(this.options.directory, 'vignette');
+  }
+
+  /** Where obs-websocket answers on this machine, and its password. */
+  async websocket(): Promise<ObsWebsocket> {
+    const password = await websocketPassword(this.options.directory);
+    return { url: `ws://127.0.0.1:${String(this.options.websocketPort)}`, password };
+  }
+
+  /** Restore `scene` to program whenever OBS comes back on its empty starting scene; with none, leave scenes alone. */
+  driveProgram(scene: ProgramScene | undefined): void {
+    this.programScene = scene;
+  }
+
   /**
-   * Installs OBS, moq and MediaMTX if need be; has the program MediaMTX running, forwarding to the spec's channels and
-   * publishing to its previews; has OBS running with obs-websocket on and the agent's profile, streaming to it; then
-   * the target following the spec's show, the watchdog keeping OBS streaming (and recording, with a recorder), and
-   * the program's reports. Resolves once OBS answers; the target converges on its own, and reconnects to OBS when it
-   * restarts.
+   * Installs OBS, moq and MediaMTX if need be; has the program MediaMTX running, forwarding to the spec's channels,
+   * publishing to its previews, and relaying the exposures OBS reads; has OBS running with obs-websocket on, the
+   * agent's profile, streaming to it, and the collection of the spec's control; then the watchdog keeping OBS
+   * streaming (and recording, with a recorder), the programme's reports, and how to drive OBS reported. Resolves once
+   * OBS answers.
    */
   async execute(spec: ObsSpec, signal: AbortSignal): Promise<void> {
     if (process.platform !== 'win32' && process.platform !== 'darwin') {
       throw new Error(`OBS agents run on Windows and macOS, not ${process.platform}`);
     }
     const { directory, websocketPort } = this.options;
+    const { output } = spec;
+    const collection = COLLECTIONS[output.control];
+    this.update({ output: output.id, control: output.control, collection });
     const installed = await this.installed(obsBinary, this.options.binary, signal);
     this.update({ version: installed.version });
     const moq = await this.installed(moqBinary, this.options.moq, signal);
@@ -196,26 +238,35 @@ export class ObsRuntime {
     await this.program.ensure(mediamtx, moq.path, signal);
     await this.forward(spec.forwards);
     await this.program.setPreviews(spec.previews);
-    const password = await websocketPassword(directory);
-    const launch = obsLaunch(installed.path, directory);
+    await this.inputs.serve(output.organisationId, moq.path);
+    const { password } = await this.websocket();
+    const launch = obsLaunch(installed.path, directory, collection);
     await writeObsSettings(launch.config, websocketPort, password);
-    await writeObsProfile(launch.config, spec.output, { server: this.program.server, key: PROGRAM_KEY });
+    await writeObsProfile(launch.config, spec.encoding, { server: this.program.server, key: PROGRAM_KEY }, collection);
+    // Another collection is another launch: OBS is restarted into it.
+    const key = `${installed.id}:${collection}`;
     await this.process.ensure(
-      { key: installed.id, binary: installed.path, args: launch.args, cwd: launch.cwd, env: launch.env },
+      { key, binary: installed.path, args: launch.args, cwd: launch.cwd, env: launch.env },
       signal
     );
-    this.follow(spec.show, password, moq.path);
     const watchdog = this.watch(password);
     const recording = this.recordingTarget(spec.recording);
     watchdog.record(recording);
-    const program = spec.program?.subjectId ?? programSubject(spec.show.id);
     const recorder = recording === undefined ? undefined : recorderSubject(recording.recorderId);
-    this.metrics.apply({ program, recorder });
+    this.metrics.apply({ program: spec.program.subjectId, recorder });
+    void this.report({
+      id: output.organisationId,
+      outputId: output.id,
+      websocketPort,
+      websocketPassword: password,
+      sceneCollection: collection,
+      inputUrl: this.program.inputTemplate
+    });
     for (const binary of [installed, moq, mediamtx]) await this.binaries.prune(binary, { spare: 1 });
   }
 
   /**
-   * Forward the program to the channels' ingests, asked for now and again every half hour. A channel whose ingest
+   * Forward the programme to the channels' ingests, asked for now and again every half hour. A channel whose ingest
    * can't be read keeps the ingest it last had, if any, and is asked for again a minute on.
    */
   private async forward(forwards: ObsSpec['forwards']): Promise<void> {
@@ -231,7 +282,7 @@ export class ObsRuntime {
       if (using !== undefined) resolved.push({ ...using, forwardId: forward.forwardId });
     }
     await this.program.setForwards(resolved);
-    const delay = failed ? INGEST_RETRY_MS : INGEST_REFRESH_MS;
+    const delay = failed ? RETRY_MS : INGEST_REFRESH_MS;
     this.refresh = setTimeout(() => void this.forward(this.forwards), delay);
   }
 
@@ -246,11 +297,29 @@ export class ObsRuntime {
     return { forwardId: forward.forwardId, channelId: forward.channelId, url: ingest.url, key: ingest.key };
   }
 
+  /**
+   * Report how to drive OBS from outside, when it differs from what was last reported: tried again a minute on if the
+   * studio API doesn't take it.
+   */
+  private async report(report: ControlReport): Promise<void> {
+    clearTimeout(this.reporting);
+    const text = JSON.stringify(report);
+    if (text === this.reported) return;
+    const { studio } = this.options;
+    const result = await studio.organisations.outputs.control.report.v1(report).catch((error: Error) => error);
+    if (result instanceof Error) {
+      logger.warn('How to drive OBS could not be reported: {error}', { error: result });
+      this.reporting = setTimeout(() => void this.report(report), RETRY_MS);
+      return;
+    }
+    this.reported = text;
+  }
+
   /** The watchdog keeping OBS streaming, made once with the password it connects with. */
   private watch(password: string): StreamingWatchdog {
     if (this.watchdog !== undefined) return this.watchdog;
     const url = `ws://127.0.0.1:${String(this.options.websocketPort)}`;
-    const watchdog = new StreamingWatchdog(url, password, () => this.programScene);
+    const watchdog = new StreamingWatchdog(url, password, () => this.programScene?.());
     this.watching.push(watchdog.state$.subscribe(streaming => this.update({ streaming })));
     this.watching.push(watchdog.recording$.subscribe(recording => this.update({ recording })));
     watchdog.start();
@@ -288,55 +357,27 @@ export class ObsRuntime {
     }
   }
 
-  /** The target following `show`: kept while it is the same show, replaced for another. */
-  private follow(show: ObsSpec['show'], password: string, moq: string): void {
-    if (this.following?.show.id === show.id && this.following.show.url === show.url) return;
-    this.unfollow();
-    const { studio, identity, directory, websocketPort } = this.options;
-    const target = obsTarget({
-      url: `ws://127.0.0.1:${String(websocketPort)}`,
-      password,
-      dir: join(directory, 'vignette'),
-      sources: [ctvStreamObs({ studio, moq, program: this.program, directory: join(directory, 'relays') })]
-    });
-    const stream = showStream(show.url, identity, snapshot => {
-      this.programScene = programSceneOf(snapshot);
-    });
-    const stop = target.follow(stream);
-    const watching = target.subscribe(() => this.update({ phase: target.status.phase }));
-    this.following = { show, target, stop, watching };
-    this.update({ show: show.id, phase: target.status.phase });
-  }
-
-  private unfollow(): void {
-    const following = this.following;
-    this.following = undefined;
-    if (following === undefined) return;
-    following.watching();
-    following.stop();
-    void following.target.dispose();
-    this.programScene = undefined;
-    this.update({ show: null, phase: null });
-  }
-
-  /** The key is absent: stop following and watching, and stop OBS, then the program MediaMTX. */
+  /** The key is absent: stop watching and relaying, and stop OBS, then the program MediaMTX. */
   async finalize(): Promise<void> {
     clearTimeout(this.refresh);
+    clearTimeout(this.reporting);
+    this.reported = undefined;
     this.metrics.stop();
-    this.unfollow();
     await this.watchdog?.stop();
     this.watchdog = undefined;
+    await this.inputs.stop();
     await this.process.stop();
     await this.program.stop();
-    this.update({ program: null });
+    this.update({ program: null, output: null, control: null, collection: null });
   }
 
   /** The agent is stopping, and OBS and the program MediaMTX go with it. */
   dispose(): void {
     clearTimeout(this.refresh);
+    clearTimeout(this.reporting);
     this.metrics.stop();
-    this.unfollow();
     void this.watchdog?.stop();
+    this.inputs.dispose();
     for (const subscription of this.watching) subscription.unsubscribe();
     this.process.dispose();
     this.program.dispose();
@@ -345,15 +386,6 @@ export class ObsRuntime {
   private update(changes: Partial<ObsStatus>): void {
     this.status$.next({ ...this.status$.value, ...changes });
   }
-}
-
-/**
- * The OBS scene a snapshot goes out on: its active scene, or its first when it names none, by vignette's name for it
- * (`vignette/<show>/<scene>`, which `@strangecyan/vignette/obs` doesn't export). Undefined for a show with no scenes.
- */
-function programSceneOf(snapshot: Snapshot): string | undefined {
-  const scene = snapshot.activeScene ?? snapshot.scenes[0]?.id;
-  return scene === undefined ? undefined : `vignette/${snapshot.id}/${scene}`;
 }
 
 /** Logs a channel's ingest failing, for a promise's `catch`: the forward keeps the ingest it last had. */

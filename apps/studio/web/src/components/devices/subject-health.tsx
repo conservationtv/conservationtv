@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 
 import { StatusLabel } from '@/components/common/status';
-import { healthOf, type SubjectState } from '@/components/devices/subjects';
+import { healthOf, reasonsOf, type SubjectState } from '@/components/devices/subjects';
 import { ownStatus } from '@/components/streams/topology';
 
 export interface SubjectHealthProps {
@@ -9,7 +9,13 @@ export interface SubjectHealthProps {
   state: SubjectState | undefined;
 }
 
-/** A device's or an exposure's health, as a status dot and what it means. */
+/** A device's or an exposure's health, as a status dot and what it means, with why on hover. */
 export const SubjectHealth: FC<SubjectHealthProps> = ({ state }) => {
-  return <StatusLabel status={ownStatus(state)}>{healthOf(state)}</StatusLabel>;
+  const status = ownStatus(state);
+  const reasons = reasonsOf(state);
+  return (
+    <StatusLabel status={status} title={reasons}>
+      {healthOf(state)}
+    </StatusLabel>
+  );
 };

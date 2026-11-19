@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// The pages pinned to the app's rail on this browser: a stream or show to keep an eye on, an agent being set up. Pins belong
-// to the browser, not the account, until the studio API keeps them.
+// The pages pinned to the app's rail on this browser: a stream, show or output to keep an eye on, an agent being set
+// up. Pins belong to the browser, not the account, until the studio API keeps them.
 //
 // This module is the record's format and pure updates to it. Reading and writing go through the this-device queries
 // (src/queries/this-device.ts), so the app always sees the record through TanStack Query.
@@ -11,7 +11,7 @@ const STORAGE_KEY = 'studio.pins';
 export const MAX_PINS = 12;
 
 /** What a pinned page is about, which decides its icon. */
-export const PIN_KINDS = ['stream', 'show', 'camera', 'agent', 'network', 'page'] as const;
+export const PIN_KINDS = ['stream', 'show', 'output', 'camera', 'agent', 'network', 'page'] as const;
 
 const PinsSchema = z.array(
   z.object({

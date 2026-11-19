@@ -1,5 +1,8 @@
 # A show's topology
 
+> Superseded in part by [outputs.md](outputs.md): what this calls a show (output, encoding, forwards, previews,
+> recorders) is now an **output**, and a show is only what is on screen.
+
 A stream is a picture delivered: a source, exposures carrying it to gateways, recorders. Each hop has an ID, reports
 are filed against it, and the studio draws, colours and charts the whole chain from one list read. A show going out had
 none of that: an organisation-wide broadcast, one `show_output` row naming the agent that runs OBS, and channels that
@@ -67,8 +70,9 @@ reads a stream's.
   relations, as `organisations.streams.list` is). `create` (`name`, encoding optional), `get`, `update` (name,
   encoding), `delete`.
 - `organisations.shows.output.get|set|delete`, by show. The organisation-level `organisations.show.output.*`,
-  `organisations.show.follow` and `organisations.show.compose` keep working unchanged: the output ones act on the
-  organisation's show whose ID is the organisation's, while it exists.
+  `organisations.show.follow` and `organisations.show.compose` keep working: the output ones act on the
+  organisation's show whose ID is the organisation's, while it exists. All three are versionless, so none is part of
+  the released v1 contract.
 - `organisations.shows.forwards.create` (`channelId`, `enabled`), `update` (`enabled`), `delete`.
 - `organisations.shows.previews.create` (`gatewayId`), `delete`, and `connect` (`action` read or publish,
   `protocol`, `rendition`), as `organisations.streams.exposures.connect`: members read; the show's output device

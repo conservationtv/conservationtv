@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { transaction, trustedTransaction } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { requirePrincipal, useUser } from '../middleware/principal.ts';
+import { audited } from '../audit/audit.ts';
 import {
   getDevice,
   getDeviceKeyPair,
@@ -137,6 +138,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('secrets'),
     validator('param', DeviceParamsSchema),
     async c => {
       const { id, deviceId } = c.req.valid('param');
@@ -203,6 +205,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', DeviceParamsSchema),
     validator(
       'json',

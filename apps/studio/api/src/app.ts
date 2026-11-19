@@ -1,15 +1,18 @@
 import {
   OPERATION_MANIFEST_PATH,
   OperationRouter,
-  PUBLISHED_DOCUMENT_PATH
+  PUBLISHED_DOCUMENT_PATH,
+  type OperationRun,
+  type SelectedOperation
 } from '@conservationtv/versioned-api/server';
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { describeRoute } from 'hono-openapi';
 import { handleError, handleNotFound } from './middleware/errors.ts';
+import { recordOperation, recordRequest } from './requests/record.ts';
+import { traceOperation, traceRequest } from './tracing/trace.ts';
 import account from './routes/account.ts';
 import agents from './routes/agents.ts';
-import broadcast from './routes/broadcast.ts';
 import browsers from './routes/browsers.ts';
 import cameras from './routes/cameras.ts';
 import channelCallbacks from './routes/channel-callbacks.ts';
@@ -25,6 +28,7 @@ import irohSessions from './routes/iroh-sessions.ts';
 import networks from './routes/networks.ts';
 import organisations from './routes/organisations.ts';
 import reports from './routes/reports.ts';
+import outputs from './routes/outputs.ts';
 import shows from './routes/shows.ts';
 import streams from './routes/streams.ts';
 import subjects from './routes/subjects.ts';
@@ -44,9 +48,19 @@ const serveStaticAsset = async (c: Context) => {
   return new Response(asset.body, asset);
 };
 
-export const operationRouter = new OperationRouter();
+/** Each operation the router selects: noted on the request's record, then run in a span of its own (src/tracing/). */
+function aroundOperation(c: Context, selected: SelectedOperation, run: OperationRun) {
+  recordOperation(selected);
+  return traceOperation(c, selected.operation.operationId, run);
+}
+
+export const operationRouter = new OperationRouter({ aroundOperation });
 
 const app = new Hono({ router: operationRouter })
+  // What each request did (src/requests/record.ts), from before anything else runs, and its span named by its route
+  // once it has been handled (src/tracing/).
+  .use(recordRequest)
+  .use(traceRequest)
   // The studio web app calls with its session cookie, so its origins are allowed explicitly, never `*`.
   .use(
     cors({
@@ -86,9 +100,9 @@ const app = new Hono({ router: operationRouter })
   .route('/organisations/:id/streams', streams)
   .route('/organisations/:id/subjects', subjects)
   .route('/organisations/:id/topology', topology)
-  // The organisation's broadcast, followed over a WebSocket rather than called, and the shows that send it out.
-  .route('/organisations/:id/show', broadcast)
+  // What is on screen, each show followed over a WebSocket rather than called, and the outputs that send it out.
   .route('/organisations/:id/shows', shows)
+  .route('/organisations/:id/outputs', outputs)
   // Where the shows go out to, and Twitch's return from connecting one (a browser navigation).
   .route('/organisations/:id/channels', channels)
   .route('/channels', channelCallbacks)

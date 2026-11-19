@@ -12,11 +12,6 @@ export type Error = {
 export type Show = {
     id: string;
     name: string;
-    width: number;
-    height: number;
-    fps: number;
-    bitrateKbps: number;
-    keyframeSeconds: number;
     createdAt: string;
 };
 
@@ -26,26 +21,6 @@ export type PostOrganisationsByIdShowsData = {
          * What the show is called in the studio.
          */
         name: string;
-        /**
-         * The program's width in pixels: even.
-         */
-        width?: number;
-        /**
-         * The program's height in pixels: even.
-         */
-        height?: number;
-        /**
-         * The program's frame rate.
-         */
-        fps?: number;
-        /**
-         * The program's constant video bitrate, in kbps.
-         */
-        bitrateKbps?: number;
-        /**
-         * The program's keyframe interval, in seconds.
-         */
-        keyframeSeconds?: number;
     };
     path: {
         /**

@@ -6,6 +6,7 @@ import type { ConservationTvConfiguration } from '../config.ts';
 import { gatewayControllers, type GatewaySetup } from '../gateway/index.ts';
 import { machineController } from '../machine/index.ts';
 import { outputControllers } from '../output/index.ts';
+import { REPORT_INTERVAL_MS } from '../reporting/sampler.ts';
 import { watchStudioConfiguration } from './configuration.ts';
 import { specFile } from './spec-file.ts';
 
@@ -13,7 +14,7 @@ import { specFile } from './spec-file.ts';
 //
 //   machine                            always: the machine the agent runs on (machine/)
 //   streams, metrics, relayTraffic     the configuration's `mediamtx` section: the gateway (gateway/)
-//   obs, channels                      the configuration's `obs` section: the show it sends out (output/)
+//   obs, channels, show                the configuration's `obs` and `show` sections: the output it sends out (output/)
 //
 // It starts from the spec it last accepted, saved in the agent's directory (spec-file.ts), or on a first start from
 // `INITIAL_SPEC`; the studio configuration (configuration.ts) then sets each key's spec, or leaves it out, which
@@ -38,7 +39,8 @@ function controllers(context: SystemContext) {
     metrics: gateway.metrics,
     relayTraffic: gateway.relayTraffic,
     obs: output.obs,
-    channels: output.channels
+    channels: output.channels,
+    show: output.show
   };
 }
 
@@ -54,9 +56,9 @@ const SPEC_FILE = 'spec.json';
 
 /** The spec of an agent that has none saved: sampling its machine, and MediaMTX up, until the studio says more. */
 const INITIAL_SPEC: SystemSpec<AgentControllers> = {
-  machine: { intervalMs: 60_000 },
+  machine: { intervalMs: REPORT_INTERVAL_MS },
   streams: { paths: [], previews: [], publishers: [] },
-  metrics: { intervalMs: 60_000, paths: [] }
+  metrics: { intervalMs: REPORT_INTERVAL_MS, paths: [] }
 };
 
 /** Converge the runtimes, from the spec last saved, to what the studio configuration says from then on. */
@@ -69,8 +71,8 @@ export function startSystem(context: SystemContext): Promise<AgentSystem> {
     restore: async () => {
       const saved = await file.restore();
       if (saved === undefined) return INITIAL_SPEC;
-      // The studio never sets `machine`, so a saved spec that lost it, as one that no longer parses, starts it afresh.
-      return { machine: INITIAL_SPEC.machine, ...saved };
+      // The studio never sets `machine`: the agent does, so it samples as this build says to, whatever was saved.
+      return { ...saved, machine: INITIAL_SPEC.machine };
     },
     sink: spec => file.sink(spec),
     mutator: mutation =>
@@ -87,6 +89,8 @@ export function startSystem(context: SystemContext): Promise<AgentSystem> {
           else draft.obs = specs.obs;
           if (specs.channels === undefined) delete draft.channels;
           else draft.channels = specs.channels;
+          if (specs.show === undefined) delete draft.show;
+          else draft.show = specs.show;
         })
       )
   });

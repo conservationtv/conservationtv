@@ -4,7 +4,10 @@ export {
   OPERATION_VERSION_HEADER,
   OperationRouter,
   routeDescription,
-  type OperationRoute
+  type OperationRoute,
+  type OperationRouterOptions,
+  type OperationRun,
+  type SelectedOperation
 } from './operation-router.js';
 export {
   errorResponse,
@@ -27,4 +30,12 @@ export {
   type PublishedDocument,
   type PublishedDocumentHandler
 } from './published-document.js';
-export { apiError, createErrorHandler, handleNotFound, noStore, type ErrorRenderer } from './error-handler.js';
+export {
+  apiError,
+  createErrorHandler,
+  handleNotFound,
+  noStore,
+  type CommonFailureCode,
+  type ErrorHandlerOptions,
+  type ErrorRenderer
+} from './error-handler.js';

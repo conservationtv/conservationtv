@@ -68,11 +68,12 @@ export type System = {
         }>;
     };
     obs?: {
-        show: {
-            id: string;
-            url: string;
-        };
         output: {
+            id: string;
+            organisationId: string;
+            control: 'external' | 'show';
+        };
+        encoding: {
             width: number;
             height: number;
             fps: number;
@@ -82,7 +83,7 @@ export type System = {
         forwards: Array<{
             organisationId: string;
             channelId: string;
-            forwardId?: string;
+            forwardId: string;
         }>;
         previews: Array<{
             previewId: string;
@@ -95,12 +96,12 @@ export type System = {
                 url: string;
             };
         }>;
+        program: {
+            subjectId: string;
+        };
         recording?: {
             recorderId: string;
             kind: string;
-        };
-        program?: {
-            subjectId: string;
         };
     };
     channels?: {
@@ -108,6 +109,10 @@ export type System = {
             organisationId: string;
             channelId: string;
         }>;
+    };
+    show?: {
+        id: string;
+        url: string;
     };
 };
 

@@ -8,12 +8,7 @@ import { PatchOrganisationsByIdShowsByShowIdBodySchema, PatchOrganisationsByIdSh
 export const ShowUpdateV1ParamsSchema = z.object({
     id: PatchOrganisationsByIdShowsByShowIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     showId: PatchOrganisationsByIdShowsByShowIdPathSchema.shape.showId.nonoptional().describe('The show.'),
-    name: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.name.optional().describe('What the show is called in the studio.'),
-    width: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.width.optional().describe('The program\'s width in pixels: even.'),
-    height: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.height.optional().describe('The program\'s height in pixels: even.'),
-    fps: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.fps.optional().describe('The program\'s frame rate.'),
-    bitrateKbps: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.bitrateKbps.optional().describe('The program\'s constant video bitrate, in kbps.'),
-    keyframeSeconds: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.keyframeSeconds.optional().describe('The program\'s keyframe interval, in seconds.')
+    name: PatchOrganisationsByIdShowsByShowIdBodySchema.shape.name.nonoptional().describe('What the show is called in the studio.')
 });
 
 export type ShowUpdateV1Params = z.infer<typeof ShowUpdateV1ParamsSchema>;
@@ -21,12 +16,7 @@ export type ShowUpdateV1Params = z.infer<typeof ShowUpdateV1ParamsSchema>;
 export type ShowUpdateV1Input = {
     id: string;
     showId: string;
-    name?: string;
-    width?: number;
-    height?: number;
-    fps?: number;
-    bitrateKbps?: number;
-    keyframeSeconds?: number;
+    name: string;
 };
 
 export type ShowUpdateV1Output = PatchOrganisationsByIdShowsByShowIdResponse;

@@ -380,7 +380,7 @@ URL-encoded.
 A metric report is a point in a series: a metric's `name`, `unit` and `dimensions` about its subject, from the
 reporting device, such as `path.ingest.bitrate` in `bits/s` for `{ path: "cam1" }`. Its point is one sample's `value`,
 or a `summary` of the interval ending at `observedAt`: the `min`, `max`, `avg` and `last` of `count` samples, so a
-reporter that samples often and reports once a minute keeps the dips and spikes in between. Two tables, in
+reporter that samples often and reports every 15 seconds keeps the dips and spikes in between. Two tables, in
 `src/db/schemas/metrics.ts`:
 
 - `metric_series`: one row per series, made the first time a report names it. Two reporters measuring the same thing
@@ -395,16 +395,51 @@ bucket without points is absent, so gaps are times nothing was reported.
 
 Only TimescaleDB's Apache-licensed features are used, because PlanetScale ships no others: hypertables, `time_bucket`,
 `last` and `drop_chunks`, but no continuous aggregates, compression or retention policies. Local Postgres runs the
-`-oss` image, which has nothing else. Nothing rolls points up or drops old chunks yet: each series has a point a
-minute, so reading a month of one series stays small. When retention is needed, one scheduled
+`-oss` image, which has nothing else. Nothing rolls points up or drops old chunks yet. An agent's series have a point
+every 15 seconds (`REPORT_INTERVAL_MS`), about 173,000 a month, and channels' a point a minute; a read is bucketed to at
+most 1000 steps, so a month of one series is still one bounded query, but the table grows four times faster than it
+did at a minute. When retention is needed, one scheduled
 `select drop_chunks('metric_point', older_than => interval '…')` is enough. On PlanetScale, enable the extension in the
 cluster's configuration before migrating.
 
 Not built yet: provisioning an agent or camera with its private key, rotating or revoking a device identity, the
-state consumer that turns observations into `reporter_opinion` and `subject_state` rows (so `…/state` returns
-`state: null`, stale, until it exists), failover from expired agent state, choosing a
+failover from expired agent state, choosing a
 publisher for an exposure that pins none (`deviceConfiguration.get` plans only the active agent's MediaMTX gateway and
 what is pinned to it), transcoding renditions a camera cannot produce, and sharing across organisations.
+
+### Health
+
+The state consumer (`src/health/`) judges each subject from what its reporters send, as `reporter_opinion` (one per
+reporter) and `subject_state` (all of them combined) rows, which `…/state` and `…/states` read. Health is `healthy`,
+`degraded` (working, but not as it should), `unhealthy` or `unknown` (nothing to judge by); whether a subject still
+reports at all is its freshness, evaluated when read, so it goes stale without a job.
+
+After a batch is stored, ingestion judges each subject its metrics are about, before responding: the request's
+connections close once the response is sent. A subject that fails to be judged is logged, and the batch stays stored.
+Each subject is judged in a trusted transaction of its own, under a lock on the subject, from what is stored rather
+than from the batch, so a failure is put right by the next batch, and a late batch, older than the opinion, is skipped.
+
+One evaluator per subject kind (`src/health/evaluators.ts`; a kind that isn't judged by its own reports, such as a
+stream, is `null`, and the studio rolls it up from its parts) forms the reporter's opinion in three steps:
+
+1. `context`: what the subject is meant to be doing, from the topology, such as whether a forward is switched on.
+2. `evaluate`: a verdict and its findings, from the reporter's metrics, which it reads as it needs them through a
+   client scoped to the subject, the reporter and the newest report's time (`src/health/metrics.ts`: `over(seconds)`,
+   an hour back at most, so each finding says what window it judged). Usually the worst of a few checks (`allOf` of
+   `share`, `floor` and `ceiling` in `src/health/checks.ts`), each judging the worst series of its metric, such as an
+   exposure's worst rendition, and citing it.
+3. `settle`: whether to take the verdict yet (`hysteresis`, by time: worse at once, better after a minute, unless the
+   evaluator says otherwise), so a subject doesn't flap.
+
+The opinion keeps its findings (`Ready 62% of the last 2 min`), what it read, since when it has held its health, and a
+change it is waiting to take. It holds for its evaluator's `ttl`, three of the slowest report intervals (agents report
+every 15 seconds, and a channel every minute). The subject's state is the worst of its fresh opinions, with their
+findings; with none fresh, it keeps the health it had, and is stale. The thresholds are a first opinion, to be tuned
+against what the fleet reports.
+
+Some checks judge a window's greatest sample rather than its mean, where any of it is the outage: one reconnection of
+a show's programme, however brief, holds it unhealthy until the reconnection leaves the two-minute window, and then
+for the minute recovery waits, even once it has moved to the offline segment.
 
 ## Encrypted columns
 

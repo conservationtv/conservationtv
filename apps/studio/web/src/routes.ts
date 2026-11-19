@@ -23,11 +23,14 @@ export default [
           route('camera', './routes/stream-new-camera.tsx')
         ]),
         route('streams/:streamId', './routes/stream.tsx'),
-        // The organisation's shows going out: each its output agent, programme, forwards, previews and recorder, all
-        // following the organisation's one broadcast for now.
+        // The organisation's shows: what is on screen, each composed from its streams.
         route('shows', './routes/shows.tsx', [route('new', './routes/show-new.tsx')]),
         route('shows/:showId', './routes/show.tsx'),
-        // Where shows go out to: Twitch channels and RTMP destinations.
+        // What goes out: each output is OBS on one agent, with its programme, forwards, previews and recorder, its
+        // scenes driven by the show it follows or from outside the studio.
+        route('outputs', './routes/outputs.tsx', [route('new', './routes/output-new.tsx')]),
+        route('outputs/:outputId', './routes/output.tsx'),
+        // Where outputs go out to: Twitch channels and RTMP destinations.
         route('channels', './routes/channels.tsx', [route('rtmp/new', './routes/channel-rtmp-new.tsx')]),
         // What the streams run on: the sites, and the agents, cameras and gateways on them.
         // Adding one is a dialog routed over its list, at `new`, so it can be linked to.

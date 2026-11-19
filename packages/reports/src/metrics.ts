@@ -85,7 +85,11 @@ export const machineMetrics = {
   /** The kernel's load average, with its `window` as a dimension. */
   load: { name: 'machine.load', unit: 'processes', label: 'Load average' },
   memoryTotal: { name: 'machine.memory.total', unit: 'bytes', label: 'Memory' },
-  memoryFree: { name: 'machine.memory.free', unit: 'bytes', label: 'Free memory' },
+  /**
+   * What the machine can give programs without swapping, counting the cache it would drop for them, as its OS judges
+   * it: not the memory unused outright, which macOS keeps near nothing.
+   */
+  memoryAvailable: { name: 'machine.memory.available', unit: 'bytes', label: 'Available memory' },
   uptime: { name: 'machine.uptime', unit: 'seconds', label: 'Uptime' },
   /** The filesystem the agent's working directory is on. */
   diskTotal: { name: 'machine.disk.total', unit: 'bytes', label: 'Disk' },
@@ -94,8 +98,8 @@ export const machineMetrics = {
 } as const satisfies Record<string, MetricDefinition>;
 
 /**
- * A show's program as its output sends it, about `program:<showId>`: the program MediaMTX's `show/program`, which OBS
- * streams to, and OBS itself, as obs-websocket reports it. Summarised from reads every few seconds.
+ * An output's programme as its agent sends it, about `program:<outputId>`: the program MediaMTX's `show/program`,
+ * which OBS streams to, and OBS itself, as obs-websocket reports it. Summarised from reads every few seconds.
  */
 export const programMetrics = {
   /** 1 while `show/program` is ready, else 0. Always available, so ready while the offline segment plays too. */
@@ -116,7 +120,7 @@ export const programMetrics = {
   reconnecting: { name: 'obs.output.reconnecting', unit: 'boolean', label: 'Reconnecting' }
 } as const satisfies Record<string, MetricDefinition>;
 
-/** A show's forward to a channel, about `forward:<forwardId>`: the program MediaMTX's forward of `show/program`. */
+/** An output's forward to a channel, about `forward:<forwardId>`: the program MediaMTX's forward of `show/program`. */
 export const forwardMetrics = {
   /** What the forward is sent of `show/program`. */
   egressBitrate: { name: 'forward.egress.bitrate', unit: 'bits/s', label: 'Egress bitrate' },
@@ -124,7 +128,7 @@ export const forwardMetrics = {
   connected: { name: 'forward.connected', unit: 'boolean', label: 'Connected' }
 } as const satisfies Record<string, MetricDefinition>;
 
-/** A show's preview, about `preview:<previewId>`: what its publisher reads of `show/program` to publish. */
+/** An output's preview, about `preview:<previewId>`: what its publisher reads of `show/program` to publish. */
 export const previewMetrics = {
   /** What the preview's publisher is sent of `show/program`. */
   egressBitrate: { name: 'preview.egress.bitrate', unit: 'bits/s', label: 'Egress bitrate' },
@@ -132,7 +136,7 @@ export const previewMetrics = {
   connected: { name: 'preview.connected', unit: 'boolean', label: 'Connected' }
 } as const satisfies Record<string, MetricDefinition>;
 
-/** A show's recorder, about `recorder:<recorderId>`: OBS recording the program, as `GetRecordStatus` reports it. */
+/** An output's recorder, about `recorder:<recorderId>`: OBS recording the program, as `GetRecordStatus` reports it. */
 export const recorderMetrics = {
   /** 1 while OBS records, else 0. */
   active: { name: 'recorder.active', unit: 'boolean', label: 'Recording' },

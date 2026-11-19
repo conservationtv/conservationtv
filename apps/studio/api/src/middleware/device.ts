@@ -1,6 +1,7 @@
 import { createStore } from '@conservationtv/store';
 import { device as devicePrincipal, type Principal } from '@conservationtv/umbrella';
 import { and, eq, isNull } from 'drizzle-orm';
+import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { verifySignature, webcrypto, isSignatureError, type Verifier } from 'http-message-sig';
 import { verifyContentDigest } from 'httpbis-digest-headers';
@@ -8,6 +9,8 @@ import { devices, organisations } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { trustedTransaction, useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
+import { recordActor, recordDeviceOrganisation } from '../requests/record.ts';
+import { traced } from '../tracing/trace.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
 import { withPrincipal } from './principal.ts';
 
@@ -44,20 +47,23 @@ interface DeviceVerifier extends Verifier {
  */
 async function deviceVerifier(publicId: string | undefined): Promise<DeviceVerifier> {
   if (publicId === undefined) throw new ApiFailure('invalid_signature');
-  const [row] = await trustedTransaction(async () => {
-    const db = useDB({ trusted: true });
-    return db
-      .select({
-        id: devices.id,
-        organisationId: devices.organisationId,
-        kind: devices.kind,
-        publicId: devices.publicId,
-        publicKey: devices.publicKey
-      })
-      .from(devices)
-      .innerJoin(organisations, eq(organisations.id, devices.organisationId))
-      .where(and(eq(devices.publicId, publicId), isNull(organisations.deletedAt)));
-  });
+  const [row] = await trustedTransaction(
+    async () => {
+      const db = useDB({ trusted: true });
+      return db
+        .select({
+          id: devices.id,
+          organisationId: devices.organisationId,
+          kind: devices.kind,
+          publicId: devices.publicId,
+          publicKey: devices.publicKey
+        })
+        .from(devices)
+        .innerJoin(organisations, eq(organisations.id, devices.organisationId))
+        .where(and(eq(devices.publicId, publicId), isNull(organisations.deletedAt)));
+    },
+    { name: 'device.lookup' }
+  );
   if (!row) throw new ApiFailure('invalid_signature');
   const key = await crypto.subtle.importKey('raw', Buffer.from(row.publicKey, 'base64url'), 'Ed25519', false, [
     'verify'
@@ -108,11 +114,8 @@ async function bodyMatchesDigest(body: ArrayBuffer, digest: string) {
   }
 }
 
-/**
- * Require a device's signature on the request (see above). Downstream, `useDevice()` is the device, and
- * `usePrincipal()` its principal.
- */
-export const requireDevice = createMiddleware(async (c, next) => {
+/** The device that signed the request, its body and nonce checked; `invalid_signature` otherwise. */
+async function signingDevice(c: Context) {
   const signature = await verifiedSignature(c.req.raw);
   const { device } = signature.verifier;
   // The signature covers the digest, so it is present; the body is cached for the handler.
@@ -126,5 +129,16 @@ export const requireDevice = createMiddleware(async (c, next) => {
     MAX_AGE_SECONDS + CLOCK_SKEW_SECONDS + 1
   );
   if (!fresh) throw new ApiFailure('invalid_signature');
+  return device;
+}
+
+/**
+ * Require a device's signature on the request (see above), checked in its own `authenticate` span. Downstream,
+ * `useDevice()` is the device, and `usePrincipal()` its principal.
+ */
+export const requireDevice = createMiddleware(async (c, next) => {
+  const device = await traced('authenticate', { 'studio.authentication.method': 'signature' }, () => signingDevice(c));
+  recordActor({ principal: device.principal, deviceKind: device.kind });
+  recordDeviceOrganisation(device.organisationId);
   await withDevice(device, () => withPrincipal(device.principal, next));
 });

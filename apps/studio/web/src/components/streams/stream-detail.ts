@@ -2,9 +2,11 @@ import type { Camera, Device, Gateway, Network, Stream } from '@conservationtv/s
 
 import {
   layoutTopology,
+  overallStatus,
   ownStatus,
   statusesOf,
   type NodeStatus,
+  type OverallStatus,
   type SubjectStatusInput,
   type Topology
 } from '@/components/streams/topology';
@@ -140,19 +142,25 @@ function fedByOf(
   return source?.name ?? 'its publisher';
 }
 
+/** What the stream's status says, once it has a source that is on. */
+const streamLabels = {
+  ok: 'Live',
+  degraded: 'Live, degraded',
+  unknown: 'No reports',
+  failing: 'Failing'
+} satisfies Record<OverallStatus, string>;
+
 /**
- * The stream's status. Anything failing says so first; then a source that is switched off; then live once every part
- * reports healthy. Otherwise it has no source, or nothing has reported yet.
+ * The stream's status: its parts' (`overallStatus`). Anything failing says so first; then a source that is switched
+ * off; then, where nothing says it is live, a stream without a source.
  */
 function livenessOf(stream: Stream, camera: Camera | undefined, statuses: NodeStatus[]): Liveness {
   if (statuses.length === 0) return { status: 'unknown', label: 'Not set up' };
-  if (statuses.some(status => status === 'failing' || status === 'affected')) {
-    return { status: 'failing', label: 'Failing' };
-  }
+  const status = overallStatus(statuses);
+  if (status === 'failing') return { status, label: streamLabels[status] };
   if (camera && camera.state !== 'enabled') return { status: 'unknown', label: `Camera ${camera.state}` };
-  if (statuses.every(status => status === 'ok')) return { status: 'ok', label: 'Live' };
-  if (stream.sourceDeviceId === null) return { status: 'unknown', label: 'No source' };
-  return { status: 'unknown', label: 'No reports' };
+  if (status === 'unknown' && stream.sourceDeviceId === null) return { status, label: 'No source' };
+  return { status, label: streamLabels[status] };
 }
 
 /** The exposures an exposure may be fed by: the stream's others, except any it feeds itself, which would loop. */

@@ -1,3 +1,4 @@
+import type { Context } from 'hono';
 import type { H, RouterRoute } from 'hono/types';
 import type { Router, Result, Params } from 'hono/router';
 import { TrieRouter } from 'hono/router/trie-router';
@@ -17,6 +18,27 @@ export interface OperationRoute {
 }
 
 type Entry = [H, RouterRoute];
+
+/** The operation a request was routed to, and the path parameters it matched. */
+export interface SelectedOperation {
+  operation: OperationRoute;
+  params: Record<string, string>;
+}
+
+/** The operation's handlers, from its first: its validators, middleware and handler, through `next`. */
+export type OperationRun = () => Promise<Response | void>;
+
+export interface OperationRouterOptions {
+  /**
+   * Runs the operation a request was routed to, once: told which it is as its first handler is about to run (after the
+   * middleware registered before it, in the request's own async context), and given `run`, its handlers, to call
+   * exactly once and return what it returns. Whatever the hook keeps open around `run` (a span, a store) is open for
+   * all of them. A failure they throw has been rendered by the app's error handler by the time `run` settles, so
+   * `c.res` is the response sent. Requests no operation serves (CORS preflights, unknown paths, unversioned routes)
+   * never reach it.
+   */
+  aroundOperation?: (c: Context, selected: SelectedOperation, run: OperationRun) => Promise<Response | void>;
+}
 
 interface OperationDescription extends DescribeRouteOptions {
   'x-operation-version'?: number;
@@ -53,6 +75,8 @@ export class OperationRouter implements Router<Entry> {
   private readonly active = new Map<string, OperationRoute>();
   private readonly identities = new Set<string>();
   private readonly locations = new Map<string, string>();
+
+  constructor(private readonly options: OperationRouterOptions = {}) {}
 
   /** A description begins a complete route; subsequent validators and handlers belong to it. */
   add(method: string, path: string, entry: Entry): void {
@@ -119,7 +143,12 @@ export class OperationRouter implements Router<Entry> {
             requested!
           );
         }
-        return selected === owner ? handler(c, next) : next();
+        if (selected !== owner) return next();
+        const { aroundOperation } = this.options;
+        if (route !== owner.routes[0] || !aroundOperation) return handler(c, next);
+        // The parameters as this route matched them, decoded, while it is the route being dispatched.
+        const params = c.req.param();
+        return aroundOperation(c, { operation: owner, params }, async () => handler(c, next));
       };
       return [[guarded, route], params];
     });

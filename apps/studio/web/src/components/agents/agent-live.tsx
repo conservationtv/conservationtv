@@ -66,6 +66,16 @@ function usedShare(total: number, free: number): string {
   return `${Math.round(((total - free) / total) * 100)}%`;
 }
 
+/**
+ * What of the machine's memory programs can still have, as its OS judges it. An agent from before `available` was
+ * reported sends only what is unused outright, which on macOS is near nothing, so it reads as nearly full.
+ */
+function availableMemory(memory: NonNullable<MachineSample>['memory']): number {
+  // SAFETY: the type is the current agent's; an older one leaves `available` out.
+  const available: number | undefined = memory.available;
+  return available ?? memory.free;
+}
+
 /** The machine the agent runs on, as it last sampled it. */
 const Machine: FC<MachineProps> = ({ machine }) => {
   if (!machine)
@@ -87,7 +97,7 @@ const Machine: FC<MachineProps> = ({ machine }) => {
       <Fact>
         <FactLabel>Memory</FactLabel>
         <FactValue>
-          {usedShare(machine.memory.total, machine.memory.free)} of {formatBytes(machine.memory.total)}
+          {usedShare(machine.memory.total, availableMemory(machine.memory))} of {formatBytes(machine.memory.total)}
         </FactValue>
       </Fact>
       <Fact>
@@ -190,10 +200,10 @@ interface ObsRuntimeProps {
   obs: System['obs'];
 }
 
-/** OBS, which an agent that sends a show out runs; a line saying it isn't in use on one that doesn't. */
+/** OBS, which an agent that runs an output runs; a line saying it isn't in use on one that doesn't. */
 const ObsRuntime: FC<ObsRuntimeProps> = ({ obs }) => {
   const { runtime, apply } = obs;
-  const idle = runtime.show === null && runtime.state === 'stopped';
+  const idle = runtime.output === null && runtime.state === 'stopped';
   return (
     <RuntimeRow
       title="OBS"
@@ -202,7 +212,8 @@ const ObsRuntime: FC<ObsRuntimeProps> = ({ obs }) => {
       apply={apply}
       error={runtime.lastError}
     >
-      {idle ? 'This agent isn’t a show’s output.' : (runtime.version ?? 'No version yet')}
+      {idle ? 'This agent doesn’t run an output.' : (runtime.version ?? 'No version yet')}
+      {runtime.control === 'external' ? ' · driven from outside' : null}
       {runtime.streaming ? ` · ${runtime.streaming}` : null}
       {runtime.program ? ` · forwarding to ${runtime.program.forwards.length} channels` : null}
     </RuntimeRow>

@@ -4,5 +4,5 @@
   // library is for the fetch types generated SDKs (the controlplane's, in src/gatekeeper) name, as Node provides them.
   "extends": "./tsconfig.json",
   "compilerOptions": { "lib": ["es2024", "DOM"] },
-  "include": ["scripts", "contracts.config.ts", "drizzle.config.ts"]
+  "include": ["scripts", "contracts.config.ts", "drizzle.config.ts", "vitest.config.ts"]
 }

@@ -1,18 +1,11 @@
 import { MediamtxConfigBuilder } from '@conservationtv/mediamtx';
 import type { MediamtxListening } from '../config.ts';
-import { loopback } from '../ports.ts';
 
 /**
- * Logs to stdout, which the runtime sends to its log file. Every server on its port (ports.ts): the control API and
- * metrics page on loopback, the rest on every interface, as MediaMTX's own defaults are.
+ * Every server on its port (ports.ts), on every interface, as MediaMTX's own defaults are. The control API and metrics
+ * page are the common step's (mediamtx/config.ts).
  */
 export const server = new MediamtxConfigBuilder<MediamtxListening>(({ ports }, config) => {
-  config.logLevel = 'info';
-  config.logDestinations = ['stdout'];
-  config.api = true;
-  config.apiAddress = loopback(ports.api);
-  config.metrics = true;
-  config.metricsAddress = loopback(ports.metrics);
   config.rtspAddress = `:${ports.rtsp}`;
   config.rtpAddress = `:${ports.rtp}`;
   config.rtcpAddress = `:${ports.rtcp}`;

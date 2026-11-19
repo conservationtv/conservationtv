@@ -51,7 +51,7 @@ export default defineConfig({
     // extension.
     assets: { runWorkerFirst: true, htmlHandling: 'none' },
     exports: {
-      /** Each organisation's broadcast, composed and followed over WebSockets; see src/shows/host.tsx. */
+      /** Each show, by its ID, composed and followed over WebSockets; see src/shows/host.tsx. */
       ShowHost: exports.durableObject({ storage: 'sqlite' })
     },
     env: {

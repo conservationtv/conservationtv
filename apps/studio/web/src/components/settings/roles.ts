@@ -42,7 +42,7 @@ export const FOLLOWING_ROLES: readonly RoleDefinition[] = [
     id: '@shared/channelBroadcaster',
     label: 'Broadcaster',
     description:
-      'Read the organisation’s stream keys and channel tokens, to send its broadcast out. Administrators have it as part of their role, and the agent sending the show out holds it while it does.'
+      'Read the organisation’s stream keys and channel tokens, to send its outputs out. Administrators have it as part of their role, and the agent running an output holds it while it does.'
   },
   {
     id: '@shared/organisationDevice',

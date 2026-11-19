@@ -13,6 +13,7 @@ import {
   MonitorPlayIcon,
   NetworkIcon,
   PlusIcon,
+  ScreencastIcon,
   UploadSimpleIcon,
   VideoCameraIcon,
   VideoIcon
@@ -68,6 +69,10 @@ export const OrganisationSidebar: FC = () => {
               <SidebarNavItem to="shows">
                 <MonitorPlayIcon />
                 <span>Shows</span>
+              </SidebarNavItem>
+              <SidebarNavItem to="outputs">
+                <ScreencastIcon />
+                <span>Outputs</span>
               </SidebarNavItem>
               <SidebarNavItem to="channels">
                 <BroadcastIcon />

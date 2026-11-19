@@ -1890,6 +1890,24 @@ await secured.access.at(apollo).all.revoke(); // everyone's grants at Apollo
 
 Revoking by ID removes one grant. Revoking by principal and role at a scope removes all of that role's windows there; without a role, all of the principal's grants there. `all.revoke()` removes every principal's grants at the scope. Each returns how many grants it removed, works after the scope row is deleted, and leaves grants at other scopes, including descendants, in place.
 
+### Record grant changes
+
+Pass `onChange` when creating the management API to be told of each grant it stores or removes, for an audit log or a trace:
+
+```ts
+const changes: AccessChange[] = [];
+const access = authorization.access(adminTx, { onChange: change => changes.push(change) });
+
+await access.at(apollo).grant({ principal: user('bob'), role: projects.$access.roles.reader });
+// [{ change: 'granted', assignment: { id: '…', principalKind: 'user', principalId: 'bob', role: 'reader', … } }]
+await access.at(apollo).grant({ principal: user('bob'), role: projects.$access.roles.reader });
+// nothing: the identical grant was already stored
+await access.at(apollo).all.revoke();
+// one { change: 'revoked', assignment } for each grant removed
+```
+
+`granted` reports a grant only when the statement stored it, not when an identical grant was already there; `revoked` reports each grant a revoke removed, by ID, principal or scope. Each change is reported when its statement succeeds, inside your transaction. To keep only committed changes, collect them per transaction and use them after it commits.
+
 ### Read grants from request sessions
 
 The reports above run on the owning connection, which bypasses row-level security everywhere: a query that forgets

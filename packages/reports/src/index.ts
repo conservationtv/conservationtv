@@ -1,3 +1,4 @@
+export { formatBitrate, formatMetric, formatSeconds, formatShare } from './format.ts';
 export {
   MetricDimensionsSchema,
   MetricSummarySchema,

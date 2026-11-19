@@ -36,7 +36,7 @@ import { cameraListQueryOptions } from '@/queries/cameras';
 import { channelListQueryOptions } from '@/queries/channels';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
-import { showListQueryOptions } from '@/queries/shows';
+import { outputListQueryOptions } from '@/queries/outputs';
 import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Overview · conservation.tv studio' }];
@@ -86,7 +86,7 @@ const OverviewSections: FC = () => {
     agentsQuery,
     networksQuery,
     gatewaysQuery,
-    showsQuery,
+    outputsQuery,
     channelsQuery,
     statesQuery
   ] = useSuspenseQueries({
@@ -96,7 +96,7 @@ const OverviewSections: FC = () => {
       agentListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
       gatewayListQueryOptions(organisationId),
-      showListQueryOptions(organisationId),
+      outputListQueryOptions(organisationId),
       channelListQueryOptions(organisationId),
       subjectStateListQueryOptions(organisationId)
     ]
@@ -107,7 +107,7 @@ const OverviewSections: FC = () => {
     agents: agentsQuery.data,
     networks: networksQuery.data,
     gateways: gatewaysQuery.data,
-    shows: showsQuery.data,
+    outputs: outputsQuery.data,
     channels: channelsQuery.data.channels,
     states: statesQuery.data
   });
