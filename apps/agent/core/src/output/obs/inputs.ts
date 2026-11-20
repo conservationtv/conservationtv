@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { AttachedProcess } from '@conservationtv/converge/process';
-import type { AlwaysAvailableTrack } from '@conservationtv/mediamtx';
+import { type AlwaysAvailableTrack, mediamtxCommand } from '@conservationtv/mediamtx';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import { BehaviorSubject } from 'rxjs';
@@ -241,15 +241,10 @@ export class InputRelays {
 
 /**
  * The command MediaMTX runs for a wanted path: Node running the launcher, which asks the demand server on `port`. Each
- * argument single-quoted, as MediaMTX splits a command as a POSIX shell would, on every platform.
+ * argument quoted for MediaMTX: Node and the launcher are wherever the agent is installed and keeps its data.
  */
 export function demandCommand(node: string, launcher: string, port: number, secret: string): string {
-  return [node, launcher, String(port), secret].map(quoted).join(' ');
-}
-
-function quoted(argument: string): string {
-  if (argument.includes("'")) throw new Error(`Cannot quote ${argument} for MediaMTX`);
-  return `'${argument}'`;
+  return mediamtxCommand([node, launcher, String(port), secret]);
 }
 
 /** An exposure, as its read session is asked for. */
