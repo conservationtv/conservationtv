@@ -8,6 +8,5 @@ export default defineConfig({
   dialect: 'postgresql',
   schema: './src/db/schema.ts',
   out: './drizzle',
-  dbCredentials: { url: process.env.DATABASE_URL ?? LOCAL_ADMIN_DATABASE_URL },
-  strict: true
+  dbCredentials: { url: process.env.DATABASE_URL ?? LOCAL_ADMIN_DATABASE_URL }
 });
