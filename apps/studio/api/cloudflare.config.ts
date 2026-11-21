@@ -13,6 +13,7 @@ const StackOutputsSchema = z.object({
     adminHyperdriveId: z.string(),
     appHyperdriveId: z.string(),
     cacheId: z.string(),
+    mediaBucket: z.string(),
     appUrl: z.url(),
     webOrigins: z.array(z.url()).nonempty(),
     gatekeeperUrl: z.url(),
@@ -80,6 +81,8 @@ export default defineConfig({
       }),
       /** The key-value cache (src/cache/cache.ts): Twitch connection state until its callback. Local in development. */
       CACHE: bindings.kv({ id: stack?.cacheId ?? placeholderCacheId }),
+      /** The files the studio keeps (src/media/media.ts): camera presets' thumbnails. Local in development. */
+      MEDIA: bindings.r2({ name: stack?.mediaBucket ?? 'studio-api-media' }),
       /** Better Auth's signing secret; see .dev.vars.example. */
       BETTER_AUTH_SECRET: bindings.secret(),
       /** The master key for encrypted columns and blind indexes; see .dev.vars.example. */

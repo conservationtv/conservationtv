@@ -80,6 +80,33 @@ export const SystemSchema = z.object({
             url: z.string()
         }))
     }).optional(),
+    cameras: z.object({
+        issuer: z.string(),
+        cameras: z.array(z.object({
+            id: z.string(),
+            settings: z.union([
+                z.object({
+                    driver: z.literal('axis'),
+                    host: z.string(),
+                    resolutions: z.array(z.string()),
+                    rtspPort: z.number().optional()
+                }),
+                z.object({
+                    driver: z.literal('rtsp'),
+                    url: z.string()
+                })
+            ]),
+            state: z.enum([
+                'enabled',
+                'locked',
+                'disabled'
+            ]),
+            credentials: z.object({
+                username: z.string(),
+                password: z.string()
+            }).optional()
+        }))
+    }).optional(),
     obs: z.object({
         output: z.object({
             id: z.string(),
@@ -129,6 +156,35 @@ export const SystemSchema = z.object({
     show: z.object({
         id: z.string(),
         url: z.string()
+    }).optional(),
+    chat: z.object({
+        organisationId: z.string(),
+        channels: z.array(z.object({
+            channelId: z.string(),
+            platform: z.literal('twitch'),
+            login: z.string()
+        })),
+        commands: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            audience: z.enum([
+                'broadcaster',
+                'everyone',
+                'subscriber',
+                'vip',
+                'moderator'
+            ]),
+            cooldownSeconds: z.number()
+        }))
+    }).optional(),
+    peers: z.object({
+        peers: z.array(z.object({
+            endpointId: z.string(),
+            allow: z.object({
+                relayed: z.boolean(),
+                direct: z.boolean()
+            })
+        }))
     }).optional()
 });
 

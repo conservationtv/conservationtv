@@ -33,6 +33,11 @@ export const RelaySchema = z.object({
     authToken: z.string().optional()
 });
 
+export const StatsConnectSchema = z.object({
+    id: z.string(),
+    gatewayId: z.string()
+});
+
 export const MediamtxAuthSchema = z.object({
     issuer: z.string(),
     audience: z.string()
@@ -63,11 +68,6 @@ export const PublisherSchema = z.object({
     connect: PublisherConnectSchema,
     layout: z.literal('tracks'),
     renditions: z.array(PublishedRenditionSchema)
-});
-
-export const StatsConnectSchema = z.object({
-    id: z.string(),
-    gatewayId: z.string()
 });
 
 export const PreviewConnectSchema = z.object({
@@ -161,6 +161,7 @@ export const CameraSchema = z.object({
         'locked',
         'disabled'
     ]),
+    aliases: z.array(z.string()),
     device: z.object({
         name: z.string(),
         createdAt: z.string(),
@@ -172,7 +173,56 @@ export const CameraSchema = z.object({
         ]),
         networkId: z.string().nullable(),
         publicId: z.string()
-    }).nullable()
+    }).nullable(),
+    presets: z.array(z.object({
+        name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
+        position: z.object({
+            pan: z.number().optional(),
+            tilt: z.number().optional(),
+            zoom: z.number().optional(),
+            focus: z.number().optional()
+        }),
+        thumbnail: z.string().nullable()
+    }))
+});
+
+export const PresetSchema = z.object({
+    id: z.string(),
+    cameraId: z.string(),
+    name: z.string(),
+    position: z.object({
+        pan: z.number().optional(),
+        tilt: z.number().optional(),
+        zoom: z.number().optional(),
+        focus: z.number().optional()
+    }),
+    thumbnail: z.string().nullable(),
+    createdAt: z.string()
+});
+
+export const ThumbnailSchema = z.object({
+    id: z.string(),
+    cameraId: z.string(),
+    name: z.string(),
+    position: z.object({
+        pan: z.number().optional(),
+        tilt: z.number().optional(),
+        zoom: z.number().optional(),
+        focus: z.number().optional()
+    }),
+    thumbnail: z.string().nullable(),
+    createdAt: z.string()
+});
+
+export const ControlSchema = z.object({
+    deviceId: z.string(),
+    websocketPort: z.number(),
+    websocketPassword: z.string(),
+    sceneCollection: z.string(),
+    inputUrl: z.string(),
+    reportedAt: z.string()
 });
 
 export const BrowserSchema = z.object({
@@ -843,15 +893,6 @@ export const OutputSchema = z.object({
     }))
 });
 
-export const ControlSchema = z.object({
-    deviceId: z.string(),
-    websocketPort: z.number(),
-    websocketPassword: z.string(),
-    sceneCollection: z.string(),
-    inputUrl: z.string(),
-    reportedAt: z.string()
-});
-
 export const ForwardSchema = z.object({
     id: z.string(),
     channelId: z.string(),
@@ -878,6 +919,33 @@ export const TwitchSchema = z.object({
     url: z.string()
 });
 
+export const ChatCommandSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    action: z.union([
+        z.object({
+            kind: z.literal('reply'),
+            text: z.string()
+        }),
+        z.object({
+            kind: z.literal('cameraPreset'),
+            cameraId: z.string().nullable(),
+            preset: z.string().nullable()
+        })
+    ]),
+    audience: z.enum([
+        'broadcaster',
+        'everyone',
+        'subscriber',
+        'vip',
+        'moderator'
+    ]),
+    cooldownSeconds: z.number(),
+    enabled: z.boolean(),
+    triggeredAt: z.string().nullable(),
+    createdAt: z.string()
+});
+
 export const ReportSchema = z.object({
     accepted: z.number()
 });
@@ -893,32 +961,61 @@ export const IrohSessionSchema = z.object({
 
 export const DeviceConfigurationSchema = z.object({
     mediamtx: z.object({
-        probes: z.array(z.object({
-            subjectId: z.string(),
-            url: z.string()
-        })),
-        gatewayId: z.string(),
-        auth: MediamtxAuthSchema,
-        tls: MediamtxTlsSchema.optional(),
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
             rendition: RenditionSchema,
             source: z.union([
                 z.object({
-                    url: z.string()
+                    cameraId: z.string()
                 }),
                 z.object({
                     path: z.string()
                 })
             ])
         })),
-        publishers: z.array(PublisherSchema),
+        probes: z.array(z.object({
+            subjectId: z.string(),
+            cameraId: z.string()
+        })),
         stats: z.array(StatsConnectSchema),
+        auth: MediamtxAuthSchema,
+        gatewayId: z.string(),
         previews: z.array(z.object({
             name: z.string(),
             previewId: z.string()
-        })).optional()
+        })).optional(),
+        tls: MediamtxTlsSchema.optional(),
+        publishers: z.array(PublisherSchema)
+    }).optional(),
+    cameras: z.object({
+        cameras: z.array(z.object({
+            id: z.string(),
+            settings: z.union([
+                z.object({
+                    driver: z.literal('axis'),
+                    host: z.string(),
+                    resolutions: z.array(z.string()),
+                    rtspPort: z.number().optional()
+                }),
+                z.object({
+                    driver: z.literal('rtsp'),
+                    url: z.string()
+                })
+            ]),
+            credentials: z.object({
+                username: z.string(),
+                password: z.string()
+            }).optional(),
+            state: z.enum([
+                'enabled',
+                'locked',
+                'disabled'
+            ])
+        })),
+        grants: z.object({
+            issuer: z.string()
+        })
     }).optional(),
     obs: z.object({
         output: z.object({
@@ -956,7 +1053,34 @@ export const DeviceConfigurationSchema = z.object({
     show: z.object({
         id: z.string(),
         url: z.string()
-    }).optional()
+    }).optional(),
+    chat: z.object({
+        organisationId: z.string(),
+        channels: z.array(z.object({
+            channelId: z.string(),
+            platform: z.literal('twitch'),
+            login: z.string()
+        })),
+        commands: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            audience: z.enum([
+                'broadcaster',
+                'everyone',
+                'subscriber',
+                'vip',
+                'moderator'
+            ]),
+            cooldownSeconds: z.number()
+        }))
+    }).optional(),
+    peers: z.array(z.object({
+        endpointId: z.string(),
+        allow: z.object({
+            relayed: z.boolean(),
+            direct: z.boolean()
+        })
+    }))
 });
 
 export const DeviceAddressSchema = z.object({
@@ -1383,7 +1507,9 @@ export const GetOrganisationsByIdDevicesResponseSchema = z.object({
         networkId: z.string().nullable(),
         publicKey: z.string(),
         publicId: z.string(),
-        createdAt: z.string()
+        createdAt: z.string(),
+        userId: z.string().nullable(),
+        memberName: z.string().nullable()
     }))
 }).register(z.globalRegistry, {
     description: 'The devices, oldest first'
@@ -1496,6 +1622,7 @@ export const GetOrganisationsByIdCamerasResponseSchema = z.object({
             'locked',
             'disabled'
         ]),
+        aliases: z.array(z.string()),
         device: z.object({
             name: z.string(),
             createdAt: z.string(),
@@ -1507,7 +1634,19 @@ export const GetOrganisationsByIdCamerasResponseSchema = z.object({
             ]),
             networkId: z.string().nullable(),
             publicId: z.string()
-        }).nullable()
+        }).nullable(),
+        presets: z.array(z.object({
+            name: z.string(),
+            id: z.string(),
+            createdAt: z.string(),
+            position: z.object({
+                pan: z.number().optional(),
+                tilt: z.number().optional(),
+                zoom: z.number().optional(),
+                focus: z.number().optional()
+            }),
+            thumbnail: z.string().nullable()
+        }))
     }))
 }).register(z.globalRegistry, {
     description: 'The cameras, oldest first'
@@ -1542,7 +1681,10 @@ export const PostOrganisationsByIdCamerasBodySchema = z.object({
         'disabled'
     ]).register(z.globalRegistry, {
         description: 'Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.'
-    }).optional().default('enabled')
+    }).optional().default('enabled'),
+    aliases: z.array(z.string().min(1).max(60)).max(16).register(z.globalRegistry, {
+        description: 'What else the camera is called in chat, beside its name: compared without case, spaces or punctuation, and not what another camera is called.'
+    }).optional().default([])
 });
 
 export const PostOrganisationsByIdCamerasPathSchema = z.object({
@@ -1611,6 +1753,9 @@ export const PatchOrganisationsByIdCamerasByCameraIdBodySchema = z.object({
         'disabled'
     ]).register(z.globalRegistry, {
         description: 'Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.'
+    }).optional(),
+    aliases: z.array(z.string().min(1).max(60)).max(16).register(z.globalRegistry, {
+        description: 'What else the camera is called in chat, beside its name: compared without case, spaces or punctuation, and not what another camera is called.'
     }).optional()
 });
 
@@ -1627,6 +1772,171 @@ export const PatchOrganisationsByIdCamerasByCameraIdPathSchema = z.object({
  * The updated camera
  */
 export const PatchOrganisationsByIdCamerasByCameraIdResponseSchema = CameraSchema;
+
+export const PostOrganisationsByIdCamerasByCameraIdPresetsBodySchema = z.object({
+    name: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'What the preset is called, such as `home`.'
+    }),
+    position: z.object({
+        pan: z.number().gte(-360).lte(360).optional(),
+        tilt: z.number().gte(-360).lte(360).optional(),
+        zoom: z.number().gte(0).lte(1).optional(),
+        focus: z.number().gte(0).lte(1).optional()
+    }).register(z.globalRegistry, {
+        description: 'Where a camera points: `pan` and `tilt` in degrees, `zoom` and `focus` as a fraction of its range, each only when the camera has that axis.'
+    })
+});
+
+export const PostOrganisationsByIdCamerasByCameraIdPresetsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
+});
+
+/**
+ * The new preset
+ */
+export const PostOrganisationsByIdCamerasByCameraIdPresetsResponseSchema = PresetSchema;
+
+export const DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    }),
+    presetId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The preset.'
+    })
+});
+
+/**
+ * Removed
+ */
+export const DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
+});
+
+export const PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdBodySchema = z.object({
+    name: z.string().min(1).max(60).register(z.globalRegistry, {
+        description: 'What the preset is called, such as `home`.'
+    }).optional(),
+    position: z.object({
+        pan: z.number().gte(-360).lte(360).optional(),
+        tilt: z.number().gte(-360).lte(360).optional(),
+        zoom: z.number().gte(0).lte(1).optional(),
+        focus: z.number().gte(0).lte(1).optional()
+    }).register(z.globalRegistry, {
+        description: 'Where a camera points: `pan` and `tilt` in degrees, `zoom` and `focus` as a fraction of its range, each only when the camera has that axis.'
+    }).optional()
+});
+
+export const PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    }),
+    presetId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The preset.'
+    })
+});
+
+/**
+ * The updated preset
+ */
+export const PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponseSchema = PresetSchema;
+
+export const DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    }),
+    presetId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The preset.'
+    })
+});
+
+/**
+ * Removed
+ */
+export const DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
+});
+
+export const GetOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    }),
+    presetId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The preset.'
+    })
+});
+
+/**
+ * A small picture of what the camera sees at the preset.
+ */
+export const PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailBodySchema = z.object({
+    contentType: z.enum([
+        'image/webp',
+        'image/jpeg',
+        'image/png'
+    ]),
+    data: z.string().min(1).max(349530).regex(/^$|^(?:[0-9a-zA-Z+\/]{4})*(?:(?:[0-9a-zA-Z+\/]{2}==)|(?:[0-9a-zA-Z+\/]{3}=))?$/).register(z.globalRegistry, {
+        description: 'The picture, as base64: at most 256 KiB once decoded.'
+    })
+}).register(z.globalRegistry, {
+    description: 'A small picture of what the camera sees at the preset.'
+});
+
+export const PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    }),
+    presetId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The preset.'
+    })
+});
+
+/**
+ * The preset, with its new thumbnail
+ */
+export const PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponseSchema = ThumbnailSchema;
+
+export const PostOrganisationsByIdCamerasByCameraIdControlPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
+});
+
+/**
+ * The agent to dial, and the grant to present to it
+ */
+export const PostOrganisationsByIdCamerasByCameraIdControlResponseSchema = z.object({
+    grant: z.string(),
+    expiresAt: z.string(),
+    agent: z.object({
+        id: z.string(),
+        publicId: z.string()
+    })
+}).register(z.globalRegistry, {
+    description: 'The agent to dial, and the grant to present to it'
+});
 
 export const PutOrganisationsByIdBrowserPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -3300,6 +3610,318 @@ export const GetOrganisationsByIdChannelsByChannelIdStatsResponseSchema = z.unio
         language: z.string()
     })
 ]);
+
+export const GetOrganisationsByIdChatCommandsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The commands, oldest first
+ */
+export const GetOrganisationsByIdChatCommandsResponseSchema = z.object({
+    commands: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        action: z.union([
+            z.object({
+                kind: z.literal('reply'),
+                text: z.string()
+            }),
+            z.object({
+                kind: z.literal('cameraPreset'),
+                cameraId: z.string().nullable(),
+                preset: z.string().nullable()
+            })
+        ]),
+        audience: z.enum([
+            'broadcaster',
+            'everyone',
+            'subscriber',
+            'vip',
+            'moderator'
+        ]),
+        cooldownSeconds: z.number(),
+        enabled: z.boolean(),
+        triggeredAt: z.string().nullable(),
+        createdAt: z.string()
+    }))
+}).register(z.globalRegistry, {
+    description: 'The commands, oldest first'
+});
+
+export const PostOrganisationsByIdChatCommandsBodySchema = z.object({
+    name: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/).register(z.globalRegistry, {
+        description: 'The word the command is used by, without its `!`.'
+    }),
+    action: z.union([
+        z.object({
+            kind: z.literal('reply'),
+            text: z.string().min(1).max(400)
+        }),
+        z.object({
+            kind: z.literal('cameraPreset'),
+            cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
+            preset: z.string().min(1).max(60).nullable()
+        })
+    ]),
+    audience: z.enum([
+        'everyone',
+        'subscriber',
+        'vip',
+        'moderator',
+        'broadcaster'
+    ]).register(z.globalRegistry, {
+        description: 'Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.'
+    }).optional().default('moderator'),
+    cooldownSeconds: z.int().gte(0).lte(86400).register(z.globalRegistry, {
+        description: 'How many seconds the command rests after it runs, whoever used it.'
+    }).optional().default(5),
+    enabled: z.boolean().optional().default(true)
+});
+
+export const PostOrganisationsByIdChatCommandsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The new command
+ */
+export const PostOrganisationsByIdChatCommandsResponseSchema = ChatCommandSchema;
+
+export const DeleteOrganisationsByIdChatCommandsByCommandIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    commandId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The command.'
+    })
+});
+
+/**
+ * Removed
+ */
+export const DeleteOrganisationsByIdChatCommandsByCommandIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
+});
+
+export const GetOrganisationsByIdChatCommandsByCommandIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    commandId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The command.'
+    })
+});
+
+/**
+ * The command
+ */
+export const GetOrganisationsByIdChatCommandsByCommandIdResponseSchema = ChatCommandSchema;
+
+export const PatchOrganisationsByIdChatCommandsByCommandIdBodySchema = z.object({
+    name: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/).register(z.globalRegistry, {
+        description: 'The word the command is used by, without its `!`.'
+    }).optional(),
+    action: z.union([
+        z.object({
+            kind: z.literal('reply'),
+            text: z.string().min(1).max(400)
+        }),
+        z.object({
+            kind: z.literal('cameraPreset'),
+            cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
+            preset: z.string().min(1).max(60).nullable()
+        })
+    ]).optional(),
+    audience: z.enum([
+        'everyone',
+        'subscriber',
+        'vip',
+        'moderator',
+        'broadcaster'
+    ]).register(z.globalRegistry, {
+        description: 'Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.'
+    }).optional(),
+    cooldownSeconds: z.int().gte(0).lte(86400).register(z.globalRegistry, {
+        description: 'How many seconds the command rests after it runs, whoever used it.'
+    }).optional(),
+    enabled: z.boolean().optional()
+});
+
+export const PatchOrganisationsByIdChatCommandsByCommandIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    commandId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The command.'
+    })
+});
+
+/**
+ * The updated command
+ */
+export const PatchOrganisationsByIdChatCommandsByCommandIdResponseSchema = ChatCommandSchema;
+
+export const PostOrganisationsByIdChatCommandsByCommandIdTriggersBodySchema = z.object({
+    channelId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The channel it was used in.'
+    }),
+    messageId: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The chat message\'s ID on its platform, to answer it.'
+    }),
+    user: z.object({
+        id: z.string().min(1).max(120),
+        name: z.string().min(1).max(120),
+        roles: z.array(z.enum([
+            'everyone',
+            'subscriber',
+            'vip',
+            'moderator',
+            'broadcaster'
+        ]).register(z.globalRegistry, {
+            description: 'Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.'
+        })).max(8).register(z.globalRegistry, {
+            description: 'What they are in the channel, as its platform says.'
+        })
+    }).register(z.globalRegistry, {
+        description: 'Who used it.'
+    }),
+    words: z.array(z.string().min(1).max(60)).max(8).register(z.globalRegistry, {
+        description: 'The words that followed the command, in order.'
+    })
+});
+
+export const PostOrganisationsByIdChatCommandsByCommandIdTriggersPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    commandId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The command.'
+    })
+});
+
+/**
+ * What came of it
+ */
+export const PostOrganisationsByIdChatCommandsByCommandIdTriggersResponseSchema = z.union([
+    z.object({
+        status: z.literal('planned'),
+        restsUntil: z.string().nullable(),
+        cameraCommands: z.array(z.object({
+            agent: z.object({
+                id: z.string(),
+                publicId: z.string()
+            }),
+            cameraId: z.string(),
+            command: z.union([
+                z.object({
+                    kind: z.literal('moveTo'),
+                    pan: z.number().optional(),
+                    tilt: z.number().optional(),
+                    zoom: z.number().optional(),
+                    focus: z.number().optional()
+                }),
+                z.object({
+                    kind: z.literal('moveBy'),
+                    pan: z.number().optional(),
+                    tilt: z.number().optional(),
+                    zoom: z.number().optional()
+                }),
+                z.object({
+                    kind: z.literal('moveToPoint'),
+                    x: z.number(),
+                    y: z.number()
+                }),
+                z.object({
+                    kind: z.literal('moveToRegion'),
+                    x: z.number(),
+                    y: z.number(),
+                    width: z.number(),
+                    height: z.number()
+                }),
+                z.object({
+                    kind: z.literal('drive'),
+                    pan: z.number().optional(),
+                    tilt: z.number().optional(),
+                    zoom: z.number().optional(),
+                    focus: z.number().optional()
+                }),
+                z.object({
+                    kind: z.literal('stop')
+                }),
+                z.object({
+                    kind: z.literal('configure'),
+                    key: z.string(),
+                    value: z.string()
+                }),
+                z.object({
+                    kind: z.literal('run'),
+                    action: z.string()
+                })
+            ]),
+            grant: z.string(),
+            expiresAt: z.string()
+        })),
+        receipt: z.string()
+    }),
+    z.object({
+        replied: z.boolean(),
+        status: z.literal('notRun'),
+        reason: z.enum([
+            'disabled',
+            'audience',
+            'resting',
+            'unresolved',
+            'unavailable'
+        ]),
+        reply: z.string().nullable(),
+        restsUntil: z.string().nullable()
+    }),
+    z.object({
+        replied: z.boolean(),
+        status: z.literal('ran'),
+        reply: z.string(),
+        restsUntil: z.string().nullable()
+    })
+]);
+
+export const PostOrganisationsByIdChatCommandsByCommandIdSettlementsBodySchema = z.object({
+    receipt: z.string().min(1).max(4096).register(z.globalRegistry, {
+        description: 'The `receipt` the use was planned with.'
+    }),
+    result: z.enum([
+        'carried',
+        'held',
+        'unreachable',
+        'refused',
+        'failed'
+    ]).register(z.globalRegistry, {
+        description: 'What came of carrying the camera commands out: `carried`, and the camera took them; or the camera was `held` by someone at its controls, the agent that reaches it was `unreachable`, it `refused` the grant, or the camera `failed` to take the command.'
+    })
+});
+
+export const PostOrganisationsByIdChatCommandsByCommandIdSettlementsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    commandId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The command.'
+    })
+});
+
+/**
+ * Settled
+ */
+export const PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponseSchema = z.object({
+    restsUntil: z.string().nullable(),
+    replied: z.boolean()
+}).register(z.globalRegistry, {
+    description: 'Settled'
+});
 
 /**
  * The invitations, oldest first

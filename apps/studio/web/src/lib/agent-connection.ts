@@ -35,6 +35,8 @@ const DIAL_TIMEOUT_MS = 15_000;
  * where the SharedWorker is meant to hold it.
  */
 const PEER_ORIGIN_SUFFIX = '.iroh';
+/** The header a request names its operation's version in, as the SDKs send it. */
+const OPERATION_VERSION_HEADER = 'Operation-Version';
 
 /** An agent that was dialled and didn't answer in time: off, or offline. The endpoint itself is fine. */
 class AgentUnanswered extends Error {
@@ -50,9 +52,13 @@ interface Dialler {
   close: () => Promise<void>;
 }
 
-/** An organisation's bound endpoint, the relay agents are found on, and when its lease there runs out. */
+/**
+ * An organisation's bound endpoint, the public ID of the browser device it is bound as, the relay agents are found on,
+ * and when its lease there runs out.
+ */
 interface OrganisationSession {
   studio: StudioClient;
+  browserPublicId: string;
   dialler: Dialler;
   relayUrl: string;
   leaseExpiresAt: number;
@@ -98,7 +104,13 @@ async function openSession(organisationId: string): Promise<OrganisationSession>
   if (session instanceof Error) throw session;
   const relay = { relays: [{ url: session.relay.url, authToken: session.relay.authToken }] };
   const dialler = await bind(secretKey, relay);
-  return { studio, dialler, relayUrl: session.relay.url, leaseExpiresAt: Date.parse(session.lease.expiresAt) };
+  return {
+    studio,
+    browserPublicId: browser.publicId,
+    dialler,
+    relayUrl: session.relay.url,
+    leaseExpiresAt: Date.parse(session.lease.expiresAt)
+  };
 }
 
 /** Ask for the lease again shortly before it runs out; the endpoint stays bound, and keeps its connections. */
@@ -236,6 +248,45 @@ export async function askAgent<Answer>(
   if (!(answer instanceof Error)) return answer;
   if (!answeredBy(answer)) dropLink(key, link);
   throw answer;
+}
+
+/**
+ * The public ID of this auth session's browser device in the organisation: the peer an agent sees its requests as
+ * from, and so who the agent says holds a camera this browser controls. Starts the organisation's session if nothing
+ * has yet, which is also what makes the browser device exist for the studio API to grant things to.
+ */
+export async function browserPeerOf(organisationId: string): Promise<string> {
+  const session = await sessionOf(organisationId);
+  return session.browserPublicId;
+}
+
+/**
+ * A path of the agent's API answered as a stream, on the connection `askAgent` keeps: for what the generated SDK can't
+ * read, such as a camera's server-sent events. The response is returned with its body unread, for the caller to read
+ * and to cancel; aborting the signal ends the exchange and leaves the connection. An agent that refuses is thrown as
+ * the SDK's `HttpError`, with the connection kept; a request that fails beneath that closes it, so the next call dials
+ * again.
+ */
+export async function streamFromAgent(
+  organisationId: string,
+  agentPublicId: string,
+  path: string,
+  signal: AbortSignal
+): Promise<Response> {
+  const key = linkKey(organisationId, agentPublicId);
+  const link = linkOf(organisationId, agentPublicId);
+  const { transport } = await link;
+  const requesting = transport.fetch(`http://${transport.peer.endpointId}${PEER_ORIGIN_SUFFIX}${path}`, {
+    // The stream is served as its operation's first version: the SDK names it on every call, and so does this.
+    headers: { [OPERATION_VERSION_HEADER]: '1', accept: 'text/event-stream' },
+    signal
+  });
+  // A caller that stopped following aborted it: that isn't the connection breaking.
+  requesting.catch(() => (signal.aborted ? undefined : dropLink(key, link)));
+  const response = await requesting;
+  if (response.ok) return response;
+  const body = await response.json().catch(() => undefined);
+  throw new HttpError(response, body);
 }
 
 /**

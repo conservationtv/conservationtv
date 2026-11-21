@@ -422,7 +422,7 @@ export async function selectOutputPlan(outputId: string) {
     with: {
       forwards: {
         columns: { id: true, channelId: true },
-        with: { channel: { columns: { kind: true } } },
+        with: { channel: { columns: { kind: true, externalLogin: true } } },
         where: { enabled: true },
         orderBy: { id: 'asc' }
       },

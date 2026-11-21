@@ -1,7 +1,7 @@
 import { device, user } from '@conservationtv/umbrella';
 import { and, eq, sql } from 'drizzle-orm';
 import { organisationDevice } from '../db/roles.ts';
-import { devices } from '../db/schema.ts';
+import { browsers, devices, organisationProfiles } from '../db/schema.ts';
 import { useAccess, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import type { DeviceKind } from '../topology/device-kinds.ts';
@@ -71,6 +71,42 @@ export function listDevices(organisationId: string, filter: DeviceFilter) {
       createdAt: devices.createdAt
     })
     .from(devices)
+    .where(
+      and(
+        eq(devices.organisationId, organisationId),
+        filter.kind === undefined ? undefined : eq(devices.kind, filter.kind)
+      )
+    )
+    .orderBy(devices.id);
+}
+
+/**
+ * The organisation's devices, oldest first, each browser with whose it is: the member's `userId`, and what the
+ * organisation calls them, null if they have set no name. Both are null for every other kind of device.
+ */
+export function listDevicesWithMembers(organisationId: string, filter: DeviceFilter) {
+  const db = useDB();
+  return db
+    .select({
+      id: devices.id,
+      kind: devices.kind,
+      name: devices.name,
+      networkId: devices.networkId,
+      publicKey: devices.publicKey,
+      publicId: devices.publicId,
+      createdAt: devices.createdAt,
+      userId: browsers.userId,
+      memberName: organisationProfiles.displayName
+    })
+    .from(devices)
+    .leftJoin(browsers, and(eq(browsers.organisationId, devices.organisationId), eq(browsers.id, devices.id)))
+    .leftJoin(
+      organisationProfiles,
+      and(
+        eq(organisationProfiles.organisationId, browsers.organisationId),
+        eq(organisationProfiles.userId, browsers.userId)
+      )
+    )
     .where(
       and(
         eq(devices.organisationId, organisationId),

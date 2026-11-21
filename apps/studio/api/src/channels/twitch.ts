@@ -14,8 +14,13 @@ const TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
 const HELIX = 'https://api.twitch.tv/helix';
 /** Where the program is sent: Twitch's global ingest, over RTMPS. */
 export const TWITCH_INGEST = 'rtmps://ingest.global-contribute.live-video.net/app';
-/** Reading the stream key is all a broadcast needs. */
-const SCOPES = ['channel:read:stream_key'];
+/** Speaking in the channel's chat as the broadcaster, which answering a chat command needs. */
+export const TWITCH_CHAT_SCOPE = 'user:write:chat';
+/**
+ * Reading the stream key is all a broadcast needs; answering chat commands needs to speak in chat too. A channel
+ * connected before chat commands holds only the first, and answers nothing until it is connected again.
+ */
+const SCOPES = ['channel:read:stream_key', TWITCH_CHAT_SCOPE];
 /** How long before an access token expires to refresh it. */
 const REFRESH_BEFORE_MS = 5 * 60_000;
 
@@ -146,4 +151,47 @@ export async function twitchStreamStats(credentials: TwitchCredentials, broadcas
     category: stream.game_name,
     language: stream.language
   };
+}
+
+const SentMessageSchema = z.object({
+  data: z.array(z.object({ is_sent: z.boolean(), drop_reason: z.object({ message: z.string() }).nullish() })).min(1)
+});
+export type SentMessage = z.output<typeof SentMessageSchema>;
+
+/** A message said in the broadcaster's chat. */
+export interface ChatMessage {
+  text: string;
+  /** The message it answers, which Twitch shows it beneath. */
+  replyTo?: string;
+}
+
+/**
+ * Say something in the broadcaster's chat, as the broadcaster (Helix `POST /chat/messages`, which needs
+ * `user:write:chat`). False when the connection lacks the scope, or Twitch dropped the message.
+ */
+export async function twitchSendChatMessage(
+  credentials: TwitchCredentials,
+  broadcasterId: string,
+  message: ChatMessage
+): Promise<boolean> {
+  if (!credentials.scopes.includes(TWITCH_CHAT_SCOPE)) return false;
+  const { clientId } = twitchApp();
+  const response = await fetch(`${HELIX}/chat/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${credentials.accessToken}`,
+      'Client-Id': clientId,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      broadcaster_id: broadcasterId,
+      sender_id: broadcasterId,
+      message: message.text,
+      reply_parent_message_id: message.replyTo
+    })
+  });
+  if (!response.ok)
+    throw new ApiFailure('channel_unavailable', { cause: new Error(`Twitch /chat/messages: HTTP ${response.status}`) });
+  const sent = SentMessageSchema.parse(await response.json());
+  return sent.data[0]!.is_sent;
 }

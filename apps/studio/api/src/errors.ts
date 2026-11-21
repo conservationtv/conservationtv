@@ -41,7 +41,13 @@ const categories = {
   unsupported_gateway: { status: 422, description: 'Connections to that gateway are not made through this API.' },
   gateway_unavailable: { status: 503, description: 'The gateway cannot be connected to right now.' },
   channel_unavailable: { status: 503, description: 'The channel cannot be reached right now.' },
-  unsupported_channel: { status: 422, description: 'That channel publishes no stats through this API.' }
+  unsupported_channel: { status: 422, description: 'That channel publishes no stats through this API.' },
+  camera_unavailable: { status: 503, description: 'No agent can control the camera right now.' },
+  invalid_receipt: {
+    status: 400,
+    description: 'The receipt is not valid: forged, lapsed, or for another use or device.'
+  },
+  browser_required: { status: 409, description: 'This session has no browser device in the organisation yet.' }
 } satisfies Record<string, ErrorCategory>;
 
 export type ApiFailureCode = keyof typeof categories;

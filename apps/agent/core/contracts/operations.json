@@ -5,11 +5,24 @@
     ],
     "system.get": [
       1,
-      2
+      2,
+      3
     ],
     "system.spec": [
       1,
       2
+    ],
+    "cameras.list": [
+      1
+    ],
+    "cameras.state.get": [
+      1
+    ],
+    "cameras.commands.run": [
+      1
+    ],
+    "cameras.events": [
+      1
     ]
   }
 }
