@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { KeyIcon } from '@phosphor-icons/react';
+import { AppWindowIcon, KeyIcon } from '@phosphor-icons/react';
 import { Button } from '@conservationtv/ui/components/button';
 
 import { CopyButton } from '@/components/common/copy-button';
@@ -16,21 +16,51 @@ export interface AgentSetupProps {
 }
 
 /**
- * How to start the agent on a machine: its environment, with the secret key that makes it this agent. The key is
- * asked for only when someone presses the button, and kept only while this is on screen; anyone holding it can act as
- * the agent, so it is for administrators and is not shown until asked for.
+ * The link that sets the desktop agent app up as this agent (apps/agent/desktop/src/main/link.ts): the studio API, the
+ * agent, and its secret key as the API gives it, the raw 32-byte seed as unpadded base64url.
+ */
+function desktopLink(agentId: string, name: string, privateKey: string): string {
+  const query = new URLSearchParams({
+    api: new URL(API_URL, window.location.href).href.replace(/\/$/, ''),
+    id: agentId,
+    name,
+    key: privateKey
+  });
+  return `ctvagent://setup?${query.toString()}`;
+}
+
+/**
+ * How to start the agent on a machine: open it in the desktop app, which a link hands its key to, or its environment,
+ * with the secret key that makes it this agent. The key is asked for only when someone presses a button, and kept only
+ * while the environment is on screen; anyone holding it can act as the agent, so it is for administrators and is not
+ * shown until asked for.
  */
 export const AgentSetup: FC<AgentSetupProps> = ({ agentId, name }) => {
   const organisationId = useOrganisationId();
   const reveal = useRevealKeyPair(organisationId);
+  const open = useRevealKeyPair(organisationId);
+  const openInDesktop = () =>
+    open.mutate(agentId, {
+      onSuccess: keyPair => {
+        window.location.href = desktopLink(agentId, name, keyPair.privateKey);
+        // The link has it: the page keeps no copy.
+        open.reset();
+      }
+    });
   if (!reveal.data) {
     return (
       <div className="flex flex-col items-start gap-2">
-        <Button variant="outline" loading={reveal.isPending} onClick={() => reveal.mutate(agentId)}>
-          <KeyIcon />
-          Show its environment
-        </Button>
-        <FormError error={reveal.error} />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button loading={open.isPending} onClick={openInDesktop}>
+            <AppWindowIcon />
+            Open in the desktop app
+          </Button>
+          <Button variant="outline" loading={reveal.isPending} onClick={() => reveal.mutate(agentId)}>
+            <KeyIcon />
+            Show its environment
+          </Button>
+        </div>
+        <FormError error={open.error ?? reveal.error} />
       </div>
     );
   }
