@@ -2,9 +2,12 @@ import { Hono } from 'hono';
 import { describeRoute } from 'hono-openapi';
 import {
   type MediamtxConfiguration,
+  type ObsConfiguration,
   type PlannedConfiguration,
   planConfiguration,
-  type ProbingMediamtxConfiguration
+  type ProbingConfiguration,
+  type ProbingMediamtxConfiguration,
+  type SignedObsConfiguration
 } from '../configuration/plan/index.ts';
 import { requireDevice, useDevice } from '../middleware/device.ts';
 import { invalidSignature, operationVersion, unavailable, versionMismatch } from './openapi.ts';
@@ -15,6 +18,12 @@ import { invalidSignature, operationVersion, unavailable, versionMismatch } from
 function withoutProbes(mediamtx: ProbingMediamtxConfiguration): MediamtxConfiguration {
   const { gatewayId, auth, tls, paths, publishers, stats, previews } = mediamtx;
   return { gatewayId, auth, tls, paths, publishers, stats, previews };
+}
+
+/** The `obs` runtime as versions 1 and 2 return it: as it was before previews said who signs their tokens. */
+function withoutSigners(obs: SignedObsConfiguration): ObsConfiguration {
+  const previews = obs.previews.map(({ previewId, gatewayId, connect }) => ({ previewId, gatewayId, connect }));
+  return { ...obs, previews };
 }
 
 const DESCRIPTION =
@@ -41,7 +50,11 @@ export default new Hono()
     async c => {
       const device = useDevice();
       const { mediamtx, obs, show } = await planConfiguration(device);
-      const configuration: PlannedConfiguration = { mediamtx: mediamtx && withoutProbes(mediamtx), obs, show };
+      const configuration: PlannedConfiguration = {
+        mediamtx: mediamtx && withoutProbes(mediamtx),
+        obs: obs && withoutSigners(obs),
+        show
+      };
       c.header('Cache-Control', 'no-store');
       return c.json(configuration, 200);
     }
@@ -53,6 +66,24 @@ export default new Hono()
       ...operationVersion(2),
       summary: "Read the signing device's configuration",
       description: `${DESCRIPTION} From this version, \`mediamtx\` also has the \`probes\` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (\`camera.reachable\`), so a camera nothing is reading is still known to be there.`,
+      responses
+    }),
+    requireDevice,
+    async c => {
+      const device = useDevice();
+      const { mediamtx, obs, show } = await planConfiguration(device);
+      const configuration: ProbingConfiguration = { mediamtx, obs: obs && withoutSigners(obs), show };
+      c.header('Cache-Control', 'no-store');
+      return c.json(configuration, 200);
+    }
+  )
+  .get(
+    '/',
+    describeRoute({
+      operationId: 'deviceConfiguration.get',
+      ...operationVersion(3),
+      summary: "Read the signing device's configuration",
+      description: `${DESCRIPTION} \`mediamtx\` also has the \`probes\` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (\`camera.reachable\`). From this version, each of \`obs\`'s \`previews\` also has its \`signer\`: the key ID of the agent that signs tokens for its gateway, the network's active agent for a MediaMTX gateway, or null for a built-in gateway or one no agent runs; a token kept for a preview is asked for again when it changes, as when another agent becomes the network's active agent.`,
       responses
     }),
     requireDevice,

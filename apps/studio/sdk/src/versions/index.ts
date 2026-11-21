@@ -113,3 +113,4 @@ export * from './organisations.subjects.state-v2/index.js';
 export * from './organisations.topology.get-v2/index.js';
 export * from './organisations.status.get-v1/index.js';
 export * from './deviceConfiguration.get-v2/index.js';
+export * from './deviceConfiguration.get-v3/index.js';

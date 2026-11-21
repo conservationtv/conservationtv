@@ -320,7 +320,8 @@
     ],
     "deviceConfiguration.get": [
       1,
-      2
+      2,
+      3
     ],
     "deviceAddresses.replace": [
       1

@@ -208,6 +208,20 @@ export interface ObsPreview {
 }
 
 /**
+ * A preview, from version 3 of `deviceConfiguration.get`, with its `signer`: the key ID (the agent's public ID) of the
+ * agent whose key signs tokens for its gateway, the network's active agent for a MediaMTX gateway, so a token kept for it
+ * is renewed when another agent takes the gateway over; null for a built-in gateway, or one no agent runs.
+ */
+export interface SignedObsPreview extends ObsPreview {
+  signer: string | null;
+}
+
+/** The `obs` runtime, from version 3 of `deviceConfiguration.get`: each preview with its `signer`. */
+export interface SignedObsConfiguration extends Omit<ObsConfiguration, 'previews'> {
+  previews: SignedObsPreview[];
+}
+
+/**
  * The output's recorder: `obs`, OBS recording the programme alongside streaming it, into the agent's data directory,
  * with the recorder's `params`. `recorderId` names it (`recorder:<recorderId>`) in what the agent reports.
  */
@@ -243,5 +257,12 @@ export interface PlannedConfiguration {
 export interface ProbingConfiguration {
   mediamtx?: ProbingMediamtxConfiguration;
   obs?: ObsConfiguration;
+  show?: ShowConfiguration;
+}
+
+/** What a device runs, from version 3 of `deviceConfiguration.get`: its previews say who signs their tokens. */
+export interface SignedConfiguration {
+  mediamtx?: ProbingMediamtxConfiguration;
+  obs?: SignedObsConfiguration;
   show?: ShowConfiguration;
 }

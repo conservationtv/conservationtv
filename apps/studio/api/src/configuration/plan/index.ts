@@ -16,19 +16,20 @@ import {
   mediamtxAuth,
   selectGatewayIdentity,
   selectGatewayKinds,
+  selectGatewaySigners,
   selectGatewayPreviews,
   selectLocalGateway,
   selectPreferredAddress,
   selectStreams
 } from './helpers.ts';
 import type {
-  ObsConfiguration,
-  ProbingConfiguration,
   ProbingMediamtxConfiguration,
   PlannedPath,
   PlannedProbe,
   PlannedPublisher,
-  ShowConfiguration
+  ShowConfiguration,
+  SignedConfiguration,
+  SignedObsConfiguration
 } from './types.ts';
 
 export type * from './types.ts';
@@ -55,7 +56,7 @@ export type * from './types.ts';
 // (src/gateways/certificates.ts): pointed at the agent's preferred address, and issued or renewed when due.
 
 /** The signing device's configuration, read by trusted code: a device principal cannot read the topology. */
-export async function planConfiguration(device: AuthenticatedDevice): Promise<ProbingConfiguration> {
+export async function planConfiguration(device: AuthenticatedDevice): Promise<SignedConfiguration> {
   if (device.kind !== 'agent') {
     throw new Error('Currently planning configuration is only supported for agents.');
   }
@@ -107,7 +108,7 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<ProbingMediamt
 
 /** The output's runtimes, for the agent it runs on: `obs`, and `show` while it follows a show. */
 interface PlannedOutput {
-  obs?: ObsConfiguration;
+  obs?: SignedObsConfiguration;
   show?: ShowConfiguration;
 }
 
@@ -122,16 +123,17 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
       if (output === undefined) return undefined;
       const plan = await selectOutputPlan(output.outputId);
       const gatewayKinds = await selectGatewayKinds(output.organisationId);
-      return { output, plan: plan!, gatewayKinds };
+      const signers = await selectGatewaySigners(output.organisationId);
+      return { output, plan: plan!, gatewayKinds, signers };
     },
     { name: 'configuration.output' }
   );
   if (planned === undefined) return {};
-  const { output, plan, gatewayKinds } = planned;
+  const { output, plan, gatewayKinds, signers } = planned;
   const { outputId, organisationId, control, showId } = output;
   const { forwards, previews, recorders, ...encoding } = plan;
   const [recorder] = recorders;
-  const obs: ObsConfiguration = {
+  const obs: SignedObsConfiguration = {
     output: { id: outputId, organisationId, control },
     encoding,
     forwards: forwards.map(forward => ({
@@ -143,6 +145,7 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
     previews: previews.map(preview => ({
       previewId: preview.id,
       gatewayId: preview.gatewayId,
+      signer: signers.get(preview.gatewayId) ?? null,
       connect: {
         id: organisationId,
         outputId,

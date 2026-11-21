@@ -5,6 +5,7 @@ import type { AccountUpdateV1Input, AccountUpdateV1Output } from '../versions/ac
 import type { DeviceAddressReplaceV1Input, DeviceAddressReplaceV1Output } from '../versions/deviceAddresses.replace-v1/flat-params.gen.js';
 import type { DeviceConfigurationGetV1Output } from '../versions/deviceConfiguration.get-v1/flat-params.gen.js';
 import type { DeviceConfigurationGetV2Output } from '../versions/deviceConfiguration.get-v2/flat-params.gen.js';
+import type { DeviceConfigurationGetV3Output } from '../versions/deviceConfiguration.get-v3/flat-params.gen.js';
 import type { GatewayEndpointReplaceV1Input, GatewayEndpointReplaceV1Output } from '../versions/gatewayEndpoints.replace-v1/flat-params.gen.js';
 import type { InvitationAcceptV1Input, InvitationAcceptV1Output } from '../versions/invitations.accept-v1/flat-params.gen.js';
 import type { InvitationDeclineV1Input, InvitationDeclineV1Output } from '../versions/invitations.decline-v1/flat-params.gen.js';
@@ -963,7 +964,11 @@ export class Client extends ClientCore {
         create: this.versioned('irohSessions.create', { v1: operation<IrohSessionCreateV1Output>({ method: 'POST', url: '/iroh-sessions' }) })
     };
     readonly deviceConfiguration = {
-        get: this.versioned('deviceConfiguration.get', { v1: operation<DeviceConfigurationGetV1Output>({ method: 'GET', url: '/device-configuration' }), v2: operation<DeviceConfigurationGetV2Output>({ method: 'GET', url: '/device-configuration' }) })
+        get: this.versioned('deviceConfiguration.get', {
+            v1: operation<DeviceConfigurationGetV1Output>({ method: 'GET', url: '/device-configuration' }),
+            v2: operation<DeviceConfigurationGetV2Output>({ method: 'GET', url: '/device-configuration' }),
+            v3: operation<DeviceConfigurationGetV3Output>({ method: 'GET', url: '/device-configuration' })
+        })
     };
     readonly deviceAddresses = {
         replace: this.versioned('deviceAddresses.replace', { v1: operation<DeviceAddressReplaceV1Output, DeviceAddressReplaceV1Input>({

@@ -773,6 +773,12 @@ export type DeviceConfiguration = {
         }>;
     };
     obs?: {
+        previews: Array<{
+            signer: string | null;
+            previewId: string;
+            gatewayId: string;
+            connect: PreviewConnect;
+        }>;
         output: {
             id: string;
             organisationId: string;
@@ -790,11 +796,6 @@ export type DeviceConfiguration = {
             channelId: string;
             forwardId: string;
             stats: boolean;
-        }>;
-        previews: Array<{
-            previewId: string;
-            gatewayId: string;
-            connect: PreviewConnect;
         }>;
         recording?: {
             recorderId: string;

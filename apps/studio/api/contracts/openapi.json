@@ -3622,6 +3622,39 @@
           "obs": {
             "type": "object",
             "properties": {
+              "previews": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "previewId": {
+                      "type": "string"
+                    },
+                    "gatewayId": {
+                      "type": "string"
+                    },
+                    "connect": {
+                      "$ref": "#/components/schemas/PreviewConnect"
+                    }
+                  },
+                  "required": [
+                    "signer",
+                    "previewId",
+                    "gatewayId",
+                    "connect"
+                  ]
+                }
+              },
               "output": {
                 "type": "object",
                 "properties": {
@@ -3698,28 +3731,6 @@
                   ]
                 }
               },
-              "previews": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "previewId": {
-                      "type": "string"
-                    },
-                    "gatewayId": {
-                      "type": "string"
-                    },
-                    "connect": {
-                      "$ref": "#/components/schemas/PreviewConnect"
-                    }
-                  },
-                  "required": [
-                    "previewId",
-                    "gatewayId",
-                    "connect"
-                  ]
-                }
-              },
               "recording": {
                 "type": "object",
                 "properties": {
@@ -3753,10 +3764,10 @@
               }
             },
             "required": [
+              "previews",
               "output",
               "encoding",
               "forwards",
-              "previews",
               "program"
             ]
           },
@@ -18167,9 +18178,9 @@
     "/device-configuration": {
       "get": {
         "operationId": "deviceConfiguration.get",
-        "x-operation-version": 2,
+        "x-operation-version": 3,
         "summary": "Read the signing device's configuration",
-        "description": "What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for the agent an output runs on (`organisations.outputs.setDevice`): the `output`, its organisation, and its `control`, who drives OBS's scenes (`show`: the `show` runtime; `external`: something outside the studio, which reads how to reach OBS from `organisations.outputs.control.get`, the agent having reported it with `organisations.outputs.control.report`, and plays any of the organisation's exposures through it), the `encoding` the programme is sent at, the `forwards`, one for each channel the output has an enabled forward to, naming the forward and the channel whose server and stream key it reads with `organisations.channels.ingest`, and whether the channel has `stats` it reads with `organisations.channels.stats.get` and reports about `channel:<channelId>`, the `previews` it publishes the programme to, each with the `connect` ask (`organisations.outputs.previews.connect`) for where to and its token, the `recording` it makes alongside streaming, when the output has a recorder, and the `program`'s subject ID, to report about it against; it reads each exposure OBS plays with `organisations.streams.exposures.connect`. `show`, for that agent while the output follows a show under `show` control: the show's `id`, and the `url` it signs a WebSocket upgrade to as the device to follow it. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body. From this version, `mediamtx` also has the `probes` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (`camera.reachable`), so a camera nothing is reading is still known to be there.",
+        "description": "What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for the agent an output runs on (`organisations.outputs.setDevice`): the `output`, its organisation, and its `control`, who drives OBS's scenes (`show`: the `show` runtime; `external`: something outside the studio, which reads how to reach OBS from `organisations.outputs.control.get`, the agent having reported it with `organisations.outputs.control.report`, and plays any of the organisation's exposures through it), the `encoding` the programme is sent at, the `forwards`, one for each channel the output has an enabled forward to, naming the forward and the channel whose server and stream key it reads with `organisations.channels.ingest`, and whether the channel has `stats` it reads with `organisations.channels.stats.get` and reports about `channel:<channelId>`, the `previews` it publishes the programme to, each with the `connect` ask (`organisations.outputs.previews.connect`) for where to and its token, the `recording` it makes alongside streaming, when the output has a recorder, and the `program`'s subject ID, to report about it against; it reads each exposure OBS plays with `organisations.streams.exposures.connect`. `show`, for that agent while the output follows a show under `show` control: the show's `id`, and the `url` it signs a WebSocket upgrade to as the device to follow it. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body. `mediamtx` also has the `probes` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (`camera.reachable`). From this version, each of `obs`'s `previews` also has its `signer`: the key ID of the agent that signs tokens for its gateway, the network's active agent for a MediaMTX gateway, or null for a built-in gateway or one no agent runs; a token kept for a preview is asked for again when it changes, as when another agent becomes the network's active agent.",
         "responses": {
           "200": {
             "description": "The configuration",
@@ -18214,7 +18225,8 @@
         },
         "x-operation-versions": [
           1,
-          2
+          2,
+          3
         ]
       }
     },
@@ -45012,6 +45024,561 @@
                 "schema": {
                   "type": "string",
                   "const": "2"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "MediamtxAuth": {
+            "type": "object",
+            "properties": {
+              "issuer": {
+                "type": "string"
+              },
+              "audience": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "issuer",
+              "audience"
+            ]
+          },
+          "MediamtxTls": {
+            "type": "object",
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "certificate": {
+                "type": "string"
+              },
+              "privateKey": {
+                "type": "string"
+              },
+              "notAfter": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hostname",
+              "certificate",
+              "privateKey",
+              "notAfter"
+            ]
+          },
+          "Rendition": {
+            "type": "string",
+            "enum": [
+              "default",
+              "data_saver",
+              "balanced",
+              "quality"
+            ]
+          },
+          "Publisher": {
+            "type": "object",
+            "properties": {
+              "exposureId": {
+                "type": "string"
+              },
+              "connect": {
+                "$ref": "#/components/schemas/PublisherConnect"
+              },
+              "layout": {
+                "type": "string",
+                "const": "tracks"
+              },
+              "renditions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublishedRendition"
+                }
+              }
+            },
+            "required": [
+              "exposureId",
+              "connect",
+              "layout",
+              "renditions"
+            ]
+          },
+          "PublisherConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "streamId": {
+                "type": "string"
+              },
+              "exposureId": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string",
+                "const": "publish"
+              },
+              "protocol": {
+                "type": "string",
+                "const": "moq"
+              }
+            },
+            "required": [
+              "id",
+              "streamId",
+              "exposureId",
+              "action",
+              "protocol"
+            ]
+          },
+          "PublishedRendition": {
+            "type": "object",
+            "properties": {
+              "rendition": {
+                "$ref": "#/components/schemas/Rendition"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "rendition",
+              "path"
+            ]
+          },
+          "StatsConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "gatewayId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "gatewayId"
+            ]
+          },
+          "PreviewConnect": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "outputId": {
+                "type": "string"
+              },
+              "previewId": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string",
+                "const": "publish"
+              },
+              "protocol": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "outputId",
+              "previewId",
+              "action",
+              "protocol"
+            ]
+          },
+          "DeviceConfiguration": {
+            "type": "object",
+            "properties": {
+              "mediamtx": {
+                "type": "object",
+                "properties": {
+                  "probes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "subjectId": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "subjectId",
+                        "url"
+                      ]
+                    }
+                  },
+                  "gatewayId": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "$ref": "#/components/schemas/MediamtxAuth"
+                  },
+                  "tls": {
+                    "$ref": "#/components/schemas/MediamtxTls"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "rendition": {
+                          "$ref": "#/components/schemas/Rendition"
+                        },
+                        "source": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "path"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "exposureId",
+                        "rendition",
+                        "source"
+                      ]
+                    }
+                  },
+                  "publishers": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Publisher"
+                    }
+                  },
+                  "stats": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/StatsConnect"
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "previewId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "previewId"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "probes",
+                  "gatewayId",
+                  "auth",
+                  "paths",
+                  "publishers",
+                  "stats"
+                ]
+              },
+              "obs": {
+                "type": "object",
+                "properties": {
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "signer": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "previewId": {
+                          "type": "string"
+                        },
+                        "gatewayId": {
+                          "type": "string"
+                        },
+                        "connect": {
+                          "$ref": "#/components/schemas/PreviewConnect"
+                        }
+                      },
+                      "required": [
+                        "signer",
+                        "previewId",
+                        "gatewayId",
+                        "connect"
+                      ]
+                    }
+                  },
+                  "output": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "organisationId": {
+                        "type": "string"
+                      },
+                      "control": {
+                        "type": "string",
+                        "enum": [
+                          "external",
+                          "show"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "organisationId",
+                      "control"
+                    ]
+                  },
+                  "encoding": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "number"
+                      },
+                      "height": {
+                        "type": "number"
+                      },
+                      "fps": {
+                        "type": "number"
+                      },
+                      "bitrateKbps": {
+                        "type": "number"
+                      },
+                      "keyframeSeconds": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height",
+                      "fps",
+                      "bitrateKbps",
+                      "keyframeSeconds"
+                    ]
+                  },
+                  "forwards": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organisationId": {
+                          "type": "string"
+                        },
+                        "channelId": {
+                          "type": "string"
+                        },
+                        "forwardId": {
+                          "type": "string"
+                        },
+                        "stats": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "organisationId",
+                        "channelId",
+                        "forwardId",
+                        "stats"
+                      ]
+                    }
+                  },
+                  "recording": {
+                    "type": "object",
+                    "properties": {
+                      "recorderId": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "params": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "recorderId",
+                      "kind",
+                      "params"
+                    ]
+                  },
+                  "program": {
+                    "type": "object",
+                    "properties": {
+                      "subjectId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectId"
+                    ]
+                  }
+                },
+                "required": [
+                  "previews",
+                  "output",
+                  "encoding",
+                  "forwards",
+                  "program"
+                ]
+              },
+              "show": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "paths": {
+        "/device-configuration": {
+          "get": {
+            "operationId": "deviceConfiguration.get",
+            "x-operation-version": 3,
+            "summary": "Read the signing device's configuration",
+            "description": "What the signing device runs, derived from the topology whenever it asks: a section for each runtime it is to run, and none for those it isn't. `mediamtx`, for a network's active agent on a network with a MediaMTX gateway: the gateway (and how it checks readers' tokens), the MediaMTX `paths` it serves, each delivering one rendition of an exposure from a `source` that is a URL to pull while it is read (a camera's, credentials included) or another of its paths, the `publishers` it runs, each publishing an exposure by MoQ in the `layout` its gateway takes, reading each rendition from one of its paths, with the `connect` ask for where to publish and the token to do so, and the `stats` asks (`organisations.gateways.stats.connect`) for the traffic stats of the gateways it publishes to that publish them. `obs`, for the agent an output runs on (`organisations.outputs.setDevice`): the `output`, its organisation, and its `control`, who drives OBS's scenes (`show`: the `show` runtime; `external`: something outside the studio, which reads how to reach OBS from `organisations.outputs.control.get`, the agent having reported it with `organisations.outputs.control.report`, and plays any of the organisation's exposures through it), the `encoding` the programme is sent at, the `forwards`, one for each channel the output has an enabled forward to, naming the forward and the channel whose server and stream key it reads with `organisations.channels.ingest`, and whether the channel has `stats` it reads with `organisations.channels.stats.get` and reports about `channel:<channelId>`, the `previews` it publishes the programme to, each with the `connect` ask (`organisations.outputs.previews.connect`) for where to and its token, the `recording` it makes alongside streaming, when the output has a recorder, and the `program`'s subject ID, to report about it against; it reads each exposure OBS plays with `organisations.streams.exposures.connect`. `show`, for that agent while the output follows a show under `show` control: the show's `id`, and the `url` it signs a WebSocket upgrade to as the device to follow it. A device with no section runs nothing. Any device: the request carries an RFC 9421 HTTP Message Signature by the device's Ed25519 identity, as for `reports.submit`, over an empty body. `mediamtx` also has the `probes` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (`camera.reachable`). From this version, each of `obs`'s `previews` also has its `signer`: the key ID of the agent that signs tokens for its gateway, the network's active agent for a MediaMTX gateway, or null for a built-in gateway or one no agent runs; a token kept for a preview is asked for again when it changes, as when another agent becomes the network's active agent.",
+            "responses": {
+              "200": {
+                "description": "The configuration",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/DeviceConfiguration"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "3"
                 }
               }
             ]

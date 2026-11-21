@@ -68,20 +68,37 @@ export async function watchStudioConfiguration(signal: AbortSignal, apply: Apply
 }
 
 /**
- * One answer from the studio API, signed as the agent's device: at version 2, which says what to probe, where the API
- * serves it, and otherwise at version 1, as an API from before cameras were probed gives it, with nothing to probe.
+ * One answer from the studio API, signed as the agent's device, at the newest version the API serves: 3 says who signs
+ * each preview's tokens; 2, from before previews did, as signed by no one, so a preview's token is kept until it
+ * expires; 1, from before cameras were probed too, with nothing to probe.
  */
 async function askConfiguration(studio: Client): Promise<DeviceConfiguration> {
   await studio.handshake();
-  if (studio.deviceConfiguration.get.version === 2) {
-    const configuration = await studio.deviceConfiguration.get.v2();
+  const version = studio.deviceConfiguration.get.version;
+  if (version === 3) {
+    const configuration = await studio.deviceConfiguration.get.v3();
     if (configuration instanceof Error) throw configuration;
     return configuration;
   }
+  if (version === 2) {
+    const configuration = await studio.deviceConfiguration.get.v2();
+    if (configuration instanceof Error) throw configuration;
+    return { ...configuration, obs: configuration.obs && unsigned(configuration.obs) };
+  }
   const configuration = await studio.deviceConfiguration.get.v1();
   if (configuration instanceof Error) throw configuration;
-  const { mediamtx } = configuration;
-  return { ...configuration, mediamtx: mediamtx && { ...mediamtx, probes: [] } };
+  const { mediamtx, obs } = configuration;
+  return { ...configuration, mediamtx: mediamtx && { ...mediamtx, probes: [] }, obs: obs && unsigned(obs) };
+}
+
+/** The `obs` section as versions 1 and 2 give it, before previews said who signs their tokens. */
+type UnsignedObsSection = NonNullable<
+  Exclude<Awaited<ReturnType<Client['deviceConfiguration']['get']['v2']>>, Error>['obs']
+>;
+
+/** An `obs` section from before previews said who signs their tokens: each signed by no one. */
+function unsigned(obs: UnsignedObsSection): NonNullable<DeviceConfiguration['obs']> {
+  return { ...obs, previews: obs.previews.map(preview => ({ ...preview, signer: null })) };
 }
 
 /** The spec of each key the configuration has a section for. */
