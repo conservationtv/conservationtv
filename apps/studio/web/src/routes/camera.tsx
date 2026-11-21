@@ -16,7 +16,7 @@ import {
 
 import type { Route } from './+types/camera';
 import { PinButton } from '@/components/app/pins';
-import { CameraDeck, CameraOperation } from '@/components/cameras/camera-deck';
+import { CameraDeck, CameraOperation } from '@/components/cameras/deck/camera-deck';
 import { CameraAliasesDialog } from '@/components/cameras/camera-aliases-dialog';
 import { ClearCredentialsDialog, ReplaceCredentialsDialog } from '@/components/cameras/camera-credentials-dialogs';
 import { CameraSettingsDialog } from '@/components/cameras/camera-settings-dialog';

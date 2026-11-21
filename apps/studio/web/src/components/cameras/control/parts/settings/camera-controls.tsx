@@ -10,11 +10,11 @@ import { useCameraAbility, useCameraCapabilities } from '@/components/cameras/co
 import { useCameraCommand } from '@/components/cameras/control/camera-commands';
 import { CameraControlRefusal } from '@/components/cameras/control/camera-control';
 import { useCameraControl } from '@/components/cameras/control/camera-control-context';
-import { CameraHoldButton } from '@/components/cameras/control/camera-joystick';
-import { CameraActionButton, CameraOptionSelect } from '@/components/cameras/control/camera-options';
-import { CameraLockNotice } from '@/components/cameras/control/camera-lock';
-import { CameraPosition } from '@/components/cameras/control/camera-position';
-import { STILL } from '@/components/cameras/control/camera-steering';
+import { CameraHoldButton } from '@/components/cameras/control/parts/camera-joystick';
+import { CameraActionButton, CameraOptionSelect } from '@/components/cameras/control/parts/settings/camera-options';
+import { CameraLockNotice } from '@/components/cameras/control/parts/camera-lock';
+import { CameraPosition } from '@/components/cameras/control/parts/settings/camera-position';
+import { STILL } from '@/components/cameras/control/drive/camera-steering';
 import { FormError } from '@/components/common/form-error';
 
 // What a camera's control session has beyond driving it and its presets: what stands in the way of controlling it,

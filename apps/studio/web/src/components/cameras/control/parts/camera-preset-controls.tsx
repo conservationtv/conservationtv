@@ -26,11 +26,11 @@ import { FieldGroup } from '@conservationtv/ui/components/field';
 import { Spinner } from '@conservationtv/ui/components/spinner';
 
 import { cameraPositionLineOf } from '@/components/cameras/cameras';
-import { PRESET_NAME_TAKEN, type CameraPreset } from '@/components/cameras/camera-presets';
+import { PRESET_NAME_TAKEN, type CameraPreset } from '@/components/cameras/deck/camera-presets';
 import { useGoToPreset } from '@/components/cameras/control/camera-commands';
 import { useCameraControl, useCameraControlSession } from '@/components/cameras/control/camera-control-context';
-import { useCameraPicture } from '@/components/cameras/control/camera-picture-context';
-import { usePresetPosition } from '@/components/cameras/control/camera-store';
+import { useCameraPicture } from '@/components/cameras/control/picture/camera-picture-context';
+import { usePresetPosition } from '@/components/cameras/control/store/camera-store';
 import { FormError } from '@/components/common/form-error';
 import { PresetNameSchema, type PresetNameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';

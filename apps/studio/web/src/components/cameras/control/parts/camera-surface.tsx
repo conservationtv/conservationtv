@@ -18,10 +18,10 @@ import { cn } from '@conservationtv/ui/lib/utils';
 import { useCameraCapabilities } from '@/components/cameras/control/camera-capabilities';
 import { useCameraCommand } from '@/components/cameras/control/camera-commands';
 import { useCameraControl, useCameraLock } from '@/components/cameras/control/camera-control-context';
-import { CameraLockOverlay } from '@/components/cameras/control/camera-lock';
-import { useDriveFailure, useSteer } from '@/components/cameras/control/camera-drive-context';
-import { useCameraPicture } from '@/components/cameras/control/camera-picture-context';
-import { eased, keySteering, STEERING_KEYS, STILL } from '@/components/cameras/control/camera-steering';
+import { CameraLockOverlay } from '@/components/cameras/control/parts/camera-lock';
+import { useDriveFailure, useSteer } from '@/components/cameras/control/drive/camera-drive-context';
+import { useCameraPicture } from '@/components/cameras/control/picture/camera-picture-context';
+import { eased, keySteering, STEERING_KEYS, STILL } from '@/components/cameras/control/drive/camera-steering';
 import { CameraSurfaceModeSchema, type CameraSurfaceMode } from '@/lib/camera-surface-mode';
 import { cameraSurfaceModeQueryOptions, useSetCameraSurfaceMode } from '@/queries/this-device';
 

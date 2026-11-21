@@ -5,11 +5,11 @@ import type { CameraCommand } from '@conservationtv/cameras';
 import { Alert, AlertDescription, AlertTitle } from '@conservationtv/ui/components/alert';
 
 import { CameraControlContext } from '@/components/cameras/control/camera-control-context';
-import { CameraDriving } from '@/components/cameras/control/camera-drive';
-import { CameraFollowing } from '@/components/cameras/control/camera-live';
-import { CameraPicture } from '@/components/cameras/control/camera-picture';
-import { createCameraStore, CameraStoreContext, runCommand } from '@/components/cameras/control/camera-store';
-import { cameraListenerOf } from '@/components/cameras/control/camera-stream';
+import { CameraDriving } from '@/components/cameras/control/drive/camera-drive';
+import { CameraFollowing } from '@/components/cameras/control/following/camera-live';
+import { CameraPicture } from '@/components/cameras/control/picture/camera-picture';
+import { createCameraStore, CameraStoreContext, runCommand } from '@/components/cameras/control/store/camera-store';
+import { cameraListenerOf } from '@/components/cameras/control/following/camera-stream';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { cameraControlQueryOptions, runCameraCommand, type CameraControlSession } from '@/queries/camera-control';
 

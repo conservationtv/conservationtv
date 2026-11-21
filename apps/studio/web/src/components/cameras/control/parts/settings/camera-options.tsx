@@ -4,7 +4,7 @@ import { Button } from '@conservationtv/ui/components/button';
 import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
 
 import { useCameraCommand } from '@/components/cameras/control/camera-commands';
-import { optionOf, useCamera } from '@/components/cameras/control/camera-store';
+import { optionOf, useCamera } from '@/components/cameras/control/store/camera-store';
 import { FormError } from '@/components/common/form-error';
 
 // What a camera has to set and to run, as the camera itself lists them: each option a select of the values it takes

@@ -16,9 +16,14 @@ import { cn } from '@conservationtv/ui/lib/utils';
 
 import { useCameraCapabilities } from '@/components/cameras/control/camera-capabilities';
 import { useCameraControl, useCameraLock } from '@/components/cameras/control/camera-control-context';
-import { useGamepad, useSteer, useSteering, useZoomDrag } from '@/components/cameras/control/camera-drive-context';
-import { eased, NUDGE_SPEED, STILL, uneased, type Steering } from '@/components/cameras/control/camera-steering';
-import { useCamera, zoomOf } from '@/components/cameras/control/camera-store';
+import {
+  useGamepad,
+  useSteer,
+  useSteering,
+  useZoomDrag
+} from '@/components/cameras/control/drive/camera-drive-context';
+import { eased, NUDGE_SPEED, STILL, uneased, type Steering } from '@/components/cameras/control/drive/camera-steering';
+import { useCamera, zoomOf } from '@/components/cameras/control/store/camera-store';
 import { StatusDot } from '@/components/common/status';
 
 // The controls that drive a camera from beside its presets: a joystick for the axes it pans and tilts on, a slider

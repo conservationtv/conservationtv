@@ -7,8 +7,13 @@ import {
   DriveStoreContext,
   useDriveStore,
   type DriveCamera
-} from '@/components/cameras/control/camera-drive-context';
-import { lockedBy, positionOf, useCameraStore, type CameraStore } from '@/components/cameras/control/camera-store';
+} from '@/components/cameras/control/drive/camera-drive-context';
+import {
+  lockedBy,
+  positionOf,
+  useCameraStore,
+  type CameraStore
+} from '@/components/cameras/control/store/camera-store';
 
 // Driving a camera by hand, whatever it is driven with: the drag on its picture, the joystick, the zoom lever and
 // slider, a held button, the arrow keys and a gamepad. Which of them is listened to, what the camera is sent and when,

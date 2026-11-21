@@ -12,9 +12,9 @@ import { cn } from '@conservationtv/ui/lib/utils';
 
 import type { Route } from './+types/controls';
 import { PinButton } from '@/components/app/pins';
-import { CameraDeckPanel, CameraDeckPicture, CameraOperated } from '@/components/cameras/camera-deck';
+import { CameraDeckPanel, CameraDeckPicture, CameraOperated } from '@/components/cameras/deck/camera-deck';
 import { CameraStateBadge } from '@/components/cameras/camera-state-badge';
-import { createShoulderStore } from '@/components/cameras/control/camera-shoulders';
+import { createShoulderStore } from '@/components/cameras/control/drive/camera-shoulders';
 import { BackLink } from '@/components/common/page';
 import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
 import { useOrganisationId } from '@/hooks/use-organisation';

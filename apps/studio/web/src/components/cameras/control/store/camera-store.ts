@@ -4,7 +4,7 @@ import type { CameraCommand, CameraPosition } from '@conservationtv/cameras';
 import { createStore, type EnqueueObject, type TriggerObject } from '@xstate/store';
 import { useSelector } from '@xstate/store-react';
 
-import { namedTasks, realClock, type CameraClock } from '@/components/cameras/control/camera-tasks';
+import { namedTasks, realClock, type CameraClock } from '@/components/cameras/control/store/camera-tasks';
 import type { CameraControlSession } from '@/queries/camera-control';
 
 // What this browser knows of the camera it is controlling, and what it is doing about it, in one place: one store per

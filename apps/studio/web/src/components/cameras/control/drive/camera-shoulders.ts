@@ -1,8 +1,8 @@
 import { createStore, type EnqueueObject } from '@xstate/store';
 
-import { gamepadShoulder } from '@/components/cameras/control/camera-steering';
-import type { CameraClock } from '@/components/cameras/control/camera-store';
-import { namedTasks, realClock } from '@/components/cameras/control/camera-tasks';
+import { gamepadShoulder } from '@/components/cameras/control/drive/camera-steering';
+import type { CameraClock } from '@/components/cameras/control/store/camera-store';
+import { namedTasks, realClock } from '@/components/cameras/control/store/camera-tasks';
 
 // A gamepad's shoulder buttons, as a page that steps between cameras hears them: L1 for the one before, R1 for the
 // one after, once for each press however long it is held. A page has one of these, above any camera's control

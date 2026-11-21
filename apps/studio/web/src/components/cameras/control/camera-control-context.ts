@@ -8,7 +8,7 @@ import {
   selfOf,
   useCamera,
   type CameraHold
-} from '@/components/cameras/control/camera-store';
+} from '@/components/cameras/control/store/camera-store';
 import type { CameraControlSession } from '@/queries/camera-control';
 
 // Controlling a camera is a layer over its page, made of a few things that each do one job. This context says a

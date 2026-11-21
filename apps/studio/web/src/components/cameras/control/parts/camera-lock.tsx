@@ -5,7 +5,7 @@ import { Alert, AlertAction, AlertDescription, AlertTitle } from '@conservationt
 import { Button, type ButtonProps } from '@conservationtv/ui/components/button';
 
 import { useCameraLock } from '@/components/cameras/control/camera-control-context';
-import { useCameraStore } from '@/components/cameras/control/camera-store';
+import { useCameraStore } from '@/components/cameras/control/store/camera-store';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { shortPublicId } from '@/lib/format';
 import { deviceListQueryOptions } from '@/queries/devices';
@@ -79,8 +79,8 @@ export const CameraLockNotice: FC = () => {
         <LockedBy peer={peer} />
       </AlertTitle>
       <AlertDescription>
-        These controls are locked while they are, and free again a few seconds after they stop. Taking control moves
-        the camera out from under them.
+        These controls are locked while they are, and free again a few seconds after they stop. Taking control moves the
+        camera out from under them.
       </AlertDescription>
       <AlertAction>
         <TakeControlButton peer={peer} variant="outline" />

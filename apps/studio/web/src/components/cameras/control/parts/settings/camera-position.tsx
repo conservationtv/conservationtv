@@ -2,8 +2,8 @@ import { Suspense, type FC } from 'react';
 
 import { cameraAxisReadingsOf } from '@/components/cameras/cameras';
 import { useCameraHold } from '@/components/cameras/control/camera-control-context';
-import { HolderName } from '@/components/cameras/control/camera-lock';
-import { linkOf, positionOf, useCamera, type CameraLink } from '@/components/cameras/control/camera-store';
+import { HolderName } from '@/components/cameras/control/parts/camera-lock';
+import { linkOf, positionOf, useCamera, type CameraLink } from '@/components/cameras/control/store/camera-store';
 import { Fact, FactLabel, Facts, FactValue } from '@/components/common/page';
 import { StatusLabel, type Status } from '@/components/common/status';
 

@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 // this browser's device to control it (apps/studio/api/src/routes/cameras.ts); everything after that is asked of the
 // agent directly over iroh (src/lib/agent-connection.ts), each command carrying the grant: what the camera can do, and
 // the commands themselves. Where the camera points as it moves is the agent's event stream, which is followed rather
-// than queried (src/components/cameras/control/camera-live.tsx). Each answer here is one of a few named outcomes, told
+// than queried (src/components/cameras/control/following/camera-live.tsx). Each answer here is one of a few named outcomes, told
 // apart by its `status`, so whatever reads one says which it is handling.
 
 /** How long before a grant expires another is asked for, so the controls never hold one about to run out. */

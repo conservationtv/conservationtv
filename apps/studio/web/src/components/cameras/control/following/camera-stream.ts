@@ -1,6 +1,6 @@
 import { StateSchema } from '@conservationtv/agent-sdk';
 
-import type { CameraAgent, CameraHeard, CameraReport } from '@/components/cameras/control/camera-store';
+import type { CameraAgent, CameraHeard, CameraReport } from '@/components/cameras/control/store/camera-store';
 import { streamFromAgent } from '@/lib/agent-connection';
 import { serverSentEvents } from '@/lib/server-sent-events';
 import type { CameraControlSession } from '@/queries/camera-control';

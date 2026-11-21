@@ -6,24 +6,30 @@ import { Skeleton } from '@conservationtv/ui/components/skeleton';
 import { Tabs, TabsContent } from '@conservationtv/ui/components/tabs';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import { PresetGrid, PresetMenu, PresetNotice, PresetPicture, PresetTile } from '@/components/cameras/camera-presets';
+import {
+  PresetGrid,
+  PresetMenu,
+  PresetNotice,
+  PresetPicture,
+  PresetTile
+} from '@/components/cameras/deck/camera-presets';
 import { CameraControl } from '@/components/cameras/control/camera-control';
 import { useCameraControl } from '@/components/cameras/control/camera-control-context';
-import { CameraNotices, CameraSettings } from '@/components/cameras/control/camera-controls';
-import { CameraJoystick } from '@/components/cameras/control/camera-joystick';
+import { CameraNotices, CameraSettings } from '@/components/cameras/control/parts/settings/camera-controls';
+import { CameraJoystick } from '@/components/cameras/control/parts/camera-joystick';
 import {
   PresetGo,
   PresetOverwrite,
   PresetOverwriteItem,
   SavePresetDialog
-} from '@/components/cameras/control/camera-preset-controls';
-import { CameraSurface, CameraSurfaceTitle } from '@/components/cameras/control/camera-surface';
+} from '@/components/cameras/control/parts/camera-preset-controls';
+import { CameraSurface, CameraSurfaceTitle } from '@/components/cameras/control/parts/camera-surface';
 import { PageTabsActions, PageTabsBar, PageTabsList, PageTabsTrigger } from '@/components/common/page-tabs';
 import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
 import { useIsAdministrator } from '@/hooks/use-organisation';
 
 // A camera's deck: its picture and, in the same card, what is done with it. The camera's own page sets it down among
-// what else there is to know of the camera; the control view (src/routes/camera-control.tsx) gives it the whole screen.
+// what else there is to know of the camera; the control view (src/routes/controls.tsx) gives it the whole screen.
 
 interface CameraOperationProps {
   cameraId: string;

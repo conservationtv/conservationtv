@@ -1,6 +1,6 @@
 import { useEffect, type FC } from 'react';
 
-import { useCameraStore } from '@/components/cameras/control/camera-store';
+import { useCameraStore } from '@/components/cameras/control/store/camera-store';
 
 // Following a camera as it moves. The following itself (asking for its agent's stream, hearing it, asking again when
 // it ends, fails or goes quiet) is the link machine in the session's store (camera-store.ts), which owns the stream

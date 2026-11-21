@@ -1,7 +1,7 @@
 import { useRef, type FC, type ReactNode } from 'react';
 
-import { CameraPictureContext } from '@/components/cameras/control/camera-picture-context';
-import { thumbnailOf } from '@/components/cameras/control/camera-thumbnail';
+import { CameraPictureContext } from '@/components/cameras/control/picture/camera-picture-context';
+import { thumbnailOf } from '@/components/cameras/control/picture/camera-thumbnail';
 
 export interface CameraPictureProps {
   children: ReactNode;

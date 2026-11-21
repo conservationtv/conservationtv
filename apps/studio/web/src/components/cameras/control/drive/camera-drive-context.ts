@@ -20,9 +20,9 @@ import {
   type Steering,
   type SteeringInputs,
   type SteeringSource
-} from '@/components/cameras/control/camera-steering';
-import type { CameraClock } from '@/components/cameras/control/camera-store';
-import { namedTasks, realClock } from '@/components/cameras/control/camera-tasks';
+} from '@/components/cameras/control/drive/camera-steering';
+import type { CameraClock } from '@/components/cameras/control/store/camera-store';
+import { namedTasks, realClock } from '@/components/cameras/control/store/camera-tasks';
 
 // Driving a camera by hand is a layer of its own within its control session, and this is its store: one per session,
 // made and started by camera-drive.tsx, and all that the inputs that steer the camera and the parts that show the
