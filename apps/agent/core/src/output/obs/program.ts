@@ -259,7 +259,9 @@ export class ProgramMediamtx {
 
   constructor(
     private readonly directory: string,
-    readonly ports: ProgramPorts
+    readonly ports: ProgramPorts,
+    /** Variables MediaMTX runs with, on top of the agent's: what the Node its demand launcher runs by needs. */
+    private readonly env: Record<string, string> = {}
   ) {
     this.configFile = join(directory, 'mediamtx.yml');
     this.process = new AttachedProcess(directory, {
@@ -313,7 +315,7 @@ export class ProgramMediamtx {
     this.moq = moq;
     await this.write();
     await this.process.ensure(
-      { key: binary.id, binary: binary.path, args: [this.configFile], cwd: this.directory },
+      { key: binary.id, binary: binary.path, args: [this.configFile], cwd: this.directory, env: this.env },
       signal
     );
   }
