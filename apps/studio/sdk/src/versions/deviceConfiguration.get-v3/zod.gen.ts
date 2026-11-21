@@ -118,6 +118,12 @@ export const DeviceConfigurationSchema = z.object({
         })
     }).optional(),
     obs: z.object({
+        previews: z.array(z.object({
+            signer: z.string().nullable(),
+            previewId: z.string(),
+            gatewayId: z.string(),
+            connect: PreviewConnectSchema
+        })),
         output: z.object({
             id: z.string(),
             organisationId: z.string(),
@@ -135,11 +141,6 @@ export const DeviceConfigurationSchema = z.object({
             channelId: z.string(),
             forwardId: z.string(),
             stats: z.boolean()
-        })),
-        previews: z.array(z.object({
-            previewId: z.string(),
-            gatewayId: z.string(),
-            connect: PreviewConnectSchema
         })),
         recording: z.object({
             recorderId: z.string(),

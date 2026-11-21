@@ -74,9 +74,10 @@ export async function watchStudioConfiguration(signal: AbortSignal, apply: Apply
 }
 
 /**
- * One answer from the studio API, signed as the agent's device: at version 3, which gives the agent its cameras, where
- * the API serves it; otherwise at version 2, which says what to probe by URL; and otherwise at version 1, as an API
- * from before cameras were probed gives it, with nothing to probe.
+ * One answer from the studio API, signed as the agent's device: at version 3, which gives the agent its cameras and who
+ * signs each preview's tokens, where the API serves it; otherwise at version 2, which says what to probe by URL, each
+ * preview signed by no one, so its token is kept until it expires; and otherwise at version 1, as an API from before
+ * cameras were probed gives it, with nothing to probe.
  */
 async function askConfiguration(studio: Client): Promise<DeviceConfiguration> {
   await studio.handshake();
@@ -88,12 +89,22 @@ async function askConfiguration(studio: Client): Promise<DeviceConfiguration> {
   if (studio.deviceConfiguration.get.version === 2) {
     const configuration = await studio.deviceConfiguration.get.v2();
     if (configuration instanceof Error) throw configuration;
-    return configuration;
+    return { ...configuration, obs: configuration.obs && unsigned(configuration.obs) };
   }
   const configuration = await studio.deviceConfiguration.get.v1();
   if (configuration instanceof Error) throw configuration;
-  const { mediamtx } = configuration;
-  return { ...configuration, mediamtx: mediamtx && { ...mediamtx, probes: [] } };
+  const { mediamtx, obs } = configuration;
+  return { ...configuration, mediamtx: mediamtx && { ...mediamtx, probes: [] }, obs: obs && unsigned(obs) };
+}
+
+/** The `obs` section as versions 1 and 2 give it, before previews said who signs their tokens. */
+type UnsignedObsSection = NonNullable<
+  Exclude<Awaited<ReturnType<Client['deviceConfiguration']['get']['v2']>>, Error>['obs']
+>;
+
+/** An `obs` section from before previews said who signs their tokens: each signed by no one. */
+function unsigned(obs: UnsignedObsSection): NonNullable<DeviceConfiguration['obs']> {
+  return { ...obs, previews: obs.previews.map(preview => ({ ...preview, signer: null })) };
 }
 
 /** A path and a probe as the gateway and the probes work from them: with the URL to pull. */

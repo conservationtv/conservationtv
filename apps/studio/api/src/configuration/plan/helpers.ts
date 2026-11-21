@@ -81,6 +81,25 @@ export async function selectPeers(device: AuthenticatedDevice): Promise<PlannedP
   return rows.map(({ endpointId, kind }) => ({ endpointId, allow: { relayed: true, direct: kind === 'agent' } }));
 }
 
+/**
+ * Who signs tokens for each of the organisation's gateways that an agent runs: the key ID (public ID) of the active agent
+ * on its network, as src/gateways/mediamtx.ts signs with, by gateway ID. A built-in gateway, or one no agent is active
+ * for, is absent.
+ */
+export async function selectGatewaySigners(organisationId: string) {
+  const db = useDB({ trusted: true });
+  const rows = await db
+    .select({ gatewayId: gateways.id, signer: devices.publicId })
+    .from(gateways)
+    .innerJoin(
+      agents,
+      and(eq(agents.organisationId, gateways.organisationId), eq(agents.networkId, gateways.networkId))
+    )
+    .innerJoin(devices, eq(devices.id, agents.id))
+    .where(and(eq(gateways.organisationId, organisationId), eq(agents.active, true)));
+  return new Map(rows.map(row => [row.gatewayId, row.signer]));
+}
+
 /** The gateway and the names its hostname is made from (src/gateways/certificates.ts). */
 export async function selectGatewayIdentity(gatewayId: string) {
   const db = useDB({ trusted: true });

@@ -18,6 +18,7 @@ import {
   selectActiveNetwork,
   selectGatewayIdentity,
   selectGatewayKinds,
+  selectGatewaySigners,
   selectGatewayPreviews,
   selectLocalGateway,
   selectNetworkCameras,
@@ -38,7 +39,8 @@ import type {
   PlannedProbe,
   PlannedPublisher,
   ProbingConfiguration,
-  ShowConfiguration
+  ShowConfiguration,
+  SignedObsConfiguration
 } from './types.ts';
 
 export type * from './types.ts';
@@ -85,7 +87,8 @@ export async function planConfiguration(device: AuthenticatedDevice): Promise<Co
  * driver gives, credentials included, which those agents pull as it is; and without what they don't read.
  */
 export function withCameraUrls(configuration: ControllingConfiguration): ProbingConfiguration {
-  const { mediamtx, obs, show } = configuration;
+  const { mediamtx, show } = configuration;
+  const obs = configuration.obs && withoutSigners(configuration.obs);
   if (mediamtx === undefined) return { obs, show };
   const cameras = new Map((configuration.cameras?.cameras ?? []).map(camera => [camera.id, camera]));
   const origin = (cameraId: string, rendition: Rendition) => {
@@ -101,6 +104,12 @@ export function withCameraUrls(configuration: ControllingConfiguration): Probing
     url: origin(cameraId, 'default')
   }));
   return { mediamtx: { ...mediamtx, paths, probes }, obs, show };
+}
+
+/** The `obs` runtime as versions before 3 return it: as it was before previews said who signs their tokens. */
+function withoutSigners(obs: SignedObsConfiguration): ObsConfiguration {
+  const previews = obs.previews.map(({ previewId, gatewayId, connect }) => ({ previewId, gatewayId, connect }));
+  return { ...obs, previews };
 }
 
 /** The `mediamtx` runtime, with the cameras its paths and probes name. */
@@ -196,7 +205,7 @@ function sourceCameras(configuration: CameraMediamtxConfiguration, streams: Stre
 
 /** The output's runtimes, for the agent it runs on: `obs`, and `show` while it follows a show. */
 interface PlannedOutput {
-  obs?: ObsConfiguration;
+  obs?: SignedObsConfiguration;
   show?: ShowConfiguration;
   chat?: ChatConfiguration;
 }
@@ -213,16 +222,17 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
       const plan = await selectOutputPlan(output.outputId);
       const gatewayKinds = await selectGatewayKinds(output.organisationId);
       const commands = await selectListenedCommands(output.organisationId);
-      return { output, plan: plan!, gatewayKinds, commands };
+      const signers = await selectGatewaySigners(output.organisationId);
+      return { output, plan: plan!, gatewayKinds, commands, signers };
     },
     { name: 'configuration.output' }
   );
   if (planned === undefined) return {};
-  const { output, plan, gatewayKinds, commands } = planned;
+  const { output, plan, gatewayKinds, commands, signers } = planned;
   const { outputId, organisationId, control, showId } = output;
   const { forwards, previews, recorders, ...encoding } = plan;
   const [recorder] = recorders;
-  const obs: ObsConfiguration = {
+  const obs: SignedObsConfiguration = {
     output: { id: outputId, organisationId, control },
     encoding,
     forwards: forwards.map(forward => ({
@@ -234,6 +244,7 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
     previews: previews.map(preview => ({
       previewId: preview.id,
       gatewayId: preview.gatewayId,
+      signer: signers.get(preview.gatewayId) ?? null,
       connect: {
         id: organisationId,
         outputId,
