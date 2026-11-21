@@ -60,12 +60,18 @@ export async function selectPreferredAddress(deviceId: string) {
   return row?.address;
 }
 
-/** Which exposures an agent delivers: its own MediaMTX gateway's, unless pinned to another device, and those pinned to it. */
+/**
+ * Which exposures an agent delivers: its own MediaMTX gateway's, unless pinned to another device; those pinned to it;
+ * and those pinned to none whose upstream is its gateway's, such as a MoQ copy of a camera's exposure there, so the copy
+ * follows the network's active agent as its upstream does. An unpinned exposure with no upstream on another gateway
+ * has no agent to deliver it.
+ */
 function delivered(agentId: string, gatewayId: string) {
   return {
     OR: [
       { gatewayId, OR: [{ publisherDeviceId: { isNull: true as const } }, { publisherDeviceId: agentId }] },
-      { publisherDeviceId: agentId }
+      { publisherDeviceId: agentId },
+      { publisherDeviceId: { isNull: true as const }, upstream: { gatewayId } }
     ]
   };
 }
