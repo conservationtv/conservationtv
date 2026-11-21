@@ -15,10 +15,8 @@ import { listening } from './loopback.ts';
 //   inputs/<stream>/<exposure>
 //                  each exposure OBS plays, by whoever drives its scenes, pushed in by a `moq` relay the agent starts
 //                  when OBS first reads the path, and stops once nothing has for a while (inputs.ts). Any such path is
-//                  read on demand: its `runOnDemand` tells the agent it is wanted. Once the exposure's catalog says
-//                  which tracks it has, the path is written as its own, always available, its `runOnRead` telling the
-//                  agent each reader: while the relay is down OBS keeps playing MediaMTX's offline segment in place
-//                  of the camera.
+//                  read on demand: its `runOnDemand` tells the agent it is wanted. No offline segment: the relay's
+//                  tracks pass through as the camera sends them, and while it is down OBS has nothing to play.
 //   show/program   what OBS streams (its profile's custom server `rtmp://…/show`, key `program`), forwarded to each
 //                  channel's ingest. Always available, with the program's own tracks (H.264 and AAC-LC 48 kHz stereo), so
 //                  while OBS is gone the forwards carry the offline segment and Twitch never goes offline.
@@ -114,7 +112,7 @@ export interface ProgramDestination {
 
 /** An input's path, as the status reports it. */
 export interface InputStatus {
-  /** Whether it falls back to the offline segment while its relay is down. */
+  /** Whether it falls back to an offline segment while its relay is down: never, now; kept for the status contract. */
   fallback: boolean;
 }
 
@@ -129,7 +127,7 @@ export interface ProgramStatus extends ProcessStatus {
   forwards: string[];
   /** The previews it is published to. */
   previews: string[];
-  /** The inputs with a path of their own, by path. */
+  /** The inputs being relayed, by path. */
   inputs: Record<string, InputStatus>;
 }
 
@@ -182,8 +180,6 @@ interface ProgramServing {
   previews: readonly ProgramPreview[];
   /** The moq CLI the MoQ previews are published by; none until it is installed. */
   moq: string | undefined;
-  /** Each input with a path of its own, by path: its tracks, or null when its catalog could not be read. */
-  inputs: ReadonlyMap<string, AlwaysAvailableTrack[] | null>;
   /** What MediaMTX runs to tell the agent an input is wanted (inputs.ts); none reads inputs until it is set. */
   demand: string | undefined;
 }
@@ -234,17 +230,6 @@ const programPaths = new MediamtxConfigBuilder<ProgramServing>((serving, config)
     };
   }
   if (serving.demand === undefined) return;
-  // An input with tracks to fall back with is a path of its own; any other is read on demand.
-  for (const [path, tracks] of serving.inputs) {
-    if (tracks === null) continue;
-    config.paths[path] = {
-      source: 'publisher',
-      alwaysAvailable: true,
-      alwaysAvailableTracks: tracks,
-      runOnRead: serving.demand,
-      runOnReadRestart: true
-    };
-  }
   config.paths[INPUT_PATTERN] = {
     source: 'publisher',
     runOnDemand: serving.demand,
@@ -265,8 +250,8 @@ export class ProgramMediamtx {
   private previews: ProgramPreview[] = [];
   /** The moq CLI the MoQ previews are published by, once installed. */
   private moq: string | undefined = undefined;
-  /** Each input with a path of its own, by path: its tracks, or null when its catalog could not be read. */
-  private readonly inputs = new Map<string, AlwaysAvailableTrack[] | null>();
+  /** The inputs being relayed, by path, for the status alone: each is read on demand by the one path pattern. */
+  private readonly inputs = new Set<string>();
   /** What MediaMTX runs to tell the agent an input is wanted (inputs.ts); none reads inputs until it is set. */
   private demand: string | undefined = undefined;
   private writing: Promise<void> = Promise.resolve();
@@ -375,15 +360,19 @@ export class ProgramMediamtx {
     await this.write();
   }
 
-  /** Give the input a path of its own, falling back to the offline segment when `tracks` says what it carries. */
-  async setInput(path: string, tracks: AlwaysAvailableTrack[] | null): Promise<void> {
-    this.inputs.set(path, tracks);
-    await this.write();
+  /** Report the input as relayed. Its path is the pattern's: the config doesn't change. */
+  setInput(path: string): void {
+    this.inputs.add(path);
+    this.reportInputs();
   }
 
-  async removeInput(path: string): Promise<void> {
+  removeInput(path: string): void {
     if (!this.inputs.delete(path)) return;
-    await this.write();
+    this.reportInputs();
+  }
+
+  private reportInputs(): void {
+    this.update({ inputs: Object.fromEntries([...this.inputs].map(path => [path, { fallback: false }])) });
   }
 
   async stop(): Promise<void> {
@@ -398,17 +387,14 @@ export class ProgramMediamtx {
   /** Writes the config if it has changed, one write at a time: MediaMTX reloads it whenever it is written. */
   private write(): Promise<void> {
     this.writing = this.writing.then(async () => {
-      // As they are now: the inputs are copied, as one may change while the config renders.
       const { ports, forwards, previews, moq, demand } = this;
-      const inputs = new Map(this.inputs);
-      const config = await renderYaml(programConfig, { ports, forwards, previews, moq, inputs, demand });
+      const config = await renderYaml(programConfig, { ports, forwards, previews, moq, demand });
       await mkdir(this.directory, { recursive: true });
       const written = await readFile(this.configFile, 'utf8').catch(() => undefined);
       if (written !== config) await writeFile(this.configFile, config, { mode: 0o600 });
       this.update({
         forwards: forwards.map(forward => forward.channelId),
-        previews: previews.map(preview => preview.previewId),
-        inputs: Object.fromEntries([...inputs].map(([path, tracks]) => [path, { fallback: tracks !== null }]))
+        previews: previews.map(preview => preview.previewId)
       });
     });
     return this.writing;

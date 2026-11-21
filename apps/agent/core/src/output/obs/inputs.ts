@@ -1,16 +1,12 @@
-import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { AttachedProcess } from '@conservationtv/converge/process';
-import type { AlwaysAvailableTrack } from '@conservationtv/mediamtx';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import { BehaviorSubject } from 'rxjs';
-import { z } from 'zod';
 import { expiryOf, withToken } from '../../studio.ts';
 import { type InputExposure, inputOf, inputPath, type ProgramMediamtx } from './program.ts';
 
@@ -18,7 +14,7 @@ import { type InputExposure, inputOf, inputPath, type ProgramMediamtx } from './
 // studio. OBS reads any of its organisation's exposures from the program MediaMTX, at `inputs/<stream>/<exposure>`
 // (program.ts), and the agent relays it there for as long as something reads it:
 //
-//   OBS reads inputs/<s>/<e>  ─▶  MediaMTX runs the demand launcher (`runOnDemand`, then `runOnRead`)
+//   OBS reads inputs/<s>/<e>  ─▶  MediaMTX runs the demand launcher (`runOnDemand`)
 //                                    │ holds a request to the agent's demand server open while it runs
 //                                    ▼
 //   a relay per exposure:  moq --connect <relay?jwt=…> --broadcast <name> export rtmp --connect rtmp://…/inputs/<s>/<e>
@@ -28,23 +24,18 @@ import { type InputExposure, inputOf, inputPath, type ProgramMediamtx } from './
 // path. A launcher also gives up its request once MediaMTX is gone (its parent changes): outside Windows, MediaMTX
 // starts commands in their own process group and doesn't kill them when it dies, so a crashed MediaMTX's launchers
 // would otherwise hold their paths, and keep their relays running, forever. The first time an exposure is wanted, the agent asks for a read session as its device (the studio API admits
-// what the output may play: src/gateways/connect.ts), reads the stream's tracks from its catalog, and gives the path
-// its own config, always available with those tracks and telling the agent of each reader (`runOnRead`): so while the
-// relay restarts for a new session, OBS plays MediaMTX's offline segment rather than losing the stream. A relay is
-// stopped, and its path's config dropped, once nothing has read it for `RELEASE_AFTER_MS`, long enough for OBS to
-// reconnect after its path's config is first written (which drops the reader waiting on it).
+// what the output may play: src/gateways/connect.ts). The relay passes the stream's tracks through as they are, with
+// no offline segment of MediaMTX's behind them: one would have to declare exactly the tracks the camera sends, codec,
+// sample rate and channels, and MediaMTX can't make one for many a camera's audio. What OBS shows while an input is down
+// is the show's to decide. A relay is stopped once nothing has read it for `RELEASE_AFTER_MS`.
 //
 // The session is renewed before it expires, restarting `moq` to the same path, so OBS's input never changes. Each
 // `moq` is the agent's child (converge's AttachedProcess), restarted if it dies.
 
 const logger = getLogger(['agent', 'obs', 'inputs']);
-const run = promisify(execFile);
 
 /** How long an exposure is relayed after the last reader goes. */
 const RELEASE_AFTER_MS = 30_000;
-
-/** How long reading a stream's catalog may take before the push starts without a fallback. */
-const CATALOG_TIMEOUT_MS = 10_000;
 
 /** How long before a session expires to ask for the next, and the soonest to ask again after a failure. */
 const RENEW_BEFORE_MS = 10 * 60_000;
@@ -311,16 +302,10 @@ class Relay {
     this.renewal = setTimeout(() => void this.renew().catch(() => undefined), delay);
   }
 
-  /**
-   * `moq` pushing `session`: the same process while the session is the same, a new one to the same path when not. A
-   * new broadcast's tracks are read first, for its path's fallback.
-   */
+  /** `moq` pushing `session`: the same process while the session is the same, a new one to the same path when not. */
   private async run(session: Session): Promise<void> {
     const { program } = this.options;
-    if (session.broadcast !== this.session?.broadcast) {
-      const tracks = await readTracks(this.moq, session);
-      await program.setInput(this.path, tracks);
-    }
+    if (this.session === undefined) program.setInput(this.path);
     const args = [
       ['--connect', session.url, '--broadcast', session.broadcast, 'export'],
       ['rtmp', '--connect', program.pathUrl(this.path), '--max-age', MAX_AGE]
@@ -335,7 +320,7 @@ class Relay {
     clearTimeout(this.renewal);
     this.stopping.abort();
     await this.process.stop();
-    await this.options.program.removeInput(this.path);
+    this.options.program.removeInput(this.path);
   }
 }
 
@@ -352,92 +337,4 @@ async function readSession(studio: Client, exposure: RelayedExposure): Promise<S
   if (!('relay' in connection)) throw new Error(`Exposure ${exposure.exposureId} is not read by MoQ`);
   const url = new URL(connection.path, connection.relay);
   return { url: withToken(url, connection.token), broadcast: connection.broadcast, expiresAt: expiryOf(connection) };
-}
-
-/** The parts of a hang catalog that say what each track carries. */
-const CatalogTracksSchema = z.object({
-  video: z.object({ renditions: z.record(z.string(), z.object({ codec: z.string() })) }).optional(),
-  audio: z
-    .object({
-      renditions: z.record(
-        z.string(),
-        z.object({ codec: z.string(), sampleRate: z.number(), numberOfChannels: z.number() })
-      )
-    })
-    .optional()
-});
-export type CatalogTracks = z.output<typeof CatalogTracksSchema>;
-
-/** MediaMTX's codec for a WebCodecs video codec string, by its prefix. */
-const VIDEO_CODECS = new Map<string, AlwaysAvailableTrack['codec']>([
-  ['avc1', 'H264'],
-  ['avc3', 'H264'],
-  ['hev1', 'H265'],
-  ['hvc1', 'H265'],
-  ['av01', 'AV1'],
-  ['vp09', 'VP9']
-]);
-
-type CatalogAudio = NonNullable<CatalogTracks['audio']>['renditions'][string];
-
-/** MediaMTX's track for a WebCodecs audio rendition: AAC (`mp4a.…`) or Opus; undefined for any other. */
-function audioTrack(audio: CatalogAudio): AlwaysAvailableTrack | undefined {
-  const channelCount = audio.numberOfChannels;
-  if (audio.codec.startsWith('mp4a')) return { codec: 'MPEG4Audio', sampleRate: audio.sampleRate, channelCount };
-  if (audio.codec === 'opus') return { codec: 'Opus', channelCount };
-  return undefined;
-}
-
-/**
- * The tracks MediaMTX's fallback must offer to match the stream exactly: its first video rendition and its first audio
- * one, as `moq export rtmp` pushes them. Null if a codec is one MediaMTX can't fall back with.
- */
-export function catalogTracks(catalog: CatalogTracks): AlwaysAvailableTrack[] | null {
-  const video = firstRendition(catalog.video);
-  const audio = firstRendition(catalog.audio);
-  const tracks: AlwaysAvailableTrack[] = [];
-  // Each section present must map to a track MediaMTX can offer; a stream with neither has nothing to fall back with.
-  if (video !== undefined) {
-    const track = videoCodecTrack(video.codec);
-    if (track === undefined) return null;
-    tracks.push(track);
-  }
-  if (audio !== undefined) {
-    const track = audioTrack(audio);
-    if (track === undefined) return null;
-    tracks.push(track);
-  }
-  return tracks.length === 0 ? null : tracks;
-}
-
-/** A catalog section: its renditions, by track name. */
-interface CatalogSection<T> {
-  renditions: Record<string, T>;
-}
-
-/** A catalog section's first rendition, if it has one. */
-function firstRendition<T>(section: CatalogSection<T> | undefined): T | undefined {
-  if (section === undefined) return undefined;
-  return Object.values(section.renditions)[0];
-}
-
-/** MediaMTX's track for a WebCodecs video codec string; undefined for one it doesn't take. */
-function videoCodecTrack(codec: string): AlwaysAvailableTrack | undefined {
-  const known = VIDEO_CODECS.get(codec.split('.')[0] ?? '');
-  return known === undefined ? undefined : { codec: known };
-}
-
-/** The session's broadcast's tracks, from its catalog; null if it can't be read in time, or names none MediaMTX takes. */
-async function readTracks(moq: string, session: Session): Promise<AlwaysAvailableTrack[] | null> {
-  try {
-    const args = ['--connect', session.url, '--broadcast', session.broadcast, 'fetch', 'catalog.json'];
-    const { stdout } = await run(moq, args, { timeout: CATALOG_TIMEOUT_MS, env: { ...process.env, NO_COLOR: '1' } });
-    return catalogTracks(CatalogTracksSchema.parse(JSON.parse(stdout)));
-  } catch (error) {
-    logger.warn('No fallback for {broadcast}: its catalog could not be read: {error}', {
-      broadcast: session.broadcast,
-      error
-    });
-    return null;
-  }
 }
