@@ -1,0 +1,4 @@
+node_modules/
+# scripts/build.ts's bundles, and electron-builder's packages.
+dist/
+release/
