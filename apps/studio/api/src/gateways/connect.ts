@@ -2,7 +2,8 @@ import { and, eq } from 'drizzle-orm';
 import { exposures, gateways, outputDevices, outputPreviews } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { transaction, trustedTransaction, useDB } from '../db/transaction.ts';
-import { useDevice } from '../middleware/device.ts';
+import { selectLocalGateway } from '../configuration/plan/helpers.ts';
+import { useDevice, type AuthenticatedDevice } from '../middleware/device.ts';
 import { usePrincipal } from '../middleware/principal.ts';
 import { BUILTIN_GATEWAYS, gatewayProvider, isBuiltinGateway } from './index.ts';
 import type {
@@ -19,8 +20,9 @@ import { useEnvironment } from '../env/env.ts';
 // Who may connect to an exposure or an output's preview, and which provider gives them its connection details: the same
 // gateway providers for both, each a delivery at its gateway. Members read, signed in. Devices connect for what they
 // publish: a device publishes the exposures it is the pinned publisher of (a browser publishing directly is one), and
-// reads the upstreams of those. Nothing else is published: exposures without a pinned publisher wait for the
-// configuration builders to choose one. An output's agent (src/db/schemas/outputs.ts) also reads, to play in OBS, what
+// reads the upstreams of those. An exposure with no pinned publisher is published by the agent the configuration
+// builders choose (src/configuration/plan/helpers.ts): the active agent whose gateway its upstream is on, as a MoQ copy
+// of a camera's exposure there follows it. Nothing else is published. An output's agent (src/db/schemas/outputs.ts) also reads, to play in OBS, what
 // the show it follows currently places, as the show's object says (src/shows/host.tsx), or, under `external` control,
 // any of its organisation's exposures; and publishes the output's previews. A preview offers only the `default`
 // rendition: the programme is one encoding.
@@ -53,7 +55,8 @@ async function selectExposure(location: ExposureLocation) {
       id: exposures.id,
       gatewayId: exposures.gatewayId,
       renditions: exposures.renditions,
-      publisherDeviceId: exposures.publisherDeviceId
+      publisherDeviceId: exposures.publisherDeviceId,
+      upstreamExposureId: exposures.upstreamExposureId
     })
     .from(exposures)
     .where(
@@ -95,6 +98,23 @@ async function selectGateway(organisationId: string, gatewayId: string) {
     .where(and(eq(gateways.organisationId, organisationId), eq(gateways.id, gatewayId)));
   // An exposure's or preview's gateway is checked whenever either changes, so it is there.
   return gateway!;
+}
+
+/**
+ * Whether the device publishes the exposure: as its pinned publisher, or, with none pinned, as the active agent whose
+ * gateway its upstream is on, which the configuration builders have it publish (src/configuration/plan/helpers.ts).
+ */
+async function publishes(device: AuthenticatedDevice, exposure: VisibleExposure) {
+  if (exposure.publisherDeviceId !== null) return exposure.publisherDeviceId === device.id;
+  if (exposure.upstreamExposureId === null) return false;
+  const gatewayId = await selectLocalGateway(device);
+  if (gatewayId === undefined) return false;
+  const db = useDB({ trusted: true });
+  const [upstream] = await db
+    .select({ gatewayId: exposures.gatewayId })
+    .from(exposures)
+    .where(eq(exposures.id, exposure.upstreamExposureId));
+  return upstream?.gatewayId === gatewayId;
 }
 
 /** Whether the device publishes an exposure of the stream from this one. */
@@ -176,7 +196,7 @@ async function callerConnection(location: ExposureLocation, action: ConnectionAc
     if (device.organisationId !== location.organisationId) throw new ApiFailure('not_found');
     return trustedTransaction(() =>
       connection(location, subject, exposure =>
-        action === 'publish' ? exposure.publisherDeviceId === device.id : reads(device.id, location)
+        action === 'publish' ? publishes(device, exposure) : reads(device.id, location)
       )
     );
   }
