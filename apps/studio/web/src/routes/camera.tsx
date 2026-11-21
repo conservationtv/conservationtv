@@ -1,8 +1,9 @@
-import type { FC, ReactNode } from 'react';
+import { type FC, type ReactNode } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { VideoCameraIcon } from '@phosphor-icons/react';
+import { ArrowsOutIcon, VideoCameraIcon } from '@phosphor-icons/react';
 import type { Camera, Network, Stream } from '@conservationtv/studio-sdk';
+import { Button } from '@conservationtv/ui/components/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
 import {
   Item,
@@ -15,11 +16,13 @@ import {
 
 import type { Route } from './+types/camera';
 import { PinButton } from '@/components/app/pins';
+import { CameraDeck, CameraOperation } from '@/components/cameras/camera-deck';
+import { CameraAliasesDialog } from '@/components/cameras/camera-aliases-dialog';
 import { ClearCredentialsDialog, ReplaceCredentialsDialog } from '@/components/cameras/camera-credentials-dialogs';
 import { CameraSettingsDialog } from '@/components/cameras/camera-settings-dialog';
 import { CameraStateBadge } from '@/components/cameras/camera-state-badge';
 import { CameraStateSelect } from '@/components/cameras/camera-state-select';
-import { cameraDriverLabelOf, cameraStateDetailsOf } from '@/components/cameras/cameras';
+import { cameraChatNamesOf, cameraDriverLabelOf, cameraStateDetailsOf } from '@/components/cameras/cameras';
 import { DeleteCameraDialog } from '@/components/cameras/delete-camera-dialog';
 import { CopyButton } from '@/components/common/copy-button';
 import {
@@ -45,7 +48,6 @@ import { networkNameOf } from '@/components/devices/devices';
 import { EditDeviceDialog } from '@/components/devices/edit-device-dialog';
 import { SubjectHealth } from '@/components/devices/subject-health';
 import { deviceSubjectId, type SubjectState } from '@/components/devices/subjects';
-import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate, shortPublicId } from '@/lib/format';
 import { cameraListQueryOptions } from '@/queries/cameras';
@@ -55,9 +57,11 @@ import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/
 export const meta: Route.MetaFunction = () => [{ title: 'Camera · conservation.tv studio' }];
 
 /**
- * One camera: how it is doing, what it sees through the first stream it feeds, where it is and how it is reached. Its
- * administrators rename and move it, change how it is reached, replace its credentials, change its state, and remove
- * it. The camera is read from the organisation's list, which the cameras page has usually loaded already.
+ * One camera: how it is doing, what it sees through the first stream it feeds with its presets beneath, where it is
+ * and how it is reached. Its administrators move it, on its picture, by hand and to its presets, through the agent
+ * that reaches it; rename and move it between networks, change how it is reached and what chat calls it, replace its
+ * credentials, change its state, and remove it. The camera is read from the organisation's list, which the cameras
+ * page has usually loaded already.
  */
 const CameraRoute: FC<Route.ComponentProps> = ({ params }) => {
   const { cameraId } = params;
@@ -101,16 +105,26 @@ const CameraRoute: FC<Route.ComponentProps> = ({ params }) => {
           </PageDescription>
         </PageHeading>
         <PageActions>
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link to={`../../controls?camera=${camera.id}`} relative="path" />}
+          >
+            <ArrowsOutIcon />
+            Controls
+          </Button>
           <PinButton label={name} kind="camera" />
         </PageActions>
       </PageHeader>
-      {first && (
+      {/* Keyed by the camera: the page stays mounted from one camera to the next, and a session is one camera's. */}
+      <CameraOperation key={camera.id} cameraId={camera.id}>
         <Section>
-          <CTVMoQPreview stream={first.id} />
-          <StreamLinks streams={streams} />
+          <CameraDeck camera={camera} name={name} stream={first} />
+          {first && <StreamLinks streams={streams} />}
         </Section>
-      )}
-      <CameraFacts camera={camera} networks={networksQuery.data} streams={streams} />
+      </CameraOperation>
+      <CameraFacts camera={camera} name={name} networks={networksQuery.data} streams={streams} />
       <Section>
         <SectionHeader>
           <SectionHeading>
@@ -176,12 +190,14 @@ const StreamLinks: FC<StreamLinksProps> = ({ streams }) => {
 
 interface CameraFactsProps {
   camera: Camera;
+  /** What the camera is called: one of the names chat finds it by. */
+  name: string;
   networks: Network[];
   streams: Stream[];
 }
 
 /** What the camera is, where it is, and how it is reached. Never its credentials, which are never read back. */
-const CameraFacts: FC<CameraFactsProps> = ({ camera, networks, streams }) => {
+const CameraFacts: FC<CameraFactsProps> = ({ camera, name, networks, streams }) => {
   const settings = camera.settings;
   return (
     <Section>
@@ -206,6 +222,10 @@ const CameraFacts: FC<CameraFactsProps> = ({ camera, networks, streams }) => {
         )}
         <TextFact label="Network" value={networkNameOf(networks, camera.device?.networkId ?? null)} />
         <TextFact label="Streams" value={streams.length > 0 ? String(streams.length) : 'None yet'} />
+        <TextFact
+          label="In chat"
+          value={cameraChatNamesOf(name, camera.aliases).join(', ') || 'No name chat can use'}
+        />
         {camera.device && (
           <>
             <Fact>
@@ -281,6 +301,19 @@ const CameraManagement: FC<CameraManagementProps> = ({ camera, name, networks })
           </ItemContent>
           <ItemActions>
             <CameraSettingsDialog camera={camera} name={name} />
+          </ItemActions>
+        </Item>
+        <Item variant="outline">
+          <ItemContent>
+            <ItemTitle>Names in chat</ItemTitle>
+            <ItemDescription>
+              {camera.aliases.length > 0
+                ? `Also called ${camera.aliases.join(', ')}.`
+                : 'Chat commands find it by its name alone.'}
+            </ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <CameraAliasesDialog camera={camera} name={name} />
           </ItemActions>
         </Item>
         <Item variant="outline">

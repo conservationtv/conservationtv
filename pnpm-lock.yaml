@@ -201,14 +201,17 @@ catalogs:
       specifier: 0.18.1
       version: 0.18.1
     '@strangecyan/iroh-http-browser':
-      specifier: 0.3.0
-      version: 0.3.0
+      specifier: 0.4.0
+      version: 0.4.0
     '@strangecyan/iroh-http-node':
-      specifier: 0.3.0
-      version: 0.3.0
+      specifier: 0.4.0
+      version: 0.4.0
     '@types/pg':
       specifier: 8.23.1
       version: 8.23.1
+    '@xstate/store':
+      specifier: 4.3.0
+      version: 4.3.0
     better-auth:
       specifier: 1.7.7
       version: 1.7.7
@@ -288,6 +291,12 @@ importers:
 
   apps/agent/core:
     dependencies:
+      '@conservationtv/cameras':
+        specifier: workspace:*
+        version: link:../../../packages/cameras
+      '@conservationtv/chat':
+        specifier: workspace:*
+        version: link:../../../packages/chat
       '@conservationtv/converge':
         specifier: workspace:*
         version: link:../../../packages/converge
@@ -326,10 +335,13 @@ importers:
         version: '@strangecyan/iroh@1.1.0-relayed.1'
       '@strangecyan/iroh-http-node':
         specifier: 'catalog:'
-        version: 0.3.0
+        version: 0.4.0
       '@strangecyan/vignette':
         specifier: 2.1.0
         version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+      '@xstate/store':
+        specifier: 'catalog:'
+        version: 4.3.0(xstate@5.33.3)
       hono:
         specifier: 4.13.8
         version: 4.13.8
@@ -396,6 +408,10 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  apps/agent/runner/data/obs/binaries/obs/33.0.1-3d6b2eedeb564166/OBS.app/Contents/PlugIns/rtmp-services.plugin/Contents/Resources: {}
+
+  apps/agent/runner/data/obs/home/Library/Application Support/obs-studio/plugin_config/rtmp-services: {}
+
   apps/agent/sdk:
     dependencies:
       '@conservationtv/versioned-api':
@@ -443,7 +459,7 @@ importers:
         version: '@strangecyan/iroh@1.1.0-relayed.1'
       '@strangecyan/iroh-http-node':
         specifier: 'catalog:'
-        version: 0.3.0
+        version: 0.4.0
       better-auth:
         specifier: 'catalog:'
         version: 1.7.7(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2))(next@16.4.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.17)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)))
@@ -698,6 +714,12 @@ importers:
       '@better-auth/passkey':
         specifier: 'catalog:'
         version: 1.7.7(@better-auth/core@1.7.7(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@4.6.2))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.5))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-auth@1.7.7(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2))(next@16.4.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.17)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))))(better-call@1.4.0(zod@4.6.2))(nanostores@1.5.5)
+      '@conservationtv/cameras':
+        specifier: workspace:*
+        version: link:../../../packages/cameras
+      '@conservationtv/chat':
+        specifier: workspace:*
+        version: link:../../../packages/chat
       '@conservationtv/controlplane-sdk':
         specifier: workspace:*
         version: link:../../controlplane/sdk
@@ -888,6 +910,9 @@ importers:
       '@conservationtv/agent-sdk':
         specifier: workspace:*
         version: link:../../agent/sdk
+      '@conservationtv/cameras':
+        specifier: workspace:*
+        version: link:../../../packages/cameras
       '@conservationtv/reports':
         specifier: workspace:*
         version: link:../../../packages/reports
@@ -911,7 +936,7 @@ importers:
         version: 13.3.0
       '@strangecyan/iroh-http-browser':
         specifier: 'catalog:'
-        version: 0.3.0
+        version: 0.4.0
       '@strangecyan/vignette':
         specifier: 2.1.0
         version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
@@ -922,7 +947,7 @@ importers:
         specifier: 5.104.2
         version: 5.104.2(react@19.3.0)
       '@xstate/store':
-        specifier: 4.3.0
+        specifier: 'catalog:'
         version: 4.3.0(xstate@5.33.3)
       '@xstate/store-react':
         specifier: 2.1.0
@@ -1009,6 +1034,29 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.6.2
+
+  packages/cameras:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/chat:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
 
   packages/converge:
     dependencies:
@@ -4207,14 +4255,14 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@strangecyan/iroh-http-browser@0.3.0':
-    resolution: {integrity: sha512-VKD1szfRbMZZ7PX4h2YJpaI4ogfOono1FS2MyDTdGEtB7DjYANtvwKWZNyVgDlUDhIdfNtkzDa0mrrAEDa3PrA==}
+  '@strangecyan/iroh-http-browser@0.4.0':
+    resolution: {integrity: sha512-mHQdFjDADStX87n/lBGT2UfaLl93m5pz7eHuvgaFAVFZ2LP/TMBL3N+cNFlTGUuy76kHQ4XKG64DWbGmJlKsbQ==}
 
-  '@strangecyan/iroh-http-core@0.3.0':
-    resolution: {integrity: sha512-dQ9AH+XzbqFVWMVBPhapV/R1qd+ro/piRL96wwhzX398ZEoCcguBEzN4p0F/ZKUW/G23KwQEpSAK03qhKT8aZQ==}
+  '@strangecyan/iroh-http-core@0.4.0':
+    resolution: {integrity: sha512-R3D2UziEncx5FbXZ9kYZVWf/Z3hiGAr2041elQJZyiZPldwSRUZeN9jia/MPNyQVV5G1M+AkQwg97Gpxx13H8A==}
 
-  '@strangecyan/iroh-http-node@0.3.0':
-    resolution: {integrity: sha512-3xAipF4of8VI+jGHec675A2kuigni12JzeemIgFisbbWqP2sUvKPAAxaV9Mp8hxrVM+3uFK48ywQGe/YO5BYbQ==}
+  '@strangecyan/iroh-http-node@0.4.0':
+    resolution: {integrity: sha512-Zcj+9+aRcBXKFDbmRqGdbyQaV516Hp5hk+KBQkHIv80E49hTgtTCm+jRRDYjwS4w71VWJ1yhVoc2DUqWVjKbuw==}
     engines: {node: '>=22.18.0'}
 
   '@strangecyan/iroh-linux-arm64-gnu@1.1.0-relayed.1':
@@ -11196,16 +11244,16 @@ snapshots:
   '@strangecyan/iroh-darwin-arm64@1.1.0-relayed.1':
     optional: true
 
-  '@strangecyan/iroh-http-browser@0.3.0':
+  '@strangecyan/iroh-http-browser@0.4.0':
     dependencies:
-      '@strangecyan/iroh-http-core': 0.3.0
+      '@strangecyan/iroh-http-core': 0.4.0
 
-  '@strangecyan/iroh-http-core@0.3.0': {}
+  '@strangecyan/iroh-http-core@0.4.0': {}
 
-  '@strangecyan/iroh-http-node@0.3.0':
+  '@strangecyan/iroh-http-node@0.4.0':
     dependencies:
       '@number0/iroh': '@strangecyan/iroh@1.1.0-relayed.1'
-      '@strangecyan/iroh-http-core': 0.3.0
+      '@strangecyan/iroh-http-core': 0.4.0
 
   '@strangecyan/iroh-linux-arm64-gnu@1.1.0-relayed.1':
     optional: true

@@ -4,12 +4,14 @@ import {
   BroadcastIcon,
   BuildingsIcon,
   CaretUpDownIcon,
+  ChatCircleTextIcon,
   CheckIcon,
   CloudIcon,
   DevicesIcon,
   GearIcon,
   HardDrivesIcon,
   HouseIcon,
+  JoystickIcon,
   MonitorPlayIcon,
   NetworkIcon,
   PlusIcon,
@@ -62,6 +64,10 @@ export const OrganisationSidebar: FC = () => {
                 <HouseIcon />
                 <span>Overview</span>
               </SidebarNavItem>
+              <SidebarNavItem to="controls">
+                <JoystickIcon />
+                <span>Controls</span>
+              </SidebarNavItem>
               <SidebarNavItem to="streams">
                 <VideoIcon />
                 <span>Streams</span>
@@ -77,6 +83,10 @@ export const OrganisationSidebar: FC = () => {
               <SidebarNavItem to="channels">
                 <BroadcastIcon />
                 <span>Channels</span>
+              </SidebarNavItem>
+              <SidebarNavItem to="chat-commands">
+                <ChatCircleTextIcon />
+                <span>Chat commands</span>
               </SidebarNavItem>
             </SidebarMenu>
           </SidebarGroupContent>

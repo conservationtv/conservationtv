@@ -1,0 +1,21 @@
+{
+  "name": "@conservationtv/cameras",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "What a kind of camera is, shared by the studio API, the agent and the web app: what each driver is registered with, where its streams are pulled from, the contract cameras are controlled by, and the drivers that speak it to a camera.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./control": "./src/control/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "catalog:"
+  }
+}

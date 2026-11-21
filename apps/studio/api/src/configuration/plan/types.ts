@@ -1,4 +1,7 @@
+import type { CameraCredentials, CameraSettings } from '@conservationtv/cameras';
+import type { ChatAudience } from '@conservationtv/chat';
 import { z } from 'zod';
+import type { CameraState } from '../../cameras/states.ts';
 import type { OutputControl } from '../../topology/output-recorder-kinds.ts';
 import { RenditionSchema, type Rendition, type Settings } from '../../topology/settings.ts';
 
@@ -244,4 +247,123 @@ export interface ProbingConfiguration {
   mediamtx?: ProbingMediamtxConfiguration;
   obs?: ObsConfiguration;
   show?: ShowConfiguration;
+}
+
+// From version 3 the agent is given its cameras as they are registered, and builds what it pulls from them itself
+// (`@conservationtv/cameras`): it needs their settings and credentials to control them anyway.
+
+/** A camera a path is pulled from, at the path's rendition: one of the configuration's `cameras`. */
+export interface CameraSource {
+  cameraId: string;
+}
+
+/**
+ * Another path of the same MediaMTX, from version 3. A type of its own, though it says what `LocalSource` does: the
+ * contracts of versions 1 and 2 are frozen with their union in the order TypeScript meets `UrlSource` and
+ * `LocalSource` in, which sharing `LocalSource` with this union would change.
+ */
+export interface PathReference {
+  path: string;
+}
+
+/** Where a path gets its media, from version 3: a camera of the configuration's, or another of its paths. */
+export type CameraPathSource = CameraSource | PathReference;
+
+/** A path the agent's MediaMTX serves, from version 3. */
+export interface CameraPlannedPath {
+  name: string;
+  exposureId: string;
+  rendition: Rendition;
+  source: CameraPathSource;
+}
+
+/** A camera the agent probes, from version 3: one of the configuration's `cameras`, reported about `subjectId`. */
+export interface CameraProbe {
+  subjectId: string;
+  cameraId: string;
+}
+
+/** The `mediamtx` runtime from version 3 of `deviceConfiguration.get`, whose paths and probes name cameras. */
+export interface CameraMediamtxConfiguration extends Omit<MediamtxConfiguration, 'paths'> {
+  paths: CameraPlannedPath[];
+  probes: CameraProbe[];
+}
+
+/** A camera the agent reaches, as it is registered: what its driver reads, and how to authenticate to it. */
+export interface PlannedCamera {
+  id: string;
+  settings: CameraSettings;
+  credentials?: CameraCredentials;
+  /** Only an `enabled` camera is pulled from, probed or controlled. */
+  state: CameraState;
+}
+
+/** Who signs the grants that admit commands to the agent's cameras: this API, as the agent, for the agent. */
+export interface CameraGrantIssuer {
+  issuer: string;
+}
+
+/**
+ * The `cameras` runtime, for a network's active agent: the cameras on its network, which it controls for whoever
+ * presents a grant this API signed (src/cameras/grants.ts), and those its streams are pulled from.
+ */
+export interface CamerasConfiguration {
+  cameras: PlannedCamera[];
+  grants: CameraGrantIssuer;
+}
+
+/** A channel whose chat the agent listens to: a Twitch channel, by its login. */
+export interface ChatChannel {
+  channelId: string;
+  platform: 'twitch';
+  login: string;
+}
+
+/**
+ * A command the agent listens for: its word, and who may use it and how long it rests, so the agent need not tell this
+ * API of a use that would come to nothing. This API decides both again when told.
+ */
+export interface ListenedCommand {
+  id: string;
+  name: string;
+  audience: ChatAudience;
+  cooldownSeconds: number;
+}
+
+/**
+ * The `chat` runtime, for an output's agent while the output goes out to a Twitch channel and the organisation has
+ * commands: the channels to listen to, and the commands to tell this API were used
+ * (`organisations.chatCommands.trigger`).
+ */
+export interface ChatConfiguration {
+  organisationId: string;
+  channels: ChatChannel[];
+  commands: ListenedCommand[];
+}
+
+/** How a peer may connect to the agent. */
+export interface PeerAllowance {
+  /** Through the relay, without learning the agent's IP addresses. */
+  relayed: boolean;
+  /** Holepunching to the agent, learning its IP addresses. */
+  direct: boolean;
+}
+
+/** A device the agent serves over iroh: its endpoint ID, and how it may connect. */
+export interface PlannedPeer {
+  endpointId: string;
+  allow: PeerAllowance;
+}
+
+/**
+ * What a device runs, from version 3 of `deviceConfiguration.get`: with its `cameras`, the `chat` it listens to, and
+ * the `peers` it serves, which is every other agent and browser of its organisation, browsers through the relay only.
+ */
+export interface ControllingConfiguration {
+  mediamtx?: CameraMediamtxConfiguration;
+  cameras?: CamerasConfiguration;
+  obs?: ObsConfiguration;
+  show?: ShowConfiguration;
+  chat?: ChatConfiguration;
+  peers: PlannedPeer[];
 }

@@ -2,7 +2,8 @@
 
 import * as z from 'zod';
 
-import type { GetStatusResponse, GetSystemResponse, GetSystemSpecResponse } from './types.gen.js';
+import type { GetCamerasByCameraIdStateResponse, GetCamerasResponse, GetStatusResponse, GetSystemResponse, GetSystemSpecResponse, PostCamerasByCameraIdCommandsResponse } from './types.gen.js';
+import { GetCamerasByCameraIdEventsPathSchema, GetCamerasByCameraIdStatePathSchema, PostCamerasByCameraIdCommandsBodySchema, PostCamerasByCameraIdCommandsPathSchema } from './zod.gen.js';
 
 export const StatusGetParamsSchema = z.object({});
 
@@ -21,3 +22,83 @@ export const SystemSpecParamsSchema = z.object({});
 export type SystemSpecParams = z.infer<typeof SystemSpecParamsSchema>;
 
 export type SystemSpecOutput = GetSystemSpecResponse;
+
+export const CameraListParamsSchema = z.object({});
+
+export type CameraListParams = z.infer<typeof CameraListParamsSchema>;
+
+export type CameraListOutput = GetCamerasResponse;
+
+export const StateGetParamsSchema = z.object({
+    cameraId: GetCamerasByCameraIdStatePathSchema.shape.cameraId.nonoptional().describe('The camera.')
+});
+
+export type StateGetParams = z.infer<typeof StateGetParamsSchema>;
+
+export type StateGetInput = {
+    cameraId: string;
+};
+
+export type StateGetOutput = GetCamerasByCameraIdStateResponse;
+
+export const CommandRunParamsSchema = z.object({
+    cameraId: PostCamerasByCameraIdCommandsPathSchema.shape.cameraId.nonoptional().describe('The camera.'),
+    command: PostCamerasByCameraIdCommandsBodySchema.shape.command.nonoptional().describe('A command, by `kind`: `moveTo` a position, `moveBy` an offset, `moveToPoint` or `moveToRegion` of the picture, `drive` at a velocity on each axis (repeated while it should keep moving), `stop`, `configure` one of its options, or `run` one of its actions.')
+});
+
+export type CommandRunParams = z.infer<typeof CommandRunParamsSchema>;
+
+export type CommandRunInput = {
+    cameraId: string;
+    command: {
+        kind: 'moveTo';
+        pan?: number;
+        tilt?: number;
+        zoom?: number;
+        focus?: number;
+    } | {
+        kind: 'moveBy';
+        pan?: number;
+        tilt?: number;
+        zoom?: number;
+    } | {
+        kind: 'moveToPoint';
+        x: number;
+        y: number;
+    } | {
+        kind: 'moveToRegion';
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | {
+        kind: 'drive';
+        pan?: number;
+        tilt?: number;
+        zoom?: number;
+        focus?: number;
+    } | {
+        kind: 'stop';
+    } | {
+        kind: 'configure';
+        key: string;
+        value: string;
+    } | {
+        kind: 'run';
+        action: string;
+    };
+};
+
+export type CommandRunOutput = PostCamerasByCameraIdCommandsResponse;
+
+export const CameraEventsParamsSchema = z.object({
+    cameraId: GetCamerasByCameraIdEventsPathSchema.shape.cameraId.nonoptional().describe('The camera.')
+});
+
+export type CameraEventsParams = z.infer<typeof CameraEventsParamsSchema>;
+
+export type CameraEventsInput = {
+    cameraId: string;
+};
+
+export type CameraEventsOutput = unknown;

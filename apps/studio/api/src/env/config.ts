@@ -6,6 +6,7 @@ import { authorization } from '../access.ts';
 import { createAuth, type Auth } from '../auth/auth.ts';
 import { otpDelivery } from '../auth/otp.tsx';
 import type { Cache } from '../cache/cache.ts';
+import type { Media } from '../media/media.ts';
 import { connectLazily } from '../db/client.ts';
 import { mailer, type MailBinding } from '../email/mailer.ts';
 import { certificateIssuer, type CertificateIssuer } from '../gateways/certificates.ts';
@@ -79,6 +80,8 @@ export interface Bindings {
   /** Where the application role connects: the `HYPERDRIVE_APP` binding. */
   app: string;
   cache: Cache;
+  /** The files the studio keeps: the `MEDIA` bucket (src/media/media.ts). */
+  media: Media;
   /** Each show's object, by the show's ID: the Worker's own `ShowHost` objects, through `ctx.exports` (src/shows/host.tsx). */
   broadcasts: Broadcasts;
   background: Background;
@@ -159,6 +162,7 @@ export const services = (variables: Variables, bindings: Bindings) => {
     session,
     auth,
     cache: bindings.cache,
+    media: bindings.media,
     assets: bindings.assets,
     broadcasts: bindings.broadcasts,
     tracing: bindings.tracing,

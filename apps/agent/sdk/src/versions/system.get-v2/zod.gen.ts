@@ -188,8 +188,8 @@ export const SystemSchema = z.object({
             ]).nullable(),
             recording: z.enum([
                 'recording',
-                'starting',
-                'stopping'
+                'stopping',
+                'starting'
             ]).nullable(),
             program: z.object({
                 forwards: z.array(z.string()),
@@ -278,12 +278,12 @@ export const SystemSchema = z.object({
             phase: z.enum([
                 'idle',
                 'error',
+                'settled',
+                'disposed',
                 'connecting',
                 'downloading-assets',
                 'synchronising',
-                'settled',
-                'disconnected',
-                'disposed'
+                'disconnected'
             ]).nullable()
         }),
         apply: z.union([

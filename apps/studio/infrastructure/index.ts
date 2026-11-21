@@ -72,6 +72,11 @@ const cache = new cloudflare.WorkersKvNamespace('studio-api-cache', {
   accountId,
   title: accountName('studio-api-cache')
 });
+// The files the studio API keeps: camera presets' thumbnails. Read and written only through the API's `MEDIA` binding.
+const media = new cloudflare.R2Bucket('studio-api-media', {
+  accountId,
+  name: accountName('studio-api-media')
+});
 
 /** What this stack reads of its own `database` output. */
 interface DeployedDatabase {
@@ -259,6 +264,7 @@ export const api = {
   adminHyperdriveId: adminHyperdrive.id,
   appHyperdriveId: appHyperdrive.id,
   cacheId: cache.id,
+  mediaBucket: media.name,
   appUrl,
   webOrigins: [webOrigin],
   gatekeeperUrl,

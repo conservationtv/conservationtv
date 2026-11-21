@@ -5,6 +5,7 @@ import type { AccountUpdateV1Input, AccountUpdateV1Output } from '../versions/ac
 import type { DeviceAddressReplaceV1Input, DeviceAddressReplaceV1Output } from '../versions/deviceAddresses.replace-v1/flat-params.gen.js';
 import type { DeviceConfigurationGetV1Output } from '../versions/deviceConfiguration.get-v1/flat-params.gen.js';
 import type { DeviceConfigurationGetV2Output } from '../versions/deviceConfiguration.get-v2/flat-params.gen.js';
+import type { DeviceConfigurationGetV3Output } from '../versions/deviceConfiguration.get-v3/flat-params.gen.js';
 import type { GatewayEndpointReplaceV1Input, GatewayEndpointReplaceV1Output } from '../versions/gatewayEndpoints.replace-v1/flat-params.gen.js';
 import type { InvitationAcceptV1Input, InvitationAcceptV1Output } from '../versions/invitations.accept-v1/flat-params.gen.js';
 import type { InvitationDeclineV1Input, InvitationDeclineV1Output } from '../versions/invitations.decline-v1/flat-params.gen.js';
@@ -17,11 +18,22 @@ import type { AgentGetV1Input, AgentGetV1Output } from '../versions/organisation
 import type { AgentListV1Input, AgentListV1Output } from '../versions/organisations.agents.list-v1/flat-params.gen.js';
 import type { AgentUpdateV1Input, AgentUpdateV1Output } from '../versions/organisations.agents.update-v1/flat-params.gen.js';
 import type { BrowserEnsureV1Input, BrowserEnsureV1Output } from '../versions/organisations.browser.ensure-v1/flat-params.gen.js';
+import type { ControlConnectV1Input, ControlConnectV1Output } from '../versions/organisations.cameras.control.connect-v1/flat-params.gen.js';
 import type { CameraCreateV1Input, CameraCreateV1Output } from '../versions/organisations.cameras.create-v1/flat-params.gen.js';
+import type { CameraCreateV2Input, CameraCreateV2Output } from '../versions/organisations.cameras.create-v2/flat-params.gen.js';
 import type { CameraDeleteV1Input, CameraDeleteV1Output } from '../versions/organisations.cameras.delete-v1/flat-params.gen.js';
 import type { CameraGetV1Input, CameraGetV1Output } from '../versions/organisations.cameras.get-v1/flat-params.gen.js';
+import type { CameraGetV2Input, CameraGetV2Output } from '../versions/organisations.cameras.get-v2/flat-params.gen.js';
 import type { CameraListV1Input, CameraListV1Output } from '../versions/organisations.cameras.list-v1/flat-params.gen.js';
+import type { CameraListV2Input, CameraListV2Output } from '../versions/organisations.cameras.list-v2/flat-params.gen.js';
+import type { PresetCreateV1Input, PresetCreateV1Output } from '../versions/organisations.cameras.presets.create-v1/flat-params.gen.js';
+import type { PresetDeleteV1Input, PresetDeleteV1Output } from '../versions/organisations.cameras.presets.delete-v1/flat-params.gen.js';
+import type { ThumbnailDeleteV1Input, ThumbnailDeleteV1Output } from '../versions/organisations.cameras.presets.thumbnail.delete-v1/flat-params.gen.js';
+import type { ThumbnailGetV1Input, ThumbnailGetV1Output } from '../versions/organisations.cameras.presets.thumbnail.get-v1/flat-params.gen.js';
+import type { ThumbnailSetV1Input, ThumbnailSetV1Output } from '../versions/organisations.cameras.presets.thumbnail.set-v1/flat-params.gen.js';
+import type { PresetUpdateV1Input, PresetUpdateV1Output } from '../versions/organisations.cameras.presets.update-v1/flat-params.gen.js';
 import type { CameraUpdateV1Input, CameraUpdateV1Output } from '../versions/organisations.cameras.update-v1/flat-params.gen.js';
+import type { CameraUpdateV2Input, CameraUpdateV2Output } from '../versions/organisations.cameras.update-v2/flat-params.gen.js';
 import type { ChannelCreateV1Input, ChannelCreateV1Output } from '../versions/organisations.channels.create-v1/flat-params.gen.js';
 import type { ChannelDeleteV1Input, ChannelDeleteV1Output } from '../versions/organisations.channels.delete-v1/flat-params.gen.js';
 import type { ChannelGetV1Input, ChannelGetV1Output } from '../versions/organisations.channels.get-v1/flat-params.gen.js';
@@ -30,12 +42,20 @@ import type { ChannelListV1Input, ChannelListV1Output } from '../versions/organi
 import type { StatGetV1Input, StatGetV1Output } from '../versions/organisations.channels.stats.get-v1/flat-params.gen.js';
 import type { TwitchAuthorizeV1Input, TwitchAuthorizeV1Output } from '../versions/organisations.channels.twitch.authorize-v1/flat-params.gen.js';
 import type { ChannelUpdateV1Input, ChannelUpdateV1Output } from '../versions/organisations.channels.update-v1/flat-params.gen.js';
+import type { ChatCommandCreateV1Input, ChatCommandCreateV1Output } from '../versions/organisations.chatCommands.create-v1/flat-params.gen.js';
+import type { ChatCommandDeleteV1Input, ChatCommandDeleteV1Output } from '../versions/organisations.chatCommands.delete-v1/flat-params.gen.js';
+import type { ChatCommandGetV1Input, ChatCommandGetV1Output } from '../versions/organisations.chatCommands.get-v1/flat-params.gen.js';
+import type { ChatCommandListV1Input, ChatCommandListV1Output } from '../versions/organisations.chatCommands.list-v1/flat-params.gen.js';
+import type { ChatCommandSettleV1Input, ChatCommandSettleV1Output } from '../versions/organisations.chatCommands.settle-v1/flat-params.gen.js';
+import type { ChatCommandTriggerV1Input, ChatCommandTriggerV1Output } from '../versions/organisations.chatCommands.trigger-v1/flat-params.gen.js';
+import type { ChatCommandUpdateV1Input, ChatCommandUpdateV1Output } from '../versions/organisations.chatCommands.update-v1/flat-params.gen.js';
 import type { OrganisationCreateV1Input, OrganisationCreateV1Output } from '../versions/organisations.create-v1/flat-params.gen.js';
 import type { OrganisationDeleteV1Input, OrganisationDeleteV1Output } from '../versions/organisations.delete-v1/flat-params.gen.js';
 import type { DeviceAllowlistV1Input, DeviceAllowlistV1Output } from '../versions/organisations.devices.allowlist-v1/flat-params.gen.js';
 import type { DeviceGetV1Input, DeviceGetV1Output } from '../versions/organisations.devices.get-v1/flat-params.gen.js';
 import type { DeviceGetKeyPairV1Input, DeviceGetKeyPairV1Output } from '../versions/organisations.devices.getKeyPair-v1/flat-params.gen.js';
 import type { DeviceListV1Input, DeviceListV1Output } from '../versions/organisations.devices.list-v1/flat-params.gen.js';
+import type { DeviceListV2Input, DeviceListV2Output } from '../versions/organisations.devices.list-v2/flat-params.gen.js';
 import type { DeviceListAddressesV1Input, DeviceListAddressesV1Output } from '../versions/organisations.devices.listAddresses-v1/flat-params.gen.js';
 import type { DeviceUpdateV1Input, DeviceUpdateV1Output } from '../versions/organisations.devices.update-v1/flat-params.gen.js';
 import type { GatewayCreateV1Input, GatewayCreateV1Output } from '../versions/organisations.gateways.create-v1/flat-params.gen.js';
@@ -291,6 +311,10 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/devices',
                     fields: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }]
+                }), v2: operation<DeviceListV2Output, DeviceListV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/devices',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'query', key: 'kind' }]
                 }) }),
             get: this.versioned('organisations.devices.get', { v1: operation<DeviceGetV1Output, DeviceGetV1Input>({
                     method: 'GET',
@@ -323,6 +347,10 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/cameras',
                     fields: [{ in: 'path', key: 'id' }]
+                }), v2: operation<CameraListV2Output, CameraListV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/cameras',
+                    fields: [{ in: 'path', key: 'id' }]
                 }) }),
             create: this.versioned('organisations.cameras.create', { v1: operation<CameraCreateV1Output, CameraCreateV1Input>({
                     method: 'POST',
@@ -335,8 +363,24 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'credentials' },
                         { in: 'body', key: 'state' }
                     ]
+                }), v2: operation<CameraCreateV2Output, CameraCreateV2Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/cameras',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'networkId' },
+                        { in: 'body', key: 'settings' },
+                        { in: 'body', key: 'credentials' },
+                        { in: 'body', key: 'state' },
+                        { in: 'body', key: 'aliases' }
+                    ]
                 }) }),
             get: this.versioned('organisations.cameras.get', { v1: operation<CameraGetV1Output, CameraGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/cameras/{cameraId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }]
+                }), v2: operation<CameraGetV2Output, CameraGetV2Input>({
                     method: 'GET',
                     url: '/organisations/{id}/cameras/{cameraId}',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }]
@@ -351,12 +395,93 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'credentials' },
                         { in: 'body', key: 'state' }
                     ]
+                }), v2: operation<CameraUpdateV2Output, CameraUpdateV2Input>({
+                    method: 'PATCH',
+                    url: '/organisations/{id}/cameras/{cameraId}',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'cameraId' },
+                        { in: 'body', key: 'settings' },
+                        { in: 'body', key: 'credentials' },
+                        { in: 'body', key: 'state' },
+                        { in: 'body', key: 'aliases' }
+                    ]
                 }) }),
             delete: this.versioned('organisations.cameras.delete', { v1: operation<CameraDeleteV1Output, CameraDeleteV1Input>({
                     method: 'DELETE',
                     url: '/organisations/{id}/cameras/{cameraId}',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }]
-                }) })
+                }) }),
+            presets: {
+                create: this.versioned('organisations.cameras.presets.create', { v1: operation<PresetCreateV1Output, PresetCreateV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/cameras/{cameraId}/presets',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'cameraId' },
+                            { in: 'body', key: 'name' },
+                            { in: 'body', key: 'position' }
+                        ]
+                    }) }),
+                update: this.versioned('organisations.cameras.presets.update', { v1: operation<PresetUpdateV1Output, PresetUpdateV1Input>({
+                        method: 'PATCH',
+                        url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'cameraId' },
+                            { in: 'path', key: 'presetId' },
+                            { in: 'body', key: 'name' },
+                            { in: 'body', key: 'position' }
+                        ]
+                    }) }),
+                delete: this.versioned('organisations.cameras.presets.delete', { v1: operation<PresetDeleteV1Output, PresetDeleteV1Input>({
+                        method: 'DELETE',
+                        url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'cameraId' },
+                            { in: 'path', key: 'presetId' }
+                        ]
+                    }) }),
+                thumbnail: {
+                    get: this.versioned('organisations.cameras.presets.thumbnail.get', { v1: operation<ThumbnailGetV1Output, ThumbnailGetV1Input>({
+                            method: 'GET',
+                            url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}/thumbnail',
+                            fields: [
+                                { in: 'path', key: 'id' },
+                                { in: 'path', key: 'cameraId' },
+                                { in: 'path', key: 'presetId' }
+                            ]
+                        }) }),
+                    set: this.versioned('organisations.cameras.presets.thumbnail.set', { v1: operation<ThumbnailSetV1Output, ThumbnailSetV1Input>({
+                            method: 'PUT',
+                            url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}/thumbnail',
+                            fields: [
+                                { in: 'path', key: 'id' },
+                                { in: 'path', key: 'cameraId' },
+                                { in: 'path', key: 'presetId' },
+                                { in: 'body', key: 'contentType' },
+                                { in: 'body', key: 'data' }
+                            ]
+                        }) }),
+                    delete: this.versioned('organisations.cameras.presets.thumbnail.delete', { v1: operation<ThumbnailDeleteV1Output, ThumbnailDeleteV1Input>({
+                            method: 'DELETE',
+                            url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}/thumbnail',
+                            fields: [
+                                { in: 'path', key: 'id' },
+                                { in: 'path', key: 'cameraId' },
+                                { in: 'path', key: 'presetId' }
+                            ]
+                        }) })
+                }
+            },
+            control: {
+                connect: this.versioned('organisations.cameras.control.connect', { v1: operation<ControlConnectV1Output, ControlConnectV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/cameras/{cameraId}/control',
+                        fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'cameraId' }]
+                    }) })
+            }
         },
         browser: {
             ensure: this.versioned('organisations.browser.ensure', { v1: operation<BrowserEnsureV1Output, BrowserEnsureV1Input>({
@@ -920,6 +1045,70 @@ export class Client extends ClientCore {
                         fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'channelId' }]
                     }) })
             }
+        },
+        chatCommands: {
+            list: this.versioned('organisations.chatCommands.list', { v1: operation<ChatCommandListV1Output, ChatCommandListV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/chat-commands',
+                    fields: [{ in: 'path', key: 'id' }]
+                }) }),
+            create: this.versioned('organisations.chatCommands.create', { v1: operation<ChatCommandCreateV1Output, ChatCommandCreateV1Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/chat-commands',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'action' },
+                        { in: 'body', key: 'audience' },
+                        { in: 'body', key: 'cooldownSeconds' },
+                        { in: 'body', key: 'enabled' }
+                    ]
+                }) }),
+            get: this.versioned('organisations.chatCommands.get', { v1: operation<ChatCommandGetV1Output, ChatCommandGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/chat-commands/{commandId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'commandId' }]
+                }) }),
+            update: this.versioned('organisations.chatCommands.update', { v1: operation<ChatCommandUpdateV1Output, ChatCommandUpdateV1Input>({
+                    method: 'PATCH',
+                    url: '/organisations/{id}/chat-commands/{commandId}',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'commandId' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'action' },
+                        { in: 'body', key: 'audience' },
+                        { in: 'body', key: 'cooldownSeconds' },
+                        { in: 'body', key: 'enabled' }
+                    ]
+                }) }),
+            delete: this.versioned('organisations.chatCommands.delete', { v1: operation<ChatCommandDeleteV1Output, ChatCommandDeleteV1Input>({
+                    method: 'DELETE',
+                    url: '/organisations/{id}/chat-commands/{commandId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'commandId' }]
+                }) }),
+            trigger: this.versioned('organisations.chatCommands.trigger', { v1: operation<ChatCommandTriggerV1Output, ChatCommandTriggerV1Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/chat-commands/{commandId}/triggers',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'commandId' },
+                        { in: 'body', key: 'channelId' },
+                        { in: 'body', key: 'messageId' },
+                        { in: 'body', key: 'user' },
+                        { in: 'body', key: 'words' }
+                    ]
+                }) }),
+            settle: this.versioned('organisations.chatCommands.settle', { v1: operation<ChatCommandSettleV1Output, ChatCommandSettleV1Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/chat-commands/{commandId}/settlements',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'commandId' },
+                        { in: 'body', key: 'receipt' },
+                        { in: 'body', key: 'result' }
+                    ]
+                }) })
         }
     };
     readonly account = {
@@ -963,7 +1152,11 @@ export class Client extends ClientCore {
         create: this.versioned('irohSessions.create', { v1: operation<IrohSessionCreateV1Output>({ method: 'POST', url: '/iroh-sessions' }) })
     };
     readonly deviceConfiguration = {
-        get: this.versioned('deviceConfiguration.get', { v1: operation<DeviceConfigurationGetV1Output>({ method: 'GET', url: '/device-configuration' }), v2: operation<DeviceConfigurationGetV2Output>({ method: 'GET', url: '/device-configuration' }) })
+        get: this.versioned('deviceConfiguration.get', {
+            v1: operation<DeviceConfigurationGetV1Output>({ method: 'GET', url: '/device-configuration' }),
+            v2: operation<DeviceConfigurationGetV2Output>({ method: 'GET', url: '/device-configuration' }),
+            v3: operation<DeviceConfigurationGetV3Output>({ method: 'GET', url: '/device-configuration' })
+        })
     };
     readonly deviceAddresses = {
         replace: this.versioned('deviceAddresses.replace', { v1: operation<DeviceAddressReplaceV1Output, DeviceAddressReplaceV1Input>({

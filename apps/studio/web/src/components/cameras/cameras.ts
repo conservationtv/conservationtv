@@ -1,7 +1,9 @@
+import { chatName, type CameraPosition } from '@conservationtv/cameras';
 import type { Camera } from '@conservationtv/studio-sdk';
 import { z } from 'zod';
 
 import type { CameraSettingsInput } from '@/forms/schemas';
+import { API_URL } from '@/lib/auth-client';
 
 // What the studio knows about cameras, in words: the drivers it reads them with, the states they can be in, and how a
 // camera is reached (apps/studio/api/src/cameras/).
@@ -78,4 +80,50 @@ export function cameraSettingsInputOf(settings: Camera['settings']): CameraSetti
     resolutions: settings.resolutions.join(', '),
     url: ''
   };
+}
+
+/**
+ * What chat calls a camera: its name and its aliases as chat compares them, without case, spaces or punctuation, each
+ * once. `!ptz pondcam` finds the camera called "Pond Cam".
+ */
+export function cameraChatNamesOf(name: string, aliases: string[]): string[] {
+  const names = [name, ...aliases].map(chatName).filter(compared => compared !== '');
+  return [...new Set(names)];
+}
+
+/** One axis of a position, in words: what it is, and where the camera is on it. */
+export interface CameraAxisReading {
+  axis: string;
+  value: string;
+}
+
+/** A position axis by axis, for the axes it has: pan and tilt in degrees, zoom and focus as a share of their range. */
+export function cameraAxisReadingsOf(position: CameraPosition): CameraAxisReading[] {
+  const readings: CameraAxisReading[] = [];
+  if (position.pan !== undefined) readings.push({ axis: 'Pan', value: `${position.pan.toFixed(1)}°` });
+  if (position.tilt !== undefined) readings.push({ axis: 'Tilt', value: `${position.tilt.toFixed(1)}°` });
+  if (position.zoom !== undefined) readings.push({ axis: 'Zoom', value: `${Math.round(position.zoom * 100)}%` });
+  if (position.focus !== undefined) readings.push({ axis: 'Focus', value: `${Math.round(position.focus * 100)}%` });
+  return readings;
+}
+
+/** A position in a line: "Pan 12.0° · Tilt -3.5° · Zoom 40%". */
+export function cameraPositionLineOf(position: CameraPosition): string {
+  const readings = cameraAxisReadingsOf(position);
+  if (readings.length === 0) return 'No position';
+  return readings.map(reading => `${reading.axis} ${reading.value}`).join(' · ');
+}
+
+/**
+ * Where a preset's thumbnail is read from, or undefined for a preset without one. The address carries the thumbnail's
+ * token, which changes whenever the picture does, so the browser keeps each picture for good.
+ */
+export function presetThumbnailUrlOf(
+  organisationId: string,
+  cameraId: string,
+  preset: Camera['presets'][number]
+): string | undefined {
+  if (preset.thumbnail === null) return undefined;
+  const path = `/organisations/${organisationId}/cameras/${cameraId}/presets/${preset.id}/thumbnail`;
+  return `${API_URL}${path}?v=${encodeURIComponent(preset.thumbnail)}`;
 }

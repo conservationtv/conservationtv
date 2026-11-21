@@ -42,6 +42,29 @@ export default new Hono()
     }),
     async c => {
       const system = useSystem();
+      // As it was before the agent controlled cameras, listened to chat, or was told its peers.
+      const { cameras: _cameras, chat: _chat, peers: _peers, ...status } = await system.status();
+      c.header('Cache-Control', 'no-store');
+      return c.json(status, 200);
+    }
+  )
+  .get(
+    '/',
+    describeRoute({
+      operationId: 'system.get',
+      ...operationVersion(3),
+      summary: "Read the agent's runtimes",
+      description:
+        "Each runtime's live status, and whether it has accepted its latest spec. Live, never stored: after a restart " +
+        'it is rebuilt from the runtimes. From this version, with `cameras`, the cameras it controls and who holds ' +
+        'each; `chat`, the chat it listens to for commands; and `peers`, how many devices it serves.',
+      responses: {
+        200: { description: "Every runtime's status" },
+        412: versionMismatch
+      }
+    }),
+    async c => {
+      const system = useSystem();
       const status = await system.status();
       c.header('Cache-Control', 'no-store');
       return c.json(status, 200);

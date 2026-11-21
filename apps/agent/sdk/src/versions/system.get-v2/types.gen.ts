@@ -161,7 +161,7 @@ export type System = {
             control: 'external' | 'show' | null;
             collection: string | null;
             streaming: 'reconnecting' | 'starting' | 'streaming' | null;
-            recording: 'recording' | 'starting' | 'stopping' | null;
+            recording: 'recording' | 'stopping' | 'starting' | null;
             program: {
                 forwards: Array<string>;
                 previews: Array<string>;
@@ -232,7 +232,7 @@ export type System = {
     show: {
         runtime: {
             show: string | null;
-            phase: 'idle' | 'error' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
+            phase: 'idle' | 'error' | 'settled' | 'disposed' | 'connecting' | 'downloading-assets' | 'synchronising' | 'disconnected' | null;
         };
         apply: {
             state: 'applying';

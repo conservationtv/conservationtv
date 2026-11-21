@@ -74,6 +74,26 @@ export type System = {
             url: string;
         }>;
     };
+    cameras?: {
+        issuer: string;
+        cameras: Array<{
+            id: string;
+            settings: {
+                driver: 'axis';
+                host: string;
+                resolutions: Array<string>;
+                rtspPort?: number;
+            } | {
+                driver: 'rtsp';
+                url: string;
+            };
+            state: 'enabled' | 'locked' | 'disabled';
+            credentials?: {
+                username: string;
+                password: string;
+            };
+        }>;
+    };
     obs?: {
         output: {
             id: string;
@@ -120,6 +140,29 @@ export type System = {
     show?: {
         id: string;
         url: string;
+    };
+    chat?: {
+        organisationId: string;
+        channels: Array<{
+            channelId: string;
+            platform: 'twitch';
+            login: string;
+        }>;
+        commands: Array<{
+            id: string;
+            name: string;
+            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+            cooldownSeconds: number;
+        }>;
+    };
+    peers?: {
+        peers: Array<{
+            endpointId: string;
+            allow: {
+                relayed: boolean;
+                direct: boolean;
+            };
+        }>;
     };
 };
 
