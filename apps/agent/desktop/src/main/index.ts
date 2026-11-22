@@ -40,7 +40,10 @@ function run() {
   });
   app.on('second-instance', (_event, argv) => {
     showWindow();
-    for (const url of argv.filter(isLink)) void handleLink(url);
+    for (const url of argv.filter(isLink)) {
+      if (ready) void handleLink(url);
+      else early.push(url);
+    }
   });
 
   // macOS keeps an app, and so its agent, running with no window, until it is quit; elsewhere closing it quits.
@@ -73,9 +76,11 @@ function run() {
     showWindow();
     await host.use(await readSettings());
     ready = true;
-    // A link the app was opened with sets it up afresh; otherwise it runs as it was set up.
-    if (early.length > 0) for (const url of early.splice(0)) await handleLink(url);
-    else await host.start();
+    // A link the app was opened with sets it up afresh; otherwise, or when no such link is taken, it runs as it was set
+    // up.
+    let taken = false;
+    for (const url of early.splice(0)) taken = (await handleLink(url)) || taken;
+    if (!taken) await host.start();
   });
 
   function showWindow() {
@@ -115,19 +120,21 @@ function run() {
   }
 
   /** Ask before a link replaces the agent the app runs as, then run as the link's. */
-  async function handleLink(url: string) {
+  /** Set the app up from a link, if it is one and the person agrees: whether it was. */
+  async function handleLink(url: string): Promise<boolean> {
     showWindow();
     const link = parseLink(url);
     if (link instanceof Error) {
       dialog.showErrorBox('This link cannot set up the agent', link.message);
-      return;
+      return false;
     }
-    if (!(await confirmSetup(link))) return;
+    if (!(await confirmSetup(link))) return false;
     const settings = { id: link.id, name: link.name, apiUrl: link.apiUrl, secretKey: link.secretKey };
     await writeSettings(settings);
     logger.info('Set up as {name} for {apiUrl}', { name: link.name, apiUrl: link.apiUrl });
     await host.use(settings);
     await host.start();
+    return true;
   }
 
   /** Whether the person agrees to run as the link's agent. The same agent again needs no asking. */
