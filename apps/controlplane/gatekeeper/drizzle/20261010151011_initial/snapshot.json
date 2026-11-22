@@ -1,31 +1,270 @@
 {
+  "type": "base",
+  "version": "10",
+  "dialect": "postgres",
   "id": "c827403f-6d2a-4392-befa-e947572cfd7a",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
-  "version": "8",
-  "dialect": "postgres",
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "iroh_lease_status"
+      ],
+      "writes": [
+        "s|enum|public.iroh_lease_status",
+        "n|enum|public.iroh_lease_status",
+        "e|enum|public.iroh_lease_status",
+        "n|type|public.iroh_lease_status"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "assertion_replays"
+      ],
+      "writes": [
+        "s|tbl|public.assertion_replays",
+        "n|tbl|public.assertion_replays",
+        "e|tbl|public.assertion_replays",
+        "n|rel|public.assertion_replays",
+        "n|type|public.assertion_replays",
+        "n|rel|public.assertion_replays_principal_id_jti_pk"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "grants"
+      ],
+      "writes": [
+        "s|tbl|public.grants",
+        "n|tbl|public.grants",
+        "e|tbl|public.grants",
+        "n|rel|public.grants",
+        "n|type|public.grants",
+        "n|rel|public.grants_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "iroh_leases"
+      ],
+      "writes": [
+        "s|tbl|public.iroh_leases",
+        "n|tbl|public.iroh_leases",
+        "e|tbl|public.iroh_leases",
+        "n|rel|public.iroh_leases",
+        "n|type|public.iroh_leases",
+        "n|rel|public.iroh_leases_pkey"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.iroh_lease_status"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "jwks_cache"
+      ],
+      "writes": [
+        "s|tbl|public.jwks_cache",
+        "n|tbl|public.jwks_cache",
+        "e|tbl|public.jwks_cache",
+        "n|rel|public.jwks_cache",
+        "n|type|public.jwks_cache",
+        "n|rel|public.jwks_cache_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "assertion_replays",
+        "assertion_replays_expires_at_index"
+      ],
+      "writes": [
+        "s|idx|public.assertion_replays_expires_at_index",
+        "n|idx|public.assertion_replays_expires_at_index",
+        "e|idx|public.assertion_replays_expires_at_index",
+        "n|rel|public.assertion_replays_expires_at_index"
+      ],
+      "reads": [
+        "n|tbl|public.assertion_replays",
+        "n|sch|public",
+        "n|col|public.assertion_replays.expires_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "grants",
+        "grants_principal_id_subject_index"
+      ],
+      "writes": [
+        "s|idx|public.grants_principal_id_subject_index",
+        "n|idx|public.grants_principal_id_subject_index",
+        "e|idx|public.grants_principal_id_subject_index",
+        "n|rel|public.grants_principal_id_subject_index"
+      ],
+      "reads": [
+        "n|tbl|public.grants",
+        "n|sch|public",
+        "n|col|public.grants.principal_id",
+        "n|col|public.grants.subject"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "grants",
+        "grants_issued_at_index"
+      ],
+      "writes": [
+        "s|idx|public.grants_issued_at_index",
+        "n|idx|public.grants_issued_at_index",
+        "e|idx|public.grants_issued_at_index",
+        "n|rel|public.grants_issued_at_index"
+      ],
+      "reads": [
+        "n|tbl|public.grants",
+        "n|sch|public",
+        "n|col|public.grants.issued_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "iroh_leases",
+        "iroh_leases_endpoint_id_expires_at_index"
+      ],
+      "writes": [
+        "s|idx|public.iroh_leases_endpoint_id_expires_at_index",
+        "n|idx|public.iroh_leases_endpoint_id_expires_at_index",
+        "e|idx|public.iroh_leases_endpoint_id_expires_at_index",
+        "n|rel|public.iroh_leases_endpoint_id_expires_at_index"
+      ],
+      "reads": [
+        "n|tbl|public.iroh_leases",
+        "n|sch|public",
+        "n|col|public.iroh_leases.endpoint_id",
+        "n|col|public.iroh_leases.expires_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "iroh_leases",
+        "iroh_leases_grant_id_index"
+      ],
+      "writes": [
+        "s|idx|public.iroh_leases_grant_id_index",
+        "n|idx|public.iroh_leases_grant_id_index",
+        "e|idx|public.iroh_leases_grant_id_index",
+        "n|rel|public.iroh_leases_grant_id_index"
+      ],
+      "reads": [
+        "n|tbl|public.iroh_leases",
+        "n|sch|public",
+        "n|col|public.iroh_leases.grant_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "iroh_leases"
+      ],
+      "writes": [
+        "s|fk|public.iroh_leases.iroh_leases_grant_id_grants_id_fk",
+        "n|fk|public.iroh_leases.iroh_leases_grant_id_grants_id_fk",
+        "e|fk|public.iroh_leases.iroh_leases_grant_id_grants_id_fk",
+        "n|con|public.iroh_leases.iroh_leases_grant_id_grants_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.iroh_leases",
+        "n|sch|public",
+        "n|tbl|public.grants",
+        "n|sch|public",
+        "n|col|public.iroh_leases.grant_id",
+        "n|col|public.grants.id",
+        "e|uniqueness|public.grants.id"
+      ]
+    }
+  ],
   "ddl": [
     {
-      "isRlsEnabled": false,
-      "name": "assertion_replays",
       "schema": "public",
+      "name": "assertion_replays",
+      "isRlsEnabled": false,
       "entityType": "tables"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "public",
+      "name": "grants",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "iroh_leases",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "jwks_cache",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "iroh_lease_status",
+      "values": [
+        "active",
+        "revoked"
+      ],
+      "entityType": "enums"
+    },
+    {
+      "schema": "public",
+      "table": "assertion_replays",
       "name": "principal_id",
-      "schema": "public",
-      "table": "assertion_replays",
-      "entityType": "columns"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -33,12 +272,25 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "jti",
-      "schema": "public",
-      "table": "assertion_replays",
       "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "assertion_replays",
+      "name": "jti",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "assertion_replays",
+      "name": "expires_at",
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -46,23 +298,337 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "expires_at",
-      "schema": "public",
-      "table": "assertion_replays",
       "entityType": "columns"
     },
     {
-      "columns": [
-        "principal_id",
-        "jti"
-      ],
-      "nameExplicit": false,
-      "name": "assertion_replays_principal_id_jti_pk",
       "schema": "public",
-      "table": "assertion_replays",
-      "entityType": "pks"
+      "table": "grants",
+      "name": "id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
     },
     {
+      "schema": "public",
+      "table": "grants",
+      "name": "principal_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "subject",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "assertion_jti",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "assertion_key_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "moq_root",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "moq_publish",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 1,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "moq_subscribe",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 1,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "iroh_endpoint_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "issued_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "expires_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grants",
+      "name": "revoked_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "endpoint_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "grant_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "principal_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "subject",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "expires_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "status",
+      "type": "iroh_lease_status",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'active'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "jwks_cache",
+      "name": "jwks_uri",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "jwks_cache",
+      "name": "keys",
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "jwks_cache",
+      "name": "fetched_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "jwks_cache",
+      "name": "fresh_until",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "jwks_cache",
+      "name": "stale_until",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "assertion_replays",
+      "name": "assertion_replays_expires_at_index",
       "nameExplicit": false,
       "columns": [
         {
@@ -77,185 +643,12 @@
       "where": null,
       "with": "",
       "method": "btree",
-      "concurrently": false,
-      "name": "assertion_replays_expires_at_index",
-      "schema": "public",
-      "table": "assertion_replays",
       "entityType": "indexes"
     },
     {
-      "isRlsEnabled": false,
-      "name": "grants",
-      "schema": "public",
-      "entityType": "tables"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "grants_pkey",
       "schema": "public",
       "table": "grants",
-      "entityType": "pks"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "principal_id",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "subject",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "assertion_jti",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "assertion_key_id",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "moq_root",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "moq_publish",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "moq_subscribe",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "iroh_endpoint_id",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "issued_at",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "revoked_at",
-      "schema": "public",
-      "table": "grants",
-      "entityType": "columns"
-    },
-    {
+      "name": "grants_principal_id_subject_index",
       "nameExplicit": false,
       "columns": [
         {
@@ -277,13 +670,12 @@
       "where": null,
       "with": "",
       "method": "btree",
-      "concurrently": false,
-      "name": "grants_principal_id_subject_index",
-      "schema": "public",
-      "table": "grants",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "grants",
+      "name": "grants_issued_at_index",
       "nameExplicit": false,
       "columns": [
         {
@@ -298,133 +690,12 @@
       "where": null,
       "with": "",
       "method": "btree",
-      "concurrently": false,
-      "name": "grants_issued_at_index",
-      "schema": "public",
-      "table": "grants",
       "entityType": "indexes"
     },
     {
-      "isRlsEnabled": false,
-      "name": "iroh_leases",
-      "schema": "public",
-      "entityType": "tables"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "iroh_leases_pkey",
       "schema": "public",
       "table": "iroh_leases",
-      "entityType": "pks"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "endpoint_id",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "grant_id",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "principal_id",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "subject",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
-      "type": "iroh_lease_status",
-      "typeSchema": "public",
-      "notNull": true,
-      "dimensions": 0,
-      "default": "'active'",
-      "generated": null,
-      "identity": null,
-      "name": "status",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "schema": "public",
-      "table": "iroh_leases",
-      "entityType": "columns"
-    },
-    {
+      "name": "iroh_leases_endpoint_id_expires_at_index",
       "nameExplicit": false,
       "columns": [
         {
@@ -446,13 +717,12 @@
       "where": null,
       "with": "",
       "method": "btree",
-      "concurrently": false,
-      "name": "iroh_leases_endpoint_id_expires_at_index",
-      "schema": "public",
-      "table": "iroh_leases",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "iroh_leases_grant_id_index",
       "nameExplicit": false,
       "columns": [
         {
@@ -467,13 +737,12 @@
       "where": null,
       "with": "",
       "method": "btree",
-      "concurrently": false,
-      "name": "iroh_leases_grant_id_index",
-      "schema": "public",
-      "table": "iroh_leases",
       "entityType": "indexes"
     },
     {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "iroh_leases_grant_id_grants_id_fk",
       "nameExplicit": false,
       "columns": [
         "grant_id"
@@ -485,101 +754,48 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
-      "name": "iroh_leases_grant_id_grants_id_fk",
-      "schema": "public",
-      "table": "iroh_leases",
       "entityType": "fks"
     },
     {
-      "isRlsEnabled": false,
-      "name": "jwks_cache",
       "schema": "public",
-      "entityType": "tables"
+      "table": "assertion_replays",
+      "name": "assertion_replays_principal_id_jti_pk",
+      "columns": [
+        "principal_id",
+        "jti"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
     },
     {
+      "schema": "public",
+      "table": "grants",
+      "name": "grants_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "iroh_leases",
+      "name": "iroh_leases_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "jwks_cache",
+      "name": "jwks_cache_pkey",
       "columns": [
         "jwks_uri"
       ],
       "nameExplicit": false,
-      "name": "jwks_cache_pkey",
-      "schema": "public",
-      "table": "jwks_cache",
       "entityType": "pks"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "jwks_uri",
-      "schema": "public",
-      "table": "jwks_cache",
-      "entityType": "columns"
-    },
-    {
-      "type": "jsonb",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "keys",
-      "schema": "public",
-      "table": "jwks_cache",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "fetched_at",
-      "schema": "public",
-      "table": "jwks_cache",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "fresh_until",
-      "schema": "public",
-      "table": "jwks_cache",
-      "entityType": "columns"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "stale_until",
-      "schema": "public",
-      "table": "jwks_cache",
-      "entityType": "columns"
-    },
-    {
-      "values": [
-        "active",
-        "revoked"
-      ],
-      "name": "iroh_lease_status",
-      "schema": "public",
-      "entityType": "enums"
     }
-  ],
-  "renames": []
+  ]
 }
