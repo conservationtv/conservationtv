@@ -15,6 +15,7 @@ import { type NamedCamera, type NamedPreset, resolveCameraPreset } from './resol
 //    │                      3. the viewer is in its audience                             else notRun: audience
 //    │                      4. its words name a camera and preset it can use             else notRun: unresolved
 //    │                      5. an agent reaches that camera                              else notRun: unavailable
+//    │                         (why 4 or 5 failed is said in chat only to a moderator or the broadcaster)
 //    │                      6. its turn is taken: the cooldown is spent, here and only here   else notRun: resting
 //    │                      7. a reply is said in chat (ran), or a grant is signed for the move (planned)
 //    │ planned: cameraCommands, receipt
@@ -32,7 +33,7 @@ import { type NamedCamera, type NamedPreset, resolveCameraPreset } from './resol
 //
 // Steps 2 to 5 are decided here, from facts read first, so the decision is pure: the same facts come to the same
 // thing wherever it is made. Nothing up to step 5 writes anything, so a use that comes to nothing spends nothing: a
-// typo answers in chat and leaves the command free for the corrected use straight after. Step 6 is the one write, a
+// typo leaves the command free for the corrected use straight after. Step 6 is the one write, a
 // conditional UPDATE (src/services/chat-commands.ts), so two uses at once cannot both take the turn; the decision
 // names it `resting` already when the facts show the command resting, and the UPDATE has the last word. Chat is told
 // a camera moves only once it has: what is said of a planned use waits for its settlement.
@@ -112,7 +113,12 @@ export function decideUse(facts: UseFacts): Decision {
   // Who may use it before anything else is said of it, so someone who may not is told nothing.
   if (!inAudience(command.audience, facts.roles)) return notRun('audience', rest);
   const planned = plan(command.action, facts);
-  if (planned.kind === 'notRun') return { ...planned, restsUntil: rest };
+  if (planned.kind === 'notRun') {
+    // A use that doesn't run spends nothing, so the cooldown can't bound how often it is answered: only those trusted
+    // to moderate the chat are told why, so no one else can have the broadcaster's account post at their pace.
+    const told = inAudience('moderator', facts.roles);
+    return { ...planned, reply: told ? planned.reply : null, restsUntil: rest };
+  }
   // Resting last: a use that would come to nothing says why even while the command rests, and spends nothing.
   if (rest !== null) return notRun('resting', rest);
   return planned;
