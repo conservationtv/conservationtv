@@ -30,10 +30,9 @@ import { listening } from './loopback.ts';
 // apart (`destinations`, program-metrics.ts).
 //
 // Everything listens on loopback only, and only loopback may publish or read. The config is assembled by the common
-// step (mediamtx/config.ts) and the program's own below, and rewritten whenever a forward, a preview or an input
-// changes, which a running MediaMTX reloads by itself. Writing an input's own path drops the reader waiting on it
-// once, which a media source reconnects from after its reconnect delay: a second for the show's (ctv-stream.ts), ten
-// by OBS's default. Its log goes to the process's log file, so every
+// step (mediamtx/config.ts) and the program's own below, and rewritten whenever a forward or a preview changes, which
+// a running MediaMTX reloads by itself. Inputs never change it: they are all read through the one pattern. Its log goes
+// to the process's log file, so every
 // publish, read, and forward is recorded there. Its metrics page is read for the program's reports (program-metrics.ts).
 
 /** The path OBS streams to, as the RTMP application and stream key its profile names. */
@@ -48,10 +47,7 @@ const PROGRAM_TRACKS: AlwaysAvailableTrack[] = [
   { codec: 'MPEG4Audio', sampleRate: 48_000, channelCount: 2 }
 ];
 
-/**
- * How long a reader waits for an input's relay to start: asking for a session, reading the catalog and starting `moq`
- * take a few seconds.
- */
+/** How long a reader waits for an input's relay to start: asking for a session and starting `moq` take a few seconds. */
 const INPUT_START_TIMEOUT = '30s';
 /** How long an input read on demand is wanted after its last reader goes. */
 const INPUT_CLOSE_AFTER = '10s';

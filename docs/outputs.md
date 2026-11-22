@@ -101,15 +101,16 @@ does the same. The agent relays each exposure only while something reads it (`ou
 
 1. The first read hits a regex path whose `runOnDemand` runs a small Node launcher. While it runs, the launcher holds a
    request open to the agent's loopback demand server, naming the path.
-2. The agent asks for a read session as its device, reads the stream's catalog, and writes the path its own config.
-   That config is always available with the stream's tracks, with `runOnRead` running the same launcher. Writing it
-   drops the waiting reader once, and OBS's media source reconnects after its reconnect delay. vignette's `ctv-stream`
-   sets 1 s; OBS's default is 10 s, so an external controller should set its media sources' reconnect delay to 1 s,
-   or the first read of an exposure shows nothing for 10 s.
-3. `moq … export rtmp` pushes into the path. When the relay restarts on renewing its session, OBS plays the offline
-   segment instead of losing the stream.
-4. Once no launcher has held the path for 30 s, the relay stops and the path's config goes. A launcher gives up its
-   request once its MediaMTX is gone (its parent process changes), so a crashed MediaMTX doesn't leave paths held.
+2. The agent asks for a read session as its device and starts `moq … export rtmp`, which publishes into the same path,
+   so the waiting reader plays it as soon as it arrives, within the path's 30 s start timeout. No path gets a config
+   of its own, so relays coming and going never rewrite MediaMTX's config. The camera's tracks pass through as it
+   sends them, audio included.
+3. There is no offline segment: while a relay is down, OBS has nothing from that input. When the relay restarts on
+   renewing its session (about hourly), OBS's media source reconnects after its reconnect delay. vignette's
+   `ctv-stream` sets 1 s; OBS's default is 10 s, so an external controller should set its media sources' reconnect
+   delay to 1 s.
+4. Once no launcher has held the path for 30 s, the relay stops. A launcher gives up its request once its MediaMTX is
+   gone (its parent process changes), so a crashed MediaMTX doesn't leave paths held.
 
 The studio API decides what may be read (`src/gateways/connect.ts`): what the followed show places, or, under
 `external`, anything in the organisation.
@@ -117,8 +118,6 @@ The studio API decides what may be read (`src/gateways/connect.ts`): what the fo
 Checked by hand against MediaMTX v1.21.2 on macOS:
 
 - `runOnDemand` on a regex path, with single-quoted arguments containing spaces.
-- Writing the explicit path drops the waiting reader once.
-- `runOnRead` on an always-available path, started and stopped with each reader.
 
 ## Not done yet
 
