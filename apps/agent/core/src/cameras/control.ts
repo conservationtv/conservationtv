@@ -16,6 +16,7 @@ import {
   Alarms,
   CAMERA_TIMEOUT_MS,
   cameraStore,
+  type CameraContext,
   type CameraStore,
   heldAgainst,
   ledgerStore,
@@ -137,6 +138,11 @@ export class CameraControl {
   readonly status$ = new BehaviorSubject<CamerasStatus>({ cameras: 0, held: {} });
   private issuer = '';
   private readonly cameras = new Map<string, Controlled>();
+  /**
+   * Cameras let go of while they may be moving, by ID: still being sent stops (camera-machine.ts), or given up on. One
+   * that comes back under a new registration is stopped by its new driver instead.
+   */
+  private readonly letGo = new Map<string, Controlled>();
   /** The single-command grants already used. */
   private readonly ledger = ledgerStore();
   private readonly time: Time;
@@ -158,41 +164,54 @@ export class CameraControl {
     const enabled = new Map(
       spec.cameras.filter(camera => camera.state === 'enabled').map(camera => [camera.id, camera])
     );
-    // The cameras let go of with a stop they didn't take: one that comes back under a new registration is stopped
-    // at once by its new driver.
-    const moving = new Set<string>();
     for (const [id, camera] of this.cameras) {
       const next = enabled.get(id);
       if (next !== undefined && registrationOf(next) === camera.registration) continue;
-      const left = await this.release(camera);
-      if (left) moving.add(id);
+      this.release(camera);
     }
     const at = this.time.now();
     for (const [id, camera] of enabled) {
       if (this.cameras.has(id)) continue;
       const controlled = this.controlled(id, camera);
       this.cameras.set(id, controlled);
-      if (moving.has(id)) controlled.store.trigger.adopted({ at });
+      // One let go of while it may be moving, back under a new registration: stopped at once by its new driver,
+      // which may reach it where the last one didn't, and no longer by the last.
+      const left = this.letGo.get(id);
+      if (left === undefined) continue;
+      this.letGo.delete(id);
+      left.store.trigger.abandoned({ at });
+      const { life } = left.store.getSnapshot().context;
+      const axes = life.status === 'released' ? life.moving : [];
+      if (axes.length > 0) controlled.store.trigger.adopted({ axes, at });
     }
     this.derive();
   }
 
-  /** Stop controlling every camera, stopping any that is being driven. */
+  /**
+   * Stop controlling every camera, stopping any that is being driven: waiting up to CAMERA_TIMEOUT_MS for the stops to
+   * be taken. Those that aren't are sent stops again for a while after (camera-machine.ts).
+   */
   async teardown(): Promise<void> {
-    for (const camera of this.cameras.values()) await this.release(camera);
+    for (const camera of this.cameras.values()) this.release(camera);
     const at = this.time.now();
     this.ledger.trigger.cleared({ at });
     this.derive();
+    const stopped = Promise.all([...this.letGo.values()].map(camera => until(camera.store, stoppedTrying)));
+    let cancel = () => {};
+    const waited = new Promise<void>(resolve => (cancel = this.time.after(CAMERA_TIMEOUT_MS, resolve)));
+    await Promise.race([stopped, waited]);
+    cancel();
   }
 
   /** Stop everything at once: nothing more is said to any camera, and no timer is left set. */
   dispose(): void {
     const at = this.time.now();
-    for (const camera of this.cameras.values()) {
+    for (const camera of [...this.cameras.values(), ...this.letGo.values()]) {
       camera.store.trigger.disposed({ at });
       camera.ends.abort();
       camera.reads.abort();
     }
+    this.letGo.clear();
   }
 
   /** The cameras controlled here, each with what it can do. */
@@ -281,15 +300,22 @@ export class CameraControl {
     return { id, registration: registrationOf(spec), driver, store, alarms, reads, ends, watched, unfollow };
   }
 
-  /** Stop the camera if it may be moving, and forget it: whether it may still be moving, its stop not taken. */
-  private async release(camera: Controlled): Promise<boolean> {
+  /**
+   * Stop the camera if it may be moving, and forget it. One that may be moving is kept among those let go of until it
+   * has been stopped, which nothing here waits for: its stops go on in its store, without holding up the next apply.
+   */
+  private release(camera: Controlled): void {
     this.cameras.delete(camera.id);
     const at = this.time.now();
     camera.store.trigger.released({ at });
     camera.reads.abort();
-    const context = await until(camera.store, next => next.life.status === 'released');
     camera.unfollow();
-    return context.life.status === 'released' && context.life.moving;
+    if (stopped(camera.store.getSnapshot().context)) return;
+    this.letGo.set(camera.id, camera);
+    // Kept while it may still be moving, given up on, so a new registration of it still stops it.
+    void until(camera.store, stoppedTrying).then(context => {
+      if (stopped(context) && this.letGo.get(camera.id) === camera) this.letGo.delete(camera.id);
+    });
   }
 
   /** What the camera can do: asked once, and again each time until it answers. */
@@ -371,3 +397,13 @@ function registrationOf(spec: CameraSpec): string {
 
 /** The agent's camera control. The agent supplies it on start; the API's camera routes read it with `useCameraControl()`. */
 export const [withCameraControl, useCameraControl] = createStore<CameraControl>('cameraControl');
+
+/** Whether a camera let go of has been stopped, or wasn't moving. */
+function stopped(context: CameraContext): boolean {
+  return context.life.status === 'released' && context.life.moving.length === 0;
+}
+
+/** Whether a camera let go of is no longer being sent stops: stopped, or given up on. */
+function stoppedTrying(context: CameraContext): boolean {
+  return context.life.status === 'released';
+}

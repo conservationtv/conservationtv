@@ -1,9 +1,13 @@
-import type {
-  CameraCapabilities,
-  CameraCommand,
-  CameraGrantPriority,
-  CameraOptionValues,
-  CameraPosition
+import {
+  drivenAxes,
+  movedAxes,
+  type CameraAxis,
+  type CameraCapabilities,
+  type CameraCommand,
+  type CameraGrantPriority,
+  type CameraOptionValues,
+  type CameraPosition,
+  type Drive as DriveCommand
 } from '@conservationtv/cameras';
 import type { CameraDriver } from '@conservationtv/cameras/control';
 import { getLogger } from '@logtape/logtape';
@@ -22,14 +26,19 @@ import type { CameraControlState, CameraHolder } from './control.ts';
 //
 // A camera's store holds five things, each a small machine of its own:
 //
-//   life     whether the camera is still controlled here. One that is let go while it may be moving is stopped first:
+//   life     whether the camera is still controlled here. One that is let go while it may be moving is stopped first,
+//            on the axes it may be moving on, and sent the stop again every `DRIVE_TIMEOUT_MS` until it takes one, for
+//            up to `RELEASE_STOPS_MS`: nothing else will ever stop it, since a camera keeps moving until it is told:
 //
-//              controlled ── released, not being driven; or disposed of ──────────────────────▶ released
-//                   │                                                                              ▲
-//                   └── released while being driven ──▶ releasing ── its stop answered, or not ───┘
+//              controlled ── released, not being driven; or disposed of ─────────────────────────▶ released
+//                   │                                                                                  ▲
+//                   └── released while being driven ──▶ releasing ── its stop taken, or given up on ───┘
+//                                                        │  ▲         (or abandoned to a new registration)
+//                                                        └──┘ its stop not taken: sent again (retryDue)
 //
-//            One let go of with a stop it didn't take is `released` as maybe `moving`: when a new registration
-//            replaces it, the new one is `adopted` as being driven with its deadline come, and so stopped at once.
+//            One let go of with a stop it never took is `released` as maybe `moving` on its axes: when a new
+//            registration replaces it, that one stops trying (`abandoned`), and the new one is `adopted` as being
+//            driven on those axes with its deadline come, and so stopped at once.
 //
 //   hold     who is at the camera's controls. A person's command takes the camera, from anyone, until `HOLD_MS`
 //            after it; automation's command neither takes it nor renews it, and is turned away while someone other
@@ -40,19 +49,24 @@ import type { CameraControlState, CameraHolder } from './control.ts';
 //                                               │  ▲
 //                                               └──┘ a person's command: theirs, until HOLD_MS from now
 //
-//   drive    whether the camera may be moving on a `drive`, and so has a stop coming. A drive is taken to reach the
-//            camera whether or not it answers: one that times out may have got there all the same. So sending one
-//            arms the deadline, far enough off to cover its answer, and its answer, either way, sets it to
-//            `DRIVE_TIMEOUT_MS` from then. Only a later move or stop the camera took, which it carried out after the
-//            drive, says the camera is no longer driven; one that failed says nothing, and neither does setting an
-//            option or running an action, which leave the deadline where it was. A deadline that passes stops the camera, and a stop the camera doesn't take is tried
-//            again after another `DRIVE_TIMEOUT_MS`, for as long as the camera is controlled:
+//   drive    whether the camera may be moving on a `drive`, on which axes, and so has a stop coming. Each axis moves
+//            on its own: a drive on one carries on through a move to a place on another (`movedAxes`), so a drive is
+//            sent naming only the axes it moves and those it stops, and a stop names only the axes that may be
+//            moving. A drive is taken to reach the camera whether or not it answers: one that times out may have got
+//            there all the same. So sending one arms the deadline, far enough off to cover its answer, and adds its
+//            axes to those that may be moving; its answer, either way, sets the deadline to `DRIVE_TIMEOUT_MS` from
+//            then, and when the camera took it, its axes are the only ones still moving. Only a later move or stop the
+//            camera took, carried out after the drive, says an axis is no longer driven, and only the axes it moved;
+//            one that failed says nothing, and neither does setting an option or running an action. A deadline that
+//            passes stops the axes that may be moving, and a stop the camera doesn't take is tried again after
+//            another `DRIVE_TIMEOUT_MS`, for as long as the camera is controlled:
 //
-//              idle ── drive sent ──▶ driving(deadline) ── deadline passes ──▶ stopping ── stop taken ──▶ idle
-//                ▲     (or adopted)    │  ▲     ▲                               │
-//                │                     │  │     └──────── stop not taken ───────┘
+//              idle ── drive sent ──▶ driving(deadline, axes) ── deadline passes ──▶ stopping(axes) ── taken ──▶ idle
+//                ▲     (or adopted)    │  ▲     ▲                                    │
+//                │                     │  │     └────────── stop not taken ──────────┘
 //                │                     │  └─ drive sent, or the latest one answered (or not): a new deadline
-//                └── a move or stop sent later than the last drive (or stop) is taken ──┘   (from stopping too)
+//                └── a move or stop sent later than the last drive (or stop) is taken, ──┘   (from stopping too)
+//                    and no axis is left moving
 //
 //            Commands are numbered as they are sent (`seq`), and are taken to reach the camera in that order: the
 //            drive that counts is the last one sent, and a command replaces it only if it was sent after it.
@@ -95,6 +109,10 @@ export const WATCH_INTERVAL_MS = 1_000;
 export const DRIVEN_INTERVAL_MS = 250;
 /** How many of those asks pass between asking what its options are set to, which change far less. */
 export const OPTIONS_EVERY = 5;
+/** How long a camera let go of while it may be moving is still sent stops, until one is taken. */
+export const RELEASE_STOPS_MS = 5 * 60_000;
+/** The axes a `stop` command stops: every one, but focus only while it is driven (see `CameraDriver.stop`). */
+const STOPPED_AXES: CameraAxis[] = ['pan', 'tilt', 'zoom'];
 
 // The time the camera's control keeps, the clock and timers on it, is the agent's (time.ts): the real one, unless told
 // otherwise.
@@ -106,14 +124,22 @@ interface Controlled {
 
 interface Releasing {
   status: 'releasing';
-  /** The stop it was let go with. */
+  /** The latest stop it was let go with. */
   seq: number;
+  /** The axes it may be moving on, which each stop names. */
+  axes: CameraAxis[];
+  /** How many stops it has been sent. */
+  tries: number;
+  /** Epoch milliseconds: when the stop is sent again, after one it didn't take; undefined while one is on its way. */
+  retryAt: number | undefined;
+  /** Epoch milliseconds: when it is given up on, as left moving. */
+  until: number;
 }
 
 interface Released {
   status: 'released';
-  /** It was let go of with a stop it didn't take, so it may still be moving. */
-  moving: boolean;
+  /** The axes it may still be moving on, let go of with a stop it didn't take: none when it was stopped. */
+  moving: CameraAxis[];
 }
 
 /** Whether the camera is controlled here, being let go of, or let go. */
@@ -144,12 +170,18 @@ interface Driving {
   since: number;
   /** Epoch milliseconds: when it is stopped unless a drive or a command comes first. */
   deadline: number;
+  /** The axes it may be moving on: those a drive moved, until a later drive or move the camera took says otherwise. */
+  axes: CameraAxis[];
+  /** The axes the latest drive moves: once the camera takes it, those are the only ones still moving. */
+  latest: CameraAxis[];
 }
 
 interface Stopping {
   status: 'stopping';
   /** The agent's own stop, sent when the deadline passed. */
   seq: number;
+  /** The axes it stops. */
+  axes: CameraAxis[];
 }
 
 /** Whether the camera may be moving on a drive, and so has a stop coming. */
@@ -258,10 +290,17 @@ export interface CommandSettledEvent extends AtEvent {
   /** Its number, in the order commands were sent. */
   seq: number;
   kind: Kind;
+  /** The axes it took somewhere of its own, or stopped: a drive on them is over once the camera took it. */
+  moved: CameraAxis[];
 }
 
 export interface CommandFailedEvent extends CommandSettledEvent {
   error: unknown;
+}
+
+export interface AdoptedEvent extends AtEvent {
+  /** The axes it may be moving on. */
+  axes: CameraAxis[];
 }
 
 export interface HaltEvent extends AtEvent {
@@ -330,7 +369,11 @@ export type CameraEvents = {
   /** Everything stops now, the camera with nothing more said to it. */
   disposed: AtEvent;
   /** It may be moving on a drive given under the registration this one replaces, whose stop it didn't take. */
-  adopted: AtEvent;
+  adopted: AdoptedEvent;
+  /** The time to send a stop again came, while it is being let go of. */
+  retryDue: AtEvent;
+  /** Its new registration stops it instead: one being let go of is left as maybe moving, and stops trying. */
+  abandoned: AtEvent;
 };
 
 export interface SettledEvent {
@@ -361,8 +404,8 @@ type Enqueue = EnqueueObject<CameraContext, ExtractEvents<CameraEmitted>, Camera
 export type CameraStore = Store<CameraContext, CameraEvents, ExtractEvents<CameraEmitted>>;
 
 const CONTROLLED: Life = { status: 'controlled' };
-const RELEASED: Life = { status: 'released', moving: false };
-const LEFT_MOVING: Life = { status: 'released', moving: true };
+const RELEASED: Life = { status: 'released', moving: [] };
+const leftMoving = (axes: CameraAxis[]): Life => ({ status: 'released', moving: axes });
 const FREE: Hold = { status: 'free' };
 const IDLE: Drive = { status: 'idle' };
 const UNWATCHED: Watch = { status: 'unwatched' };
@@ -423,17 +466,77 @@ function retold(context: CameraContext): CameraContext {
   return { ...context, watch: { ...watch, told } };
 }
 
-/** The drive after a drive's answer, either way: the latest drive's answer sets the deadline from now. */
-function quieted(drive: Drive, seq: number, at: number): Drive {
-  if (drive.status !== 'driving' || drive.since !== seq) return drive;
-  return { status: 'driving', since: seq, deadline: at + DRIVE_TIMEOUT_MS };
+/** The axes the camera may be moving on, as the drive stands. */
+function axesOf(drive: Drive): CameraAxis[] {
+  return drive.status === 'idle' ? [] : drive.axes;
 }
 
-/** The drive after the camera took a move or a stop: idle, if it was sent after the drive (or the stop). */
-function replaced(drive: Drive, seq: number): Drive {
-  if (drive.status === 'driving' && seq > drive.since) return IDLE;
-  if (drive.status === 'stopping' && seq > drive.seq) return IDLE;
-  return drive;
+const without = (axes: readonly CameraAxis[], gone: readonly CameraAxis[]) => axes.filter(axis => !gone.includes(axis));
+const union = (axes: readonly CameraAxis[], more: readonly CameraAxis[]) => [...axes, ...without(more, axes)];
+
+/**
+ * The drive after a drive's answer: the latest drive's answer sets the deadline from now, and when the camera took it,
+ * the axes it moves are the only ones still moving: none, and the drive is over.
+ */
+function quieted(drive: Drive, seq: number, at: number, took: boolean): Drive {
+  if (drive.status !== 'driving' || drive.since !== seq) return drive;
+  const axes = took ? drive.axes.filter(axis => drive.latest.includes(axis)) : drive.axes;
+  if (axes.length === 0) return IDLE;
+  return { ...drive, axes, deadline: at + DRIVE_TIMEOUT_MS };
+}
+
+/**
+ * The drive after the camera took a move or a stop sent after the drive (or the agent's stop): over on the axes it
+ * moved, and over altogether once that leaves none.
+ */
+function replaced(drive: Drive, seq: number, moved: readonly CameraAxis[]): Drive {
+  if (drive.status === 'idle') return drive;
+  const after = drive.status === 'driving' ? drive.since : drive.seq;
+  if (seq <= after) return drive;
+  const axes = without(drive.axes, moved);
+  return axes.length === 0 ? IDLE : { ...drive, axes };
+}
+
+/**
+ * The command as it is sent: a drive names only the axes it moves and those it stops, so a move to a place on any
+ * other axis carries on; a stop stops every axis, focus only while it is driven.
+ */
+function sentOf(command: CameraCommand, driven: readonly CameraAxis[]): CameraCommand {
+  if (command.kind !== 'drive') return command;
+  const named = union(drivenAxes(command), driven);
+  const sent: DriveCommand = { kind: 'drive' };
+  for (const axis of named) sent[axis] = command[axis] ?? 0;
+  return sent;
+}
+
+/** The axes a command, as it is sent, takes somewhere of its own or stops. */
+function movedBy(command: CameraCommand, driven: readonly CameraAxis[]): CameraAxis[] {
+  if (command.kind === 'stop') return stopAxes(driven);
+  return movedAxes(command);
+}
+
+/**
+ * The drive once a drive is sent: it may reach the camera however it is answered, so it has a stop coming from the
+ * moment it is sent, far enough off to cover its answer, which brings the stop nearer; and the camera may be moving on
+ * every axis it moves, and every axis it was moving on before. A drive that moves nothing, sent while nothing was
+ * moving, changes nothing.
+ */
+function driving(drive: Drive, sent: CameraCommand, seq: number, at: number): Drive {
+  const latest = sent.kind === 'drive' ? drivenAxes(sent) : [];
+  const axes = union(axesOf(drive), latest);
+  if (axes.length === 0) return drive;
+  return { status: 'driving', since: seq, deadline: at + CAMERA_TIMEOUT_MS + DRIVE_TIMEOUT_MS, axes, latest };
+}
+
+/** The axes a camera being let go of, or let go of, may still be moving on. */
+function leftOf(life: Life): CameraAxis[] {
+  if (life.status === 'releasing') return life.axes;
+  return life.status === 'released' ? life.moving : [];
+}
+
+/** The axes a `stop` command stops. */
+function stopAxes(driven: readonly CameraAxis[]): CameraAxis[] {
+  return union(STOPPED_AXES, driven);
 }
 
 /** How long the watch rests between asks: less while the camera may be moving. */
@@ -449,6 +552,8 @@ export interface CameraAlarms {
   drive?: number;
   /** The watch's rest's end: `restEnded`. */
   watch?: number;
+  /** The next stop, while it is being let go of: `retryDue`. */
+  release?: number;
 }
 
 export function alarmsOf(context: CameraContext): CameraAlarms {
@@ -457,6 +562,8 @@ export function alarmsOf(context: CameraContext): CameraAlarms {
   if (hold.status === 'held') alarms.hold = hold.until;
   if (drive.status === 'driving') alarms.drive = drive.deadline;
   if (watch.status === 'resting') alarms.watch = watch.since + restOf(drive);
+  const { life } = context;
+  if (life.status === 'releasing' && life.retryAt !== undefined) alarms.release = life.retryAt;
   return alarms;
 }
 
@@ -465,8 +572,8 @@ function within<T>(time: Time, ms: number, also: AbortSignal, work: (signal: Abo
   return withinTime(time, ms, also, work, 'The camera took too long');
 }
 
-/** Send the command to the camera. */
-function carry(driver: CameraDriver, command: CameraCommand, signal: AbortSignal): Promise<void> {
+/** Send the command, as it is sent (`sentOf`), to the camera: a stop stops `moved`. */
+function carry(driver: CameraDriver, command: CameraCommand, moved: CameraAxis[], signal: AbortSignal): Promise<void> {
   switch (command.kind) {
     case 'moveTo':
       return driver.moveTo(command, signal);
@@ -479,7 +586,7 @@ function carry(driver: CameraDriver, command: CameraCommand, signal: AbortSignal
     case 'drive':
       return driver.drive(command, signal);
     case 'stop':
-      return driver.stop(signal);
+      return driver.stop(moved, signal);
     case 'configure':
       return driver.configure(command.key, command.value, signal);
     case 'run':
@@ -491,10 +598,10 @@ function carry(driver: CameraDriver, command: CameraCommand, signal: AbortSignal
 export function cameraStore(id: string, io: CameraIO): CameraStore {
   const { driver, time, reads, ends } = io;
 
-  /** Have the camera stopped on the agent's own account, as command `seq`. */
-  function halt(seq: number, enq: Enqueue): void {
+  /** Have the camera stopped on these axes on the agent's own account, as command `seq`. */
+  function halt(seq: number, axes: CameraAxis[], enq: Enqueue): void {
     enq.effect(({ trigger }) => {
-      const stopped = within(time, CAMERA_TIMEOUT_MS, ends, signal => driver.stop(signal));
+      const stopped = within(time, CAMERA_TIMEOUT_MS, ends, signal => driver.stop(axes, signal));
       void stopped.then(
         () => trigger.haltSucceeded({ seq, at: time.now() }),
         error => trigger.haltFailed({ seq, error, at: time.now() })
@@ -561,15 +668,15 @@ export function cameraStore(id: string, io: CameraIO): CameraStore {
         const { kind } = command;
         const now = standing(context.hold, at);
         const hold: Hold = priority === 'operator' ? { status: 'held', peer, until: at + HOLD_MS } : now;
-        // A drive may reach the camera however it is answered, so it has a stop coming from the moment it is sent:
-        // far enough off to cover its answer, which brings the stop nearer.
-        const deadline = at + CAMERA_TIMEOUT_MS + DRIVE_TIMEOUT_MS;
-        const drive: Drive = kind === 'drive' ? { status: 'driving', since: seq, deadline } : context.drive;
+        const driven = axesOf(context.drive);
+        const sent = sentOf(command, driven);
+        const moved = movedBy(command, driven);
+        const drive = kind === 'drive' ? driving(context.drive, sent, seq, at) : context.drive;
         enq.effect(({ trigger }) => {
-          const carried = within(time, CAMERA_TIMEOUT_MS, ends, signal => carry(driver, command, signal));
+          const carried = within(time, CAMERA_TIMEOUT_MS, ends, signal => carry(driver, sent, moved, signal));
           void carried.then(
-            () => trigger.commandSucceeded({ id: commandId, seq, kind, at: time.now() }),
-            error => trigger.commandFailed({ id: commandId, seq, kind, error, at: time.now() })
+            () => trigger.commandSucceeded({ id: commandId, seq, kind, moved, at: time.now() }),
+            error => trigger.commandFailed({ id: commandId, seq, kind, moved, error, at: time.now() })
           );
         });
         return retold({ ...context, seq, hold, drive });
@@ -578,26 +685,27 @@ export function cameraStore(id: string, io: CameraIO): CameraStore {
         const { id: commandId, seq, kind, at } = event;
         enq.emit.settled({ id: commandId, outcome: DONE });
         if (context.life.status !== 'controlled') return context;
-        if (kind === 'drive') return { ...context, drive: quieted(context.drive, seq, at) };
+        if (kind === 'drive') return { ...context, drive: quieted(context.drive, seq, at, true) };
         // Whoever follows the camera hears what the command changed at once, not at the watch's next turn. A `drive`
         // is repeated many times a second, and the camera's position as it moves is told by the watch's own pace.
         // Setting an option or running an action doesn't stop a camera that is turning: only a move or a stop does.
-        const moved = kind !== 'configure' && kind !== 'run';
-        const drive = moved ? replaced(context.drive, seq) : context.drive;
+        if (kind === 'configure' || kind === 'run') return refreshed(context, enq);
+        const drive = replaced(context.drive, seq, event.moved);
         return refreshed({ ...context, drive }, enq);
       },
       commandFailed: (context, event, enq) => {
         const { id: commandId, seq, kind, error, at } = event;
         enq.emit.settled({ id: commandId, outcome: { status: 'failed', error } });
         if (context.life.status !== 'controlled' || kind !== 'drive') return context;
-        return { ...context, drive: quieted(context.drive, seq, at) };
+        return { ...context, drive: quieted(context.drive, seq, at, false) };
       },
       deadlinePassed: (context, event, enq) => {
         const { drive, life } = context;
         if (life.status !== 'controlled' || drive.status !== 'driving' || drive.deadline > event.at) return context;
         const seq = context.seq + 1;
-        halt(seq, enq);
-        return { ...context, seq, drive: { status: 'stopping', seq } };
+        const { axes } = drive;
+        halt(seq, axes, enq);
+        return { ...context, seq, drive: { status: 'stopping', seq, axes } };
       },
       // The stop the camera was let go with ends the release; the one its deadline sent ends the drive, unless a drive
       // was sent after it. Any other stop's answer is stale.
@@ -613,10 +721,28 @@ export function cameraStore(id: string, io: CameraIO): CameraStore {
         const mine =
           (life.status === 'releasing' && life.seq === seq) || (drive.status === 'stopping' && drive.seq === seq);
         if (!mine) return context;
+        if (life.status === 'releasing') {
+          // Tried again until it is taken, or given up on: told once when it first fails, and once when given up on.
+          if (at >= life.until) {
+            enq.effect(() =>
+              logger.error('Camera {cameraId} was let go of still moving: {error}', { cameraId: id, error })
+            );
+            return { ...context, life: leftMoving(life.axes) };
+          }
+          if (life.tries === 1)
+            enq.effect(() =>
+              logger.error('Camera {cameraId} could not be stopped, trying again: {error}', { cameraId: id, error })
+            );
+          return { ...context, life: { ...life, retryAt: at + DRIVE_TIMEOUT_MS } };
+        }
         enq.effect(() => logger.error('Camera {cameraId} could not be stopped: {error}', { cameraId: id, error }));
-        if (life.status === 'releasing') return { ...context, life: LEFT_MOVING };
         // A stop the camera didn't take leaves it as it was after the drive: stopped again at the next deadline.
-        return { ...context, drive: { status: 'driving', since: seq, deadline: at + DRIVE_TIMEOUT_MS } };
+        if (drive.status !== 'stopping') return context;
+        const { axes } = drive;
+        return {
+          ...context,
+          drive: { status: 'driving', since: seq, deadline: at + DRIVE_TIMEOUT_MS, axes, latest: axes }
+        };
       },
       holdLapsed: (context, event) => {
         const hold = standing(context.hold, event.at);
@@ -688,22 +814,41 @@ export function cameraStore(id: string, io: CameraIO): CameraStore {
         const capabilities = context.capabilities.status === 'asking' ? UNKNOWN : context.capabilities;
         const forgotten = { ...context, hold: FREE, drive: IDLE, watch: UNWATCHED, capabilities };
         if (drive.status === 'idle') return { ...forgotten, life: RELEASED };
+        const { axes } = drive;
+        const until = event.at + RELEASE_STOPS_MS;
         // A stop already on its way is the one it is let go with; otherwise one is sent now.
-        if (drive.status === 'stopping') return { ...forgotten, life: { status: 'releasing', seq: drive.seq } };
+        if (drive.status === 'stopping') {
+          const life: Life = { status: 'releasing', seq: drive.seq, axes, tries: 1, retryAt: undefined, until };
+          return { ...forgotten, life };
+        }
         const seq = context.seq + 1;
-        halt(seq, enq);
-        return { ...forgotten, seq, life: { status: 'releasing', seq } };
+        halt(seq, axes, enq);
+        return { ...forgotten, seq, life: { status: 'releasing', seq, axes, tries: 1, retryAt: undefined, until } };
+      },
+      retryDue: (context, event, enq) => {
+        const { life } = context;
+        if (life.status !== 'releasing' || life.retryAt === undefined || life.retryAt > event.at) return context;
+        const seq = context.seq + 1;
+        halt(seq, life.axes, enq);
+        return { ...context, seq, life: { ...life, seq, tries: life.tries + 1, retryAt: undefined } };
+      },
+      abandoned: context => {
+        const { life } = context;
+        if (life.status !== 'releasing') return context;
+        return { ...context, life: leftMoving(life.axes) };
       },
       adopted: (context, event) => {
         // Stopped at once, as a drive whose deadline has come: by this registration's driver, which may reach it
         // where the last one didn't. Anything it is told meanwhile replaces it, as it would a drive.
         if (context.life.status !== 'controlled' || context.drive.status !== 'idle') return context;
-        return { ...context, drive: { status: 'driving', since: context.seq, deadline: event.at } };
+        const { axes } = event;
+        const drive: Drive = { status: 'driving', since: context.seq, deadline: event.at, axes, latest: axes };
+        return { ...context, drive };
       },
       disposed: (context, event, enq) => {
         if (context.life.status === 'controlled') enq.emit.ended({ at: event.at });
         const capabilities = context.capabilities.status === 'asking' ? UNKNOWN : context.capabilities;
-        const life: Life = { status: 'released', moving: context.drive.status !== 'idle' };
+        const life: Life = { status: 'released', moving: union(axesOf(context.drive), leftOf(context.life)) };
         return { ...context, life, hold: FREE, drive: IDLE, watch: UNWATCHED, capabilities };
       }
     }
@@ -736,10 +881,10 @@ export function settlement(store: CameraStore, id: string): Promise<Outcome> {
 
 type AlarmName = keyof CameraAlarms;
 
-const ALARM_NAMES: AlarmName[] = ['hold', 'drive', 'watch'];
+const ALARM_NAMES: AlarmName[] = ['hold', 'drive', 'watch', 'release'];
 
 /** The event each alarm wakes the store with. */
-const RINGS = { hold: 'holdLapsed', drive: 'deadlinePassed', watch: 'restEnded' } as const;
+const RINGS = { hold: 'holdLapsed', drive: 'deadlinePassed', watch: 'restEnded', release: 'retryDue' } as const;
 
 /**
  * The timers a camera's store is woken by, kept to what its state says (`alarmsOf`) each time it changes: an alarm
