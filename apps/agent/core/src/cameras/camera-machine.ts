@@ -556,6 +556,7 @@ export interface CameraAlarms {
   release?: number;
 }
 
+/** Each part of the state that waits on the clock sets its own alarm, independently: a hold, a drive, a resting watch, a stop being retried. */
 export function alarmsOf(context: CameraContext): CameraAlarms {
   const { hold, drive, watch } = context;
   const alarms: CameraAlarms = {};
@@ -654,6 +655,8 @@ export function cameraStore(id: string, io: CameraIO): CameraStore {
   return createStore<CameraContext, CameraEvents, CameraEmitted>({
     context: initialCamera(id),
     on: {
+      // A command is refused when the camera isn't controlled or another peer holds it; otherwise it takes the hold (an
+      // operator's for a while), starts a drive if it is one, and is carried out as an effect that reports back.
       commanded: (context, event, enq) => {
         const { id: commandId, command, peer, priority, at } = event;
         if (context.life.status !== 'controlled') {
