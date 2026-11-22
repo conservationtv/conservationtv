@@ -129,9 +129,9 @@ export const services = (variables: Variables, bindings: Bindings) => {
   const mail = mailer(variables, bindings.mail);
 
   /** The owning role's connection. Request handlers use `session()` instead. */
-  const admin = connectLazily(bindings.admin, 'admin');
+  const admin = connectLazily(bindings.admin, 'admin', bindings.tracing);
   /** The application role's connection, enforced by row-level security. */
-  const app = connectLazily(bindings.app, 'app');
+  const app = connectLazily(bindings.app, 'app', bindings.tracing);
 
   /** The principal's request session over the application connection: every protected query runs inside it. */
   const session = async (principal: Principal) => authorization.as(await app.database(), principal);

@@ -9,7 +9,7 @@ import {
 } from '@conservationtv/gatekeeper/testing';
 import { serve, type ServerType } from '@hono/node-server';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { migrate } from 'drizzle-orm/postgres/migrator';
 
 /** How relay containers reach services on the host: Docker Desktop resolves it natively, Linux via `host-gateway`. */
 export const DOCKER_HOST = 'host.docker.internal';

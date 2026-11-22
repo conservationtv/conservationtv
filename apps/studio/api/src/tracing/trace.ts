@@ -7,8 +7,8 @@ import { useRequestRecord, type RequestRecord } from '../requests/record.ts';
 // Tracing, through the Workers runtime's own (`ctx.tracing`), which the entrypoint hands to the environment so the rest
 // of the API stays runtime-neutral. The runtime traces each invocation and its subrequests itself; this adds what only
 // the API knows: a span for the operation the request was routed to, with what the request record says (the operation,
-// who, where, the outcome), and inside it spans for authenticating the request, each database connection and
-// transaction (named by what it is for, where that isn't simply the operation's own work), and each subject a report
+// who, where, the outcome), and inside it spans for authenticating the request, each database connection, transaction
+// (named by what it is for, where that isn't simply the operation's own work) and query, and each subject a report
 // batch has judged again. Traces are sampled and leave for an outside service, so they carry IDs, never names,
 // addresses or anything a request body set.
 
@@ -41,10 +41,20 @@ export interface TraceSpan {
   spanContext(): SpanIds;
 }
 
+/** A span its starter ends, as `startSpan` gives it. */
+export interface OpenSpan extends TraceSpan {
+  end(): void;
+}
+
 /** The runtime's tracing (`ctx.tracing`), as this API uses it. */
 export interface Tracer {
   /** Run `run` in a new child span of the active one, which ends when `run` returns or its promise settles. */
   enterSpan<T>(name: string, run: (span: TraceSpan) => T): T;
+  /**
+   * Start a child span of the active one that never becomes active itself, for work that starts and ends in different
+   * places (the driver's query hooks, src/tracing/queries.ts). The caller must end it.
+   */
+  startSpan(name: string): OpenSpan;
   /** The innermost active span: the invocation's own when no other is open. */
   getActiveSpan(): TraceSpan | undefined;
 }

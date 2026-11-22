@@ -1,8 +1,7 @@
-import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
-import pg from 'pg';
+import { connect, drizzle, type Connection, type PostgresDatabase } from 'drizzle-orm/postgres';
 import { GrantError } from '../errors.ts';
 
-export type Database = NodePgDatabase;
+export type Database = PostgresDatabase;
 
 export interface DatabaseConnection {
   database(): Promise<Database>;
@@ -10,23 +9,22 @@ export interface DatabaseConnection {
 }
 
 /**
- * One client per request, as Hyperdrive pools connections on the other side. The connection opens lazily and is closed
- * by the caller once the response is complete.
+ * One connection per request, as Hyperdrive pools connections on the other side. Drizzle's Postgres driver dials it
+ * over `cloudflare:sockets` in the Worker. The connection opens lazily and is closed by the caller once the response
+ * is complete.
  */
 export function connectLazily(connectionString: string): DatabaseConnection {
-  let pending: Promise<pg.Client> | undefined = undefined;
-  const connect = async () => {
-    const client = new pg.Client({ connectionString });
+  let pending: Promise<Connection> | undefined = undefined;
+  const open = async () => {
     try {
-      await client.connect();
+      return await connect(connectionString);
     } catch (error) {
       throw new GrantError('relay_unavailable', { cause: error });
     }
-    return client;
   };
   return {
     async database() {
-      if (pending == null) pending = connect();
+      if (pending == null) pending = open();
       return drizzle({ client: await pending });
     },
     async close() {

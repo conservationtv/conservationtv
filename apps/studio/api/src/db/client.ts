@@ -1,10 +1,10 @@
-import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
-import pg from 'pg';
+import { connect, drizzle, type Connection, type PostgresDatabase } from 'drizzle-orm/postgres';
 import { ApiFailure } from '../errors.ts';
-import { traced } from '../tracing/trace.ts';
+import { traceQueries } from '../tracing/queries.ts';
+import { traced, type Tracer } from '../tracing/trace.ts';
 import { relations } from './relations.ts';
 
-export type Database = NodePgDatabase<typeof relations>;
+export type Database = PostgresDatabase<typeof relations>;
 
 export interface DatabaseConnection {
   database(): Promise<Database>;
@@ -15,24 +15,25 @@ export interface DatabaseConnection {
 export type DatabaseRole = 'admin' | 'app';
 
 /**
- * One client per request and role, as Hyperdrive pools connections on the other side. The connection opens lazily, in
- * a span of its own in the request's trace, and is closed by the caller once the response is complete.
+ * One connection per request and role, as Hyperdrive pools connections on the other side. Drizzle's Postgres driver
+ * dials it over `cloudflare:sockets` in the Worker. The connection opens lazily, in a span of its own in the request's
+ * trace, and each query on it has a span too (src/tracing/queries.ts). The caller closes it once the response is
+ * complete.
  */
-export function connectLazily(connectionString: string, role: DatabaseRole): DatabaseConnection {
-  let pending: Promise<pg.Client> | undefined = undefined;
-  const connect = () =>
+export function connectLazily(connectionString: string, role: DatabaseRole, tracer: Tracer): DatabaseConnection {
+  let pending: Promise<Connection> | undefined = undefined;
+  const plugins = [traceQueries(tracer, { 'studio.database.role': role })];
+  const open = () =>
     traced('database.connect', { 'studio.database.role': role }, async () => {
-      const client = new pg.Client({ connectionString });
       try {
-        await client.connect();
+        return await connect({ url: connectionString, plugins });
       } catch (error) {
         throw new ApiFailure('database_unavailable', { cause: error });
       }
-      return client;
     });
   return {
     async database() {
-      if (pending == null) pending = connect();
+      if (pending == null) pending = open();
       return drizzle({ client: await pending, relations });
     },
     async close() {

@@ -1,5 +1,5 @@
 import { DrizzleQueryError, and, eq, lte, sql } from 'drizzle-orm';
-import pg from 'pg';
+import { PgError } from 'drizzle-orm/postgres';
 import { organisationInvitations, organisations } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { useEnvironment } from '../env/env.ts';
@@ -109,8 +109,7 @@ export async function createInvitation(organisationId: string, payload: NewInvit
     return row!;
   } catch (error) {
     // Drizzle wraps the driver's error.
-    const state =
-      error instanceof DrizzleQueryError && error.cause instanceof pg.DatabaseError ? error.cause.code : undefined;
+    const state = error instanceof DrizzleQueryError && error.cause instanceof PgError ? error.cause.code : undefined;
     if (state === '42501') throw new ApiFailure('forbidden', { cause: error });
     if (state === '23505') throw new ApiFailure('already_invited', { cause: error });
     if (state === '23503') throw new ApiFailure('account_not_found', { cause: error });

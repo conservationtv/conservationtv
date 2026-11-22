@@ -380,9 +380,9 @@ export type Metric = {
         at: string;
         min: number;
         max: number;
+        count: number;
         avg: number;
         last: number;
-        count: number;
     }>;
     id: string;
     name: string;
@@ -5011,9 +5011,9 @@ export type PostOrganisationsByIdSubjectsMetricsQueryResponses = {
                 at: string;
                 min: number;
                 max: number;
+                count: number;
                 avg: number;
                 last: number;
-                count: number;
             }>;
             id: string;
             subjectId: string;

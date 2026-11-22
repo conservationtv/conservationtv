@@ -1639,13 +1639,13 @@
                 "max": {
                   "type": "number"
                 },
+                "count": {
+                  "type": "number"
+                },
                 "avg": {
                   "type": "number"
                 },
                 "last": {
-                  "type": "number"
-                },
-                "count": {
                   "type": "number"
                 }
               },
@@ -1653,9 +1653,9 @@
                 "at",
                 "min",
                 "max",
+                "count",
                 "avg",
-                "last",
-                "count"
+                "last"
               ]
             }
           },
@@ -13347,13 +13347,13 @@
                                 "max": {
                                   "type": "number"
                                 },
+                                "count": {
+                                  "type": "number"
+                                },
                                 "avg": {
                                   "type": "number"
                                 },
                                 "last": {
-                                  "type": "number"
-                                },
-                                "count": {
                                   "type": "number"
                                 }
                               },
@@ -13361,9 +13361,9 @@
                                 "at",
                                 "min",
                                 "max",
+                                "count",
                                 "avg",
-                                "last",
-                                "count"
+                                "last"
                               ]
                             }
                           },
@@ -37965,13 +37965,13 @@
                           "max": {
                             "type": "number"
                           },
+                          "count": {
+                            "type": "number"
+                          },
                           "avg": {
                             "type": "number"
                           },
                           "last": {
-                            "type": "number"
-                          },
-                          "count": {
                             "type": "number"
                           }
                         },
@@ -37979,9 +37979,9 @@
                           "at",
                           "min",
                           "max",
+                          "count",
                           "avg",
-                          "last",
-                          "count"
+                          "last"
                         ]
                       }
                     },
@@ -39556,13 +39556,13 @@
                     "max": {
                       "type": "number"
                     },
+                    "count": {
+                      "type": "number"
+                    },
                     "avg": {
                       "type": "number"
                     },
                     "last": {
-                      "type": "number"
-                    },
-                    "count": {
                       "type": "number"
                     }
                   },
@@ -39570,9 +39570,9 @@
                     "at",
                     "min",
                     "max",
+                    "count",
                     "avg",
-                    "last",
-                    "count"
+                    "last"
                   ]
                 }
               },

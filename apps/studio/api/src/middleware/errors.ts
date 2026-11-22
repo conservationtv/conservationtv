@@ -1,6 +1,6 @@
 import { apiError, createErrorHandler } from '@conservationtv/versioned-api/server';
 import { DrizzleQueryError } from 'drizzle-orm';
-import pg from 'pg';
+import { PgError } from 'drizzle-orm/postgres';
 import { ApiFailure } from '../errors.ts';
 import { recordFailure } from '../requests/record.ts';
 
@@ -12,7 +12,7 @@ export { handleNotFound } from '@conservationtv/versioned-api/server';
  * don't handle themselves are reported here.
  */
 function refusal(cause: unknown) {
-  if (!(cause instanceof DrizzleQueryError) || !(cause.cause instanceof pg.DatabaseError)) return undefined;
+  if (!(cause instanceof DrizzleQueryError) || !(cause.cause instanceof PgError)) return undefined;
   const { code, detail } = cause.cause;
   // Row-level security refused an insert, or an immutable column was changed.
   if (code === '42501') return new ApiFailure('forbidden', { cause });
@@ -32,7 +32,8 @@ export const handleError = createErrorHandler(
     const failure = error instanceof ApiFailure ? error : refusal(error);
     if (failure === undefined) return undefined;
     recordFailure(failure.code);
-    if (failure.cause !== undefined) console.warn(JSON.stringify({ event: failure.code, cause: String(failure.cause) }));
+    if (failure.cause !== undefined)
+      console.warn(JSON.stringify({ event: failure.code, cause: String(failure.cause) }));
     return apiError(c, failure.code, failure.message, failure.status);
   },
   { onRender: recordFailure }

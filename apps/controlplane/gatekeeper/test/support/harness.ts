@@ -4,9 +4,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Miniflare, WorkerOptionsSchema } from 'miniflare';
 import { sql } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { createPool, drizzle } from 'drizzle-orm/postgres';
 import { exportJWK, generateKeyPair } from 'jose';
-import pg from 'pg';
 import type { Json } from '@conservationtv/versioned-api/server';
 import type { Database } from '../../src/db/client.ts';
 import { LOCAL_DATABASE_URL } from '../../src/db/local.ts';
@@ -30,7 +29,7 @@ export interface TestDatabase {
 
 /** A pooled connection to `connectionString`, with the state tests reset between cases. */
 export function connectTestDatabase(connectionString = process.env.DATABASE_URL ?? LOCAL_DATABASE_URL): TestDatabase {
-  const pool = new pg.Pool({ connectionString });
+  const pool = createPool(connectionString);
   const database: Database = drizzle({ client: pool });
   return {
     database,

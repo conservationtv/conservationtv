@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { EmptyFilter, and, eq } from 'drizzle-orm';
 import { agents } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
@@ -33,7 +33,8 @@ export function listAgents(organisationId: string, filter: AgentFilter) {
         columns: { kind: true, name: true, networkId: true, publicKey: true, publicId: true, createdAt: true }
       }
     },
-    where: { organisationId, networkId: filter.networkId },
+    // Without a network, every network's: Drizzle refuses an undefined filter value rather than skipping it.
+    where: { organisationId, networkId: filter.networkId ?? EmptyFilter },
     orderBy: { id: 'asc' }
   });
 }
