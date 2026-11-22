@@ -1,0 +1,18 @@
+{
+  // The main process, the preload and the scripts: bundled by esbuild (scripts/bundles.ts); this only type-checks.
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["es2024", "DOM"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/main", "src/preload", "src/shared", "scripts", "vite.config.ts"]
+}

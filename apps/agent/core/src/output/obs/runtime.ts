@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { type MediamtxManifest, mediamtxBinary } from '../../binaries/mediamtx.ts';
 import { type MoqManifest, moqBinary } from '../../binaries/moq.ts';
 import { type ObsManifest, obsBinary } from '../../binaries/obs.ts';
+import type { NodeCommand } from '../../config.ts';
 import { InputRelays, type InputsStatus } from './inputs.ts';
 import { listening } from './loopback.ts';
 import {
@@ -86,6 +87,8 @@ export interface ObsRuntimeOptions {
   programPorts: ProgramPorts;
   /** The port obs-websocket serves on, on this machine. */
   websocketPort: number;
+  /** How the program MediaMTX runs the input relays' launcher. */
+  node: NodeCommand;
   /** The studio API, as the agent's device, for read sessions, the channels' ingests, and reporting control. */
   studio: Client;
 }
@@ -185,10 +188,11 @@ export class ObsRuntime {
       probe: signal => listening(options.websocketPort, signal),
       readyTimeoutMs: READY_TIMEOUT_MS
     });
-    this.program = new ProgramMediamtx(join(options.directory, 'program'), options.programPorts);
+    this.program = new ProgramMediamtx(join(options.directory, 'program'), options.programPorts, options.node.env);
     this.inputs = new InputRelays({
       studio: options.studio,
       program: this.program,
+      node: options.node.path,
       directory: join(options.directory, 'inputs')
     });
     this.metrics = new ProgramMetrics(this.program, () => this.watchdog?.reading$.value ?? null);

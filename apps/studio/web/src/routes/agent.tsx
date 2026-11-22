@@ -166,8 +166,8 @@ const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
               <SectionHeading>
                 <SectionTitle>Run it</SectionTitle>
                 <SectionDescription>
-                  Start the agent on a machine at its site with this environment. One machine at a time: a second one
-                  started with the same key takes over from the first.
+                  Open it in the desktop app on a machine at its site, or start it there with this environment. One
+                  machine at a time: a second one started with the same key takes over from the first.
                 </SectionDescription>
               </SectionHeading>
             </SectionHeader>

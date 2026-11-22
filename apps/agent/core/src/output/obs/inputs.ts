@@ -7,6 +7,7 @@ import { AttachedProcess } from '@conservationtv/converge/process';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import { BehaviorSubject } from 'rxjs';
+import { mediamtxCommand } from '../../mediamtx/command.ts';
 import { expiryOf, withToken } from '../../studio.ts';
 import { type InputExposure, inputOf, inputPath, type ProgramMediamtx } from './program.ts';
 
@@ -71,10 +72,15 @@ setInterval(() => {
 }, 1000).unref();
 `;
 
-/** What the relays need: the studio API, as the device, the program MediaMTX, and a folder of their own. */
+/**
+ * What the relays need: the studio API, as the device, the program MediaMTX, the Node it runs the launcher with, and a
+ * folder of their own.
+ */
 export interface InputRelaysOptions {
   studio: Client;
   program: ProgramMediamtx;
+  /** The Node executable; whatever else it needs is in the program MediaMTX's environment, which it inherits. */
+  node: string;
   directory: string;
 }
 
@@ -123,7 +129,7 @@ export class InputRelays {
     const launcher = join(this.options.directory, 'demand.mjs');
     await mkdir(this.options.directory, { recursive: true });
     await writeFile(launcher, LAUNCHER);
-    await this.options.program.setDemand(demandCommand(process.execPath, launcher, port, this.secret));
+    await this.options.program.setDemand(demandCommand(this.options.node, launcher, port, this.secret));
   }
 
   /** Where OBS reads the exposure, at the program MediaMTX. */
@@ -230,17 +236,9 @@ export class InputRelays {
   }
 }
 
-/**
- * The command MediaMTX runs for a wanted path: Node running the launcher, which asks the demand server on `port`. Each
- * argument single-quoted, as MediaMTX splits a command as a POSIX shell would, on every platform.
- */
+/** The command MediaMTX runs for a wanted path: Node running the launcher, which asks the demand server on `port`. */
 export function demandCommand(node: string, launcher: string, port: number, secret: string): string {
-  return [node, launcher, String(port), secret].map(quoted).join(' ');
-}
-
-function quoted(argument: string): string {
-  if (argument.includes("'")) throw new Error(`Cannot quote ${argument} for MediaMTX`);
-  return `'${argument}'`;
+  return mediamtxCommand(node, launcher, String(port), secret);
 }
 
 /** An exposure, as its read session is asked for. */

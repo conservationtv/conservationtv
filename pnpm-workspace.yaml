@@ -57,6 +57,10 @@ allowBuilds:
   '@pulumi/command': true
   better-sqlite3: false
   cpu-features: false
+  # Downloads the Electron binary the desktop agent runs on (apps/agent/desktop).
+  electron: true
+  # electron-builder's Squirrel.Windows installer, which the app doesn't build: it makes an NSIS installer.
+  electron-winstaller: false
   esbuild: true
   protobufjs: true
   ssh2: false

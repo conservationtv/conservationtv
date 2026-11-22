@@ -47,6 +47,7 @@ export function outputControllers(config: AgentConfiguration, identity: DeviceId
     mediamtx: MEDIAMTX_MANIFEST,
     programPorts: DEFAULT_PROGRAM_PORTS,
     websocketPort: config.obsWebsocketPort ?? DEFAULT_OBS_WEBSOCKET_PORT,
+    node: config.node ?? { path: process.execPath },
     studio
   });
   const show = new ShowRuntime(obs, identity);

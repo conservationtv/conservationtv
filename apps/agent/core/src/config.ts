@@ -8,6 +8,17 @@ export interface MediamtxSettings {
   ports?: MediamtxPorts;
 }
 
+/**
+ * How the agent runs the Node scripts it hands to other programs, such as the launcher MediaMTX runs for a wanted input
+ * (output/obs/inputs.ts).
+ */
+export interface NodeCommand {
+  /** The executable. */
+  path: string;
+  /** Variables it needs set, on top of the agent's own: `ELECTRON_RUN_AS_NODE=1` for Electron's, say. */
+  env?: Record<string, string>;
+}
+
 interface BaseConfiguration {
   name: string;
   /** A directory of the agent's own, where its runtimes keep what they install and run. */
@@ -29,6 +40,11 @@ interface BaseConfiguration {
    * there has it, say. Only for an agent that is a show's output.
    */
   obsWebsocketPort?: number;
+  /**
+   * How to run the agent's Node scripts, when this process's own executable is not Node: in Electron, say. Without it,
+   * by `process.execPath` as it is.
+   */
+  node?: NodeCommand;
 }
 
 /** An agent on its own, on n0's public relays and address lookup, that never calls the studio API. Any key will do. */
