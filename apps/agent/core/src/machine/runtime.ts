@@ -50,7 +50,7 @@ export interface MachineSample {
    */
   load: number;
   memory: MemoryCapacity;
-  /** The filesystem the agent's working directory is on; `null` when it cannot be read. */
+  /** The filesystem the agent's directory is on; `null` when it cannot be read. */
   disk: Capacity | null;
   uptimeSeconds: number;
   /** The agent's own resident memory. */
@@ -101,9 +101,9 @@ function cpuTimes() {
 
 type CpuTimes = ReturnType<typeof cpuTimes>;
 
-async function diskUsage(): Promise<Capacity | null> {
+async function diskUsage(directory: string): Promise<Capacity | null> {
   try {
-    const stats = await statfs(process.cwd());
+    const stats = await statfs(directory);
     return { total: stats.blocks * stats.bsize, free: stats.bavail * stats.bsize };
   } catch {
     return null;
@@ -190,7 +190,7 @@ export class MachineRuntime {
     const elapsed = previous === undefined ? 0 : cpu.total - previous.total;
     const cpuUtilisation = previous === undefined || elapsed <= 0 ? null : ((cpu.busy - previous.busy) / elapsed) * 100;
     const [load] = os.loadavg();
-    const disk = await diskUsage();
+    const disk = await diskUsage(this.config.directory);
     const addresses = await lanAddresses();
     const available = await availableMemory();
     const memory = process.memoryUsage();

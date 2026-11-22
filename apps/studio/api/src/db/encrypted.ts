@@ -25,6 +25,13 @@ const derive = (label: string) => {
   return Buffer.from(hkdfSync('sha256', environment.variables.FIELD_KEY, new Uint8Array(), label, 32));
 };
 
+/**
+ * A key for signing what this API alone checks, such as a chat command's receipt (src/chat/receipts.ts): a subkey of
+ * the field key under its own label, so nothing signed with it is accepted for any other purpose, and no device holds
+ * it.
+ */
+export const signingKey = (purpose: string) => new Uint8Array(derive(`sign:${purpose}`));
+
 /** `version ‖ iv ‖ tag ‖ ciphertext`. */
 const seal = (purpose: string, plaintext: Uint8Array) => {
   const key = derive(`encrypt:${purpose}`);

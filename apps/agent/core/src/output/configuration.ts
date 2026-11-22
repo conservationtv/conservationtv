@@ -34,7 +34,10 @@ type PreviewConnection = Exclude<
   Error
 >;
 
-/** The credentials kept between asks, each until shortly before it expires: to publish each preview, by its ID. */
+/**
+ * The credentials kept between asks, each until shortly before it expires or another agent signs for its gateway: to
+ * publish each preview, by its ID and signer (`<previewId>@<signer>`).
+ */
 export interface OutputLeases {
   previews: Map<string, PreviewConnection>;
 }
@@ -62,10 +65,10 @@ function channelsSpec(obs: ObsSection): ChannelsSpec | undefined {
 /** The `obs` key's spec from the `obs` section: as it is, but for each preview, with where to publish it. */
 async function obsSpec(obs: ObsSection, studio: Client, leases: OutputLeases): Promise<ObsSpec> {
   const previews: ObsSpec['previews'] = [];
-  for (const { previewId, connect: ask } of obs.previews) {
+  for (const { previewId, signer, connect: ask } of obs.previews) {
     // One whose credentials cannot be had is left out, and tried again next time.
     try {
-      const publish = await previewTarget(studio, leases.previews, ask);
+      const publish = await previewTarget(studio, leases.previews, ask, signer);
       previews.push({ previewId, publish });
     } catch (error) {
       logger.error('Preview {previewId} is unavailable: {error}', { previewId, error });
@@ -81,15 +84,23 @@ type PreviewConnect = NonNullable<ObsSection['previews']>[number]['connect'];
 /**
  * Where to publish the preview: by MoQ, the relay URL to dial at its path, carrying its token as `?jwt=`, and the
  * broadcast under it; by RTMP(S), the URL to push to, carrying its token as `?jwt=`. From the lease `previews.connect`
- * gives (studio.ts); throws if it refuses, or offers a protocol the agent can't push.
+ * gives (studio.ts), kept for the agent that signs it, `signer`: when another agent takes the gateway over, the token
+ * it kept would be refused, so it is asked for again. Throws if the API refuses, or offers a protocol the agent can't
+ * push.
  */
 async function previewTarget(
   studio: Client,
   connections: OutputLeases['previews'],
-  ask: PreviewConnect
+  ask: PreviewConnect,
+  signer: string | null
 ): Promise<PreviewPublish> {
   const renew = () => studio.organisations.outputs.previews.connect.v1(ask);
-  const connection = await leased(connections, ask.previewId, renew);
+  const key = `${ask.previewId}@${signer ?? ''}`;
+  // A lease kept for an earlier signer is no use now.
+  for (const kept of connections.keys()) {
+    if (kept.startsWith(`${ask.previewId}@`) && kept !== key) connections.delete(kept);
+  }
+  const connection = await leased(connections, key, renew);
   if ('relay' in connection) {
     const url = new URL(connection.path, connection.relay);
     return { protocol: 'moq', connect: withToken(url, connection.token), broadcast: connection.broadcast };

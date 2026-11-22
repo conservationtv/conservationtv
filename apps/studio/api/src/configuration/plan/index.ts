@@ -1,5 +1,5 @@
 import { deviceSubject, programSubject } from '@conservationtv/reports';
-import { cameraOrigin } from '../../cameras/drivers.ts';
+import { cameraOrigin } from '@conservationtv/cameras';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
 import { trustedTransaction } from '../../db/transaction.ts';
 import { ensureGatewayTls } from '../../gateways/certificates.ts';
@@ -7,6 +7,7 @@ import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
 import type { Rendition } from '../../topology/settings.ts';
 import { useEnvironment } from '../../env/env.ts';
+import { selectListenedCommands } from '../../services/chat-commands.ts';
 import { selectDeviceOutput, selectOutputPlan } from '../../services/outputs.ts';
 import {
   type ExposureInput,
@@ -14,21 +15,32 @@ import {
   type StreamInput,
   cameraFeeds,
   mediamtxAuth,
+  selectActiveNetwork,
   selectGatewayIdentity,
   selectGatewayKinds,
+  selectGatewaySigners,
   selectGatewayPreviews,
   selectLocalGateway,
+  selectNetworkCameras,
+  selectPeers,
   selectPreferredAddress,
   selectStreams
 } from './helpers.ts';
 import type {
+  CameraMediamtxConfiguration,
+  CameraPlannedPath,
+  CameraProbe,
+  CamerasConfiguration,
+  ChatConfiguration,
+  ControllingConfiguration,
   ObsConfiguration,
-  ProbingConfiguration,
-  ProbingMediamtxConfiguration,
+  PlannedCamera,
   PlannedPath,
   PlannedProbe,
   PlannedPublisher,
-  ShowConfiguration
+  ProbingConfiguration,
+  ShowConfiguration,
+  SignedObsConfiguration
 } from './types.ts';
 
 export type * from './types.ts';
@@ -39,7 +51,11 @@ export type * from './types.ts';
 // it: its gateway's, and those pinned to it on other gateways; and takes each output's preview delivered to its gateway,
 // on a path an output's agent publishes to. An output's agent runs OBS (`obs`): the output's encoding, its enabled
 // forwards, its previews and its recorder, and who drives its scenes; and, while the output follows a show under `show`
-// control, the show (`show`), which drives them. What the show plays comes with the show.
+// control, the show (`show`), which drives them. What the show plays comes with the show. While that output goes out
+// to a Twitch channel and the organisation has chat commands, the agent listens to the channel's chat for them (`chat`).
+//
+// The active agent also controls the cameras on its network (`cameras`), for whoever presents a grant this API signed
+// (src/cameras/grants.ts), and every agent serves the organisation's other agents and browsers over iroh (`peers`).
 //
 // A hop takes its media from its upstream, or with none from the stream's source, which only a camera can be so far.
 // What the agent does with it depends on where the hop is delivered:
@@ -55,14 +71,76 @@ export type * from './types.ts';
 // (src/gateways/certificates.ts): pointed at the agent's preferred address, and issued or renewed when due.
 
 /** The signing device's configuration, read by trusted code: a device principal cannot read the topology. */
-export async function planConfiguration(device: AuthenticatedDevice): Promise<ProbingConfiguration> {
+export async function planConfiguration(device: AuthenticatedDevice): Promise<ControllingConfiguration> {
   if (device.kind !== 'agent') {
     throw new Error('Currently planning configuration is only supported for agents.');
   }
   // One after the other: each is a trusted transaction, on the one admin connection.
-  const mediamtx = await planMediamtx(device);
-  const { obs, show } = await planOutput(device);
-  return { mediamtx, obs, show };
+  const gateway = await planMediamtx(device);
+  const { obs, show, chat } = await planOutput(device);
+  const { cameras, peers } = await planReach(device, gateway?.cameras ?? []);
+  return { mediamtx: gateway?.configuration, cameras, obs, show, chat, peers };
+}
+
+/**
+ * The configuration as versions before 3 return it: each camera a path is pulled from, or probed at, as the URL its
+ * driver gives, credentials included, which those agents pull as it is; and without what they don't read.
+ */
+export function withCameraUrls(configuration: ControllingConfiguration): ProbingConfiguration {
+  const { mediamtx, show } = configuration;
+  const obs = configuration.obs && withoutSigners(configuration.obs);
+  if (mediamtx === undefined) return { obs, show };
+  const cameras = new Map((configuration.cameras?.cameras ?? []).map(camera => [camera.id, camera]));
+  const origin = (cameraId: string, rendition: Rendition) => {
+    const camera = cameras.get(cameraId)!;
+    return cameraOrigin(camera.settings, camera.credentials, rendition)!;
+  };
+  const paths: PlannedPath[] = mediamtx.paths.map(({ source, ...path }) => ({
+    ...path,
+    source: 'cameraId' in source ? { url: origin(source.cameraId, path.rendition) } : { path: source.path }
+  }));
+  const probes: PlannedProbe[] = mediamtx.probes.map(({ subjectId, cameraId }) => ({
+    subjectId,
+    url: origin(cameraId, 'default')
+  }));
+  return { mediamtx: { ...mediamtx, paths, probes }, obs, show };
+}
+
+/** The `obs` runtime as versions before 3 return it: as it was before previews said who signs their tokens. */
+function withoutSigners(obs: SignedObsConfiguration): ObsConfiguration {
+  const previews = obs.previews.map(({ previewId, gatewayId, connect }) => ({ previewId, gatewayId, connect }));
+  return { ...obs, previews };
+}
+
+/** The `mediamtx` runtime, with the cameras its paths and probes name. */
+interface PlannedGateway {
+  configuration: CameraMediamtxConfiguration;
+  cameras: PlannedCamera[];
+}
+
+/** Who and what the agent reaches: the cameras it controls and pulls from, and the peers it serves. */
+interface PlannedReach {
+  cameras?: CamerasConfiguration;
+  peers: ControllingConfiguration['peers'];
+}
+
+/**
+ * The `cameras` runtime, for a network's active agent: the cameras on its network, and those `sources` its streams are
+ * pulled from, each once; and the peers any agent serves.
+ */
+async function planReach(device: AuthenticatedDevice, sources: PlannedCamera[]): Promise<PlannedReach> {
+  const { peers, local } = await trustedTransaction(
+    async () => {
+      const networkId = await selectActiveNetwork(device);
+      const onNetwork = networkId === undefined ? [] : await selectNetworkCameras(device.organisationId, networkId);
+      return { peers: await selectPeers(device), local: onNetwork };
+    },
+    { name: 'configuration.reach' }
+  );
+  const cameras = new Map([...sources, ...local].map(camera => [camera.id, camera]));
+  if (cameras.size === 0) return { peers };
+  const environment = useEnvironment();
+  return { cameras: { cameras: [...cameras.values()], grants: { issuer: environment.variables.APP_URL } }, peers };
 }
 
 /** The one rendition a preview is published at: the program, as it is encoded (src/gateways/connect.ts). */
@@ -72,7 +150,7 @@ const PREVIEW_RENDITION: Rendition = 'default';
  * The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway: its streams' paths and
  * publishers, and a path for each output's preview delivered to its gateway.
  */
-async function planMediamtx(device: AuthenticatedDevice): Promise<ProbingMediamtxConfiguration | undefined> {
+async function planMediamtx(device: AuthenticatedDevice): Promise<PlannedGateway | undefined> {
   const planned = await trustedTransaction(
     async () => {
       const gatewayId = await selectLocalGateway(device);
@@ -93,22 +171,43 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<ProbingMediamt
         name: mediamtxPath(preview.id, PREVIEW_RENDITION),
         previewId: preview.id
       }));
-      return { configuration, gateway, address };
+      return { configuration, gateway, address, cameras: sourceCameras(configuration, streams) };
     },
     { name: 'configuration.mediamtx' }
   );
   if (planned === undefined) return undefined;
 
-  const { configuration, gateway, address } = planned;
+  const { configuration, gateway, address, cameras } = planned;
   const tls = await ensureGatewayTls(gateway, address);
   if (tls !== undefined) configuration.tls = tls;
-  return configuration;
+  return { configuration, cameras };
+}
+
+/** The cameras the planned paths and probes name, as they are registered, each once. */
+function sourceCameras(configuration: CameraMediamtxConfiguration, streams: StreamInput[]): PlannedCamera[] {
+  const named = new Set(configuration.probes.map(probe => probe.cameraId));
+  for (const { source } of configuration.paths) if ('cameraId' in source) named.add(source.cameraId);
+  const cameras = new Map<string, PlannedCamera>();
+  for (const stream of streams) {
+    // Only a stream whose source is a camera something planned names; its credentials only when it has any.
+    const camera = stream.sourceDevice?.camera;
+    if (stream.sourceDeviceId === null || !camera || !named.has(stream.sourceDeviceId)) continue;
+    const { settings, credentials, state } = camera;
+    cameras.set(stream.sourceDeviceId, {
+      id: stream.sourceDeviceId,
+      settings,
+      state,
+      ...(credentials !== null && { credentials })
+    });
+  }
+  return [...cameras.values()];
 }
 
 /** The output's runtimes, for the agent it runs on: `obs`, and `show` while it follows a show. */
 interface PlannedOutput {
-  obs?: ObsConfiguration;
+  obs?: SignedObsConfiguration;
   show?: ShowConfiguration;
+  chat?: ChatConfiguration;
 }
 
 /**
@@ -122,16 +221,18 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
       if (output === undefined) return undefined;
       const plan = await selectOutputPlan(output.outputId);
       const gatewayKinds = await selectGatewayKinds(output.organisationId);
-      return { output, plan: plan!, gatewayKinds };
+      const commands = await selectListenedCommands(output.organisationId);
+      const signers = await selectGatewaySigners(output.organisationId);
+      return { output, plan: plan!, gatewayKinds, commands, signers };
     },
     { name: 'configuration.output' }
   );
   if (planned === undefined) return {};
-  const { output, plan, gatewayKinds } = planned;
+  const { output, plan, gatewayKinds, commands, signers } = planned;
   const { outputId, organisationId, control, showId } = output;
   const { forwards, previews, recorders, ...encoding } = plan;
   const [recorder] = recorders;
-  const obs: ObsConfiguration = {
+  const obs: SignedObsConfiguration = {
     output: { id: outputId, organisationId, control },
     encoding,
     forwards: forwards.map(forward => ({
@@ -143,6 +244,7 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
     previews: previews.map(preview => ({
       previewId: preview.id,
       gatewayId: preview.gatewayId,
+      signer: signers.get(preview.gatewayId) ?? null,
       connect: {
         id: organisationId,
         outputId,
@@ -154,10 +256,32 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
     ...(recorder && { recording: { recorderId: recorder.id, kind: recorder.kind, params: recorder.params } }),
     program: { subjectId: programSubject(outputId) }
   };
-  if (control !== 'show' || showId === null) return { obs };
+  const chat = planChat(organisationId, forwards, commands);
+  if (control !== 'show' || showId === null) return { obs, chat };
   const environment = useEnvironment();
   const url = new URL(`/organisations/${organisationId}/shows/${showId}/follow`, environment.variables.APP_URL);
-  return { obs, show: { id: showId, url: url.href } };
+  return { obs, show: { id: showId, url: url.href }, chat };
+}
+
+/** An output's forwards, as planning reads them. */
+type ForwardInput = NonNullable<Awaited<ReturnType<typeof selectOutputPlan>>>['forwards'][number];
+
+/**
+ * The `chat` runtime: the Twitch channels the output goes out to, whose chat is read by the channel's login, and the
+ * commands to listen for there. None without both: there is nothing to listen to, or nothing to listen for.
+ */
+function planChat(
+  organisationId: string,
+  forwards: ForwardInput[],
+  commands: ChatConfiguration['commands']
+): ChatConfiguration | undefined {
+  const channels: ChatConfiguration['channels'] = [];
+  for (const { channelId, channel } of forwards) {
+    if (channel?.kind !== 'twitch' || channel.externalLogin === null) continue;
+    channels.push({ channelId, platform: 'twitch', login: channel.externalLogin });
+  }
+  if (channels.length === 0 || commands.length === 0) return undefined;
+  return { organisationId, channels, commands };
 }
 
 /** How an output publishes a preview: by MoQ to a gateway that takes it as tracks of one broadcast, otherwise RTMP. */
@@ -175,8 +299,8 @@ interface PlanningInput {
   streams: StreamInput[];
 }
 
-function planActiveAgent(input: PlanningInput): ProbingMediamtxConfiguration {
-  const paths: PlannedPath[] = [];
+function planActiveAgent(input: PlanningInput): CameraMediamtxConfiguration {
+  const paths: CameraPlannedPath[] = [];
   const publishers: PlannedPublisher[] = [];
   const auth = mediamtxAuth(input.gatewayId);
 
@@ -243,8 +367,8 @@ function planActiveAgent(input: PlanningInput): ProbingMediamtxConfiguration {
       }
       // Only a camera can be pulled from, and only while it is enabled.
       const camera = stream.sourceDevice?.camera;
-      if (!camera || camera.state !== 'enabled') return feeds;
-      return cameraFeeds(exposure, camera);
+      if (stream.sourceDeviceId === null || !camera || camera.state !== 'enabled') return feeds;
+      return cameraFeeds(exposure, stream.sourceDeviceId, camera);
     };
 
     /** How the hop's gateway takes it by MoQ, the only protocol agents publish by, if it does in a way they can. */
@@ -266,8 +390,8 @@ function planActiveAgent(input: PlanningInput): ProbingMediamtxConfiguration {
  * Each camera the agent's streams come from, to probe as it is itself: its `default` rendition, which every driver
  * has. Only while it is enabled; each once, however many streams it is the source of.
  */
-function cameraProbes(streams: StreamInput[]): PlannedProbe[] {
-  const probes = new Map<string, PlannedProbe>();
+function cameraProbes(streams: StreamInput[]): CameraProbe[] {
+  const probes = new Map<string, CameraProbe>();
   for (const stream of streams) {
     // Only a stream whose source is a camera that is switched on, and has a rendition of its own to ask for.
     const camera = stream.sourceDevice?.camera;
@@ -275,7 +399,7 @@ function cameraProbes(streams: StreamInput[]): PlannedProbe[] {
     const url = cameraOrigin(camera.settings, camera.credentials ?? undefined, 'default');
     if (url === undefined) continue;
     const subjectId = deviceSubject(stream.sourceDeviceId);
-    probes.set(subjectId, { subjectId, url });
+    probes.set(subjectId, { subjectId, cameraId: stream.sourceDeviceId });
   }
   return [...probes.values()];
 }

@@ -17,6 +17,8 @@
     "ci:contracts": "api-contracts ci"
   },
   "dependencies": {
+    "@conservationtv/cameras": "workspace:*",
+    "@conservationtv/chat": "workspace:*",
     "@conservationtv/converge": "workspace:*",
     "@conservationtv/mediamtx": "workspace:*",
     "@conservationtv/reports": "workspace:*",
@@ -31,6 +33,7 @@
     "@number0/iroh": "catalog:",
     "@strangecyan/iroh-http-node": "catalog:",
     "@strangecyan/vignette": "2.1.0",
+    "@xstate/store": "catalog:",
     "hono": "4.13.8",
     "hono-openapi": "1.3.3",
     "jose": "6.2.12",

@@ -1,0 +1,24 @@
+# Packages dist/ (scripts/build.ts) as the app for each platform, from that platform: iroh's native addon is installed
+# for the machine pnpm runs on, so each platform's package is built on its own runner.
+appId: tv.conservation.agent
+productName: Conservation.tv Agent
+directories:
+  output: release
+files:
+  - dist/**
+  - package.json
+# The studio's agent page opens ctvagent:// links to set the app up (src/main/link.ts).
+protocols:
+  - name: Conservation.tv Agent
+    schemes: [ctvagent]
+# Native addons can't load from inside the asar archive.
+asarUnpack:
+  - '**/*.node'
+mac:
+  category: public.app-category.video
+  target: [dmg]
+win:
+  target: [nsis]
+linux:
+  target: [AppImage]
+  category: AudioVideo

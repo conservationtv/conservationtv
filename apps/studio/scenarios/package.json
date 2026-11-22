@@ -1,0 +1,32 @@
+{
+  "name": "@conservationtv/studio-scenarios",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Generated studio worlds served by a contract-checked mock API, for running the web app against topologies, health and scales no local environment has, and for screenshotting them into a report.",
+  "scripts": {
+    "scenarios": "tsx src/cli.ts",
+    "list": "tsx src/cli.ts list",
+    "serve": "tsx src/cli.ts serve",
+    "dev": "tsx src/cli.ts dev",
+    "report": "tsx src/cli.ts report",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@conservationtv/reports": "workspace:*",
+    "@conservationtv/studio-sdk": "workspace:*",
+    "@hono/node-server": "2.1.4",
+    "hono": "4.13.8",
+    "pixelmatch": "8.0.0",
+    "playwright": "1.65.0",
+    "pngjs": "7.0.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@conservationtv/studio-api": "workspace:*",
+    "@types/node": "24.10.1",
+    "@types/pngjs": "6.0.5",
+    "tsx": "4.23.15",
+    "typescript": "catalog:"
+  }
+}

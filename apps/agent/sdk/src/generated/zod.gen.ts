@@ -178,6 +178,28 @@ export const SystemSchema = z.object({
             })
         ])
     }),
+    cameras: z.object({
+        runtime: z.object({
+            cameras: z.number(),
+            held: z.record(z.string(), z.string())
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
     obs: z.object({
         runtime: z.object({
             version: z.string().nullable(),
@@ -192,8 +214,8 @@ export const SystemSchema = z.object({
             ]).nullable(),
             recording: z.enum([
                 'recording',
-                'starting',
-                'stopping'
+                'stopping',
+                'starting'
             ]).nullable(),
             program: z.object({
                 forwards: z.array(z.string()),
@@ -282,12 +304,12 @@ export const SystemSchema = z.object({
             phase: z.enum([
                 'idle',
                 'error',
+                'settled',
+                'disposed',
                 'connecting',
                 'downloading-assets',
                 'synchronising',
-                'settled',
-                'disconnected',
-                'disposed'
+                'disconnected'
             ]).nullable()
         }),
         apply: z.union([
@@ -306,7 +328,102 @@ export const SystemSchema = z.object({
                 attempt: z.number()
             })
         ])
+    }),
+    chat: z.object({
+        runtime: z.object({
+            connected: z.boolean(),
+            channels: z.number(),
+            commands: z.number(),
+            triggered: z.number(),
+            lastTriggeredAt: z.string().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
+    }),
+    peers: z.object({
+        runtime: z.object({
+            peers: z.number().nullable()
+        }),
+        apply: z.union([
+            z.object({
+                state: z.literal('applying'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('applied'),
+                revision: z.string().nullable()
+            }),
+            z.object({
+                state: z.literal('failed'),
+                revision: z.string().nullable(),
+                error: z.string(),
+                attempt: z.number()
+            })
+        ])
     })
+});
+
+export const CameraSchema = z.object({
+    cameras: z.array(z.object({
+        id: z.string(),
+        capabilities: z.object({
+            moves: z.array(z.enum([
+                'absolute',
+                'relative',
+                'point',
+                'region',
+                'continuous'
+            ])),
+            zoom: z.boolean(),
+            focus: z.boolean(),
+            options: z.array(z.object({
+                key: z.string(),
+                label: z.string(),
+                values: z.array(z.string())
+            })),
+            actions: z.array(z.object({
+                name: z.string(),
+                label: z.string()
+            })),
+            pan: z.object({
+                min: z.number(),
+                max: z.number()
+            }).optional(),
+            tilt: z.object({
+                min: z.number(),
+                max: z.number()
+            }).optional()
+        }).nullable()
+    }))
+});
+
+export const StateSchema = z.object({
+    position: z.object({
+        pan: z.number().optional(),
+        tilt: z.number().optional(),
+        zoom: z.number().optional(),
+        focus: z.number().optional()
+    }),
+    options: z.record(z.string(), z.string()),
+    holder: z.object({
+        peer: z.string(),
+        expiresAt: z.string()
+    }).nullable(),
+    observedAt: z.string()
 });
 
 /**
@@ -395,6 +512,33 @@ export const GetSystemSpecResponseSchema = z.object({
             url: z.string()
         }))
     }).optional(),
+    cameras: z.object({
+        issuer: z.string(),
+        cameras: z.array(z.object({
+            id: z.string(),
+            settings: z.union([
+                z.object({
+                    driver: z.literal('axis'),
+                    host: z.string(),
+                    resolutions: z.array(z.string()),
+                    rtspPort: z.number().optional()
+                }),
+                z.object({
+                    driver: z.literal('rtsp'),
+                    url: z.string()
+                })
+            ]),
+            state: z.enum([
+                'enabled',
+                'locked',
+                'disabled'
+            ]),
+            credentials: z.object({
+                username: z.string(),
+                password: z.string()
+            }).optional()
+        }))
+    }).optional(),
     obs: z.object({
         output: z.object({
             id: z.string(),
@@ -444,7 +588,120 @@ export const GetSystemSpecResponseSchema = z.object({
     show: z.object({
         id: z.string(),
         url: z.string()
+    }).optional(),
+    chat: z.object({
+        organisationId: z.string(),
+        channels: z.array(z.object({
+            channelId: z.string(),
+            platform: z.literal('twitch'),
+            login: z.string()
+        })),
+        commands: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            audience: z.enum([
+                'broadcaster',
+                'everyone',
+                'subscriber',
+                'vip',
+                'moderator'
+            ]),
+            cooldownSeconds: z.number()
+        }))
+    }).optional(),
+    peers: z.object({
+        peers: z.array(z.object({
+            endpointId: z.string(),
+            allow: z.object({
+                relayed: z.boolean(),
+                direct: z.boolean()
+            })
+        }))
     }).optional()
 }).register(z.globalRegistry, {
     description: 'The current system specification'
+});
+
+/**
+ * The cameras
+ */
+export const GetCamerasResponseSchema = CameraSchema;
+
+export const GetCamerasByCameraIdStatePathSchema = z.object({
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
+});
+
+/**
+ * The camera's state
+ */
+export const GetCamerasByCameraIdStateResponseSchema = StateSchema;
+
+export const PostCamerasByCameraIdCommandsBodySchema = z.object({
+    command: z.union([
+        z.object({
+            kind: z.literal('moveTo'),
+            pan: z.number().gte(-360).lte(360).optional(),
+            tilt: z.number().gte(-360).lte(360).optional(),
+            zoom: z.number().gte(0).lte(1).optional(),
+            focus: z.number().gte(0).lte(1).optional()
+        }),
+        z.object({
+            kind: z.literal('moveBy'),
+            pan: z.number().gte(-360).lte(360).optional(),
+            tilt: z.number().gte(-360).lte(360).optional(),
+            zoom: z.number().gte(-1).lte(1).optional()
+        }),
+        z.object({
+            kind: z.literal('moveToPoint'),
+            x: z.number().gte(0).lte(1),
+            y: z.number().gte(0).lte(1)
+        }),
+        z.object({
+            kind: z.literal('moveToRegion'),
+            x: z.number().gte(0).lte(1),
+            y: z.number().gte(0).lte(1),
+            width: z.number().gt(0).lte(1),
+            height: z.number().gt(0).lte(1)
+        }),
+        z.object({
+            kind: z.literal('drive'),
+            pan: z.number().gte(-1).lte(1).optional(),
+            tilt: z.number().gte(-1).lte(1).optional(),
+            zoom: z.number().gte(-1).lte(1).optional(),
+            focus: z.number().gte(-1).lte(1).optional()
+        }),
+        z.object({
+            kind: z.literal('stop')
+        }),
+        z.object({
+            kind: z.literal('configure'),
+            key: z.string().min(1).max(120),
+            value: z.string().max(120)
+        }),
+        z.object({
+            kind: z.literal('run'),
+            action: z.string().min(1).max(120)
+        })
+    ])
+});
+
+export const PostCamerasByCameraIdCommandsPathSchema = z.object({
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
+});
+
+/**
+ * Done
+ */
+export const PostCamerasByCameraIdCommandsResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Done'
+});
+
+export const GetCamerasByCameraIdEventsPathSchema = z.object({
+    cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The camera.'
+    })
 });

@@ -1,19 +1,22 @@
 import { setTimeout as sleep } from 'node:timers/promises';
+import { cameraOrigin } from '@conservationtv/cameras';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import { gatewaySpecs, type GatewayLeases, type GatewaySpecs } from '../gateway/index.ts';
-import type { ProbesSpec } from '../cameras/index.ts';
-import { outputSpecs, type OutputLeases, type OutputSpecs } from '../output/index.ts';
+import type { CamerasSpec, ProbesSpec } from '../cameras/index.ts';
+import type { PeersSpec } from '../iroh/peers.ts';
+import { outputSpecs, type ChatSpec, type OutputLeases, type OutputSpecs } from '../output/index.ts';
 import { REPORT_INTERVAL_MS } from '../reporting/sampler.ts';
-import { type DeviceConfiguration, useStudio } from '../studio.ts';
+import { type ControllingConfiguration, type DeviceConfiguration, useStudio } from '../studio.ts';
 
 // How a conservation.tv agent learns what to run. Every `INTERVAL_MS` it:
 //
 //   1. asks the studio API for its configuration (`deviceConfiguration.get`, signed as the agent's device): a section
 //      for each part of the agent it is to run, and none for those it isn't;
 //   2. has each part turn its section into its keys' specs: the `mediamtx` section into the gateway's `streams`,
-//      `metrics` and `relayTraffic` (gateway/configuration.ts), and its cameras into `probes`; and the `obs` and `show`
-//      sections into the output's `obs`, `channels` and `show` (output/configuration.ts);
+//      `metrics` and `relayTraffic` (gateway/configuration.ts), and its cameras into `probes`; the `obs` and `show`
+//      sections into the output's `obs`, `channels` and `show` (output/configuration.ts); and the `cameras`, `chat`
+//      and `peers` sections into the keys of the same names, as they are;
 //   3. hands them to converge (system.ts), where each key changes what runs only when its spec changed, and is
 //      finalised when its section is left out, or, for `relayTraffic` and `channels`, when it has nothing to read: no
 //      relay's stats, or no channel with any.
@@ -29,11 +32,14 @@ const INTERVAL_MS = 30_000;
 const logger = getLogger(['agent', 'studio']);
 
 /** The specs the configuration gives each key: absent for a runtime it leaves out. */
-export type StudioSpecs = Partial<GatewaySpecs & OutputSpecs & ProbeSpecs>;
+export type StudioSpecs = Partial<GatewaySpecs & OutputSpecs & ReachSpecs>;
 
-/** The `probes` key's spec. */
-interface ProbeSpecs {
+/** The specs of the keys about what the agent reaches, and who reaches it. */
+interface ReachSpecs {
   probes: ProbesSpec;
+  cameras: CamerasSpec;
+  chat: ChatSpec;
+  peers: PeersSpec;
 }
 
 /** What converge is told: each key's spec, or that it is absent. */
@@ -68,20 +74,68 @@ export async function watchStudioConfiguration(signal: AbortSignal, apply: Apply
 }
 
 /**
- * One answer from the studio API, signed as the agent's device: at version 2, which says what to probe, where the API
- * serves it, and otherwise at version 1, as an API from before cameras were probed gives it, with nothing to probe.
+ * One answer from the studio API, signed as the agent's device: at version 3, which gives the agent its cameras and who
+ * signs each preview's tokens, where the API serves it; otherwise at version 2, which says what to probe by URL, each
+ * preview signed by no one, so its token is kept until it expires; and otherwise at version 1, as an API from before
+ * cameras were probed gives it, with nothing to probe.
  */
 async function askConfiguration(studio: Client): Promise<DeviceConfiguration> {
   await studio.handshake();
+  if (studio.deviceConfiguration.get.version === 3) {
+    const configuration = await studio.deviceConfiguration.get.v3();
+    if (configuration instanceof Error) throw configuration;
+    return withCameraUrls(configuration);
+  }
   if (studio.deviceConfiguration.get.version === 2) {
     const configuration = await studio.deviceConfiguration.get.v2();
     if (configuration instanceof Error) throw configuration;
-    return configuration;
+    return { ...configuration, obs: configuration.obs && unsigned(configuration.obs) };
   }
   const configuration = await studio.deviceConfiguration.get.v1();
   if (configuration instanceof Error) throw configuration;
-  const { mediamtx } = configuration;
-  return { ...configuration, mediamtx: mediamtx && { ...mediamtx, probes: [] } };
+  const { mediamtx, obs } = configuration;
+  return { ...configuration, mediamtx: mediamtx && { ...mediamtx, probes: [] }, obs: obs && unsigned(obs) };
+}
+
+/** The `obs` section as versions 1 and 2 give it, before previews said who signs their tokens. */
+type UnsignedObsSection = NonNullable<
+  Exclude<Awaited<ReturnType<Client['deviceConfiguration']['get']['v2']>>, Error>['obs']
+>;
+
+/** An `obs` section from before previews said who signs their tokens: each signed by no one. */
+function unsigned(obs: UnsignedObsSection): NonNullable<DeviceConfiguration['obs']> {
+  return { ...obs, previews: obs.previews.map(preview => ({ ...preview, signer: null })) };
+}
+
+/** A path and a probe as the gateway and the probes work from them: with the URL to pull. */
+type PulledPath = NonNullable<DeviceConfiguration['mediamtx']>['paths'][number];
+type UrlProbe = NonNullable<DeviceConfiguration['mediamtx']>['probes'][number];
+
+/**
+ * The configuration with each camera its paths are pulled from, and its probes ask, as the URL the camera's driver
+ * gives (`@conservationtv/cameras`), credentials included, which is what the gateway and the probes work from. A path
+ * or probe naming a camera the configuration doesn't have, or a rendition the camera can't produce, is left out.
+ */
+function withCameraUrls(configuration: ControllingConfiguration): DeviceConfiguration {
+  const { mediamtx, ...rest } = configuration;
+  if (mediamtx === undefined) return rest;
+  const cameras = new Map((configuration.cameras?.cameras ?? []).map(camera => [camera.id, camera]));
+  const origin = (cameraId: string, rendition: Parameters<typeof cameraOrigin>[2]) => {
+    const camera = cameras.get(cameraId);
+    return camera === undefined ? undefined : cameraOrigin(camera.settings, camera.credentials, rendition);
+  };
+  const paths: PulledPath[] = [];
+  for (const { source, ...path } of mediamtx.paths) {
+    const url = 'cameraId' in source ? origin(source.cameraId, path.rendition) : undefined;
+    if ('path' in source) paths.push({ ...path, source });
+    else if (url !== undefined) paths.push({ ...path, source: { url } });
+  }
+  const probes: UrlProbe[] = [];
+  for (const { subjectId, cameraId } of mediamtx.probes) {
+    const url = origin(cameraId, 'default');
+    if (url !== undefined) probes.push({ subjectId, url });
+  }
+  return { ...rest, mediamtx: { ...mediamtx, paths, probes } };
 }
 
 /** The spec of each key the configuration has a section for. */
@@ -98,5 +152,17 @@ async function studioSpecs(configuration: DeviceConfiguration, studio: Client, l
     const output = await outputSpecs(configuration.obs, configuration.show, studio, leases.output);
     specs = { ...specs, ...output };
   }
+  return { ...specs, ...reachSpecs(configuration) };
+}
+
+/**
+ * The `cameras`, `chat` and `peers` specs, of the sections of the same names: each left out with its section, as all
+ * are by a studio API from before version 3. Without `peers` the agent serves anyone, as it did then.
+ */
+function reachSpecs({ cameras, chat, peers }: DeviceConfiguration): Partial<ReachSpecs> {
+  const specs: Partial<ReachSpecs> = {};
+  if (cameras !== undefined) specs.cameras = { issuer: cameras.grants.issuer, cameras: cameras.cameras };
+  if (chat !== undefined) specs.chat = chat;
+  if (peers !== undefined) specs.peers = { peers };
   return specs;
 }

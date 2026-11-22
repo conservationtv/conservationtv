@@ -1,16 +1,20 @@
 import { Client, DeviceIdentity, deviceSignature } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import type { IrohHttpServer } from '@strangecyan/iroh-http-node';
+import { CameraControl } from './cameras/index.ts';
 import type { AgentConfiguration, ConservationTvConfiguration } from './config.ts';
+import { AgentDialler } from './iroh/dial.ts';
+import { PeerList } from './iroh/peers.ts';
 import { gatewaySetup, withMediamtxClient, type GatewaySetup } from './gateway/index.ts';
 import { serveOverIroh } from './iroh/serve.ts';
 import type { Sink } from '@logtape/logtape';
-import type { Subscription } from 'rxjs';
+import type { SystemStatus } from '@conservationtv/converge';
+import { BehaviorSubject, catchError, map, of, switchMap, type Observable, type Subscription } from 'rxjs';
 import { journalSystem } from './reporting/events.ts';
 import { Journal, withJournal } from './reporting/journal.ts';
 import { MetricReporter, withMetricReporter } from './reporting/reporter.ts';
 import { withStudio } from './studio.ts';
-import { startSystem, type AgentSystem } from './system/system.ts';
+import { startSystem, type AgentControllers, type AgentSystem } from './system/system.ts';
 
 // The agent, as the runner starts and stops it:
 //
@@ -24,6 +28,23 @@ import { startSystem, type AgentSystem } from './system/system.ts';
 
 const logger = getLogger(['agent']);
 
+/** Where the agent is in starting and stopping. */
+export type AgentState = 'stopped' | 'starting' | 'running' | 'stopping';
+
+/** What a host can show of the agent: where it is in starting and stopping, and its runtimes' status while it runs. */
+export interface AgentStatus {
+  state: AgentState;
+  /** Each runtime's status, once the system has started and every key has one; `null` otherwise. */
+  system: SystemStatus<AgentControllers> | null;
+  /** Why the system's status stopped, when a runtime's status errored; the system's own stop reports it too. */
+  error: string | null;
+}
+
+interface Lifecycle {
+  state: AgentState;
+  system: AgentSystem | undefined;
+}
+
 /** The agent: the app, served as HTTP over iroh on an endpoint whose identity is the configured secret key. */
 export class Agent {
   private server: IrohHttpServer | undefined = undefined;
@@ -31,8 +52,32 @@ export class Agent {
   private gateway: GatewaySetup | undefined = undefined;
   private journal: Journal | undefined = undefined;
   private journalled: Subscription | undefined = undefined;
+  private dialler: AgentDialler | undefined = undefined;
+
+  private readonly lifecycle$ = new BehaviorSubject<Lifecycle>({ state: 'stopped', system: undefined });
 
   constructor(readonly config: AgentConfiguration) {}
+
+  /**
+   * The agent's status, for a host to show: its state as it starts and stops, with the system's status while it runs.
+   * Replays the latest to each subscriber, and never errors.
+   */
+  readonly status$: Observable<AgentStatus> = this.lifecycle$.pipe(
+    switchMap(({ state, system }) => {
+      if (system === undefined) return of<AgentStatus>({ state, system: null, error: null });
+      return system.status$.pipe(
+        map((status): AgentStatus => ({ state, system: status, error: null })),
+        catchError(error => {
+          const message = error instanceof Error ? error.message : String(error);
+          return of<AgentStatus>({ state, system: null, error: message });
+        })
+      );
+    })
+  );
+
+  private moveTo(state: AgentState) {
+    this.lifecycle$.next({ state, system: this.system });
+  }
 
   /**
    * A logtape sink for the host to log through: the agent's warnings and errors go to the studio API with its events,
@@ -42,7 +87,7 @@ export class Agent {
 
   /** Start the runtimes and an iroh session, and serve on its endpoint. Resolves once requests are being accepted. */
   async start() {
-    if (this.system !== undefined) throw new Error('The agent is already started');
+    if (this.lifecycle$.value.state !== 'stopped') throw new Error('The agent is already started');
     const config = this.config;
     if (!config) throw new Error('There is no config available.');
 
@@ -51,6 +96,17 @@ export class Agent {
       throw new Error('Agents cannot currently be started in direct mode.');
     }
 
+    this.moveTo('starting');
+    try {
+      await this.startServing(config);
+    } catch (error) {
+      await this.stop();
+      throw error;
+    }
+    this.moveTo('running');
+  }
+
+  private async startServing(config: ConservationTvConfiguration) {
     const identity = await DeviceIdentity.fromSecretKey(config.secretKey);
     const studio = new Client({ baseUrl: config.studioUrl, auth: deviceSignature(identity) });
     const gateway = gatewaySetup(config.mediamtx, studio);
@@ -74,14 +130,15 @@ export class Agent {
     const journal = this.journal;
     journal?.start();
     journal?.event('agent.started', { name: config.name });
-    this.system = await startSystem({ config, identity, gateway });
+    const cameras = new CameraControl();
+    const peers = new PeerList();
+    const dialler = new AgentDialler();
+    this.dialler = dialler;
+    this.system = await startSystem({ config, identity, gateway, cameras, peers, dialler });
+    this.moveTo('starting');
     if (journal !== undefined) this.journalled = journalSystem(this.system.status$, journal);
-    try {
-      this.server = await serveOverIroh(config, this.system);
-    } catch (error) {
-      this.stop();
-      throw error;
-    }
+    // A failure from here is stopped by `start`, which undoes all of this.
+    this.server = await serveOverIroh(config, { system: this.system, identity, cameras, peers, dialler });
   }
 
   /**
@@ -90,10 +147,22 @@ export class Agent {
    * (gateway/streams/endpoints.ts). Then stop the runtimes.
    */
   async stop() {
+    if (this.lifecycle$.value.state === 'stopped' || this.lifecycle$.value.state === 'stopping') return;
+    this.moveTo('stopping');
+    try {
+      await this.release();
+    } finally {
+      this.moveTo('stopped');
+    }
+  }
+
+  private async release() {
     const registration = this.gateway?.registration;
     this.gateway = undefined;
     const server = this.server;
     this.server = undefined;
+    this.dialler?.detach();
+    this.dialler = undefined;
     await Promise.all([registration?.close(), server?.[Symbol.asyncDispose]()]);
     const system = this.system;
     this.system = undefined;

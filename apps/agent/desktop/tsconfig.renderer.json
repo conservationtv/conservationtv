@@ -1,0 +1,21 @@
+{
+  // The renderer, built by Vite (vite.config.ts); this only type-checks.
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@conservationtv/ui/*": ["../../../packages/ui/src/*"]
+    }
+  },
+  "include": ["src/renderer", "src/shared"]
+}

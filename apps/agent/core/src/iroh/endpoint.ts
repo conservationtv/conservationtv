@@ -27,10 +27,17 @@ async function getIrohSessionForDevice(): Promise<IrohSession> {
   return session;
 }
 
-/** The endpoint's builder, and the relays it will use, as errors name them. */
+/** The endpoint's builder, the relays it will use, as errors name them, and the one relay other devices are found on. */
 interface Plan {
   builder: EndpointBuilder;
   relays: string;
+  relayUrl: string | undefined;
+}
+
+/** The agent's bound endpoint, and the relay the organisation's other devices are found on, when it has one. */
+export interface BoundEndpoint {
+  endpoint: Endpoint;
+  relayUrl: string | undefined;
 }
 
 /** A conservation.tv agent's endpoint, on its session's relay alone; a direct agent's, with n0's defaults. */
@@ -38,23 +45,23 @@ async function plan(config: AgentConfiguration): Promise<Plan> {
   const builder = Endpoint.builder();
   if (config.type === 'direct') {
     builder.applyN0();
-    return { builder, relays: "n0's relays" };
+    return { builder, relays: "n0's relays", relayUrl: undefined };
   }
   const { relay } = await getIrohSessionForDevice();
   const relays = RelayMap.empty();
   relays.insert(relay);
   builder.applyMinimal();
   builder.relayMode(RelayMode.custom(relays));
-  return { builder, relays: `The relay ${relay.url}` };
+  return { builder, relays: `The relay ${relay.url}`, relayUrl: relay.url };
 }
 
 /** Start an iroh session, and bind the agent's endpoint, accepting HTTP over iroh. */
-export async function createEndpoint(config: AgentConfiguration): Promise<Endpoint> {
-  const { builder } = await plan(config);
+export async function createEndpoint(config: AgentConfiguration): Promise<BoundEndpoint> {
+  const { builder, relayUrl } = await plan(config);
   builder.secretKey(Array.from(config.secretKey));
   builder.alpns([ALPN]);
   const endpoint = await builder.bind();
-  return endpoint;
+  return { endpoint, relayUrl };
 }
 
 export async function connectWithEndpoint(endpoint: Endpoint): Promise<Endpoint> {

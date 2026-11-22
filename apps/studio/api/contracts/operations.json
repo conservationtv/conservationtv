@@ -67,7 +67,8 @@
       1
     ],
     "organisations.devices.list": [
-      1
+      1,
+      2
     ],
     "organisations.devices.get": [
       1
@@ -82,18 +83,43 @@
       1
     ],
     "organisations.cameras.list": [
-      1
+      1,
+      2
     ],
     "organisations.cameras.create": [
-      1
+      1,
+      2
     ],
     "organisations.cameras.get": [
-      1
+      1,
+      2
     ],
     "organisations.cameras.update": [
-      1
+      1,
+      2
     ],
     "organisations.cameras.delete": [
+      1
+    ],
+    "organisations.cameras.presets.create": [
+      1
+    ],
+    "organisations.cameras.presets.update": [
+      1
+    ],
+    "organisations.cameras.presets.delete": [
+      1
+    ],
+    "organisations.cameras.presets.thumbnail.get": [
+      1
+    ],
+    "organisations.cameras.presets.thumbnail.set": [
+      1
+    ],
+    "organisations.cameras.presets.thumbnail.delete": [
+      1
+    ],
+    "organisations.cameras.control.connect": [
       1
     ],
     "organisations.browser.ensure": [
@@ -300,6 +326,27 @@
     "organisations.channels.stats.get": [
       1
     ],
+    "organisations.chatCommands.list": [
+      1
+    ],
+    "organisations.chatCommands.create": [
+      1
+    ],
+    "organisations.chatCommands.get": [
+      1
+    ],
+    "organisations.chatCommands.update": [
+      1
+    ],
+    "organisations.chatCommands.delete": [
+      1
+    ],
+    "organisations.chatCommands.trigger": [
+      1
+    ],
+    "organisations.chatCommands.settle": [
+      1
+    ],
     "invitations.listMine": [
       1
     ],
@@ -320,7 +367,8 @@
     ],
     "deviceConfiguration.get": [
       1,
-      2
+      2,
+      3
     ],
     "deviceAddresses.replace": [
       1

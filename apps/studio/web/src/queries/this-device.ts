@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
+import { readCameraSurfaceMode, writeCameraSurfaceMode, type CameraSurfaceMode } from '@/lib/camera-surface-mode';
 import { readKnownAccounts, writeKnownAccounts, type KnownAccounts } from '@/lib/known-device';
 import { readPins, withoutPin, withPinToggled, writePins, type Pin } from '@/lib/pins';
 
@@ -71,5 +72,25 @@ export function useRemovePin() {
       return next;
     },
     onSuccess: pins => client.setQueryData(pinListQueryOptions().queryKey, pins)
+  });
+}
+
+/** What the pointer does on a camera's picture on this browser; see src/lib/camera-surface-mode.ts. */
+export const cameraSurfaceModeQueryOptions = () =>
+  queryOptions({
+    queryKey: ['this-device', 'camera-surface-mode'] as const,
+    queryFn: async () => readCameraSurfaceMode(),
+    staleTime: Infinity
+  });
+
+/** Choose what the pointer does on a camera's picture: written to storage, and the query's cache set to it. */
+export function useSetCameraSurfaceMode() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (mode: CameraSurfaceMode) => {
+      writeCameraSurfaceMode(mode);
+      return mode;
+    },
+    onSuccess: mode => client.setQueryData(cameraSurfaceModeQueryOptions().queryKey, mode)
   });
 }

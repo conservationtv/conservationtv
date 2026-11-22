@@ -30,8 +30,8 @@ export function ctvStreamObs(inputs: InputRelays): ObsSourcePlugin<typeof CtvStr
 
 /**
  * A media source playing the input's path with as little delay as it can: no buffering of its own, FFmpeg asked for
- * none either, decoded in hardware where it can be. It reconnects quickly, as it must when its path is first written
- * and whenever MediaMTX restarts.
+ * none either, decoded in hardware where it can be. It reconnects quickly, as it must whenever its relay restarts on
+ * renewing its session, and whenever MediaMTX restarts.
  */
 function relayInput(url: string): ObsInput {
   return {

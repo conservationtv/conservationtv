@@ -10,6 +10,7 @@ import {
   getDeviceKeyPair,
   listDevicePublicIds,
   listDevices,
+  listDevicesWithMembers,
   requireDevicePermission,
   updateDevice
 } from '../services/devices.ts';
@@ -90,6 +91,32 @@ export default new Hono()
       const { id } = c.req.valid('param');
       const filter = c.req.valid('query');
       const rows = await transaction(() => listDevices(id, filter));
+      c.header('Cache-Control', 'no-store');
+      return c.json({ devices: rows }, 200);
+    }
+  )
+  .get(
+    '/',
+    describeRoute({
+      operationId: 'organisations.devices.list',
+      ...operationVersion(2),
+      summary: "List an organisation's devices",
+      description: `Every kind (${DEVICE_KINDS.join(', ')}), optionally only one. Empty for organisations you are not a member of. From this version, a browser comes with whose it is: the member's \`userId\`, and \`memberName\`, what the organisation calls them, null if they have set no name. Both are null for every other kind of device.`,
+      responses: {
+        200: { description: 'The devices, oldest first' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    validator('query', z.object({ kind: z.enum(DEVICE_KINDS).optional().describe('Only devices of this kind.') })),
+    async c => {
+      const { id } = c.req.valid('param');
+      const filter = c.req.valid('query');
+      const rows = await transaction(() => listDevicesWithMembers(id, filter));
       c.header('Cache-Control', 'no-store');
       return c.json({ devices: rows }, 200);
     }

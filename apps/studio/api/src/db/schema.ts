@@ -20,6 +20,7 @@ export * from './schemas/streams.ts';
 export * from './schemas/shows.ts';
 export * from './schemas/outputs.ts';
 export * from './schemas/channels.ts';
+export * from './schemas/chat-commands.ts';
 export * from './schemas/observations.ts';
 export * from './schemas/metrics.ts';
 export * from './schemas/logs.ts';

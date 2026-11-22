@@ -46,6 +46,21 @@ validates it, shares it as an unlisted gist (with `DIFFMAP_GIST_TOKEN`, a token 
 comment naming it: `<!-- diffmap gist=<id> sha=<head> -->`. The Worker takes the latest such comment, only from
 `github-actions[bot]`, and leaves it out of the conversation. A map written from an older head commit says so.
 
+## Scenario reports
+
+`.github/workflows/scenarios.yml` screenshots the studio web app across generated worlds on each pull request
+(`apps/studio/scenarios`) and keeps the report as an Actions artifact, with one comment naming it:
+`<!-- scenarios artifact=<id> sha=<head> -->`. `/api/scenarios/<artifact>/<path>` serves that report out of the
+artifact: GitHub only hands an artifact out as a zip behind a signed URL that lasts a minute, but the URL answers byte
+ranges, so the Worker reads the zip's central directory once from its end (cached; an artifact never changes) and then
+each file alone from its offset, inflating it as it streams, and caches what it served. `/api/pulls/<number>/scenarios`
+redirects to the latest report the workflow named, taking only `github-actions[bot]`'s comments.
+
+The artifact is read with `GITHUB_TOKEN`, which needs to be able to download Actions artifacts of this repository. The
+report is HTML that a pull request's code wrote, so every file of it is served under
+`Content-Security-Policy: sandbox` without `allow-same-origin`: the page gets an opaque origin, and cannot read this
+site's cookies or act as the signed-in reviewer.
+
 ## Calls
 
 The source chapter opens on its calls: the functions, methods, routes and call-built values that are new or changed,

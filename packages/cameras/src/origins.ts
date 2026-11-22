@@ -1,46 +1,14 @@
-import { z } from 'zod';
-import type { Rendition } from '../topology/settings.ts';
+import type { AxisSettings, CameraCredentials, CameraSettings, Resolution, RtspSettings } from './settings.ts';
 
-// A camera driver is what this API knows about one kind of camera: what it is registered with (its settings, chosen
-// by `driver`), and where to pull each rendition from, for the configuration builders (src/configuration/). A driver
-// says which renditions the camera can produce itself; the others need a publisher that transcodes, which nothing
-// does yet. Credentials are kept apart from the settings, encrypted, since members read the settings.
+// Where each rendition of a camera's stream is pulled from, by its driver. A driver says which renditions the camera
+// can produce itself; the others need a publisher that transcodes, which nothing does yet. The agent that reaches the
+// camera builds these from its settings and credentials; the studio API still does for agents built before they did.
 
-/** How a camera's stream is reached. Kept encrypted, and never returned. */
-export const CameraCredentialsSchema = z
-  .strictObject({ username: z.string().min(1).max(120), password: z.string().max(256) })
-  .describe('How to authenticate to the camera. Write-only: never returned.');
-export type CameraCredentials = z.output<typeof CameraCredentialsSchema>;
-
-const ResolutionSchema = z.string().regex(/^\d{2,5}x\d{2,5}$/u, 'A resolution, such as `1280x720`');
-type Resolution = z.output<typeof ResolutionSchema>;
-
-/** An Axis camera, whose RTSP server produces any resolution and bitrate it supports, per request. */
-const AxisSettingsSchema = z.strictObject({
-  driver: z.literal('axis'),
-  /** Where its web server is, as its network reaches it, such as `http://192.168.1.10`. Its RTSP server is beside it. */
-  host: z.url(),
-  /**
-   * Its RTSP server's port (VAPIX `Network.RTSP.Port`), set apart from the web server's on a camera. Default 554.
-   */
-  rtspPort: z.int().min(1).max(65_535).optional(),
-  /** The resolutions it streams, as VAPIX lists them (`Properties.Image.Resolution`). */
-  resolutions: z.array(ResolutionSchema).min(1)
-});
-type AxisSettings = z.output<typeof AxisSettingsSchema>;
-
-/** Any camera with one RTSP stream, which it produces as it is: only the `default` rendition. */
-const RtspSettingsSchema = z.strictObject({
-  driver: z.literal('rtsp'),
-  /** Its stream, without credentials. */
-  url: z.url()
-});
-type RtspSettings = z.output<typeof RtspSettingsSchema>;
-
-export const CameraSettingsSchema = z
-  .discriminatedUnion('driver', [AxisSettingsSchema, RtspSettingsSchema])
-  .describe('What the camera is registered with: its `driver`, and what that driver reads.');
-export type CameraSettings = z.output<typeof CameraSettingsSchema>;
+/**
+ * The qualities a stream is delivered at, as the studio API names them (its `RENDITIONS`): `default` is the camera's
+ * stream as it comes, which every driver has.
+ */
+export type CameraRendition = 'default' | 'data_saver' | 'balanced' | 'quality';
 
 /** The URL with the credentials as its userinfo, which RTSP clients such as MediaMTX read. */
 function withCredentials(url: URL, credentials: CameraCredentials | undefined) {
@@ -60,7 +28,7 @@ const AXIS_TARGETS = {
   quality: { maxWidth: Number.POSITIVE_INFINITY, maxBitrateKbps: 4_000 },
   balanced: { maxWidth: 960, maxBitrateKbps: 1_500 },
   data_saver: { maxWidth: 640, maxBitrateKbps: 500 }
-} satisfies Record<Exclude<Rendition, 'default'>, AxisTarget>;
+} satisfies Record<Exclude<CameraRendition, 'default'>, AxisTarget>;
 
 /**
  * The largest of the camera's resolutions within the width, in the aspect ratio of its largest (Axis lists 4:3 and
@@ -83,7 +51,7 @@ function axisResolution(resolutions: Resolution[], maxWidth: number) {
  * An Axis rendition: `default` is the camera's own settings, in H.264; the others are sized and capped per request.
  * Audio is AAC, which RTMP carries to MoQ publishers, though MediaMTX's WebRTC cannot send it.
  */
-function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | undefined, rendition: Rendition) {
+function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | undefined, rendition: CameraRendition) {
   // Its RTSP server is on the same host, on its own port (554 unless set), under the same base path (a proxy may serve
   // several cameras, each under its own). Built anew: a web URL's scheme cannot become `rtsp:`.
   const host = new URL(settings.host);
@@ -102,7 +70,7 @@ function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | und
 }
 
 /** A plain RTSP camera's only rendition, `default`. */
-function rtspOrigin(settings: RtspSettings, credentials: CameraCredentials | undefined, rendition: Rendition) {
+function rtspOrigin(settings: RtspSettings, credentials: CameraCredentials | undefined, rendition: CameraRendition) {
   if (rendition !== 'default') return undefined;
   return withCredentials(new URL(settings.url), credentials);
 }
@@ -111,7 +79,7 @@ function rtspOrigin(settings: RtspSettings, credentials: CameraCredentials | und
 export function cameraOrigin(
   settings: CameraSettings,
   credentials: CameraCredentials | undefined,
-  rendition: Rendition
+  rendition: CameraRendition
 ): string | undefined {
   switch (settings.driver) {
     case 'axis':

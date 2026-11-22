@@ -1,5 +1,6 @@
 import { defineBinary, reportsVersion } from '@conservationtv/converge/binaries';
 import type { z } from 'zod';
+import { mediamtxCommand } from '../mediamtx/command.ts';
 
 /**
  * moq-cli's releases (https://doc.moq.dev/bin/cli.html): a tarball per platform (a zip on Windows), the executable
@@ -49,9 +50,8 @@ export const MOQ_MANIFEST: MoqManifest = {
 
 /**
  * The moq CLI (`moq`, installed) pulling `source` over RTMP from a MediaMTX on the same machine, and publishing it as
- * `broadcast` at `connect`, the relay URL carrying its token. For MediaMTX to run directly (`runOnInit`): none of its
- * arguments has a space.
+ * `broadcast` at `connect`, the relay URL carrying its token. For MediaMTX to run directly (`runOnInit`).
  */
 export function moqPublishCommand(moq: string, connect: string, broadcast: string, source: string): string {
-  return [moq, '--connect', connect, 'import', '--broadcast', broadcast, 'rtmp', '--connect', source].join(' ');
+  return mediamtxCommand(moq, '--connect', connect, 'import', '--broadcast', broadcast, 'rtmp', '--connect', source);
 }
