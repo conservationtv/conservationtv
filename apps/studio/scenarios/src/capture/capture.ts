@@ -239,7 +239,34 @@ async function openPage(browser: Browser, origin: string, task: CaptureTask, tag
   await context.addCookies([{ name: SCENARIO_COOKIE, value: tag, url: origin }]);
   const page = await context.newPage();
   await page.clock.setFixedTime(WORLD_NOW);
+  await loadFontsFirst(page);
   return { context, page };
+}
+
+declare global {
+  /** Set by loadFontsFirst's script: settles once every font face the page's CSS declares has loaded. */
+  var scenarioFontsLoaded: Promise<unknown> | undefined;
+}
+
+/**
+ * Fonts loaded before anything is drawn. A font is fetched only when text first uses it, which in the app is the same
+ * moment its charts measure their labels; Recharts keeps what it measured, so a label measured in the fallback font
+ * stays that width (wrapping onto two lines, say) whatever loads after. So every face the CSS declares is loaded as
+ * soon as the CSS is parsed, and the session, which every page waits on before drawing any text, is held until they
+ * have.
+ */
+async function loadFontsFirst(page: BrowserPage) {
+  await page.addInitScript(() => {
+    globalThis.scenarioFontsLoaded = new Promise(resolve => {
+      document.addEventListener('DOMContentLoaded', () => {
+        void Promise.all([...document.fonts].map(face => face.load().catch(() => undefined))).then(resolve);
+      });
+    });
+  });
+  await page.route(/\/auth\/get-session$/u, async route => {
+    await page.evaluate(() => globalThis.scenarioFontsLoaded).catch(() => undefined);
+    await route.continue();
+  });
 }
 
 export async function capture(
