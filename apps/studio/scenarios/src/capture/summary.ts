@@ -79,11 +79,17 @@ export function summaryCommand(args: string[]) {
   const [dir] = positionals;
   if (!dir) throw new Error('Usage: summary <report dir> [--url <hosted index.html>]');
   const summary = summaryOf(readReport(resolve(dir)), values.url);
-  const quiet = !summary.changed.length && !summary.withIssues.length;
+  // With no baseline nothing was compared, which is not the same as nothing having changed.
+  const compared = summary.data.baseline !== null;
+  const quiet = compared && !summary.changed.length && !summary.withIssues.length;
+  const uncompared = compared
+    ? []
+    : ['', "> Not compared: the merge base's screenshots couldn't be taken, so this is the head alone."];
   const lines = [
     '### Scenario screenshots',
     '',
     ...headline(summary),
+    ...uncompared,
     ...table(summary, 'Changed', summary.changed, changeText),
     ...table(summary, 'Issues', summary.withIssues, shot => shot.issues.join(', ')),
     ...(quiet ? ['', 'Nothing changed, and no page had issues.'] : [])

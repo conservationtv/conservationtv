@@ -25,7 +25,9 @@ export function mergeCommand(args: string[]) {
   const [first] = reports;
   if (!first) return;
   const shots: ReportShot[] = reports.flatMap(report => report.data.shots).sort((a, b) => a.order - b.order);
-  // Every shard was taken from the same run, so its scenarios and baseline are the first's.
-  writeReport(out, { ...first.data, shots, removed: reports.flatMap(report => report.data.removed) });
+  // Every shard was taken from the same run, so its scenarios are the first's. A shard whose base couldn't be taken has
+  // no baseline; the merged report is compared if any shard was, its uncompared shots counting as new.
+  const baseline = reports.map(report => report.data.baseline).find(found => found !== null) ?? null;
+  writeReport(out, { ...first.data, baseline, shots, removed: reports.flatMap(report => report.data.removed) });
   console.log(`Merged ${reports.length} reports: ${shots.length} screenshots.`);
 }

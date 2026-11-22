@@ -19,6 +19,8 @@ on:
       - apps/studio/api/contracts/**
       - apps/studio/api/src/health/**
       - apps/studio/scenarios/**
+      - apps/agent/sdk/**
+      - packages/versioned-api/**
       - packages/ui/**
       - packages/reports/**
       - packages/shows/**
@@ -67,7 +69,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.pull_request.number || inputs.number }}
         run: |
-          read -r head ref < <(gh pr view "$NUMBER" --json headRefOid,baseRefName --jq '"\(.headRefOid) \(.baseRefName)"')
+          read -r head ref cross < <(gh pr view "$NUMBER" \
+            --json headRefOid,baseRefName,isCrossRepository --jq '"\(.headRefOid) \(.baseRefName) \(.isCrossRepository)"')
+          # A dispatch would otherwise run a fork's code, and in the default branch's cache scope.
+          if [ "$cross" != false ]; then echo "::error::#$NUMBER is from a fork, which is never captured"; exit 1; fi
           base=$(gh api "repos/$GH_REPO/compare/$ref...$head" --jq .merge_base_commit.sha)
           printf 'number=%s\nhead=%s\nbase=%s\n' "$NUMBER" "$head" "$base" >> "$GITHUB_OUTPUT"
 
@@ -149,8 +154,11 @@ jobs:
         with:
           name: web-base
           path: ${{ runner.temp }}/web-base
+      # A base that fails to capture leaves this slice of the head uncompared, not missing.
       - name: Capture the base
+        id: capture-base
         if: steps.base.outcome == 'success'
+        continue-on-error: true
         env:
           COMMIT: ${{ needs.resolve.outputs.base }}
         run: |
@@ -159,7 +167,7 @@ jobs:
       - name: Capture the head, compared with the base
         env:
           COMMIT: ${{ needs.resolve.outputs.head }}
-          BASE_OK: ${{ steps.base.outcome == 'success' }}
+          BASE_OK: ${{ steps.capture-base.outcome == 'success' }}
         run: |
           baseline=()
           if [ "$BASE_OK" = true ]; then baseline=(--baseline "$RUNNER_TEMP/base"); fi
@@ -205,7 +213,6 @@ jobs:
         env:
           ARTIFACT: ${{ steps.upload.outputs.artifact-id }}
           SHA: ${{ needs.resolve.outputs.head }}
-          BASE_OK: ${{ needs.build.result == 'success' }}
           INCOMPLETE: ${{ needs.capture.result != 'success' }}
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -215,10 +222,6 @@ jobs:
             node apps/studio/scenarios/src/ci.ts summary "$RUNNER_TEMP/report" \
               --url "https://review.tools.conservation.tv/api/scenarios/$ARTIFACT/index.html"
             echo
-            if [ "$BASE_OK" != true ]; then
-              echo "> The merge base's build failed, so nothing is compared; see [the run]($RUN)."
-              echo
-            fi
             if [ "$INCOMPLETE" = true ]; then
               echo "> Some shards failed, so some screenshots are missing; see [the run]($RUN)."
               echo
