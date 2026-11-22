@@ -198,8 +198,9 @@ export class AxisDriver implements CameraDriver {
     if (limits.pan !== undefined || limits.tilt !== undefined) parameters.set('continuouspantiltmove', '0,0');
     if (limits.zoom !== undefined) parameters.set('continuouszoommove', '0');
     if (this.focusDriven) parameters.set('continuousfocusmove', '0');
-    this.focusDriven = false;
     await this.ptz(parameters, signal);
+    // Only once the camera has taken the stop: a stop that fails is tried again, and must still stop focus.
+    this.focusDriven = false;
   }
 
   async configure(key: string, value: string, signal: AbortSignal): Promise<void> {

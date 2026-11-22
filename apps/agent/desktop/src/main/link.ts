@@ -9,8 +9,16 @@ import { z } from 'zod';
 
 export const SCHEME = 'ctvagent';
 
+/** Hosts a studio API may be reached at over plain HTTP: this computer's own, as in development. */
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+
 const SetupSchema = z.object({
-  api: z.url({ protocol: /^https?$/ }),
+  // HTTPS, or HTTP to this computer: the agent runs what the spec it reads from the studio API says, so over plain HTTP
+  // anyone on the network path could change what it runs.
+  api: z.url({ protocol: /^https?$/ }).refine(api => {
+    const url = new URL(api);
+    return url.protocol === 'https:' || LOOPBACK.has(url.hostname);
+  }, 'The studio must be reached over HTTPS, unless it runs on this computer'),
   id: z.string().min(1),
   name: z.string().min(1),
   key: z.string().refine(key => Buffer.from(key, 'base64url').length === 32, 'The key must be 32 bytes of base64url')

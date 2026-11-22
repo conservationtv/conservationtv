@@ -551,6 +551,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', PresetParamsSchema),
     validator('json', ThumbnailSchema),
     async c => {
@@ -592,6 +593,7 @@ export default new Hono()
       }
     }),
     requirePrincipal,
+    audited('configuration'),
     validator('param', PresetParamsSchema),
     async c => {
       const { id, cameraId, presetId } = c.req.valid('param');

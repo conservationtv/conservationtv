@@ -21,7 +21,10 @@ export interface NamedCamera {
   presets: NamedPreset[];
 }
 
-/** What the command means, or what to say when it means nothing. */
+/**
+ * What the command means, or what to say when it means nothing. A reply never repeats what the viewer typed: it is said
+ * in chat as the broadcaster, so it names only cameras and presets the organisation has.
+ */
 export type Resolution = Resolved | Unresolved;
 
 interface Resolved {
@@ -52,8 +55,8 @@ function resolveCamera(action: CameraPresetAction, cameras: readonly NamedCamera
   }
   if (word === undefined) return unresolved('Say which camera.');
   const called = camerasCalled(cameras, word);
-  if (called.length > 1) return unresolved(`More than one camera is called ${word}.`);
-  return called[0] ?? unresolved(`There is no camera called ${word}.`);
+  if (called.length > 1) return unresolved('More than one camera has that name.');
+  return called[0] ?? unresolved('There is no camera by that name.');
 }
 
 /**
@@ -72,6 +75,6 @@ export function resolveCameraPreset(
   const wanted = action.preset ?? remaining.shift();
   if (wanted === undefined) return unresolved(`Say where to point ${camera.name}.`);
   const preset = camera.presets.find(candidate => chatName(candidate.name) === chatName(wanted));
-  if (preset === undefined) return unresolved(`${camera.name} has no preset called ${wanted}.`);
+  if (preset === undefined) return unresolved(`${camera.name} has no preset by that name.`);
   return { ok: true, camera, preset };
 }
