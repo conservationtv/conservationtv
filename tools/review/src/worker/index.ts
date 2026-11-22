@@ -5,6 +5,7 @@ import { auth } from './auth.ts';
 import { createGitHub, GitHubError, useGitHub, withGitHub } from './github.ts';
 import { operationDocs } from './operations.ts';
 import { pullList, review } from './pulls.ts';
+import { scenarios } from './scenarios.ts';
 import type { AppEnv } from './session.ts';
 
 const SHA = /^[0-9a-f]{40}$/;
@@ -18,6 +19,8 @@ const app = new Hono<AppEnv>()
   })
   .route('/auth', auth)
   .route('/', actions)
+  // A pull request's scenario report, read out of its Actions artifact (src/worker/scenarios.ts).
+  .route('/', scenarios)
   .get('/pulls', async c => c.json(await pullList(), 200, { 'cache-control': 'no-store' }))
   .get('/pulls/:number{[0-9]+}', async c => {
     const number = Number(c.req.param('number'));

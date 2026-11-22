@@ -37,7 +37,7 @@ const MAX_FILE_PAGES = 30;
 const MAX_COMMENT_PAGES = 10;
 
 /** Every page of a listing, in order: each page is fetched once the one before it comes back full. */
-async function allPages<T extends z.ZodType>(
+export async function allPages<T extends z.ZodType>(
   path: string,
   schema: z.ZodArray<T>,
   freshness: Freshness

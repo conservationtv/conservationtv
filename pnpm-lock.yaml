@@ -338,7 +338,7 @@ importers:
         version: 0.4.0
       '@strangecyan/vignette':
         specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@xstate/store':
         specifier: 'catalog:'
         version: 4.3.0(xstate@5.33.3)
@@ -471,10 +471,6 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
-
-  apps/agent/runner/data/obs/binaries/obs/33.0.1-3d6b2eedeb564166/OBS.app/Contents/PlugIns/rtmp-services.plugin/Contents/Resources: {}
-
-  apps/agent/runner/data/obs/home/Library/Application Support/obs-studio/plugin_config/rtmp-services: {}
 
   apps/agent/sdk:
     dependencies:
@@ -819,7 +815,7 @@ importers:
         version: 2.10.0
       '@strangecyan/vignette':
         specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       better-auth:
         specifier: 'catalog:'
         version: 1.7.7(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(drizzle-kit@1.0.0-rc.4)(drizzle-orm@1.0.0-rc.4(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2))(next@16.4.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.17)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)))
@@ -935,6 +931,49 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  apps/studio/scenarios:
+    dependencies:
+      '@conservationtv/reports':
+        specifier: workspace:*
+        version: link:../../../packages/reports
+      '@conservationtv/studio-sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@hono/node-server':
+        specifier: 2.1.4
+        version: 2.1.4(hono@4.13.8)
+      hono:
+        specifier: 4.13.8
+        version: 4.13.8
+      pixelmatch:
+        specifier: 8.0.0
+        version: 8.0.0
+      playwright:
+        specifier: 1.65.0
+        version: 1.65.0
+      pngjs:
+        specifier: 7.0.0
+        version: 7.0.0
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@conservationtv/studio-api':
+        specifier: workspace:*
+        version: link:../api
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      '@types/pngjs':
+        specifier: 6.0.5
+        version: 6.0.5
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   apps/studio/sdk:
     dependencies:
       '@conservationtv/versioned-api':
@@ -1003,7 +1042,7 @@ importers:
         version: 0.4.0
       '@strangecyan/vignette':
         specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@tanstack/react-form':
         specifier: 1.33.5
         version: 1.33.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1272,7 +1311,7 @@ importers:
     dependencies:
       '@strangecyan/vignette':
         specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       react-dom:
         specifier: ^19.3.0
         version: 19.3.0(react@19.3.0)
@@ -4738,6 +4777,9 @@ packages:
   '@types/pluralize@0.0.33':
     resolution: {integrity: sha512-JOqsl+ZoCpP4e8TDke9W79FDcSgPAR0l6pixx2JHkhnRjvShyYiAYw2LVsnA7K08Y6DeOnaU6ujmENO4os/cYg==}
 
+  '@types/pngjs@6.0.5':
+    resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
+
   '@types/react-dom@19.3.0':
     resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
     peerDependencies:
@@ -7831,6 +7873,10 @@ packages:
     resolution: {integrity: sha512-0Z++uU8mvB0EvCPAEUq9BGiPcSravzJ+RPdXfjYlzXffqsogisiKRQqI6ctrSSJ6n985vxrgKtQ5n4sRINcJZg==}
     engines: {node: '>=18.0.0'}
 
+  pixelmatch@8.0.0:
+    resolution: {integrity: sha512-cIqOLfh5k52us715qf3B3+kTOxZv+WDv77HN7xokLScYQGYQHi4m/ynoDIPpvF2LvCyUJGyvzY64i0QCXtzu1g==}
+    hasBin: true
+
   pkce-challenge@5.0.1:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
@@ -7846,6 +7892,16 @@ packages:
     resolution: {integrity: sha512-V9kOzaItwDgqlryhXysQsAXUEKi5O7kqWUaP3dXI7MLvkPqWWMb4wVb1QAtmEDCKI+XIAINsZoNKMFF7sZb1eg==}
     engines: {node: '>=16.0.0'}
 
+  playwright-core@1.65.0:
+    resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.0:
+    resolution: {integrity: sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   plist@3.1.0:
     resolution: {integrity: sha512-uysumyrvkUX0rX/dEVqt8gC3sTBzd4zoWfLeS29nb53imdaXVvLINYXTI2GNqzaMuvacNx4uJQ8+b3zXR0pkgQ==}
     engines: {node: '>=10.4.0'}
@@ -7853,6 +7909,10 @@ packages:
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
     engines: {node: '>=4'}
+
+  pngjs@7.0.0:
+    resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
+    engines: {node: '>=14.19.0'}
 
   postcss-selector-parser@7.1.6:
     resolution: {integrity: sha512-7qASPzhKF2l2KLboRZux8CCTRMdGiV08vWmyKzPz22qZ7ZjQBOeY7rNzNoCLSUiftJ7HUq0GERHmxw/t0dCdMw==}
@@ -12022,7 +12082,7 @@ snapshots:
       '@strangecyan/iroh-linux-x64-musl': 1.1.0-relayed.1
       '@strangecyan/iroh-win32-x64-msvc': 1.1.0-relayed.1
 
-  '@strangecyan/vignette@2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
+  '@strangecyan/vignette@2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
     dependencies:
       obs-websocket-js: 5.0.8(supports-color@10.2.2)
       react: 19.3.0
@@ -12033,6 +12093,7 @@ snapshots:
       zod: 4.6.5
     optionalDependencies:
       '@tanstack/react-query': 5.104.2(react@19.3.0)
+      playwright: 1.65.0
       react-dom: 19.3.0(react@19.3.0)
       vite: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
     transitivePeerDependencies:
@@ -12328,6 +12389,10 @@ snapshots:
       pg-types: 2.2.0
 
   '@types/pluralize@0.0.33': {}
+
+  '@types/pngjs@6.0.5':
+    dependencies:
+      '@types/node': 24.10.1
 
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
@@ -15603,6 +15668,10 @@ snapshots:
 
   picospinner@3.1.2: {}
 
+  pixelmatch@8.0.0:
+    dependencies:
+      pngjs: 7.0.0
+
   pkce-challenge@5.0.1: {}
 
   pkg-types@2.3.3:
@@ -15624,6 +15693,12 @@ snapshots:
       pvutils: 1.2.0
       tslib: 2.8.1
 
+  playwright-core@1.65.0: {}
+
+  playwright@1.65.0:
+    dependencies:
+      playwright-core: 1.65.0
+
   plist@3.1.0:
     dependencies:
       '@xmldom/xmldom': 0.8.15
@@ -15631,6 +15706,8 @@ snapshots:
       xmlbuilder: 15.1.1
 
   pluralize@8.0.0: {}
+
+  pngjs@7.0.0: {}
 
   postcss-selector-parser@7.1.6:
     dependencies:
