@@ -2,9 +2,8 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { type ResultPromise, execa } from 'execa';
-import psList from 'ps-list';
 import { BehaviorSubject } from 'rxjs';
-import treeKill from 'tree-kill';
+import { descendants, processName } from './linux.ts';
 
 // A process that is the agent's own child, living and dying with it: started with its log on a file in a directory
 // of its own, watched through its exit, and stopped when the agent stops. Its pid is recorded only so that the next
@@ -12,7 +11,10 @@ import treeKill from 'tree-kill';
 
 /** How a runtime's process is told apart from any other, probed, and asked to stop. */
 export interface ProcessDefinition {
-  /** What `ps` calls it: its executable's name. A pid reused by an unrelated process is told apart by it. */
+  /**
+   * The start of its executable's file name. A pid reused by an unrelated process is told apart by it: on Linux, from
+   * /proc (or the kernel's name for it, cut to 15 characters, when the executable can't be read), elsewhere from `ps`.
+   */
   name: string;
   /** Whether the process is up and answering, such as on its admin API. `signal` aborts after a second. */
   probe(signal: AbortSignal): Promise<boolean>;
@@ -96,11 +98,33 @@ export async function findProcess(pidfile: string, definition: ProcessDefinition
   const recorded = await readFile(pidfile, 'utf8').catch(() => undefined);
   const pid = Number(recorded);
   if (!Number.isInteger(pid) || pid <= 0 || !alive(pid)) return undefined;
-  const processes = await psList();
-  const found = processes.find(each => each.pid === pid);
-  if (found === undefined || !found.name.toLowerCase().startsWith(definition.name.toLowerCase())) return undefined;
+  // A pid that can't be told apart is not ours: a failing check must never stop the process being started again.
+  const name = await nameOf(pid).catch(() => undefined);
+  if (name === undefined || !name.toLowerCase().startsWith(definition.name.toLowerCase())) return undefined;
   if (!(await answering(definition))) return undefined;
   return pid;
+}
+
+async function nameOf(pid: number): Promise<string | undefined> {
+  if (process.platform === 'linux') return processName(pid);
+  const { default: psList } = await import('ps-list');
+  const processes = await psList();
+  return processes.find(each => each.pid === pid)?.name;
+}
+
+/** Kills `pid` and everything it started. MediaMTX starts its hooks in groups of their own, so groups won't do. */
+async function killTree(pid: number): Promise<void> {
+  if (process.platform !== 'linux') {
+    const { default: treeKill } = await import('tree-kill');
+    return new Promise<void>(resolve => treeKill(pid, 'SIGKILL', () => resolve()));
+  }
+  for (const each of [...(await descendants(pid)), pid]) {
+    try {
+      process.kill(each, 'SIGKILL');
+    } catch {
+      // Already gone.
+    }
+  }
 }
 
 /**
@@ -118,7 +142,7 @@ export async function stopProcess(pid: number, definition: ProcessDefinition): P
   }
   const deadline = Date.now() + STOP_GRACE_MS;
   while (alive(pid) && Date.now() < deadline) await delay(100);
-  if (alive(pid)) await new Promise<void>(resolve => treeKill(pid, 'SIGKILL', () => resolve()));
+  if (alive(pid)) await killTree(pid);
 }
 
 /** Runs tasks one at a time, so a restart after a crash never races an `ensure` or a `stop`. */

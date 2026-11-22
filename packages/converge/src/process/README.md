@@ -7,7 +7,7 @@ its exit, restarted after a crash, and stopped when the agent stops.
 import { AttachedProcess } from '@conservationtv/converge/process';
 
 const caddy = new AttachedProcess(directory, {
-  name: 'caddy', // what `ps` calls it, so a reused pid isn't mistaken for an orphan
+  name: 'caddy', // the start of its executable's name, so a reused pid isn't mistaken for an orphan
   probe: signal => admin.alive(signal), // up and answering?
   stop: () => admin.stop() // a graceful ask; SIGTERM if left out, and a kill after the grace period either way
 });
