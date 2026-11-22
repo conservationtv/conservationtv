@@ -1,4 +1,4 @@
-import { readFile, rm, writeFile } from 'node:fs/promises';
+import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { getLogger } from '@logtape/logtape';
 import { app, safeStorage } from 'electron';
@@ -41,20 +41,27 @@ export function agentDirectory(id: string) {
   return join(app.getPath('userData'), 'agents', id);
 }
 
-/** The agent this app was set up as, or `undefined` before it is. */
+/**
+ * The agent this app was set up as, or `undefined` before it is. Settings that can't be read, parsed or decrypted (the
+ * keychain refused, or the app was signed anew) are an app not yet set up, so a setup link can set it up again.
+ */
 export async function readSettings(): Promise<AgentSettings | undefined> {
-  // A missing or unreadable file is an app not yet set up.
   const text = await readFile(settingsFile(), 'utf8').catch(() => undefined);
   if (text === undefined) return undefined;
-  const parsed = SettingsSchema.safeParse(JSON.parse(text));
-  if (!parsed.success) {
-    logger.warning('Ignoring settings that do not parse: {error}', { error: z.prettifyError(parsed.error) });
+  try {
+    const parsed = SettingsSchema.safeParse(JSON.parse(text));
+    if (!parsed.success) {
+      logger.warning('Ignoring settings that do not parse: {error}', { error: z.prettifyError(parsed.error) });
+      return undefined;
+    }
+    const { key, ...identity }: Settings = parsed.data;
+    const stored = Buffer.from(key.value, 'base64');
+    const secretKey = key.encrypted ? Buffer.from(safeStorage.decryptString(stored), 'base64') : stored;
+    return { ...identity, secretKey: new Uint8Array(secretKey) };
+  } catch (error) {
+    logger.warning('Ignoring settings that cannot be read: {error}', { error });
     return undefined;
   }
-  const { key, ...identity }: Settings = parsed.data;
-  const stored = Buffer.from(key.value, 'base64');
-  const secretKey = key.encrypted ? Buffer.from(safeStorage.decryptString(stored), 'base64') : stored;
-  return { ...identity, secretKey: new Uint8Array(secretKey) };
 }
 
 /** Keep `settings` as the agent to run as, replacing any before it. */
@@ -66,7 +73,10 @@ export async function writeSettings(settings: AgentSettings): Promise<void> {
     logger.warning('No OS keychain to encrypt the agent key with: keeping it in a file only you can read');
   const value = encrypted ? safeStorage.encryptString(plain).toString('base64') : plain;
   const file: z.input<typeof SettingsSchema> = { ...identity, key: { encrypted, value } };
-  await writeFile(settingsFile(), JSON.stringify(file, null, 2), { mode: 0o600 });
+  // Written beside it and renamed over it, so a crash part-way leaves the settings before or after, never half of them.
+  const written = `${settingsFile()}.${process.pid}.tmp`;
+  await writeFile(written, JSON.stringify(file, null, 2), { mode: 0o600 });
+  await rename(written, settingsFile());
 }
 
 /** Forget the agent `id`, and everything it kept. */

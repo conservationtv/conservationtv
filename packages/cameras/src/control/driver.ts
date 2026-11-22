@@ -1,4 +1,5 @@
 import type {
+  CameraAxis,
   CameraCapabilities,
   CameraOptionValues,
   CameraPosition,
@@ -25,9 +26,17 @@ export interface CameraDriver {
   moveBy: (offset: Omit<MoveBy, 'kind'>, signal: AbortSignal) => Promise<void>;
   moveToPoint: (point: Omit<MoveToPoint, 'kind'>, signal: AbortSignal) => Promise<void>;
   moveToRegion: (region: Omit<MoveToRegion, 'kind'>, signal: AbortSignal) => Promise<void>;
-  /** Keep moving at these velocities until told otherwise: the agent stops it when its driver goes quiet. */
+  /**
+   * Keep moving at these velocities until told otherwise, on the axes named and no others: an axis left out keeps doing
+   * whatever it was, such as a move to a place. The agent names only the axes moving, or being stopped, and stops the
+   * camera when its driver goes quiet.
+   */
   drive: (velocity: Omit<Drive, 'kind'>, signal: AbortSignal) => Promise<void>;
-  stop: (signal: AbortSignal) => Promise<void>;
+  /**
+   * Stop moving on these axes, whether driven or moving to a place. Stopping focus takes the camera off focusing itself,
+   * so the agent names it only when it drove focus.
+   */
+  stop: (axes: readonly CameraAxis[], signal: AbortSignal) => Promise<void>;
   configure: (key: string, value: string, signal: AbortSignal) => Promise<void>;
   run: (action: string, signal: AbortSignal) => Promise<void>;
 }

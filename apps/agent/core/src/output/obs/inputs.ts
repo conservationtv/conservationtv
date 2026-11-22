@@ -317,8 +317,10 @@ class Relay {
   async stop(): Promise<void> {
     clearTimeout(this.renewal);
     this.stopping.abort();
-    await this.process.stop();
+    // Before the process has stopped, which takes up to STOP_GRACE_MS: a relay for the path started meanwhile sets it
+    // again, and must not have it removed after.
     this.options.program.removeInput(this.path);
+    await this.process.stop();
   }
 }
 

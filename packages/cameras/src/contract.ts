@@ -146,6 +146,36 @@ export const CameraCommandSchema = z
   );
 export type CameraCommand = z.output<typeof CameraCommandSchema>;
 
+/** The axes a camera moves on. */
+export const CAMERA_AXES = ['pan', 'tilt', 'zoom', 'focus'] as const;
+export type CameraAxis = (typeof CAMERA_AXES)[number];
+
+/** The axes a drive moves: those it gives a velocity other than nought. */
+export function drivenAxes(velocity: Omit<Drive, 'kind'>): CameraAxis[] {
+  return CAMERA_AXES.filter(axis => (velocity[axis] ?? 0) !== 0);
+}
+
+/**
+ * The axes a command takes somewhere of its own, so a drive on them is over once the camera has taken it: those a
+ * `moveTo` or a `moveBy` names, and pan and tilt for a point or a region of the picture. A drive on any other axis
+ * carries on, as an Axis camera's does: it keeps panning through `zoom=`, `rzoom=` and `focus=`, keeps tilting through
+ * `pan=`, and keeps zooming through `pan=`, `center=` and `areazoom=` (checked on an AXIS M5074).
+ */
+export function movedAxes(command: CameraCommand): CameraAxis[] {
+  switch (command.kind) {
+    case 'moveTo':
+    case 'moveBy': {
+      const named: Partial<Record<CameraAxis, number>> = command;
+      return CAMERA_AXES.filter(axis => named[axis] !== undefined);
+    }
+    case 'moveToPoint':
+    case 'moveToRegion':
+      return ['pan', 'tilt'];
+    default:
+      return [];
+  }
+}
+
 /** The move a command needs the camera to take, if it is one. */
 export function moveOf(command: CameraCommand): CameraMove | undefined {
   switch (command.kind) {

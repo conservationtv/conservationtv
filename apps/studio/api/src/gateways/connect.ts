@@ -102,7 +102,8 @@ async function selectGateway(organisationId: string, gatewayId: string) {
 
 /**
  * Whether the device publishes the exposure: as its pinned publisher, or, with none pinned, as the active agent whose
- * gateway its upstream is on, which the configuration builders have it publish (src/configuration/plan/helpers.ts).
+ * gateway its upstream is on while it delivers that upstream too (unpinned, or pinned to it), which is when the
+ * configuration builders have it publish (src/configuration/plan/helpers.ts).
  */
 async function publishes(device: AuthenticatedDevice, exposure: VisibleExposure) {
   if (exposure.publisherDeviceId !== null) return exposure.publisherDeviceId === device.id;
@@ -111,10 +112,11 @@ async function publishes(device: AuthenticatedDevice, exposure: VisibleExposure)
   if (gatewayId === undefined) return false;
   const db = useDB({ trusted: true });
   const [upstream] = await db
-    .select({ gatewayId: exposures.gatewayId })
+    .select({ gatewayId: exposures.gatewayId, publisherDeviceId: exposures.publisherDeviceId })
     .from(exposures)
     .where(eq(exposures.id, exposure.upstreamExposureId));
-  return upstream?.gatewayId === gatewayId;
+  if (upstream?.gatewayId !== gatewayId) return false;
+  return upstream.publisherDeviceId === null || upstream.publisherDeviceId === device.id;
 }
 
 /** Whether the device publishes an exposure of the stream from this one. */

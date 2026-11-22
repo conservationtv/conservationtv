@@ -22,7 +22,7 @@ import type { CameraControlSession } from '@/queries/camera-control';
 //           to the old value in the gap between the camera taking a command and the agent's stream saying so.
 //
 // A command goes in as one event, `commanded`, and that one event does all of it: refuses the command while the camera
-// is locked, gives up the zoom's claim for a drive or a stop, claims what the command changes, and sends it, as an
+// is locked, gives up the zoom's claim for a stop or a drive that moves the zoom, claims what the command changes, and sends it, as an
 // effect, through the session as it is then (a renewed grant keeps the same store going, `renewed`). The send's
 // outcome comes back as `taken` or `refused`; a taken claim waits for the agent on a timer that ends in `settled`.
 //
@@ -59,7 +59,7 @@ import type { CameraControlSession } from '@/queries/camera-control';
 //            (unless locked)  │  └── taken, and the agent already agrees ───────────────────────────────▶ gone
 //                             └── refused ───────────────────────────────────────────────────────────────▶ gone
 //
-//            From either: a later claim to the same thing, a drive or a stop (for the zoom's), or stopped ─▶ gone.
+//            From either: a later claim to the same thing, a stop or a zooming drive (for the zoom's), or stopped ─▶ gone.
 //            At most one claim for each option and one for zoom.
 
 /** What a camera's agent says of it: where it points, what its options are set to, and who holds it. */
@@ -569,9 +569,10 @@ export function createCameraStore(options: CameraStoreOptions) {
           enq.effect(() => event.reply.reject(new CameraLocked()));
           return state;
         }
-        const kind = event.command.kind;
-        const driven =
-          kind === 'drive' || kind === 'stop' ? drop(state, enq, claim => claim.change.kind === 'zoom') : state;
+        // The camera moves each axis on its own: a drive that leaves the zoom be leaves its move going.
+        const command = event.command;
+        const zoomEnds = command.kind === 'stop' || (command.kind === 'drive' && (command.zoom ?? 0) !== 0);
+        const driven = zoomEnds ? drop(state, enq, claim => claim.change.kind === 'zoom') : state;
         return claimAndSend(driven, enq, event);
       },
       /** The camera took a claimed command: its claim waits `SETTLE_MS` for the agent to say so, unless it has. */

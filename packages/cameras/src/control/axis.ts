@@ -1,4 +1,5 @@
 import type {
+  CameraAxis,
   CameraCapabilities,
   CameraMove,
   CameraOption,
@@ -19,6 +20,10 @@ import { CameraFailure, type CameraDriver, UnsupportedCommand } from './driver.t
 // there too; zoom and focus are steps of the camera's own range (1 to 9999 on most), which `query=limits` gives, and
 // continuous moves are speeds from -100 to 100. What it can do is asked of the camera, since a fixed camera and a PTZ
 // one are registered alike: a camera whose limits give no travel on an axis doesn't have it.
+//
+// Each axis moves on its own (checked on an AXIS M5074): a continuous move on one carries on through a move to a place
+// on another, and a continuous speed of 0 stops that axis's move to a place too. So a request names only the axes it
+// means to change. Pan and tilt share one continuous parameter, so a drive naming either sets both.
 
 const PTZ_PATH = '/axis-cgi/com/ptz.cgi';
 const PARAM_PATH = '/axis-cgi/param.cgi';
@@ -96,8 +101,6 @@ export class AxisDriver implements CameraDriver {
   private readonly answerer: ChallengeAnswerer;
   /** The camera's limits, once it has given them: they don't change while it runs. */
   private limits: Limits | undefined = undefined;
-  /** Whether focus was last driven, so stopping stops it too: a camera without manual focus refuses the parameter. */
-  private focusDriven = false;
 
   constructor(settings: AxisSettings, credentials: CameraCredentials | undefined) {
     this.base = new URL(settings.host);
@@ -179,26 +182,24 @@ export class AxisDriver implements CameraDriver {
   }
 
   async drive(velocity: Omit<Drive, 'kind'>, signal: AbortSignal): Promise<void> {
-    // Pan and tilt are one parameter, so naming either sets both; zoom and focus are each their own.
+    // Only the axes named: one left out keeps doing what it was, such as zooming to where the slider sent it.
     const parameters = new URLSearchParams();
     if (velocity.pan !== undefined || velocity.tilt !== undefined)
       parameters.set('continuouspantiltmove', `${speed(velocity.pan)},${speed(velocity.tilt)}`);
     if (velocity.zoom !== undefined) parameters.set('continuouszoommove', String(speed(velocity.zoom)));
-    if (velocity.focus !== undefined) {
-      parameters.set('continuousfocusmove', String(speed(velocity.focus)));
-      this.focusDriven = true;
-    }
+    if (velocity.focus !== undefined) parameters.set('continuousfocusmove', String(speed(velocity.focus)));
     await this.ptz(parameters, signal);
   }
 
-  async stop(signal: AbortSignal): Promise<void> {
+  async stop(axes: readonly CameraAxis[], signal: AbortSignal): Promise<void> {
     const limits = await this.readLimits(signal);
-    // Only the axes the camera has: it refuses a request naming one it doesn't, without stopping the others.
+    // Only the axes asked for that the camera has: it refuses a request naming one it doesn't, without stopping the
+    // others.
+    const has = (axis: CameraAxis) => axes.includes(axis) && limits[axis] !== undefined;
     const parameters = new URLSearchParams();
-    if (limits.pan !== undefined || limits.tilt !== undefined) parameters.set('continuouspantiltmove', '0,0');
-    if (limits.zoom !== undefined) parameters.set('continuouszoommove', '0');
-    if (this.focusDriven) parameters.set('continuousfocusmove', '0');
-    this.focusDriven = false;
+    if (has('pan') || has('tilt')) parameters.set('continuouspantiltmove', '0,0');
+    if (has('zoom')) parameters.set('continuouszoommove', '0');
+    if (has('focus')) parameters.set('continuousfocusmove', '0');
     await this.ptz(parameters, signal);
   }
 

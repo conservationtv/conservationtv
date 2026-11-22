@@ -30,7 +30,9 @@ const ReceiptUseSchema = z.strictObject({
   preset: z.string(),
   /** ISO 8601: when the use took the command's turn, and when the command last ran before it. */
   claimedAt: z.iso.datetime(),
-  previous: z.iso.datetime().nullable()
+  previous: z.iso.datetime().nullable(),
+  /** Whether the viewer is told why, should the move not be carried (`toldWhy`). */
+  told: z.boolean()
 });
 export type ReceiptUse = z.output<typeof ReceiptUseSchema>;
 
