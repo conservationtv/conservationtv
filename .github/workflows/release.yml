@@ -93,14 +93,17 @@ jobs:
         run: pnpm install --frozen-lockfile --filter @conservationtv/cli...
       - name: Build the CLI
         run: pnpm --filter @conservationtv/cli build
+      # From the package's own directory: npm checks the devEngines of the package.json it starts from, and the
+      # repository root's asks for pnpm.
       - name: Publish to npm
+        working-directory: apps/cli/dist
         run: |
           version="${TAG#v}"
           if npm view "@conservationtv/cli@$version" version >/dev/null 2>&1; then
             echo "@conservationtv/cli@$version is already published."
             exit 0
           fi
-          npm publish ./apps/cli/dist --access public
+          npm publish --access public
 
   agent-image:
     needs: verify

@@ -1,7 +1,8 @@
 // Builds the CLI as npm publishes it: dist/index.js, the CLI and every workspace package it uses bundled into one
 // file, and dist/package.json, which names only what stays external. iroh stays external for its native addons, which
 // npm installs per platform; iroh-http-node too, because it must load the same addon as the CLI's own iroh.
-// `npm publish ./dist` publishes it (.github/workflows/release.yml).
+// `npm publish` from inside dist/ publishes it (.github/workflows/release.yml); from the root, npm refuses on the root
+// package.json's devEngines, which asks for pnpm.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
