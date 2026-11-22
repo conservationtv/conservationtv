@@ -15,7 +15,7 @@ import { type NamedCamera, type NamedPreset, resolveCameraPreset } from './resol
 //    │                      3. the viewer is in its audience                             else notRun: audience
 //    │                      4. its words name a camera and preset it can use             else notRun: unresolved
 //    │                      5. an agent reaches that camera                              else notRun: unavailable
-//    │                         (why 4 or 5 failed is said in chat only to a moderator or the broadcaster)
+//    │                         (why 4 or 5 failed is said in chat only to a moderator or the broadcaster: `toldWhy`)
 //    │                      6. its turn is taken: the cooldown is spent, here and only here   else notRun: resting
 //    │                      7. a reply is said in chat (ran), or a grant is signed for the move (planned)
 //    │ planned: cameraCommands, receipt
@@ -29,7 +29,8 @@ import { type NamedCamera, type NamedPreset, resolveCameraPreset } from './resol
 //   listening agent         settles the use with what came of it: carried, held, unreachable, refused or failed
 //    │ settle
 //    ▼
-//   this API                says so in chat; when it wasn't carried, gives the command's turn back
+//   this API                says so in chat; when it wasn't carried, gives the command's turn back, and says why only
+//                           to a moderator or the broadcaster
 //
 // Steps 2 to 5 are decided here, from facts read first, so the decision is pure: the same facts come to the same
 // thing wherever it is made. Nothing up to step 5 writes anything, so a use that comes to nothing spends nothing: a
@@ -98,6 +99,15 @@ const notRun = (reason: ChatCommandReason, restsUntil: Date | null, reply: strin
   restsUntil
 });
 
+/**
+ * Whether a viewer is told why their use came to nothing. Such a use spends nothing, so the cooldown can't bound how
+ * often it is answered: only those trusted to moderate the chat are told, so no one else can have the broadcaster's
+ * account post at their pace.
+ */
+export function toldWhy(roles: readonly ChatAudience[]): boolean {
+  return inAudience('moderator', roles);
+}
+
 /** When the command's rest ends, while it rests at `now`: null when it never ran, or its rest is over. */
 export function restsUntil(rest: Rest, now: Date): Date | null {
   if (rest.triggeredAt === null) return null;
@@ -114,12 +124,9 @@ export function decideUse(facts: UseFacts): Decision {
   if (!inAudience(command.audience, facts.roles)) return notRun('audience', rest);
   const planned = plan(command.action, facts);
   if (planned.kind === 'notRun') {
-    // A use that doesn't run spends nothing, so the cooldown can't bound how often it is answered: only those trusted
-    // to moderate the chat are told why, so no one else can have the broadcaster's account post at their pace.
-    const told = inAudience('moderator', facts.roles);
-    return { ...planned, reply: told ? planned.reply : null, restsUntil: rest };
+    return { ...planned, reply: toldWhy(facts.roles) ? planned.reply : null, restsUntil: rest };
   }
-  // Resting last: a use that would come to nothing says why even while the command rests, and spends nothing.
+  // Resting last: a use that would come to nothing is decided as such even while the command rests, and spends nothing.
   if (rest !== null) return notRun('resting', rest);
   return planned;
 }
@@ -143,8 +150,10 @@ function plan(action: ChatCommandAction, facts: UseFacts): Decision {
 }
 
 /** What is said in chat of a planned move, once the agent that carried it says what came of it. */
-export function settledReply(result: CarryResult, camera: string, preset: string): string {
+export function settledReply(result: CarryResult, camera: string, preset: string, told: boolean): string | null {
   if (result === 'carried') return `Moving ${camera} to ${preset}.`;
+  // Not carried, the turn is given back and nothing is spent: said only to a viewer told why (`toldWhy`).
+  if (!told) return null;
   if (result === 'held') return `Someone is controlling ${camera} right now.`;
   return `${camera} can't be moved right now.`;
 }

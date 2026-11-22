@@ -119,7 +119,6 @@ function run() {
     window = created;
   }
 
-  /** Ask before a link replaces the agent the app runs as, then run as the link's. */
   /** Set the app up from a link, if it is one and the person agrees: whether it was. */
   async function handleLink(url: string): Promise<boolean> {
     showWindow();

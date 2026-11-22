@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { audited } from '../audit/audit.ts';
 import { type AgentReference, commandGrant, selectAgentIdentity, selectServingAgents } from '../cameras/grants.ts';
 import { ChatCommandActionSchema, ChatCommandNameSchema } from '../chat/commands.ts';
-import { decideUse, type Move, restsUntil, settledReply, type UseFacts } from '../chat/decide.ts';
+import { decideUse, type Move, restsUntil, settledReply, toldWhy, type UseFacts } from '../chat/decide.ts';
 import { type ReceiptUse, signReceipt, verifyReceipt } from '../chat/receipts.ts';
 import { freshTwitchCredentials, twitchSendChatMessage } from '../channels/twitch.ts';
 import { transaction, trustedTransaction } from '../db/transaction.ts';
@@ -206,7 +206,8 @@ async function planMove(
     camera: camera.name,
     preset: move.preset.name,
     claimedAt: claim.claimedAt.toISOString(),
-    previous: iso(claim.previous)
+    previous: iso(claim.previous),
+    told: toldWhy(trigger.user.roles)
   });
   const planned: PlannedCameraCommand = { agent, cameraId: camera.id, command, ...signed };
   return { status: 'planned', restsUntil: until, cameraCommands: [planned], receipt };
@@ -229,7 +230,7 @@ async function settleUse(device: AuthenticatedDevice, use: ReceiptUse, result: C
   const now = new Date(environment.clock());
   const rest = await selectCommandRest(use.commandId);
   const until = rest === undefined ? null : restsUntil(rest, now);
-  const reply = settledReply(result, use.camera, use.preset);
+  const reply = settledReply(result, use.camera, use.preset, use.told);
   return { reply, restsUntil: iso(until) };
 }
 
@@ -472,7 +473,7 @@ export default new Hono()
         name: 'chat_command.settle'
       });
       // Twitch is called outside the transaction, which isn't held open on the network.
-      const replied = await say(id, use.channelId, settled.reply, use.messageId);
+      const replied = settled.reply === null ? false : await say(id, use.channelId, settled.reply, use.messageId);
       c.header('Cache-Control', 'no-store');
       return c.json({ restsUntil: settled.restsUntil, replied }, 200);
     }
