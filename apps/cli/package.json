@@ -1,6 +1,6 @@
 {
   "name": "@conservationtv/cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "The conservation.tv CLI: signs in, keeps a profile per organisation, and calls the studio API and agents.",
