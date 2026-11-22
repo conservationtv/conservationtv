@@ -4,9 +4,11 @@ import type { DeviceIdentity } from '@conservationtv/studio-sdk';
 import { MEDIAMTX_MANIFEST } from '../binaries/mediamtx.ts';
 import { MOQ_MANIFEST } from '../binaries/moq.ts';
 import { OBS_MANIFEST } from '../binaries/obs.ts';
+import type { CameraCourier } from '../cameras/courier.ts';
 import type { AgentConfiguration } from '../config.ts';
 import { useStudio } from '../studio.ts';
 import { ChannelStatsRuntime, ChannelsSpecSchema } from './channels/runtime.ts';
+import { ChatRuntime, ChatSpecSchema } from './chat/runtime.ts';
 import { DEFAULT_PROGRAM_PORTS } from './obs/program.ts';
 import { ObsRuntime, ObsSpecSchema } from './obs/runtime.ts';
 import { ShowRuntime, ShowSpecSchema } from './show/runtime.ts';
@@ -19,7 +21,9 @@ import { ShowRuntime, ShowSpecSchema } from './show/runtime.ts';
 //             reports (obs/). It drives no scenes;
 //   channels  what the channels' platforms say of them, which needs no OBS (channels/);
 //   show      the show driving OBS's scenes, while the output follows one (show/). Without it, something outside the
-//             studio drives them, or nothing does.
+//             studio drives them, or nothing does;
+//   chat      the chat of the channels it goes out to, listened to for the organisation's commands (chat/), from the
+//             configuration's `chat` section as it is.
 //
 // In obs/: settings.ts says where OBS's configuration lives and what the agent writes there, program.ts the program
 // MediaMTX between OBS and everything up- and downstream, inputs.ts how the exposures OBS reads are relayed, watchdog.ts
@@ -28,12 +32,13 @@ import { ShowRuntime, ShowSpecSchema } from './show/runtime.ts';
 // played, and runtime.ts the target driving OBS. The releases they run are in binaries/.
 
 export { outputSpecs, type OutputLeases, type OutputSpecs } from './configuration.ts';
+export { ChatSpecSchema, type ChatSpec, type ChatStatus } from './chat/runtime.ts';
 
 /** The port obs-websocket serves on unless the agent's configuration says otherwise: OBS's own. */
 export const DEFAULT_OBS_WEBSOCKET_PORT = 4455;
 
 /** The output's runtimes, by the key of the spec each converges to. */
-export function outputControllers(config: AgentConfiguration, identity: DeviceIdentity) {
+export function outputControllers(config: AgentConfiguration, identity: DeviceIdentity, courier: CameraCourier) {
   const studio = useStudio();
   const obs = new ObsRuntime({
     directory: join(config.directory, 'obs'),
@@ -46,6 +51,7 @@ export function outputControllers(config: AgentConfiguration, identity: DeviceId
   });
   const show = new ShowRuntime(obs, identity);
   const channels = new ChannelStatsRuntime();
+  const chat = new ChatRuntime(courier);
   return {
     obs: controller({
       spec: ObsSpecSchema,
@@ -67,6 +73,13 @@ export function outputControllers(config: AgentConfiguration, identity: DeviceId
       execute: spec => show.execute(spec),
       finalize: () => show.finalize(),
       dispose: () => show.dispose()
+    }),
+    chat: controller({
+      spec: ChatSpecSchema,
+      status: chat.status$,
+      execute: spec => chat.apply(spec),
+      finalize: () => chat.teardown(),
+      dispose: () => chat.dispose()
     })
   };
 }

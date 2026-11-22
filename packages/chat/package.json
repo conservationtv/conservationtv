@@ -1,0 +1,19 @@
+{
+  "name": "@conservationtv/chat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "What a chat command's use is, shared by the studio API and the agent that listens to chat: who may use a command, why a use doesn't run, and what came of carrying one out.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

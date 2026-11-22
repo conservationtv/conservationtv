@@ -24,6 +24,11 @@ export type Relay = {
     authToken?: string;
 };
 
+export type StatsConnect = {
+    id: string;
+    gatewayId: string;
+};
+
 export type MediamtxAuth = {
     issuer: string;
     audience: string;
@@ -54,11 +59,6 @@ export type PublisherConnect = {
 export type PublishedRendition = {
     rendition: Rendition;
     path: string;
-};
-
-export type StatsConnect = {
-    id: string;
-    gatewayId: string;
 };
 
 export type PreviewConnect = {
@@ -141,6 +141,7 @@ export type Camera = {
         url: string;
     };
     state: 'enabled' | 'locked' | 'disabled';
+    aliases: Array<string>;
     device: {
         name: string;
         createdAt: string;
@@ -149,6 +150,55 @@ export type Camera = {
         networkId: string | null;
         publicId: string;
     } | null;
+    presets: Array<{
+        name: string;
+        id: string;
+        createdAt: string;
+        position: {
+            pan?: number;
+            tilt?: number;
+            zoom?: number;
+            focus?: number;
+        };
+        thumbnail: string | null;
+    }>;
+};
+
+export type Preset = {
+    id: string;
+    cameraId: string;
+    name: string;
+    position: {
+        pan?: number;
+        tilt?: number;
+        zoom?: number;
+        focus?: number;
+    };
+    thumbnail: string | null;
+    createdAt: string;
+};
+
+export type Thumbnail = {
+    id: string;
+    cameraId: string;
+    name: string;
+    position: {
+        pan?: number;
+        tilt?: number;
+        zoom?: number;
+        focus?: number;
+    };
+    thumbnail: string | null;
+    createdAt: string;
+};
+
+export type Control = {
+    deviceId: string;
+    websocketPort: number;
+    websocketPassword: string;
+    sceneCollection: string;
+    inputUrl: string;
+    reportedAt: string;
 };
 
 export type Browser = {
@@ -698,15 +748,6 @@ export type Output = {
     }>;
 };
 
-export type Control = {
-    deviceId: string;
-    websocketPort: number;
-    websocketPassword: string;
-    sceneCollection: string;
-    inputUrl: string;
-    reportedAt: string;
-};
-
 export type Forward = {
     id: string;
     channelId: string;
@@ -733,6 +774,24 @@ export type Twitch = {
     url: string;
 };
 
+export type ChatCommand = {
+    id: string;
+    name: string;
+    action: {
+        kind: 'reply';
+        text: string;
+    } | {
+        kind: 'cameraPreset';
+        cameraId: string | null;
+        preset: string | null;
+    };
+    audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+    cooldownSeconds: number;
+    enabled: boolean;
+    triggeredAt: string | null;
+    createdAt: string;
+};
+
 export type Report = {
     accepted: number;
 };
@@ -748,31 +807,59 @@ export type IrohSession = {
 
 export type DeviceConfiguration = {
     mediamtx?: {
-        probes: Array<{
-            subjectId: string;
-            url: string;
-        }>;
-        gatewayId: string;
-        auth: MediamtxAuth;
-        tls?: MediamtxTls;
         paths: Array<{
             name: string;
             exposureId: string;
             rendition: Rendition;
             source: {
-                url: string;
+                cameraId: string;
             } | {
                 path: string;
             };
         }>;
-        publishers: Array<Publisher>;
+        probes: Array<{
+            subjectId: string;
+            cameraId: string;
+        }>;
         stats: Array<StatsConnect>;
+        auth: MediamtxAuth;
+        gatewayId: string;
         previews?: Array<{
             name: string;
             previewId: string;
         }>;
+        tls?: MediamtxTls;
+        publishers: Array<Publisher>;
+    };
+    cameras?: {
+        cameras: Array<{
+            id: string;
+            settings: {
+                driver: 'axis';
+                host: string;
+                resolutions: Array<string>;
+                rtspPort?: number;
+            } | {
+                driver: 'rtsp';
+                url: string;
+            };
+            credentials?: {
+                username: string;
+                password: string;
+            };
+            state: 'enabled' | 'locked' | 'disabled';
+        }>;
+        grants: {
+            issuer: string;
+        };
     };
     obs?: {
+        previews: Array<{
+            signer: string | null;
+            previewId: string;
+            gatewayId: string;
+            connect: PreviewConnect;
+        }>;
         output: {
             id: string;
             organisationId: string;
@@ -791,11 +878,6 @@ export type DeviceConfiguration = {
             forwardId: string;
             stats: boolean;
         }>;
-        previews: Array<{
-            previewId: string;
-            gatewayId: string;
-            connect: PreviewConnect;
-        }>;
         recording?: {
             recorderId: string;
             kind: string;
@@ -811,6 +893,27 @@ export type DeviceConfiguration = {
         id: string;
         url: string;
     };
+    chat?: {
+        organisationId: string;
+        channels: Array<{
+            channelId: string;
+            platform: 'twitch';
+            login: string;
+        }>;
+        commands: Array<{
+            id: string;
+            name: string;
+            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+            cooldownSeconds: number;
+        }>;
+    };
+    peers: Array<{
+        endpointId: string;
+        allow: {
+            relayed: boolean;
+            direct: boolean;
+        };
+    }>;
 };
 
 export type DeviceAddress = {
@@ -2057,6 +2160,8 @@ export type GetOrganisationsByIdDevicesResponses = {
             publicKey: string;
             publicId: string;
             createdAt: string;
+            userId: string | null;
+            memberName: string | null;
         }>;
     };
 };
@@ -2349,6 +2454,7 @@ export type GetOrganisationsByIdCamerasResponses = {
                 url: string;
             };
             state: 'enabled' | 'locked' | 'disabled';
+            aliases: Array<string>;
             device: {
                 name: string;
                 createdAt: string;
@@ -2357,6 +2463,18 @@ export type GetOrganisationsByIdCamerasResponses = {
                 networkId: string | null;
                 publicId: string;
             } | null;
+            presets: Array<{
+                name: string;
+                id: string;
+                createdAt: string;
+                position: {
+                    pan?: number;
+                    tilt?: number;
+                    zoom?: number;
+                    focus?: number;
+                };
+                thumbnail: string | null;
+            }>;
         }>;
     };
 };
@@ -2396,6 +2514,10 @@ export type PostOrganisationsByIdCamerasData = {
          * Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.
          */
         state?: 'enabled' | 'locked' | 'disabled';
+        /**
+         * What else the camera is called in chat, beside its name: compared without case, spaces or punctuation, and not what another camera is called.
+         */
+        aliases?: Array<string>;
     };
     path: {
         /**
@@ -2420,6 +2542,10 @@ export type PostOrganisationsByIdCamerasErrors = {
      * The resource is visible, but this account may not do this to it
      */
     403: Error;
+    /**
+     * Another camera of the organisation is already called by one of the aliases
+     */
+    409: Error;
     /**
      * The selected operation version is not served
      */
@@ -2575,6 +2701,10 @@ export type PatchOrganisationsByIdCamerasByCameraIdData = {
          * Whether the camera feeds its streams: only an `enabled` one does; `locked` and `disabled` both stop it.
          */
         state?: 'enabled' | 'locked' | 'disabled';
+        /**
+         * What else the camera is called in chat, beside its name: compared without case, spaces or punctuation, and not what another camera is called.
+         */
+        aliases?: Array<string>;
     };
     path: {
         /**
@@ -2608,6 +2738,10 @@ export type PatchOrganisationsByIdCamerasByCameraIdErrors = {
      */
     404: Error;
     /**
+     * Another camera of the organisation is already called by one of the aliases
+     */
+    409: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;
@@ -2627,6 +2761,454 @@ export type PatchOrganisationsByIdCamerasByCameraIdResponses = {
 };
 
 export type PatchOrganisationsByIdCamerasByCameraIdResponse = PatchOrganisationsByIdCamerasByCameraIdResponses[keyof PatchOrganisationsByIdCamerasByCameraIdResponses];
+
+export type PostOrganisationsByIdCamerasByCameraIdPresetsData = {
+    body: {
+        /**
+         * What the preset is called, such as `home`.
+         */
+        name: string;
+        /**
+         * Where a camera points: `pan` and `tilt` in degrees, `zoom` and `focus` as a fraction of its range, each only when the camera has that axis.
+         */
+        position: {
+            pan?: number;
+            tilt?: number;
+            zoom?: number;
+            focus?: number;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}/presets';
+};
+
+export type PostOrganisationsByIdCamerasByCameraIdPresetsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The camera already has a preset of that name
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdCamerasByCameraIdPresetsError = PostOrganisationsByIdCamerasByCameraIdPresetsErrors[keyof PostOrganisationsByIdCamerasByCameraIdPresetsErrors];
+
+export type PostOrganisationsByIdCamerasByCameraIdPresetsResponses = {
+    /**
+     * The new preset
+     */
+    201: Preset;
+};
+
+export type PostOrganisationsByIdCamerasByCameraIdPresetsResponse = PostOrganisationsByIdCamerasByCameraIdPresetsResponses[keyof PostOrganisationsByIdCamerasByCameraIdPresetsResponses];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+        /**
+         * The preset.
+         */
+        presetId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}';
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdError = DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdErrors[keyof DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdErrors];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponse = DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponses[keyof DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponses];
+
+export type PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdData = {
+    body: {
+        /**
+         * What the preset is called, such as `home`.
+         */
+        name?: string;
+        /**
+         * Where a camera points: `pan` and `tilt` in degrees, `zoom` and `focus` as a fraction of its range, each only when the camera has that axis.
+         */
+        position?: {
+            pan?: number;
+            tilt?: number;
+            zoom?: number;
+            focus?: number;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+        /**
+         * The preset.
+         */
+        presetId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}';
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The camera already has a preset of that name
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdError = PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdErrors[keyof PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdErrors];
+
+export type PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponses = {
+    /**
+     * The updated preset
+     */
+    200: Preset;
+};
+
+export type PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponse = PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponses[keyof PatchOrganisationsByIdCamerasByCameraIdPresetsByPresetIdResponses];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+        /**
+         * The preset.
+         */
+        presetId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}/thumbnail';
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailError = DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors[keyof DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors];
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponse = DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponses[keyof DeleteOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponses];
+
+export type GetOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+        /**
+         * The preset.
+         */
+        presetId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}/thumbnail';
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailError = GetOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors[keyof GetOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors];
+
+export type GetOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponses = {
+    /**
+     * The picture
+     */
+    200: unknown;
+};
+
+export type PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailData = {
+    /**
+     * A small picture of what the camera sees at the preset.
+     */
+    body: {
+        contentType: 'image/webp' | 'image/jpeg' | 'image/png';
+        /**
+         * The picture, as base64: at most 256 KiB once decoded.
+         */
+        data: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+        /**
+         * The preset.
+         */
+        presetId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}/presets/{presetId}/thumbnail';
+};
+
+export type PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailError = PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors[keyof PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailErrors];
+
+export type PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponses = {
+    /**
+     * The preset, with its new thumbnail
+     */
+    200: Thumbnail;
+};
+
+export type PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponse = PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponses[keyof PutOrganisationsByIdCamerasByCameraIdPresetsByPresetIdThumbnailResponses];
+
+export type PostOrganisationsByIdCamerasByCameraIdControlData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/cameras/{cameraId}/control';
+};
+
+export type PostOrganisationsByIdCamerasByCameraIdControlErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The session has no browser device in the organisation: `organisations.browser.ensure` makes it
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable, or no agent can control the camera right now: it is not enabled, or its network has no active agent
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdCamerasByCameraIdControlError = PostOrganisationsByIdCamerasByCameraIdControlErrors[keyof PostOrganisationsByIdCamerasByCameraIdControlErrors];
+
+export type PostOrganisationsByIdCamerasByCameraIdControlResponses = {
+    /**
+     * The agent to dial, and the grant to present to it
+     */
+    200: {
+        grant: string;
+        expiresAt: string;
+        agent: {
+            id: string;
+            publicId: string;
+        };
+    };
+};
+
+export type PostOrganisationsByIdCamerasByCameraIdControlResponse = PostOrganisationsByIdCamerasByCameraIdControlResponses[keyof PostOrganisationsByIdCamerasByCameraIdControlResponses];
 
 export type PutOrganisationsByIdBrowserData = {
     body?: never;
@@ -6928,6 +7510,525 @@ export type GetOrganisationsByIdChannelsByChannelIdStatsResponses = {
 };
 
 export type GetOrganisationsByIdChannelsByChannelIdStatsResponse = GetOrganisationsByIdChannelsByChannelIdStatsResponses[keyof GetOrganisationsByIdChannelsByChannelIdStatsResponses];
+
+export type GetOrganisationsByIdChatCommandsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-commands';
+};
+
+export type GetOrganisationsByIdChatCommandsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdChatCommandsError = GetOrganisationsByIdChatCommandsErrors[keyof GetOrganisationsByIdChatCommandsErrors];
+
+export type GetOrganisationsByIdChatCommandsResponses = {
+    /**
+     * The commands, oldest first
+     */
+    200: {
+        commands: Array<{
+            id: string;
+            name: string;
+            action: {
+                kind: 'reply';
+                text: string;
+            } | {
+                kind: 'cameraPreset';
+                cameraId: string | null;
+                preset: string | null;
+            };
+            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+            cooldownSeconds: number;
+            enabled: boolean;
+            triggeredAt: string | null;
+            createdAt: string;
+        }>;
+    };
+};
+
+export type GetOrganisationsByIdChatCommandsResponse = GetOrganisationsByIdChatCommandsResponses[keyof GetOrganisationsByIdChatCommandsResponses];
+
+export type PostOrganisationsByIdChatCommandsData = {
+    body: {
+        /**
+         * The word the command is used by, without its `!`.
+         */
+        name: string;
+        /**
+         * What the command does, by `kind`: `reply` with `text`, or `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first.
+         */
+        action: {
+            kind: 'reply';
+            text: string;
+        } | {
+            kind: 'cameraPreset';
+            cameraId: string | null;
+            preset: string | null;
+        };
+        /**
+         * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.
+         */
+        audience?: 'everyone' | 'subscriber' | 'vip' | 'moderator' | 'broadcaster';
+        /**
+         * How many seconds the command rests after it runs, whoever used it.
+         */
+        cooldownSeconds?: number;
+        enabled?: boolean;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-commands';
+};
+
+export type PostOrganisationsByIdChatCommandsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The organisation already has a command used by that word
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChatCommandsError = PostOrganisationsByIdChatCommandsErrors[keyof PostOrganisationsByIdChatCommandsErrors];
+
+export type PostOrganisationsByIdChatCommandsResponses = {
+    /**
+     * The new command
+     */
+    201: ChatCommand;
+};
+
+export type PostOrganisationsByIdChatCommandsResponse = PostOrganisationsByIdChatCommandsResponses[keyof PostOrganisationsByIdChatCommandsResponses];
+
+export type DeleteOrganisationsByIdChatCommandsByCommandIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The command.
+         */
+        commandId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-commands/{commandId}';
+};
+
+export type DeleteOrganisationsByIdChatCommandsByCommandIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdChatCommandsByCommandIdError = DeleteOrganisationsByIdChatCommandsByCommandIdErrors[keyof DeleteOrganisationsByIdChatCommandsByCommandIdErrors];
+
+export type DeleteOrganisationsByIdChatCommandsByCommandIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdChatCommandsByCommandIdResponse = DeleteOrganisationsByIdChatCommandsByCommandIdResponses[keyof DeleteOrganisationsByIdChatCommandsByCommandIdResponses];
+
+export type GetOrganisationsByIdChatCommandsByCommandIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The command.
+         */
+        commandId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-commands/{commandId}';
+};
+
+export type GetOrganisationsByIdChatCommandsByCommandIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdChatCommandsByCommandIdError = GetOrganisationsByIdChatCommandsByCommandIdErrors[keyof GetOrganisationsByIdChatCommandsByCommandIdErrors];
+
+export type GetOrganisationsByIdChatCommandsByCommandIdResponses = {
+    /**
+     * The command
+     */
+    200: ChatCommand;
+};
+
+export type GetOrganisationsByIdChatCommandsByCommandIdResponse = GetOrganisationsByIdChatCommandsByCommandIdResponses[keyof GetOrganisationsByIdChatCommandsByCommandIdResponses];
+
+export type PatchOrganisationsByIdChatCommandsByCommandIdData = {
+    body: {
+        /**
+         * The word the command is used by, without its `!`.
+         */
+        name?: string;
+        /**
+         * What the command does, by `kind`: `reply` with `text`, or `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first.
+         */
+        action?: {
+            kind: 'reply';
+            text: string;
+        } | {
+            kind: 'cameraPreset';
+            cameraId: string | null;
+            preset: string | null;
+        };
+        /**
+         * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.
+         */
+        audience?: 'everyone' | 'subscriber' | 'vip' | 'moderator' | 'broadcaster';
+        /**
+         * How many seconds the command rests after it runs, whoever used it.
+         */
+        cooldownSeconds?: number;
+        enabled?: boolean;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The command.
+         */
+        commandId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-commands/{commandId}';
+};
+
+export type PatchOrganisationsByIdChatCommandsByCommandIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The organisation already has a command used by that word
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdChatCommandsByCommandIdError = PatchOrganisationsByIdChatCommandsByCommandIdErrors[keyof PatchOrganisationsByIdChatCommandsByCommandIdErrors];
+
+export type PatchOrganisationsByIdChatCommandsByCommandIdResponses = {
+    /**
+     * The updated command
+     */
+    200: ChatCommand;
+};
+
+export type PatchOrganisationsByIdChatCommandsByCommandIdResponse = PatchOrganisationsByIdChatCommandsByCommandIdResponses[keyof PatchOrganisationsByIdChatCommandsByCommandIdResponses];
+
+export type PostOrganisationsByIdChatCommandsByCommandIdTriggersData = {
+    body: {
+        /**
+         * The channel it was used in.
+         */
+        channelId: string;
+        /**
+         * The chat message's ID on its platform, to answer it.
+         */
+        messageId: string;
+        /**
+         * Who used it.
+         */
+        user: {
+            id: string;
+            name: string;
+            /**
+             * What they are in the channel, as its platform says.
+             */
+            roles: Array<'everyone' | 'subscriber' | 'vip' | 'moderator' | 'broadcaster'>;
+        };
+        /**
+         * The words that followed the command, in order.
+         */
+        words: Array<string>;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The command.
+         */
+        commandId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-commands/{commandId}/triggers';
+};
+
+export type PostOrganisationsByIdChatCommandsByCommandIdTriggersErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The signing device is not an agent an output runs on, or its output does not go out to the channel
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChatCommandsByCommandIdTriggersError = PostOrganisationsByIdChatCommandsByCommandIdTriggersErrors[keyof PostOrganisationsByIdChatCommandsByCommandIdTriggersErrors];
+
+export type PostOrganisationsByIdChatCommandsByCommandIdTriggersResponses = {
+    /**
+     * What came of it
+     */
+    200: {
+        status: 'planned';
+        restsUntil: string | null;
+        cameraCommands: Array<{
+            agent: {
+                id: string;
+                publicId: string;
+            };
+            cameraId: string;
+            command: {
+                kind: 'moveTo';
+                pan?: number;
+                tilt?: number;
+                zoom?: number;
+                focus?: number;
+            } | {
+                kind: 'moveBy';
+                pan?: number;
+                tilt?: number;
+                zoom?: number;
+            } | {
+                kind: 'moveToPoint';
+                x: number;
+                y: number;
+            } | {
+                kind: 'moveToRegion';
+                x: number;
+                y: number;
+                width: number;
+                height: number;
+            } | {
+                kind: 'drive';
+                pan?: number;
+                tilt?: number;
+                zoom?: number;
+                focus?: number;
+            } | {
+                kind: 'stop';
+            } | {
+                kind: 'configure';
+                key: string;
+                value: string;
+            } | {
+                kind: 'run';
+                action: string;
+            };
+            grant: string;
+            expiresAt: string;
+        }>;
+        receipt: string;
+    } | {
+        replied: boolean;
+        status: 'notRun';
+        reason: 'disabled' | 'audience' | 'resting' | 'unresolved' | 'unavailable';
+        reply: string | null;
+        restsUntil: string | null;
+    } | {
+        replied: boolean;
+        status: 'ran';
+        reply: string;
+        restsUntil: string | null;
+    };
+};
+
+export type PostOrganisationsByIdChatCommandsByCommandIdTriggersResponse = PostOrganisationsByIdChatCommandsByCommandIdTriggersResponses[keyof PostOrganisationsByIdChatCommandsByCommandIdTriggersResponses];
+
+export type PostOrganisationsByIdChatCommandsByCommandIdSettlementsData = {
+    body: {
+        /**
+         * The `receipt` the use was planned with.
+         */
+        receipt: string;
+        /**
+         * What came of carrying the camera commands out: `carried`, and the camera took them; or the camera was `held` by someone at its controls, the agent that reaches it was `unreachable`, it `refused` the grant, or the camera `failed` to take the command.
+         */
+        result: 'carried' | 'held' | 'unreachable' | 'refused' | 'failed';
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The command.
+         */
+        commandId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-commands/{commandId}/settlements';
+};
+
+export type PostOrganisationsByIdChatCommandsByCommandIdSettlementsErrors = {
+    /**
+     * The request is malformed, or its receipt is forged, lapsed, or for another use or device
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The signing device is not an agent an output runs on, or its output does not go out to the channel
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChatCommandsByCommandIdSettlementsError = PostOrganisationsByIdChatCommandsByCommandIdSettlementsErrors[keyof PostOrganisationsByIdChatCommandsByCommandIdSettlementsErrors];
+
+export type PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponses = {
+    /**
+     * Settled
+     */
+    200: {
+        restsUntil: string | null;
+        replied: boolean;
+    };
+};
+
+export type PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponse = PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponses[keyof PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponses];
 
 export type GetInvitationsData = {
     body?: never;

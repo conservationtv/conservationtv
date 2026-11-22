@@ -1,7 +1,10 @@
 import { Client, DeviceIdentity, deviceSignature } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import type { IrohHttpServer } from '@strangecyan/iroh-http-node';
+import { CameraControl } from './cameras/index.ts';
 import type { AgentConfiguration, ConservationTvConfiguration } from './config.ts';
+import { AgentDialler } from './iroh/dial.ts';
+import { PeerList } from './iroh/peers.ts';
 import { gatewaySetup, withMediamtxClient, type GatewaySetup } from './gateway/index.ts';
 import { serveOverIroh } from './iroh/serve.ts';
 import type { Sink } from '@logtape/logtape';
@@ -31,6 +34,7 @@ export class Agent {
   private gateway: GatewaySetup | undefined = undefined;
   private journal: Journal | undefined = undefined;
   private journalled: Subscription | undefined = undefined;
+  private dialler: AgentDialler | undefined = undefined;
 
   constructor(readonly config: AgentConfiguration) {}
 
@@ -74,10 +78,14 @@ export class Agent {
     const journal = this.journal;
     journal?.start();
     journal?.event('agent.started', { name: config.name });
-    this.system = await startSystem({ config, identity, gateway });
+    const cameras = new CameraControl();
+    const peers = new PeerList();
+    const dialler = new AgentDialler();
+    this.dialler = dialler;
+    this.system = await startSystem({ config, identity, gateway, cameras, peers, dialler });
     if (journal !== undefined) this.journalled = journalSystem(this.system.status$, journal);
     try {
-      this.server = await serveOverIroh(config, this.system);
+      this.server = await serveOverIroh(config, { system: this.system, identity, cameras, peers, dialler });
     } catch (error) {
       this.stop();
       throw error;
@@ -94,6 +102,8 @@ export class Agent {
     this.gateway = undefined;
     const server = this.server;
     this.server = undefined;
+    this.dialler?.detach();
+    this.dialler = undefined;
     await Promise.all([registration?.close(), server?.[Symbol.asyncDispose]()]);
     const system = this.system;
     this.system = undefined;

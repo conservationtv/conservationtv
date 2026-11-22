@@ -74,3 +74,19 @@ export const unsupportedChannelStats = errorResponse(
 );
 
 export const batchTooLarge = errorResponse('The submission is larger than 1 MiB');
+
+export const cameraUnavailable = errorResponse(
+  'The database is unavailable, or no agent can control the camera right now: it is not enabled, or its network has no active agent'
+);
+export const browserRequired = errorResponse(
+  'The session has no browser device in the organisation: `organisations.browser.ensure` makes it'
+);
+export const aliasTaken = errorResponse('Another camera of the organisation is already called by one of the aliases');
+export const presetNameTaken = errorResponse('The camera already has a preset of that name');
+export const commandNameTaken = errorResponse('The organisation already has a command used by that word');
+export const notOutputAgent = errorResponse(
+  'The signing device is not an agent an output runs on, or its output does not go out to the channel'
+);
+export const invalidReceipt = errorResponse(
+  'The request is malformed, or its receipt is forged, lapsed, or for another use or device'
+);

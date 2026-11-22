@@ -157,6 +157,26 @@ export type System = {
             attempt: number;
         };
     };
+    cameras: {
+        runtime: {
+            cameras: number;
+            held: {
+                [key: string]: string;
+            };
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
     obs: {
         runtime: {
             version: string | null;
@@ -165,7 +185,7 @@ export type System = {
             control: 'external' | 'show' | null;
             collection: string | null;
             streaming: 'reconnecting' | 'starting' | 'streaming' | null;
-            recording: 'recording' | 'starting' | 'stopping' | null;
+            recording: 'recording' | 'stopping' | 'starting' | null;
             program: {
                 forwards: Array<string>;
                 previews: Array<string>;
@@ -236,7 +256,7 @@ export type System = {
     show: {
         runtime: {
             show: string | null;
-            phase: 'idle' | 'error' | 'connecting' | 'downloading-assets' | 'synchronising' | 'settled' | 'disconnected' | 'disposed' | null;
+            phase: 'idle' | 'error' | 'settled' | 'disposed' | 'connecting' | 'downloading-assets' | 'synchronising' | 'disconnected' | null;
         };
         apply: {
             state: 'applying';
@@ -251,6 +271,89 @@ export type System = {
             attempt: number;
         };
     };
+    chat: {
+        runtime: {
+            connected: boolean;
+            channels: number;
+            commands: number;
+            triggered: number;
+            lastTriggeredAt: string | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+    peers: {
+        runtime: {
+            peers: number | null;
+        };
+        apply: {
+            state: 'applying';
+            revision: string | null;
+        } | {
+            state: 'applied';
+            revision: string | null;
+        } | {
+            state: 'failed';
+            revision: string | null;
+            error: string;
+            attempt: number;
+        };
+    };
+};
+
+export type Camera = {
+    cameras: Array<{
+        id: string;
+        capabilities: {
+            moves: Array<'absolute' | 'relative' | 'point' | 'region' | 'continuous'>;
+            zoom: boolean;
+            focus: boolean;
+            options: Array<{
+                key: string;
+                label: string;
+                values: Array<string>;
+            }>;
+            actions: Array<{
+                name: string;
+                label: string;
+            }>;
+            pan?: {
+                min: number;
+                max: number;
+            };
+            tilt?: {
+                min: number;
+                max: number;
+            };
+        } | null;
+    }>;
+};
+
+export type State = {
+    position: {
+        pan?: number;
+        tilt?: number;
+        zoom?: number;
+        focus?: number;
+    };
+    options: {
+        [key: string]: string;
+    };
+    holder: {
+        peer: string;
+        expiresAt: string;
+    } | null;
+    observedAt: string;
 };
 
 export type GetStatusData = {
@@ -388,6 +491,26 @@ export type GetSystemSpecResponses = {
                 url: string;
             }>;
         };
+        cameras?: {
+            issuer: string;
+            cameras: Array<{
+                id: string;
+                settings: {
+                    driver: 'axis';
+                    host: string;
+                    resolutions: Array<string>;
+                    rtspPort?: number;
+                } | {
+                    driver: 'rtsp';
+                    url: string;
+                };
+                state: 'enabled' | 'locked' | 'disabled';
+                credentials?: {
+                    username: string;
+                    password: string;
+                };
+            }>;
+        };
         obs?: {
             output: {
                 id: string;
@@ -435,7 +558,228 @@ export type GetSystemSpecResponses = {
             id: string;
             url: string;
         };
+        chat?: {
+            organisationId: string;
+            channels: Array<{
+                channelId: string;
+                platform: 'twitch';
+                login: string;
+            }>;
+            commands: Array<{
+                id: string;
+                name: string;
+                audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+                cooldownSeconds: number;
+            }>;
+        };
+        peers?: {
+            peers: Array<{
+                endpointId: string;
+                allow: {
+                    relayed: boolean;
+                    direct: boolean;
+                };
+            }>;
+        };
     };
 };
 
 export type GetSystemSpecResponse = GetSystemSpecResponses[keyof GetSystemSpecResponses];
+
+export type GetCamerasData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/cameras';
+};
+
+export type GetCamerasErrors = {
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetCamerasError = GetCamerasErrors[keyof GetCamerasErrors];
+
+export type GetCamerasResponses = {
+    /**
+     * The cameras
+     */
+    200: Camera;
+};
+
+export type GetCamerasResponse = GetCamerasResponses[keyof GetCamerasResponses];
+
+export type GetCamerasByCameraIdStateData = {
+    body?: never;
+    path: {
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/cameras/{cameraId}/state';
+};
+
+export type GetCamerasByCameraIdStateErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The agent controls no such camera: it is not one of its cameras, or not enabled
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The camera did not answer, or refused
+     */
+    502: Error;
+};
+
+export type GetCamerasByCameraIdStateError = GetCamerasByCameraIdStateErrors[keyof GetCamerasByCameraIdStateErrors];
+
+export type GetCamerasByCameraIdStateResponses = {
+    /**
+     * The camera's state
+     */
+    200: State;
+};
+
+export type GetCamerasByCameraIdStateResponse = GetCamerasByCameraIdStateResponses[keyof GetCamerasByCameraIdStateResponses];
+
+export type PostCamerasByCameraIdCommandsData = {
+    body: {
+        /**
+         * A command, by `kind`: `moveTo` a position, `moveBy` an offset, `moveToPoint` or `moveToRegion` of the picture, `drive` at a velocity on each axis (repeated while it should keep moving), `stop`, `configure` one of its options, or `run` one of its actions.
+         */
+        command: {
+            kind: 'moveTo';
+            pan?: number;
+            tilt?: number;
+            zoom?: number;
+            focus?: number;
+        } | {
+            kind: 'moveBy';
+            pan?: number;
+            tilt?: number;
+            zoom?: number;
+        } | {
+            kind: 'moveToPoint';
+            x: number;
+            y: number;
+        } | {
+            kind: 'moveToRegion';
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+        } | {
+            kind: 'drive';
+            pan?: number;
+            tilt?: number;
+            zoom?: number;
+            focus?: number;
+        } | {
+            kind: 'stop';
+        } | {
+            kind: 'configure';
+            key: string;
+            value: string;
+        } | {
+            kind: 'run';
+            action: string;
+        };
+    };
+    path: {
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/cameras/{cameraId}/commands';
+};
+
+export type PostCamerasByCameraIdCommandsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No grant was presented, or it does not admit this command to this camera from this peer
+     */
+    403: Error;
+    /**
+     * The agent controls no such camera: it is not one of its cameras, or not enabled
+     */
+    404: Error;
+    /**
+     * Someone else is at the camera's controls
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The camera cannot do that
+     */
+    422: Error;
+    /**
+     * The camera did not answer, or refused
+     */
+    502: Error;
+};
+
+export type PostCamerasByCameraIdCommandsError = PostCamerasByCameraIdCommandsErrors[keyof PostCamerasByCameraIdCommandsErrors];
+
+export type PostCamerasByCameraIdCommandsResponses = {
+    /**
+     * Done
+     */
+    204: void;
+};
+
+export type PostCamerasByCameraIdCommandsResponse = PostCamerasByCameraIdCommandsResponses[keyof PostCamerasByCameraIdCommandsResponses];
+
+export type GetCamerasByCameraIdEventsData = {
+    body?: never;
+    path: {
+        /**
+         * The camera.
+         */
+        cameraId: string;
+    };
+    query?: never;
+    url: '/cameras/{cameraId}/events';
+};
+
+export type GetCamerasByCameraIdEventsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The agent controls no such camera: it is not one of its cameras, or not enabled
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+};
+
+export type GetCamerasByCameraIdEventsError = GetCamerasByCameraIdEventsErrors[keyof GetCamerasByCameraIdEventsErrors];
+
+export type GetCamerasByCameraIdEventsResponses = {
+    /**
+     * The events
+     */
+    200: unknown;
+};

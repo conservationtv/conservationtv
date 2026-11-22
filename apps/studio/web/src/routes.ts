@@ -17,6 +17,8 @@ export default [
       // An organisation's section sidebar, around its pages: everything under it is in that organisation.
       route('organisations/:organisationId', './routes/organisation-layout.tsx', [
         index('./routes/organisation-home.tsx'),
+        // Operating the organisation's cameras: one on screen with its controls, the others beside it to swap to.
+        route('controls', './routes/controls.tsx'),
         route('streams', './routes/streams.tsx'),
         route('streams/new', './routes/stream-new.tsx', [
           // Adding a camera without leaving the new stream's form, which then chooses it.
@@ -32,6 +34,8 @@ export default [
         route('outputs/:outputId', './routes/output.tsx'),
         // Where outputs go out to: Twitch channels and RTMP destinations.
         route('channels', './routes/channels.tsx', [route('rtmp/new', './routes/channel-rtmp-new.tsx')]),
+        // What viewers can ask for in those channels' chat: a reply, or a camera pointed at one of its presets.
+        route('chat-commands', './routes/chat-commands.tsx', [route('new', './routes/chat-command-new.tsx')]),
         // What the streams run on: the sites, and the agents, cameras and gateways on them.
         // Adding one is a dialog routed over its list, at `new`, so it can be linked to.
         route('networks', './routes/networks.tsx', [route('new', './routes/network-new.tsx')]),

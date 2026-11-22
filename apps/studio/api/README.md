@@ -40,7 +40,13 @@ releases it the way gatekeeper is released. Locally, the Hyperdrive and KV IDs a
 | `GET /organisations/{id}/devices/{deviceId}/key-pair`                                       | administrators                               | `organisations.devices.getKeyPair` v1: with its private key                                                 |
 | `GET /organisations/{id}/devices/allowlist`                                                 | members, and devices by signature            | `organisations.devices.allowlist` v1: for iroh allowlists                                                   |
 | `GET /organisations/{id}/devices/{deviceId}/addresses`                                      | members                                      | `organisations.devices.listAddresses` v1: where it last said it is reachable on its network                 |
-| `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}`    | members read, administrators write           | `organisations.cameras.*` v1                                                                                |
+| `GET`, `POST /organisations/{id}/cameras`; `GET`, `PATCH`, `DELETE …/cameras/{cameraId}`    | members read, administrators write           | `organisations.cameras.*` v1; v2 with each camera's chat `aliases` and its `presets`                        |
+| `POST …/cameras/{cameraId}/presets`; `PATCH`, `DELETE …/presets/{presetId}`                 | administrators                               | `organisations.cameras.presets.*` v1: positions saved by name, in the control contract's units              |
+| `GET`, `PUT`, `DELETE …/cameras/{cameraId}/presets/{presetId}/thumbnail`                    | members read, administrators write           | `organisations.cameras.presets.thumbnail.*` v1: a small picture of the preset's view, kept in `MEDIA`       |
+| `POST /organisations/{id}/cameras/{cameraId}/control`                                       | administrators                               | `organisations.cameras.control.connect` v1: the agent that reaches the camera, and a grant to present to it |
+| `GET`, `POST /organisations/{id}/chat-commands`; `GET`, `PATCH`, `DELETE …/{commandId}`     | members read, administrators write           | `organisations.chatCommands.*` v1                                                                           |
+| `POST /organisations/{id}/chat-commands/{commandId}/triggers`                               | devices, by signature                        | `organisations.chatCommands.trigger` v1: an output's agent says a command was used; what comes of it        |
+| `POST /organisations/{id}/chat-commands/{commandId}/settlements`                            | devices, by signature                        | `organisations.chatCommands.settle` v1: that agent says what came of a planned use; chat is answered        |
 | `PUT /organisations/{id}/browser`                                                           | members                                      | `organisations.browser.ensure` v1: this session's browser device, with its private key                      |
 | `GET`, `POST /organisations/{id}/agents`; `GET`, `PATCH`, `DELETE …/agents/{agentId}`       | members read, administrators write           | `organisations.agents.*` v1                                                                                 |
 | `GET`, `POST /organisations/{id}/gateways`; `GET`, `PATCH`, `DELETE …/gateways/{gatewayId}` | members read, administrators write           | `organisations.gateways.*` v1: with the built-in gateways, read-only                                        |
@@ -51,7 +57,7 @@ releases it the way gatekeeper is released. Locally, the Hyperdrive and KV IDs a
 | `GET /organisations/{id}/subjects/{subjectId}/metrics/{seriesId}`                           | members                                      | `organisations.subjects.metrics.get` v1: one series' points over a time range, in buckets                   |
 | `GET /organisations/{id}/topology`                                                          | members                                      | `organisations.topology.get` v1: everything the lists read, the subjects' states, what the broadcast places |
 | `POST /reports`                                                                             | devices, by signature                        | `reports.submit` v1: a batch of events, metrics and logs                                                    |
-| `GET /device-configuration`                                                                 | devices, by signature                        | `deviceConfiguration.get` v1: what the signing device delivers, derived from the topology when it asks      |
+| `GET /device-configuration`                                                                 | devices, by signature                        | `deviceConfiguration.get` v1 to v3: what the signing device runs, derived from the topology when it asks    |
 | `PUT /device-addresses`                                                                     | devices, by signature                        | `deviceAddresses.replace` v1: the addresses the signing device found on its interfaces, replaced whole      |
 | `POST /iroh-sessions`                                                                       | devices, by signature                        | `irohSessions.create` v1: the one iroh relay every device uses, asked for each time an endpoint is bound    |
 | `GET /whoami`                                                                               | devices, by signature                        | `whoami.get` v1: the signing device's ID, organisation and kind, which it reports about itself as           |
@@ -111,6 +117,7 @@ bindings:
 | `HYPERDRIVE_ADMIN`     | Hyperdrive | the owning role: migrations, Better Auth, grants                                                                     |
 | `HYPERDRIVE_APP`       | Hyperdrive | the application role (`studio_app`): request sessions, under RLS                                                     |
 | `CACHE`                | KV         | the key-value cache: Twitch connection state until its callback                                                      |
+| `MEDIA`                | R2         | the files the studio keeps: camera presets' thumbnails                                                               |
 | `BETTER_AUTH_SECRET`   | secret     | Better Auth's signing secret                                                                                         |
 | `FIELD_KEY`            | secret     | base64 32-byte master key for encrypted columns and blind indexes                                                    |
 | `APP_URL`              | text       | where the API is served; Better Auth's base URL                                                                      |
@@ -356,6 +363,26 @@ report batch twice, or put back a value a later PUT replaced (an output's contro
 that must not run twice needs its own guard. Every failure is 401 `invalid_signature`, and a
 retry needs a fresh signature. Downstream, `useDevice()` is the device and its principal.
 
+### Chat commands
+
+A use of a chat command runs through four processes, set out in `src/chat/decide.ts`. The agent of an output that goes
+out to a Twitch channel hears it, and drops it when the viewer is outside the command's audience (`@conservationtv/chat`,
+shared with this API) or the command rests until the `restsUntil` it was last told. It tells this API (`trigger`), which
+decides, in order: the device is that agent; the command is there and enabled; the viewer is in its audience; its
+words name a camera and preset (`src/chat/resolve.ts`); an agent reaches that camera. Steps up to there only read, so a
+use that falls at one (`notRun`: `disabled`, `audience`, `unresolved`, `unavailable`) spends nothing of the cooldown.
+Only then is the command's turn taken, one conditional `UPDATE` that two uses at once cannot both win (`resting`
+otherwise). A `reply` command is said in chat there (`ran`). A camera command is `planned`: a grant for exactly that
+move, for the agent to carry to the agent that reaches the camera, and a `receipt`. Nothing is said in chat until the
+agent settles the use with the receipt and what came of carrying it out (`settle`: `carried`, `held`, `unreachable`,
+`refused`, `failed`); this API then answers in chat, and when the camera didn't move gives the turn back as it was,
+unless another use has taken it since, so `triggeredAt` ("last used") is when the command last did something.
+
+A receipt is a JWT (HS256) under a key only this API holds, a subkey of the field key (`signingKey`,
+`src/db/encrypted.ts`), for the device that triggered the use, lasting a minute (`src/chat/receipts.ts`); it carries
+everything settling needs, so nothing is stored between the two. It is not single-use: settling again within the
+minute answers in chat again, though the turn is only ever given back once. Twitch is called outside the transaction.
+
 ### Cache
 
 `Cache` (`src/cache/cache.ts`) is a key-value cache for short-lived values, bound per request by the entrypoint and
@@ -456,7 +483,8 @@ under its own subkey (HKDF-SHA256 of the field key, the purpose as its info), so
 column fails to open; the purpose must never change, which keeps renamed columns readable. The field key comes from
 `FIELD_KEY`, which the config decodes to its 32 bytes (`useEnvironment().variables.FIELD_KEY`), so sealing and opening need
 the request's services. `blindIndex(purpose, codec, value)` is a keyed hash for equality lookups on an encrypted value,
-kept in a column beside it, under its own subkey.
+kept in a column beside it, under its own subkey. `signingKey(purpose)` is a subkey for signing what only this API
+checks, such as a chat command's receipt.
 
 A sealed value is `version ‖ iv ‖ tag ‖ ciphertext`, and the version is always 1: there is one key and no rotation, since
 nothing re-seals existing rows yet. The version byte is there so rotation can be added without rewriting stored values.

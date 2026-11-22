@@ -1,3 +1,4 @@
+import { chatName, MAX_ALIAS_LENGTH, MAX_ALIASES } from '@conservationtv/cameras';
 import { z } from 'zod';
 
 // Form inputs, validated in the browser before anything is sent. Limits mirror the studio API's own validation.
@@ -211,6 +212,43 @@ export const CameraCredentialsSchema = z.object({
 export type CameraCredentials = z.output<typeof CameraCredentialsSchema>;
 export type CameraCredentialsInput = z.input<typeof CameraCredentialsSchema>;
 
+/** What a camera is also called in chat, typed as one list: "pond, hide cam". Empty for no other names. */
+const CameraAliasListSchema = z
+  .string()
+  .transform(list =>
+    list
+      .split(/[,\n]+/u)
+      .map(alias => alias.trim())
+      .filter(alias => alias !== '')
+  )
+  .pipe(
+    z
+      .array(
+        z
+          .string()
+          .max(MAX_ALIAS_LENGTH, `Use ${MAX_ALIAS_LENGTH} characters or fewer for each.`)
+          .refine(alias => chatName(alias) !== '', 'Each needs a letter or a digit: chat ignores everything else.')
+      )
+      .max(MAX_ALIASES, `Use ${MAX_ALIASES} or fewer.`)
+      .refine(
+        aliases => new Set(aliases.map(chatName)).size === aliases.length,
+        'Two of these are the same to chat, which ignores case, spaces and punctuation.'
+      )
+  );
+export type CameraAliasList = z.output<typeof CameraAliasListSchema>;
+
+/** A camera's aliases, as its page edits them: replaced whole. */
+export const CameraAliasesSchema = z.object({ aliases: CameraAliasListSchema });
+export type CameraAliases = z.output<typeof CameraAliasesSchema>;
+export type CameraAliasesInput = z.input<typeof CameraAliasesSchema>;
+
+/** What a saved position of a camera is called, such as "home": what chat names it by. */
+export const PresetNameSchema = z.object({
+  name: z.string().trim().min(1, 'Enter a name.').max(60, 'Use 60 characters or fewer.')
+});
+export type PresetName = z.output<typeof PresetNameSchema>;
+export type PresetNameInput = z.input<typeof PresetNameSchema>;
+
 /** Whether a camera feeds its streams: only an enabled one does. */
 const CameraStateSchema = z.enum(['enabled', 'locked', 'disabled']);
 export type CameraState = z.output<typeof CameraStateSchema>;
@@ -390,3 +428,107 @@ export const EncodingSchema = z
   .transform(({ resolution, ...rest }) => ({ ...resolution, ...rest }));
 export type Encoding = z.output<typeof EncodingSchema>;
 export type EncodingInput = z.input<typeof EncodingSchema>;
+
+/** Who may use a chat command: everyone, or only those who are at least this in the channel. */
+const ChatAudienceSchema = z.enum(['everyone', 'subscriber', 'vip', 'moderator', 'broadcaster']);
+export type ChatAudience = z.output<typeof ChatAudienceSchema>;
+
+/** What a chat command does: says something, or points a camera at one of its presets. */
+const ChatActionKindSchema = z.enum(['reply', 'cameraPreset']);
+export type ChatActionKind = z.output<typeof ChatActionKindSchema>;
+
+/** Whether a command's preset is the word that follows it in chat, or one the command names itself. */
+const ChatPresetSourceSchema = z.enum(['chat', 'named']);
+export type ChatPresetSource = z.output<typeof ChatPresetSourceSchema>;
+
+// A chat command's action is a choice of kind, each reading its own fields, as a camera's settings are a choice of
+// driver: the form keeps both kinds' fields as typed, and the chosen kind checks only its own.
+
+/** What every chat command has, whatever it does, as the form holds it. */
+const CHAT_COMMAND_DETAILS = {
+  name: z
+    .string()
+    .trim()
+    // Typed with its `!` or in capitals, it is still the same word.
+    .transform(name => name.replace(/^!/u, '').toLowerCase())
+    .pipe(
+      z
+        .string()
+        .regex(
+          /^[a-z0-9][a-z0-9_-]{0,39}$/u,
+          'Use up to 40 lowercase letters, digits, - and _, starting with a letter or digit.'
+        )
+    ),
+  audience: ChatAudienceSchema,
+  cooldownSeconds: z
+    .string()
+    .trim()
+    .regex(/^\d+$/u, 'Enter a whole number of seconds.')
+    .transform(Number)
+    .pipe(z.int().max(86_400, 'Use a day (86400 seconds) or less.'))
+};
+
+/** Every kind's fields, as the form holds them. */
+const ChatCommandFormFieldsSchema = z.object({
+  name: z.string(),
+  audience: ChatAudienceSchema,
+  cooldownSeconds: z.string(),
+  kind: ChatActionKindSchema,
+  text: z.string(),
+  cameraId: z.string(),
+  presetSource: ChatPresetSourceSchema,
+  preset: z.string()
+});
+export type ChatCommandFormFields = z.output<typeof ChatCommandFormFieldsSchema>;
+
+/** A command that says something in chat. */
+const ReplyCommandFieldsSchema = z.object({
+  ...CHAT_COMMAND_DETAILS,
+  kind: z.literal('reply'),
+  text: z.string().trim().min(1, 'Enter what it says.').max(400, 'Use 400 characters or fewer.'),
+  cameraId: z.string(),
+  presetSource: ChatPresetSourceSchema,
+  preset: z.string()
+});
+type ReplyCommandFields = z.output<typeof ReplyCommandFieldsSchema>;
+
+/**
+ * A command that points a camera at a preset: the camera chosen, or the empty string for the word that follows the
+ * command in chat; and the preset named, or likewise taken from chat.
+ */
+const PresetCommandFieldsSchema = z
+  .object({
+    ...CHAT_COMMAND_DETAILS,
+    kind: z.literal('cameraPreset'),
+    text: z.string(),
+    cameraId: z.string(),
+    presetSource: ChatPresetSourceSchema,
+    preset: z.string().trim().max(60, 'Use 60 characters or fewer.')
+  })
+  .refine(command => command.presetSource === 'chat' || command.preset !== '', {
+    path: ['preset'],
+    error: 'Name the preset, or take it from chat.'
+  });
+type PresetCommandFields = z.output<typeof PresetCommandFieldsSchema>;
+
+/** The action the API keeps for a command, from its kind's fields: what chat supplies is null. */
+function chatActionOf(fields: ReplyCommandFields | PresetCommandFields) {
+  if (fields.kind === 'reply') return { kind: fields.kind, text: fields.text };
+  return {
+    kind: fields.kind,
+    cameraId: fields.cameraId || null,
+    preset: fields.presetSource === 'chat' ? null : fields.preset
+  };
+}
+
+/** A chat command, as the API takes it: the word it is used by, who may use it, how long it rests, and what it does. */
+export const ChatCommandSettingsSchema = ChatCommandFormFieldsSchema.pipe(
+  z.discriminatedUnion('kind', [ReplyCommandFieldsSchema, PresetCommandFieldsSchema])
+).transform(command => ({
+  name: command.name,
+  audience: command.audience,
+  cooldownSeconds: command.cooldownSeconds,
+  action: chatActionOf(command)
+}));
+export type ChatCommandSettings = z.output<typeof ChatCommandSettingsSchema>;
+export type ChatCommandSettingsInput = z.input<typeof ChatCommandSettingsSchema>;

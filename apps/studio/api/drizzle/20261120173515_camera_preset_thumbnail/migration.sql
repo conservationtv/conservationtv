@@ -1,0 +1,1 @@
+ALTER TABLE "camera_preset" ADD COLUMN "thumbnail" text;

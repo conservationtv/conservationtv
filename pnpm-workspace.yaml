@@ -18,12 +18,14 @@ catalog:
   # A fork of the Node binding adding Incoming.acceptWithoutNatTraversal(), until iroh ships it. The agent hands its
   # endpoint to iroh-http-node, which must load the same native addon.
   '@number0/iroh': npm:@strangecyan/iroh@1.1.0-relayed.1
-  '@strangecyan/iroh-http-node': 0.3.0
+  '@strangecyan/iroh-http-node': 0.4.0
   # The same protocol in the browser, over iroh in WebAssembly: the studio web app dials agents with it.
-  '@strangecyan/iroh-http-browser': 0.3.0
+  '@strangecyan/iroh-http-browser': 0.4.0
   pg: 8.23.1
   typescript: 7.0.2
   zod: 4.6.2
+  # The agent's runtimes and the studio web app keep their state machines in the same store.
+  '@xstate/store': 4.3.0
   '@pulumi/cloudflare': 6.22.0
   '@pulumi/command': 1.2.1
   '@pulumi/digitalocean': 4.83.0
@@ -69,7 +71,7 @@ minimumReleaseAgeExclude:
   - '@strangecyan/iroh-linux-x64-musl@1.1.0-relayed.1'
   - '@strangecyan/iroh-win32-x64-msvc@1.1.0-relayed.1'
   - '@strangecyan/iroh@1.1.0-relayed.1'
-  - '@strangecyan/iroh-http-browser@0.3.0'
-  - '@strangecyan/iroh-http-core@0.3.0'
-  - '@strangecyan/iroh-http-node@0.3.0'
+  - '@strangecyan/iroh-http-browser@0.4.0'
+  - '@strangecyan/iroh-http-core@0.4.0'
+  - '@strangecyan/iroh-http-node@0.4.0'
   - '@strangecyan/vignette@2.1.0'

@@ -94,7 +94,11 @@ export const relations = defineRelations(schema, r => ({
   },
   cameras: {
     organisation: r.one.organisations({ from: r.cameras.organisationId, to: r.organisations.id }),
-    device: r.one.devices({ from: r.cameras.id, to: r.devices.id })
+    device: r.one.devices({ from: r.cameras.id, to: r.devices.id }),
+    presets: r.many.cameraPresets({ from: r.cameras.id, to: r.cameraPresets.cameraId })
+  },
+  cameraPresets: {
+    camera: r.one.cameras({ from: r.cameraPresets.cameraId, to: r.cameras.id })
   },
   agents: {
     organisation: r.one.organisations({ from: r.agents.organisationId, to: r.organisations.id }),

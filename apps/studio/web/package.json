@@ -13,6 +13,7 @@
     "preview": "vite preview --outDir build/client"
   },
   "dependencies": {
+    "@conservationtv/cameras": "workspace:*",
     "@better-auth/passkey": "catalog:",
     "@better-fetch/fetch": "1.3.2",
     "@conservationtv/agent-sdk": "workspace:*",
@@ -27,7 +28,7 @@
     "@strangecyan/vignette": "2.1.0",
     "@tanstack/react-form": "1.33.5",
     "@tanstack/react-query": "5.104.2",
-    "@xstate/store": "4.3.0",
+    "@xstate/store": "catalog:",
     "@xstate/store-react": "2.1.0",
     "better-auth": "catalog:",
     "input-otp": "catalog:",

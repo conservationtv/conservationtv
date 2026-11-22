@@ -1,0 +1,16 @@
+{
+  // Consumed from source: Workers bundle it with Vite, Node tools run it through tsx. Nothing in it needs Node or a DOM.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*.ts"]
+}

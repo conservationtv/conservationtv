@@ -4,7 +4,8 @@ import {
   type MediamtxConfiguration,
   type PlannedConfiguration,
   planConfiguration,
-  type ProbingMediamtxConfiguration
+  type ProbingMediamtxConfiguration,
+  withCameraUrls
 } from '../configuration/plan/index.ts';
 import { requireDevice, useDevice } from '../middleware/device.ts';
 import { invalidSignature, operationVersion, unavailable, versionMismatch } from './openapi.ts';
@@ -40,7 +41,8 @@ export default new Hono()
     requireDevice,
     async c => {
       const device = useDevice();
-      const { mediamtx, obs, show } = await planConfiguration(device);
+      const planned = await planConfiguration(device);
+      const { mediamtx, obs, show } = withCameraUrls(planned);
       const configuration: PlannedConfiguration = { mediamtx: mediamtx && withoutProbes(mediamtx), obs, show };
       c.header('Cache-Control', 'no-store');
       return c.json(configuration, 200);
@@ -53,6 +55,24 @@ export default new Hono()
       ...operationVersion(2),
       summary: "Read the signing device's configuration",
       description: `${DESCRIPTION} From this version, \`mediamtx\` also has the \`probes\` it runs: each camera its streams come from, with the URL to ask for a stream description every few seconds, credentials included, and the subject to report whether it answered about (\`camera.reachable\`), so a camera nothing is reading is still known to be there.`,
+      responses
+    }),
+    requireDevice,
+    async c => {
+      const device = useDevice();
+      const planned = await planConfiguration(device);
+      const configuration = withCameraUrls(planned);
+      c.header('Cache-Control', 'no-store');
+      return c.json(configuration, 200);
+    }
+  )
+  .get(
+    '/',
+    describeRoute({
+      operationId: 'deviceConfiguration.get',
+      ...operationVersion(3),
+      summary: "Read the signing device's configuration",
+      description: `${DESCRIPTION} From this version the agent is given its cameras as they are registered, rather than URLs made from them. \`cameras\`, for a network's active agent: the cameras on its network and those its streams are pulled from, each with the \`settings\` its driver reads, its \`credentials\`, and its \`state\`, and the \`issuer\` of the grants that admit commands to them: it controls an \`enabled\` one for whoever presents a grant this API signed as the agent, for the agent, to the presenting device (\`organisations.cameras.control.connect\`). A \`mediamtx\` path's \`source\` is then a \`cameraId\` to pull at the path's rendition, or another path, and each of its \`probes\` a \`cameraId\` to ask at its \`default\` rendition. \`chat\`, for an output's agent while the output goes out to a Twitch channel and the organisation has chat commands: the \`channels\` whose chat to listen to, by login, and the \`commands\` to listen for, each told to this API when used (\`organisations.chatCommands.trigger\`). \`peers\`, always: every other agent and browser of the organisation, by endpoint ID, with whether each may connect directly or through the relay alone; the agent serves no one else. Each of \`obs\`'s \`previews\` also has its \`signer\`: the key ID of the agent that signs tokens for its gateway, the network's active agent for a MediaMTX gateway, or null for a built-in gateway or one no agent runs; a token kept for a preview is asked for again when it changes, as when another agent becomes the network's active agent.`,
       responses
     }),
     requireDevice,

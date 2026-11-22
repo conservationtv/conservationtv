@@ -12,7 +12,7 @@ export const deviceListQueryOptions = (organisationId: string) =>
   queryOptions({
     queryKey: ['devices', organisationId, 'list'] as const,
     queryFn: async () => {
-      const result = await api.organisations.devices.list.v1({ id: organisationId });
+      const result = await api.organisations.devices.list.v2({ id: organisationId });
       if (result instanceof Error) throw result;
       return result.devices;
     }

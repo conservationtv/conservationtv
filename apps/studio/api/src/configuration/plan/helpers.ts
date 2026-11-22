@@ -1,11 +1,11 @@
-import { and, eq } from 'drizzle-orm';
-import { cameraOrigin } from '../../cameras/drivers.ts';
-import { agents, deviceAddresses, gateways, organisations, outputPreviews } from '../../db/schema.ts';
+import { and, eq, inArray, ne } from 'drizzle-orm';
+import { cameraOrigin } from '@conservationtv/cameras';
+import { agents, cameras, deviceAddresses, devices, gateways, organisations, outputPreviews } from '../../db/schema.ts';
 import { useDB } from '../../db/transaction.ts';
 import { useEnvironment } from '../../env/env.ts';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
 import type { Rendition } from '../../topology/settings.ts';
-import type { MediamtxAuth, PathSource } from './types.ts';
+import type { CameraPathSource, MediamtxAuth, PlannedCamera, PlannedPeer } from './types.ts';
 
 // The steps of planning a device's configuration (src/configuration/plan/index.ts).
 
@@ -34,6 +34,72 @@ export async function selectLocalGateway(device: AuthenticatedDevice) {
   return gateway?.id;
 }
 
+/** The network the agent is the active agent of, if it is one: whose cameras it controls. */
+export async function selectActiveNetwork(device: AuthenticatedDevice) {
+  const db = useDB({ trusted: true });
+  const [agent] = await db
+    .select({ networkId: agents.networkId, active: agents.active })
+    .from(agents)
+    .where(eq(agents.id, device.id));
+  return agent?.active ? agent.networkId : undefined;
+}
+
+/** The cameras on a network, as they are registered, with their credentials: for the agent that reaches them. */
+export async function selectNetworkCameras(organisationId: string, networkId: string): Promise<PlannedCamera[]> {
+  const db = useDB({ trusted: true });
+  const rows = await db
+    .select({
+      id: cameras.id,
+      settings: cameras.settings,
+      credentials: cameras.credentials,
+      state: cameras.state
+    })
+    .from(cameras)
+    .innerJoin(devices, eq(devices.id, cameras.id))
+    .where(and(eq(cameras.organisationId, organisationId), eq(devices.networkId, networkId)))
+    .orderBy(cameras.id);
+  return rows.map(({ credentials, ...camera }) => ({ ...camera, ...(credentials !== null && { credentials }) }));
+}
+
+/**
+ * The devices the agent serves over iroh: every other agent of its organisation, which may holepunch to it, and every
+ * browser, which is served through the relay alone, so it never learns the agent's addresses. Cameras dial no one.
+ */
+export async function selectPeers(device: AuthenticatedDevice): Promise<PlannedPeer[]> {
+  const db = useDB({ trusted: true });
+  const rows = await db
+    .select({ endpointId: devices.publicId, kind: devices.kind })
+    .from(devices)
+    .where(
+      and(
+        eq(devices.organisationId, device.organisationId),
+        inArray(devices.kind, ['agent', 'browser']),
+        ne(devices.id, device.id)
+      )
+    )
+    .orderBy(devices.id);
+  return rows.map(({ endpointId, kind }) => ({ endpointId, allow: { relayed: true, direct: kind === 'agent' } }));
+}
+
+/**
+ * Who signs tokens for each of the organisation's gateways that an agent runs: the key ID (public ID) of the active agent
+ * on its network, as src/gateways/mediamtx.ts signs with, by gateway ID. A built-in gateway, or one no agent is active
+ * for, is absent.
+ */
+export async function selectGatewaySigners(organisationId: string) {
+  const db = useDB({ trusted: true });
+  const rows = await db
+    .select({ gatewayId: gateways.id, signer: devices.publicId })
+    .from(gateways)
+    .innerJoin(
+      agents,
+      and(eq(agents.organisationId, gateways.organisationId), eq(agents.networkId, gateways.networkId))
+    )
+    .innerJoin(devices, eq(devices.id, agents.id))
+    .where(and(eq(gateways.organisationId, organisationId), eq(agents.active, true)));
+  return new Map(rows.map(row => [row.gatewayId, row.signer]));
+}
+
 /** The gateway and the names its hostname is made from (src/gateways/certificates.ts). */
 export async function selectGatewayIdentity(gatewayId: string) {
   const db = useDB({ trusted: true });
@@ -60,12 +126,18 @@ export async function selectPreferredAddress(deviceId: string) {
   return row?.address;
 }
 
-/** Which exposures an agent delivers: its own MediaMTX gateway's, unless pinned to another device, and those pinned to it. */
+/**
+ * Which exposures an agent delivers: its own MediaMTX gateway's, unless pinned to another device; those pinned to it;
+ * and those pinned to none whose upstream is its gateway's, such as a MoQ copy of a camera's exposure there, so the copy
+ * follows the network's active agent as its upstream does. An unpinned exposure with no upstream on another gateway
+ * has no agent to deliver it.
+ */
 function delivered(agentId: string, gatewayId: string) {
   return {
     OR: [
       { gatewayId, OR: [{ publisherDeviceId: { isNull: true as const } }, { publisherDeviceId: agentId }] },
-      { publisherDeviceId: agentId }
+      { publisherDeviceId: agentId },
+      { publisherDeviceId: { isNull: true as const }, upstream: { gatewayId } }
     ]
   };
 }
@@ -119,16 +191,16 @@ export function selectGatewayPreviews(organisationId: string, gatewayId: string)
 
 // Planning, from what was read alone.
 
-/** Where one rendition of an exposure comes from on this agent: a URL to pull, or a path its MediaMTX already serves. */
-export type Feed = PathSource;
+/** Where one rendition of an exposure comes from on this agent: a camera to pull, or a path its MediaMTX already serves. */
+export type Feed = CameraPathSource;
 
-/** A camera's renditions, each pulled from where its driver says; the ones it cannot produce are left out. */
-export function cameraFeeds(exposure: ExposureInput, camera: CameraInput) {
+/** A camera's renditions, each pulled from the camera; the ones its driver cannot produce are left out. */
+export function cameraFeeds(exposure: ExposureInput, cameraId: string, camera: CameraInput) {
   const feeds = new Map<Rendition, Feed>();
   for (const rendition of exposure.renditions) {
     const url = cameraOrigin(camera.settings, camera.credentials ?? undefined, rendition);
     // Nothing transcodes yet.
-    if (url !== undefined) feeds.set(rendition, { url });
+    if (url !== undefined) feeds.set(rendition, { cameraId });
   }
   return feeds;
 }

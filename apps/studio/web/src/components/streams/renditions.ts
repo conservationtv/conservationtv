@@ -27,7 +27,7 @@ export interface SourceCamera {
 }
 
 /**
- * What a source can produce itself, as its camera's driver says (apps/studio/api/src/cameras/drivers.ts): an Axis
+ * What a source can produce itself, as its camera's driver says (packages/cameras/src/origins.ts): an Axis
  * camera any rendition, a plain RTSP camera only its stream as it is. Nothing transcodes yet, so that is all an
  * exposure fed by it can offer. Without a camera, whatever publishes it decides, so every rendition is open.
  */
