@@ -31,6 +31,10 @@ export default defineConfig({
        * `<commit>/<signoff>/`. Create it once with `pnpm exec cf r2 bucket create review-results`.
        */
       RESULTS: bindings.r2({ name: 'review-results' }),
+      /** Grafana Cloud, whose traces show how each service did around a deploy. Empty, deploys show without them. */
+      GRAFANA_URL: bindings.text('https://valiantlagoon729.grafana.net'),
+      /** A Viewer service account's token for it (Administration → Service accounts). */
+      GRAFANA_TOKEN: bindings.secret(),
       /** Seals the session cookie holding a reviewer's token: any long random string, such as `openssl rand -hex 32`. */
       SESSION_SECRET: bindings.secret()
     }

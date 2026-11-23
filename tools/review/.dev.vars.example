@@ -9,3 +9,7 @@ GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 # Seals the session cookie: openssl rand -hex 32
 SESSION_SECRET=
+
+# A Grafana Cloud Viewer service account's token, for how services did around a deploy. Leave it empty to show deploys
+# without it.
+GRAFANA_TOKEN=

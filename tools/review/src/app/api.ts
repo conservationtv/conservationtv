@@ -10,6 +10,7 @@ import {
 } from '../shared/actions.ts';
 import { CALLS_FILE, CALLS_REPORT, CallsReportSchema } from '@conservationtv/runner/calls';
 import { RunResultsSchema } from '@conservationtv/runner/results';
+import { DeploysSchema } from '../shared/deploys.ts';
 import { OperationDocsSchema } from '../shared/operation.ts';
 import { ApiErrorSchema, PullListSchema, ReviewSchema } from '../shared/review.ts';
 
@@ -91,6 +92,14 @@ export const callsQuery = (sha: string) =>
       return CallsReportSchema.parse(await response.json());
     },
     staleTime: Infinity
+  });
+
+/** Where a merged pull request went, and how each traced service did around it. */
+export const deploysQuery = (number: number) =>
+  queryOptions({
+    queryKey: ['pulls', number, 'deploys'] as const,
+    queryFn: () => load(`/api/pulls/${number}/deploys`, DeploysSchema),
+    refetchInterval: 5 * 60_000
   });
 
 /** A run's log, as uploaded. */

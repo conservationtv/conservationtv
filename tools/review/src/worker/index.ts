@@ -5,6 +5,7 @@ import { auth } from './auth.ts';
 import { createGitHub, GitHubError, useGitHub, withGitHub } from './github.ts';
 import { operationDocs } from './operations.ts';
 import { pullList, review } from './pulls.ts';
+import { deploys } from './deploys.ts';
 import { results } from './results.ts';
 import { scenarios } from './scenarios.ts';
 import { readSession, type AppEnv } from './session.ts';
@@ -41,6 +42,8 @@ const app = new Hono<AppEnv>()
   .route('/', scenarios)
   // Signoff runs from developers' machines (src/worker/results.ts).
   .route('/', results)
+  // Where a merged pull request went, and how it did there (src/worker/deploys.ts).
+  .route('/', deploys)
   .get('/pulls', async c => c.json(await pullList(), 200, { 'cache-control': 'no-store' }))
   .get('/pulls/:number{[0-9]+}', async c => {
     const number = Number(c.req.param('number'));
@@ -65,7 +68,11 @@ const app = new Hono<AppEnv>()
   .notFound(c => c.json({ error: 'Not found.' }, 404))
   .onError((error, c) => {
     if (error instanceof GitHubError) return c.json({ error: error.message }, error.status);
-    if (error instanceof z.ZodError) return c.json({ error: 'That request was not understood.' }, 400);
+    if (error instanceof z.ZodError) {
+      // Also what GitHub or Grafana answered that wasn't as expected: worth seeing in the logs.
+      console.error(error.issues);
+      return c.json({ error: 'That request was not understood.' }, 400);
+    }
     console.error(error);
     return c.json({ error: 'Something went wrong reading this pull request.' }, 500);
   });

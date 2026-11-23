@@ -63,6 +63,20 @@ Whether a thread is resolved comes from GitHub's GraphQL API, which answers only
 threads read without it. Resolved threads fold to one line on the files tab, and a signed-in reviewer can resolve a
 thread or open it again. GitHub's alerts and `suggestion` blocks are drawn as GitHub draws them, in any comment.
 
+## Deploys
+
+Once a pull request is merged, the conversation shows where it went ([`src/worker/deploys.ts`](src/worker/deploys.ts)):
+for each environment and workflow GitHub records deploys for (staging is deployed by both `studio` and
+`controlplane`), the first successful deploy of a commit containing the merge commit, or the first attempt while none
+has succeeded, with its run.
+
+With `GRAFANA_TOKEN`, a Grafana Cloud service account's Viewer token for `GRAFANA_URL`, each deploy also shows how
+the services it shipped did in the hour before it finished and the hour after (or until now): requests, 5xx responses,
+exceptions by message, with those new after it called out, and p95 latency, each from an instant TraceQL metrics query
+on the stack's Tempo ([`src/worker/grafana.ts`](src/worker/grafana.ts)), and a link to the traces in Explore. A
+service is the Worker's own name, `<script>-<environment>`, so a deploy of the `studio` workflow to staging shows
+`studio-api-staging`; only Workers that export traces to Grafana (Workers Observability destinations) appear.
+
 ## Scenario reports
 
 `.github/workflows/scenarios.yml` screenshots the studio web app across generated worlds on each pull request

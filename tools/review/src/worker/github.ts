@@ -236,6 +236,8 @@ export type PullListItems = z.output<typeof PullListItemsSchema>;
 
 export const PullDetailSchema = PullListItemSchema.extend({
   body: z.string().nullable(),
+  /** The commit a merge made on the base branch; GitHub sets it for open pull requests too, as a test merge. */
+  merge_commit_sha: z.string().nullable(),
   html_url: z.url(),
   created_at: z.iso.datetime(),
   mergeable: z.boolean().nullable(),
@@ -348,3 +350,20 @@ export const ReviewThreadsSchema = z.object({
   })
 });
 export type ReviewThreads = z.output<typeof ReviewThreadsSchema>;
+
+export const DeploymentsSchema = z.array(
+  z.object({ id: z.int(), sha: z.string(), environment: z.string(), created_at: z.iso.datetime() })
+);
+export type Deployments = z.output<typeof DeploymentsSchema>;
+
+export const DeploymentStatusesSchema = z.array(
+  z.object({ state: z.string(), created_at: z.iso.datetime(), log_url: z.string().nullable().optional() })
+);
+export type DeploymentStatuses = z.output<typeof DeploymentStatusesSchema>;
+
+/** How a commit relates to another: `ahead` or `identical` when it contains it. */
+export const CompareStatusSchema = z.object({ status: z.string() });
+export type CompareStatus = z.output<typeof CompareStatusSchema>;
+
+export const WorkflowRunSchema = z.object({ name: z.string().nullable() });
+export type WorkflowRun = z.output<typeof WorkflowRunSchema>;
