@@ -1,5 +1,6 @@
 import { Alert, AlertDescription } from '@conservationtv/ui/components/alert';
 import { Spinner } from '@conservationtv/ui/components/spinner';
+import { reports } from '@conservationtv/runner/reports';
 import { signoffs } from '@conservationtv/runner/signoffs';
 import type { RunResult } from '@conservationtv/runner/results';
 import { useQuery } from '@tanstack/react-query';
@@ -57,12 +58,15 @@ interface RunTabsProps {
   selected: RunResult | undefined;
 }
 
-/** Each signoff run at the commit, in the signoffs' order, with how it went and how long it took. */
+/** Everything run at the commit, reports then signoffs, with how it went and how long it took. */
+const runnable = [...reports, ...signoffs];
+
+/** Each run at the commit, in the runner's order, with how it went and how long it took. */
 const RunTabs: FC<RunTabsProps> = ({ sha, runs, selected }) => {
   if (!runs.length) return <p className="text-muted-foreground">Nothing has been run at this commit.</p>;
   return (
     <nav className="flex flex-wrap gap-1.5" aria-label="Signoffs">
-      {signoffs.map(each => {
+      {runnable.map(each => {
         const run = runs.find(candidate => candidate.signoff === each.name);
         if (!run) return null;
         return (
@@ -90,7 +94,7 @@ interface RunLogProps {
 
 /** One run: who ran it and when, why it failed, and everything it printed. */
 const RunLog: FC<RunLogProps> = ({ run }) => {
-  const label = signoffs.find(each => each.name === run.signoff)?.label ?? run.signoff;
+  const label = runnable.find(each => each.name === run.signoff)?.label ?? run.signoff;
   const { data: log, error } = useQuery(logQuery(run.sha, run.signoff));
   return (
     <section className="flex flex-col gap-2">
