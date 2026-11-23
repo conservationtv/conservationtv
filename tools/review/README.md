@@ -107,10 +107,12 @@ is **added**; a version that already existed and now differs in its inputs, outp
 
 ## GitHub
 
-The Worker reads GitHub's REST API with `GITHUB_TOKEN`, a fine-grained token with read-only access to public
-repositories and no other permission. Responses are kept in the Cache API and revalidated with their ETags, which with a
-token costs nothing against the rate limit. Without one, GitHub allows 60 requests an hour from an address, counting
-revalidations, so cached copies serve ten times longer; a pull request takes about ten requests.
+The Worker reads GitHub's REST and GraphQL APIs as whoever is signed in, with their own token and their own 5,000
+requests an hour; otherwise with `GITHUB_TOKEN`, a fine-grained token with read-only access to public repositories and
+no other permission; otherwise anonymously. Everything read is public, so responses are kept in the Cache API whoever
+fetched them, and revalidated with their ETags, which with a token costs nothing against the rate limit. Without one,
+GitHub allows 60 requests an hour from an address, counting revalidations, so cached copies serve ten times longer; a
+pull request takes about ten requests.
 
 ## Signing in
 
@@ -128,10 +130,14 @@ reads.
 ## Development
 
 ```sh
-cp .dev.vars.example .dev.vars   # and set GITHUB_TOKEN and the OAuth app's, or leave them empty
 pnpm dev                         # http://localhost:6423
 pnpm typecheck
 ```
+
+`pnpm dev` ([`dev.ts`](dev.ts)) makes `.dev.vars` from `.dev.vars.example` if there is none, and while `GITHUB_TOKEN` is
+empty (or was filled by it before) sets it from the GitHub CLI's sign-in, `gh auth token`, each time it starts: that
+token can do more than the read-only one production uses, and stays in the ignored `.dev.vars`. Set your own token
+there to keep it. Signing in locally takes the second OAuth app described above.
 
 ## Deploying
 

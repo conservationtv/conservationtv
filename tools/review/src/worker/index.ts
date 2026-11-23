@@ -7,7 +7,7 @@ import { operationDocs } from './operations.ts';
 import { pullList, review } from './pulls.ts';
 import { results } from './results.ts';
 import { scenarios } from './scenarios.ts';
-import type { AppEnv } from './session.ts';
+import { readSession, type AppEnv } from './session.ts';
 
 const SHA = /^[0-9a-f]{40}$/;
 
@@ -21,6 +21,19 @@ const app = new Hono<AppEnv>()
     const bearer = c.req.path.startsWith('/api/results/') && c.req.header('authorization')?.startsWith('Bearer ');
     if (c.req.method === 'GET' || sameSite || bearer) return next();
     return c.json({ error: 'Changes must come from this site.' }, 403);
+  })
+  // GitHub is read as whoever is signed in, with their own token and rate limit, else with this tool's token, else
+  // anonymously. Everything read is public, so cached responses are shared whoever fetched them.
+  .use(async (c, next) => {
+    const signedIn = await readSession(c);
+    const github = createGitHub({
+      repository: c.env.GITHUB_REPOSITORY,
+      token: signedIn?.token ?? c.env.GITHUB_TOKEN ?? '',
+      // Asked for straight after a change, so the change shows.
+      fresh: c.req.header('x-review-fresh') !== undefined,
+      waitUntil: promise => c.executionCtx.waitUntil(promise)
+    });
+    await withGitHub(github, next);
   })
   .route('/auth', auth)
   .route('/', actions)
@@ -58,14 +71,5 @@ const app = new Hono<AppEnv>()
   });
 
 export default {
-  fetch(request, env, ctx) {
-    const github = createGitHub({
-      repository: env.GITHUB_REPOSITORY,
-      token: env.GITHUB_TOKEN ?? '',
-      // Asked for straight after a change, so the change shows.
-      fresh: request.headers.has('x-review-fresh'),
-      waitUntil: promise => ctx.waitUntil(promise)
-    });
-    return withGitHub(github, () => app.fetch(request, env, ctx));
-  }
+  fetch: (request, env, ctx) => app.fetch(request, env, ctx)
 } satisfies ExportedHandler<Env>;

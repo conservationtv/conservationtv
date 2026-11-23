@@ -5,7 +5,7 @@
   "type": "module",
   "description": "review.tools.conservation.tv: pull requests, read with this repository's generated code set apart.",
   "scripts": {
-    "dev": "cf dev",
+    "dev": "node dev.ts",
     "build": "cf build",
     "deploy": "CLOUDFLARE_ACCOUNT_ID=0def86f295b15a1a2d012774b38b04f9 cf deploy",
     "types": "cf workers types",
