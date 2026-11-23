@@ -14,8 +14,6 @@ import type { ViewedFiles } from '../viewed.ts';
 import { theme } from '../highlighting.ts';
 import { NoteView } from './LineNotes.tsx';
 
-export type DiffStyle = 'split' | 'unified';
-
 const statusLetters = {
   added: 'A',
   removed: 'D',
@@ -69,7 +67,6 @@ interface DiffListProps {
   viewer: Viewer;
   viewed: ViewedFiles;
   drafts: Drafts;
-  diffStyle: DiffStyle;
   wrap: boolean;
   header: ReactNode;
   footer: ReactNode;
@@ -77,7 +74,7 @@ interface DiffListProps {
 
 /** A chapter's diffs in one scrolling list, with what to read open and the rest folded until asked for. */
 export const DiffList: FC<DiffListProps> = props => {
-  const { review, entries, viewer, viewed, drafts, diffStyle, wrap, header, footer } = props;
+  const { review, entries, viewer, viewed, drafts, wrap, header, footer } = props;
   const [states, setStates] = useState<Record<string, EntryState>>({});
   const threads = Map.groupBy(review.threads, thread => thread.path);
   const pending = Map.groupBy(drafts.all, draft => draft.path);
@@ -184,7 +181,8 @@ export const DiffList: FC<DiffListProps> = props => {
 
   const options: CodeViewReactOptions<Note, undefined> = {
     theme,
-    diffStyle,
+    // One column: the change reads top to bottom, with room for its lines at any width.
+    diffStyle: 'unified',
     overflow: wrap ? 'wrap' : 'scroll',
     stickyHeaders: true,
     loadDiffFiles: fileDiff => loadSides(review.pull, fileDiff.name, fileDiff.prevName),

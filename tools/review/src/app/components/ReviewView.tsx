@@ -1,7 +1,6 @@
 import { Badge } from '@conservationtv/ui/components/badge';
 import { Spinner } from '@conservationtv/ui/components/spinner';
 import { Toggle } from '@conservationtv/ui/components/toggle';
-import { ToggleGroup, ToggleGroupItem } from '@conservationtv/ui/components/toggle-group';
 import { cn } from '@conservationtv/ui/lib/utils';
 import {
   DatabaseIcon,
@@ -13,7 +12,7 @@ import {
 } from '@phosphor-icons/react';
 import { WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState, type FC, type ReactNode } from 'react';
+import { useRef, type FC, type ReactNode } from 'react';
 import { isReviewBot } from '../../shared/bots.ts';
 import type { Review } from '../../shared/review.ts';
 import { callsQuery } from '../api.ts';
@@ -25,7 +24,7 @@ import { useSwitch } from '../preferences.ts';
 import { topicsOf, type Topic, type TopicKind } from '../topics.ts';
 import { useViewed, type ViewedFiles } from '../viewed.ts';
 import { ChangeTree } from './ChangeTree.tsx';
-import { DiffList, type DiffStyle, type Viewer } from './DiffList.tsx';
+import { DiffList, type Viewer } from './DiffList.tsx';
 import { Link } from './Link.tsx';
 import { ReviewSubmit } from './ReviewSubmit.tsx';
 import { TopicIntro } from './TopicIntro.tsx';
@@ -45,11 +44,6 @@ export const ReviewView: FC<ReviewViewProps> = props => (
   </WorkerPoolContextProvider>
 );
 
-/** A phone has room for one side of a diff. */
-function preferredStyle(): DiffStyle {
-  return window.matchMedia('(max-width: 900px)').matches ? 'unified' : 'split';
-}
-
 const ALL_FILES = 'all';
 
 /** Everything a topic or the file list is drawn with. */
@@ -59,7 +53,6 @@ interface ReadingContext {
   viewed: ViewedFiles;
   /** Line comments waiting for the review they belong to. */
   drafts: Drafts;
-  diffStyle: DiffStyle;
   /** Long lines wrapped rather than scrolled sideways. */
   wrap: boolean;
 }
@@ -81,7 +74,6 @@ const Topics: FC<ReviewViewProps> = ({ review, chapter }) => {
   const viewer = useRef(null);
   const viewed = useViewed(review);
   const drafts = useDrafts(review);
-  const [diffStyle, setDiffStyle] = useState(preferredStyle);
   const [sidebar, toggleSidebar] = useSwitch('sidebar', true);
   const [wrap, toggleWrap] = useSwitch('wrap', false);
   const calls = useQuery(callsQuery(review.pull.headSha));
@@ -95,7 +87,7 @@ const Topics: FC<ReviewViewProps> = ({ review, chapter }) => {
   }
   // Without a calls report there are no topics worth the name: every file, as a tree, says so and how to make one.
   const topics = calls.data ? topicsOf(review, calls.data) : [];
-  const context: ReadingContext = { review, viewer, viewed, drafts, diffStyle, wrap };
+  const context: ReadingContext = { review, viewer, viewed, drafts, wrap };
   const topic = chosenTopic(topics, chapter);
   return (
     <main className={sidebar ? 'review' : 'review sidebar-hidden'}>
@@ -107,8 +99,6 @@ const Topics: FC<ReviewViewProps> = ({ review, chapter }) => {
         onSidebar={toggleSidebar}
         wrap={wrap}
         onWrap={toggleWrap}
-        diffStyle={diffStyle}
-        onDiffStyle={setDiffStyle}
       />
       <div className="review-body">
         <aside className="review-sidebar">
@@ -134,8 +124,6 @@ interface ReviewBarProps {
   onSidebar(): void;
   wrap: boolean;
   onWrap(): void;
-  diffStyle: DiffStyle;
-  onDiffStyle(style: DiffStyle): void;
 }
 
 /** Above the topics: how they were found, finishing the review, and the reviewer's view switches. */
@@ -144,7 +132,7 @@ const ReviewBar: FC<ReviewBarProps> = props => (
     <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">{props.summary}</p>
     <ReviewSubmit review={props.review} drafts={props.drafts} />
     <div className="flex shrink-0 gap-0.5" role="group" aria-label="View">
-      {/* A phone shows one side and no sidebar, so only wrapping is left to choose. */}
+      {/* A phone has no room for the rail, so only wrapping is left to choose there. */}
       <Toggle
         variant="outline"
         size="sm"
@@ -158,20 +146,6 @@ const ReviewBar: FC<ReviewBarProps> = props => (
         Wrap
       </Toggle>
     </div>
-    <ToggleGroup
-      variant="outline"
-      size="sm"
-      spacing={0}
-      aria-label="Diff layout"
-      className="shrink-0 max-[900px]:hidden"
-      value={[props.diffStyle]}
-      onValueChange={([style]) => {
-        if (style === 'split' || style === 'unified') props.onDiffStyle(style);
-      }}
-    >
-      <ToggleGroupItem value="split">Split</ToggleGroupItem>
-      <ToggleGroupItem value="unified">Unified</ToggleGroupItem>
-    </ToggleGroup>
   </nav>
 );
 
@@ -348,7 +322,6 @@ const Reading: FC<ReadingProps> = ({ context, entries, header, footer }) => (
     viewer={context.viewer}
     viewed={context.viewed}
     drafts={context.drafts}
-    diffStyle={context.diffStyle}
     wrap={context.wrap}
     header={header}
     footer={footer}
