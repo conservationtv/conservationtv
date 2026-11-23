@@ -127,7 +127,8 @@ async function resolve(workspace: Workspace, file: string, site: Site): Promise<
   const target = found ? workspace.pathOf(found) : null;
   if (!found || !target) return null;
   const symbol: DocumentSymbol | null = await workspace.around(target, found.range.start.line + 1);
-  if (!symbol) return null;
+  // Only a definition at a symbol's own name is a call to it: one inside it is a property or local of its body.
+  if (!symbol || symbol.selectionRange.start.line !== found.range.start.line) return null;
   return { key: keyOf(target, symbol.name), name: symbol.name, path: target, lines: linesOf(symbol) };
 }
 
