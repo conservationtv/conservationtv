@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { base64url, generateKeyPair, SignJWT } from 'jose';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import { z } from 'zod';
 import { grants } from '../src/db/schema.ts';
 import { type SetupToken } from '../src/relays/moq.ts';
@@ -9,8 +9,9 @@ import { connectTestDatabase, startWorker, MOQ_KEY_ID, MOQ_RELAY_TOKEN, MOQ_CLUS
 import { MOQ_CLUSTER_GRANT_SECONDS } from '../src/relays/moq.ts';
 import { type GrantExchangeResult, GrantExchangeResultSchema } from './support/responses.ts';
 
-const database = connectTestDatabase();
-const worker = await startWorker();
+const databaseUrl = inject('databaseUrl');
+const database = connectTestDatabase(databaseUrl);
+const worker = await startWorker({ connectionString: databaseUrl });
 
 beforeEach(async () => {
   await worker.restart({});

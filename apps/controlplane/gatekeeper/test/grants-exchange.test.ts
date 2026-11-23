@@ -1,13 +1,14 @@
 import { eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import { GrantExchangeResultSchema } from './support/responses.ts';
 import { decodePayload, exampleGrant, randomEndpointId } from './support/consumer.ts';
 import { grants } from '../src/db/schema.ts';
 import { connectTestDatabase, CONSUMER_TOKEN, MOQ_KEY_ID, OTHER_CONSUMER, startWorker } from './support/harness.ts';
 
-const database = connectTestDatabase();
-const worker = await startWorker();
+const databaseUrl = inject('databaseUrl');
+const database = connectTestDatabase(databaseUrl);
+const worker = await startWorker({ connectionString: databaseUrl });
 
 beforeEach(async () => {
   await worker.restart({});

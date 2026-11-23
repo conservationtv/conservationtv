@@ -43,6 +43,7 @@
   "devDependencies": {
     "@cloudflare/build-output-utils": "catalog:",
     "@cloudflare/vite-plugin": "catalog:",
+    "@testcontainers/postgresql": "12.2.0",
     "@types/node": "24.10.1",
     "@types/pg": "catalog:",
     "cf": "catalog:",

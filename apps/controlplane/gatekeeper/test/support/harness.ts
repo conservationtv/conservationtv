@@ -8,7 +8,6 @@ import { createPool, drizzle } from 'drizzle-orm/postgres';
 import { exportJWK, generateKeyPair } from 'jose';
 import type { Json } from '@conservationtv/versioned-api/server';
 import type { Database } from '../../src/db/client.ts';
-import { LOCAL_DATABASE_URL } from '../../src/db/local.ts';
 
 export const CONSUMER_TOKEN = 'consumer-test-token';
 /** The namespace gatekeeper places the test consumer's MoQ roots beneath. */
@@ -28,7 +27,7 @@ export interface TestDatabase {
 }
 
 /** A pooled connection to `connectionString`, with the state tests reset between cases. */
-export function connectTestDatabase(connectionString = process.env.DATABASE_URL ?? LOCAL_DATABASE_URL): TestDatabase {
+export function connectTestDatabase(connectionString: string): TestDatabase {
   const pool = createPool(connectionString);
   const database: Database = drizzle({ client: pool });
   return {
@@ -74,11 +73,12 @@ export interface TestWorker {
 export interface WorkerOptions {
   /** Undefined retains the built deployment's value; an explicit string replaces it. */
   bindings?: Record<string, string | undefined>;
-  connectionString?: string;
+  /** The Postgres the Worker's Hyperdrive binding reaches: the run's test database (`inject('databaseUrl')`). */
+  connectionString: string;
 }
 
 /** Boot the unmodified production bundle. Only deployment inputs are controlled. */
-export async function startWorker(options: WorkerOptions = {}): Promise<TestWorker> {
+export async function startWorker(options: WorkerOptions): Promise<TestWorker> {
   // Apply deployment overrides to the build, connect local Postgres, and clean up if runtime startup fails.
   const start = async (overrides: WorkerOptions['bindings']) => {
     const env = { ...built.env };
@@ -86,7 +86,7 @@ export async function startWorker(options: WorkerOptions = {}): Promise<TestWork
     if (hyperdrive?.type !== 'hyperdrive') throw new Error('Build must declare the HYPERDRIVE binding');
     env.HYPERDRIVE = {
       ...hyperdrive,
-      dev: { connectionString: options.connectionString ?? process.env.DATABASE_URL ?? LOCAL_DATABASE_URL }
+      dev: { connectionString: options.connectionString }
     };
     const bindings = {
       CONSUMERS,
