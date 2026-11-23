@@ -1,9 +1,10 @@
-import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { CallSymbol, CallsReport, ChangedUnit, Lines } from './calls.ts';
+import { callTrees } from './call-trees.ts';
 import { classify } from './classify.ts';
-import { startLanguageServer, type DocumentSymbol, type LanguageServer, type Position } from './lsp.ts';
+import type { DocumentSymbol, Position } from './lsp.ts';
+import { candidates, git, idOf, isUnit, kinds, linesOf, openWorkspace, overlaps, type Workspace } from './workspace.ts';
 
 // The calls report: what the pull request changed, function by function, and who calls each, from TypeScript's own
 // language server at the head. Each changed source file's symbols are listed; a top-level function, method or
@@ -15,69 +16,59 @@ const SOURCE = /\.(?:[cm]?tsx?|jsx?)$/;
 /** How many units' callers are asked for at once. */
 const CONCURRENCY = 8;
 
-/** The language server's symbol kinds, by name; only the ones a unit or caller can be. */
-const kinds = new Map([
-  [1, 'file'],
-  [2, 'module'],
-  [5, 'class'],
-  [6, 'method'],
-  [7, 'property'],
-  [9, 'constructor'],
-  [12, 'function'],
-  [13, 'variable'],
-  [14, 'constant']
-]);
-const CLASS = 5;
-/** Values that are only a unit when they span lines: a function or component bound to a name, not a constant. */
-const VALUES = new Set([7, 13, 14]);
-const CALLABLE = new Set([6, 9, 12]);
-
-function git(root: string, args: readonly string[]): string {
-  const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-  if (result.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${result.stderr.trim()}`);
-  return result.stdout;
+/** What a diff without context changed: lines added or changed at the head, and removed or changed at the base. */
+export interface ChangedLines {
+  head: Map<string, Lines[]>;
+  base: Map<string, Lines[]>;
 }
 
-/** Each changed file's added or changed lines at the head, from a diff without context. */
-function changedLines(root: string, base: string): Map<string, Lines[]> {
-  const diff = git(root, ['diff', '-U0', '--no-color', '--no-renames', '--diff-filter=AM', base, 'HEAD']);
-  const files = new Map<string, Lines[]>();
-  let current: Lines[] | null = null;
-  for (const line of diff.split('\n')) {
-    // `+++ b/<path>` starts a file; each `@@ -a,b +c,d @@` adds lines c to c+d-1 (d is 1 when left out).
-    const file = line.match(/^\+\+\+ b\/(.+)$/);
-    if (file?.[1]) {
-      current = [];
-      files.set(file[1], current);
-      continue;
-    }
-    const hunk = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/);
-    const count = Number(hunk?.[2] ?? 1);
-    if (hunk && current && count > 0) current.push({ start: Number(hunk[1]), end: Number(hunk[1]) + count - 1 });
-  }
-  return files;
+/** A diff's file header (`--- a/<path>`, `+++ b/<path>`): which side, and its path, or null for `/dev/null`. */
+function fileHeader(line: string): ['base' | 'head', string | null] | null {
+  const match = line.match(/^(---|\+\+\+) (?:[ab]\/(.+)|\/dev\/null)$/);
+  if (!match) return null;
+  return [match[1] === '---' ? 'base' : 'head', match[2] ?? null];
 }
 
-function overlaps(a: Lines, b: Lines): boolean {
-  return a.start <= b.end && b.start <= a.end;
+/** A hunk's header, `@@ -a,b +c,d @@`: the lines it changes on each side (b and d are 1 when left out). */
+function hunkHeader(line: string): Record<'base' | 'head', Lines | null> | null {
+  const match = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+  if (!match) return null;
+  const span = (start: string | undefined, count: string | undefined): Lines | null => {
+    const length = Number(count ?? 1);
+    return length > 0 ? { start: Number(start), end: Number(start) + length - 1 } : null;
+  };
+  return { base: span(match[1], match[2]), head: span(match[3], match[4]) };
 }
 
-function linesOf(symbol: DocumentSymbol): Lines {
-  return { start: symbol.range.start.line + 1, end: symbol.range.end.line + 1 };
+/** The list of lines each side of the file being read adds to: none for a side the file is missing from. */
+interface Reading {
+  base: Lines[] | null;
+  head: Lines[] | null;
 }
 
-function idOf(file: string, name: string, line: number): string {
-  return `${file}#${name}@${line}`;
+/** A file header starts a side's list of lines, kept by its path; a side the file is missing from gets none. */
+function startFile(side: 'base' | 'head', path: string | null, sides: ChangedLines, current: Reading): void {
+  const lines: Lines[] | null = path ? [] : null;
+  current[side] = lines;
+  if (path && lines) sides[side].set(path, lines);
 }
 
-/** The symbols a file is read as units from: its top-level ones, and the members of its classes. */
-function candidates(symbols: readonly DocumentSymbol[]): DocumentSymbol[] {
-  return symbols.flatMap(symbol => (symbol.kind === CLASS ? (symbol.children ?? []) : [symbol]));
+/** One line of the diff: a file header, a hunk adding to both sides' lists, or a line of a hunk, which is skipped. */
+function readLine(line: string, sides: ChangedLines, current: Reading): void {
+  const file = fileHeader(line);
+  if (file) return startFile(file[0], file[1], sides, current);
+  const hunk = hunkHeader(line);
+  if (hunk?.base) current.base?.push(hunk.base);
+  if (hunk?.head) current.head?.push(hunk.head);
 }
 
-function isUnit(symbol: DocumentSymbol): boolean {
-  if (CALLABLE.has(symbol.kind)) return true;
-  return VALUES.has(symbol.kind) && symbol.range.end.line > symbol.range.start.line;
+/** Each changed file's changed lines on both sides, from a diff without context. */
+function changedLines(root: string, base: string): ChangedLines {
+  const diff = git(root, ['diff', '-U0', '--no-color', '--no-renames', '--diff-filter=AMD', base, 'HEAD']);
+  const sides: ChangedLines = { head: new Map(), base: new Map() };
+  const current: Reading = { base: null, head: null };
+  for (const line of diff.split('\n')) readLine(line, sides, current);
+  return sides;
 }
 
 /** A changed unit, and where its name is, to ask for its references from. */
@@ -123,30 +114,10 @@ async function inBatches<T, R>(items: readonly T[], limit: number, task: (item: 
 }
 
 interface Context {
-  root: string;
-  server: LanguageServer;
+  workspace: Workspace;
   changed: Map<string, Lines[]>;
   /** Units by their file and the line their name is on, to know a caller is one. */
   unitAt: Map<string, ChangedUnit>;
-  /** Each file read so far: its lines, and its symbols once asked for. */
-  files: Map<string, OpenFile>;
-}
-
-interface OpenFile {
-  lines: string[];
-  symbols: Promise<DocumentSymbol[]>;
-}
-
-/** A file as the server knows it: opened the first time it is needed, its symbols asked for once. */
-function openFile(context: Context, file: string): OpenFile {
-  const known = context.files.get(file);
-  if (known) return known;
-  const absolute = path.join(context.root, file);
-  const text = readFileSync(absolute, 'utf8');
-  context.server.open(absolute, text);
-  const opened = { lines: text.split('\n'), symbols: context.server.symbols(absolute).catch(() => []) };
-  context.files.set(file, opened);
-  return opened;
 }
 
 /** A line that only names a symbol to import or export it, at the top of a file: a reference, but no use. */
@@ -154,13 +125,8 @@ const IMPORT_LINE = /^\s*(?:import\b|export\s*(?:\{|\*|type\b)|}\s*from\b|(?:typ
 
 /** The symbol a reference is in: the innermost unit candidate around its line, else the file itself. */
 async function containerOf(context: Context, file: string, line: number): Promise<CallSymbol | null> {
-  const opened = openFile(context, file);
-  const around = candidates(await opened.symbols)
-    .filter(symbol => {
-      const lines = linesOf(symbol);
-      return line >= lines.start && line <= lines.end;
-    })
-    .toSorted((a, b) => linesOf(a).end - linesOf(a).start - (linesOf(b).end - linesOf(b).start))[0];
+  const opened = context.workspace.open(file);
+  const around = await context.workspace.around(file, line);
   if (around) {
     const at = around.selectionRange.start.line + 1;
     const unit = context.unitAt.get(`${file}:${at}`);
@@ -193,12 +159,13 @@ interface Incoming {
 
 /** Who uses a unit, and where: each site new when the pull request changed its line. */
 async function incomingTo(context: Context, unit: ChangedUnit, at: Position): Promise<Incoming> {
-  const references = await context.server.references(path.join(context.root, unit.path), at).catch(() => []);
+  const { workspace } = context;
+  const references = await workspace.server.references(path.join(workspace.root, unit.path), at).catch(() => []);
   const sitesBy = new Map<string, Uses>();
   for (const reference of references) {
     // Each reference in this repository's own files, gathered by the symbol it is in.
-    const file = path.relative(context.root, decodeURIComponent(reference.uri.replace(/^file:\/\//, '')));
-    if (file.startsWith('..') || file.includes('node_modules/')) continue;
+    const file = workspace.pathOf(reference);
+    if (!file) continue;
     const line = reference.range.start.line + 1;
     const caller = await containerOf(context, file, line);
     if (!caller || caller.id === unit.id) continue;
@@ -222,18 +189,19 @@ async function incomingTo(context: Context, unit: ChangedUnit, at: Position): Pr
 
 /** The calls report of the checked-out commit against `base`, the pull request's merge base. */
 export async function callsReport(root: string, sha: string, base: string): Promise<CallsReport> {
-  const changed = changedLines(root, base);
+  const lines = changedLines(root, base);
+  const changed = lines.head;
   const sources = [...changed.keys()].filter(file => {
     if (!SOURCE.test(file) || file.endsWith('.d.ts')) return false;
     const header = readFileSync(path.join(root, file), 'utf8').split('\n', 1)[0] ?? null;
     return classify(file, header).category === 'source';
   });
-  const server = await startLanguageServer(root);
+  const workspace = await openWorkspace(root);
   try {
-    const context: Context = { root, server, changed, unitAt: new Map(), files: new Map() };
+    const context: Context = { workspace, changed, unitAt: new Map() };
     const unread: string[] = [];
     const read = await inBatches(sources, CONCURRENCY, async file => {
-      const symbols = await openFile(context, file).symbols;
+      const symbols = await workspace.open(file).symbols;
       if (!symbols.length) unread.push(file);
       return unitsOf(file, symbols, changed.get(file) ?? []);
     });
@@ -241,15 +209,15 @@ export async function callsReport(root: string, sha: string, base: string): Prom
     for (const { unit } of units) context.unitAt.set(`${unit.path}:${unit.line}`, unit);
     const found = await inBatches(units, CONCURRENCY, ({ unit, at }) => incomingTo(context, unit, at));
     const callers = new Map(found.flatMap(each => each.callers).map(caller => [caller.id, caller]));
-    return {
-      sha,
-      base,
-      units: units.map(({ unit }) => unit),
-      callers: [...callers.values()],
-      calls: found.flatMap(each => each.calls),
-      unread
-    };
+    const calls = found.flatMap(each => each.calls);
+    const changedUnits = units.map(({ unit }) => unit);
+    // A tree starts at each unit no other changed unit uses, as a topic does.
+    const unitIds = new Set(changedUnits.map(unit => unit.id));
+    const usedByUnits = new Set(calls.filter(call => unitIds.has(call.from)).map(call => call.to));
+    const roots = changedUnits.filter(unit => !usedByUnits.has(unit.id));
+    const trees = await callTrees({ root, base, head: workspace, units: changedUnits, roots, baseLines: lines.base });
+    return { sha, base, units: changedUnits, callers: [...callers.values()], calls, trees, unread };
   } finally {
-    server.close();
+    workspace.close();
   }
 }

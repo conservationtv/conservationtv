@@ -1,4 +1,4 @@
-import type { CallSymbol, CallsReport, ChangedUnit, Lines } from '@conservationtv/runner/calls';
+import type { CallSymbol, CallsReport, CallTreeNode, ChangedUnit, Lines } from '@conservationtv/runner/calls';
 import type { ContractChange, Review, ReviewFile, Thread } from '../shared/review.ts';
 import { connectionsOf, operationParts } from './story.ts';
 
@@ -35,6 +35,8 @@ export interface Topic {
   subtitle: string | null;
   kind: TopicKind;
   nodes: TopicNode[];
+  /** The diffed call tree from each unit the topic starts at, base against head, when the report drew one. */
+  trees: CallTreeNode[];
   /** Unchanged symbols that use the topic's changed units: where the change is entered from. */
   enteredFrom: CallSymbol[];
   operations: ContractChange[];
@@ -100,6 +102,7 @@ function draft(base: string, title: string, subtitle: string | null, kind: Topic
     subtitle,
     kind,
     nodes: [],
+    trees: [],
     enteredFrom: [],
     operations: [],
     files: [],
@@ -122,6 +125,8 @@ interface Reading {
   usedBy: Map<string, CallSymbol[]>;
   /** Which topic each hunk went to, by `path#index`. */
   claimed: Map<string, string>;
+  /** Each diffed call tree, by the unit it starts at. */
+  trees: Map<string, CallTreeNode>;
 }
 
 /** Puts the hunks of a file that overlap `lines` in a topic, unless another topic has them already. */
@@ -315,8 +320,10 @@ function finish(reading: Reading, into: Draft): Topic {
   const callers = new Map(
     [...into.units].flatMap(id => reading.usedBy.get(id) ?? []).map(caller => [caller.id, caller])
   );
+  const roots = into.topic.nodes.filter(node => node.depth === 0 && node.elsewhere === null);
   return {
     ...into.topic,
+    trees: roots.map(node => reading.trees.get(node.unit.id)).filter(tree => tree !== undefined),
     files,
     threads: threadsOf(reading, into),
     enteredFrom: [...callers.values()],
@@ -394,7 +401,8 @@ export function topicsOf(review: Review, report: CallsReport | null): Topic[] {
     // Files GitHub didn't inline have no hunks: they can only be claimed whole, by the rest.
     hunks: new Map(review.files.map(file => [file.path, hunksOf(file.patch)])),
     ...graph,
-    claimed: new Map()
+    claimed: new Map(),
+    trees: new Map(report?.trees.map(each => [each.root, each.tree]))
   };
   takenIds.clear();
   const owner = new Map<string, string>();

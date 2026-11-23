@@ -1585,6 +1585,12 @@ importers:
 
   tools/runner:
     dependencies:
+      '@babel/parser':
+        specifier: 7.29.9
+        version: 7.29.9
+      '@babel/types':
+        specifier: 7.29.8
+        version: 7.29.8
       zod:
         specifier: 'catalog:'
         version: 4.6.2

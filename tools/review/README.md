@@ -95,6 +95,13 @@ imports, re-exports, methods and JSX are followed as the compiler resolves them.
 - What no unit covers (types, one-line values) is a topic per file, and the rest (config, docs, generated output nothing
   claimed, the lockfile) is the last.
 
+Each topic opens on its call tree, drawn as [calldiff](https://github.com/tanishqkancharla/calldiff) draws one: from where
+it starts, every call each changed function makes, in order, at the merge base and the head, so a call the pull request
+added, removed or moved is marked `+`, `−` or `⇄`. The report reads the calls from the syntax and resolves each with
+the language server's go-to-definition, at the head and in a worktree of the merge base, so the platform's and
+dependencies' functions drop out and no call goes to a different function of the same name. Only changed functions
+are opened, and each opens onto its own diff.
+
 Each topic shows only its hunks of a file, with their threads and comments; Pullfrog's open threads are counted in the
 rail. Without a calls report each changed source file is a topic. **All files** shows every file as a tree instead.
 

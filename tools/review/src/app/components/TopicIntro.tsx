@@ -10,6 +10,7 @@ import { pullQueries } from '../api.ts';
 import { formatCount } from '../format.ts';
 import { operationParts } from '../story.ts';
 import { unitTitle, type Topic, type TopicNode } from '../topics.ts';
+import { CallTreeView } from './CallTreeView.tsx';
 import { CheckMark, ContractKindBadge, MarkdownBody } from './common.tsx';
 import type { Viewer } from './DiffList.tsx';
 import { Link } from './Link.tsx';
@@ -164,7 +165,12 @@ export const TopicIntro: FC<TopicIntroProps> = ({ review, topic, viewer }) => {
       {topic.operations.map(change => (
         <OperationBlock key={change.operation} review={review} change={change} />
       ))}
-      {topic.nodes.length ? <CallOutline review={review} nodes={topic.nodes} viewer={viewer} /> : null}
+      {topic.trees.map(tree => (
+        <CallTreeView key={tree.key} review={review} tree={tree} />
+      ))}
+      {!topic.trees.length && topic.nodes.length ? (
+        <CallOutline review={review} nodes={topic.nodes} viewer={viewer} />
+      ) : null}
       {topic.enteredFrom.length ? (
         <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           Entered from

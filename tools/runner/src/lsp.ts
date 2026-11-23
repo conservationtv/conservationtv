@@ -31,6 +31,12 @@ export interface Location {
   range: Range;
 }
 
+/** A definition as some servers answer it: where it is, rather than a plain location. */
+interface LocationLink {
+  targetUri: string;
+  targetSelectionRange: Range;
+}
+
 /** What JSON-RPC carries. */
 type Json = string | number | boolean | null | Json[] | JsonObject;
 interface JsonObject {
@@ -62,6 +68,8 @@ interface Message {
 export interface LanguageServer {
   open(file: string, text: string): void;
   symbols(file: string): Promise<DocumentSymbol[]>;
+  /** Where the symbol at `at` is declared: through imports and re-exports, as the compiler resolves it. */
+  definition(file: string, at: Position): Promise<Location[]>;
   /** Every place the symbol at `at` is referred to, but its own declaration. */
   references(file: string, at: Position): Promise<Location[]>;
   close(): void;
@@ -137,7 +145,9 @@ export async function startLanguageServer(root: string): Promise<LanguageServer>
     processId: process.pid,
     rootUri: uri(root),
     workspaceFolders: [{ uri: uri(root), name: path.basename(root) }],
-    capabilities: { textDocument: { references: {}, documentSymbol: { hierarchicalDocumentSymbolSupport: true } } }
+    capabilities: {
+      textDocument: { references: {}, definition: {}, documentSymbol: { hierarchicalDocumentSymbolSupport: true } }
+    }
   });
   notify('initialized', {});
 
@@ -149,6 +159,14 @@ export async function startLanguageServer(root: string): Promise<LanguageServer>
       return (
         (await request<DocumentSymbol[] | null>('textDocument/documentSymbol', { textDocument: { uri: uri(file) } })) ??
         []
+      );
+    },
+    async definition(file, at) {
+      const params = { textDocument: { uri: uri(file) }, position: at };
+      const found =
+        (await request<(Location | LocationLink)[] | Location | null>('textDocument/definition', params)) ?? [];
+      return (Array.isArray(found) ? found : [found]).map(each =>
+        'targetUri' in each ? { uri: each.targetUri, range: each.targetSelectionRange } : each
       );
     },
     async references(file, at) {
