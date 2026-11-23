@@ -45,8 +45,13 @@ const UNTRUSTED_HEADERS = {
 };
 
 const MD5 = /^[0-9a-f]{32}$/;
-/** How many hashes are asked about, or files adopted, in one request. */
+/** How many hashes are asked about in one request: a lookup each. */
 const BATCH = 500;
+/**
+ * How many files are adopted in one request: a lookup and a write each, kept well inside a Worker's thousand calls to
+ * other services per request.
+ */
+const ADOPT_BATCH = 200;
 const MANIFEST_FILE = 'manifest.json';
 
 const HashesSchema = z.object({ hashes: z.array(z.string().regex(MD5)).max(BATCH) });
@@ -157,7 +162,7 @@ export const results = new Hono<AppEnv>()
     const { sha, signoff } = c.req.param();
     const page = await c.env.RESULTS.list({
       prefix: `${sha}/${signoff}/`,
-      limit: BATCH,
+      limit: ADOPT_BATCH,
       cursor: c.req.query('cursor')
     });
     const adopted = await Promise.all(
