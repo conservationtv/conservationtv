@@ -167,7 +167,11 @@ export const TopicIntro: FC<TopicIntroProps> = ({ review, topic, viewer }) => {
         </h2>
         {topic.subtitle ? <p className="font-mono text-xs text-muted-foreground">{topic.subtitle}</p> : null}
       </div>
-      <TopicBotThreads threads={topic.threads} viewer={viewer} />
+      <TopicBotThreads
+        threads={topic.threads}
+        viewer={viewer}
+        agent={review.pull.state === 'open' || review.pull.state === 'draft' ? review.pull.number : null}
+      />
       {topic.operations.map(change => (
         <OperationBlock key={change.operation} review={review} change={change} />
       ))}

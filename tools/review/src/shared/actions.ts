@@ -9,8 +9,13 @@ export const SessionSchema = z.object({
   /** False until the Worker has a GitHub OAuth app to sign in with: then this tool only reads. */
   enabled: z.boolean(),
   viewer: ViewerSchema.nullable(),
-  /** The viewer may start agents on pull requests: an operator, with the agent hook set up. */
-  operator: z.boolean()
+  /** The agents the viewer may start, each for an operator with its hook set up. */
+  agents: z.object({
+    /** Signing a pull request off: running the signoffs and fixing what fails. */
+    signoffs: z.boolean(),
+    /** Fixing the code a comment points at, and replying on its thread. */
+    comments: z.boolean()
+  })
 });
 export type Session = z.output<typeof SessionSchema>;
 
@@ -52,6 +57,10 @@ export type ResolveRequest = z.output<typeof ResolveRequestSchema>;
 /** Starting an agent signing a pull request off: the signoffs to run, or every one. */
 export const AgentRequestSchema = z.object({ signoffs: z.array(z.string()).optional() });
 export type AgentRequest = z.output<typeof AgentRequestSchema>;
+
+/** Starting an agent on a comment: a line comment (in a review) or one on the conversation. */
+export const CommentAgentRequestSchema = z.object({ kind: z.enum(['review', 'conversation']) });
+export type CommentAgentRequest = z.output<typeof CommentAgentRequestSchema>;
 
 export const ReviewEventSchema = z.enum(['COMMENT', 'APPROVE', 'REQUEST_CHANGES']);
 export type ReviewEvent = z.output<typeof ReviewEventSchema>;

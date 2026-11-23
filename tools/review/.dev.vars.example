@@ -17,3 +17,5 @@ GRAFANA_TOKEN=
 # A T3 scheduled task's webhook URL that starts an agent signing a pull request off: its URL is its credential. Leave it
 # empty and no agent buttons show.
 AGENT_HOOK_URL=
+# The comment agent's webhook, likewise.
+AGENT_COMMENT_HOOK_URL=

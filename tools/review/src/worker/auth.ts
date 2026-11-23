@@ -84,10 +84,19 @@ export async function asReviewer(c: Context<AppEnv>): Promise<GitHub> {
   });
 }
 
-/** Whether a GitHub login may start agents: an operator, and the agent hook is set up. */
+/** Whether a GitHub login may start agents (`AGENT_OPERATORS`); each also needs its hook set up. */
 export function isOperator(env: Env, login: string): boolean {
   const operators = (env.AGENT_OPERATORS ?? '').split(',').map(each => each.trim().toLowerCase());
-  return Boolean(env.AGENT_HOOK_URL) && operators.includes(login.toLowerCase());
+  return operators.includes(login.toLowerCase());
+}
+
+/** The agents a login may start: an operator's, where their hooks are set up. */
+function agentsFor(env: Env, login: string | undefined): Session['agents'] {
+  const operator = login !== undefined && isOperator(env, login);
+  return {
+    signoffs: operator && Boolean(env.AGENT_HOOK_URL),
+    comments: operator && Boolean(env.AGENT_COMMENT_HOOK_URL)
+  };
 }
 
 export const auth = new Hono<AppEnv>()
@@ -96,7 +105,7 @@ export const auth = new Hono<AppEnv>()
     const session = {
       enabled: signInEnabled(c.env),
       viewer: signedIn ? { login: signedIn.login, avatarUrl: signedIn.avatarUrl } : null,
-      operator: signedIn ? isOperator(c.env, signedIn.login) : false
+      agents: agentsFor(c.env, signedIn?.login)
     } satisfies Session;
     return c.json(session, 200, { 'cache-control': 'no-store' });
   })

@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import {
   SessionSchema,
   type AgentRequest,
+  type CommentAgentRequest,
   type CommentRequest,
   type LineCommentRequest,
   type MergeRequest,
@@ -35,7 +36,14 @@ export const sessionQuery = queryOptions({
 });
 
 /** What a change sends: nothing, for signing out. */
-type ActionBody = MergeRequest | CommentRequest | LineCommentRequest | ReviewRequest | ResolveRequest | AgentRequest;
+type ActionBody =
+  | MergeRequest
+  | CommentRequest
+  | LineCommentRequest
+  | ReviewRequest
+  | ResolveRequest
+  | AgentRequest
+  | CommentAgentRequest;
 
 /** A change made on GitHub as the signed-in reviewer. */
 export async function send(path: string, body?: ActionBody): Promise<void> {

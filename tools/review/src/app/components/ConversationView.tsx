@@ -20,7 +20,7 @@ import { GENERATED_SIGNOFF, signoffContext, signoffs, type Signoff } from '@cons
 import { refreshReview, resultsQuery, send } from '../api.ts';
 import { signInHref, useSession } from '../session.ts';
 import { botReports, isReviewBot } from '../../shared/bots.ts';
-import { AgentButton } from './AgentButton.tsx';
+import { CommentAgent, SignoffAgent } from './AgentButton.tsx';
 import { BotCard, BotEntry } from './BotReviews.tsx';
 import { DeploysCard } from './DeploysCard.tsx';
 import { Composer } from './Composer.tsx';
@@ -39,6 +39,9 @@ const reviewVerbs = {
 
 interface EntryProps {
   entry: ConversationEntry;
+  number: number;
+  /** The pull request is open, so an agent can still act on a comment. */
+  open: boolean;
 }
 
 /** A review's verdict, at a glance, on its border. */
@@ -50,7 +53,8 @@ const reviewBorders = {
   PENDING: null
 } satisfies Record<ReviewState, string | null>;
 
-const Entry: FC<EntryProps> = ({ entry }) => (
+/** A comment or review: who, what they did, when; on a plain comment of an open pull request, an agent to act on it. */
+const Entry: FC<EntryProps> = ({ entry, number, open }) => (
   <article className={cn('entry', entry.review ? reviewBorders[entry.review] : null)}>
     <header>
       <Avatar person={entry.author} size={24} />
@@ -59,6 +63,11 @@ const Entry: FC<EntryProps> = ({ entry }) => (
       <a href={entry.url} className="muted">
         <RelativeTime iso={entry.createdAt} />
       </a>
+      {open && entry.review === null ? (
+        <span className="ml-auto">
+          <CommentAgent number={number} comment={entry.id} kind="conversation" />
+        </span>
+      ) : null}
     </header>
     {entry.body ? <MarkdownBody text={entry.body} /> : null}
   </article>
@@ -207,10 +216,11 @@ const SidebarCard: FC<SidebarCardProps> = ({ title, children }) => (
 /** A heading within a sidebar card. */
 interface CardSubheadingProps {
   children: ReactNode;
+  className?: string;
 }
 
-const CardSubheading: FC<CardSubheadingProps> = ({ children }) => (
-  <h4 className="mt-2 text-xs font-semibold text-muted-foreground">{children}</h4>
+const CardSubheading: FC<CardSubheadingProps> = ({ children, className }) => (
+  <h4 className={cn('mt-2 text-xs font-semibold text-muted-foreground', className)}>{children}</h4>
 );
 
 /** A signoff's state: its commit status's, else failed when its uploaded run did, else not given yet. */
@@ -246,16 +256,19 @@ interface SignoffRowProps {
 const SignoffRow: FC<SignoffRowProps> = ({ number, open, signoff, check, run }) => {
   const state = signoffState(check, run);
   return (
-    <li title={signoff.meaning}>
+    <li title={signoff.meaning} className="grid-cols-[1rem_auto_minmax(0,1fr)_auto] items-center">
       <CheckMark state={state} />
       {run ? <Link to={`/results/${run.sha}/${run.signoff}`}>{signoff.label}</Link> : <span>{signoff.label}</span>}
       <span className="muted">
         <SignoffDetail signoff={signoff} check={check} run={run} />
       </span>
       {open && state !== 'success' ? (
-        <span className="col-start-3">
-          <AgentButton number={number} signoffs={[signoff.name]} label="Agent" size="xs" />
-        </span>
+        <SignoffAgent
+          number={number}
+          signoffs={[signoff.name]}
+          label={`Sign off ${signoff.label} with an agent`}
+          iconOnly
+        />
       ) : null}
     </li>
   );
@@ -272,9 +285,9 @@ const MergeBox: FC<ChecksProps> = ({ review }) => {
       <p>{mergeVerdict(review.pull)}</p>
       <MergeControls review={review} />
       <div className="mt-2 flex items-center justify-between gap-2">
-        <CardSubheading>Signoffs</CardSubheading>
+        <CardSubheading className="mt-0">Signoffs</CardSubheading>
         {review.pull.state === 'open' || review.pull.state === 'draft' ? (
-          <AgentButton number={review.pull.number} label="Sign off with agent" size="xs" />
+          <SignoffAgent number={review.pull.number} label="Sign off with agent" size="xs" />
         ) : null}
       </div>
       <ul className="checks">
@@ -418,7 +431,12 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
           entry.review && isReviewBot(entry.author.login) ? (
             <BotEntry key={entry.id} entry={entry} head={pull.headSha} />
           ) : (
-            <Entry key={entry.id} entry={entry} />
+            <Entry
+              key={entry.id}
+              entry={entry}
+              number={pull.number}
+              open={pull.state === 'open' || pull.state === 'draft'}
+            />
           )
         )}
         {review.threads.length ? (

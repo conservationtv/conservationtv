@@ -5,6 +5,7 @@ import { ArrowDownIcon } from '@phosphor-icons/react';
 import { useState, type FC } from 'react';
 import { isReviewBot, reviewBots } from '../../shared/bots.ts';
 import type { Thread } from '../../shared/review.ts';
+import { CommentAgent } from './AgentButton.tsx';
 import { Avatar, MarkdownBody } from './common.tsx';
 import type { Viewer } from './DiffList.tsx';
 
@@ -14,6 +15,8 @@ import type { Viewer } from './DiffList.tsx';
 interface BotThreadProps {
   thread: Thread;
   viewer: Viewer;
+  /** The pull request, while an agent can still fix what a thread says: null once it is closed or merged. */
+  agent: number | null;
 }
 
 /** The place a thread is on: its file and line, or that the code has since changed. */
@@ -23,7 +26,7 @@ function placeOf(thread: Thread): string {
 }
 
 /** One thread: who, where, its first comment (clipped until asked for), and a jump to its line in the diff below. */
-const BotThread: FC<BotThreadProps> = ({ thread, viewer }) => {
+const BotThread: FC<BotThreadProps> = ({ thread, viewer, agent }) => {
   const [whole, setWhole] = useState(false);
   const [first] = thread.comments;
   if (!first) return null;
@@ -50,10 +53,7 @@ const BotThread: FC<BotThreadProps> = ({ thread, viewer }) => {
             {replies} repl{replies === 1 ? 'y' : 'ies'}
           </span>
         ) : null}
-        <Button variant="outline" size="sm" className="ml-auto" onClick={jump}>
-          <ArrowDownIcon data-icon="inline-start" />
-          Jump to code
-        </Button>
+        <ThreadActions thread={thread} agent={agent} onJump={jump} />
       </header>
       <div className={cn('relative text-[13px]', !whole && 'max-h-40 overflow-hidden')}>
         <MarkdownBody text={first.body} />
@@ -68,13 +68,35 @@ const BotThread: FC<BotThreadProps> = ({ thread, viewer }) => {
   );
 };
 
+interface ThreadActionsProps {
+  thread: Thread;
+  agent: number | null;
+  onJump(): void;
+}
+
+/** An agent to fix what the thread says, while it can and the thread is open; and the jump to its code. */
+const ThreadActions: FC<ThreadActionsProps> = ({ thread, agent, onJump }) => {
+  const [first] = thread.comments;
+  const fixable = agent !== null && !thread.resolved && first !== undefined;
+  return (
+    <span className="ml-auto flex items-center gap-1.5">
+      {fixable ? <CommentAgent number={agent} comment={first.id} kind="review" /> : null}
+      <Button variant="outline" size="sm" onClick={onJump}>
+        <ArrowDownIcon data-icon="inline-start" />
+        Jump to code
+      </Button>
+    </span>
+  );
+};
+
 interface TopicBotThreadsProps {
   threads: readonly Thread[];
   viewer: Viewer;
+  agent: number | null;
 }
 
 /** The topic's threads a review bot started, open ones first; nothing when it has none. */
-export const TopicBotThreads: FC<TopicBotThreadsProps> = ({ threads, viewer }) => {
+export const TopicBotThreads: FC<TopicBotThreadsProps> = ({ threads, viewer, agent }) => {
   const fromBots = threads
     .filter(thread => isReviewBot(thread.comments[0]?.author.login ?? ''))
     .toSorted((a, b) => Number(a.resolved === true) - Number(b.resolved === true));
@@ -82,7 +104,7 @@ export const TopicBotThreads: FC<TopicBotThreadsProps> = ({ threads, viewer }) =
   return (
     <ol className="flex flex-col gap-2" aria-label="Review bots on this topic">
       {fromBots.map(thread => (
-        <BotThread key={thread.comments[0]?.id} thread={thread} viewer={viewer} />
+        <BotThread key={thread.comments[0]?.id} thread={thread} viewer={viewer} agent={agent} />
       ))}
     </ol>
   );

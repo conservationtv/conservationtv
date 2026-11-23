@@ -40,6 +40,11 @@ export default defineConfig({
        * Its URL is its only credential, so it is a secret, and only the Worker calls it. Empty, no agent buttons show.
        */
       AGENT_HOOK_URL: bindings.secret(),
+      /**
+       * A T3 scheduled task's webhook that starts an agent fixing the code one comment points at, pushing the fix and
+       * replying on its thread. A secret, like AGENT_HOOK_URL. Empty, no comment agent buttons show.
+       */
+      AGENT_COMMENT_HOOK_URL: bindings.secret(),
       /** Who may start agents, by GitHub login, comma-separated: they run on the owner's machine and push. */
       AGENT_OPERATORS: bindings.text('changesbyjames'),
       /** Seals the session cookie holding a reviewer's token: any long random string, such as `openssl rand -hex 32`. */

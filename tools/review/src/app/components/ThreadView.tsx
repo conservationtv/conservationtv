@@ -7,6 +7,7 @@ import type { Thread, ThreadComment } from '../../shared/review.ts';
 import { refreshReview, send } from '../api.ts';
 import { useSession } from '../session.ts';
 import { Avatar, MarkdownBody, RelativeTime } from './common.tsx';
+import { CommentAgent } from './AgentButton.tsx';
 import { Composer } from './Composer.tsx';
 
 interface ThreadViewProps {
@@ -20,13 +21,19 @@ interface ThreadViewProps {
  */
 export const ThreadView: FC<ThreadViewProps> = ({ number, thread }) => {
   const [open, setOpen] = useState(thread.resolved !== true);
+  const [first] = thread.comments;
   return (
     <div className="thread">
       <ThreadBar number={number} thread={thread} open={open} onOpen={setOpen} />
       {open ? (
         <>
           {thread.comments.map(comment => (
-            <CommentView key={comment.id} comment={comment} />
+            <CommentView
+              key={comment.id}
+              comment={comment}
+              // An agent can take the thread on from its first comment, while it is unresolved.
+              agent={comment === first && !thread.resolved ? number : null}
+            />
           ))}
           <ThreadReply number={number} thread={thread} />
         </>
@@ -122,10 +129,12 @@ const ResolveButton: FC<ResolveButtonProps> = ({ number, thread, onOpen }) => {
 
 interface CommentViewProps {
   comment: ThreadComment;
+  /** The pull request an agent could fix this comment's thread on; null where it can't. */
+  agent: number | null;
 }
 
 /** One comment in a thread; a review bot's by its name, marked as a bot. */
-const CommentView: FC<CommentViewProps> = ({ comment }) => (
+const CommentView: FC<CommentViewProps> = ({ comment, agent }) => (
   <article className="thread-comment">
     <header>
       <Avatar person={comment.author} />
@@ -134,6 +143,11 @@ const CommentView: FC<CommentViewProps> = ({ comment }) => (
       <a href={comment.url} className="muted">
         <RelativeTime iso={comment.createdAt} />
       </a>
+      {agent === null ? null : (
+        <span className="ml-auto">
+          <CommentAgent number={agent} comment={comment.id} kind="review" />
+        </span>
+      )}
     </header>
     <MarkdownBody text={comment.body} />
   </article>
