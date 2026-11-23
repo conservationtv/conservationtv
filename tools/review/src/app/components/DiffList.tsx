@@ -1,3 +1,4 @@
+import { Checkbox } from '@conservationtv/ui/components/checkbox';
 import type { CodeViewItem, DiffLineAnnotation, FileDiffMetadata, SelectedLineRange } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions } from '@pierre/diffs/react';
 import { useRef, useState, type FC, type ReactNode, type RefObject } from 'react';
@@ -233,7 +234,7 @@ interface EntryNoteProps {
 
 /** Why an entry shows no lines or what it leaves out; loading and failing say more than either. */
 const EntryNote: FC<EntryNoteProps> = ({ entry, folded, state, url }) => {
-  if (state?.error) return <span className="error-text">{state.error}</span>;
+  if (state?.error) return <span className="text-xs text-destructive">{state.error}</span>;
   if (state?.loading) return <span className="muted">Loading…</span>;
   return <AboutEntry entry={entry} folded={folded} loaded={Boolean(state?.full)} url={url} />;
 };
@@ -312,8 +313,9 @@ interface ViewedToggleProps {
 }
 
 const ViewedToggle: FC<ViewedToggleProps> = ({ viewed, onViewed }) => (
-  <label className="viewed-toggle">
-    <input type="checkbox" checked={viewed} onChange={onViewed} />
-    <span>Viewed</span>
+  <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-border px-1.5 py-0.5 text-xs text-muted-foreground">
+    <Checkbox checked={viewed} onCheckedChange={onViewed} className="size-3.5" />
+    {/* A phone has room for the box alone. */}
+    <span className="max-[900px]:hidden">Viewed</span>
   </label>
 );

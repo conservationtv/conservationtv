@@ -1,3 +1,4 @@
+import { Button } from '@conservationtv/ui/components/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, type FC } from 'react';
 import type { Thread } from '../../shared/review.ts';
@@ -55,9 +56,9 @@ export const ThreadView: FC<ThreadViewProps> = ({ number, thread }) => {
         </div>
       ) : null}
       {!replying && session?.viewer ? (
-        <button type="button" className="thread-reply link-button" onClick={() => setReplying(true)}>
+        <Button variant="link" size="sm" className="thread-reply" onClick={() => setReplying(true)}>
           Reply…
-        </button>
+        </Button>
       ) : null}
       {!session?.viewer && last ? (
         <a className="thread-reply" href={last.url}>

@@ -1,3 +1,8 @@
+import { Alert } from '@conservationtv/ui/components/alert';
+import { Button } from '@conservationtv/ui/components/button';
+import { Toggle } from '@conservationtv/ui/components/toggle';
+import { ToggleGroup, ToggleGroupItem } from '@conservationtv/ui/components/toggle-group';
+import { cn } from '@conservationtv/ui/lib/utils';
 import { WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
 import { useRef, useState, type FC, type ReactNode } from 'react';
@@ -15,7 +20,7 @@ import { useSwitch } from '../preferences.ts';
 import { ReviewSubmit } from './ReviewSubmit.tsx';
 import { CallGraphView } from './CallGraphView.tsx';
 import { ChangeTree } from './ChangeTree.tsx';
-import { CheckMark, MarkdownBody } from './common.tsx';
+import { CheckMark, ContractKindBadge, MarkdownBody } from './common.tsx';
 import { DiffList, type DiffStyle, type Viewer } from './DiffList.tsx';
 import { Link } from './Link.tsx';
 import { OperationDocsView } from './OperationDocs.tsx';
@@ -61,21 +66,35 @@ const Story: FC<ReviewViewProps> = ({ review, chapter: chapterId, operation }) =
     <main className={sidebar ? 'review' : 'review sidebar-hidden'}>
       <StoryNav review={review} chapters={chapters} current={chapter.id} viewed={viewed}>
         <ReviewSubmit review={review} drafts={drafts} />
-        <div className="segmented toggles" role="group" aria-label="View">
-          <button type="button" className="sidebar-toggle" aria-pressed={sidebar} onClick={toggleSidebar}>
+        <div className="flex shrink-0 gap-0.5" role="group" aria-label="View">
+          {/* A phone shows one side and no sidebar, so only wrapping is left to choose. */}
+          <Toggle
+            variant="outline"
+            size="sm"
+            pressed={sidebar}
+            onPressedChange={toggleSidebar}
+            className="max-[900px]:hidden"
+          >
             Files
-          </button>
-          <button type="button" aria-pressed={wrap} onClick={toggleWrap}>
+          </Toggle>
+          <Toggle variant="outline" size="sm" pressed={wrap} onPressedChange={toggleWrap}>
             Wrap
-          </button>
+          </Toggle>
         </div>
-        <div className="segmented" role="group" aria-label="Diff layout">
-          {(['split', 'unified'] as const).map(style => (
-            <button key={style} type="button" aria-pressed={diffStyle === style} onClick={() => setDiffStyle(style)}>
-              {style === 'split' ? 'Split' : 'Unified'}
-            </button>
-          ))}
-        </div>
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          spacing={0}
+          aria-label="Diff layout"
+          className="shrink-0 max-[900px]:hidden"
+          value={[diffStyle]}
+          onValueChange={([style]) => {
+            if (style === 'split' || style === 'unified') setDiffStyle(style);
+          }}
+        >
+          <ToggleGroupItem value="split">Split</ToggleGroupItem>
+          <ToggleGroupItem value="unified">Unified</ToggleGroupItem>
+        </ToggleGroup>
       </StoryNav>
       {chapter.id === 'api' ? (
         <ApiChapter key={operation ?? ''} context={context} operation={operation} />
@@ -195,26 +214,30 @@ const Intro: FC<IntroProps> = ({ context, children }) => {
 const GeneratedSummary: FC<IntroProps> = ({ context }) => {
   const signoff = context.review.checks.find(check => check.name === GENERATED_SIGNOFF);
   const groups = Map.groupBy(context.chapter.files, file => file.generator ?? 'generator');
+  const signed = signoff?.state === 'success';
   return (
     <>
-      <p className={signoff?.state === 'success' ? 'signoff signed' : 'signoff'}>
+      <Alert className={cn('flex gap-1.5 bg-muted text-[13px]', signed && 'border-(--success)/40')}>
         <CheckMark state={signoff?.state ?? 'pending'} />
-        {signoff?.state === 'success'
-          ? ' signoff/generated: every API document, SDK and CLI was regenerated at this commit and nothing changed. These files are what their generators write.'
-          : ' Not signed off as current at this commit: run pnpm signoff:generated. Until then these may not be what their generators write.'}
-      </p>
+        <span>
+          {signed
+            ? 'signoff/generated: every API document, SDK and CLI was regenerated at this commit and nothing changed. These files are what their generators write.'
+            : 'Not signed off as current at this commit: run pnpm signoff:generated. Until then these may not be what their generators write.'}
+        </span>
+      </Alert>
       <ul className="generators">
         {[...groups].map(([generator, files]) => (
           <li key={generator}>
-            <button
-              type="button"
-              className="link-button"
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto justify-start p-0 text-[13px]"
               onClick={() =>
                 context.viewer.current?.scrollTo({ type: 'item', id: files[0]?.path ?? '', align: 'start' })
               }
             >
               {generator}
-            </button>
+            </Button>
             <span className="muted">{plural(files.length, 'file')}</span>
             <span className="muted">{lines(files)}</span>
           </li>
@@ -238,14 +261,20 @@ interface ViewSwitchProps {
 
 /** The source chapter as calls between what changed, or as its files. */
 const ViewSwitch: FC<ViewSwitchProps> = ({ calls, onToggle }) => (
-  <div className="segmented view-switch" role="group" aria-label="Read the source code as">
-    <button type="button" aria-pressed={calls} onClick={calls ? undefined : onToggle}>
-      Calls
-    </button>
-    <button type="button" aria-pressed={!calls} onClick={calls ? onToggle : undefined}>
-      Files
-    </button>
-  </div>
+  <ToggleGroup
+    variant="outline"
+    size="sm"
+    spacing={0}
+    aria-label="Read the source code as"
+    className="mb-1"
+    value={[calls ? 'calls' : 'files']}
+    onValueChange={([view]) => {
+      if (view && view !== (calls ? 'calls' : 'files')) onToggle();
+    }}
+  >
+    <ToggleGroupItem value="calls">Calls</ToggleGroupItem>
+    <ToggleGroupItem value="files">Files</ToggleGroupItem>
+  </ToggleGroup>
 );
 
 interface CallChapterProps {
@@ -419,7 +448,7 @@ const OperationHeader: FC<OperationHeaderProps> = ({
     <header className="intro operation">
       <div className="narrow-only">{operations}</div>
       <p className="eyebrow">
-        <span className={`contract-kind contract-${change.kind}`}>{kindLabels[change.kind]}</span>
+        <ContractKindBadge kind={change.kind}>{kindLabels[change.kind]}</ContractKindBadge>
         <span className="muted">{apiName(change.document)}</span>
       </p>
       <h2 className="endpoint">
@@ -436,23 +465,24 @@ const OperationHeader: FC<OperationHeaderProps> = ({
       <ol className="trace" aria-label="Where this operation is in the pull request">
         {trace.map(step => (
           <li key={step.label}>
-            <button
-              type="button"
-              className="link-button"
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-[13px]"
               onClick={() =>
                 context.viewer.current?.scrollTo({ type: 'item', id: step.ids[0]?.id ?? '', align: 'start' })
               }
             >
               {step.label}
-            </button>
+            </Button>
             <span className="muted">{step.ids.length > 1 ? plural(step.ids.length, 'file') : null}</span>
           </li>
         ))}
       </ol>
       {generated ? (
-        <button type="button" className="button" onClick={onShowGenerated}>
+        <Button variant="outline" className="mt-3" onClick={onShowGenerated}>
           {showGenerated ? 'Fold' : 'Open'} the {plural(generated, 'generated file')}
-        </button>
+        </Button>
       ) : null}
     </header>
   );
@@ -470,7 +500,7 @@ interface DocsStateProps {
 }
 
 const DocsState: FC<DocsStateProps> = ({ docs, kind }) => {
-  if (docs.error) return <p className="error-text">{docs.error.message}</p>;
+  if (docs.error) return <p className="text-xs text-destructive">{docs.error.message}</p>;
   if (!docs.data) return <p className="muted">Loading the documentation…</p>;
   return <OperationDocsView docs={docs.data} kind={kind} />;
 };

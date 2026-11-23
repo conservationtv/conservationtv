@@ -6,7 +6,9 @@ its API document, the SDK and CLI regenerated from it, and Drizzle's schema snap
 with what to read first and what was generated from it set apart.
 
 It is a Cloudflare Worker (Hono) serving a React app, built with the Cloudflare Vite plugin, and draws diffs and the
-file tree with [Pierre](https://pierre.computer)'s [`@pierre/diffs`](https://diffs.com) and `@pierre/trees`. It reads
+file tree with [Pierre](https://pierre.computer)'s [`@pierre/diffs`](https://diffs.com) and `@pierre/trees`. Everything
+else is the workspace's `@conservationtv/ui` components on its tokens, with Tailwind; `src/app/styles.css` keeps only
+the layout, diff, call-tree and API reference rules those don't cover, in the `components` layer so utilities win. It reads
 only what GitHub shows anyone: the pull request, its files, comments, reviews, checks, mergeability and the pull
 requests around it. Nothing is written back; replies link to GitHub.
 

@@ -1,3 +1,5 @@
+import { Button } from '@conservationtv/ui/components/button';
+import { Spinner } from '@conservationtv/ui/components/spinner';
 import type { FileDiffMetadata } from '@pierre/diffs';
 import { FileDiff } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
@@ -191,9 +193,9 @@ const LeftOver: FC<LeftOverProps> = ({ graph, onOpenFile }) => (
         <ul>
           {graph.elsewhere.map(path => (
             <li key={path}>
-              <button type="button" className="link-button" onClick={() => onOpenFile(path)}>
+              <Button variant="link" size="sm" className="h-auto p-0 font-mono" onClick={() => onOpenFile(path)}>
                 {path}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -222,8 +224,14 @@ export const CallGraphView: FC<CallGraphViewProps> = ({ review, files, diffStyle
     queryFn: () => loadCallGraph(pull, files),
     staleTime: Infinity
   });
-  if (isPending) return <p className="muted">Reading the changed functions…</p>;
-  if (error) return <p className="error-text">{error.message}</p>;
+  if (isPending) {
+    return (
+      <p className="flex items-center gap-2 text-muted-foreground">
+        <Spinner /> Reading the changed functions…
+      </p>
+    );
+  }
+  if (error) return <p className="text-xs text-destructive">{error.message}</p>;
   return (
     <div className="call-graph">
       <p className="call-summary">

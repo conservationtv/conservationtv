@@ -1,3 +1,6 @@
+import { Avatar, AvatarImage } from '@conservationtv/ui/components/avatar';
+import { Button } from '@conservationtv/ui/components/button';
+import { buttonVariants } from '@conservationtv/ui/lib/button-variants';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, type FC } from 'react';
 import { send, sessionQuery } from '../api.ts';
@@ -11,7 +14,7 @@ export const Account: FC = () => {
   if (!session?.enabled) return null;
   if (!session.viewer) {
     return (
-      <a className="button small-button" href={signInHref()}>
+      <a className={buttonVariants({ variant: 'outline', size: 'sm' })} href={signInHref()}>
         Sign in with GitHub
       </a>
     );
@@ -22,14 +25,14 @@ export const Account: FC = () => {
     await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
   }
   return (
-    <span className="account">
-      <span className="avatar">
-        <img src={session.viewer.avatarUrl} alt="" width={20} height={20} />
-      </span>
-      <span className="account-login">{session.viewer.login}</span>
-      <button type="button" className="link-button muted" onClick={() => void signOut()} disabled={leaving}>
+    <span className="inline-flex items-center gap-1.5 text-[13px] whitespace-nowrap">
+      <Avatar className="size-5">
+        <AvatarImage src={session.viewer.avatarUrl} alt="" />
+      </Avatar>
+      <span>{session.viewer.login}</span>
+      <Button variant="ghost" size="xs" onClick={() => void signOut()} loading={leaving}>
         Sign out
-      </button>
+      </Button>
     </span>
   );
 };

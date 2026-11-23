@@ -1,5 +1,10 @@
+import { Badge } from '@conservationtv/ui/components/badge';
+import { Button } from '@conservationtv/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@conservationtv/ui/components/card';
+import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
+import { cn } from '@conservationtv/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState, type FC } from 'react';
+import { useState, type FC, type ReactNode } from 'react';
 import { MergeMethodSchema, type MergeMethod } from '../../shared/actions.ts';
 import type { Check, ContractChange, ConversationEntry, Pull, Review, ReviewState } from '../../shared/review.ts';
 import { GENERATED_SIGNOFF, signoffs } from '../../shared/signoffs.ts';
@@ -8,7 +13,7 @@ import { signInHref, useSession } from '../session.ts';
 import { Composer } from './Composer.tsx';
 import { Link } from './Link.tsx';
 import { chaptersOf } from '../story.ts';
-import { Avatar, CheckMark, MarkdownBody, RelativeTime } from './common.tsx';
+import { Avatar, CheckMark, ContractKindBadge, MarkdownBody, RelativeTime } from './common.tsx';
 import { formatCount } from '../format.ts';
 
 const reviewVerbs = {
@@ -23,8 +28,17 @@ interface EntryProps {
   entry: ConversationEntry;
 }
 
+/** A review's verdict, at a glance, on its border. */
+const reviewBorders = {
+  APPROVED: 'border-(--success)/50',
+  CHANGES_REQUESTED: 'border-destructive/50',
+  COMMENTED: null,
+  DISMISSED: null,
+  PENDING: null
+} satisfies Record<ReviewState, string | null>;
+
 const Entry: FC<EntryProps> = ({ entry }) => (
-  <article className={`entry${entry.review ? ` review-${entry.review.toLowerCase()}` : ''}`}>
+  <article className={cn('entry', entry.review ? reviewBorders[entry.review] : null)}>
     <header>
       <Avatar person={entry.author} size={24} />
       <strong>{entry.author.login}</strong>
@@ -97,39 +111,35 @@ const MergeControls: FC<ChecksProps> = ({ review }) => {
   }
 
   return (
-    <div className="merge-controls">
-      <select
+    <div className="mt-1 mb-3 flex flex-col gap-2">
+      <NativeSelect
         value={method}
         aria-label="How to merge"
+        className="w-full"
         disabled={merging}
         onChange={event => setMethod(MergeMethodSchema.parse(event.target.value))}
       >
         {Object.entries(mergeMethods).map(([value, label]) => (
-          <option key={value} value={value}>
+          <NativeSelectOption key={value} value={value}>
             {label}
-          </option>
+          </NativeSelectOption>
         ))}
-      </select>
+      </NativeSelect>
       {confirming ? (
-        <div className="merge-confirm">
-          <button type="button" className="button primary" disabled={merging} onClick={() => void merge()}>
-            {merging ? 'Merging…' : `Confirm: merge into ${pull.baseRef}`}
-          </button>
-          <button type="button" className="button" disabled={merging} onClick={() => setConfirming(false)}>
+        <div className="flex flex-wrap gap-1.5">
+          <Button loading={merging} onClick={() => void merge()}>
+            Confirm: merge into {pull.baseRef}
+          </Button>
+          <Button variant="outline" disabled={merging} onClick={() => setConfirming(false)}>
             Cancel
-          </button>
+          </Button>
         </div>
       ) : (
-        <button
-          type="button"
-          className="button primary"
-          disabled={pull.mergeable === false}
-          onClick={() => setConfirming(true)}
-        >
+        <Button disabled={pull.mergeable === false} onClick={() => setConfirming(true)}>
           Merge pull request
-        </button>
+        </Button>
       )}
-      {error ? <p className="error-text small">{error}</p> : null}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
 };
@@ -142,13 +152,13 @@ const CommentForm: FC<ChecksProps> = ({ review }) => {
   if (!session?.enabled) return null;
   if (!session.viewer) {
     return (
-      <p className="muted">
+      <p className="text-muted-foreground">
         <a href={signInHref()}>Sign in with GitHub</a> to comment, review and merge.
       </p>
     );
   }
   return (
-    <section className="entry comment-form">
+    <section className="entry p-3">
       <Composer
         placeholder="Leave a comment (Markdown)"
         actions={[
@@ -166,15 +176,38 @@ const CommentForm: FC<ChecksProps> = ({ review }) => {
   );
 };
 
+interface SidebarCardProps {
+  title: string;
+  children: ReactNode;
+}
+
+/** One of the sidebar's cards: a title, then what it holds. */
+const SidebarCard: FC<SidebarCardProps> = ({ title, children }) => (
+  <Card size="sm" className="gap-2 text-[13px]">
+    <CardHeader>
+      <CardTitle>{title}</CardTitle>
+    </CardHeader>
+    <CardContent className="flex flex-col gap-1">{children}</CardContent>
+  </Card>
+);
+
+/** A heading within a sidebar card. */
+interface CardSubheadingProps {
+  children: ReactNode;
+}
+
+const CardSubheading: FC<CardSubheadingProps> = ({ children }) => (
+  <h4 className="mt-2 text-xs font-semibold text-muted-foreground">{children}</h4>
+);
+
 const MergeBox: FC<ChecksProps> = ({ review }) => {
   const byName = new Map(review.checks.map(check => [check.name, check]));
   const others = review.checks.filter(check => check.kind !== 'signoff');
   return (
-    <section className="box">
-      <h3>Merge</h3>
+    <SidebarCard title="Merge">
       <p>{mergeVerdict(review.pull)}</p>
       <MergeControls review={review} />
-      <h4>Signoffs</h4>
+      <CardSubheading>Signoffs</CardSubheading>
       <ul className="checks">
         {signoffs.map(signoff => {
           // A signoff not yet given shows as pending, with the script that gives it.
@@ -190,7 +223,7 @@ const MergeBox: FC<ChecksProps> = ({ review }) => {
       </ul>
       {others.length ? (
         <>
-          <h4>Checks</h4>
+          <CardSubheading>Checks</CardSubheading>
           <ul className="checks">
             {others.map(check => (
               <CheckRow key={`${check.kind}:${check.name}`} check={check} />
@@ -198,7 +231,7 @@ const MergeBox: FC<ChecksProps> = ({ review }) => {
           </ul>
         </>
       ) : null}
-    </section>
+    </SidebarCard>
   );
 };
 
@@ -236,21 +269,20 @@ const ContractsBox: FC<ContractsBoxProps> = ({ number, contracts }) => {
   const documents = Map.groupBy(contracts, change => change.document);
   const breaking = contracts.some(change => change.kind !== 'added');
   return (
-    <section className="box">
-      <h3>API contracts</h3>
+    <SidebarCard title="API contracts">
       {breaking ? (
-        <p className="warning">
+        <p className="text-xs text-(--warning)">
           A changed or removed version breaks clients that already require it. Before a release, keep the old contract
           and declare a new operation version.
         </p>
       ) : null}
       {[...documents].map(([document, changes]) => (
-        <div key={document} className="contract-document">
-          <h4>{apiName(document)}</h4>
+        <div key={document}>
+          <CardSubheading>{apiName(document)}</CardSubheading>
           <ul className="contracts">
             {changes.map(change => (
               <li key={change.operation}>
-                <span className={`contract-kind contract-${change.kind}`}>{contractKinds[change.kind]}</span>
+                <ContractKindBadge kind={change.kind}>{contractKinds[change.kind]}</ContractKindBadge>
                 <Link to={`/pr/${number}/files/api/${encodeURIComponent(change.operation)}`}>
                   <code>{change.operation}</code>
                 </Link>
@@ -259,7 +291,7 @@ const ContractsBox: FC<ContractsBoxProps> = ({ number, contracts }) => {
           </ul>
         </div>
       ))}
-    </section>
+    </SidebarCard>
   );
 };
 
@@ -267,8 +299,7 @@ const ContractsBox: FC<ContractsBoxProps> = ({ number, contracts }) => {
 const ReviewPathBox: FC<ChecksProps> = ({ review }) => {
   const generated = review.checks.find(check => check.name === GENERATED_SIGNOFF);
   return (
-    <section className="box">
-      <h3>Review path</h3>
+    <SidebarCard title="Review path">
       <ol className="review-path">
         {/* The API chapter counts operations, the rest files. */}
         {chaptersOf(review).map(chapter => (
@@ -289,14 +320,14 @@ const ReviewPathBox: FC<ChecksProps> = ({ review }) => {
         ))}
       </ol>
       {review.files.some(file => file.category === 'generated') ? (
-        <p className="muted small">
-          <CheckMark state={generated?.state ?? 'pending'} />{' '}
+        <p className="mt-1 flex gap-1.5 text-xs text-muted-foreground">
+          <CheckMark state={generated?.state ?? 'pending'} />
           {generated?.state === 'success'
             ? 'Generated files were regenerated at this commit and found current (signoff/generated).'
             : 'Generated files have not been signed off as current at this commit.'}
         </p>
       ) : null}
-    </section>
+    </SidebarCard>
   );
 };
 
@@ -318,7 +349,7 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
           <Entry key={entry.id} entry={entry} />
         ))}
         {review.threads.length ? (
-          <p className="muted">
+          <p className="text-muted-foreground">
             <Link to={`/pr/${pull.number}/files`}>
               {review.threads.length} line comment thread{review.threads.length === 1 ? '' : 's'}
             </Link>{' '}
@@ -332,16 +363,15 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
         <ContractsBox number={pull.number} contracts={review.contracts} />
         <ReviewPathBox review={review} />
         {pull.labels.length ? (
-          <section className="box">
-            <h3>Labels</h3>
-            <div className="labels">
+          <SidebarCard title="Labels">
+            <div className="flex flex-wrap gap-1.5">
               {pull.labels.map(label => (
-                <span key={label.name} className="label" style={{ borderColor: `#${label.color}` }}>
+                <Badge key={label.name} variant="outline" style={{ borderColor: `#${label.color}` }}>
                   {label.name}
-                </span>
+                </Badge>
               ))}
             </div>
-          </section>
+          </SidebarCard>
         ) : null}
       </aside>
     </main>

@@ -1,3 +1,6 @@
+import { Badge } from '@conservationtv/ui/components/badge';
+import { Button } from '@conservationtv/ui/components/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@conservationtv/ui/components/popover';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, type FC } from 'react';
 import type { ReviewEvent } from '../../shared/actions.ts';
@@ -42,21 +45,24 @@ export const ReviewSubmit: FC<ReviewSubmitProps> = ({ review, drafts }) => {
   const actions = own ? [comment] : [comment, ...verdicts];
 
   return (
-    <div className="review-submit">
-      <button type="button" className="button small-button primary" onClick={() => setOpen(current => !current)}>
-        Finish review{count ? <span className="count">{count}</span> : null}
-      </button>
-      {open ? (
-        <div className="review-panel" role="dialog" aria-label="Finish review">
-          <p className="small muted">
-            {count
-              ? `${count} line comment${count === 1 ? '' : 's'} will be sent with this review.`
-              : 'No line comments yet: use the + beside a line to add one.'}
-            {own ? ' As this is your own pull request, GitHub only takes comments.' : null}
-          </p>
-          <Composer placeholder="Summary (Markdown)" autoFocus onCancel={() => setOpen(false)} actions={actions} />
-        </div>
-      ) : null}
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<Button size="sm" className="shrink-0" />}>
+        Finish review
+        {count ? (
+          <Badge variant="secondary" className="h-4 min-w-4 px-1">
+            {count}
+          </Badge>
+        ) : null}
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[min(28rem,calc(100vw-1.5rem))] gap-2 p-3" aria-label="Finish review">
+        <p className="text-xs text-muted-foreground">
+          {count
+            ? `${count} line comment${count === 1 ? '' : 's'} will be sent with this review.`
+            : 'No line comments yet: use the + beside a line to add one.'}
+          {own ? ' As this is your own pull request, GitHub only takes comments.' : null}
+        </p>
+        <Composer placeholder="Summary (Markdown)" autoFocus onCancel={() => setOpen(false)} actions={actions} />
+      </PopoverContent>
+    </Popover>
   );
 };

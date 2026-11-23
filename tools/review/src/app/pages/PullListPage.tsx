@@ -1,3 +1,6 @@
+import { Alert, AlertDescription } from '@conservationtv/ui/components/alert';
+import { Empty, EmptyDescription } from '@conservationtv/ui/components/empty';
+import { Spinner } from '@conservationtv/ui/components/spinner';
 import { useQuery } from '@tanstack/react-query';
 import type { FC } from 'react';
 import type { PullSummary } from '../../shared/review.ts';
@@ -13,7 +16,8 @@ interface PullRowProps {
 const PullRow: FC<PullRowProps> = ({ pull, depth = 0 }) => (
   <li className="pull-row" style={{ paddingLeft: `calc(${depth} * 1.5rem + 0.75rem)` }}>
     {depth > 0 ? <span className="stack-elbow" aria-hidden /> : null}
-    <StateBadge state={pull.state} compact />
+    {/* Level with the title's first line, however many lines it wraps to. */}
+    <StateBadge state={pull.state} compact className="mt-[0.45em]" />
     <div className="pull-body">
       <Link to={`/pr/${pull.number}/files`} className="pull-title">
         {pull.title} <span className="muted">#{pull.number}</span>
@@ -29,8 +33,22 @@ const PullRow: FC<PullRowProps> = ({ pull, depth = 0 }) => (
 
 export const PullListPage: FC = () => {
   const { data, error, isPending } = useQuery(pullQueries.list());
-  if (isPending) return <main className="page narrow muted">Loading pull requests…</main>;
-  if (error) return <main className="page narrow error-box">{error.message}</main>;
+  if (isPending) {
+    return (
+      <main className="page narrow flex items-center gap-2 text-muted-foreground">
+        <Spinner /> Loading pull requests…
+      </main>
+    );
+  }
+  if (error) {
+    return (
+      <main className="page narrow">
+        <Alert variant="destructive">
+          <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      </main>
+    );
+  }
   return (
     <main className="page narrow">
       <header className="list-header">
@@ -48,7 +66,9 @@ export const PullListPage: FC = () => {
             ))}
           </ul>
         ) : (
-          <p className="muted">Nothing open.</p>
+          <Empty className="border border-dashed py-8">
+            <EmptyDescription>Nothing open.</EmptyDescription>
+          </Empty>
         )}
       </section>
       <section>

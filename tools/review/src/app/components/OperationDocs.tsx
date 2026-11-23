@@ -1,3 +1,4 @@
+import { ToggleGroup, ToggleGroupItem } from '@conservationtv/ui/components/toggle-group';
 import { useState, type FC } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -389,14 +390,19 @@ export const OperationDocsView: FC<OperationDocsViewProps> = ({ docs, kind }) =>
     <div className="api-docs">
       {compare ? (
         <div className="docs-toolbar">
-          <div className="segmented" role="group" aria-label="What the docs show">
-            <button type="button" aria-pressed={onlyChanges} onClick={() => setOnlyChanges(true)}>
-              What changed
-            </button>
-            <button type="button" aria-pressed={!onlyChanges} onClick={() => setOnlyChanges(false)}>
-              Everything
-            </button>
-          </div>
+          <ToggleGroup
+            variant="outline"
+            size="sm"
+            spacing={0}
+            aria-label="What the docs show"
+            value={[onlyChanges ? 'changes' : 'everything']}
+            onValueChange={([shown]) => {
+              if (shown) setOnlyChanges(shown === 'changes');
+            }}
+          >
+            <ToggleGroupItem value="changes">What changed</ToggleGroupItem>
+            <ToggleGroupItem value="everything">Everything</ToggleGroupItem>
+          </ToggleGroup>
         </div>
       ) : null}
       {unchanged && onlyChanges ? (
