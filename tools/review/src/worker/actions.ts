@@ -1,14 +1,18 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import {
   CommentRequestSchema,
   LineCommentRequestSchema,
+  AgentRequestSchema,
   MergeRequestSchema,
   ResolveRequestSchema,
   ReviewRequestSchema,
   type LineComment,
   type LineSide
 } from '../shared/actions.ts';
-import { asReviewer } from './auth.ts';
+import { signoffs } from '@conservationtv/runner/signoffs';
+import { asReviewer, isOperator } from './auth.ts';
+import { GitHubError } from './github.ts';
+import { readSession } from './session.ts';
 import type { AppEnv } from './session.ts';
 
 // Changes made on GitHub as the signed-in reviewer. Each answers 204; the app then reads the pull request afresh.
@@ -31,7 +35,39 @@ function githubComment(comment: LineComment) {
 const RESOLVE = `mutation ($thread: ID!) { resolveReviewThread(input: { threadId: $thread }) { thread { id } } }`;
 const UNRESOLVE = `mutation ($thread: ID!) { unresolveReviewThread(input: { threadId: $thread }) { thread { id } } }`;
 
+const signoffNames = new Set(signoffs.map(signoff => signoff.name));
+
+/** What the agent hook takes: the pull request, and the signoffs to run when not every one. */
+interface AgentHookBody {
+  pr: number;
+  signoffs?: string[];
+}
+
+/**
+ * Starts an agent on a pull request: for a signed-in operator, with known signoffs, by calling the hook, whose URL
+ * never leaves the Worker.
+ */
+async function startAgent(c: Context<AppEnv>, number: number): Promise<Response> {
+  const input = AgentRequestSchema.parse(await c.req.json());
+  const signedIn = await readSession(c);
+  if (!signedIn) throw new GitHubError(401, 'Sign in with GitHub first.');
+  if (!isOperator(c.env, signedIn.login)) throw new GitHubError(403, `${signedIn.login} can't start agents.`);
+  const unknown = input.signoffs?.filter(name => !signoffNames.has(name)) ?? [];
+  if (unknown.length) return c.json({ error: `No signoff named ${unknown.join(', ')}.` }, 400);
+  const body: AgentHookBody = { pr: number };
+  if (input.signoffs?.length) body.signoffs = input.signoffs;
+  const response = await fetch(c.env.AGENT_HOOK_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) return c.json({ error: `The agent hook answered ${response.status}.` }, 502);
+  return c.body(null, 202);
+}
+
 export const actions = new Hono<AppEnv>()
+  // An agent signing the pull request off on the owner's machine, through the T3 task's webhook: operators only.
+  .post('/pulls/:number{[0-9]+}/agent', async c => startAgent(c, Number(c.req.param('number'))))
   // A thread by its GraphQL id (`PRRT_…`), as the review lists it.
   .post('/pulls/:number{[0-9]+}/threads/:thread{[A-Za-z0-9_-]+}/resolve', async c => {
     const input = ResolveRequestSchema.parse(await c.req.json());

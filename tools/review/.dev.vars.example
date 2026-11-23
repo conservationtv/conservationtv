@@ -13,3 +13,7 @@ SESSION_SECRET=
 # A Grafana Cloud Viewer service account's token, for how services did around a deploy. Leave it empty to show deploys
 # without it.
 GRAFANA_TOKEN=
+
+# A T3 scheduled task's webhook URL that starts an agent signing a pull request off: its URL is its credential. Leave it
+# empty and no agent buttons show.
+AGENT_HOOK_URL=

@@ -2,6 +2,7 @@ import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import type { z } from 'zod';
 import {
   SessionSchema,
+  type AgentRequest,
   type CommentRequest,
   type LineCommentRequest,
   type MergeRequest,
@@ -34,7 +35,7 @@ export const sessionQuery = queryOptions({
 });
 
 /** What a change sends: nothing, for signing out. */
-type ActionBody = MergeRequest | CommentRequest | LineCommentRequest | ReviewRequest | ResolveRequest;
+type ActionBody = MergeRequest | CommentRequest | LineCommentRequest | ReviewRequest | ResolveRequest | AgentRequest;
 
 /** A change made on GitHub as the signed-in reviewer. */
 export async function send(path: string, body?: ActionBody): Promise<void> {

@@ -35,6 +35,13 @@ export default defineConfig({
       GRAFANA_URL: bindings.text('https://valiantlagoon729.grafana.net'),
       /** A Viewer service account's token for it (Administration → Service accounts). */
       GRAFANA_TOKEN: bindings.secret(),
+      /**
+       * A T3 scheduled task's webhook that starts an agent signing a pull request off (pnpm signoff, fixing what fails).
+       * Its URL is its only credential, so it is a secret, and only the Worker calls it. Empty, no agent buttons show.
+       */
+      AGENT_HOOK_URL: bindings.secret(),
+      /** Who may start agents, by GitHub login, comma-separated: they run on the owner's machine and push. */
+      AGENT_OPERATORS: bindings.text('changesbyjames'),
       /** Seals the session cookie holding a reviewer's token: any long random string, such as `openssl rand -hex 32`. */
       SESSION_SECRET: bindings.secret()
     }

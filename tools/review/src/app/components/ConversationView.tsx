@@ -6,12 +6,21 @@ import { cn } from '@conservationtv/ui/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FC, type ReactNode } from 'react';
 import { MergeMethodSchema, type MergeMethod } from '../../shared/actions.ts';
-import type { Check, ContractChange, ConversationEntry, Pull, Review, ReviewState } from '../../shared/review.ts';
+import type {
+  Check,
+  CheckState,
+  ContractChange,
+  ConversationEntry,
+  Pull,
+  Review,
+  ReviewState
+} from '../../shared/review.ts';
 import type { RunResult } from '@conservationtv/runner/results';
 import { GENERATED_SIGNOFF, signoffContext, signoffs, type Signoff } from '@conservationtv/runner/signoffs';
 import { refreshReview, resultsQuery, send } from '../api.ts';
 import { signInHref, useSession } from '../session.ts';
 import { botReports, isReviewBot } from '../../shared/bots.ts';
+import { AgentButton } from './AgentButton.tsx';
 import { BotCard, BotEntry } from './BotReviews.tsx';
 import { DeploysCard } from './DeploysCard.tsx';
 import { Composer } from './Composer.tsx';
@@ -204,7 +213,27 @@ const CardSubheading: FC<CardSubheadingProps> = ({ children }) => (
   <h4 className="mt-2 text-xs font-semibold text-muted-foreground">{children}</h4>
 );
 
+/** A signoff's state: its commit status's, else failed when its uploaded run did, else not given yet. */
+function signoffState(check: Check | undefined, run: RunResult | undefined): CheckState {
+  if (check) return check.state;
+  return run?.state === 'failure' ? 'failure' : 'pending';
+}
+
+interface SignoffDetailProps {
+  signoff: Signoff;
+  check: Check | undefined;
+  run: RunResult | undefined;
+}
+
+/** Why a run failed, else what its status says, else the script that gives it. */
+const SignoffDetail: FC<SignoffDetailProps> = ({ signoff, check, run }) => (
+  <>{run?.reason ?? check?.description ?? <code>pnpm signoff {signoff.name}</code>}</>
+);
+
 interface SignoffRowProps {
+  number: number;
+  /** An agent can be started on it: the pull request is open. */
+  open: boolean;
   signoff: Signoff;
   check: Check | undefined;
   run: RunResult | undefined;
@@ -214,18 +243,25 @@ interface SignoffRowProps {
  * A signoff: given or not, as its commit status says, and its run at the head commit when one was uploaded, which
  * says why it failed. One not yet given shows the script that gives it.
  */
-const SignoffRow: FC<SignoffRowProps> = ({ signoff, check, run }) => {
-  const state = check?.state ?? (run?.state === 'failure' ? 'failure' : 'pending');
-  const detail = run?.reason ?? check?.description ?? <code>pnpm signoff {signoff.name}</code>;
+const SignoffRow: FC<SignoffRowProps> = ({ number, open, signoff, check, run }) => {
+  const state = signoffState(check, run);
   return (
     <li title={signoff.meaning}>
       <CheckMark state={state} />
       {run ? <Link to={`/results/${run.sha}/${run.signoff}`}>{signoff.label}</Link> : <span>{signoff.label}</span>}
-      <span className="muted">{detail}</span>
+      <span className="muted">
+        <SignoffDetail signoff={signoff} check={check} run={run} />
+      </span>
+      {open && state !== 'success' ? (
+        <span className="col-start-3">
+          <AgentButton number={number} signoffs={[signoff.name]} label="Agent" size="xs" />
+        </span>
+      ) : null}
     </li>
   );
 };
 
+/** Merging, then each signoff with its run and, for an operator, an agent to give it; then the other checks. */
 const MergeBox: FC<ChecksProps> = ({ review }) => {
   const byName = new Map(review.checks.map(check => [check.name, check]));
   const others = review.checks.filter(check => check.kind !== 'signoff');
@@ -235,11 +271,18 @@ const MergeBox: FC<ChecksProps> = ({ review }) => {
     <SidebarCard title="Merge">
       <p>{mergeVerdict(review.pull)}</p>
       <MergeControls review={review} />
-      <CardSubheading>Signoffs</CardSubheading>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <CardSubheading>Signoffs</CardSubheading>
+        {review.pull.state === 'open' || review.pull.state === 'draft' ? (
+          <AgentButton number={review.pull.number} label="Sign off with agent" size="xs" />
+        ) : null}
+      </div>
       <ul className="checks">
         {signoffs.map(signoff => (
           <SignoffRow
             key={signoff.name}
+            number={review.pull.number}
+            open={review.pull.state === 'open' || review.pull.state === 'draft'}
             signoff={signoff}
             check={byName.get(signoffContext(signoff))}
             run={runOf.get(signoff.name)}
