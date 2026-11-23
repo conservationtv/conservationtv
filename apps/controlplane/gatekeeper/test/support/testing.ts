@@ -2,6 +2,7 @@
 // tests) need to run the built Worker with test deployment inputs. Not part of the deployed worker.
 export { grants } from '../../src/db/schema.ts';
 export { exampleGrant } from './consumer.ts';
+export { useDockerContext } from './database.ts';
 export {
   connectTestDatabase,
   startWorker,

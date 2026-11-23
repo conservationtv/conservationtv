@@ -195,7 +195,7 @@ pnpm --filter @conservationtv/gatekeeper local:up     # Postgres on :5433, iroh-
 pnpm --filter @conservationtv/gatekeeper db:migrate
 cp .dev.vars.example .dev.vars                       # then generate MOQ_SIGNING_KEYS as it describes
 pnpm --filter @conservationtv/gatekeeper dev         # http://localhost:6422
-pnpm --filter @conservationtv/gatekeeper test        # builds Worker, then tests in workerd; needs db:up
+pnpm --filter @conservationtv/gatekeeper test        # builds Worker, then tests in workerd; needs Docker
 ```
 
 The local tokens are fixed in `.dev.vars.example` (one consumer, `local`), the compose file and the studio API's `.dev.vars.example`, so the
@@ -208,7 +208,10 @@ To use staging's relays from a local studio API instead, run its `pnpm dev:stagi
 Tests run the production `cf build` output in Miniflare/workerd, including `src/index.ts`, its configuration
 validation, signing-key loading and per-request database connections. Node/Vitest uses ordinary HTTP requests to the
 Worker's local server. Relay tests additionally use Miniflare's trusted `cf` metadata injection to model the
-Cloudflare edge; there is no application auth bypass or trusted-header fallback. Postgres is real. No application services or Worker clock are replaced. Each case starts a fresh Worker and
+Cloudflare edge; there is no application auth bypass or trusted-header fallback. Postgres is real: Vitest's global
+setup (`test/support/database.ts`) starts a `postgres:18-alpine` container with Testcontainers for the run and
+migrates it, or uses `DATABASE_URL` when set (such as `pnpm db:up`'s). Testcontainers is pointed at the Docker the
+`docker` CLI's current context uses (OrbStack, Colima, Docker Desktop). No application services or Worker clock are replaced. Each case starts a fresh Worker and
 clears the shared database, so files run serially. Each suite explicitly owns and closes its Worker and database;
 configuration changes use `worker.restart(bindings)`. For a focused run, build first, then use `pnpm exec vitest run <file>`.
 

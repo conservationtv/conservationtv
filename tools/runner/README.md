@@ -29,5 +29,6 @@ that also stops the signoffs after it, which would no longer be of the commit. T
 | `test`      | every package's `test`, but the control plane's end-to-end |
 | `contracts` | `pnpm contracts` and `pnpm contracts:snapshots`            |
 
-The control plane's end-to-end tests need Docker and the relay images, so they are left to
+The gatekeeper's tests start a Postgres container, so `test` needs Docker running. The control plane's end-to-end
+tests also need the relay images, so they are left to
 `pnpm --filter @conservationtv/controlplane-tests test`.

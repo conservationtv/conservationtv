@@ -616,6 +616,9 @@ importers:
       '@cloudflare/vite-plugin':
         specifier: 'catalog:'
         version: 2.0.0-rc.1(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261117.1)
+      '@testcontainers/postgresql':
+        specifier: 12.2.0
+        version: 12.2.0(supports-color@10.2.2)
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
