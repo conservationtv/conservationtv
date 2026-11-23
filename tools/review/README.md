@@ -37,15 +37,6 @@ The generated files are trusted on the strength of `signoff/generated`: `pnpm si
 API document, SDK and CLI and signs off only if nothing changed, so a green signoff on the head commit means each
 generated file is what its generator writes. Read the generator's input instead.
 
-## Map
-
-When `.github/workflows/diffmap.yml` has run, the files tab opens on a **Map** chapter: a
-[diffmap](https://github.com/tanishqkancharla/diffmap) spec, an agent's account of the change whose diagrams link to
-its code, drawn by diffmap.dev in a frame. The workflow has Pullfrog's agent write it read-only, then a separate job
-validates it, shares it as an unlisted gist (with `DIFFMAP_GIST_TOKEN`, a token with only the gist scope) and keeps one
-comment naming it: `<!-- diffmap gist=<id> sha=<head> -->`. The Worker takes the latest such comment, only from
-`github-actions[bot]`, and leaves it out of the conversation. A map written from an older head commit says so.
-
 ## Scenario reports
 
 `.github/workflows/scenarios.yml` screenshots the studio web app across generated worlds on each pull request

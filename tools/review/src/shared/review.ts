@@ -122,15 +122,6 @@ export const PullSchema = PullSummarySchema.extend({
 });
 export type Pull = z.output<typeof PullSchema>;
 
-/** A diffmap spec of the pull request, shared as a gist and opened on diffmap.dev. */
-export const DiffmapSchema = z.object({
-  gistId: z.string(),
-  /** The head commit it was written from; the branch may have moved on since. */
-  sha: z.string(),
-  url: z.url()
-});
-export type Diffmap = z.output<typeof DiffmapSchema>;
-
 export const ReviewSchema = z.object({
   repository: z.string(),
   pull: PullSchema,
@@ -139,9 +130,7 @@ export const ReviewSchema = z.object({
   conversation: z.array(ConversationEntrySchema),
   threads: z.array(ThreadSchema),
   stack: z.array(StackEntrySchema),
-  contracts: z.array(ContractChangeSchema),
-  /** The latest spec the diffmap workflow shared, if it has run. */
-  diffmap: DiffmapSchema.nullable()
+  contracts: z.array(ContractChangeSchema)
 });
 export type Review = z.output<typeof ReviewSchema>;
 

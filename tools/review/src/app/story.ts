@@ -1,9 +1,9 @@
 import type { Category, ContractChange, Review, ReviewFile } from '../shared/review.ts';
 
-// A pull request read in the order it was made: its diffmap when one was written, then the source code, the migrations and contracts that follow from it,
+// A pull request read in the order it was made: the source code, then the migrations and contracts that follow from it,
 // then what generators wrote from those. Each chapter says what to look for in it.
 
-export type ChapterId = 'map' | 'code' | 'schema' | 'api' | 'generated' | 'dependencies';
+export type ChapterId = 'code' | 'schema' | 'api' | 'generated' | 'dependencies';
 
 export interface Chapter {
   id: ChapterId;
@@ -20,7 +20,6 @@ const chapterOf = {
 } satisfies Record<Category, ChapterId>;
 
 const titles = {
-  map: 'Map',
   code: 'Source code',
   schema: 'Database',
   api: 'API contract',
@@ -28,15 +27,14 @@ const titles = {
   dependencies: 'Dependencies'
 } satisfies Record<ChapterId, string>;
 
-export const chapterIds: readonly ChapterId[] = ['map', 'code', 'schema', 'api', 'generated', 'dependencies'];
+export const chapterIds: readonly ChapterId[] = ['code', 'schema', 'api', 'generated', 'dependencies'];
 
 export function isChapterId(value: string | undefined): value is ChapterId {
   return chapterIds.some(id => id === value);
 }
 
 /**
- * The chapters this pull request has, in reading order: the map whenever the diffmap workflow wrote one, and the API
- * chapter whenever an operation changed.
+ * The chapters this pull request has, in reading order: the API chapter whenever an operation changed.
  */
 export function chaptersOf(review: Review): Chapter[] {
   return chapterIds
@@ -50,9 +48,8 @@ export function chaptersOf(review: Review): Chapter[] {
     .filter(chapter => hasChapter(review, chapter));
 }
 
-/** A chapter is there when it has files; the API chapter shows operations and the map a spec instead. */
+/** A chapter is there when it has files; the API chapter shows operations instead. */
 function hasChapter(review: Review, chapter: Chapter): boolean {
-  if (chapter.id === 'map') return review.diffmap !== null;
   if (chapter.id === 'api' && review.contracts.length > 0) return true;
   return chapter.files.length > 0;
 }
