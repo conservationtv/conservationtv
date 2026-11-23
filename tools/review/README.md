@@ -148,6 +148,14 @@ The OAuth app is `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, with its callbac
 locally needs a second app whose callback is `http://localhost:6423/api/auth/callback`. Without them the tool only
 reads.
 
+## Agents
+
+Signed in as an operator (`AGENT_OPERATORS`, GitHub logins), the merge card on an open pull request offers **Sign off
+with agent**, and an **Agent** button on each signoff not yet given. Either asks the Worker, which checks the session
+and the signoff names and calls `AGENT_HOOK_URL`, a T3 scheduled task's webhook, with `{ "pr": <number> }` and the
+signoffs, if only some. The task's agent runs `pnpm signoff` in a worktree of the branch on the owner's machine, fixes
+what fails, and pushes. The hook's URL is its only credential, so it is a secret and never reaches the browser.
+
 ## Development
 
 ```sh
