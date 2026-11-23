@@ -10,6 +10,14 @@ export type Error = {
 };
 
 export type Camera = {
+    device: {
+        name: string;
+        createdAt: string;
+        publicKey: string;
+        kind: 'agent' | 'camera' | 'browser';
+        networkId: string | null;
+        publicId: string;
+    } | null;
     id: string;
     settings: {
         driver: 'axis';
@@ -21,14 +29,6 @@ export type Camera = {
         url: string;
     };
     state: 'enabled' | 'locked' | 'disabled';
-    device: {
-        name: string;
-        createdAt: string;
-        publicKey: string;
-        kind: 'agent' | 'camera' | 'browser';
-        networkId: string | null;
-        publicId: string;
-    } | null;
 };
 
 export type PatchOrganisationsByIdCamerasByCameraIdData = {
