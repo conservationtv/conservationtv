@@ -5,6 +5,7 @@ import { auth } from './auth.ts';
 import { createGitHub, GitHubError, useGitHub, withGitHub } from './github.ts';
 import { operationDocs } from './operations.ts';
 import { pullList, review } from './pulls.ts';
+import { results } from './results.ts';
 import { scenarios } from './scenarios.ts';
 import type { AppEnv } from './session.ts';
 
@@ -13,14 +14,20 @@ const SHA = /^[0-9a-f]{40}$/;
 const app = new Hono<AppEnv>()
   .basePath('/api')
   // Changes come only from this site's own pages: a signed-in reviewer's cookie must not carry another site's request.
+  // Signoff results are the exception: they are uploaded from a terminal with a bearer token, never a cookie.
   .use(async (c, next) => {
-    if (c.req.method === 'GET' || c.req.header('origin') === new URL(c.req.url).origin) return next();
+    // Reading is anyone's; a change needs this site's own page, or a bearer token where one is the only credential.
+    const sameSite = c.req.header('origin') === new URL(c.req.url).origin;
+    const bearer = c.req.path.startsWith('/api/results/') && c.req.header('authorization')?.startsWith('Bearer ');
+    if (c.req.method === 'GET' || sameSite || bearer) return next();
     return c.json({ error: 'Changes must come from this site.' }, 403);
   })
   .route('/auth', auth)
   .route('/', actions)
   // A pull request's scenario report, read out of its Actions artifact (src/worker/scenarios.ts).
   .route('/', scenarios)
+  // Signoff runs from developers' machines (src/worker/results.ts).
+  .route('/', results)
   .get('/pulls', async c => c.json(await pullList(), 200, { 'cache-control': 'no-store' }))
   .get('/pulls/:number{[0-9]+}', async c => {
     const number = Number(c.req.param('number'));

@@ -1509,6 +1509,9 @@ importers:
       '@babel/parser':
         specifier: 7.29.9
         version: 7.29.9
+      '@conservationtv/runner':
+        specifier: workspace:*
+        version: link:../runner
       '@conservationtv/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -1585,6 +1588,19 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
+
+  tools/runner:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
 
 packages:
 

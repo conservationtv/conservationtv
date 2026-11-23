@@ -8,6 +8,7 @@ import {
   type ResolveRequest,
   type ReviewRequest
 } from '../shared/actions.ts';
+import { RunResultsSchema } from '@conservationtv/runner/results';
 import { OperationDocsSchema } from '../shared/operation.ts';
 import { ApiErrorSchema, PullListSchema, ReviewSchema } from '../shared/review.ts';
 
@@ -69,6 +70,25 @@ export const pullQueries = {
         )
     })
 };
+
+/** The signoff runs uploaded for a commit (tools/runner): what each found, and why it failed. */
+export const resultsQuery = (sha: string) =>
+  queryOptions({
+    queryKey: ['results', sha] as const,
+    queryFn: () => load(`/api/results/${sha}`, RunResultsSchema),
+    refetchInterval: 60_000
+  });
+
+/** A run's log, as uploaded. */
+export const logQuery = (sha: string, signoff: string) =>
+  queryOptions({
+    queryKey: ['results', sha, signoff, 'log'] as const,
+    queryFn: async () => {
+      const response = await fetch(`/api/results/${sha}/${signoff}/log.txt`);
+      if (!response.ok) throw new Error(`No log was uploaded for ${signoff} at ${sha.slice(0, 7)}.`);
+      return response.text();
+    }
+  });
 
 /** A file as committed. Commits never change, so a file is fetched once. */
 export async function rawFile(sha: string, path: string): Promise<string> {

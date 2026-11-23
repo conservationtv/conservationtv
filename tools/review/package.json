@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@babel/parser": "7.29.9",
+    "@conservationtv/runner": "workspace:*",
     "@conservationtv/store": "workspace:*",
     "@conservationtv/ui": "workspace:*",
     "@conservationtv/versioned-api": "workspace:*",

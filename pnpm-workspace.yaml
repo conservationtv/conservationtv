@@ -2,6 +2,7 @@ packages:
   - apps/**
   - packages/**
   - tools/review
+  - tools/runner
   # The generated PlanetScale SDK copies its package.json into its build output.
   - '!apps/controlplane/infrastructure/sdks/*/bin'
   # The CLI's build writes a package.json into its output, for npm to publish; it is not a workspace project.

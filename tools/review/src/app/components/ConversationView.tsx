@@ -3,12 +3,13 @@ import { Button } from '@conservationtv/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@conservationtv/ui/components/card';
 import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
 import { cn } from '@conservationtv/ui/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FC, type ReactNode } from 'react';
 import { MergeMethodSchema, type MergeMethod } from '../../shared/actions.ts';
 import type { Check, ContractChange, ConversationEntry, Pull, Review, ReviewState } from '../../shared/review.ts';
-import { GENERATED_SIGNOFF, signoffs } from '../../shared/signoffs.ts';
-import { refreshReview, send } from '../api.ts';
+import type { RunResult } from '@conservationtv/runner/results';
+import { GENERATED_SIGNOFF, signoffContext, signoffs, type Signoff } from '@conservationtv/runner/signoffs';
+import { refreshReview, resultsQuery, send } from '../api.ts';
 import { signInHref, useSession } from '../session.ts';
 import { botReports, isReviewBot } from '../../shared/bots.ts';
 import { BotCard, BotEntry } from './BotReviews.tsx';
@@ -202,26 +203,47 @@ const CardSubheading: FC<CardSubheadingProps> = ({ children }) => (
   <h4 className="mt-2 text-xs font-semibold text-muted-foreground">{children}</h4>
 );
 
+interface SignoffRowProps {
+  signoff: Signoff;
+  check: Check | undefined;
+  run: RunResult | undefined;
+}
+
+/**
+ * A signoff: given or not, as its commit status says, and its run at the head commit when one was uploaded, which
+ * says why it failed. One not yet given shows the script that gives it.
+ */
+const SignoffRow: FC<SignoffRowProps> = ({ signoff, check, run }) => {
+  const state = check?.state ?? (run?.state === 'failure' ? 'failure' : 'pending');
+  const detail = run?.reason ?? check?.description ?? <code>pnpm signoff {signoff.name}</code>;
+  return (
+    <li title={signoff.meaning}>
+      <CheckMark state={state} />
+      {run ? <Link to={`/results/${run.sha}/${run.signoff}`}>{signoff.label}</Link> : <span>{signoff.label}</span>}
+      <span className="muted">{detail}</span>
+    </li>
+  );
+};
+
 const MergeBox: FC<ChecksProps> = ({ review }) => {
   const byName = new Map(review.checks.map(check => [check.name, check]));
   const others = review.checks.filter(check => check.kind !== 'signoff');
+  const { data: runs } = useQuery(resultsQuery(review.pull.headSha));
+  const runOf = new Map(runs?.map(run => [run.signoff, run]));
   return (
     <SidebarCard title="Merge">
       <p>{mergeVerdict(review.pull)}</p>
       <MergeControls review={review} />
       <CardSubheading>Signoffs</CardSubheading>
       <ul className="checks">
-        {signoffs.map(signoff => {
-          // A signoff not yet given shows as pending, with the script that gives it.
-          const check = byName.get(signoff.context);
-          return (
-            <li key={signoff.context} title={signoff.meaning}>
-              <CheckMark state={check?.state ?? 'pending'} />
-              <span>{signoff.label}</span>
-              <span className="muted">{check?.description ?? <code>{signoff.script}</code>}</span>
-            </li>
-          );
-        })}
+        {signoffs.map(signoff => (
+          <SignoffRow
+            key={signoff.name}
+            signoff={signoff}
+            check={byName.get(signoffContext(signoff))}
+            run={runOf.get(signoff.name)}
+          />
+        ))}
       </ul>
       {others.length ? (
         <>

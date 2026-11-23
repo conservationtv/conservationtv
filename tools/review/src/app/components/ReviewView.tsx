@@ -9,7 +9,7 @@ import { useRef, useState, type FC, type ReactNode } from 'react';
 import type { OperationDocs } from '../../shared/operation.ts';
 import type { ContractChange, Review, ReviewFile } from '../../shared/review.ts';
 import { pullQueries } from '../api.ts';
-import { GENERATED_SIGNOFF } from '../../shared/signoffs.ts';
+import { GENERATED_SIGNOFF } from '@conservationtv/runner/signoffs';
 import { connectionEntry, contractEntry, fileEntry, type Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
 import { highlighterOptions, poolOptions } from '../highlighting.ts';
