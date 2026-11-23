@@ -7,6 +7,8 @@ packages:
   - '!apps/controlplane/infrastructure/sdks/*/bin'
   # The CLI's build writes a package.json into its output, for npm to publish; it is not a workspace project.
   - '!apps/cli/dist'
+  # The agent runner's local state (gitignored) holds whole apps, such as OBS, whose package.json files aren't projects.
+  - '!apps/agent/runner/data/**'
 
 catalog:
   '@arkenv/standard': 1.0.0-rc.4
