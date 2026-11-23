@@ -7,15 +7,17 @@ import {
   DotsThreeIcon,
   FileIcon,
   FunctionIcon,
+  ImageIcon,
   PlugsConnectedIcon,
   type Icon
 } from '@phosphor-icons/react';
+import type { ScenarioReport } from '@conservationtv/runner/scenarios';
 import { WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
 import { useRef, type FC, type ReactNode } from 'react';
 import { isReviewBot } from '../../shared/bots.ts';
 import type { Review } from '../../shared/review.ts';
-import { callsQuery } from '../api.ts';
+import { callsQuery, scenariosQuery } from '../api.ts';
 import { useDrafts, type Drafts } from '../drafts.ts';
 import { fileEntry, partEntry, type Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
@@ -27,6 +29,7 @@ import { ChangeTree } from './ChangeTree.tsx';
 import { DiffList, type Viewer } from './DiffList.tsx';
 import { Link } from './Link.tsx';
 import { ReviewSubmit } from './ReviewSubmit.tsx';
+import { ScreensView } from './ScreensView.tsx';
 import { TopicIntro } from './TopicIntro.tsx';
 
 // The files tab: the pull request as topics (src/app/topics.ts), each one thing that changed with everything that
@@ -45,6 +48,8 @@ export const ReviewView: FC<ReviewViewProps> = props => (
 );
 
 const ALL_FILES = 'all';
+/** The scenarios report's screenshots, as a chapter of their own beside the topics. */
+const SCREENS = 'screens';
 
 /** Everything a topic or the file list is drawn with. */
 interface ReadingContext {
@@ -59,8 +64,14 @@ interface ReadingContext {
 
 /** The topic asked for, else the first; none for the list of every file. */
 function chosenTopic(topics: readonly Topic[], chapter: string | undefined): Topic | null {
-  if (chapter === ALL_FILES) return null;
+  if (chapter === ALL_FILES || chapter === SCREENS) return null;
   return topics.find(topic => topic.id === chapter) ?? topics[0] ?? null;
+}
+
+/** Which chapter the rail marks: the screens, a topic, or every file. */
+function currentOf(chapter: string | undefined, topic: Topic | null): string {
+  if (chapter === SCREENS) return SCREENS;
+  return topic?.id ?? ALL_FILES;
 }
 
 /** How the topics were found, or that they can't be without a calls report. */
@@ -77,6 +88,7 @@ const Topics: FC<ReviewViewProps> = ({ review, chapter }) => {
   const [sidebar, toggleSidebar] = useSwitch('sidebar', true);
   const [wrap, toggleWrap] = useSwitch('wrap', false);
   const calls = useQuery(callsQuery(review.pull.headSha));
+  const scenarios = useQuery(scenariosQuery(review.pull.headSha));
   if (!review.files.length) return <main className="page narrow muted">This pull request changes no files.</main>;
   if (calls.isPending) {
     return (
@@ -102,14 +114,20 @@ const Topics: FC<ReviewViewProps> = ({ review, chapter }) => {
       />
       <div className="review-body">
         <aside className="review-sidebar">
-          <TopicRail review={review} topics={topics} current={topic?.id ?? ALL_FILES} />
+          <TopicRail
+            review={review}
+            topics={topics}
+            screens={scenarios.data ?? null}
+            current={currentOf(chapter, topic)}
+          />
         </aside>
         <section className="review-main">
-          {topic ? (
-            <TopicReading key={topic.id} context={context} topic={topic} next={topics[topics.indexOf(topic) + 1]} />
-          ) : (
-            <AllFiles context={context} />
-          )}
+          <Chapter
+            context={context}
+            topic={topic}
+            topics={topics}
+            screens={chapter === SCREENS ? scenarios.data : null}
+          />
         </section>
       </div>
     </main>
@@ -157,15 +175,61 @@ const kindIcons = {
   rest: DotsThreeIcon
 } satisfies Record<TopicKind, Icon>;
 
+interface ChapterProps {
+  context: ReadingContext;
+  topic: Topic | null;
+  topics: readonly Topic[];
+  /** The scenarios report, when its screens are what was asked for. */
+  screens: ScenarioReport | null | undefined;
+}
+
+/** What the files tab shows: the screens, a topic, or every file. */
+const Chapter: FC<ChapterProps> = ({ context, topic, topics, screens }) => {
+  if (screens) return <ScreensView sha={context.review.pull.headSha} report={screens} />;
+  if (!topic) return <AllFiles context={context} />;
+  return <TopicReading key={topic.id} context={context} topic={topic} next={topics[topics.indexOf(topic) + 1]} />;
+};
+
 interface TopicRailProps {
   review: Review;
   topics: readonly Topic[];
+  screens: ScenarioReport | null;
   current: string;
 }
 
+interface ScreensItemProps {
+  review: Review;
+  report: ScenarioReport;
+  current: boolean;
+}
+
+/** The screens in the rail: how many shots changed from the merge base, and how many have issues. */
+const ScreensItem: FC<ScreensItemProps> = ({ review, report, current }) => {
+  const changed = report.shots.filter(shot => (shot.difference?.ratio ?? 0) > 0).length;
+  const issues = report.shots.filter(shot => shot.issues.length > 0).length;
+  return (
+    <Link
+      to={`/pr/${review.pull.number}/files/${SCREENS}`}
+      className={cn(
+        'mb-1 flex items-start gap-2 rounded-md px-2 py-1.5 text-foreground hover:bg-muted hover:no-underline',
+        current && 'bg-muted'
+      )}
+    >
+      <ImageIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className={cn('text-[13px]', current && 'font-semibold')}>Screens</span>
+        <span className="truncate text-[11px] text-muted-foreground">
+          {changed} changed · {issues} with issues
+        </span>
+      </span>
+    </Link>
+  );
+};
+
 /** The topics in reading order, each with how much it changes and the threads still open on it; then every file. */
-const TopicRail: FC<TopicRailProps> = ({ review, topics, current }) => (
+const TopicRail: FC<TopicRailProps> = ({ review, topics, screens, current }) => (
   <nav aria-label="Topics" className="flex flex-col gap-0.5 p-2">
+    {screens ? <ScreensItem review={review} report={screens} current={current === SCREENS} /> : null}
     {topics.length ? null : <NoReport review={review} />}
     {topics.map(topic => (
       <RailItem key={topic.id} review={review} topic={topic} current={topic.id === current} />

@@ -7,12 +7,16 @@
 //   pnpm signoff --no-upload        give them without uploading anything
 //   pnpm signoff --no-signoff       run and upload, without giving any
 //   pnpm signoff calls --pr 157     make a report for any pull request, from a worktree of its head
+//   pnpm signoff scenarios          screenshot the web app at the merge base and the head (made anyway when named)
 //   REVIEW_URL=http://localhost:6423 pnpm signoff test   upload to a local review tool
 
 import { spawn, spawnSync } from 'node:child_process';
+import { readFileSync, rmSync } from 'node:fs';
+import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { CALLS_FILE } from './calls.ts';
 import { callsReport } from './report-calls.ts';
+import { filesUnder, scenariosReport } from './report-scenarios.ts';
 import { reports, type Report } from './reports.ts';
 import { LOG_FILE, RESULT_FILE, type RunResult } from './results.ts';
 import { signoffs, type Signoff } from './signoffs.ts';
@@ -58,11 +62,27 @@ function run(command: string, log: string[]): Promise<number> {
   });
 }
 
+/** A file a report wrote, held in memory: its name under the run, and what it holds. */
+interface WrittenUpload {
+  name: string;
+  body: string;
+}
+
+/** A file a report wrote to disk: its name under the run, and where it is. */
+interface FileUpload {
+  name: string;
+  path: string;
+}
+
+type Upload = WrittenUpload | FileUpload;
+
 interface Outcome {
   result: RunResult;
   log: string;
-  /** Files a report wrote, by name, uploaded before its result. */
-  files?: Record<string, string>;
+  /** Files a report wrote, uploaded before its result. */
+  uploads?: Upload[];
+  /** Removes what the report left on disk, once it is uploaded. */
+  cleanup?: () => void;
   /** Why `gh signoff` would not give a run that passed. */
   refusal?: string | null;
 }
@@ -100,7 +120,13 @@ async function runSignoff(signoff: Signoff, sha: string): Promise<Outcome> {
 }
 
 /** Puts one file of a run in the review tool's results, as the GitHub user `gh` is signed in as. */
-async function upload(token: string, sha: string, signoff: string, file: string, body: string): Promise<void> {
+async function upload(
+  token: string,
+  sha: string,
+  signoff: string,
+  file: string,
+  body: string | Uint8Array
+): Promise<void> {
   const response = await fetch(`${REVIEW_URL}/api/results/${sha}/${signoff}/${file}`, {
     method: 'PUT',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
@@ -142,6 +168,43 @@ interface Where {
   base: string;
 }
 
+/** What making a report gives: a line for its log, the files it wrote, and how to remove them from disk. */
+type Made = Pick<Outcome, 'log' | 'uploads' | 'cleanup'>;
+
+/** Makes one report at a checkout, against the merge base. */
+type Maker = (root: string, sha: string, base: string) => Promise<Made>;
+
+/** The calls report: the changed units and every use of them, as calls.json. */
+async function makeCalls(root: string, sha: string, base: string): Promise<Made> {
+  const calls = await callsReport(root, sha, base);
+  const log = `Against ${base.slice(0, 7)}: ${calls.units.length} changed units, ${calls.calls.length} uses.\n`;
+  return { log, uploads: [{ name: CALLS_FILE, body: JSON.stringify(calls) }] };
+}
+
+/** The scenarios report: report.json and its images; CI's HTML page is left out, as the review tool draws the JSON. */
+async function makeScenarios(root: string, sha: string, base: string): Promise<Made> {
+  const { log, dir } = scenariosReport(root, sha, base);
+  const files = filesUnder(dir).filter(name => name !== 'index.html');
+  return {
+    log,
+    uploads: files.map(name => ({ name, path: path.join(dir, name) })),
+    cleanup: () => rmSync(path.dirname(dir), { recursive: true, force: true })
+  };
+}
+
+/** How each report is made, by name. */
+const makers = new Map<string, Maker>([
+  ['calls', makeCalls],
+  ['scenarios', makeScenarios]
+]);
+
+/** Whether a report is worth making for a change: it touches one of the paths the report watches. */
+function relevant(report: Report, root: string, base: string): boolean {
+  if (!report.paths) return true;
+  const changed = output('git', ['-C', root, 'diff', '--name-only', base, 'HEAD']).split('\n');
+  return changed.some(file => report.paths?.some(prefix => file.startsWith(prefix)));
+}
+
 /** Makes a report: what it wrote, and a log that sums it up; failed only when it could not be made. */
 async function makeReport(report: Report, sha: string, where: () => Where): Promise<Outcome> {
   const started = Date.now();
@@ -157,19 +220,18 @@ async function makeReport(report: Report, sha: string, where: () => Where): Prom
   };
   try {
     const { root, base } = where();
-    const calls = await callsReport(root, sha, base);
-    const log = `Against ${base.slice(0, 7)}: ${calls.units.length} changed units, ${calls.calls.length} uses.\n`;
-    console.log(`\n${report.label}: ${log}`);
-    return {
-      result: { ...result, durationMs: Date.now() - started },
-      log,
-      files: { [CALLS_FILE]: JSON.stringify(calls) }
-    };
+    const made = await makers.get(report.name)?.(root, sha, base);
+    if (!made) throw new Error(`No report is made by the name ${report.name}.`);
+    console.log(`\n${report.label}: ${made.log}`);
+    return { result: { ...result, durationMs: Date.now() - started }, ...made };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return { result: { ...result, state: 'failure', reason, durationMs: Date.now() - started }, log: `${reason}\n` };
   }
 }
+
+/** How many of a report's files are uploaded at once. */
+const UPLOADS_AT_ONCE = 8;
 
 /** Uploads a run's log and then its result, which marks it complete; a failed upload is said, not fatal. */
 async function share(token: string | null, outcome: Outcome): Promise<boolean> {
@@ -177,14 +239,23 @@ async function share(token: string | null, outcome: Outcome): Promise<boolean> {
   if (!token) return false;
   try {
     await upload(token, result.sha, result.signoff, LOG_FILE, log);
-    for (const [file, body] of Object.entries(outcome.files ?? {})) {
-      await upload(token, result.sha, result.signoff, file, body);
+    const uploads = outcome.uploads ?? [];
+    for (let index = 0; index < uploads.length; index += UPLOADS_AT_ONCE) {
+      // A few at a time: a screenshot report is thousands of images.
+      await Promise.all(
+        uploads.slice(index, index + UPLOADS_AT_ONCE).map(file => {
+          const body = 'body' in file ? file.body : readFileSync(file.path);
+          return upload(token, result.sha, result.signoff, file.name, body);
+        })
+      );
     }
     await upload(token, result.sha, result.signoff, RESULT_FILE, JSON.stringify(result));
     return true;
   } catch (error) {
     console.error(`\nCould not upload ${result.signoff}'s result: ${error instanceof Error ? error.message : error}`);
     return false;
+  } finally {
+    outcome.cleanup?.();
   }
 }
 
@@ -238,12 +309,23 @@ function pullRefs(number: number): PullCheckout {
  * Makes the reports for any pull request, from a worktree of its head: signoffs are given only from a checkout of
  * the commit, so only reports are made this way.
  */
-async function reportPull(number: number, chosenReports: readonly Report[], token: string | null): Promise<number> {
+async function reportPull(
+  number: number,
+  chosenReports: readonly Report[],
+  token: string | null,
+  named: boolean
+): Promise<number> {
   const { root, head, base } = pullRefs(number);
   const dir = worktreeAt(root, head);
   try {
+    // Each report made in the worktree and shared, then the lot summed up; unless named, a report whose paths the pull
+    // request doesn't touch is skipped, as at a checkout.
     const lines: string[] = [];
     for (const report of chosenReports) {
+      if (!named && !relevant(report, dir, base)) {
+        lines.push(`– ${report.label}: skipped, as nothing it watches changed`);
+        continue;
+      }
       const outcome = await makeReport(report, head, () => ({ root: dir, base }));
       await share(token, outcome);
       lines.push(summary(report, outcome));
@@ -262,7 +344,32 @@ function fromPull(number: number, names: readonly string[], choice: Chosen, noUp
     console.error('--pr makes reports only: sign a pull request off from a checkout of it.');
     return Promise.resolve(1);
   }
-  return reportPull(number, choice.reports, noUpload ? null : output('gh', ['auth', 'token']));
+  return reportPull(number, choice.reports, noUpload ? null : output('gh', ['auth', 'token']), names.length > 0);
+}
+
+/**
+ * Makes the reports at the checkout, against the merge base, and shares each. Asked for every report, those whose
+ * paths the change doesn't touch are skipped; named, they are made.
+ */
+async function makeReports(
+  chosenReports: readonly Report[],
+  named: boolean,
+  sha: string,
+  sharing: Sharing
+): Promise<string[]> {
+  if (!chosenReports.length) return [];
+  const base = mergeBase();
+  const lines: string[] = [];
+  for (const report of chosenReports) {
+    if (!named && !relevant(report, process.cwd(), base)) {
+      lines.push(`– ${report.label}: skipped, as nothing it watches changed`);
+      continue;
+    }
+    const outcome = await makeReport(report, sha, () => ({ root: process.cwd(), base }));
+    await share(sharing.token, outcome);
+    lines.push(summary(report, outcome));
+  }
+  return lines;
 }
 
 /**
@@ -292,11 +399,7 @@ async function main(): Promise<number> {
   const lines: string[] = [];
   let failed = false;
   // Reports first: they read the commit and change nothing.
-  for (const report of choice.reports) {
-    const outcome = await makeReport(report, sha, () => ({ root: process.cwd(), base: mergeBase() }));
-    await share(sharing.token, outcome);
-    lines.push(summary(report, outcome));
-  }
+  lines.push(...(await makeReports(choice.reports, positionals.length > 0, sha, sharing)));
   for (const signoff of choice.signoffs) {
     // One at a time, in the listed order: a signoff that leaves the tree changed stops the rest, as they would no
     // longer be of the commit.

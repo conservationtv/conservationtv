@@ -29,19 +29,16 @@ pnpm --filter @conservationtv/studio-scenarios scenarios world typical   # what 
 
 ## On pull requests
 
-`.github/workflows/scenarios.yml` runs on every pull request that touches the web app, the UI package, the SDK, the
-studio API's contracts or health rules, the shared packages they draw on, or this package. It builds the merge base's
-web app and the head's once each (cached by commit), then twelve runners capture at once: each takes its slice
-(`report --shard i/12`) of the base and of the head, both against the head's worlds and mock API so only the app
-differs, and compares them itself. A last job merges the slices on Node alone (`node src/ci.ts merge`), keeps the report
-as the `scenarios-report` artifact for 14 days, and keeps one comment on the pull request (`summary`): what changed most
-and what has issues, each linking to the shot. It never fails the pull request. Run it again by hand with
-`gh workflow run scenarios -f number=<pr>`.
+The runner's scenarios report (`pnpm signoff scenarios`, [`tools/runner`](../../../tools/runner)) does what CI used to:
+it builds the web app at the merge base and at the head, each in a worktree of its own commit with its own install (the
+base's build kept by commit), captures both against the head's worlds and mock API so only the app differs, compares
+them, and uploads `report.json` and the images to the review tool, which draws them as the pull request's **Screens**.
+`pnpm signoff` makes it whenever the change touches the web app, the UI package, the SDKs, the studio API's contracts or
+health rules, the shared packages they draw on, or this package; `pnpm signoff scenarios --pr <n>` makes it for any
+pull request.
 
-The report opens at `https://review.tools.conservation.tv/api/scenarios/<artifact>/index.html`, which reads it straight
-out of the artifact's zip (`tools/review/src/worker/scenarios.ts`); `…/api/pulls/<pr>/scenarios` goes to a pull
-request's latest. A pull request that changes an operation the web app reads changes the head's mock too, so the base's
-build may then fail to read it: those pages show as changed, which is worth a look anyway.
+A pull request that changes an operation the web app reads changes the head's mock too, so the base's build may then
+fail to read it: those pages show as changed, which is worth a look anyway.
 
 ## How it fits together
 

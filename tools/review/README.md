@@ -77,20 +77,13 @@ on the stack's Tempo ([`src/worker/grafana.ts`](src/worker/grafana.ts)), and a l
 service is the Worker's own name, `<script>-<environment>`, so a deploy of the `studio` workflow to staging shows
 `studio-api-staging`; only Workers that export traces to Grafana (Workers Observability destinations) appear.
 
-## Scenario reports
+## Screens
 
-`.github/workflows/scenarios.yml` screenshots the studio web app across generated worlds on each pull request
-(`apps/studio/scenarios`) and keeps the report as an Actions artifact, with one comment naming it:
-`<!-- scenarios artifact=<id> sha=<head> -->`. `/api/scenarios/<artifact>/<path>` serves that report out of the
-artifact: GitHub only hands an artifact out as a zip behind a signed URL that lasts a minute, but the URL answers byte
-ranges, so the Worker reads the zip's central directory once from its end (cached; an artifact never changes) and then
-each file alone from its offset, inflating it as it streams, and caches what it served. `/api/pulls/<number>/scenarios`
-redirects to the latest report the workflow named, taking only `github-actions[bot]`'s comments.
-
-The artifact is read with `GITHUB_TOKEN`, which needs to be able to download Actions artifacts of this repository. The
-report is HTML that a pull request's code wrote, so every file of it is served under
-`Content-Security-Policy: sandbox` without `allow-same-origin`: the page gets an opaque origin, and cannot read this
-site's cookies or act as the signed-in reviewer.
+The files tab's **Screens** (and a card beside the conversation) draw the runner's scenarios report
+(`pnpm signoff scenarios`, [`tools/runner`](../runner)) from its `report.json`: the studio web app screenshotted across
+generated worlds (`apps/studio/scenarios`), light and dark, at the merge base and the head, each shot compared. They
+lead with what changed most, then what has issues; a shot opens large as it was, as it is, and as the changed pixels,
+with everything noted on the page. The images are served from the results bucket like any run's files.
 
 ## Topics
 
