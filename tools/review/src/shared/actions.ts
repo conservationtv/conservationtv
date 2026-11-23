@@ -43,6 +43,10 @@ export type LineComment = z.output<typeof LineCommentSchema>;
 export const LineCommentRequestSchema = LineCommentSchema.extend({ commitId: z.string() });
 export type LineCommentRequest = z.output<typeof LineCommentRequestSchema>;
 
+/** Resolving a line thread, or opening it again. */
+export const ResolveRequestSchema = z.object({ resolved: z.boolean() });
+export type ResolveRequest = z.output<typeof ResolveRequestSchema>;
+
 export const ReviewEventSchema = z.enum(['COMMENT', 'APPROVE', 'REQUEST_CHANGES']);
 export type ReviewEvent = z.output<typeof ReviewEventSchema>;
 

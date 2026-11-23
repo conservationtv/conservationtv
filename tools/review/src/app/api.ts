@@ -5,6 +5,7 @@ import {
   type CommentRequest,
   type LineCommentRequest,
   type MergeRequest,
+  type ResolveRequest,
   type ReviewRequest
 } from '../shared/actions.ts';
 import { OperationDocsSchema } from '../shared/operation.ts';
@@ -30,7 +31,7 @@ export const sessionQuery = queryOptions({
 });
 
 /** What a change sends: nothing, for signing out. */
-type ActionBody = MergeRequest | CommentRequest | LineCommentRequest | ReviewRequest;
+type ActionBody = MergeRequest | CommentRequest | LineCommentRequest | ReviewRequest | ResolveRequest;
 
 /** A change made on GitHub as the signed-in reviewer. */
 export async function send(path: string, body?: ActionBody): Promise<void> {

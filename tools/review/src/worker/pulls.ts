@@ -22,10 +22,13 @@ import {
   PullListItemsSchema,
   ReviewCommentsSchema,
   ReviewsSchema,
+  ReviewThreadsSchema,
   useGitHub,
   type Freshness,
+  type GraphQLVariables,
   type PullListItem,
-  type Reviews
+  type Reviews,
+  type ReviewThreads
 } from './github.ts';
 import { openStacks, stackOf } from './stack.ts';
 
@@ -164,7 +167,8 @@ function reviewEntry(review: Reviews[number]): ConversationEntry[] {
       body: review.body ?? '',
       createdAt: review.submitted_at,
       url: review.html_url,
-      review: review.state
+      review: review.state,
+      commitId: review.commit_id
     }
   ];
 }
@@ -182,18 +186,70 @@ async function conversation(number: number): Promise<ConversationEntry[]> {
       body: comment.body ?? '',
       createdAt: comment.created_at,
       url: comment.html_url,
-      review: null
+      review: null,
+      commitId: null
     })),
     ...reviews.flatMap(reviewEntry)
   ];
   return entries.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-/** Line comments, gathered into the threads their replies form. */
+const REVIEW_THREADS = `
+  query ($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes { id isResolved isOutdated comments(first: 1) { nodes { databaseId } } }
+        }
+      }
+    }
+  }
+`;
+
+/** What GraphQL knows of a thread that REST doesn't, by the id of its first comment. */
+interface ThreadState {
+  id: string;
+  resolved: boolean;
+}
+
+/** Each thread's GraphQL id and whether it is resolved; empty without a token, which GraphQL needs. */
+async function threadStates(number: number): Promise<Map<number, ThreadState>> {
+  const github = useGitHub();
+  const [owner = '', name = ''] = github.repository.split('/');
+  const states = new Map<number, ThreadState>();
+  let after: string | null = null;
+  for (let page = 0; page < MAX_COMMENT_PAGES; page++) {
+    // A page at a time, up to the same cap as REST listings: each thread keyed by its first comment's id, which is how
+    // REST's line comments name it. No token answers nothing, and the threads then read without their state.
+    const variables: GraphQLVariables = { owner, name, number, after };
+    const result: ReviewThreads | null = await github.graphql(REVIEW_THREADS, variables, ReviewThreadsSchema, 'live');
+    if (!result) break;
+    const { nodes, pageInfo } = result.repository.pullRequest.reviewThreads;
+    for (const node of nodes) {
+      const first = node.comments.nodes[0]?.databaseId;
+      if (first != null) states.set(first, { id: node.id, resolved: node.isResolved });
+    }
+    if (!pageInfo.hasNextPage) break;
+    after = pageInfo.endCursor;
+  }
+  return states;
+}
+
+/** Line comments, gathered into the threads their replies form, each with whether it is resolved. */
 async function threads(number: number): Promise<Thread[]> {
-  const comments = await allPages(`pulls/${number}/comments`, ReviewCommentsSchema, 'live');
+  const [comments, states] = await Promise.all([
+    allPages(`pulls/${number}/comments`, ReviewCommentsSchema, 'live'),
+    // A thread still reads without its state: GraphQL is only what REST leaves out.
+    threadStates(number).catch((error: Error) => {
+      console.error(error);
+      return new Map<number, ThreadState>();
+    })
+  ]);
   const byRoot = new Map<number, Thread>();
   for (const comment of comments.toSorted((a, b) => a.created_at.localeCompare(b.created_at))) {
+    // Oldest first, so each reply lands in the thread its first comment started; a thread takes its place, review and
+    // state from that first comment.
     const entry = {
       id: comment.id,
       author: comment.user,
@@ -206,7 +262,11 @@ async function threads(number: number): Promise<Thread[]> {
       root.comments.push(entry);
       continue;
     }
+    const state = states.get(comment.id);
     byRoot.set(comment.id, {
+      id: state?.id ?? null,
+      reviewId: comment.pull_request_review_id,
+      resolved: state ? state.resolved : null,
       path: comment.path,
       line: comment.line,
       side: comment.side === 'LEFT' ? 'deletions' : 'additions',

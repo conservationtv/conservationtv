@@ -10,6 +10,8 @@ import type { Check, ContractChange, ConversationEntry, Pull, Review, ReviewStat
 import { GENERATED_SIGNOFF, signoffs } from '../../shared/signoffs.ts';
 import { refreshReview, send } from '../api.ts';
 import { signInHref, useSession } from '../session.ts';
+import { botReports, isReviewBot } from '../../shared/bots.ts';
+import { BotCard, BotEntry } from './BotReviews.tsx';
 import { Composer } from './Composer.tsx';
 import { Link } from './Link.tsx';
 import { chaptersOf } from '../story.ts';
@@ -345,9 +347,13 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
           </header>
           <MarkdownBody text={pull.body} />
         </article>
-        {review.conversation.map(entry => (
-          <Entry key={entry.id} entry={entry} />
-        ))}
+        {review.conversation.map(entry =>
+          entry.review && isReviewBot(entry.author.login) ? (
+            <BotEntry key={entry.id} entry={entry} head={pull.headSha} />
+          ) : (
+            <Entry key={entry.id} entry={entry} />
+          )
+        )}
         {review.threads.length ? (
           <p className="text-muted-foreground">
             <Link to={`/pr/${pull.number}/files`}>
@@ -360,6 +366,9 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
       </div>
       <aside className="sidebar">
         <MergeBox review={review} />
+        {botReports(review.conversation, review.threads).map(report => (
+          <BotCard key={report.login} review={review} report={report} />
+        ))}
         <ContractsBox number={pull.number} contracts={review.contracts} />
         <ReviewPathBox review={review} />
         {pull.labels.length ? (

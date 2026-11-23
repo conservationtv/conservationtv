@@ -37,7 +37,7 @@ function version(parts: readonly (string | number | boolean)[]): number {
 
 /** What a note shows, for an item's version: a thread's comments, a draft, or where a comment is being written. */
 function noteKey(note: Note): string {
-  if (note.kind === 'thread') return `thread:${note.thread.comments.length}`;
+  if (note.kind === 'thread') return `thread:${note.thread.comments.length}:${note.thread.resolved}`;
   if (note.kind === 'draft') return `draft:${note.draft.id}`;
   return `composer:${note.target.side}:${note.target.line}`;
 }

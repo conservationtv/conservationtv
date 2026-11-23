@@ -3,6 +3,7 @@ import {
   CommentRequestSchema,
   LineCommentRequestSchema,
   MergeRequestSchema,
+  ResolveRequestSchema,
   ReviewRequestSchema,
   type LineComment,
   type LineSide
@@ -27,7 +28,17 @@ function githubComment(comment: LineComment) {
   };
 }
 
+const RESOLVE = `mutation ($thread: ID!) { resolveReviewThread(input: { threadId: $thread }) { thread { id } } }`;
+const UNRESOLVE = `mutation ($thread: ID!) { unresolveReviewThread(input: { threadId: $thread }) { thread { id } } }`;
+
 export const actions = new Hono<AppEnv>()
+  // A thread by its GraphQL id (`PRRT_…`), as the review lists it.
+  .post('/pulls/:number{[0-9]+}/threads/:thread{[A-Za-z0-9_-]+}/resolve', async c => {
+    const input = ResolveRequestSchema.parse(await c.req.json());
+    const github = await asReviewer(c);
+    await github.mutate(input.resolved ? RESOLVE : UNRESOLVE, { thread: c.req.param('thread') });
+    return c.body(null, 204);
+  })
   .post('/pulls/:number{[0-9]+}/merge', async c => {
     const input = MergeRequestSchema.parse(await c.req.json());
     const github = await asReviewer(c);

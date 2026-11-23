@@ -39,6 +39,18 @@ The generated files are trusted on the strength of `signoff/generated`: `pnpm si
 API document, SDK and CLI and signs off only if nothing changed, so a green signoff on the head commit means each
 generated file is what its generator writes. Read the generator's input instead.
 
+## Review bots
+
+[Pullfrog](https://pullfrog.com) reviews every push, so its reviews are read for what they decide rather than in full
+([`src/shared/bots.ts`](src/shared/bots.ts) names the bots). A review opens with its verdict: `> ✅ …` (no issues),
+`> ℹ️ …` (notes), or a GitHub alert such as `> [!IMPORTANT]` (something to fix). The conversation folds each review to
+that verdict and the commit it was of, and the sidebar keeps a card per bot: its latest verdict, the line threads it
+opened that are still open, and its verdict push by push.
+
+Whether a thread is resolved comes from GitHub's GraphQL API, which answers only with a token: without `GITHUB_TOKEN`
+threads read without it. Resolved threads fold to one line on the files tab, and a signed-in reviewer can resolve a
+thread or open it again. GitHub's alerts and `suggestion` blocks are drawn as GitHub draws them, in any comment.
+
 ## Scenario reports
 
 `.github/workflows/scenarios.yml` screenshots the studio web app across generated worlds on each pull request
@@ -85,7 +97,7 @@ revalidations, so cached copies serve ten times longer; a pull request takes abo
 
 ## Signing in
 
-Signed in with GitHub, a reviewer comments, replies to threads, comments on lines (on their own or gathered into a
+Signed in with GitHub, a reviewer comments, replies to threads and resolves them, comments on lines (on their own or gathered into a
 review that comments, approves or requests changes) and merges, all as themselves. Sign-in goes through a GitHub OAuth
 app that holds no permissions of its own: each reviewer grants a `public_repo` token, which the Worker keeps in an
 HttpOnly cookie sealed with AES-GCM under `SESSION_SECRET`, so only the Worker can read it. Signing out revokes it.

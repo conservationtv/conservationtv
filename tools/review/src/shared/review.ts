@@ -50,7 +50,9 @@ export const ConversationEntrySchema = z.object({
   createdAt: z.iso.datetime(),
   url: z.url(),
   /** Set for reviews; plain comments have none. */
-  review: ReviewStateSchema.nullable()
+  review: ReviewStateSchema.nullable(),
+  /** The commit a review was of; null for plain comments, and for a commit since force-pushed away. */
+  commitId: z.string().nullable()
 });
 export type ConversationEntry = z.output<typeof ConversationEntrySchema>;
 
@@ -64,6 +66,12 @@ export const ThreadCommentSchema = z.object({
 export type ThreadComment = z.output<typeof ThreadCommentSchema>;
 
 export const ThreadSchema = z.object({
+  /** GitHub's GraphQL id for the thread, to resolve it by; null when GraphQL couldn't be read. */
+  id: z.string().nullable(),
+  /** The review the thread was opened in, such as one of a review bot's. */
+  reviewId: z.int().nullable(),
+  /** Null when GraphQL couldn't be read, which takes a token. */
+  resolved: z.boolean().nullable(),
   path: z.string(),
   /** The line the thread is on at the head commit: null when the code it was left on has since changed. */
   line: z.int().nullable(),

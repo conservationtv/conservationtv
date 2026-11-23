@@ -580,6 +580,59 @@
     text-decoration: underline;
   }
 
+  /* GitHub's alerts (src/app/markdown.ts): a coloured rule and the alert's name over what it says. */
+  .markdown blockquote.callout {
+    --callout: var(--muted-foreground);
+    border-left-color: var(--callout);
+    color: var(--foreground);
+  }
+
+  .markdown blockquote.callout::before {
+    content: attr(data-title);
+    display: block;
+    color: var(--callout);
+    font-weight: 600;
+  }
+
+  .markdown blockquote.callout-tip {
+    --callout: var(--success);
+  }
+
+  .markdown blockquote.callout-important {
+    --callout: var(--merged);
+  }
+
+  .markdown blockquote.callout-warning {
+    --callout: var(--warning);
+  }
+
+  .markdown blockquote.callout-caution {
+    --callout: var(--destructive);
+  }
+
+  .markdown blockquote.callout-note {
+    --callout: var(--cat-source);
+  }
+
+  /* A suggested change: what the reviewer would put in place of the lines the comment is on. */
+  .markdown pre:has(> code.language-suggestion) {
+    padding-top: 0;
+    border: 1px solid color-mix(in oklch, var(--success) 40%, var(--border));
+    background: color-mix(in oklch, var(--success) 8%, transparent);
+  }
+
+  .markdown pre:has(> code.language-suggestion)::before {
+    content: 'Suggested change';
+    display: block;
+    margin: 0 -0.75rem 0.5rem;
+    padding: 0.3rem 0.75rem;
+    border-bottom: 1px solid color-mix(in oklch, var(--success) 30%, var(--border));
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--success);
+  }
+
   .markdown pre {
     background: var(--code-bg);
     padding: 0.75rem;
@@ -1451,12 +1504,6 @@
     font-family: var(--font-sans);
     font-size: 13px;
     white-space: normal;
-  }
-
-  .thread > .muted {
-    margin: 0;
-    padding: 0.35rem 0.75rem;
-    border-bottom: 1px solid var(--border);
   }
 
   .thread-comment {
