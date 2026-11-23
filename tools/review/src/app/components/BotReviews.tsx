@@ -13,7 +13,8 @@ import {
   type VerdictTone
 } from '../../shared/bots.ts';
 import type { ConversationEntry, Review, Thread } from '../../shared/review.ts';
-import { chaptersOf } from '../story.ts';
+import { topicOfThread } from '../topics.ts';
+import { useTopics } from '../use-topics.ts';
 import { Avatar, MarkdownBody, RelativeTime } from './common.tsx';
 import { Link } from './Link.tsx';
 
@@ -85,12 +86,13 @@ interface ThreadLinkProps {
 
 /** A thread as one line, opening the chapter its file is in. */
 const ThreadLink: FC<ThreadLinkProps> = ({ review, thread }) => {
-  const chapter = chaptersOf(review).find(candidate => candidate.files.some(file => file.path === thread.path));
+  const topics = useTopics(review);
+  const topic = topics ? topicOfThread(topics, thread) : null;
   const [first] = thread.comments;
   return (
     <li className="flex flex-col gap-0.5 py-1">
       <span className="flex items-center gap-1.5">
-        <Link to={`/pr/${review.pull.number}/files/${chapter?.id ?? 'code'}`} title={thread.path}>
+        <Link to={`/pr/${review.pull.number}/files/${topic ?? ''}`} title={thread.path}>
           <code>{threadPlace(thread)}</code>
         </Link>
         {first && hasSuggestion(first.body) ? <Badge variant="secondary">Suggestion</Badge> : null}

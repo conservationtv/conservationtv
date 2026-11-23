@@ -8,6 +8,7 @@ import {
   type ResolveRequest,
   type ReviewRequest
 } from '../shared/actions.ts';
+import { CALLS_FILE, CALLS_REPORT, CallsReportSchema } from '@conservationtv/runner/calls';
 import { RunResultsSchema } from '@conservationtv/runner/results';
 import { OperationDocsSchema } from '../shared/operation.ts';
 import { ApiErrorSchema, PullListSchema, ReviewSchema } from '../shared/review.ts';
@@ -77,6 +78,19 @@ export const resultsQuery = (sha: string) =>
     queryKey: ['results', sha] as const,
     queryFn: () => load(`/api/results/${sha}`, RunResultsSchema),
     refetchInterval: 60_000
+  });
+
+/** The runner's calls report at a commit (tools/runner), or null when none was uploaded: topics then go by file. */
+export const callsQuery = (sha: string) =>
+  queryOptions({
+    queryKey: ['results', sha, CALLS_REPORT] as const,
+    queryFn: async () => {
+      const response = await fetch(`/api/results/${sha}/${CALLS_REPORT}/${CALLS_FILE}`);
+      if (response.status === 404) return null;
+      if (!response.ok) throw await failure(response);
+      return CallsReportSchema.parse(await response.json());
+    },
+    staleTime: Infinity
   });
 
 /** A run's log, as uploaded. */

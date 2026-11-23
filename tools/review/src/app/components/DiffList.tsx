@@ -3,7 +3,8 @@ import type { CodeViewItem, DiffLineAnnotation, FileDiffMetadata, SelectedLineRa
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions } from '@pierre/diffs/react';
 import { useRef, useState, type FC, type ReactNode, type RefObject } from 'react';
 import type { Review, ReviewFile } from '../../shared/review.ts';
-import { fullDiff, isBinary, isMoved, loadSides } from '../diffs.ts';
+import { commentable, fullDiff, isBinary, isMoved, loadSides } from '../diffs.ts';
+import type { LineSide } from '../../shared/actions.ts';
 import type { Drafts } from '../drafts.ts';
 import type { Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
@@ -119,22 +120,29 @@ export const DiffList: FC<DiffListProps> = props => {
   }
 
   /**
-   * Threads, pending comments and the comment being written: only on an entry showing a whole file, as GitHub's are.
-   * Each kind is gathered from its own source and placed at its line.
+   * Threads, pending comments and the comment being written, on the lines of the file an entry shows, whole or in part.
+   * Each kind is gathered from its own source and placed at its line; part of a file shows only those on its lines.
    */
   function notesOf(entry: Entry): DiffLineAnnotation<Note>[] {
-    if (!entry.file) return [];
-    // A thread whose line has since changed is shown at the top of its file.
-    const threadNotes = (threads.get(entry.file.path) ?? []).map(thread => ({
-      side: thread.side,
-      lineNumber: thread.line ?? 0,
-      metadata: { kind: 'thread', thread } satisfies Note
-    }));
-    const draftNotes = (pending.get(entry.file.path) ?? []).map(draft => ({
-      side: draft.side,
-      lineNumber: draft.line,
-      metadata: { kind: 'draft', draft } satisfies Note
-    }));
+    const source = entry.source;
+    if (!source) return [];
+    // A thread whose line has since changed is shown at the top of a whole file, and with its topic otherwise.
+    const shows = (side: LineSide, line: number | null) =>
+      entry.file ? true : line !== null && commentable(entry.diff, side, line, line);
+    const threadNotes = (threads.get(source.path) ?? [])
+      .filter(thread => shows(thread.side, thread.line))
+      .map(thread => ({
+        side: thread.side,
+        lineNumber: thread.line ?? 0,
+        metadata: { kind: 'thread', thread } satisfies Note
+      }));
+    const draftNotes = (pending.get(source.path) ?? [])
+      .filter(draft => shows(draft.side, draft.line))
+      .map(draft => ({
+        side: draft.side,
+        lineNumber: draft.line,
+        metadata: { kind: 'draft', draft } satisfies Note
+      }));
     const composing = target?.entryId === entry.id ? [target] : [];
     const composerNotes = composing.map(line => ({
       side: line.side,

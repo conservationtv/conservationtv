@@ -15,7 +15,7 @@ import { botReports, isReviewBot } from '../../shared/bots.ts';
 import { BotCard, BotEntry } from './BotReviews.tsx';
 import { Composer } from './Composer.tsx';
 import { Link } from './Link.tsx';
-import { chaptersOf } from '../story.ts';
+import { useTopics } from '../use-topics.ts';
 import { Avatar, CheckMark, ContractKindBadge, MarkdownBody, RelativeTime } from './common.tsx';
 import { formatCount } from '../format.ts';
 
@@ -319,30 +319,31 @@ const ContractsBox: FC<ContractsBoxProps> = ({ number, contracts }) => {
   );
 };
 
-/** The review, chapter by chapter: what each holds, and a way in. */
-const ReviewPathBox: FC<ChecksProps> = ({ review }) => {
+/** The review topic by topic: what each is, how much it changes and its open threads, and a way in. */
+const TopicsBox: FC<ChecksProps> = ({ review }) => {
+  const topics = useTopics(review);
   const generated = review.checks.find(check => check.name === GENERATED_SIGNOFF);
   return (
-    <SidebarCard title="Review path">
-      <ol className="review-path">
-        {/* The API chapter counts operations, the rest files. */}
-        {chaptersOf(review).map(chapter => (
-          <li key={chapter.id}>
-            <Link to={`/pr/${review.pull.number}/files/${chapter.id}`}>{chapter.title}</Link>
-            <span className="muted">
-              {chapter.id === 'api'
-                ? `${review.contracts.length} operation${review.contracts.length === 1 ? '' : 's'}`
-                : `${chapter.files.length} file${chapter.files.length === 1 ? '' : 's'}`}
-            </span>
-            <span className="additions">
-              +{formatCount(chapter.files.reduce((sum, file) => sum + file.additions, 0))}
-            </span>
-            <span className="deletions">
-              −{formatCount(chapter.files.reduce((sum, file) => sum + file.deletions, 0))}
-            </span>
-          </li>
-        ))}
-      </ol>
+    <SidebarCard title="Topics">
+      {topics ? (
+        <ol className="review-path">
+          {topics.map(topic => {
+            const open = topic.threads.filter(thread => thread.resolved !== true).length;
+            return (
+              <li key={topic.id}>
+                <Link to={`/pr/${review.pull.number}/files/${topic.id}`} className="truncate">
+                  {topic.title}
+                </Link>
+                <span className="muted">{open ? `${open} open` : ''}</span>
+                <span className="additions">+{formatCount(topic.additions)}</span>
+                <span className="deletions">−{formatCount(topic.deletions)}</span>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <p className="text-muted-foreground">Reading the calls report…</p>
+      )}
       {review.files.some(file => file.category === 'generated') ? (
         <p className="mt-1 flex gap-1.5 text-xs text-muted-foreground">
           <CheckMark state={generated?.state ?? 'pending'} />
@@ -392,7 +393,7 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
           <BotCard key={report.login} review={review} report={report} />
         ))}
         <ContractsBox number={pull.number} contracts={review.contracts} />
-        <ReviewPathBox review={review} />
+        <TopicsBox review={review} />
         {pull.labels.length ? (
           <SidebarCard title="Labels">
             <div className="flex flex-wrap gap-1.5">

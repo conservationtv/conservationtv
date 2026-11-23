@@ -12,7 +12,6 @@
     "typecheck": "cf workers types && tsc -p tsconfig.worker.json && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
-    "@babel/parser": "7.29.9",
     "@conservationtv/runner": "workspace:*",
     "@conservationtv/store": "workspace:*",
     "@conservationtv/ui": "workspace:*",
@@ -29,7 +28,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@babel/types": "7.29.8",
     "@cloudflare/vite-plugin": "catalog:",
     "@tailwindcss/vite": "^4",
     "@types/node": "24.10.1",

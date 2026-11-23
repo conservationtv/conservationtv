@@ -14,15 +14,18 @@ requests around it. Nothing is written back; replies link to GitHub.
 
 ## Pages
 
-| Path                 | Shows                                                                              |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| `/`                  | Open pull requests, each stack's members together, and the recently closed ones    |
-| `/pr/<number>`       | Its description and conversation, merge state and signoffs, contract changes       |
-| `/pr/<number>/files` | Every changed file: source code open, generated files folded, line comments inline |
+| Path                     | Shows                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `/`                      | Open pull requests, each stack's members together, and the recently closed ones              |
+| `/pr/<number>`           | Its description and conversation, merge state and signoffs, contract changes                 |
+| `/pr/<number>/files`     | The change as topics, each with its calls, contract, migration, generated output and threads |
+| `/pr/<number>/files/all` | Every changed file as a tree: source code open, generated files folded                       |
+| `/results/<commit>`      | The signoffs and reports run at a commit, and each one's log                                 |
 
 ## Kinds of file
 
-Each changed file is one of these ([`src/shared/classify.ts`](src/shared/classify.ts)), in reading order:
+Each changed file is one of these ([`tools/runner/src/classify.ts`](../runner/src/classify.ts), shared with the runner),
+in reading order:
 
 | Kind          | Files                                                                                         | Shown  |
 | ------------- | --------------------------------------------------------------------------------------------- | ------ |
@@ -75,20 +78,25 @@ report is HTML that a pull request's code wrote, so every file of it is served u
 `Content-Security-Policy: sandbox` without `allow-same-origin`: the page gets an opaque origin, and cannot read this
 site's cookies or act as the signed-in reviewer.
 
-## Calls
+## Topics
 
-The source chapter opens on its calls: the functions, methods, routes and call-built values that are new or changed,
-as trees of the calls between them. Each tree starts where the change is entered, from an unchanged function that calls
-into it when there is one. It is read from syntax alone with `@babel/parser`, in the browser, from both sides of each
-TypeScript and JavaScript file: a call is matched to a changed function by the name it is written with (`this.x` within
-its class or object), so calls through variables, imports under another name or dynamic dispatch are not followed.
-**Files** shows the chapter file by file.
+The files tab reads the pull request as topics ([`src/app/topics.ts`](src/app/topics.ts)) rather than kinds of file:
+each is one thing that changed, with everything that follows from it beside it. They come from the runner's calls report
+(`pnpm signoff calls`, [`tools/runner`](../runner)), which asks TypeScript's own language server, at the head, for the
+functions, methods and values each changed source file changed and for every use of them across the workspace, so
+imports, re-exports, methods and JSX are followed as the compiler resolves them.
 
-A row is a function, and opening it shows what its name is bound to: at the merge base, the function of that name, or
-else whatever statement bound the name, such as a re-export the function replaced; at the head, the function with the
-changed top-level declarations of its file it is built from (values it reads, and for a function that was there
-before, the imports it newly uses). Under each function are the calls its caller makes to it, each opening onto its
-lines in the caller, marked as new unless the caller made the same call at the merge base.
+- **An operation** whose contract changed leads its own topic: the route hunks naming it and the units they touch,
+  then its documentation before and after, what the change means to clients, and its generated SDK and CLI, folded.
+- **A change** starts at a changed unit nothing else changed uses, and follows its uses down into whatever else
+  changed; a unit another topic already reads is linked to rather than repeated. It says where it is entered from:
+  the unchanged code that uses it.
+- **A migration** joins the topic whose code quotes one of its tables, or is a topic of its own with its snapshot.
+- What no unit covers (types, one-line values) is a topic per file, and the rest (config, docs, generated output nothing
+  claimed, the lockfile) is the last.
+
+Each topic shows only its hunks of a file, with their threads and comments; Pullfrog's open threads are counted in the
+rail. Without a calls report each changed source file is a topic. **All files** shows every file as a tree instead.
 
 ## API contracts
 

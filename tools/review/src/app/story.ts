@@ -1,58 +1,7 @@
-import type { Category, ContractChange, Review, ReviewFile } from '../shared/review.ts';
+import type { ContractChange, ReviewFile } from '../shared/review.ts';
 
-// A pull request read in the order it was made: the source code, then the migrations and contracts that follow from it,
-// then what generators wrote from those. Each chapter says what to look for in it.
-
-export type ChapterId = 'code' | 'schema' | 'api' | 'generated' | 'dependencies';
-
-export interface Chapter {
-  id: ChapterId;
-  title: string;
-  files: ReviewFile[];
-}
-
-const chapterOf = {
-  source: 'code',
-  migration: 'schema',
-  contract: 'api',
-  generated: 'generated',
-  lockfile: 'dependencies'
-} satisfies Record<Category, ChapterId>;
-
-const titles = {
-  code: 'Source code',
-  schema: 'Database',
-  api: 'API contract',
-  generated: 'Generated from it',
-  dependencies: 'Dependencies'
-} satisfies Record<ChapterId, string>;
-
-export const chapterIds: readonly ChapterId[] = ['code', 'schema', 'api', 'generated', 'dependencies'];
-
-export function isChapterId(value: string | undefined): value is ChapterId {
-  return chapterIds.some(id => id === value);
-}
-
-/**
- * The chapters this pull request has, in reading order: the API chapter whenever an operation changed.
- */
-export function chaptersOf(review: Review): Chapter[] {
-  return chapterIds
-    .map(id => ({
-      id,
-      title: titles[id],
-      files: review.files
-        .filter(file => chapterOf[file.category] === id)
-        .toSorted((a, b) => a.path.localeCompare(b.path))
-    }))
-    .filter(chapter => hasChapter(review, chapter));
-}
-
-/** A chapter is there when it has files; the API chapter shows operations instead. */
-function hasChapter(review: Review, chapter: Chapter): boolean {
-  if (chapter.id === 'api' && review.contracts.length > 0) return true;
-  return chapter.files.length > 0;
-}
+// How a pull request's parts connect: the hunks of a patch that concern something, and what an API operation's
+// change touches in it (its route, its document, what was generated for it).
 
 /** The hunks of a patch that `keep` accepts, as a patch of their own; null when none are. */
 export function keepHunks(patch: string, keep: (hunk: string) => boolean): string | null {

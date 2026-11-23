@@ -101,11 +101,11 @@ export type Tab = 'conversation' | 'files';
 interface PullPageProps {
   number: number;
   tab: Tab;
+  /** The topic shown on the files tab. */
   chapter: string | undefined;
-  operation: string | undefined;
 }
 
-export const PullPage: FC<PullPageProps> = ({ number, tab, chapter, operation }) => {
+export const PullPage: FC<PullPageProps> = ({ number, tab, chapter }) => {
   const { data, error, isPending } = useQuery(pullQueries.review(number));
   if (isPending) {
     return (
@@ -129,7 +129,7 @@ export const PullPage: FC<PullPageProps> = ({ number, tab, chapter, operation })
       <PullHeader review={data} tab={tab} />
       {/* Keyed by number: folds and viewed files belong to one pull request, not the next one in its stack. */}
       {tab === 'files' ? (
-        <ReviewView key={number} review={data} chapter={chapter} operation={operation} />
+        <ReviewView key={number} review={data} chapter={chapter} />
       ) : (
         <ConversationView review={data} />
       )}

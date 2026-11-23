@@ -1506,9 +1506,6 @@ importers:
 
   tools/review:
     dependencies:
-      '@babel/parser':
-        specifier: 7.29.9
-        version: 7.29.9
       '@conservationtv/runner':
         specifier: workspace:*
         version: link:../runner
@@ -1552,9 +1549,6 @@ importers:
         specifier: 'catalog:'
         version: 4.6.2
     devDependencies:
-      '@babel/types':
-        specifier: 7.29.8
-        version: 7.29.8
       '@cloudflare/vite-plugin':
         specifier: 'catalog:'
         version: 2.0.0-rc.1(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(workerd@1.20261117.1)
