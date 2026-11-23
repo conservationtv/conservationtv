@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Lines } from './calls.ts';
 import { startLanguageServer, type DocumentSymbol, type LanguageServer, type Location } from './lsp.ts';
@@ -29,6 +30,26 @@ export function git(root: string, args: readonly string[]): string {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
   if (result.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${result.stderr.trim()}`);
   return result.stdout;
+}
+
+/**
+ * A worktree of a commit beside the checkout at `root`, sharing its installed dependencies, so the language server
+ * resolves its imports as it does the checkout's. Remove it with `git worktree remove --force`.
+ */
+export function worktreeAt(root: string, commit: string): string {
+  const dir = mkdtempSync(path.join(tmpdir(), 'review-worktree-'));
+  git(root, ['worktree', 'add', '--detach', '--quiet', dir, commit]);
+  const packages = git(root, ['ls-files', '--', 'package.json', '*/package.json']).split('\n').filter(Boolean);
+  for (const manifest of packages) {
+    // Each package's node_modules, where both checkouts have the package.
+    const folder = path.dirname(manifest);
+    const installed = path.join(root, folder, 'node_modules');
+    const into = path.join(dir, folder);
+    if (existsSync(installed) && existsSync(into) && !existsSync(path.join(into, 'node_modules'))) {
+      symlinkSync(installed, path.join(into, 'node_modules'));
+    }
+  }
+  return dir;
 }
 
 export function overlaps(a: Lines, b: Lines): boolean {

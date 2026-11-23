@@ -1,11 +1,10 @@
 import { parse } from '@babel/parser';
 import { VISITOR_KEYS, type Node } from '@babel/types';
-import { existsSync, mkdtempSync, symlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { CallTree, CallTreeNode, ChangedUnit, Lines } from './calls.ts';
 import type { DocumentSymbol, Position } from './lsp.ts';
-import { candidates, git, linesOf, openWorkspace, overlaps, type Workspace } from './workspace.ts';
+import { candidates, git, linesOf, openWorkspace, overlaps, worktreeAt, type Workspace } from './workspace.ts';
 
 // Diffed call trees, as calldiff (github.com/tanishqkancharla/calldiff) draws them: from where a change is entered,
 // the calls each function makes, in order, at the merge base and at the head, so a call that appeared, went or moved
@@ -225,26 +224,6 @@ function markMoves(tree: CallTreeNode): CallTreeNode {
   return mark(tree);
 }
 
-/**
- * A worktree of the merge base beside the checkout, sharing its installed dependencies, so the language server
- * resolves the base's imports as it does the head's.
- */
-function baseWorktree(root: string, base: string): string {
-  const dir = mkdtempSync(path.join(tmpdir(), 'calls-base-'));
-  git(root, ['worktree', 'add', '--detach', '--quiet', dir, base]);
-  const packages = git(root, ['ls-files', '--', 'package.json', '*/package.json']).split('\n').filter(Boolean);
-  for (const manifest of packages) {
-    // Each package's node_modules, where both sides have the package.
-    const folder = path.dirname(manifest);
-    const installed = path.join(root, folder, 'node_modules');
-    const into = path.join(dir, folder);
-    if (existsSync(installed) && existsSync(into) && !existsSync(path.join(into, 'node_modules'))) {
-      symlinkSync(installed, path.join(into, 'node_modules'));
-    }
-  }
-  return dir;
-}
-
 /** The changed functions at the base: those whose lines the pull request removed or changed. */
 async function baseChanged(workspace: Workspace, lines: Map<string, Lines[]>): Promise<Set<string>> {
   const keys = new Set<string>();
@@ -279,7 +258,7 @@ export interface TreeInput {
 
 /** The diffed call tree from each root, base against head. */
 export async function callTrees(input: TreeInput): Promise<CallTree[]> {
-  const dir = baseWorktree(input.root, input.base);
+  const dir = worktreeAt(input.root, input.base);
   const baseWorkspace = await openWorkspace(dir);
   try {
     const headChanged = new Set(input.units.map(unit => keyOf(unit.path, unit.name)));

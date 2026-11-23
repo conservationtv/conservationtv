@@ -6,6 +6,7 @@
 //   pnpm signoff lint typecheck     some
 //   pnpm signoff --no-upload        give them without uploading anything
 //   pnpm signoff --no-signoff       run and upload, without giving any
+//   pnpm signoff calls --pr 157     make a report for any pull request, from a worktree of its head
 //   REVIEW_URL=http://localhost:6423 pnpm signoff test   upload to a local review tool
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -15,6 +16,11 @@ import { callsReport } from './report-calls.ts';
 import { reports, type Report } from './reports.ts';
 import { LOG_FILE, RESULT_FILE, type RunResult } from './results.ts';
 import { signoffs, type Signoff } from './signoffs.ts';
+import { worktreeAt } from './workspace.ts';
+import { z } from 'zod';
+
+const PullRefsSchema = z.object({ headRefOid: z.string(), baseRefOid: z.string() });
+type PullRefs = z.output<typeof PullRefsSchema>;
 
 const REVIEW_URL = process.env.REVIEW_URL ?? 'https://review.tools.conservation.tv';
 // Escape sequences for colour and cursor movement: kept on the terminal, left out of the uploaded log.
@@ -130,8 +136,14 @@ function mergeBase(): string {
   return output('git', ['merge-base', `origin/${branch}`, 'HEAD']);
 }
 
+/** Where a report is made: a checkout, and the merge base it is diffed against. */
+interface Where {
+  root: string;
+  base: string;
+}
+
 /** Makes a report: what it wrote, and a log that sums it up; failed only when it could not be made. */
-async function makeReport(report: Report, sha: string): Promise<Outcome> {
+async function makeReport(report: Report, sha: string, where: () => Where): Promise<Outcome> {
   const started = Date.now();
   const result: RunResult = {
     signoff: report.name,
@@ -144,8 +156,8 @@ async function makeReport(report: Report, sha: string): Promise<Outcome> {
     files: []
   };
   try {
-    const base = mergeBase();
-    const calls = await callsReport(process.cwd(), sha, base);
+    const { root, base } = where();
+    const calls = await callsReport(root, sha, base);
     const log = `Against ${base.slice(0, 7)}: ${calls.units.length} changed units, ${calls.calls.length} uses.\n`;
     console.log(`\n${report.label}: ${log}`);
     return {
@@ -208,6 +220,51 @@ function summary(signoff: Signoff | Report, { result, refusal }: Outcome): strin
   return `${mark} ${signoff.label} (${seconds}s)${why ? `: ${why}` : ''}`;
 }
 
+/** A pull request's checkout to make reports in: its head, and the merge base it is diffed against. */
+interface PullCheckout extends Where {
+  head: string;
+}
+
+/** A pull request's head and the base it was opened against, as GitHub has them; merged or not. */
+function pullRefs(number: number): PullCheckout {
+  const json = output('gh', ['pr', 'view', String(number), '--json', 'headRefOid,baseRefOid']);
+  const refs: PullRefs = PullRefsSchema.parse(JSON.parse(json));
+  const { headRefOid: head, baseRefOid } = refs;
+  output('git', ['fetch', '--quiet', 'origin', head, baseRefOid]);
+  return { root: process.cwd(), head, base: output('git', ['merge-base', baseRefOid, head]) };
+}
+
+/**
+ * Makes the reports for any pull request, from a worktree of its head: signoffs are given only from a checkout of
+ * the commit, so only reports are made this way.
+ */
+async function reportPull(number: number, chosenReports: readonly Report[], token: string | null): Promise<number> {
+  const { root, head, base } = pullRefs(number);
+  const dir = worktreeAt(root, head);
+  try {
+    const lines: string[] = [];
+    for (const report of chosenReports) {
+      const outcome = await makeReport(report, head, () => ({ root: dir, base }));
+      await share(token, outcome);
+      lines.push(summary(report, outcome));
+    }
+    console.log(`\n#${number} at ${head.slice(0, 7)}:\n${lines.join('\n')}`);
+    if (token) console.log(`Results: ${REVIEW_URL}/results/${head}`);
+    return 0;
+  } finally {
+    output('git', ['worktree', 'remove', '--force', dir]);
+  }
+}
+
+/** `--pr`: a pull request's reports. Signoffs are given only from a checkout of the commit, so naming one is refused. */
+function fromPull(number: number, names: readonly string[], choice: Chosen, noUpload: boolean): Promise<number> {
+  if (names.some(name => signoffs.some(signoff => signoff.name === name))) {
+    console.error('--pr makes reports only: sign a pull request off from a checkout of it.');
+    return Promise.resolve(1);
+  }
+  return reportPull(number, choice.reports, noUpload ? null : output('gh', ['auth', 'token']));
+}
+
 /**
  * Refuses a working tree with changes, as a signoff is of a commit; then runs each chosen signoff and sums them up,
  * failing when any did.
@@ -217,10 +274,12 @@ async function main(): Promise<number> {
     allowPositionals: true,
     options: {
       'no-upload': { type: 'boolean', default: false },
-      'no-signoff': { type: 'boolean', default: false }
+      'no-signoff': { type: 'boolean', default: false },
+      pr: { type: 'string' }
     }
   });
   const choice = chosen(positionals);
+  if (values.pr) return fromPull(Number(values.pr), positionals, choice, values['no-upload']);
   if (changedFiles().length) {
     console.error('The working tree has changes: commit or stash them, so the signoffs are of the commit.');
     return 1;
@@ -234,7 +293,7 @@ async function main(): Promise<number> {
   let failed = false;
   // Reports first: they read the commit and change nothing.
   for (const report of choice.reports) {
-    const outcome = await makeReport(report, sha);
+    const outcome = await makeReport(report, sha, () => ({ root: process.cwd(), base: mergeBase() }));
     await share(sharing.token, outcome);
     lines.push(summary(report, outcome));
   }

@@ -70,10 +70,10 @@ function chosenTopic(topics: readonly Topic[], chapter: string | undefined): Top
   return topics.find(topic => topic.id === chapter) ?? topics[0] ?? null;
 }
 
-/** How the topics were found: from the calls report, or file by file without one. */
+/** How the topics were found, or that they can't be without a calls report. */
 function summaryOf(topics: readonly Topic[], fromCalls: boolean): string {
   if (fromCalls) return `${topics.length} topics, from the calls into what changed`;
-  return 'Topics by file: run pnpm signoff calls for topics by the calls between them';
+  return 'Every file: no calls report at this commit yet';
 }
 
 /** The topics, from the calls report once it has loaded; the one asked for, or the whole list of files. */
@@ -93,7 +93,8 @@ const Topics: FC<ReviewViewProps> = ({ review, chapter }) => {
       </main>
     );
   }
-  const topics = topicsOf(review, calls.data ?? null);
+  // Without a calls report there are no topics worth the name: every file, as a tree, says so and how to make one.
+  const topics = calls.data ? topicsOf(review, calls.data) : [];
   const context: ReadingContext = { review, viewer, viewed, drafts, diffStyle, wrap };
   const topic = chosenTopic(topics, chapter);
   return (
@@ -191,6 +192,7 @@ interface TopicRailProps {
 /** The topics in reading order, each with how much it changes and the threads still open on it; then every file. */
 const TopicRail: FC<TopicRailProps> = ({ review, topics, current }) => (
   <nav aria-label="Topics" className="flex flex-col gap-0.5 p-2">
+    {topics.length ? null : <NoReport review={review} />}
     {topics.map(topic => (
       <RailItem key={topic.id} review={review} topic={topic} current={topic.id === current} />
     ))}
@@ -204,6 +206,21 @@ const TopicRail: FC<TopicRailProps> = ({ review, topics, current }) => (
       All {review.files.length} files, as a tree
     </Link>
   </nav>
+);
+
+interface NoReportProps {
+  review: Review;
+}
+
+/** No calls report at the head: what topics would give, and the command that makes the report. */
+const NoReport: FC<NoReportProps> = ({ review }) => (
+  <div className="flex flex-col gap-2 rounded-md border border-dashed border-border p-3 text-[13px]">
+    <p className="font-medium">No calls report at {review.pull.headSha.slice(0, 7)}</p>
+    <p className="text-muted-foreground">
+      Topics and their call trees come from the runner's calls report, made with TypeScript's language server:
+    </p>
+    <code className="rounded bg-muted px-2 py-1 text-xs select-all">pnpm signoff calls --pr {review.pull.number}</code>
+  </div>
 );
 
 interface RailItemProps {
