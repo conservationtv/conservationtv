@@ -5,6 +5,7 @@ import { Button } from '@conservationtv/ui/components/button';
 import { cn } from '@conservationtv/ui/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import type { FC } from 'react';
+import { isReviewBot } from '../../shared/bots.ts';
 import type { ContractChange, Review } from '../../shared/review.ts';
 import { pullQueries } from '../api.ts';
 import { formatCount } from '../format.ts';
@@ -16,6 +17,7 @@ import type { Viewer } from './DiffList.tsx';
 import { Link } from './Link.tsx';
 import { OperationDocsView } from './OperationDocs.tsx';
 import { ThreadView } from './ThreadView.tsx';
+import { TopicBotThreads } from './TopicBotThreads.tsx';
 
 // The top of a topic: what it is, the operation it serves and what its contract change means to clients, the calls
 // it is made of (each opening its diff below), where it is entered from, and what was generated from it.
@@ -150,7 +152,10 @@ const GeneratedNote: FC<TopicIntroProps> = ({ review, topic }) => {
 
 /** Each part of a topic's introduction, when it has one: operations, calls, callers, threads, generated output. */
 export const TopicIntro: FC<TopicIntroProps> = ({ review, topic, viewer }) => {
-  const outdated = topic.threads.filter(thread => thread.line === null);
+  // Threads on code that has since changed have no line to sit on below; a review bot's are at the top already.
+  const outdated = topic.threads.filter(
+    thread => thread.line === null && !isReviewBot(thread.comments[0]?.author.login ?? '')
+  );
   return (
     <header className="intro flex flex-col gap-3">
       <div>
@@ -162,6 +167,7 @@ export const TopicIntro: FC<TopicIntroProps> = ({ review, topic, viewer }) => {
         </h2>
         {topic.subtitle ? <p className="font-mono text-xs text-muted-foreground">{topic.subtitle}</p> : null}
       </div>
+      <TopicBotThreads threads={topic.threads} viewer={viewer} />
       {topic.operations.map(change => (
         <OperationBlock key={change.operation} review={review} change={change} />
       ))}
