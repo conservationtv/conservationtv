@@ -1,6 +1,6 @@
-// Signs a commit off on this machine: `pnpm signoff [name…]` runs each signoff (src/signoffs.ts) at the checked-out
-// commit, uploads its log and result to the review tool, and gives the ones that passed with `gh signoff`, linking each
-// status to its result there. With no names, every signoff runs.
+// Signs a commit off on this machine: `pnpm signoff [name…]` makes each report (src/reports.ts) and runs each signoff
+// (src/signoffs.ts) at the checked-out commit, uploads what it found to the review tool, and gives the signoffs that
+// passed with `gh signoff`, linking each status to its result there. With no names, every report and signoff runs.
 //
 //   pnpm signoff                    every signoff
 //   pnpm signoff lint typecheck     some
@@ -10,6 +10,9 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
+import { CALLS_FILE } from './calls.ts';
+import { callsReport } from './report-calls.ts';
+import { reports, type Report } from './reports.ts';
 import { LOG_FILE, RESULT_FILE, type RunResult } from './results.ts';
 import { signoffs, type Signoff } from './signoffs.ts';
 
@@ -52,6 +55,8 @@ function run(command: string, log: string[]): Promise<number> {
 interface Outcome {
   result: RunResult;
   log: string;
+  /** Files a report wrote, by name, uploaded before its result. */
+  files?: Record<string, string>;
   /** Why `gh signoff` would not give a run that passed. */
   refusal?: string | null;
 }
@@ -103,21 +108,66 @@ function resultUrl(sha: string, signoff: string): string {
   return `${REVIEW_URL}/results/${sha}/${signoff}`;
 }
 
-/** The signoffs named on the command line, in their own order; all of them when none are named. */
-function chosen(names: readonly string[]): Signoff[] {
-  const unknown = names.filter(name => !signoffs.some(signoff => signoff.name === name));
-  if (unknown.length) {
-    const known = signoffs.map(signoff => signoff.name).join(', ');
-    throw new Error(`No signoff named ${unknown.join(', ')}. There are: ${known}.`);
+interface Chosen {
+  reports: Report[];
+  signoffs: Signoff[];
+}
+
+/** The reports and signoffs named on the command line, in their own order; all of them when none are named. */
+function chosen(names: readonly string[]): Chosen {
+  const all = [...reports, ...signoffs].map(each => each.name);
+  const unknown = names.filter(name => !all.includes(name));
+  if (unknown.length) throw new Error(`Nothing is named ${unknown.join(', ')}. There are: ${all.join(', ')}.`);
+  const named = <T extends Report | Signoff>(list: readonly T[]) =>
+    names.length ? list.filter(each => names.includes(each.name)) : [...list];
+  return { reports: named(reports), signoffs: named(signoffs) };
+}
+
+/** Where the pull request left its base branch: `gh` names the base, else it is main. */
+function mergeBase(): string {
+  const pull = spawnSync('gh', ['pr', 'view', '--json', 'baseRefName', '--jq', '.baseRefName'], { encoding: 'utf8' });
+  const branch = pull.status === 0 && pull.stdout.trim() ? pull.stdout.trim() : 'main';
+  return output('git', ['merge-base', `origin/${branch}`, 'HEAD']);
+}
+
+/** Makes a report: what it wrote, and a log that sums it up; failed only when it could not be made. */
+async function makeReport(report: Report, sha: string): Promise<Outcome> {
+  const started = Date.now();
+  const result: RunResult = {
+    signoff: report.name,
+    sha,
+    state: 'success',
+    reason: null,
+    startedAt: new Date(started).toISOString(),
+    durationMs: 0,
+    ranBy: '',
+    files: []
+  };
+  try {
+    const base = mergeBase();
+    const calls = await callsReport(process.cwd(), sha, base);
+    const log = `Against ${base.slice(0, 7)}: ${calls.units.length} changed units, ${calls.calls.length} uses.\n`;
+    console.log(`\n${report.label}: ${log}`);
+    return {
+      result: { ...result, durationMs: Date.now() - started },
+      log,
+      files: { [CALLS_FILE]: JSON.stringify(calls) }
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { result: { ...result, state: 'failure', reason, durationMs: Date.now() - started }, log: `${reason}\n` };
   }
-  return names.length ? signoffs.filter(signoff => names.includes(signoff.name)) : [...signoffs];
 }
 
 /** Uploads a run's log and then its result, which marks it complete; a failed upload is said, not fatal. */
-async function share(token: string | null, { result, log }: Outcome): Promise<boolean> {
+async function share(token: string | null, outcome: Outcome): Promise<boolean> {
+  const { result, log } = outcome;
   if (!token) return false;
   try {
     await upload(token, result.sha, result.signoff, LOG_FILE, log);
+    for (const [file, body] of Object.entries(outcome.files ?? {})) {
+      await upload(token, result.sha, result.signoff, file, body);
+    }
     await upload(token, result.sha, result.signoff, RESULT_FILE, JSON.stringify(result));
     return true;
   } catch (error) {
@@ -151,7 +201,7 @@ async function signOff(signoff: Signoff, sha: string, sharing: Sharing): Promise
 }
 
 /** A run in a line, for the summary at the end. */
-function summary(signoff: Signoff, { result, refusal }: Outcome): string {
+function summary(signoff: Signoff | Report, { result, refusal }: Outcome): string {
   const seconds = Math.round(result.durationMs / 1000);
   const mark = result.state === 'success' ? '✓' : '✕';
   const why = result.reason ?? refusal;
@@ -170,7 +220,7 @@ async function main(): Promise<number> {
       'no-signoff': { type: 'boolean', default: false }
     }
   });
-  const chosenSignoffs = chosen(positionals);
+  const choice = chosen(positionals);
   if (changedFiles().length) {
     console.error('The working tree has changes: commit or stash them, so the signoffs are of the commit.');
     return 1;
@@ -182,7 +232,13 @@ async function main(): Promise<number> {
   };
   const lines: string[] = [];
   let failed = false;
-  for (const signoff of chosenSignoffs) {
+  // Reports first: they read the commit and change nothing.
+  for (const report of choice.reports) {
+    const outcome = await makeReport(report, sha);
+    await share(sharing.token, outcome);
+    lines.push(summary(report, outcome));
+  }
+  for (const signoff of choice.signoffs) {
     // One at a time, in the listed order: a signoff that leaves the tree changed stops the rest, as they would no
     // longer be of the commit.
     const outcome = await signOff(signoff, sha, sharing);

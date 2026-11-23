@@ -1,8 +1,9 @@
+import { categories } from '@conservationtv/runner/classify';
 import { z } from 'zod';
 
 // What the Worker serves the app. The Worker builds these from GitHub's public data; the app parses them back.
 
-export const CategorySchema = z.enum(['source', 'migration', 'contract', 'generated', 'lockfile']);
+export const CategorySchema = z.enum(categories);
 export type Category = z.output<typeof CategorySchema>;
 
 export const PersonSchema = z.object({ login: z.string(), avatarUrl: z.url(), url: z.url() });

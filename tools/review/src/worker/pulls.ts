@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { classify } from '../shared/classify.ts';
+import { classify, headerLine } from '@conservationtv/runner/classify';
 import type {
   Check,
   CheckState,
@@ -111,7 +111,7 @@ async function files(number: number, changedFiles: number): Promise<ReviewFile[]
       additions: file.additions,
       deletions: file.deletions,
       patch,
-      ...classify(file.filename, patch)
+      ...classify(file.filename, headerLine(patch))
     };
   });
 }
