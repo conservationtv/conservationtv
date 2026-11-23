@@ -11,7 +11,7 @@
 //   REVIEW_URL=http://localhost:6423 pnpm signoff test   upload to a local review tool
 
 import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync, rmSync } from 'node:fs';
+import { rmSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { CALLS_FILE } from './calls.ts';
@@ -20,6 +20,7 @@ import { filesUnder, scenariosReport } from './report-scenarios.ts';
 import { reports, type Report } from './reports.ts';
 import { LOG_FILE, RESULT_FILE, type RunResult } from './results.ts';
 import { signoffs, type Signoff } from './signoffs.ts';
+import { putFile, uploadRun, type Destination, type Upload } from './upload.ts';
 import { worktreeAt } from './workspace.ts';
 import { z } from 'zod';
 
@@ -62,20 +63,6 @@ function run(command: string, log: string[]): Promise<number> {
   });
 }
 
-/** A file a report wrote, held in memory: its name under the run, and what it holds. */
-interface WrittenUpload {
-  name: string;
-  body: string;
-}
-
-/** A file a report wrote to disk: its name under the run, and where it is. */
-interface FileUpload {
-  name: string;
-  path: string;
-}
-
-type Upload = WrittenUpload | FileUpload;
-
 interface Outcome {
   result: RunResult;
   log: string;
@@ -117,22 +104,6 @@ async function runSignoff(signoff: Signoff, sha: string): Promise<Outcome> {
     files: []
   };
   return { result, log: log.join('') };
-}
-
-/** Puts one file of a run in the review tool's results, as the GitHub user `gh` is signed in as. */
-async function upload(
-  token: string,
-  sha: string,
-  signoff: string,
-  file: string,
-  body: string | Uint8Array
-): Promise<void> {
-  const response = await fetch(`${REVIEW_URL}/api/results/${sha}/${signoff}/${file}`, {
-    method: 'PUT',
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
-    body
-  });
-  if (!response.ok) throw new Error(`Uploading ${file} answered ${response.status}: ${await response.text()}`);
 }
 
 /** Where a signoff's result is read in the review tool: what its commit status links to. */
@@ -230,26 +201,19 @@ async function makeReport(report: Report, sha: string, where: () => Where): Prom
   }
 }
 
-/** How many of a report's files are uploaded at once. */
-const UPLOADS_AT_ONCE = 8;
-
-/** Uploads a run's log and then its result, which marks it complete; a failed upload is said, not fatal. */
+/**
+ * Uploads a run's log, then the files a report wrote (images by content, only those the review tool hasn't got), then
+ * its result, which marks it complete; a failed upload is said, not fatal.
+ */
 async function share(token: string | null, outcome: Outcome): Promise<boolean> {
   const { result, log } = outcome;
   if (!token) return false;
+  const to: Destination = { reviewUrl: REVIEW_URL, token, sha: result.sha, run: result.signoff };
   try {
-    await upload(token, result.sha, result.signoff, LOG_FILE, log);
-    const uploads = outcome.uploads ?? [];
-    for (let index = 0; index < uploads.length; index += UPLOADS_AT_ONCE) {
-      // A few at a time: a screenshot report is thousands of images.
-      await Promise.all(
-        uploads.slice(index, index + UPLOADS_AT_ONCE).map(file => {
-          const body = 'body' in file ? file.body : readFileSync(file.path);
-          return upload(token, result.sha, result.signoff, file.name, body);
-        })
-      );
-    }
-    await upload(token, result.sha, result.signoff, RESULT_FILE, JSON.stringify(result));
+    await putFile(to, LOG_FILE, log);
+    const { sent, reused } = await uploadRun(to, outcome.uploads ?? []);
+    if (reused) console.log(`${result.signoff}: sent ${sent} files; ${reused} the review tool had already.`);
+    await putFile(to, RESULT_FILE, JSON.stringify(result));
     return true;
   } catch (error) {
     console.error(`\nCould not upload ${result.signoff}'s result: ${error instanceof Error ? error.message : error}`);
