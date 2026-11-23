@@ -1,10 +1,9 @@
 import type { z } from 'zod';
-import { classify } from '../shared/classify.ts';
+import { classify, headerLine } from '@conservationtv/runner/classify';
 import type {
   Check,
   CheckState,
   ConversationEntry,
-  Diffmap,
   PullList,
   PullState,
   PullSummary,
@@ -19,15 +18,17 @@ import {
   CompareSchema,
   IssueCommentsSchema,
   PullDetailSchema,
-  type IssueComments,
   PullFilesSchema,
   PullListItemsSchema,
   ReviewCommentsSchema,
   ReviewsSchema,
+  ReviewThreadsSchema,
   useGitHub,
   type Freshness,
+  type GraphQLVariables,
   type PullListItem,
-  type Reviews
+  type Reviews,
+  type ReviewThreads
 } from './github.ts';
 import { openStacks, stackOf } from './stack.ts';
 
@@ -110,7 +111,7 @@ async function files(number: number, changedFiles: number): Promise<ReviewFile[]
       additions: file.additions,
       deletions: file.deletions,
       patch,
-      ...classify(file.filename, patch)
+      ...classify(file.filename, headerLine(patch))
     };
   });
 }
@@ -166,67 +167,89 @@ function reviewEntry(review: Reviews[number]): ConversationEntry[] {
       body: review.body ?? '',
       createdAt: review.submitted_at,
       url: review.html_url,
-      review: review.state
+      review: review.state,
+      commitId: review.commit_id
     }
   ];
 }
 
-/** The comment `.github/workflows/diffmap.yml` keeps, naming the gist it shared and the commit it was written from. */
-const DIFFMAP_MARKER = /<!-- diffmap gist=([0-9a-f]{32}) sha=([0-9a-f]{40}) -->/;
-/** Only the workflow's own comments count, so no one else can put a page in front of the review. */
-const DIFFMAP_AUTHOR = 'github-actions[bot]';
-
-/** The diffmap a comment names: null unless the workflow wrote it and it carries the whole marker. */
-function diffmapOf(comment: IssueComments[number]): Diffmap | null {
-  if (comment.user.login !== DIFFMAP_AUTHOR) return null;
-  const [, gistId, sha] = comment.body?.match(DIFFMAP_MARKER) ?? [];
-  if (!gistId || !sha) return null;
-  return { gistId, sha, url: `https://diffmap.dev/g/${gistId}` };
-}
-
-/** The latest diffmap the workflow shared; it edits one comment in place, but the newest wins either way. */
-function latestDiffmap(comments: IssueComments): Diffmap | null {
-  return comments.map(diffmapOf).findLast(found => found !== null) ?? null;
-}
-
-interface Conversation {
-  entries: ConversationEntry[];
-  diffmap: Diffmap | null;
-}
-
-/**
- * The pull request's comments and submitted reviews with something to say, oldest first, and its diffmap. The diffmap
- * comment is left out of the conversation: the files tab opens on the map itself.
- */
-async function conversation(number: number): Promise<Conversation> {
+/** The pull request's comments and submitted reviews with something to say, oldest first. */
+async function conversation(number: number): Promise<ConversationEntry[]> {
   const [comments, reviews] = await Promise.all([
     allPages(`issues/${number}/comments`, IssueCommentsSchema, 'live'),
     allPages(`pulls/${number}/reviews`, ReviewsSchema, 'live')
   ]);
   const entries: ConversationEntry[] = [
-    ...comments
-      .filter(comment => diffmapOf(comment) === null)
-      .map(comment => ({
-        id: comment.id,
-        author: comment.user,
-        body: comment.body ?? '',
-        createdAt: comment.created_at,
-        url: comment.html_url,
-        review: null
-      })),
+    ...comments.map(comment => ({
+      id: comment.id,
+      author: comment.user,
+      body: comment.body ?? '',
+      createdAt: comment.created_at,
+      url: comment.html_url,
+      review: null,
+      commitId: null
+    })),
     ...reviews.flatMap(reviewEntry)
   ];
-  return {
-    entries: entries.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt)),
-    diffmap: latestDiffmap(comments)
-  };
+  return entries.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-/** Line comments, gathered into the threads their replies form. */
+const REVIEW_THREADS = `
+  query ($owner: String!, $name: String!, $number: Int!, $after: String) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes { id isResolved isOutdated comments(first: 1) { nodes { databaseId } } }
+        }
+      }
+    }
+  }
+`;
+
+/** What GraphQL knows of a thread that REST doesn't, by the id of its first comment. */
+interface ThreadState {
+  id: string;
+  resolved: boolean;
+}
+
+/** Each thread's GraphQL id and whether it is resolved; empty without a token, which GraphQL needs. */
+async function threadStates(number: number): Promise<Map<number, ThreadState>> {
+  const github = useGitHub();
+  const [owner = '', name = ''] = github.repository.split('/');
+  const states = new Map<number, ThreadState>();
+  let after: string | null = null;
+  for (let page = 0; page < MAX_COMMENT_PAGES; page++) {
+    // A page at a time, up to the same cap as REST listings: each thread keyed by its first comment's id, which is how
+    // REST's line comments name it. No token answers nothing, and the threads then read without their state.
+    const variables: GraphQLVariables = { owner, name, number, after };
+    const result: ReviewThreads | null = await github.graphql(REVIEW_THREADS, variables, ReviewThreadsSchema, 'live');
+    if (!result) break;
+    const { nodes, pageInfo } = result.repository.pullRequest.reviewThreads;
+    for (const node of nodes) {
+      const first = node.comments.nodes[0]?.databaseId;
+      if (first != null) states.set(first, { id: node.id, resolved: node.isResolved });
+    }
+    if (!pageInfo.hasNextPage) break;
+    after = pageInfo.endCursor;
+  }
+  return states;
+}
+
+/** Line comments, gathered into the threads their replies form, each with whether it is resolved. */
 async function threads(number: number): Promise<Thread[]> {
-  const comments = await allPages(`pulls/${number}/comments`, ReviewCommentsSchema, 'live');
+  const [comments, states] = await Promise.all([
+    allPages(`pulls/${number}/comments`, ReviewCommentsSchema, 'live'),
+    // A thread still reads without its state: GraphQL is only what REST leaves out.
+    threadStates(number).catch((error: Error) => {
+      console.error(error);
+      return new Map<number, ThreadState>();
+    })
+  ]);
   const byRoot = new Map<number, Thread>();
   for (const comment of comments.toSorted((a, b) => a.created_at.localeCompare(b.created_at))) {
+    // Oldest first, so each reply lands in the thread its first comment started; a thread takes its place, review and
+    // state from that first comment.
     const entry = {
       id: comment.id,
       author: comment.user,
@@ -239,7 +262,11 @@ async function threads(number: number): Promise<Thread[]> {
       root.comments.push(entry);
       continue;
     }
+    const state = states.get(comment.id);
     byRoot.set(comment.id, {
+      id: state?.id ?? null,
+      reviewId: comment.pull_request_review_id,
+      resolved: state ? state.resolved : null,
       path: comment.path,
       line: comment.line,
       side: comment.side === 'LEFT' ? 'deletions' : 'additions',
@@ -279,11 +306,10 @@ export async function review(number: number): Promise<Review> {
     },
     files: changed,
     checks: checkList,
-    conversation: talk.entries,
+    conversation: talk,
     threads: threadList,
     // The listing can lag this pull request's own state; this one is current.
     stack: stackOf(current, [current, ...pulls.filter(other => other.number !== number)]),
-    contracts: await contractChanges(changed, mergeBaseSha, pull.head.sha),
-    diffmap: talk.diffmap
+    contracts: await contractChanges(changed, mergeBaseSha, pull.head.sha)
   };
 }

@@ -9,6 +9,18 @@ export const ErrorSchema = z.object({
 
 export const CameraSchema = z.object({
     cameras: z.array(z.object({
+        device: z.object({
+            name: z.string(),
+            createdAt: z.string(),
+            publicKey: z.string(),
+            kind: z.enum([
+                'agent',
+                'camera',
+                'browser'
+            ]),
+            networkId: z.string().nullable(),
+            publicId: z.string()
+        }).nullable(),
         id: z.string(),
         settings: z.union([
             z.object({
@@ -26,19 +38,7 @@ export const CameraSchema = z.object({
             'enabled',
             'locked',
             'disabled'
-        ]),
-        device: z.object({
-            name: z.string(),
-            createdAt: z.string(),
-            publicKey: z.string(),
-            kind: z.enum([
-                'agent',
-                'camera',
-                'browser'
-            ]),
-            networkId: z.string().nullable(),
-            publicId: z.string()
-        }).nullable()
+        ])
     }))
 });
 

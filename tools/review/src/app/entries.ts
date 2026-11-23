@@ -1,10 +1,8 @@
-import { parseDiffFromFile, type FileDiffMetadata } from '@pierre/diffs';
-import type { OperationDocs } from '../shared/operation.ts';
-import type { Category, ContractChange, FileStatus, ReviewFile } from '../shared/review.ts';
+import type { FileDiffMetadata } from '@pierre/diffs';
+import type { Category, FileStatus, ReviewFile } from '../shared/review.ts';
 import { patchDiff } from './diffs.ts';
-import type { Connection } from './story.ts';
 
-/** One diff in a chapter: a changed file, the part of one that concerns an operation, or an operation's contract. */
+/** One diff in a topic or the list of files: a changed file, or the part of one a topic is about. */
 export interface Entry {
   id: string;
   title: string;
@@ -18,8 +16,10 @@ export interface Entry {
   additions: number;
   deletions: number;
   folded: boolean;
-  /** The changed file, when the entry shows it whole: it can be marked viewed, loaded in full and commented on. */
+  /** The changed file, when the entry shows it whole: it can be marked viewed and loaded in full. */
   file: ReviewFile | null;
+  /** The changed file its lines are of, whole or in part: its threads show and it takes comments on those lines. */
+  source: ReviewFile | null;
   diff: FileDiffMetadata;
 }
 
@@ -43,64 +43,27 @@ export function fileEntry(file: ReviewFile, folded: boolean): Entry {
     deletions: file.deletions,
     folded,
     file,
+    source: file,
     diff: patchDiff(file)
   };
 }
 
-const roleTags = {
-  route: 'route',
-  contract: 'API document',
-  generated: null
-} satisfies Record<Connection['role'], string | null>;
-
-/** A file as it concerns an operation: whole when it is the operation's alone, otherwise the hunks naming it. */
-export function connectionEntry(connection: Connection, operation: string, folded: boolean): Entry {
-  const { file } = connection;
-  const diff = patchDiff({ ...file, patch: connection.patch });
-  diff.cacheKey = `${diff.cacheKey}:${operation}`;
+/** Some of a file's hunks, as one topic shows them: commented on like the whole file, but not marked viewed. */
+export function partEntry(file: ReviewFile, patch: string, topic: string, folded: boolean): Entry {
+  const diff = patchDiff({ ...file, patch });
+  diff.cacheKey = `${diff.cacheKey}:${topic}`;
   return {
-    id: `${operation}:${file.path}`,
+    id: file.path,
     title: file.path,
     previousTitle: file.previousPath,
     status: file.status,
     category: file.category,
-    tag: roleTags[connection.role] ?? file.generator,
-    note: connection.partial ? `Only the hunks naming ${operation.slice(0, operation.lastIndexOf('@'))}` : null,
-    ...(connection.partial ? counts(diff) : { additions: file.additions, deletions: file.deletions }),
-    folded,
-    file: connection.partial ? null : file,
-    diff
-  };
-}
-
-const contractStatuses = {
-  added: 'added',
-  changed: 'modified',
-  removed: 'removed'
-} satisfies Record<ContractChange['kind'], FileStatus>;
-
-/** An operation's contract as the checks compare it, before and after, as a diff of its own. */
-export function contractEntry(change: ContractChange, docs: OperationDocs): Entry {
-  const name = `${change.operation}.contract.json`;
-  const before = docs.before?.contract;
-  const after = docs.after?.contract;
-  const diff = parseDiffFromFile(
-    before === undefined ? null : { name, contents: before },
-    after === undefined ? null : { name, contents: after }
-  );
-  diff.cacheKey = `contract:${change.document}:${change.operation}:${before?.length}:${after?.length}`;
-  return {
-    id: `${change.operation}:contract`,
-    title: name,
-    previousTitle: null,
-    status: contractStatuses[change.kind],
-    category: 'contract',
-    tag: 'contract',
-    note: 'References resolved, descriptions left out: exactly what the contracts check compares',
+    tag: file.generator,
+    note: 'The part this topic is about; the rest of the file is in another',
     ...counts(diff),
-    // The documentation above reads the same change; this is its proof.
-    folded: true,
+    folded,
     file: null,
+    source: file,
     diff
   };
 }

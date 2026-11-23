@@ -1,3 +1,5 @@
+import { Button } from '@conservationtv/ui/components/button';
+import { Textarea } from '@conservationtv/ui/components/textarea';
 import { useState, type FC, type KeyboardEvent } from 'react';
 
 export interface ComposerAction {
@@ -54,11 +56,12 @@ export const Composer: FC<ComposerProps> = ({ placeholder, actions, onCancel, au
   }
 
   return (
-    <div className="composer">
-      <textarea
+    <div className="flex flex-col gap-2">
+      <Textarea
         value={body}
         placeholder={placeholder}
         rows={3}
+        className="min-h-18 resize-y text-sm md:text-sm"
         // oxlint-disable-next-line jsx-a11y/no-autofocus -- opened by the reviewer to write in straight away.
         autoFocus={autoFocus}
         disabled={sending !== null}
@@ -68,23 +71,23 @@ export const Composer: FC<ComposerProps> = ({ placeholder, actions, onCancel, au
         }}
         onKeyDown={onKeyDown}
       />
-      {error ? <p className="error-text small">{error}</p> : null}
-      <div className="composer-actions">
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      <div className="flex flex-wrap justify-end gap-1.5">
         {onCancel ? (
-          <button type="button" className="button" onClick={onCancel} disabled={sending !== null}>
+          <Button variant="outline" onClick={onCancel} disabled={sending !== null}>
             Cancel
-          </button>
+          </Button>
         ) : null}
         {actions.map(action => (
-          <button
+          <Button
             key={action.label}
-            type="button"
-            className={action.primary ? 'button primary' : 'button'}
+            variant={action.primary ? 'default' : 'outline'}
             disabled={!ready(action)}
+            loading={sending === action.label}
             onClick={() => void run(action)}
           >
-            {sending === action.label ? 'Sending…' : action.label}
-          </button>
+            {action.label}
+          </Button>
         ))}
       </div>
     </div>

@@ -182,8 +182,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('create', { description: 'Invite someone\n\nAdministrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days.' }).command('v1', {
-        description: 'Invite someone\n\nAdministrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days.',
+    })).command(Cli.create('create', { description: 'Invite someone\n\nAdministrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days. Inviting an address again replaces its open invitation and sends a new link; the old one stops working.' }).command('v1', {
+        description: 'Invite someone\n\nAdministrators only. Give exactly one of `email`, which is sent a link with a one-time code that whoever holds it can accept, or `userId`, an account that accepts by signing in. Invitations last 14 days. Inviting an address again replaces its open invitation and sends a new link; the old one stops working.',
         options: cliOptions(InvitationCreateV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -410,8 +410,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    })).command(Cli.create('delete', { description: 'Remove a camera\n\nAdministrators only. Removes its device too. Refused while a stream uses it as its source.' }).command('v1', {
-        description: 'Remove a camera\n\nAdministrators only. Removes its device too. Refused while a stream uses it as its source.',
+    })).command(Cli.create('delete', { description: 'Remove a camera\n\nAdministrators only. Removes its device too, and its presets. Refused while a stream uses it as its source.' }).command('v1', {
+        description: 'Remove a camera\n\nAdministrators only. Removes its device too, and its presets. Refused while a stream uses it as its source.',
         options: cliOptions(CameraDeleteV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();
@@ -1537,8 +1537,8 @@ export function buildCli<Commands extends Cli.CommandsMap, Vars extends z.ZodObj
             }
             return result;
         }
-    }))).command(Cli.create('reports').command(Cli.create('submit', { description: 'Submit a batch of reports\n\nEvents (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.' }).command('v1', {
-        description: 'Submit a batch of reports\n\nEvents (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created`, `expires` and a single-use `nonce`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.',
+    }))).command(Cli.create('reports').command(Cli.create('submit', { description: 'Submit a batch of reports\n\nEvents (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created` and `expires`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.' }).command('v1', {
+        description: 'Submit a batch of reports\n\nEvents (such as a heartbeat, or whether video is being received), metric samples and log messages, about any subjects, in one batch of at most 1000 and 1 MiB. Any device: the request carries an RFC 9421 HTTP Message Signature by the device\'s Ed25519 identity, with its public ID as `keyid`, covering the method, URL, `Content-Type` and RFC 9530 `Content-Digest`, with `created` and `expires`. The batch is stored or refused whole. Reports are not deduplicated: a retry is signed again, and may be stored twice.',
         options: cliOptions(ReportSubmitV1ParamsSchema),
         run: async ({ options }) => {
             const client = await resolveClient();

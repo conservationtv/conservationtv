@@ -2,11 +2,17 @@ import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import type { z } from 'zod';
 import {
   SessionSchema,
+  type AgentRequest,
+  type CommentAgentRequest,
   type CommentRequest,
   type LineCommentRequest,
   type MergeRequest,
+  type ResolveRequest,
   type ReviewRequest
 } from '../shared/actions.ts';
+import { CALLS_FILE, CALLS_REPORT, CallsReportSchema } from '@conservationtv/runner/calls';
+import { RunResultsSchema } from '@conservationtv/runner/results';
+import { DeploysSchema } from '../shared/deploys.ts';
 import { OperationDocsSchema } from '../shared/operation.ts';
 import { ApiErrorSchema, PullListSchema, ReviewSchema } from '../shared/review.ts';
 
@@ -30,7 +36,14 @@ export const sessionQuery = queryOptions({
 });
 
 /** What a change sends: nothing, for signing out. */
-type ActionBody = MergeRequest | CommentRequest | LineCommentRequest | ReviewRequest;
+type ActionBody =
+  | MergeRequest
+  | CommentRequest
+  | LineCommentRequest
+  | ReviewRequest
+  | ResolveRequest
+  | AgentRequest
+  | CommentAgentRequest;
 
 /** A change made on GitHub as the signed-in reviewer. */
 export async function send(path: string, body?: ActionBody): Promise<void> {
@@ -68,6 +81,46 @@ export const pullQueries = {
         )
     })
 };
+
+/** The signoff runs uploaded for a commit (tools/runner): what each found, and why it failed. */
+export const resultsQuery = (sha: string) =>
+  queryOptions({
+    queryKey: ['results', sha] as const,
+    queryFn: () => load(`/api/results/${sha}`, RunResultsSchema),
+    refetchInterval: 60_000
+  });
+
+/** The runner's calls report at a commit (tools/runner), or null when none was uploaded: topics then go by file. */
+export const callsQuery = (sha: string) =>
+  queryOptions({
+    queryKey: ['results', sha, CALLS_REPORT] as const,
+    queryFn: async () => {
+      const response = await fetch(`/api/results/${sha}/${CALLS_REPORT}/${CALLS_FILE}`);
+      if (response.status === 404) return null;
+      if (!response.ok) throw await failure(response);
+      return CallsReportSchema.parse(await response.json());
+    },
+    staleTime: Infinity
+  });
+
+/** Where a merged pull request went, and how each traced service did around it. */
+export const deploysQuery = (number: number) =>
+  queryOptions({
+    queryKey: ['pulls', number, 'deploys'] as const,
+    queryFn: () => load(`/api/pulls/${number}/deploys`, DeploysSchema),
+    refetchInterval: 5 * 60_000
+  });
+
+/** A run's log, as uploaded. */
+export const logQuery = (sha: string, signoff: string) =>
+  queryOptions({
+    queryKey: ['results', sha, signoff, 'log'] as const,
+    queryFn: async () => {
+      const response = await fetch(`/api/results/${sha}/${signoff}/log.txt`);
+      if (!response.ok) throw new Error(`No log was uploaded for ${signoff} at ${sha.slice(0, 7)}.`);
+      return response.text();
+    }
+  });
 
 /** A file as committed. Commits never change, so a file is fetched once. */
 export async function rawFile(sha: string, path: string): Promise<string> {

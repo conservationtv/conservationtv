@@ -3,7 +3,10 @@
   "compilerOptions": {
     "lib": ["es2024", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@conservationtv/ui/*": ["../../packages/ui/src/*"]
+    }
   },
   "include": ["src/app", "src/shared"]
 }

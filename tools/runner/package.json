@@ -1,0 +1,27 @@
+{
+  "name": "@conservationtv/runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The checks a pull request is signed off with, run on a developer's machine, and their results for the review tool.",
+  "exports": {
+    "./signoffs": "./src/signoffs.ts",
+    "./results": "./src/results.ts",
+    "./classify": "./src/classify.ts",
+    "./calls": "./src/calls.ts",
+    "./reports": "./src/reports.ts"
+  },
+  "scripts": {
+    "signoff": "node src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@babel/parser": "7.29.9",
+    "@babel/types": "7.29.8",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "catalog:"
+  }
+}

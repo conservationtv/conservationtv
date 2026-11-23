@@ -1,8 +1,9 @@
+import { categories } from '@conservationtv/runner/classify';
 import { z } from 'zod';
 
 // What the Worker serves the app. The Worker builds these from GitHub's public data; the app parses them back.
 
-export const CategorySchema = z.enum(['source', 'migration', 'contract', 'generated', 'lockfile']);
+export const CategorySchema = z.enum(categories);
 export type Category = z.output<typeof CategorySchema>;
 
 export const PersonSchema = z.object({ login: z.string(), avatarUrl: z.url(), url: z.url() });
@@ -50,7 +51,9 @@ export const ConversationEntrySchema = z.object({
   createdAt: z.iso.datetime(),
   url: z.url(),
   /** Set for reviews; plain comments have none. */
-  review: ReviewStateSchema.nullable()
+  review: ReviewStateSchema.nullable(),
+  /** The commit a review was of; null for plain comments, and for a commit since force-pushed away. */
+  commitId: z.string().nullable()
 });
 export type ConversationEntry = z.output<typeof ConversationEntrySchema>;
 
@@ -64,6 +67,12 @@ export const ThreadCommentSchema = z.object({
 export type ThreadComment = z.output<typeof ThreadCommentSchema>;
 
 export const ThreadSchema = z.object({
+  /** GitHub's GraphQL id for the thread, to resolve it by; null when GraphQL couldn't be read. */
+  id: z.string().nullable(),
+  /** The review the thread was opened in, such as one of a review bot's. */
+  reviewId: z.int().nullable(),
+  /** Null when GraphQL couldn't be read, which takes a token. */
+  resolved: z.boolean().nullable(),
   path: z.string(),
   /** The line the thread is on at the head commit: null when the code it was left on has since changed. */
   line: z.int().nullable(),
@@ -122,15 +131,6 @@ export const PullSchema = PullSummarySchema.extend({
 });
 export type Pull = z.output<typeof PullSchema>;
 
-/** A diffmap spec of the pull request, shared as a gist and opened on diffmap.dev. */
-export const DiffmapSchema = z.object({
-  gistId: z.string(),
-  /** The head commit it was written from; the branch may have moved on since. */
-  sha: z.string(),
-  url: z.url()
-});
-export type Diffmap = z.output<typeof DiffmapSchema>;
-
 export const ReviewSchema = z.object({
   repository: z.string(),
   pull: PullSchema,
@@ -139,9 +139,7 @@ export const ReviewSchema = z.object({
   conversation: z.array(ConversationEntrySchema),
   threads: z.array(ThreadSchema),
   stack: z.array(StackEntrySchema),
-  contracts: z.array(ContractChangeSchema),
-  /** The latest spec the diffmap workflow shared, if it has run. */
-  diffmap: DiffmapSchema.nullable()
+  contracts: z.array(ContractChangeSchema)
 });
 export type Review = z.output<typeof ReviewSchema>;
 

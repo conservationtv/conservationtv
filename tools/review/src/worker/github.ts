@@ -14,12 +14,26 @@ export class GitHubError extends Error {
   }
 }
 
+export type GraphQLVariables = Record<string, string | number | null>;
+
 export interface GitHub {
   repository: string;
   /** GitHub's REST API under the repository, such as `pulls/12`, parsed with `schema`. */
   api<T extends z.ZodType>(path: string, schema: T, freshness: Freshness): Promise<z.output<T>>;
+  /**
+   * GitHub's GraphQL API, for what REST doesn't say (such as whether a thread is resolved), its `data` parsed with
+   * `schema`. Null without a token: GraphQL answers no one anonymously.
+   */
+  graphql<T extends z.ZodType>(
+    query: string,
+    variables: GraphQLVariables,
+    schema: T,
+    freshness: Freshness
+  ): Promise<z.output<T> | null>;
   /** A file as committed: immutable, so cached for good. */
   raw(sha: string, path: string): Promise<string>;
+  /** A GraphQL mutation, such as resolving a thread: never cached. */
+  mutate(query: string, variables: GraphQLVariables): Promise<void>;
   /** A change under the repository, such as posting `issues/12/comments`: never cached. */
   send(method: 'POST' | 'PUT', path: string, json: string): Promise<void>;
 }
@@ -86,8 +100,42 @@ export function createGitHub(options: GitHubOptions): GitHub {
     options.waitUntil(caches.default.put(key, new Response(body, { headers: stored })));
   }
 
+  /** A GraphQL request answered: its errors, if any, as a failure with `status`, else its data. */
+  async function postGraphQL(body: string, status: FailureStatus): Promise<GraphQLResponse> {
+    const request = new Headers(headers);
+    request.set('content-type', 'application/json');
+    const response = await fetch('https://api.github.com/graphql', { method: 'POST', headers: request, body });
+    if (!response.ok) throw await failure(response);
+    const parsed = GraphQLResponseSchema.parse(await response.json());
+    const [error] = parsed.errors ?? [];
+    if (error) throw new GitHubError(status, error.message);
+    return parsed;
+  }
+
+  /** A GraphQL query, kept in the Cache API under its digest; it has no ETag, so a stale copy is fetched again. */
+  async function cachedGraphQL<T extends z.ZodType>(
+    body: string,
+    schema: T,
+    freshness: Freshness
+  ): Promise<z.output<T>> {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body));
+    const hex = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    const key = new Request(`https://api.github.com/graphql/${hex}`);
+    const hit = await caches.default.match(key);
+    const fetchedAt = Number(hit?.headers.get(FETCHED_AT));
+    if (hit && Date.now() - fetchedAt < servedFor(freshness)) return schema.parse(JSON.parse(await hit.text()));
+    const { data } = await postGraphQL(body, 502);
+    const parsed = schema.parse(data);
+    store(key, JSON.stringify(data), null);
+    return parsed;
+  }
+
   return {
     repository: options.repository,
+    async graphql(query, variables, schema, freshness) {
+      if (!options.token) return null;
+      return cachedGraphQL(JSON.stringify({ query, variables }), schema, freshness);
+    },
     async api(path, schema, freshness) {
       const url = `https://api.github.com/repos/${options.repository}/${path}`;
       const body = await cached(url, freshness, 'application/vnd.github+json');
@@ -96,6 +144,9 @@ export function createGitHub(options: GitHubOptions): GitHub {
     raw(sha, path) {
       const url = `https://raw.githubusercontent.com/${options.repository}/${sha}/${path.split('/').map(encodeURIComponent).join('/')}`;
       return cached(url, 'immutable', '*/*');
+    },
+    async mutate(query, variables) {
+      await postGraphQL(JSON.stringify({ query, variables }), 422);
     },
     async send(method, path, json) {
       const request = new Headers(headers);
@@ -107,6 +158,13 @@ export function createGitHub(options: GitHubOptions): GitHub {
     }
   };
 }
+
+/** What GraphQL answers: data, errors, or both. */
+const GraphQLResponseSchema = z.object({
+  data: z.unknown(),
+  errors: z.array(z.object({ message: z.string() })).optional()
+});
+type GraphQLResponse = z.output<typeof GraphQLResponseSchema>;
 
 /** GitHub's own explanation of a failure: its message, and the first of the errors it lists when it lists any. */
 const GitHubFailureSchema = z.object({
@@ -178,6 +236,8 @@ export type PullListItems = z.output<typeof PullListItemsSchema>;
 
 export const PullDetailSchema = PullListItemSchema.extend({
   body: z.string().nullable(),
+  /** The commit a merge made on the base branch; GitHub sets it for open pull requests too, as a test merge. */
+  merge_commit_sha: z.string().nullable(),
   html_url: z.url(),
   created_at: z.iso.datetime(),
   mergeable: z.boolean().nullable(),
@@ -248,7 +308,9 @@ export const ReviewsSchema = z.array(
     state: z.enum(['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED', 'PENDING']),
     // Pending reviews are their author's alone, and have not been submitted.
     submitted_at: z.iso.datetime().optional(),
-    html_url: z.url()
+    html_url: z.url(),
+    // Null when the commit has since been force-pushed away.
+    commit_id: z.string().nullable()
   })
 );
 export type Reviews = z.output<typeof ReviewsSchema>;
@@ -263,7 +325,45 @@ export const ReviewCommentsSchema = z.array(
     path: z.string(),
     line: z.int().nullable(),
     side: z.enum(['LEFT', 'RIGHT']).nullable(),
-    in_reply_to_id: z.int().optional()
+    in_reply_to_id: z.int().optional(),
+    pull_request_review_id: z.int().nullable()
   })
 );
 export type ReviewComments = z.output<typeof ReviewCommentsSchema>;
+
+/** A page of a pull request's review threads: whether each is resolved or outdated, keyed by its first comment. */
+export const ReviewThreadsSchema = z.object({
+  repository: z.object({
+    pullRequest: z.object({
+      reviewThreads: z.object({
+        pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() }),
+        nodes: z.array(
+          z.object({
+            id: z.string(),
+            isResolved: z.boolean(),
+            isOutdated: z.boolean(),
+            comments: z.object({ nodes: z.array(z.object({ databaseId: z.int().nullable() })) })
+          })
+        )
+      })
+    })
+  })
+});
+export type ReviewThreads = z.output<typeof ReviewThreadsSchema>;
+
+export const DeploymentsSchema = z.array(
+  z.object({ id: z.int(), sha: z.string(), environment: z.string(), created_at: z.iso.datetime() })
+);
+export type Deployments = z.output<typeof DeploymentsSchema>;
+
+export const DeploymentStatusesSchema = z.array(
+  z.object({ state: z.string(), created_at: z.iso.datetime(), log_url: z.string().nullable().optional() })
+);
+export type DeploymentStatuses = z.output<typeof DeploymentStatusesSchema>;
+
+/** How a commit relates to another: `ahead` or `identical` when it contains it. */
+export const CompareStatusSchema = z.object({ status: z.string() });
+export type CompareStatus = z.output<typeof CompareStatusSchema>;
+
+export const WorkflowRunSchema = z.object({ name: z.string().nullable() });
+export type WorkflowRun = z.output<typeof WorkflowRunSchema>;

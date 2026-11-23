@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { categoryLabels } from '../../shared/classify.ts';
+import { categoryLabels } from '@conservationtv/runner/classify';
 import type { CategoryWeight } from '../weights.ts';
 import { formatCount } from '../format.ts';
 

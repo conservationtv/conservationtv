@@ -1,4 +1,4 @@
-import { categories } from '../shared/classify.ts';
+import { categories } from '@conservationtv/runner/classify';
 import type { Category, ReviewFile } from '../shared/review.ts';
 
 export interface CategoryWeight {

@@ -1,3 +1,5 @@
+import { Badge } from '@conservationtv/ui/components/badge';
+import { Button } from '@conservationtv/ui/components/button';
 import { useQueryClient } from '@tanstack/react-query';
 import type { FC } from 'react';
 import type { Pull } from '../../shared/review.ts';
@@ -29,9 +31,9 @@ const LineComposer: FC<LineComposerProps> = ({ pull, target, drafts, written, on
           GitHub only takes comments on lines its own diff shows: these are context opened beyond it, or the whole file
           GitHub did not inline.
         </p>
-        <button type="button" className="link-button small" onClick={onClose}>
+        <Button variant="link" size="xs" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     );
   }
@@ -98,13 +100,13 @@ export const NoteView: FC<NoteViewProps> = ({ pull, note, drafts, written, onWri
   return (
     <div className="line-note line-note-draft">
       <header>
-        <span className="pending-badge">Pending</span>
+        <Badge variant="outline">Pending</Badge>
         <span className="muted small">
           {draft.start ? `Lines ${draft.start.line}–${draft.line}` : `Line ${draft.line}`}
         </span>
-        <button type="button" className="link-button small" onClick={() => drafts.remove(draft.id)}>
+        <Button variant="link" size="xs" className="ml-auto" onClick={() => drafts.remove(draft.id)}>
           Delete
-        </button>
+        </Button>
       </header>
       <MarkdownBody text={draft.body} />
     </div>

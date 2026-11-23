@@ -1,592 +1,329 @@
+import { Badge } from '@conservationtv/ui/components/badge';
+import { Spinner } from '@conservationtv/ui/components/spinner';
+import { Toggle } from '@conservationtv/ui/components/toggle';
+import { cn } from '@conservationtv/ui/lib/utils';
+import {
+  DatabaseIcon,
+  DotsThreeIcon,
+  FileIcon,
+  FunctionIcon,
+  PlugsConnectedIcon,
+  type Icon
+} from '@phosphor-icons/react';
 import { WorkerPoolContextProvider } from '@pierre/diffs/react';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState, type FC, type ReactNode } from 'react';
-import type { OperationDocs } from '../../shared/operation.ts';
-import type { ContractChange, Review, ReviewFile } from '../../shared/review.ts';
-import { pullQueries } from '../api.ts';
-import { GENERATED_SIGNOFF } from '../../shared/signoffs.ts';
-import { connectionEntry, contractEntry, fileEntry, type Entry } from '../entries.ts';
+import { useRef, type FC, type ReactNode } from 'react';
+import { isReviewBot } from '../../shared/bots.ts';
+import type { Review } from '../../shared/review.ts';
+import { callsQuery } from '../api.ts';
+import { useDrafts, type Drafts } from '../drafts.ts';
+import { fileEntry, partEntry, type Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
 import { highlighterOptions, poolOptions } from '../highlighting.ts';
-import { chaptersOf, connectionsOf, operationParts, type Chapter, type ChapterId } from '../story.ts';
-import { useViewed, type ViewedFiles } from '../viewed.ts';
-import { useDrafts, type Drafts } from '../drafts.ts';
 import { useSwitch } from '../preferences.ts';
-import { ReviewSubmit } from './ReviewSubmit.tsx';
-import { CallGraphView } from './CallGraphView.tsx';
+import { topicsOf, type Topic, type TopicKind } from '../topics.ts';
+import { useViewed, type ViewedFiles } from '../viewed.ts';
 import { ChangeTree } from './ChangeTree.tsx';
-import { CheckMark, MarkdownBody } from './common.tsx';
-import { DiffList, type DiffStyle, type Viewer } from './DiffList.tsx';
+import { DiffList, type Viewer } from './DiffList.tsx';
 import { Link } from './Link.tsx';
-import { OperationDocsView } from './OperationDocs.tsx';
+import { ReviewSubmit } from './ReviewSubmit.tsx';
+import { TopicIntro } from './TopicIntro.tsx';
+
+// The files tab: the pull request as topics (src/app/topics.ts), each one thing that changed with everything that
+// follows from it, read one at a time from the rail; or every file at once, as a tree, for reading file by file.
 
 interface ReviewViewProps {
   review: Review;
+  /** A topic's id, `all` for every file, or none for the first topic. */
   chapter: string | undefined;
-  operation: string | undefined;
 }
 
 export const ReviewView: FC<ReviewViewProps> = props => (
   <WorkerPoolContextProvider poolOptions={poolOptions} highlighterOptions={highlighterOptions}>
-    <Story {...props} />
+    <Topics {...props} />
   </WorkerPoolContextProvider>
 );
 
-/** A phone has room for one side of a diff. */
-function preferredStyle(): DiffStyle {
-  return window.matchMedia('(max-width: 900px)').matches ? 'unified' : 'split';
-}
+const ALL_FILES = 'all';
 
-/**
- * The chapter asked for, else the first, under the chapters and the reviewer's view switches: the file sidebar, wrapping
- * and the diff layout.
- */
-const Story: FC<ReviewViewProps> = ({ review, chapter: chapterId, operation }) => {
-  const viewer = useRef(null);
-  const viewed = useViewed(review);
-  const drafts = useDrafts(review);
-  const [diffStyle, setDiffStyle] = useState(preferredStyle);
-  const [sidebar, toggleSidebar] = useSwitch('sidebar', true);
-  const [wrap, toggleWrap] = useSwitch('wrap', false);
-  const chapters = chaptersOf(review);
-  const index = Math.max(
-    0,
-    chapters.findIndex(chapter => chapter.id === chapterId)
-  );
-  const chapter = chapters[index];
-  if (!chapter) return <main className="page narrow muted">This pull request changes no files.</main>;
-  const next = chapters[index + 1];
-  const context: ChapterContext = { review, chapter, next, viewer, viewed, drafts, diffStyle, wrap };
-  return (
-    <main className={sidebar ? 'review' : 'review sidebar-hidden'}>
-      <StoryNav review={review} chapters={chapters} current={chapter.id} viewed={viewed}>
-        <ReviewSubmit review={review} drafts={drafts} />
-        <div className="segmented toggles" role="group" aria-label="View">
-          <button type="button" className="sidebar-toggle" aria-pressed={sidebar} onClick={toggleSidebar}>
-            Files
-          </button>
-          <button type="button" aria-pressed={wrap} onClick={toggleWrap}>
-            Wrap
-          </button>
-        </div>
-        <div className="segmented" role="group" aria-label="Diff layout">
-          {(['split', 'unified'] as const).map(style => (
-            <button key={style} type="button" aria-pressed={diffStyle === style} onClick={() => setDiffStyle(style)}>
-              {style === 'split' ? 'Split' : 'Unified'}
-            </button>
-          ))}
-        </div>
-      </StoryNav>
-      {chapter.id === 'map' ? (
-        <MapChapter context={context} />
-      ) : chapter.id === 'api' ? (
-        <ApiChapter key={operation ?? ''} context={context} operation={operation} />
-      ) : (
-        <FileChapter key={chapter.id} context={context} />
-      )}
-    </main>
-  );
-};
-
-interface MapChapterProps {
-  context: ChapterContext;
-}
-
-/**
- * The diffmap the workflow wrote: an agent's account of the change, with diagrams whose parts open the code they stand
- * for. diffmap.dev draws it from the gist, which carries its own snapshot of each commit it cites.
- */
-const MapChapter: FC<MapChapterProps> = ({ context }) => {
-  const { review } = context;
-  const map = review.diffmap;
-  if (!map) return null;
-  const stale = map.sha !== review.pull.headSha;
-  return (
-    <section className="review-main map-chapter">
-      <header className="intro">
-        <h2>Map</h2>
-        <p>
-          An agent's account of the change, written before anyone read it: read it to know where to look, and the
-          chapters after it for what is there. <a href={map.url}>Open on diffmap.dev</a>.
-        </p>
-        {stale ? (
-          <p className="muted">
-            Written from <code>{map.sha.slice(0, 7)}</code>; the branch has moved on since, so the later commits are not
-            in it.
-          </p>
-        ) : null}
-      </header>
-      <iframe className="map-frame" src={map.url} title="Diffmap" />
-      <NextChapter context={context} />
-    </section>
-  );
-};
-
-/** Everything a chapter is drawn with. */
-interface ChapterContext {
+/** Everything a topic or the file list is drawn with. */
+interface ReadingContext {
   review: Review;
-  chapter: Chapter;
-  next: Chapter | undefined;
   viewer: Viewer;
   viewed: ViewedFiles;
   /** Line comments waiting for the review they belong to. */
   drafts: Drafts;
-  diffStyle: DiffStyle;
   /** Long lines wrapped rather than scrolled sideways. */
   wrap: boolean;
 }
 
-function chapterUrl(review: Review, id: ChapterId): string {
-  return `/pr/${review.pull.number}/files/${id}`;
+/** The topic asked for, else the first; none for the list of every file. */
+function chosenTopic(topics: readonly Topic[], chapter: string | undefined): Topic | null {
+  if (chapter === ALL_FILES) return null;
+  return topics.find(topic => topic.id === chapter) ?? topics[0] ?? null;
 }
 
-interface StoryNavProps {
+/** How the topics were found, or that they can't be without a calls report. */
+function summaryOf(topics: readonly Topic[], fromCalls: boolean): string {
+  if (fromCalls) return `${topics.length} topics, from the calls into what changed`;
+  return 'Every file: no calls report at this commit yet';
+}
+
+/** The topics, from the calls report once it has loaded; the one asked for, or the whole list of files. */
+const Topics: FC<ReviewViewProps> = ({ review, chapter }) => {
+  const viewer = useRef(null);
+  const viewed = useViewed(review);
+  const drafts = useDrafts(review);
+  const [sidebar, toggleSidebar] = useSwitch('sidebar', true);
+  const [wrap, toggleWrap] = useSwitch('wrap', false);
+  const calls = useQuery(callsQuery(review.pull.headSha));
+  if (!review.files.length) return <main className="page narrow muted">This pull request changes no files.</main>;
+  if (calls.isPending) {
+    return (
+      <main className="page narrow flex items-center gap-2 text-muted-foreground">
+        <Spinner /> Reading the calls report…
+      </main>
+    );
+  }
+  // Without a calls report there are no topics worth the name: every file, as a tree, says so and how to make one.
+  const topics = calls.data ? topicsOf(review, calls.data) : [];
+  const context: ReadingContext = { review, viewer, viewed, drafts, wrap };
+  const topic = chosenTopic(topics, chapter);
+  return (
+    <main className={sidebar ? 'review' : 'review sidebar-hidden'}>
+      <ReviewBar
+        review={review}
+        drafts={drafts}
+        summary={summaryOf(topics, calls.data !== null)}
+        sidebar={sidebar}
+        onSidebar={toggleSidebar}
+        wrap={wrap}
+        onWrap={toggleWrap}
+      />
+      <div className="review-body">
+        <aside className="review-sidebar">
+          <TopicRail review={review} topics={topics} current={topic?.id ?? ALL_FILES} />
+        </aside>
+        <section className="review-main">
+          {topic ? (
+            <TopicReading key={topic.id} context={context} topic={topic} next={topics[topics.indexOf(topic) + 1]} />
+          ) : (
+            <AllFiles context={context} />
+          )}
+        </section>
+      </div>
+    </main>
+  );
+};
+
+interface ReviewBarProps {
   review: Review;
-  chapters: readonly Chapter[];
-  current: ChapterId;
-  viewed: ViewedFiles;
-  children: ReactNode;
+  drafts: Drafts;
+  summary: string;
+  sidebar: boolean;
+  onSidebar(): void;
+  wrap: boolean;
+  onWrap(): void;
 }
 
-/** The chapters in reading order, each with how much of it is viewed. */
-const StoryNav: FC<StoryNavProps> = ({ review, chapters, current, viewed, children }) => (
+/** Above the topics: how they were found, finishing the review, and the reviewer's view switches. */
+const ReviewBar: FC<ReviewBarProps> = props => (
   <nav className="story-nav" aria-label="Review">
-    <ol>
-      {chapters.map((chapter, index) => {
-        // The map counts nothing, the API chapter counts operations, and the others their files and how many are viewed.
-        const count =
-          chapter.id === 'map'
-            ? ''
-            : chapter.id === 'api'
-              ? `${review.contracts.length} op${review.contracts.length === 1 ? '' : 's'}`
-              : `${chapter.files.filter(file => viewed.isViewed(file)).length}/${chapter.files.length}`;
-        return (
-          <li key={chapter.id} className={chapter.id === current ? 'current' : undefined}>
-            <Link to={chapterUrl(review, chapter.id)}>
-              <span className="step">{index + 1}</span>
-              <span className="step-title">{chapter.title}</span>
-              <span className="step-count">{count}</span>
-            </Link>
-          </li>
-        );
-      })}
-    </ol>
-    {children}
+    <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">{props.summary}</p>
+    <ReviewSubmit review={props.review} drafts={props.drafts} />
+    <div className="flex shrink-0 gap-0.5" role="group" aria-label="View">
+      {/* A phone has no room for the rail, so only wrapping is left to choose there. */}
+      <Toggle
+        variant="outline"
+        size="sm"
+        pressed={props.sidebar}
+        onPressedChange={props.onSidebar}
+        className="max-[900px]:hidden"
+      >
+        Topics
+      </Toggle>
+      <Toggle variant="outline" size="sm" pressed={props.wrap} onPressedChange={props.onWrap}>
+        Wrap
+      </Toggle>
+    </div>
   </nav>
 );
 
-interface NextChapterProps {
-  context: ChapterContext;
+const kindIcons = {
+  operation: PlugsConnectedIcon,
+  change: FunctionIcon,
+  file: FileIcon,
+  database: DatabaseIcon,
+  rest: DotsThreeIcon
+} satisfies Record<TopicKind, Icon>;
+
+interface TopicRailProps {
+  review: Review;
+  topics: readonly Topic[];
+  current: string;
 }
 
-const NextChapter: FC<NextChapterProps> = ({ context }) =>
-  context.next ? (
-    <div className="next-chapter">
-      <Link to={chapterUrl(context.review, context.next.id)}>Next: {context.next.title} →</Link>
-    </div>
-  ) : (
-    <div className="next-chapter muted">That is the whole pull request.</div>
-  );
+/** The topics in reading order, each with how much it changes and the threads still open on it; then every file. */
+const TopicRail: FC<TopicRailProps> = ({ review, topics, current }) => (
+  <nav aria-label="Topics" className="flex flex-col gap-0.5 p-2">
+    {topics.length ? null : <NoReport review={review} />}
+    {topics.map(topic => (
+      <RailItem key={topic.id} review={review} topic={topic} current={topic.id === current} />
+    ))}
+    <Link
+      to={`/pr/${review.pull.number}/files/${ALL_FILES}`}
+      className={cn(
+        'mt-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-muted hover:no-underline',
+        current === ALL_FILES && 'bg-muted text-foreground'
+      )}
+    >
+      All {review.files.length} files, as a tree
+    </Link>
+  </nav>
+);
 
-function lines(files: readonly ReviewFile[]): string {
-  const additions = files.reduce((sum, file) => sum + file.additions, 0);
-  const deletions = files.reduce((sum, file) => sum + file.deletions, 0);
-  return `+${formatCount(additions)} −${formatCount(deletions)}`;
+interface NoReportProps {
+  review: Review;
 }
 
-function plural(count: number, noun: string): string {
-  return `${formatCount(count)} ${noun}${count === 1 ? '' : 's'}`;
+/** No calls report at the head: what topics would give, and the command that makes the report. */
+const NoReport: FC<NoReportProps> = ({ review }) => (
+  <div className="flex flex-col gap-2 rounded-md border border-dashed border-border p-3 text-[13px]">
+    <p className="font-medium">No calls report at {review.pull.headSha.slice(0, 7)}</p>
+    <p className="text-muted-foreground">
+      Topics and their call trees come from the runner's calls report, made with TypeScript's language server:
+    </p>
+    <code className="rounded bg-muted px-2 py-1 text-xs select-all">pnpm signoff calls --pr {review.pull.number}</code>
+  </div>
+);
+
+interface RailItemProps {
+  review: Review;
+  topic: Topic;
+  current: boolean;
 }
 
-interface IntroProps {
-  context: ChapterContext;
-  children?: ReactNode;
-}
-
-/** What a chapter holds, and what to look for in it. */
-const Intro: FC<IntroProps> = ({ context, children }) => {
-  const { review, chapter } = context;
-  const files = chapter.files;
-  const leads = {
-    map: '',
-    code: `${plural(files.length, 'source file')}. This is the change itself: everything in the chapters after it follows from it, so start here.`,
-    schema: `${plural(files.length, 'migration')} drizzle-kit wrote from the schema changes. They run against every database exactly as written, so read them as SQL: locks, defaults on existing rows, and data that has to move.`,
-    api: '',
-    generated: `${plural(files.length, 'file')} written by generators from the source code, the migrations and the API contract. Read those instead; these are folded away.`,
-    dependencies: 'The lockfile, as pnpm resolved the package.json changes in the source code.'
-  } satisfies Record<ChapterId, string>;
-  const threads = review.threads.filter(thread => files.some(file => file.path === thread.path)).length;
+/** A topic in the rail: what kind, its name, how much it changes, and its open threads (a bot's marked). */
+const RailItem: FC<RailItemProps> = ({ review, topic, current }) => {
+  const KindIcon = kindIcons[topic.kind];
+  const open = topic.threads.filter(thread => thread.resolved !== true);
+  const fromBots = open.some(thread => isReviewBot(thread.comments[0]?.author.login ?? ''));
   return (
-    <header className="intro">
-      <h2>
-        {chapter.title} <span className="muted">{lines(files)}</span>
-      </h2>
-      <p>{leads[chapter.id]}</p>
-      {threads ? (
-        <p className="muted">{plural(threads, 'comment thread')} on these files, shown on their lines.</p>
+    <Link
+      to={`/pr/${review.pull.number}/files/${topic.id}`}
+      className={cn(
+        'flex items-start gap-2 rounded-md px-2 py-1.5 text-foreground hover:bg-muted hover:no-underline',
+        current && 'bg-muted'
+      )}
+    >
+      <KindIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className={cn('truncate text-[13px]', current && 'font-semibold')}>{topic.title}</span>
+        <span className="truncate font-mono text-[11px] text-muted-foreground">
+          +{formatCount(topic.additions)} −{formatCount(topic.deletions)}
+          {topic.subtitle ? ` · ${topic.subtitle.split('/').at(-1)}` : ''}
+        </span>
+      </span>
+      {open.length ? (
+        <Badge
+          variant={fromBots ? 'outline' : 'secondary'}
+          className={cn(fromBots && 'border-(--warning) text-(--warning)')}
+        >
+          {open.length}
+        </Badge>
       ) : null}
-      {children}
-    </header>
+    </Link>
   );
 };
 
-/** The generators behind a chapter of generated files, how much each wrote, and whether it was signed off. */
-const GeneratedSummary: FC<IntroProps> = ({ context }) => {
-  const signoff = context.review.checks.find(check => check.name === GENERATED_SIGNOFF);
-  const groups = Map.groupBy(context.chapter.files, file => file.generator ?? 'generator');
+/** The kinds of file read to check rather than to read: folded until opened. */
+function foldedKind(file: Pick<Entry, 'category'>): boolean {
+  return file.category === 'generated' || file.category === 'lockfile';
+}
+
+interface TopicReadingProps {
+  context: ReadingContext;
+  topic: Topic;
+  next: Topic | undefined;
+}
+
+/** A topic: what it is at the top, then its parts of files, the code first and generated output folded. */
+const TopicReading: FC<TopicReadingProps> = ({ context, topic, next }) => {
+  const entries = topic.files.map(part =>
+    part.whole || !part.patch
+      ? fileEntry(part.file, foldedKind(part.file))
+      : partEntry(part.file, part.patch, topic.id, foldedKind(part.file))
+  );
   return (
-    <>
-      <p className={signoff?.state === 'success' ? 'signoff signed' : 'signoff'}>
-        <CheckMark state={signoff?.state ?? 'pending'} />
-        {signoff?.state === 'success'
-          ? ' signoff/generated: every API document, SDK and CLI was regenerated at this commit and nothing changed. These files are what their generators write.'
-          : ' Not signed off as current at this commit: run pnpm signoff:generated. Until then these may not be what their generators write.'}
-      </p>
-      <ul className="generators">
-        {[...groups].map(([generator, files]) => (
-          <li key={generator}>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() =>
-                context.viewer.current?.scrollTo({ type: 'item', id: files[0]?.path ?? '', align: 'start' })
-              }
-            >
-              {generator}
-            </button>
-            <span className="muted">{plural(files.length, 'file')}</span>
-            <span className="muted">{lines(files)}</span>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-};
-
-/** Source chapters open; generated and dependency chapters are there to be checked, so they start folded. */
-const foldedChapters: ReadonlySet<ChapterId> = new Set(['generated', 'dependencies']);
-
-interface FileChapterProps {
-  context: ChapterContext;
-}
-
-interface ViewSwitchProps {
-  calls: boolean;
-  onToggle(): void;
-}
-
-/** The source chapter as calls between what changed, or as its files. */
-const ViewSwitch: FC<ViewSwitchProps> = ({ calls, onToggle }) => (
-  <div className="segmented view-switch" role="group" aria-label="Read the source code as">
-    <button type="button" aria-pressed={calls} onClick={calls ? undefined : onToggle}>
-      Calls
-    </button>
-    <button type="button" aria-pressed={!calls} onClick={calls ? onToggle : undefined}>
-      Files
-    </button>
-  </div>
-);
-
-interface CallChapterProps {
-  context: ChapterContext;
-  onOpenFile(path: string): void;
-  onToggle(): void;
-}
-
-/** The source code as the calls between the functions that changed. */
-const CallChapter: FC<CallChapterProps> = ({ context, onOpenFile, onToggle }) => (
-  <div className="review-body calls-body">
-    <section className="review-main call-scroll">
-      <Intro context={context}>
-        <ViewSwitch calls onToggle={onToggle} />
-      </Intro>
-      <CallGraphView
-        review={context.review}
-        files={context.chapter.files}
-        diffStyle={context.diffStyle}
-        wrap={context.wrap}
-        onOpenFile={onOpenFile}
-      />
-      <NextChapter context={context} />
-    </section>
-  </div>
-);
-
-/** The source chapter opens on its calls; every chapter can be read file by file. */
-const FileChapter: FC<FileChapterProps> = ({ context }) => {
-  const [calls, toggleCalls] = useSwitch('calls', true);
-  const { chapter, viewer } = context;
-  if (chapter.id === 'code' && calls) {
-    const openFile = (path: string) => {
-      toggleCalls();
-      // The files' list mounts first; then it can scroll.
-      setTimeout(() => viewer.current?.scrollTo({ type: 'item', id: path, align: 'start' }), 100);
-    };
-    return <CallChapter context={context} onOpenFile={openFile} onToggle={toggleCalls} />;
-  }
-  return <FilesChapter context={context} onToggle={chapter.id === 'code' ? toggleCalls : null} />;
-};
-
-interface FilesChapterProps {
-  context: ChapterContext;
-  /** Switches the source chapter back to its calls; null for the other chapters. */
-  onToggle: (() => void) | null;
-}
-
-const FilesChapter: FC<FilesChapterProps> = ({ context, onToggle }) => {
-  const { review, chapter, viewer, viewed, diffStyle } = context;
-  const folded = foldedChapters.has(chapter.id);
-  // Generated files read best by what wrote them.
-  const files =
-    chapter.id === 'generated'
-      ? chapter.files.toSorted(
-          (a, b) => (a.generator ?? '').localeCompare(b.generator ?? '') || a.path.localeCompare(b.path)
+    <Reading
+      context={context}
+      entries={entries}
+      header={<TopicIntro review={context.review} topic={topic} viewer={context.viewer} />}
+      footer={
+        next ? (
+          <div className="next-chapter">
+            <Link to={`/pr/${context.review.pull.number}/files/${next.id}`}>Next: {next.title} →</Link>
+          </div>
+        ) : (
+          <div className="next-chapter muted">That is the whole pull request.</div>
         )
-      : chapter.files;
-  const entries = files.map(file => fileEntry(file, folded));
+      }
+    />
+  );
+};
+
+interface AllFilesProps {
+  context: ReadingContext;
+}
+
+const fileOrder = { source: 0, migration: 1, contract: 2, generated: 3, lockfile: 4 };
+
+/** Every changed file, as a tree beside their diffs: for reading file by file. */
+const AllFiles: FC<AllFilesProps> = ({ context }) => {
+  const files = context.review.files.toSorted(
+    (a, b) => fileOrder[a.category] - fileOrder[b.category] || a.path.localeCompare(b.path)
+  );
   return (
-    <div className="review-body">
-      <aside className="review-sidebar">
+    <div className="flex min-h-0 flex-1">
+      <div className="w-72 shrink-0 border-r border-border max-[900px]:hidden">
         <ChangeTree
           files={files}
-          onOpen={path => viewer.current?.scrollTo({ type: 'item', id: path, align: 'start' })}
+          onOpen={path => context.viewer.current?.scrollTo({ type: 'item', id: path, align: 'start' })}
         />
-      </aside>
-      <section className="review-main">
-        <DiffList
-          review={review}
-          entries={entries}
-          viewer={viewer}
-          viewed={viewed}
-          drafts={context.drafts}
-          diffStyle={diffStyle}
-          wrap={context.wrap}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Reading
+          context={context}
+          entries={files.map(file => fileEntry(file, foldedKind(file)))}
           header={
-            <Intro context={context}>
-              {onToggle ? <ViewSwitch calls={false} onToggle={onToggle} /> : null}
-              {chapter.id === 'generated' ? <GeneratedSummary context={context} /> : null}
-            </Intro>
+            <header className="intro">
+              <h2>All {files.length} files</h2>
+              <p>Source code first, then migrations, contracts, generated output and the lockfile, folded.</p>
+            </header>
           }
-          footer={<NextChapter context={context} />}
+          footer={null}
         />
-      </section>
+      </div>
     </div>
   );
 };
 
-const kindOrder = { added: 0, changed: 1, removed: 2 } satisfies Record<ContractChange['kind'], number>;
-const kindLabels = {
-  added: 'New operation',
-  changed: 'Changed contract',
-  removed: 'Removed'
-} satisfies Record<ContractChange['kind'], string>;
-
-/** `apps/studio/api/contracts/openapi.json` names the studio API. */
-function apiName(document: string): string {
-  const [, app, api] = document.match(/^apps\/([^/]+)\/([^/]+)\//) ?? [];
-  return app ? `${app} ${api}` : document;
-}
-
-interface OperationListProps {
-  review: Review;
-  changes: readonly ContractChange[];
-  selected: ContractChange | undefined;
-}
-
-const OperationList: FC<OperationListProps> = ({ review, changes, selected }) => (
-  <ul className="operations">
-    {changes.map(change => (
-      <li key={`${change.document}:${change.operation}`} className={change === selected ? 'current' : undefined}>
-        <Link to={`${chapterUrl(review, 'api')}/${encodeURIComponent(change.operation)}`}>
-          <span className={`contract-dot contract-${change.kind}`} title={kindLabels[change.kind]} />
-          <span className="operation-id">
-            {/* Long ids wrap after a dot, never inside a name. */}
-            {change.operation.split('.').map((part, index) => (
-              <span key={index}>
-                {index ? <wbr /> : null}
-                {index ? `.${part}` : part}
-              </span>
-            ))}
-          </span>
-          <span className="method">{change.method}</span>
-        </Link>
-      </li>
-    ))}
-  </ul>
-);
-
-interface OperationHeaderProps {
-  context: ChapterContext;
-  change: ContractChange;
-  docs: OperationDocsState;
+interface ReadingProps {
+  context: ReadingContext;
   entries: readonly Entry[];
-  showGenerated: boolean;
-  onShowGenerated(): void;
-  operations: ReactNode;
+  header: ReactNode;
+  footer: ReactNode;
 }
 
-/** Explains what a kind of contract change means to the clients that use it. */
-function consequence(change: ContractChange): string {
-  const [id, version] = operationParts(change.operation);
-  if (change.kind === 'added') {
-    return `A new operation version: clients that ask for ${id} v${version} get this contract. It is frozen once released, so later changes need v${version + 1}.`;
-  }
-  if (change.kind === 'removed') {
-    return `Clients that require ${id} v${version} will no longer be served. Check nothing released still asks for it.`;
-  }
-  return `${id} v${version} existed before this pull request, and its contract differs. Fine before it is released; after that, keep v${version} as it was and declare v${version + 1}.`;
-}
-
-/** What the operation is, what its change means to clients, and where in the pull request each part of it is. */
-const OperationHeader: FC<OperationHeaderProps> = ({
-  context,
-  change,
-  docs,
-  entries,
-  showGenerated,
-  onShowGenerated,
-  operations
-}) => {
-  const trace = [
-    { label: 'Contract', ids: entries.filter(entry => entry.tag === 'contract') },
-    { label: 'Route', ids: entries.filter(entry => entry.tag === 'route') },
-    { label: 'API document', ids: entries.filter(entry => entry.tag === 'API document') },
-    { label: 'Generated', ids: entries.filter(entry => entry.category === 'generated') }
-  ].filter(step => step.ids.length > 0);
-  const generated = entries.filter(entry => entry.category === 'generated').length;
-  return (
-    <header className="intro operation">
-      <div className="narrow-only">{operations}</div>
-      <p className="eyebrow">
-        <span className={`contract-kind contract-${change.kind}`}>{kindLabels[change.kind]}</span>
-        <span className="muted">{apiName(change.document)}</span>
-      </p>
-      <h2 className="endpoint">
-        <span className="method">{change.method}</span> <code>{change.path}</code>
-      </h2>
-      <p className="operation-name">
-        <code>{change.operation}</code>
-        {change.summary ? <span> · {change.summary}</span> : null}
-      </p>
-      <p className={change.kind === 'added' ? 'consequence' : 'consequence warning'}>{consequence(change)}</p>
-      {change.description ? <MarkdownBody text={change.description} /> : null}
-      <DocsState docs={docs} kind={change.kind} />
-      <h3 className="docs-heading">In this pull request</h3>
-      <ol className="trace" aria-label="Where this operation is in the pull request">
-        {trace.map(step => (
-          <li key={step.label}>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() =>
-                context.viewer.current?.scrollTo({ type: 'item', id: step.ids[0]?.id ?? '', align: 'start' })
-              }
-            >
-              {step.label}
-            </button>
-            <span className="muted">{step.ids.length > 1 ? plural(step.ids.length, 'file') : null}</span>
-          </li>
-        ))}
-      </ol>
-      {generated ? (
-        <button type="button" className="button" onClick={onShowGenerated}>
-          {showGenerated ? 'Fold' : 'Open'} the {plural(generated, 'generated file')}
-        </button>
-      ) : null}
-    </header>
-  );
-};
-
-/** The documentation as it loads: it is fetched when an operation's page opens. */
-interface OperationDocsState {
-  data: OperationDocs | undefined;
-  error: Error | null;
-}
-
-interface DocsStateProps {
-  docs: OperationDocsState;
-  kind: ContractChange['kind'];
-}
-
-const DocsState: FC<DocsStateProps> = ({ docs, kind }) => {
-  if (docs.error) return <p className="error-text">{docs.error.message}</p>;
-  if (!docs.data) return <p className="muted">Loading the documentation…</p>;
-  return <OperationDocsView docs={docs.data} kind={kind} />;
-};
-
-interface ApiChapterProps {
-  context: ChapterContext;
-  operation: string | undefined;
-}
-
-const ApiChapter: FC<ApiChapterProps> = ({ context, operation }) => {
-  const { review, viewer, viewed, diffStyle } = context;
-  const [showGenerated, setShowGenerated] = useState(false);
-  const changes = review.contracts.toSorted(
-    (a, b) => kindOrder[a.kind] - kindOrder[b.kind] || a.operation.localeCompare(b.operation)
-  );
-  const change = changes.find(candidate => candidate.operation === operation) ?? changes[0];
-  const docs = useQuery({
-    ...pullQueries.operation(review.pull.number, change?.document ?? '', change?.operation ?? ''),
-    enabled: change !== undefined
-  });
-  const roleOrder = { route: 0, contract: 1, generated: 2 };
-  const entries = change
-    ? [
-        ...(docs.data ? [contractEntry(change, docs.data)] : []),
-        ...connectionsOf(change, review.files)
-          .toSorted((a, b) => roleOrder[a.role] - roleOrder[b.role])
-          .map(connection =>
-            connectionEntry(connection, change.operation, connection.role === 'generated' && !showGenerated)
-          )
-      ]
-    : context.chapter.files.map(file => fileEntry(file, true));
-  const operations = <OperationList review={review} changes={changes} selected={change} />;
-  return (
-    <div className="review-body">
-      <aside className="review-sidebar">
-        <p className="sidebar-heading">{plural(changes.length, 'operation')}</p>
-        {operations}
-        <p className="sidebar-heading">API documents</p>
-        <ul className="operations">
-          {context.chapter.files.map(file => (
-            <li key={file.path}>
-              <a href={`${review.pull.url}/files`} title={file.path}>
-                <span className="operation-id">{file.path}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </aside>
-      <section className="review-main">
-        <DiffList
-          // Opening or folding every generated file starts the list afresh.
-          key={String(showGenerated)}
-          review={review}
-          entries={entries}
-          viewer={viewer}
-          viewed={viewed}
-          drafts={context.drafts}
-          diffStyle={diffStyle}
-          wrap={context.wrap}
-          header={
-            change ? (
-              <OperationHeader
-                context={context}
-                change={change}
-                docs={docs}
-                entries={entries}
-                showGenerated={showGenerated}
-                onShowGenerated={() => setShowGenerated(current => !current)}
-                operations={operations}
-              />
-            ) : (
-              <Intro context={context} />
-            )
-          }
-          footer={<NextChapter context={context} />}
-        />
-      </section>
-    </div>
-  );
-};
+const Reading: FC<ReadingProps> = ({ context, entries, header, footer }) => (
+  <DiffList
+    review={context.review}
+    entries={entries}
+    viewer={context.viewer}
+    viewed={context.viewed}
+    drafts={context.drafts}
+    wrap={context.wrap}
+    header={header}
+    footer={footer}
+  />
+);

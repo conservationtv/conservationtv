@@ -26,6 +26,27 @@ export default defineConfig({
        */
       GITHUB_CLIENT_ID: bindings.secret(),
       GITHUB_CLIENT_SECRET: bindings.secret(),
+      /**
+       * Signoff runs from developers' machines (tools/runner): each run's log, reports and result, under
+       * `<commit>/<signoff>/`. Create it once with `pnpm exec cf r2 bucket create review-results`.
+       */
+      RESULTS: bindings.r2({ name: 'review-results' }),
+      /** Grafana Cloud, whose traces show how each service did around a deploy. Empty, deploys show without them. */
+      GRAFANA_URL: bindings.text('https://valiantlagoon729.grafana.net'),
+      /** A Viewer service account's token for it (Administration → Service accounts). */
+      GRAFANA_TOKEN: bindings.secret(),
+      /**
+       * A T3 scheduled task's webhook that starts an agent signing a pull request off (pnpm signoff, fixing what fails).
+       * Its URL is its only credential, so it is a secret, and only the Worker calls it. Empty, no agent buttons show.
+       */
+      AGENT_HOOK_URL: bindings.secret(),
+      /**
+       * A T3 scheduled task's webhook that starts an agent fixing the code one comment points at, pushing the fix and
+       * replying on its thread. A secret, like AGENT_HOOK_URL. Empty, no comment agent buttons show.
+       */
+      AGENT_COMMENT_HOOK_URL: bindings.secret(),
+      /** Who may start agents, by GitHub login, comma-separated: they run on the owner's machine and push. */
+      AGENT_OPERATORS: bindings.text('changesbyjames'),
       /** Seals the session cookie holding a reviewer's token: any long random string, such as `openssl rand -hex 32`. */
       SESSION_SECRET: bindings.secret()
     }

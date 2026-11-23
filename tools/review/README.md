@@ -6,21 +6,26 @@ its API document, the SDK and CLI regenerated from it, and Drizzle's schema snap
 with what to read first and what was generated from it set apart.
 
 It is a Cloudflare Worker (Hono) serving a React app, built with the Cloudflare Vite plugin, and draws diffs and the
-file tree with [Pierre](https://pierre.computer)'s [`@pierre/diffs`](https://diffs.com) and `@pierre/trees`. It reads
+file tree with [Pierre](https://pierre.computer)'s [`@pierre/diffs`](https://diffs.com) and `@pierre/trees`. Everything
+else is the workspace's `@conservationtv/ui` components on its tokens, with Tailwind; `src/app/styles.css` keeps only
+the layout, diff, call-tree and API reference rules those don't cover, in the `components` layer so utilities win. It reads
 only what GitHub shows anyone: the pull request, its files, comments, reviews, checks, mergeability and the pull
 requests around it. Nothing is written back; replies link to GitHub.
 
 ## Pages
 
-| Path                 | Shows                                                                              |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| `/`                  | Open pull requests, each stack's members together, and the recently closed ones    |
-| `/pr/<number>`       | Its description and conversation, merge state and signoffs, contract changes       |
-| `/pr/<number>/files` | Every changed file: source code open, generated files folded, line comments inline |
+| Path                     | Shows                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `/`                      | Open pull requests, each stack's members together, and the recently closed ones              |
+| `/pr/<number>`           | Its description and conversation, merge state and signoffs, contract changes                 |
+| `/pr/<number>/files`     | The change as topics, each with its calls, contract, migration, generated output and threads |
+| `/pr/<number>/files/all` | Every changed file as a tree: source code open, generated files folded                       |
+| `/results/<commit>`      | The signoffs and reports run at a commit, and each one's log                                 |
 
 ## Kinds of file
 
-Each changed file is one of these ([`src/shared/classify.ts`](src/shared/classify.ts)), in reading order:
+Each changed file is one of these ([`tools/runner/src/classify.ts`](../runner/src/classify.ts), shared with the runner),
+in reading order:
 
 | Kind          | Files                                                                                         | Shown  |
 | ------------- | --------------------------------------------------------------------------------------------- | ------ |
@@ -37,14 +42,40 @@ The generated files are trusted on the strength of `signoff/generated`: `pnpm si
 API document, SDK and CLI and signs off only if nothing changed, so a green signoff on the head commit means each
 generated file is what its generator writes. Read the generator's input instead.
 
-## Map
+## Signoffs
 
-When `.github/workflows/diffmap.yml` has run, the files tab opens on a **Map** chapter: a
-[diffmap](https://github.com/tanishqkancharla/diffmap) spec, an agent's account of the change whose diagrams link to
-its code, drawn by diffmap.dev in a frame. The workflow has Pullfrog's agent write it read-only, then a separate job
-validates it, shares it as an unlisted gist (with `DIFFMAP_GIST_TOKEN`, a token with only the gist scope) and keeps one
-comment naming it: `<!-- diffmap gist=<id> sha=<head> -->`. The Worker takes the latest such comment, only from
-`github-actions[bot]`, and leaves it out of the conversation. A map written from an older head commit says so.
+A pull request is signed off on a developer's machine with `pnpm signoff` ([`tools/runner`](../runner)), which uploads
+each run's log and result here before `gh signoff` gives it as a commit status linking to it. They are kept in the
+`review-results` R2 bucket under `<commit>/<signoff>/`; `PUT /api/results/<commit>/<signoff>/<file>` takes them from
+anyone whose GitHub token (a bearer token, checked with GitHub and trusted for ten minutes) can push to the repository,
+and stamps `result.json` with who that was. The conversation shows each signoff's run beside its status, which says why
+one failed even before anything is given, and `/results/<commit>/<signoff>` shows its log.
+
+## Review bots
+
+[Pullfrog](https://pullfrog.com) reviews every push, so its reviews are read for what they decide rather than in full
+([`src/shared/bots.ts`](src/shared/bots.ts) names the bots). A review opens with its verdict: `> ✅ …` (no issues),
+`> ℹ️ …` (notes), or a GitHub alert such as `> [!IMPORTANT]` (something to fix). The conversation folds each review to
+that verdict and the commit it was of, and the sidebar keeps a card per bot: its latest verdict, the line threads it
+opened that are still open, and its verdict push by push.
+
+Whether a thread is resolved comes from GitHub's GraphQL API, which answers only with a token: without `GITHUB_TOKEN`
+threads read without it. Resolved threads fold to one line on the files tab, and a signed-in reviewer can resolve a
+thread or open it again. GitHub's alerts and `suggestion` blocks are drawn as GitHub draws them, in any comment.
+
+## Deploys
+
+Once a pull request is merged, the conversation shows where it went ([`src/worker/deploys.ts`](src/worker/deploys.ts)):
+for each environment and workflow GitHub records deploys for (staging is deployed by both `studio` and
+`controlplane`), the first successful deploy of a commit containing the merge commit, or the first attempt while none
+has succeeded, with its run.
+
+With `GRAFANA_TOKEN`, a Grafana Cloud service account's Viewer token for `GRAFANA_URL`, each deploy also shows how
+the services it shipped did in the hour before it finished and the hour after (or until now): requests, 5xx responses,
+exceptions by message, with those new after it called out, and p95 latency, each from an instant TraceQL metrics query
+on the stack's Tempo ([`src/worker/grafana.ts`](src/worker/grafana.ts)), and a link to the traces in Explore. A
+service is the Worker's own name, `<script>-<environment>`, so a deploy of the `studio` workflow to staging shows
+`studio-api-staging`; only Workers that export traces to Grafana (Workers Observability destinations) appear.
 
 ## Scenario reports
 
@@ -61,20 +92,32 @@ report is HTML that a pull request's code wrote, so every file of it is served u
 `Content-Security-Policy: sandbox` without `allow-same-origin`: the page gets an opaque origin, and cannot read this
 site's cookies or act as the signed-in reviewer.
 
-## Calls
+## Topics
 
-The source chapter opens on its calls: the functions, methods, routes and call-built values that are new or changed,
-as trees of the calls between them. Each tree starts where the change is entered, from an unchanged function that calls
-into it when there is one. It is read from syntax alone with `@babel/parser`, in the browser, from both sides of each
-TypeScript and JavaScript file: a call is matched to a changed function by the name it is written with (`this.x` within
-its class or object), so calls through variables, imports under another name or dynamic dispatch are not followed.
-**Files** shows the chapter file by file.
+The files tab reads the pull request as topics ([`src/app/topics.ts`](src/app/topics.ts)) rather than kinds of file:
+each is one thing that changed, with everything that follows from it beside it. They come from the runner's calls report
+(`pnpm signoff calls`, [`tools/runner`](../runner)), which asks TypeScript's own language server, at the head, for the
+functions, methods and values each changed source file changed and for every use of them across the workspace, so
+imports, re-exports, methods and JSX are followed as the compiler resolves them.
 
-A row is a function, and opening it shows what its name is bound to: at the merge base, the function of that name, or
-else whatever statement bound the name, such as a re-export the function replaced; at the head, the function with the
-changed top-level declarations of its file it is built from (values it reads, and for a function that was there
-before, the imports it newly uses). Under each function are the calls its caller makes to it, each opening onto its
-lines in the caller, marked as new unless the caller made the same call at the merge base.
+- **An operation** whose contract changed leads its own topic: the route hunks naming it and the units they touch,
+  then its documentation before and after, what the change means to clients, and its generated SDK and CLI, folded.
+- **A change** starts at a changed unit nothing else changed uses, and follows its uses down into whatever else
+  changed; a unit another topic already reads is linked to rather than repeated. It says where it is entered from:
+  the unchanged code that uses it.
+- **A migration** joins the topic whose code quotes one of its tables, or is a topic of its own with its snapshot.
+- What no unit covers (types, one-line values) is a topic per file, and the rest (config, docs, generated output nothing
+  claimed, the lockfile) is the last.
+
+Each topic opens on its call tree, drawn as [calldiff](https://github.com/tanishqkancharla/calldiff) draws one: from where
+it starts, every call each changed function makes, in order, at the merge base and the head, so a call the pull request
+added, removed or moved is marked `+`, `−` or `⇄`. The report reads the calls from the syntax and resolves each with
+the language server's go-to-definition, at the head and in a worktree of the merge base, so the platform's and
+dependencies' functions drop out and no call goes to a different function of the same name. Only changed functions
+are opened, and each opens onto its own diff.
+
+Each topic shows only its hunks of a file, with their threads and comments; Pullfrog's open threads are counted in the
+rail. Without a calls report each changed source file is a topic. **All files** shows every file as a tree instead.
 
 ## API contracts
 
@@ -85,14 +128,16 @@ is **added**; a version that already existed and now differs in its inputs, outp
 
 ## GitHub
 
-The Worker reads GitHub's REST API with `GITHUB_TOKEN`, a fine-grained token with read-only access to public
-repositories and no other permission. Responses are kept in the Cache API and revalidated with their ETags, which with a
-token costs nothing against the rate limit. Without one, GitHub allows 60 requests an hour from an address, counting
-revalidations, so cached copies serve ten times longer; a pull request takes about ten requests.
+The Worker reads GitHub's REST and GraphQL APIs as whoever is signed in, with their own token and their own 5,000
+requests an hour; otherwise with `GITHUB_TOKEN`, a fine-grained token with read-only access to public repositories and
+no other permission; otherwise anonymously. Everything read is public, so responses are kept in the Cache API whoever
+fetched them, and revalidated with their ETags, which with a token costs nothing against the rate limit. Without one,
+GitHub allows 60 requests an hour from an address, counting revalidations, so cached copies serve ten times longer; a
+pull request takes about ten requests.
 
 ## Signing in
 
-Signed in with GitHub, a reviewer comments, replies to threads, comments on lines (on their own or gathered into a
+Signed in with GitHub, a reviewer comments, replies to threads and resolves them, comments on lines (on their own or gathered into a
 review that comments, approves or requests changes) and merges, all as themselves. Sign-in goes through a GitHub OAuth
 app that holds no permissions of its own: each reviewer grants a `public_repo` token, which the Worker keeps in an
 HttpOnly cookie sealed with AES-GCM under `SESSION_SECRET`, so only the Worker can read it. Signing out revokes it.
@@ -103,13 +148,25 @@ The OAuth app is `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, with its callbac
 locally needs a second app whose callback is `http://localhost:6423/api/auth/callback`. Without them the tool only
 reads.
 
+## Agents
+
+Signed in as an operator (`AGENT_OPERATORS`, GitHub logins), the merge card on an open pull request offers **Sign off
+with agent**, and an **Agent** button on each signoff not yet given. Either asks the Worker, which checks the session
+and the signoff names and calls `AGENT_HOOK_URL`, a T3 scheduled task's webhook, with `{ "pr": <number> }` and the
+signoffs, if only some. The task's agent runs `pnpm signoff` in a worktree of the branch on the owner's machine, fixes
+what fails, and pushes. The hook's URL is its only credential, so it is a secret and never reaches the browser.
+
 ## Development
 
 ```sh
-cp .dev.vars.example .dev.vars   # and set GITHUB_TOKEN and the OAuth app's, or leave them empty
 pnpm dev                         # http://localhost:6423
 pnpm typecheck
 ```
+
+`pnpm dev` ([`dev.ts`](dev.ts)) makes `.dev.vars` from `.dev.vars.example` if there is none, and while `GITHUB_TOKEN` is
+empty (or was filled by it before) sets it from the GitHub CLI's sign-in, `gh auth token`, each time it starts: that
+token can do more than the read-only one production uses, and stays in the ignored `.dev.vars`. Set your own token
+there to keep it. Signing in locally takes the second OAuth app described above.
 
 ## Deploying
 

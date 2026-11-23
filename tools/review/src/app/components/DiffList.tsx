@@ -1,8 +1,10 @@
+import { Checkbox } from '@conservationtv/ui/components/checkbox';
 import type { CodeViewItem, DiffLineAnnotation, FileDiffMetadata, SelectedLineRange } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, type CodeViewReactOptions } from '@pierre/diffs/react';
 import { useRef, useState, type FC, type ReactNode, type RefObject } from 'react';
 import type { Review, ReviewFile } from '../../shared/review.ts';
-import { fullDiff, isBinary, isMoved, loadSides } from '../diffs.ts';
+import { commentable, fullDiff, isBinary, isMoved, loadSides } from '../diffs.ts';
+import type { LineSide } from '../../shared/actions.ts';
 import type { Drafts } from '../drafts.ts';
 import type { Entry } from '../entries.ts';
 import { formatCount } from '../format.ts';
@@ -11,8 +13,6 @@ import { useSession } from '../session.ts';
 import type { ViewedFiles } from '../viewed.ts';
 import { theme } from '../highlighting.ts';
 import { NoteView } from './LineNotes.tsx';
-
-export type DiffStyle = 'split' | 'unified';
 
 const statusLetters = {
   added: 'A',
@@ -36,7 +36,7 @@ function version(parts: readonly (string | number | boolean)[]): number {
 
 /** What a note shows, for an item's version: a thread's comments, a draft, or where a comment is being written. */
 function noteKey(note: Note): string {
-  if (note.kind === 'thread') return `thread:${note.thread.comments.length}`;
+  if (note.kind === 'thread') return `thread:${note.thread.comments.length}:${note.thread.resolved}`;
   if (note.kind === 'draft') return `draft:${note.draft.id}`;
   return `composer:${note.target.side}:${note.target.line}`;
 }
@@ -67,7 +67,6 @@ interface DiffListProps {
   viewer: Viewer;
   viewed: ViewedFiles;
   drafts: Drafts;
-  diffStyle: DiffStyle;
   wrap: boolean;
   header: ReactNode;
   footer: ReactNode;
@@ -75,7 +74,7 @@ interface DiffListProps {
 
 /** A chapter's diffs in one scrolling list, with what to read open and the rest folded until asked for. */
 export const DiffList: FC<DiffListProps> = props => {
-  const { review, entries, viewer, viewed, drafts, diffStyle, wrap, header, footer } = props;
+  const { review, entries, viewer, viewed, drafts, wrap, header, footer } = props;
   const [states, setStates] = useState<Record<string, EntryState>>({});
   const threads = Map.groupBy(review.threads, thread => thread.path);
   const pending = Map.groupBy(drafts.all, draft => draft.path);
@@ -118,22 +117,29 @@ export const DiffList: FC<DiffListProps> = props => {
   }
 
   /**
-   * Threads, pending comments and the comment being written: only on an entry showing a whole file, as GitHub's are.
-   * Each kind is gathered from its own source and placed at its line.
+   * Threads, pending comments and the comment being written, on the lines of the file an entry shows, whole or in part.
+   * Each kind is gathered from its own source and placed at its line; part of a file shows only those on its lines.
    */
   function notesOf(entry: Entry): DiffLineAnnotation<Note>[] {
-    if (!entry.file) return [];
-    // A thread whose line has since changed is shown at the top of its file.
-    const threadNotes = (threads.get(entry.file.path) ?? []).map(thread => ({
-      side: thread.side,
-      lineNumber: thread.line ?? 0,
-      metadata: { kind: 'thread', thread } satisfies Note
-    }));
-    const draftNotes = (pending.get(entry.file.path) ?? []).map(draft => ({
-      side: draft.side,
-      lineNumber: draft.line,
-      metadata: { kind: 'draft', draft } satisfies Note
-    }));
+    const source = entry.source;
+    if (!source) return [];
+    // A thread whose line has since changed is shown at the top of a whole file, and with its topic otherwise.
+    const shows = (side: LineSide, line: number | null) =>
+      entry.file ? true : line !== null && commentable(entry.diff, side, line, line);
+    const threadNotes = (threads.get(source.path) ?? [])
+      .filter(thread => shows(thread.side, thread.line))
+      .map(thread => ({
+        side: thread.side,
+        lineNumber: thread.line ?? 0,
+        metadata: { kind: 'thread', thread } satisfies Note
+      }));
+    const draftNotes = (pending.get(source.path) ?? [])
+      .filter(draft => shows(draft.side, draft.line))
+      .map(draft => ({
+        side: draft.side,
+        lineNumber: draft.line,
+        metadata: { kind: 'draft', draft } satisfies Note
+      }));
     const composing = target?.entryId === entry.id ? [target] : [];
     const composerNotes = composing.map(line => ({
       side: line.side,
@@ -175,7 +181,8 @@ export const DiffList: FC<DiffListProps> = props => {
 
   const options: CodeViewReactOptions<Note, undefined> = {
     theme,
-    diffStyle,
+    // One column: the change reads top to bottom, with room for its lines at any width.
+    diffStyle: 'unified',
     overflow: wrap ? 'wrap' : 'scroll',
     stickyHeaders: true,
     loadDiffFiles: fileDiff => loadSides(review.pull, fileDiff.name, fileDiff.prevName),
@@ -233,7 +240,7 @@ interface EntryNoteProps {
 
 /** Why an entry shows no lines or what it leaves out; loading and failing say more than either. */
 const EntryNote: FC<EntryNoteProps> = ({ entry, folded, state, url }) => {
-  if (state?.error) return <span className="error-text">{state.error}</span>;
+  if (state?.error) return <span className="text-xs text-destructive">{state.error}</span>;
   if (state?.loading) return <span className="muted">Loading…</span>;
   return <AboutEntry entry={entry} folded={folded} loaded={Boolean(state?.full)} url={url} />;
 };
@@ -312,8 +319,9 @@ interface ViewedToggleProps {
 }
 
 const ViewedToggle: FC<ViewedToggleProps> = ({ viewed, onViewed }) => (
-  <label className="viewed-toggle">
-    <input type="checkbox" checked={viewed} onChange={onViewed} />
-    <span>Viewed</span>
+  <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-border px-1.5 py-0.5 text-xs text-muted-foreground">
+    <Checkbox checked={viewed} onCheckedChange={onViewed} className="size-3.5" />
+    {/* A phone has room for the box alone. */}
+    <span className="max-[900px]:hidden">Viewed</span>
   </label>
 );

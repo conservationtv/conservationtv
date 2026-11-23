@@ -1,7 +1,7 @@
 import type { GitStatusEntry } from '@pierre/trees';
 import { FileTree, useFileTree } from '@pierre/trees/react';
 import { useEffect, useRef, type FC } from 'react';
-import { categoryLabels } from '../../shared/classify.ts';
+import { categoryLabels } from '@conservationtv/runner/classify';
 import type { Category, ReviewFile } from '../../shared/review.ts';
 
 const shortLabels = {

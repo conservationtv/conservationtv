@@ -1,14 +1,32 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { useState, type FC } from 'react';
+import { Badge } from '@conservationtv/ui/components/badge';
+import { Button } from '@conservationtv/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@conservationtv/ui/components/card';
+import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
+import { cn } from '@conservationtv/ui/lib/utils';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, type FC, type ReactNode } from 'react';
 import { MergeMethodSchema, type MergeMethod } from '../../shared/actions.ts';
-import type { Check, ContractChange, ConversationEntry, Pull, Review, ReviewState } from '../../shared/review.ts';
-import { GENERATED_SIGNOFF, signoffs } from '../../shared/signoffs.ts';
-import { refreshReview, send } from '../api.ts';
+import type {
+  Check,
+  CheckState,
+  ContractChange,
+  ConversationEntry,
+  Pull,
+  Review,
+  ReviewState
+} from '../../shared/review.ts';
+import type { RunResult } from '@conservationtv/runner/results';
+import { GENERATED_SIGNOFF, signoffContext, signoffs, type Signoff } from '@conservationtv/runner/signoffs';
+import { refreshReview, resultsQuery, send } from '../api.ts';
 import { signInHref, useSession } from '../session.ts';
+import { botReports, isReviewBot } from '../../shared/bots.ts';
+import { CommentAgent, SignoffAgent } from './AgentButton.tsx';
+import { BotCard, BotEntry } from './BotReviews.tsx';
+import { DeploysCard } from './DeploysCard.tsx';
 import { Composer } from './Composer.tsx';
 import { Link } from './Link.tsx';
-import { chaptersOf } from '../story.ts';
-import { Avatar, CheckMark, MarkdownBody, RelativeTime } from './common.tsx';
+import { useTopics } from '../use-topics.ts';
+import { Avatar, CheckMark, ContractKindBadge, MarkdownBody, RelativeTime } from './common.tsx';
 import { formatCount } from '../format.ts';
 
 const reviewVerbs = {
@@ -21,10 +39,23 @@ const reviewVerbs = {
 
 interface EntryProps {
   entry: ConversationEntry;
+  number: number;
+  /** The pull request is open, so an agent can still act on a comment. */
+  open: boolean;
 }
 
-const Entry: FC<EntryProps> = ({ entry }) => (
-  <article className={`entry${entry.review ? ` review-${entry.review.toLowerCase()}` : ''}`}>
+/** A review's verdict, at a glance, on its border. */
+const reviewBorders = {
+  APPROVED: 'border-(--success)/50',
+  CHANGES_REQUESTED: 'border-destructive/50',
+  COMMENTED: null,
+  DISMISSED: null,
+  PENDING: null
+} satisfies Record<ReviewState, string | null>;
+
+/** A comment or review: who, what they did, when; on a plain comment of an open pull request, an agent to act on it. */
+const Entry: FC<EntryProps> = ({ entry, number, open }) => (
+  <article className={cn('entry', entry.review ? reviewBorders[entry.review] : null)}>
     <header>
       <Avatar person={entry.author} size={24} />
       <strong>{entry.author.login}</strong>
@@ -32,6 +63,11 @@ const Entry: FC<EntryProps> = ({ entry }) => (
       <a href={entry.url} className="muted">
         <RelativeTime iso={entry.createdAt} />
       </a>
+      {open && entry.review === null ? (
+        <span className="ml-auto">
+          <CommentAgent number={number} comment={entry.id} kind="conversation" />
+        </span>
+      ) : null}
     </header>
     {entry.body ? <MarkdownBody text={entry.body} /> : null}
   </article>
@@ -97,39 +133,35 @@ const MergeControls: FC<ChecksProps> = ({ review }) => {
   }
 
   return (
-    <div className="merge-controls">
-      <select
+    <div className="mt-1 mb-3 flex flex-col gap-2">
+      <NativeSelect
         value={method}
         aria-label="How to merge"
+        className="w-full"
         disabled={merging}
         onChange={event => setMethod(MergeMethodSchema.parse(event.target.value))}
       >
         {Object.entries(mergeMethods).map(([value, label]) => (
-          <option key={value} value={value}>
+          <NativeSelectOption key={value} value={value}>
             {label}
-          </option>
+          </NativeSelectOption>
         ))}
-      </select>
+      </NativeSelect>
       {confirming ? (
-        <div className="merge-confirm">
-          <button type="button" className="button primary" disabled={merging} onClick={() => void merge()}>
-            {merging ? 'Merging…' : `Confirm: merge into ${pull.baseRef}`}
-          </button>
-          <button type="button" className="button" disabled={merging} onClick={() => setConfirming(false)}>
+        <div className="flex flex-wrap gap-1.5">
+          <Button loading={merging} onClick={() => void merge()}>
+            Confirm: merge into {pull.baseRef}
+          </Button>
+          <Button variant="outline" disabled={merging} onClick={() => setConfirming(false)}>
             Cancel
-          </button>
+          </Button>
         </div>
       ) : (
-        <button
-          type="button"
-          className="button primary"
-          disabled={pull.mergeable === false}
-          onClick={() => setConfirming(true)}
-        >
+        <Button disabled={pull.mergeable === false} onClick={() => setConfirming(true)}>
           Merge pull request
-        </button>
+        </Button>
       )}
-      {error ? <p className="error-text small">{error}</p> : null}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
 };
@@ -142,13 +174,13 @@ const CommentForm: FC<ChecksProps> = ({ review }) => {
   if (!session?.enabled) return null;
   if (!session.viewer) {
     return (
-      <p className="muted">
+      <p className="text-muted-foreground">
         <a href={signInHref()}>Sign in with GitHub</a> to comment, review and merge.
       </p>
     );
   }
   return (
-    <section className="entry comment-form">
+    <section className="entry p-3">
       <Composer
         placeholder="Leave a comment (Markdown)"
         actions={[
@@ -166,31 +198,113 @@ const CommentForm: FC<ChecksProps> = ({ review }) => {
   );
 };
 
+interface SidebarCardProps {
+  title: string;
+  children: ReactNode;
+}
+
+/** One of the sidebar's cards: a title, then what it holds. */
+const SidebarCard: FC<SidebarCardProps> = ({ title, children }) => (
+  <Card size="sm" className="gap-2 text-[13px]">
+    <CardHeader>
+      <CardTitle>{title}</CardTitle>
+    </CardHeader>
+    <CardContent className="flex flex-col gap-1">{children}</CardContent>
+  </Card>
+);
+
+/** A heading within a sidebar card. */
+interface CardSubheadingProps {
+  children: ReactNode;
+  className?: string;
+}
+
+const CardSubheading: FC<CardSubheadingProps> = ({ children, className }) => (
+  <h4 className={cn('mt-2 text-xs font-semibold text-muted-foreground', className)}>{children}</h4>
+);
+
+/** A signoff's state: its commit status's, else failed when its uploaded run did, else not given yet. */
+function signoffState(check: Check | undefined, run: RunResult | undefined): CheckState {
+  if (check) return check.state;
+  return run?.state === 'failure' ? 'failure' : 'pending';
+}
+
+interface SignoffDetailProps {
+  signoff: Signoff;
+  check: Check | undefined;
+  run: RunResult | undefined;
+}
+
+/** Why a run failed, else what its status says, else the script that gives it. */
+const SignoffDetail: FC<SignoffDetailProps> = ({ signoff, check, run }) => (
+  <>{run?.reason ?? check?.description ?? <code>pnpm signoff {signoff.name}</code>}</>
+);
+
+interface SignoffRowProps {
+  number: number;
+  /** An agent can be started on it: the pull request is open. */
+  open: boolean;
+  signoff: Signoff;
+  check: Check | undefined;
+  run: RunResult | undefined;
+}
+
+/**
+ * A signoff: given or not, as its commit status says, and its run at the head commit when one was uploaded, which
+ * says why it failed. One not yet given shows the script that gives it.
+ */
+const SignoffRow: FC<SignoffRowProps> = ({ number, open, signoff, check, run }) => {
+  const state = signoffState(check, run);
+  return (
+    <li title={signoff.meaning} className="grid-cols-[1rem_auto_minmax(0,1fr)_auto] items-center">
+      <CheckMark state={state} />
+      {run ? <Link to={`/results/${run.sha}/${run.signoff}`}>{signoff.label}</Link> : <span>{signoff.label}</span>}
+      <span className="muted">
+        <SignoffDetail signoff={signoff} check={check} run={run} />
+      </span>
+      {open && state !== 'success' ? (
+        <SignoffAgent
+          number={number}
+          signoffs={[signoff.name]}
+          label={`Sign off ${signoff.label} with an agent`}
+          iconOnly
+        />
+      ) : null}
+    </li>
+  );
+};
+
+/** Merging, then each signoff with its run and, for an operator, an agent to give it; then the other checks. */
 const MergeBox: FC<ChecksProps> = ({ review }) => {
   const byName = new Map(review.checks.map(check => [check.name, check]));
   const others = review.checks.filter(check => check.kind !== 'signoff');
+  const { data: runs } = useQuery(resultsQuery(review.pull.headSha));
+  const runOf = new Map(runs?.map(run => [run.signoff, run]));
   return (
-    <section className="box">
-      <h3>Merge</h3>
+    <SidebarCard title="Merge">
       <p>{mergeVerdict(review.pull)}</p>
       <MergeControls review={review} />
-      <h4>Signoffs</h4>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <CardSubheading className="mt-0">Signoffs</CardSubheading>
+        {review.pull.state === 'open' || review.pull.state === 'draft' ? (
+          <SignoffAgent number={review.pull.number} label="Sign off with agent" size="xs" />
+        ) : null}
+      </div>
       <ul className="checks">
-        {signoffs.map(signoff => {
-          // A signoff not yet given shows as pending, with the script that gives it.
-          const check = byName.get(signoff.context);
-          return (
-            <li key={signoff.context} title={signoff.meaning}>
-              <CheckMark state={check?.state ?? 'pending'} />
-              <span>{signoff.label}</span>
-              <span className="muted">{check?.description ?? <code>{signoff.script}</code>}</span>
-            </li>
-          );
-        })}
+        {signoffs.map(signoff => (
+          <SignoffRow
+            key={signoff.name}
+            number={review.pull.number}
+            open={review.pull.state === 'open' || review.pull.state === 'draft'}
+            signoff={signoff}
+            check={byName.get(signoffContext(signoff))}
+            run={runOf.get(signoff.name)}
+          />
+        ))}
       </ul>
       {others.length ? (
         <>
-          <h4>Checks</h4>
+          <CardSubheading>Checks</CardSubheading>
           <ul className="checks">
             {others.map(check => (
               <CheckRow key={`${check.kind}:${check.name}`} check={check} />
@@ -198,7 +312,7 @@ const MergeBox: FC<ChecksProps> = ({ review }) => {
           </ul>
         </>
       ) : null}
-    </section>
+    </SidebarCard>
   );
 };
 
@@ -236,21 +350,20 @@ const ContractsBox: FC<ContractsBoxProps> = ({ number, contracts }) => {
   const documents = Map.groupBy(contracts, change => change.document);
   const breaking = contracts.some(change => change.kind !== 'added');
   return (
-    <section className="box">
-      <h3>API contracts</h3>
+    <SidebarCard title="API contracts">
       {breaking ? (
-        <p className="warning">
+        <p className="text-xs text-(--warning)">
           A changed or removed version breaks clients that already require it. Before a release, keep the old contract
           and declare a new operation version.
         </p>
       ) : null}
       {[...documents].map(([document, changes]) => (
-        <div key={document} className="contract-document">
-          <h4>{apiName(document)}</h4>
+        <div key={document}>
+          <CardSubheading>{apiName(document)}</CardSubheading>
           <ul className="contracts">
             {changes.map(change => (
               <li key={change.operation}>
-                <span className={`contract-kind contract-${change.kind}`}>{contractKinds[change.kind]}</span>
+                <ContractKindBadge kind={change.kind}>{contractKinds[change.kind]}</ContractKindBadge>
                 <Link to={`/pr/${number}/files/api/${encodeURIComponent(change.operation)}`}>
                   <code>{change.operation}</code>
                 </Link>
@@ -259,51 +372,44 @@ const ContractsBox: FC<ContractsBoxProps> = ({ number, contracts }) => {
           </ul>
         </div>
       ))}
-    </section>
+    </SidebarCard>
   );
 };
 
-/** The review, chapter by chapter: what each holds, and a way in. */
-const ReviewPathBox: FC<ChecksProps> = ({ review }) => {
+/** The review topic by topic: what each is, how much it changes and its open threads, and a way in. */
+const TopicsBox: FC<ChecksProps> = ({ review }) => {
+  const topics = useTopics(review);
   const generated = review.checks.find(check => check.name === GENERATED_SIGNOFF);
   return (
-    <section className="box">
-      <h3>Review path</h3>
-      <ol className="review-path">
-        {chaptersOf(review).map(chapter =>
-          // The map is a spec, not files: it has nothing to count. The API chapter counts operations, the rest files.
-          chapter.id === 'map' ? (
-            <li key={chapter.id}>
-              <Link to={`/pr/${review.pull.number}/files/${chapter.id}`}>{chapter.title}</Link>
-              <span className="muted">diffmap</span>
-            </li>
-          ) : (
-            <li key={chapter.id}>
-              <Link to={`/pr/${review.pull.number}/files/${chapter.id}`}>{chapter.title}</Link>
-              <span className="muted">
-                {chapter.id === 'api'
-                  ? `${review.contracts.length} operation${review.contracts.length === 1 ? '' : 's'}`
-                  : `${chapter.files.length} file${chapter.files.length === 1 ? '' : 's'}`}
-              </span>
-              <span className="additions">
-                +{formatCount(chapter.files.reduce((sum, file) => sum + file.additions, 0))}
-              </span>
-              <span className="deletions">
-                −{formatCount(chapter.files.reduce((sum, file) => sum + file.deletions, 0))}
-              </span>
-            </li>
-          )
-        )}
-      </ol>
+    <SidebarCard title="Topics">
+      {topics ? (
+        <ol className="review-path">
+          {topics.map(topic => {
+            const open = topic.threads.filter(thread => thread.resolved !== true).length;
+            return (
+              <li key={topic.id}>
+                <Link to={`/pr/${review.pull.number}/files/${topic.id}`} className="truncate">
+                  {topic.title}
+                </Link>
+                <span className="muted">{open ? `${open} open` : ''}</span>
+                <span className="additions">+{formatCount(topic.additions)}</span>
+                <span className="deletions">−{formatCount(topic.deletions)}</span>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <p className="text-muted-foreground">Reading the calls report…</p>
+      )}
       {review.files.some(file => file.category === 'generated') ? (
-        <p className="muted small">
-          <CheckMark state={generated?.state ?? 'pending'} />{' '}
+        <p className="mt-1 flex gap-1.5 text-xs text-muted-foreground">
+          <CheckMark state={generated?.state ?? 'pending'} />
           {generated?.state === 'success'
             ? 'Generated files were regenerated at this commit and found current (signoff/generated).'
             : 'Generated files have not been signed off as current at this commit.'}
         </p>
       ) : null}
-    </section>
+    </SidebarCard>
   );
 };
 
@@ -321,11 +427,20 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
           </header>
           <MarkdownBody text={pull.body} />
         </article>
-        {review.conversation.map(entry => (
-          <Entry key={entry.id} entry={entry} />
-        ))}
+        {review.conversation.map(entry =>
+          entry.review && isReviewBot(entry.author.login) ? (
+            <BotEntry key={entry.id} entry={entry} head={pull.headSha} />
+          ) : (
+            <Entry
+              key={entry.id}
+              entry={entry}
+              number={pull.number}
+              open={pull.state === 'open' || pull.state === 'draft'}
+            />
+          )
+        )}
         {review.threads.length ? (
-          <p className="muted">
+          <p className="text-muted-foreground">
             <Link to={`/pr/${pull.number}/files`}>
               {review.threads.length} line comment thread{review.threads.length === 1 ? '' : 's'}
             </Link>{' '}
@@ -336,19 +451,22 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
       </div>
       <aside className="sidebar">
         <MergeBox review={review} />
+        <DeploysCard review={review} />
+        {botReports(review.conversation, review.threads).map(report => (
+          <BotCard key={report.login} review={review} report={report} />
+        ))}
         <ContractsBox number={pull.number} contracts={review.contracts} />
-        <ReviewPathBox review={review} />
+        <TopicsBox review={review} />
         {pull.labels.length ? (
-          <section className="box">
-            <h3>Labels</h3>
-            <div className="labels">
+          <SidebarCard title="Labels">
+            <div className="flex flex-wrap gap-1.5">
               {pull.labels.map(label => (
-                <span key={label.name} className="label" style={{ borderColor: `#${label.color}` }}>
+                <Badge key={label.name} variant="outline" style={{ borderColor: `#${label.color}` }}>
                   {label.name}
-                </span>
+                </Badge>
               ))}
             </div>
-          </section>
+          </SidebarCard>
         ) : null}
       </aside>
     </main>

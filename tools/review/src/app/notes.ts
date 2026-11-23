@@ -37,18 +37,18 @@ export type Note = ThreadNote | DraftNote | ComposerNote;
  * across sides comments on the line it ended on.
  */
 export function lineTarget(entry: Entry, range: SelectedLineRange): LineTarget | null {
-  if (!entry.file) return null;
+  if (!entry.source) return null;
   const side = range.endSide ?? range.side ?? 'additions';
   const sameSide = (range.side ?? side) === side;
   const from = sameSide ? Math.min(range.start, range.end) : range.end;
   const to = sameSide ? Math.max(range.start, range.end) : range.end;
   // A whole file GitHub did not inline has no lines GitHub would take a comment on.
-  const allowed = entry.file.patch !== null && commentable(entry.diff, side, from, to);
+  const allowed = entry.source.patch !== null && commentable(entry.diff, side, from, to);
   const start = from < to ? { side, line: from } : null;
   return {
     entryId: entry.id,
     side,
     line: to,
-    comment: allowed ? { path: entry.file.path, side, line: to, start } : null
+    comment: allowed ? { path: entry.source.path, side, line: to, start } : null
   };
 }

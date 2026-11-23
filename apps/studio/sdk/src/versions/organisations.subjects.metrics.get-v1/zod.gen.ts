@@ -15,9 +15,9 @@ export const MetricSchema = z.object({
         at: z.string(),
         min: z.number(),
         max: z.number(),
+        count: z.number(),
         avg: z.number(),
-        last: z.number(),
-        count: z.number()
+        last: z.number()
     })),
     id: z.string(),
     name: z.string(),

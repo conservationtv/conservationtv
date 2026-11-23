@@ -15,9 +15,9 @@ export type Metric = {
             at: string;
             min: number;
             max: number;
+            count: number;
             avg: number;
             last: number;
-            count: number;
         }>;
         id: string;
         subjectId: string;
