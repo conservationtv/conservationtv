@@ -39,6 +39,15 @@ The generated files are trusted on the strength of `signoff/generated`: `pnpm si
 API document, SDK and CLI and signs off only if nothing changed, so a green signoff on the head commit means each
 generated file is what its generator writes. Read the generator's input instead.
 
+## Signoffs
+
+A pull request is signed off on a developer's machine with `pnpm signoff` ([`tools/runner`](../runner)), which uploads
+each run's log and result here before `gh signoff` gives it as a commit status linking to it. They are kept in the
+`review-results` R2 bucket under `<commit>/<signoff>/`; `PUT /api/results/<commit>/<signoff>/<file>` takes them from
+anyone whose GitHub token (a bearer token, checked with GitHub and trusted for ten minutes) can push to the repository,
+and stamps `result.json` with who that was. The conversation shows each signoff's run beside its status, which says why
+one failed even before anything is given, and `/results/<commit>/<signoff>` shows its log.
+
 ## Review bots
 
 [Pullfrog](https://pullfrog.com) reviews every push, so its reviews are read for what they decide rather than in full
