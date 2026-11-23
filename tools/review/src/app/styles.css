@@ -602,6 +602,42 @@
     --callout: var(--cat-source);
   }
 
+  /* GitHub's folds (src/app/markdown.ts): a summary with a caret that turns as it opens. */
+  .markdown details {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .markdown summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+
+  .markdown summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .markdown summary::before {
+    content: '▸';
+    font-size: 0.85em;
+    transition: transform 0.1s;
+  }
+
+  .markdown details[open] > summary {
+    margin-bottom: 0.4rem;
+    color: var(--foreground);
+  }
+
+  .markdown details[open] > summary::before {
+    transform: rotate(90deg);
+  }
+
   /* A suggested change: what the reviewer would put in place of the lines the comment is on. */
   .markdown pre:has(> code.language-suggestion) {
     padding-top: 0;

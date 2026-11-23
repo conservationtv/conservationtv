@@ -5,7 +5,7 @@ import { CheckIcon, CircleIcon, MinusIcon, XIcon, type Icon } from '@phosphor-ic
 import { useSyncExternalStore, type FC, type ReactNode } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { remarkAlerts } from '../markdown.ts';
+import { remarkAlerts, remarkDetails } from '../markdown.ts';
 import type { CheckState, ContractChange, Person, PullState } from '../../shared/review.ts';
 
 interface AvatarProps {
@@ -155,7 +155,7 @@ interface MarkdownBodyProps {
 export const MarkdownBody: FC<MarkdownBodyProps> = ({ text }) =>
   text.trim() ? (
     <div className="markdown">
-      <Markdown remarkPlugins={[remarkGfm, remarkAlerts]} components={markdownComponents}>
+      <Markdown remarkPlugins={[remarkGfm, remarkAlerts, remarkDetails]} components={markdownComponents}>
         {text}
       </Markdown>
     </div>
