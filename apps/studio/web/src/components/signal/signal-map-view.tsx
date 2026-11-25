@@ -2,8 +2,6 @@ import type { FC, ReactNode } from 'react';
 import { ArrowSquareInIcon, EyeIcon, FolderSimpleIcon, NetworkIcon, NetworkXIcon } from '@phosphor-icons/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import { SignalAdd, SignalEditAction } from '@/components/signal/editing/signal-editing';
-import type { SignalTarget } from '@/components/signal/editing/signal-editing-store';
 import { useSignalGroup, useSignalTopology } from '@/components/signal/signal-context';
 import {
   SignalGroup,
@@ -61,8 +59,9 @@ import {
 } from '@/components/signal/signal-topology';
 
 // The signal as a map, for a screen wide enough: channels, broadcasts and sources in three columns, the gateways as
-// rails between the last two, and the links drawn behind. A composition of the signal's parts, with editing's set
-// among them (they do nothing unless the page is editable). What its things do is the page's (useSignalThing).
+// rails between the last two, and the links drawn behind. Its columns are parts a page composes inside
+// <SignalMapLayout>, each with a foot that holds whatever the page puts in it (a way to add to it, say); <SignalMapView>
+// is them composed with nothing more. What its things do is the page's (useSignalThing).
 
 /**
  * The three columns share the map's width equally, between a floor (below it the map scrolls sideways) and a ceiling
@@ -122,8 +121,7 @@ interface BroadcastProps {
 
 const MapBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
   const trouble = broadcastTrouble(broadcast);
-  const target: SignalTarget = { kind: 'broadcast', id: broadcast.id };
-  const thing = useSignalThing(target);
+  const thing = useSignalThing({ kind: 'broadcast', id: broadcast.id });
   return (
     <SignalNode id={broadcast.id} status={broadcast.status} variant="card" className="items-start" {...thing}>
       <SignalAspect width={broadcast.width} height={broadcast.height} />
@@ -142,7 +140,6 @@ const MapBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
           <SignalNodeFlag tone="recording">Recording</SignalNodeFlag>
         </Reveal>
       </SignalNodeBody>
-      <SignalEditAction target={target} className="-my-1 -mr-1.5" />
     </SignalNode>
   );
 };
@@ -182,16 +179,6 @@ const GroupJoin: FC<GroupJoinProps> = ({ shown }) => {
   return <SignalJoin id={joinId(group.id)} lifted className="top-2.5 left-0" />;
 };
 
-interface GroupActionProps {
-  target: SignalTarget;
-}
-
-/** A label's "more", at its end: the dots hold the end while the group is shut, so open it has to take it itself. */
-const GroupAction: FC<GroupActionProps> = ({ target }) => {
-  const group = useSignalGroup();
-  return <SignalEditAction target={target} className={cn('-my-1 -mr-1.5', group.open && 'ml-auto')} />;
-};
-
 interface SubgroupProps {
   subgroup: SubgroupView;
 }
@@ -219,7 +206,6 @@ const MapSubgroup: FC<SubgroupProps> = ({ subgroup }) => {
         <SignalGroupShut className="ml-auto">
           <SignalDots statuses={subgroup.sources.map(source => source.seen)} className="flex-nowrap" />
         </SignalGroupShut>
-        <GroupAction target={{ kind: 'subgroup', id: subgroup.id }} />
       </SignalGroupTrigger>
       <SignalGroupMembers variant="raised" className="pl-6">
         {subgroup.sources.map(source => (
@@ -254,7 +240,6 @@ const MapNetwork: FC<NetworkProps> = ({ group, network }) => {
         <SignalGroupShut className="ml-auto">
           <SignalDots statuses={group.sources.map(source => source.seen)} className="flex-nowrap" />
         </SignalGroupShut>
-        <GroupAction target={{ kind: 'network', id: group.id }} />
       </SignalGroupTrigger>
       <SignalGroupNote tone={group.trouble ? 'destructive' : 'default'}>
         {group.trouble ?? network.agent}
@@ -335,91 +320,141 @@ const Attention: FC<AttentionProps> = ({ count, children }) => {
   );
 };
 
-export const SignalMapView: FC = () => {
-  const { system, groups } = useSignalTopology();
-  // Each column's troubled things go up into its lane, in their own order; the rest keep theirs below it.
-  const troubledChannels = system.channels.filter(channelTroubled);
-  const steadyChannels = system.channels.filter(channel => !channelTroubled(channel));
-  const troubledBroadcasts = system.broadcasts.filter(broadcastTroubled);
-  const steadyBroadcasts = system.broadcasts.filter(broadcast => !broadcastTroubled(broadcast));
-  const troubledGroups = groups.filter(groupTroubled);
-  const steadyGroups = groups.filter(group => !groupTroubled(group));
+export interface SignalMapLayoutProps {
+  /** Its columns and rails, in order: channels, broadcasts, gateways, sources. */
+  children: ReactNode;
+}
+
+/** The map around its columns, with the links between them drawn behind. */
+export const SignalMapLayout: FC<SignalMapLayoutProps> = ({ children }) => {
   return (
     <SignalMap className="min-w-0 px-2 pt-1 pb-6">
-      <SignalColumn className={COLUMN}>
-        <SignalColumnHeader>
-          Channels
-          <SignalColumnCount>{system.channels.length}</SignalColumnCount>
-        </SignalColumnHeader>
-        <SignalColumnContent>
-          <Attention count={troubledChannels.length}>
-            {troubledChannels.map(channel => (
-              <SignalColumnItem key={channel.id} id={channel.id}>
-                <MapChannel channel={channel} />
-              </SignalColumnItem>
-            ))}
-          </Attention>
-          {steadyChannels.map(channel => (
+      {children}
+      <SignalLinks />
+    </SignalMap>
+  );
+};
+
+export interface SignalMapColumnProps {
+  /** What goes at the column's foot, under everything in it. */
+  children?: ReactNode;
+}
+
+/** The channels, those that need attention first, in a lane of their own. */
+export const SignalMapChannels: FC<SignalMapColumnProps> = ({ children }) => {
+  const { system } = useSignalTopology();
+  const troubled = system.channels.filter(channelTroubled);
+  const steady = system.channels.filter(channel => !channelTroubled(channel));
+  return (
+    <SignalColumn className={COLUMN}>
+      <SignalColumnHeader>
+        Channels
+        <SignalColumnCount>{system.channels.length}</SignalColumnCount>
+      </SignalColumnHeader>
+      <SignalColumnContent>
+        <Attention count={troubled.length}>
+          {troubled.map(channel => (
             <SignalColumnItem key={channel.id} id={channel.id}>
               <MapChannel channel={channel} />
             </SignalColumnItem>
           ))}
-          <SignalAdd target={{ kind: 'add-channel' }}>Add channel</SignalAdd>
-        </SignalColumnContent>
-      </SignalColumn>
-      <SignalColumn className={COLUMN}>
-        <SignalColumnHeader>
-          Broadcasts
-          <SignalColumnCount>{system.broadcasts.length}</SignalColumnCount>
-        </SignalColumnHeader>
-        <SignalColumnContent gap={4} order={3}>
-          <Attention count={troubledBroadcasts.length}>
-            {troubledBroadcasts.map(broadcast => (
-              <SignalColumnItem key={broadcast.id} id={broadcast.id}>
-                <MapBroadcast broadcast={broadcast} />
-              </SignalColumnItem>
-            ))}
-          </Attention>
-          {steadyBroadcasts.map(broadcast => (
+        </Attention>
+        {steady.map(channel => (
+          <SignalColumnItem key={channel.id} id={channel.id}>
+            <MapChannel channel={channel} />
+          </SignalColumnItem>
+        ))}
+        {children}
+      </SignalColumnContent>
+    </SignalColumn>
+  );
+};
+
+/** The broadcasts, those that need attention first, in a lane of their own. */
+export const SignalMapBroadcasts: FC<SignalMapColumnProps> = ({ children }) => {
+  const { system } = useSignalTopology();
+  const troubled = system.broadcasts.filter(broadcastTroubled);
+  const steady = system.broadcasts.filter(broadcast => !broadcastTroubled(broadcast));
+  return (
+    <SignalColumn className={COLUMN}>
+      <SignalColumnHeader>
+        Broadcasts
+        <SignalColumnCount>{system.broadcasts.length}</SignalColumnCount>
+      </SignalColumnHeader>
+      <SignalColumnContent gap={4} order={3}>
+        <Attention count={troubled.length}>
+          {troubled.map(broadcast => (
             <SignalColumnItem key={broadcast.id} id={broadcast.id}>
               <MapBroadcast broadcast={broadcast} />
             </SignalColumnItem>
           ))}
-          <SignalAdd target={{ kind: 'add-broadcast' }}>Add broadcast</SignalAdd>
-        </SignalColumnContent>
-      </SignalColumn>
-      <SignalRails>
-        {system.gateways.map((gateway, index) => (
-          // The first is always there, and only fades up with the page; any other makes room for itself.
-          <SignalRail key={gateway.id} id={gateway.id} gather="left" permanent={index === 0}>
-            <SignalRailHead label={gateway.name}>
-              <GatewayIcon gateway={gateway} />
-            </SignalRailHead>
-          </SignalRail>
+        </Attention>
+        {steady.map(broadcast => (
+          <SignalColumnItem key={broadcast.id} id={broadcast.id}>
+            <MapBroadcast broadcast={broadcast} />
+          </SignalColumnItem>
         ))}
-      </SignalRails>
-      <SignalColumn className={COLUMN}>
-        <SignalColumnHeader>
-          Sources
-          <SignalColumnCount>{system.cameras.length + system.ingests.length}</SignalColumnCount>
-        </SignalColumnHeader>
-        <SignalColumnContent gap={5} order={5}>
-          <Attention count={troubledGroups.length}>
-            {troubledGroups.map(group => (
-              <SignalColumnItem key={group.id} id={group.id}>
-                <MapGroup group={group} />
-              </SignalColumnItem>
-            ))}
-          </Attention>
-          {steadyGroups.map(group => (
+        {children}
+      </SignalColumnContent>
+    </SignalColumn>
+  );
+};
+
+/** The gateways, as rails between the broadcasts and the sources. */
+export const SignalMapGateways: FC = () => {
+  const { system } = useSignalTopology();
+  return (
+    <SignalRails>
+      {system.gateways.map((gateway, index) => (
+        // The first is always there, and only fades up with the page; any other makes room for itself.
+        <SignalRail key={gateway.id} id={gateway.id} gather="left" permanent={index === 0}>
+          <SignalRailHead label={gateway.name}>
+            <GatewayIcon gateway={gateway} />
+          </SignalRailHead>
+        </SignalRail>
+      ))}
+    </SignalRails>
+  );
+};
+
+/** The sources, by network (and the ingests), those with something wrong first, in a lane of their own. */
+export const SignalMapSources: FC<SignalMapColumnProps> = ({ children }) => {
+  const { system, groups } = useSignalTopology();
+  const troubled = groups.filter(groupTroubled);
+  const steady = groups.filter(group => !groupTroubled(group));
+  return (
+    <SignalColumn className={COLUMN}>
+      <SignalColumnHeader>
+        Sources
+        <SignalColumnCount>{system.cameras.length + system.ingests.length}</SignalColumnCount>
+      </SignalColumnHeader>
+      <SignalColumnContent gap={5} order={5}>
+        <Attention count={troubled.length}>
+          {troubled.map(group => (
             <SignalColumnItem key={group.id} id={group.id}>
               <MapGroup group={group} />
             </SignalColumnItem>
           ))}
-          <SignalAdd target={{ kind: 'add-source' }}>Add source</SignalAdd>
-        </SignalColumnContent>
-      </SignalColumn>
-      <SignalLinks />
-    </SignalMap>
+        </Attention>
+        {steady.map(group => (
+          <SignalColumnItem key={group.id} id={group.id}>
+            <MapGroup group={group} />
+          </SignalColumnItem>
+        ))}
+        {children}
+      </SignalColumnContent>
+    </SignalColumn>
+  );
+};
+
+/** The map with nothing more: its columns and rails as they are. */
+export const SignalMapView: FC = () => {
+  return (
+    <SignalMapLayout>
+      <SignalMapChannels />
+      <SignalMapBroadcasts />
+      <SignalMapGateways />
+      <SignalMapSources />
+    </SignalMapLayout>
   );
 };

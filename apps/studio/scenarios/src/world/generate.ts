@@ -536,9 +536,9 @@ interface OutputPlacement {
   deviceId: string | null;
 }
 
-/** Driven from outside when there's no show to follow or the spec says so; on no agent when there's none to run it. */
+/** Driven from outside when there's no show to follow or by the spec's chance; on no agent when there's none to run it. */
 function placementOf(build: Build, rng: Rng, o: number, shows: ShowRow[]): OutputPlacement {
-  const external = shows.length === 0 || rng.child('external').chance(build.spec.gaps.outputExternal);
+  const external = shows.length === 0 || rng.child('external').chance(build.spec.externalOutputs);
   const agentDevices = build.agents.map(agent => agent.id);
   const deviceless = agentDevices.length === 0 || rng.child('deviceless').chance(build.spec.gaps.outputWithoutDevice);
   return {

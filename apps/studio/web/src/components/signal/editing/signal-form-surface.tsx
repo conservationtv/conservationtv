@@ -23,13 +23,13 @@ import { AnimateHeight } from '@/components/common/animate-height';
 import {
   SignalFormTargetContext,
   targetKey,
-  useSignalEditingStore,
-  useSignalEditTarget
-} from '@/components/signal/editing/signal-editing-store';
+  useSignalForms,
+  useSignalFormsState
+} from '@/components/signal/editing/signal-forms-store';
 import { useSignalLayout } from '@/components/signal/signal-context';
 import { spring } from '@/components/signal/signal-motion';
 
-// Where what's being edited shows: a dialog over the map, a sheet up from the foot of the stack; going on from one
+// Where the form that's up shows: a dialog over the map, a sheet up from the foot of the stack; going on from one
 // form to the next slides across. And the parts a form is composed from, which come out right for whichever it's in.
 
 type Surface = 'dialog' | 'sheet';
@@ -43,21 +43,21 @@ const across = {
   exit: { opacity: 0, x: -24, transition: { duration: 0.12, ease: 'easeIn' } }
 } as const;
 
-export interface SignalEditSurfaceProps {
+export interface SignalFormSurfaceProps {
   /** The form for the target: SignalEditForms, or a page's own. */
   children: ReactNode;
 }
 
 /**
- * Shows whatever has been taken up to edit, and puts it away when it's closed. The form stays drawn while it leaves:
+ * Shows the form that's up, and puts it away when it's closed. The form stays drawn while it leaves:
  * the target is kept until the next one.
  */
-export const SignalEditSurface: FC<SignalEditSurfaceProps> = ({ children }) => {
-  const store = useSignalEditingStore();
-  const { target, shown } = useSignalEditTarget();
+export const SignalFormSurface: FC<SignalFormSurfaceProps> = ({ children }) => {
+  const store = useSignalForms();
+  const { target, shown } = useSignalFormsState();
   const layout = useSignalLayout();
   const onOpenChange = (open: boolean) => {
-    if (!open) store?.trigger.close();
+    if (!open) store.trigger.close();
   };
   const step = target === null ? '' : targetKey(target);
   if (layout === 'map') {
@@ -146,9 +146,9 @@ export const SignalFormFooter: FC<PartProps> = ({ children }) => {
 
 /** Removes the thing, at the footer's start. */
 export const SignalFormRemove: FC = () => {
-  const store = useSignalEditingStore();
+  const store = useSignalForms();
   return (
-    <Button variant="ghost" size="sm" className="mr-auto text-destructive" onClick={() => store?.trigger.close()}>
+    <Button variant="ghost" size="sm" className="mr-auto text-destructive" onClick={() => store.trigger.close()}>
       <TrashIcon />
       Remove
     </Button>

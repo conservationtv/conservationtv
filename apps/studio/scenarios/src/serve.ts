@@ -44,8 +44,12 @@ export function scenarioApp(webRoot: string) {
 
   app.get('/config.js', c => {
     const prefix = getCookie(c, SCENARIO_COOKIE) ?? 'typical';
-    // The API is this server, at whatever address the page reached it by.
-    const config = { apiUrl: `${new URL(c.req.url).origin}/w/${encodeURIComponent(prefix)}` };
+    // The API is this server, at whatever address the page reached it by: over HTTPS when a proxy in front of it (a
+    // tailnet name, say) took the page's request that way, so the page doesn't call its API over plain HTTP.
+    const url = new URL(c.req.url);
+    const forwarded = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim();
+    if (forwarded === 'https' || forwarded === 'http') url.protocol = `${forwarded}:`;
+    const config = { apiUrl: `${url.origin}/w/${encodeURIComponent(prefix)}` };
     c.header('Cache-Control', 'no-store');
     return c.body(`globalThis.studioConfig = ${JSON.stringify(config)};\n`, 200, {
       'Content-Type': 'text/javascript; charset=utf-8'
