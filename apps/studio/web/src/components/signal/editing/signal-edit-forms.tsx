@@ -28,12 +28,12 @@ import {
   SignalFormSubmit,
   SignalFormTitle,
   SignalFormWaiting
-} from '@/components/signal/editing/signal-edit-surface';
+} from '@/components/signal/editing/signal-form-surface';
 import {
-  useSignalEditingStore,
+  useOpenSignalForm,
   useSignalFormTarget,
   type SignalTarget
-} from '@/components/signal/editing/signal-editing-store';
+} from '@/components/signal/editing/signal-forms-store';
 import { useSignalSystem } from '@/components/signal/signal-context';
 import { PLATFORM_NAMES } from '@/components/signal/signal-system';
 
@@ -249,8 +249,7 @@ const IngestForm: FC<ExistingProps> = ({ id }) => {
 /** What kind of source to add; choosing goes on to that kind's form. */
 const AddSourceForm: FC = () => {
   const system = useSignalSystem();
-  const store = useSignalEditingStore();
-  const go = (target: SignalTarget) => store?.trigger.edit({ target });
+  const go = useOpenSignalForm();
   return (
     <>
       <SignalFormHeader>
@@ -412,7 +411,7 @@ const NewForm: FC<FormForProps> = ({ target }) => {
   }
 };
 
-/** The form for whatever has been taken up to edit or add. Put it in a SignalEditSurface, which says what that is. */
+/** The form for whatever has been taken up to edit or add. Put it in a SignalFormSurface, which says what that is. */
 export const SignalEditForms: FC = () => {
   const target = useSignalFormTarget();
   if (target === null) return null;

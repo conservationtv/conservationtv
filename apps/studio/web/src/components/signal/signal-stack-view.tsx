@@ -1,8 +1,7 @@
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import { ArrowSquareInIcon, FolderSimpleIcon, NetworkIcon, NetworkXIcon } from '@phosphor-icons/react';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import { SignalEditAction, SignalEditChevron, SignalTierAdd } from '@/components/signal/editing/signal-editing';
 import { useSignalFocus, useSignalTopology } from '@/components/signal/signal-context';
 import {
   SignalGroup,
@@ -48,8 +47,9 @@ import {
 } from '@/components/signal/signal-topology';
 
 // The signal as a quiet stack, for a screen too narrow for the map: a tier each for channels, broadcasts and
-// sources, a row a thing. A composition of the signal's parts, with editing's set among them (they do nothing unless
-// the page is editable). What its things do is the page's (useSignalThing).
+// sources, a row a thing. Its tiers are parts a page composes inside <SignalStackLayout>, each with the end of its
+// header holding whatever the page puts there (a way to add to it, say); <SignalStackView> is them composed with nothing
+// more. What its things do is the page's (useSignalThing).
 
 /** How far in a group's members sit, and a subgroup's further. */
 const MEMBER = 'min-h-9 border-t border-border/60 py-1.5 text-custom-12';
@@ -74,13 +74,11 @@ const StackChannel: FC<ChannelProps> = ({ channel }) => {
         </Reveal>
       </SignalListText>
       <SignalListTrail>
-        <SignalEditChevron>
-          {channel.status === 'affected' ? (
-            <SignalHealth status="affected" />
-          ) : (
-            <SignalBars level={channel.level} status={channel.status} />
-          )}
-        </SignalEditChevron>
+        {channel.status === 'affected' ? (
+          <SignalHealth status="affected" />
+        ) : (
+          <SignalBars level={channel.level} status={channel.status} />
+        )}
       </SignalListTrail>
     </SignalListItem>
   );
@@ -113,10 +111,8 @@ const StackBroadcast: FC<BroadcastProps> = ({ broadcast }) => {
         </Reveal>
       </SignalListText>
       <SignalListTrail>
-        <SignalEditChevron>
-          {broadcast.recording && trouble === null && <SignalNodeFlag tone="recording">Rec</SignalNodeFlag>}
-          <SignalHealth status={broadcast.status} />
-        </SignalEditChevron>
+        {broadcast.recording && trouble === null && <SignalNodeFlag tone="recording">Rec</SignalNodeFlag>}
+        <SignalHealth status={broadcast.status} />
       </SignalListTrail>
     </SignalListItem>
   );
@@ -145,9 +141,7 @@ const StackSource: FC<SourceProps> = ({ source, kind, className }) => {
         </Reveal>
       </SignalListText>
       <SignalListTrail>
-        <SignalEditChevron>
-          <SignalHealth status={source.seen} />
-        </SignalEditChevron>
+        <SignalHealth status={source.seen} />
       </SignalListTrail>
     </SignalListItem>
   );
@@ -177,7 +171,6 @@ const StackSubgroup: FC<SubgroupProps> = ({ subgroup }) => {
           <SignalGroupShut>
             <SignalDots statuses={subgroup.sources.map(source => source.seen)} className="max-w-28 justify-end" />
           </SignalGroupShut>
-          <SignalEditAction target={{ kind: 'subgroup', id: subgroup.id }} aria-label={`Edit ${subgroup.name}`} />
         </SignalListTrail>
       </SignalGroupTrigger>
       <SignalGroupMembers>
@@ -215,7 +208,6 @@ const StackNetwork: FC<GroupProps> = ({ group }) => {
           <SignalGroupShut>
             <SignalDots statuses={group.sources.map(source => source.seen)} className="max-w-28 justify-end" />
           </SignalGroupShut>
-          <SignalEditAction target={{ kind: 'network', id: group.id }} aria-label={`Edit ${group.name}`} />
         </SignalListTrail>
       </SignalGroupTrigger>
       {/* Shut, whatever has stopped is listed anyway, straight under the network, whichever subgroup it's in: those in
@@ -265,47 +257,84 @@ const StackIngests: FC<GroupProps> = ({ group }) => {
   );
 };
 
-export const SignalStackView: FC = () => {
-  const { system, groups } = useSignalTopology();
+export interface SignalStackLayoutProps {
+  /** Its tiers, in order: channels, broadcasts, sources. */
+  children: ReactNode;
+}
+
+/** The stack around its tiers. */
+export const SignalStackLayout: FC<SignalStackLayoutProps> = ({ children }) => {
+  return <SignalStack className="gap-6">{children}</SignalStack>;
+};
+
+export interface SignalStackTierProps {
+  /** What goes at the end of the tier's header. */
+  children?: ReactNode;
+}
+
+export const SignalStackChannels: FC<SignalStackTierProps> = ({ children }) => {
+  const { system } = useSignalTopology();
   return (
-    <SignalStack className="gap-6">
-      <SignalTier>
-        <SignalTierHeader className="px-1">
-          <SignalTierTitle>Channels</SignalTierTitle>
-          <SignalTierAdd target={{ kind: 'add-channel' }} />
-        </SignalTierHeader>
-        <SignalList>
-          {system.channels.map(channel => (
-            <StackChannel key={channel.id} channel={channel} />
-          ))}
-        </SignalList>
-      </SignalTier>
-      <SignalTier>
-        <SignalTierHeader className="px-1">
-          <SignalTierTitle>Broadcasts</SignalTierTitle>
-          <SignalTierAdd target={{ kind: 'add-broadcast' }} />
-        </SignalTierHeader>
-        <SignalList>
-          {system.broadcasts.map(broadcast => (
-            <StackBroadcast key={broadcast.id} broadcast={broadcast} />
-          ))}
-        </SignalList>
-      </SignalTier>
-      <SignalTier>
-        <SignalTierHeader className="px-1">
-          <SignalTierTitle>Sources</SignalTierTitle>
-          <SignalTierAdd target={{ kind: 'add-source' }} />
-        </SignalTierHeader>
-        <SignalList>
-          {groups.map(group =>
-            group.network === null ? (
-              <StackIngests key={group.id} group={group} />
-            ) : (
-              <StackNetwork key={group.id} group={group} />
-            )
-          )}
-        </SignalList>
-      </SignalTier>
-    </SignalStack>
+    <SignalTier>
+      <SignalTierHeader className="px-1">
+        <SignalTierTitle>Channels</SignalTierTitle>
+        <div className="ml-auto flex items-center">{children}</div>
+      </SignalTierHeader>
+      <SignalList>
+        {system.channels.map(channel => (
+          <StackChannel key={channel.id} channel={channel} />
+        ))}
+      </SignalList>
+    </SignalTier>
+  );
+};
+
+export const SignalStackBroadcasts: FC<SignalStackTierProps> = ({ children }) => {
+  const { system } = useSignalTopology();
+  return (
+    <SignalTier>
+      <SignalTierHeader className="px-1">
+        <SignalTierTitle>Broadcasts</SignalTierTitle>
+        <div className="ml-auto flex items-center">{children}</div>
+      </SignalTierHeader>
+      <SignalList>
+        {system.broadcasts.map(broadcast => (
+          <StackBroadcast key={broadcast.id} broadcast={broadcast} />
+        ))}
+      </SignalList>
+    </SignalTier>
+  );
+};
+
+/** The sources, by network, then the ingests. */
+export const SignalStackSources: FC<SignalStackTierProps> = ({ children }) => {
+  const { groups } = useSignalTopology();
+  return (
+    <SignalTier>
+      <SignalTierHeader className="px-1">
+        <SignalTierTitle>Sources</SignalTierTitle>
+        <div className="ml-auto flex items-center">{children}</div>
+      </SignalTierHeader>
+      <SignalList>
+        {groups.map(group =>
+          group.network === null ? (
+            <StackIngests key={group.id} group={group} />
+          ) : (
+            <StackNetwork key={group.id} group={group} />
+          )
+        )}
+      </SignalList>
+    </SignalTier>
+  );
+};
+
+/** The stack with nothing more: its tiers as they are. */
+export const SignalStackView: FC = () => {
+  return (
+    <SignalStackLayout>
+      <SignalStackChannels />
+      <SignalStackBroadcasts />
+      <SignalStackSources />
+    </SignalStackLayout>
   );
 };
