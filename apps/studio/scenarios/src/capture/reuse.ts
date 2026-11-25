@@ -165,10 +165,24 @@ async function fetchFile(at: string, file: string, to: string): Promise<boolean>
     copyFileSync(join(at, file), to);
     return true;
   }
-  const response = await fetch(`${at}/${file}`).catch(() => null);
+  const response = await fetchAgain(`${at}/${file}`);
   if (!response?.ok) return false;
   writeFileSync(to, Buffer.from(await response.arrayBuffer()));
   return true;
+}
+
+/** How many times a remote file is asked for before it is captured instead. */
+const FETCH_TRIES = 3;
+
+/** A remote file, asked for again after a dropped connection or a server's error; null when it never came. */
+async function fetchAgain(url: string): Promise<Response | null> {
+  for (let attempt = 1; attempt <= FETCH_TRIES; attempt++) {
+    // A 404 is an answer: the file isn't there. Anything else that failed may go through next time.
+    const response = await fetch(url).catch(() => null);
+    if (response && (response.ok || response.status < 500)) return response;
+    await new Promise(done => setTimeout(done, 200 * attempt));
+  }
+  return null;
 }
 
 /**
