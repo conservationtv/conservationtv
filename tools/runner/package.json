@@ -9,7 +9,8 @@
     "./results": "./src/results.ts",
     "./classify": "./src/classify.ts",
     "./calls": "./src/calls.ts",
-    "./reports": "./src/reports.ts"
+    "./reports": "./src/reports.ts",
+    "./scenarios": "./src/scenarios.ts"
   },
   "scripts": {
     "signoff": "node src/cli.ts",

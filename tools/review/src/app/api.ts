@@ -12,6 +12,7 @@ import {
 } from '../shared/actions.ts';
 import { CALLS_FILE, CALLS_REPORT, CallsReportSchema } from '@conservationtv/runner/calls';
 import { RunResultsSchema } from '@conservationtv/runner/results';
+import { SCENARIOS_FILE, SCENARIOS_REPORT, ScenarioReportSchema } from '@conservationtv/runner/scenarios';
 import { DeploysSchema } from '../shared/deploys.ts';
 import { OperationDocsSchema } from '../shared/operation.ts';
 import { ApiErrorSchema, PullListSchema, ReviewSchema } from '../shared/review.ts';
@@ -110,6 +111,24 @@ export const deploysQuery = (number: number) =>
     queryFn: () => load(`/api/pulls/${number}/deploys`, DeploysSchema),
     refetchInterval: 5 * 60_000
   });
+
+/** The scenarios report at a commit (tools/runner): every shot, compared with the merge base; null when none was made. */
+export const scenariosQuery = (sha: string) =>
+  queryOptions({
+    queryKey: ['results', sha, SCENARIOS_REPORT] as const,
+    queryFn: async () => {
+      const response = await fetch(`/api/results/${sha}/${SCENARIOS_REPORT}/${SCENARIOS_FILE}`);
+      if (response.status === 404) return null;
+      if (!response.ok) throw await failure(response);
+      return ScenarioReportSchema.parse(await response.json());
+    },
+    staleTime: Infinity
+  });
+
+/** An image of the scenarios report at a commit, by its path in the report. */
+export function scenarioFile(sha: string, file: string): string {
+  return `/api/results/${sha}/${SCENARIOS_REPORT}/${file.split('/').map(encodeURIComponent).join('/')}`;
+}
 
 /** A run's log, as uploaded. */
 export const logQuery = (sha: string, signoff: string) =>

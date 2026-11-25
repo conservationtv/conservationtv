@@ -7,7 +7,6 @@ import { operationDocs } from './operations.ts';
 import { pullList, review } from './pulls.ts';
 import { deploys } from './deploys.ts';
 import { results } from './results.ts';
-import { scenarios } from './scenarios.ts';
 import { readSession, type AppEnv } from './session.ts';
 
 const SHA = /^[0-9a-f]{40}$/;
@@ -38,8 +37,6 @@ const app = new Hono<AppEnv>()
   })
   .route('/auth', auth)
   .route('/', actions)
-  // A pull request's scenario report, read out of its Actions artifact (src/worker/scenarios.ts).
-  .route('/', scenarios)
   // Signoff runs from developers' machines (src/worker/results.ts).
   .route('/', results)
   // Where a merged pull request went, and how it did there (src/worker/deploys.ts).

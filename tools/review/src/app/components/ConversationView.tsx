@@ -23,6 +23,7 @@ import { botReports, isReviewBot } from '../../shared/bots.ts';
 import { CommentAgent, SignoffAgent } from './AgentButton.tsx';
 import { BotCard, BotEntry } from './BotReviews.tsx';
 import { DeploysCard } from './DeploysCard.tsx';
+import { ScreensCard } from './ScreensCard.tsx';
 import { Composer } from './Composer.tsx';
 import { Link } from './Link.tsx';
 import { useTopics } from '../use-topics.ts';
@@ -452,6 +453,7 @@ export const ConversationView: FC<ChecksProps> = ({ review }) => {
       <aside className="sidebar">
         <MergeBox review={review} />
         <DeploysCard review={review} />
+        <ScreensCard review={review} />
         {botReports(review.conversation, review.threads).map(report => (
           <BotCard key={report.login} review={review} report={report} />
         ))}
