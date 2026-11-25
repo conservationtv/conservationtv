@@ -154,7 +154,7 @@ async function makeCalls(root: string, sha: string, base: string): Promise<Made>
 
 /** The scenarios report: report.json and its images; CI's HTML page is left out, as the review tool draws the JSON. */
 async function makeScenarios(root: string, sha: string, base: string): Promise<Made> {
-  const { log, dir } = scenariosReport(root, sha, base);
+  const { log, dir } = scenariosReport(root, sha, base, REVIEW_URL);
   const files = filesUnder(dir).filter(name => name !== 'index.html');
   return {
     log,

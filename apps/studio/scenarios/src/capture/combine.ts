@@ -10,7 +10,7 @@ import { readReport, writeReport } from './reports.ts';
 // last job runs it on Node alone.
 
 /** What a shard's report directory holds beside report.json and index.html. */
-const PARTS = ['shots', 'thumbs', 'baseline', 'diffs'];
+const PARTS = ['shots', 'aria', 'thumbs', 'baseline', 'diffs'];
 
 export function mergeCommand(args: string[]) {
   const { positionals, values } = parseArgs({ args, allowPositionals: true, options: { out: { type: 'string' } } });

@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { Browser, Page as BrowserPage, ConsoleMessage, Request } from 'playwright';
 import { matchOperation } from '../api/contract.ts';
@@ -39,10 +39,17 @@ export interface Shot {
   file: string;
   /** Its first screen, small (src/capture/thumbnails.ts), for the report's card. */
   thumb: string;
+  /** The page's accessibility snapshot (Playwright's, as YAML), relative to the report; null when it couldn't be taken. */
+  aria: string | null;
   /** Where the app ended up, when it isn't where it was sent. */
   redirectedTo: string | null;
   /** Whether the network went quiet before the capture; a page waiting on a hung call never does. */
   settled: boolean;
+  /**
+   * The web app's own files the page loaded, by path (the API's calls aside): with the mock and worlds the same, a page
+   * whose every one of these is the same in another build draws the same there (report.ts reuses its shot).
+   */
+  loaded: string[];
   durationMs: number;
   consoleErrors: string[];
   pageErrors: string[];
@@ -61,6 +68,14 @@ export interface CaptureTask {
   page: Page;
   theme: Theme;
   viewport: Viewport;
+}
+
+/** A page of a scenario at a viewport, taken in each of its themes from one load of it. */
+export interface CaptureGroup {
+  scenario: Scenario;
+  page: Page;
+  viewport: Viewport;
+  themes: Theme[];
 }
 
 /** What names a shot: its scenario's and page's IDs, and how it was taken. */
@@ -128,6 +143,7 @@ interface Activity {
   /** Requests not yet finished, but for those the scenario hangs on purpose. */
   inFlight: Set<Request>;
   lastActivity: number;
+  /** A server error answered since the clock last moved on: the app may have a retry waiting on a timer. */
   sawServerError: boolean;
 }
 
@@ -162,11 +178,23 @@ function watchActivity(page: BrowserPage, scenario: Scenario): Activity {
   return activity;
 }
 
+/** How long nothing may start before a page counts as quiet. */
+const QUIET_MS = 400;
+/** A beat for anything that renders after the last response: suspense boundaries resolving, charts laying out. */
+const BEAT_MS = 100;
+
+/**
+ * How far the page's clock is moved on after a server error: past the longest wait before one of the app's retries
+ * (TanStack Query's, 1 s then 2 s), so a retry goes now rather than in real time.
+ */
+const RETRY_WAIT_MS = 2000;
+
 /**
  * Load the page and wait for it to settle, by its own requests: quiet once nothing is in flight but calls the scenario
- * hangs on purpose, and nothing has started for a moment. After a server error the moment is longer, to outlast the
- * app's retries (TanStack Query's, 1 s then 2 s), so the error state is what is captured rather than a retry's loading
- * state. False when it never settled in time.
+ * hangs on purpose, and nothing has started for a moment. A server error may leave a retry waiting on a timer, so the
+ * page's clock (fake since openPage fixed the time, so moving it doesn't change the time the page shows) is run past
+ * it, firing it at once, until the page stays quiet without one: the error state is what is captured rather than a
+ * retry's loading state. False when it never settled in time.
  */
 async function settle(page: BrowserPage, url: string, activity: Activity, settleMs: number): Promise<boolean> {
   const deadline = Date.now() + settleMs;
@@ -175,9 +203,16 @@ async function settle(page: BrowserPage, url: string, activity: Activity, settle
     // Poll until quiet, giving up at the deadline.
     while (true) {
       // Quiet first, so a page that settles right at the deadline still counts as settled.
-      const quietFor = activity.sawServerError ? 3500 : 600;
-      if (activity.inFlight.size === 0 && Date.now() - activity.lastActivity >= quietFor) return true;
+      const quiet = activity.inFlight.size === 0 && Date.now() - activity.lastActivity >= QUIET_MS;
+      if (quiet && !activity.sawServerError) return true;
       if (Date.now() > deadline) return false;
+      if (quiet) {
+        activity.sawServerError = false;
+        await page.clock.runFor(RETRY_WAIT_MS);
+        // A retry's request is reported a moment after its timer fires: quiet is counted again from the jump.
+        activity.lastActivity = Date.now();
+        continue;
+      }
       await page.waitForTimeout(100);
     }
   } catch {
@@ -226,12 +261,12 @@ function checksOf(page: BrowserPage): Promise<PageChecks> {
     .catch(() => ({ errorBoundary: false, overflow: false }));
 }
 
-/** A browser context of the task's own, its viewport, theme and clock set, pointed at its scenario by the cookie. */
-async function openPage(browser: Browser, origin: string, task: CaptureTask, tag: string) {
+/** A browser context of the group's own, its viewport, first theme and clock set, pointed at its scenario by the cookie. */
+async function openPage(browser: Browser, origin: string, group: CaptureGroup, tag: string) {
   const context = await browser.newContext({
-    viewport: VIEWPORTS[task.viewport],
+    viewport: VIEWPORTS[group.viewport],
     deviceScaleFactor: 1,
-    colorScheme: task.theme,
+    colorScheme: group.themes[0] ?? 'light',
     reducedMotion: 'reduce',
     locale: 'en-GB',
     timezoneId: 'Europe/London'
@@ -269,55 +304,101 @@ async function loadFontsFirst(page: BrowserPage) {
   });
 }
 
+/** The page's accessibility snapshot, written beside the shots: what a comparison reads to say what changed in words. */
+async function ariaSnapshotOf(page: BrowserPage, outDir: string, file: string): Promise<string | null> {
+  const snapshot = await page
+    .locator('body')
+    .ariaSnapshot()
+    .catch(() => null);
+  if (snapshot === null) return null;
+  const aria = join('aria', file.replace(/^shots\//u, '').replace(/\.png$/u, '.txt'));
+  mkdirSync(dirname(join(outDir, aria)), { recursive: true });
+  writeFileSync(join(outDir, aria), snapshot);
+  return aria;
+}
+
+/** The web app's files a page asks for, by path: everything from its origin but the API's calls and the session's. */
+function watchLoaded(page: BrowserPage, origin: string): Set<string> {
+  const loaded = new Set<string>();
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (url.origin === origin && !url.pathname.startsWith('/w/') && !url.pathname.startsWith('/auth/'))
+      loaded.add(url.pathname);
+  });
+  return loaded;
+}
+
+/** Where a shot of the group in a theme is written, relative to the report. */
+function fileOf(group: CaptureGroup, theme: Theme): string {
+  return join('shots', group.scenario.id, `${group.page.id.replaceAll('/', '__')}--${theme}-${group.viewport}.png`);
+}
+
+/**
+ * The page in one theme, as it stands: switched to the theme when it isn't the one it loaded in (the app follows the
+ * colour scheme as it changes), grown to fit, checked, shot, and its accessibility snapshot kept.
+ */
+async function shoot(page: BrowserPage, outDir: string, group: CaptureGroup, theme: Theme, first: boolean) {
+  if (!first) {
+    await page.setViewportSize(VIEWPORTS[group.viewport]);
+    await page.emulateMedia({ colorScheme: theme });
+  }
+  await page.evaluate(() => document.fonts.ready).catch(() => undefined);
+  await page.waitForTimeout(BEAT_MS);
+  await fitToContent(page, group.viewport);
+  const file = fileOf(group, theme);
+  mkdirSync(dirname(join(outDir, file)), { recursive: true });
+  const checks = await checksOf(page);
+  await page.screenshot({ path: join(outDir, file), fullPage: true, animations: 'disabled', caret: 'hide' });
+  const aria = await ariaSnapshotOf(page, outDir, file);
+  return { file, aria, checks };
+}
+
+/** Every theme's shot of a page from one load of it; what went wrong loading it is noted on each. */
 export async function capture(
   browser: Browser,
   origin: string,
   outDir: string,
-  task: CaptureTask,
+  group: CaptureGroup,
   settleMs: number,
   thumbnailer: Thumbnailer
-): Promise<Shot> {
-  const started = Date.now();
-  const tag = `${task.scenario.id}~${++tags}`;
-  const key = shotKey({ scenario: task.scenario.id, page: task.page.id, theme: task.theme, viewport: task.viewport });
-  const file = join(
-    'shots',
-    task.scenario.id,
-    `${task.page.id.replaceAll('/', '__')}--${task.theme}-${task.viewport}.png`
-  );
-  mkdirSync(dirname(join(outDir, file)), { recursive: true });
-
-  const { context, page } = await openPage(browser, origin, task, tag);
+): Promise<Shot[]> {
+  let started = Date.now();
+  const tag = `${group.scenario.id}~${++tags}`;
+  const { context, page } = await openPage(browser, origin, group, tag);
   const problems = watchProblems(page);
-  const activity = watchActivity(page, task.scenario);
-  const settled = await settle(page, `${origin}${task.page.path}`, activity, settleMs);
+  const activity = watchActivity(page, group.scenario);
+  const loaded = watchLoaded(page, origin);
+  const settled = await settle(page, `${origin}${group.page.path}`, activity, settleMs);
   await page.addStyleTag({ content: STILL }).catch(() => undefined);
-  await page.evaluate(() => document.fonts.ready).catch(() => undefined);
-  // A beat for anything that renders after the last response: suspense boundaries resolving, charts laying out.
-  await page.waitForTimeout(150);
-  await fitToContent(page, task.viewport);
-
   const finalPath = new URL(page.url()).pathname;
-  const checks = await checksOf(page);
-  await page.screenshot({ path: join(outDir, file), fullPage: true, animations: 'disabled', caret: 'hide' });
+  const taken: Shot[] = [];
+  for (const [index, theme] of group.themes.entries()) {
+    const { file, aria, checks } = await shoot(page, outDir, group, theme, index === 0);
+    taken.push({
+      key: shotKey({ scenario: group.scenario.id, page: group.page.id, theme, viewport: group.viewport }),
+      scenario: group.scenario.id,
+      page: group.page.id,
+      pageTitle: group.page.title,
+      path: group.page.path,
+      theme,
+      viewport: group.viewport,
+      file,
+      thumb: '',
+      aria,
+      redirectedTo: finalPath === group.page.path ? null : finalPath,
+      settled,
+      loaded: [],
+      durationMs: Date.now() - started,
+      ...problems,
+      ledger: [],
+      ...checks
+    });
+    started = Date.now();
+  }
   await context.close();
-  const thumb = await thumbnailer.make(outDir, file);
-
-  return {
-    key,
-    scenario: task.scenario.id,
-    page: task.page.id,
-    pageTitle: task.page.title,
-    path: task.page.path,
-    theme: task.theme,
-    viewport: task.viewport,
-    file,
-    thumb,
-    redirectedTo: finalPath === task.page.path ? null : finalPath,
-    settled,
-    durationMs: Date.now() - started,
-    ...problems,
-    ledger: (ledger.get(tag) ?? []).filter(entry => entry.kind !== 'fault'),
-    ...checks
-  };
+  const noted = (ledger.get(tag) ?? []).filter(entry => entry.kind !== 'fault');
+  const files = [...loaded].sort();
+  for (const shot of taken)
+    Object.assign(shot, { thumb: await thumbnailer.make(outDir, shot.file), ledger: noted, loaded: files });
+  return taken;
 }

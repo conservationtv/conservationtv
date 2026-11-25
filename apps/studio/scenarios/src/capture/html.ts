@@ -101,7 +101,7 @@ const isNew = shot => data.baseline && !shot.difference;
 
 function chipsOf(shot) {
   const chips = shot.issues.map(issue => el('span', { className: 'chip issue', textContent: issue }));
-  if (changed(shot)) chips.push(el('span', { className: 'chip change', textContent: 'Changed ' + percent(shot.difference.ratio) + (shot.difference.sizeChanged ? ', resized' : '') }));
+  if (changed(shot)) chips.push(el('span', { className: 'chip change', textContent: 'Changed ' + percent(shot.difference.ratio) + (shot.difference.moved ? ', moved ' + percent(shot.difference.moved) : '') + (shot.difference.sizeChanged ? ', resized' : '') }));
   if (isNew(shot)) chips.push(el('span', { className: 'chip new', textContent: 'New' }));
   if (shot.redirectedTo) chips.push(el('span', { className: 'chip', textContent: '→ ' + shot.redirectedTo }));
   for (const note of shot.expected ?? []) chips.push(el('span', { className: 'chip', textContent: note }));
@@ -248,6 +248,8 @@ function open(shot) {
     el('h3', { textContent: 'Page' }), el('pre', { textContent: shot.path + (shot.redirectedTo ? '\\n→ ' + shot.redirectedTo : '') }),
     el('div', { className: 'chips' }, chipsOf(shot)),
     el('h3', { textContent: 'Capture' }), el('pre', { textContent: (shot.settled ? 'Settled' : 'Never settled') + ' in ' + (shot.durationMs / 1000).toFixed(1) + 's' }),
+    detailList('Gone from the page', shot.difference?.text?.removed ?? []),
+    detailList('New on the page', shot.difference?.text?.added ?? []),
     detailList('Uncaught errors', shot.pageErrors),
     detailList('Console errors', shot.consoleErrors),
     detailList('Failed API calls', shot.apiFailures),

@@ -36,8 +36,11 @@ Reports give no commit status: they are uploaded for the review tool, and fail o
 | `calls`     | `calls.json`: changed units, every use of them, and each topic's diffed call tree          |
 | `scenarios` | `report.json` and images: the web app across generated worlds, merge base against the head |
 
-`scenarios` builds and screenshots the web app twice, so `pnpm signoff` makes it only when the change touches what the
-web app is built from (its paths are in [`src/reports.ts`](src/reports.ts)); named, it is made regardless. It installs Playwright's Chromium shell the first time. `SCENARIOS_ARGS` narrows a run with the scenarios package's own `report` options, such as `--scenarios typical --random 0 --themes light`.
+`scenarios` builds the web app at the merge base and the head, so `pnpm signoff` makes it only when the change touches
+what the web app is built from (its paths are in [`src/reports.ts`](src/reports.ts)); named, it is made regardless. Only
+pages whose code changed are screenshotted again: the head takes every other page's shots from the base's, and the base
+takes what it can from reports already uploaded (its own commit's, and the head of the pull request merged as it),
+before capturing the rest; the base's shots are then kept on this machine for the next pull request on it. It installs Playwright's Chromium shell the first time. `SCENARIOS_ARGS` narrows a run with the scenarios package's own `report` options, such as `--scenarios typical --random 0 --themes light`.
 
 The gatekeeper's tests start a Postgres container, so `test` needs Docker running. The control plane's end-to-end
 tests also need the relay images, so they are left to

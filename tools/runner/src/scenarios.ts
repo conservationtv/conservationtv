@@ -14,10 +14,18 @@ export const ShotDifferenceSchema = z.object({
   /** Changed pixels in red over a faded copy of the new shot; null when nothing changed. */
   diffFile: z.string().nullable(),
   diffThumb: z.string().nullable(),
+  /** Pixels changed, and the drawn pixels of rows added or removed, once the two shots' rows are lined up: not those that only moved. */
   pixels: z.number(),
   /** Changed pixels over all of them, 0–1. */
   ratio: z.number(),
-  sizeChanged: z.boolean()
+  /** The share of the shot in rows that moved but are otherwise the same, 0–1; 0 in reports from before it was. */
+  moved: z.number().default(0),
+  sizeChanged: z.boolean(),
+  /** The page's accessibility snapshot's lines that came and went (at most 20 of each); null when not compared. */
+  text: z
+    .object({ added: z.array(z.string()), removed: z.array(z.string()) })
+    .nullable()
+    .default(null)
 });
 export type ShotDifference = z.output<typeof ShotDifferenceSchema>;
 
