@@ -242,7 +242,9 @@ function attentionOf(system: SignalSystem): number {
 
 /** The system as the page draws it, given what's open (a network, and a subgroup in it). */
 export function topologyOf(system: SignalSystem, open: string[]): SignalTopology {
-  const groups = [...system.networks.map(network => networkGroup(system, network)), ingestGroup(system)];
+  // The ingests are a group only while there are any: none, and there's nothing to list under it.
+  const ingests = system.ingests.length > 0 ? [ingestGroup(system)] : [];
+  const groups = [...system.networks.map(network => networkGroup(system, network)), ...ingests];
   const feeds = feedsOf(system, groups, open);
   return {
     system,
