@@ -16,8 +16,6 @@ export interface Gaps {
   networkWithoutActiveAgent: number;
   /** An output with no agent running it. */
   outputWithoutDevice: number;
-  /** An output driven from outside the studio rather than by a show. */
-  outputExternal: number;
   /** A show never composed: it places nothing. */
   showUncomposed: number;
   /** A forward switched off. */
@@ -88,6 +86,12 @@ export interface WorldSpec {
   presetsPerCamera: Range;
   shows: number;
   outputs: number;
+  /**
+   * The chance of each output being driven from outside the studio (`external` control) rather than following a show:
+   * a way of running one, not a gap. It follows no show, and its controller plays any of the organisation's streams.
+   * Every output is driven so in a world with no shows.
+   */
+  externalOutputs: number;
   channels: number;
   chatCommands: number;
   /** Members beside the signed-in account. */
@@ -116,7 +120,6 @@ export const NO_GAPS: Gaps = {
   streamWithoutSource: 0,
   networkWithoutActiveAgent: 0,
   outputWithoutDevice: 0,
-  outputExternal: 0,
   showUncomposed: 0,
   forwardDisabled: 0,
   gatewayTlsError: 0
@@ -136,6 +139,7 @@ export const BASE_SPEC: WorldSpec = {
   presetsPerCamera: [0, 3],
   shows: 1,
   outputs: 1,
+  externalOutputs: 0,
   channels: 1,
   chatCommands: 2,
   members: 2,

@@ -8,6 +8,7 @@ import {
   recorderSubject
 } from '@conservationtv/reports';
 
+import { BUILTIN_GATEWAY_ID } from './generate.ts';
 import type { CameraRow, GatewayRow, Incident, OutputRow, StateRow, StreamRow, World } from './model.ts';
 import type { Rng } from './rng.ts';
 import type { OutageKind } from './spec.ts';
@@ -253,9 +254,24 @@ function record(assessment: Assessment, kind: Kind, subjectId: string, reporter:
 /** Failing or not, as a judgement's health. */
 const verdict = (failing: boolean) => (failing ? 'unhealthy' : 'healthy');
 
-/** Which deliveries are read: placed in a show, recorded, or upstream of one that is. */
-function readDeliveries(world: World, deliveries: Delivery[]): Set<string> {
-  const placed = new Set(world.shows.flatMap(show => show.placed));
+/**
+ * What outputs driven from outside play. The topology doesn't say (their controller picks, and the agent connects to
+ * each as OBS plays it), so each one an agent runs plays a few of the relay's deliveries, keyed by the output.
+ */
+function playedFromOutside(world: World, rng: Rng, deliveries: Delivery[]): string[] {
+  const relay = deliveries.filter(delivery => delivery.gatewayId === BUILTIN_GATEWAY_ID);
+  return world.outputs
+    .filter(output => output.control === 'external' && output.device)
+    .flatMap(output => {
+      const played = rng.child('played', output.id);
+      return played.sample(relay, played.int(Math.min(1, relay.length), Math.min(4, relay.length)));
+    })
+    .map(delivery => delivery.id);
+}
+
+/** Which deliveries are read: placed in a show, played from outside, recorded, or upstream of one that is. */
+function readDeliveries(world: World, rng: Rng, deliveries: Delivery[]): Set<string> {
+  const placed = new Set([...world.shows.flatMap(show => show.placed), ...playedFromOutside(world, rng, deliveries)]);
   const recorded = new Set(world.streams.flatMap(stream => stream.recorders.map(recorder => recorder.exposureId)));
   const read = new Set<string>();
   for (const delivery of deliveries) {
@@ -336,7 +352,7 @@ function judgeDeliveries(assessment: Assessment): Set<string> {
   const deliveries: Delivery[] = assessment.world.streams.flatMap(stream =>
     stream.exposures.map(exposure => ({ ...exposure, stream }))
   );
-  const read = readDeliveries(assessment.world, deliveries);
+  const read = readDeliveries(assessment.world, assessment.rng, deliveries);
   const delivered = new Set<string>();
   for (const delivery of deliveries) {
     const camera = judgeDelivery(assessment, deliveries, read, delivery);

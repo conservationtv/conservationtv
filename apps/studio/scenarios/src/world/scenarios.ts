@@ -103,6 +103,34 @@ export const NAMED_SCENARIOS: Scenario[] = [
     }
   ),
   scenario(
+    'external-control',
+    'Driven from outside',
+    "No shows at all: every output is driven by something outside the studio over obs-websocket, playing whichever of the organisation's streams it likes, and goes out to its channels; all healthy.",
+    {
+      networks: 2,
+      camerasPerNetwork: [2, 4],
+      gatewaysPerNetwork: [1, 1],
+      shows: 0,
+      outputs: 2,
+      channels: 2
+    }
+  ),
+  scenario(
+    'mixed-control',
+    'Shows and outside control',
+    'Shows driving some outputs and something outside the studio driving the others, with two cameras stopped answering: what a failure reaches under each.',
+    {
+      networks: 2,
+      camerasPerNetwork: [2, 4],
+      gatewaysPerNetwork: [1, 1],
+      shows: 2,
+      outputs: 4,
+      externalOutputs: 0.5,
+      channels: 3,
+      health: { incidents: { camera: 2 } }
+    }
+  ),
+  scenario(
     'degraded',
     'Degraded everywhere',
     'Nothing is down, but much of it is degraded: frame errors, skipped frames, low disk.',
@@ -135,6 +163,7 @@ export const NAMED_SCENARIOS: Scenario[] = [
       gatewaysPerNetwork: [0, 1],
       shows: 3,
       outputs: 3,
+      externalOutputs: 0.4,
       channels: 2,
       gaps: {
         cameraDisabled: 0.25,
@@ -142,7 +171,6 @@ export const NAMED_SCENARIOS: Scenario[] = [
         streamWithoutSource: 0.25,
         networkWithoutActiveAgent: 0.5,
         outputWithoutDevice: 0.4,
-        outputExternal: 0.4,
         showUncomposed: 0.4,
         forwardDisabled: 0.4,
         gatewayTlsError: 0.5
@@ -271,6 +299,8 @@ export function randomScenario(n: number): Scenario {
     presetsPerCamera: [0, rng.int(0, 8)],
     shows: rng.int(0, scale === 'large' ? 8 : 3),
     outputs: rng.int(0, scale === 'large' ? 8 : 3),
+    // Its own stream, so drawing it moves none of the others: most worlds drive none from outside, some some, a few all.
+    externalOutputs: rng.child('externalOutputs').pick([0, 0, 0, 0.3, 0.5, 1]),
     channels: rng.int(0, scale === 'large' ? 6 : 3),
     chatCommands: rng.int(0, 8),
     members: rng.int(0, scale === 'large' ? 30 : 5),
@@ -282,7 +312,6 @@ export function randomScenario(n: number): Scenario {
       streamWithoutSource: gap('streamWithoutSource'),
       networkWithoutActiveAgent: gap('networkWithoutActiveAgent'),
       outputWithoutDevice: gap('outputWithoutDevice'),
-      outputExternal: gap('outputExternal'),
       showUncomposed: gap('showUncomposed'),
       forwardDisabled: gap('forwardDisabled'),
       gatewayTlsError: gap('gatewayTlsError')
