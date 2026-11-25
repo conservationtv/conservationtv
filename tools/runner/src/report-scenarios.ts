@@ -105,10 +105,33 @@ function baseBuild(root: string, base: string): string | null {
   }
 }
 
+/** How one side is captured: its build and commit, what it is captured with, and what it may take shots from. */
+interface Side {
+  web: string;
+  commit: string;
+  label: string;
+  /** What the shots are captured with besides the web app (capturedWith): the same on both sides. */
+  fingerprint: string;
+  /** Earlier reports, directories or the review tool's addresses, to take unchanged pages' shots from. */
+  reuse: string[];
+}
+
 /** Captures the shots of one side with the head's scenarios package, compared with a baseline report when given. */
-function capture(head: string, web: string, commit: string, label: string, out: string, baseline: string | null): void {
-  const args = ['src/cli.ts', 'report', '--web', web, '--commit', commit, '--label', label, '--out', out];
-  args.push('--concurrency', String(CONCURRENCY));
+function capture(head: string, side: Side, out: string, baseline: string | null): void {
+  const args = [
+    'src/cli.ts',
+    'report',
+    '--web',
+    side.web,
+    '--commit',
+    side.commit,
+    '--label',
+    side.label,
+    '--out',
+    out
+  ];
+  args.push('--concurrency', String(CONCURRENCY), '--captured-with', side.fingerprint);
+  for (const source of side.reuse) args.push('--reuse', source);
   if (baseline) args.push('--baseline', baseline);
   // A narrower run, for trying it: SCENARIOS_ARGS='--scenarios typical --random 0 --themes light'.
   args.push(...(process.env.SCENARIOS_ARGS?.split(/\s+/).filter(Boolean) ?? []));
@@ -140,8 +163,8 @@ function capturedWith(root: string, sha: string): string {
  * The merge base's screenshots, compared with nothing: from the cache when the base was captured with the same worlds
  * and options before, else captured into it. Null when they can't be taken, which leaves the head's uncompared.
  */
-function baseShots(root: string, head: string, sha: string, base: string, baseWeb: string): string | null {
-  const cached = path.join(BASE_SHOTS, `${base}-${capturedWith(root, sha)}`);
+function baseShots(head: string, base: string, baseWeb: string, fingerprint: string, reviewUrl: string): string | null {
+  const cached = path.join(BASE_SHOTS, `${base}-${fingerprint}`);
   if (existsSync(path.join(cached, SCENARIOS_FILE))) {
     console.log(`Reusing the merge base's screenshots from ${cached}.`);
     // Touched, so pruning keeps what is still used.
@@ -153,7 +176,9 @@ function baseShots(root: string, head: string, sha: string, base: string, baseWe
   const taking = `${cached}.taking`;
   rmSync(taking, { recursive: true, force: true });
   try {
-    capture(head, baseWeb, base, 'base', taking, null);
+    // Shots someone has already uploaded of a build like this one's, rather than captured here.
+    const reuse = uploadsOf(head, base, reviewUrl);
+    capture(head, { web: baseWeb, commit: base, label: 'base', fingerprint, reuse }, taking, null);
     renameSync(taking, cached);
     return cached;
   } catch (error) {
@@ -186,8 +211,26 @@ function summaryOf(report: ScenarioReport, compared: boolean): string {
   return `${report.shots.length} shots of ${report.scenarios.length} scenarios, ${comparison}, ${issues} with issues.\n`;
 }
 
+/** Where the review tool serves a commit's scenarios report from. */
+function uploadedAt(reviewUrl: string, commit: string): string {
+  return `${reviewUrl}/api/results/${commit}/scenarios`;
+}
+
+/**
+ * Uploaded reports worth taking a commit's shots from: the commit's own, and those of the pull requests merged as it
+ * (the head a merge commit was made of, signed off before it merged). Whatever they offer is checked page by page.
+ */
+function uploadsOf(head: string, commit: string, reviewUrl: string): string[] {
+  const pulls = spawnSync('gh', ['api', `repos/{owner}/{repo}/commits/${commit}/pulls`, '--jq', '.[].head.sha'], {
+    cwd: head,
+    encoding: 'utf8'
+  });
+  const heads = pulls.status === 0 ? pulls.stdout.split('\n').filter(Boolean) : [];
+  return [commit, ...heads].map(each => uploadedAt(reviewUrl, each));
+}
+
 /** The scenarios report of `sha` against `base`, in a directory of its own; the caller removes it after uploading. */
-export function scenariosReport(root: string, sha: string, base: string): ScenariosMade {
+export function scenariosReport(root: string, sha: string, base: string, reviewUrl: string): ScenariosMade {
   const out = mkdtempSync(path.join(tmpdir(), 'scenarios-report-'));
   const head = installedWorktree(root, sha, ['@conservationtv/web...', '@conservationtv/studio-scenarios...']);
   try {
@@ -201,8 +244,11 @@ export function scenariosReport(root: string, sha: string, base: string): Scenar
     prune(BASE_SHOTS);
     const headWeb = buildWeb(head, sha);
     const baseWeb = baseBuild(root, base);
-    const baseline = baseWeb ? baseShots(root, head, sha, base, baseWeb) : null;
-    capture(head, headWeb, sha, 'head', path.join(out, 'report'), baseline);
+    const fingerprint = capturedWith(root, sha);
+    const baseline = baseWeb ? baseShots(head, base, baseWeb, fingerprint, reviewUrl) : null;
+    // Unchanged pages' shots from the base, else from an upload of this same commit (a run again, say).
+    const reuse = [...(baseline ? [baseline] : []), uploadedAt(reviewUrl, sha)];
+    capture(head, { web: headWeb, commit: sha, label: 'head', fingerprint, reuse }, path.join(out, 'report'), baseline);
     const dir = path.join(out, 'report');
     const report = ScenarioReportSchema.parse(JSON.parse(readFileSync(path.join(dir, SCENARIOS_FILE), 'utf8')));
     return { log: summaryOf(report, baseline !== null), dir, report };

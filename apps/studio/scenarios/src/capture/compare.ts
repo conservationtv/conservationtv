@@ -227,6 +227,19 @@ function snapshotOf(dir: string, file: string | null | undefined): string | null
   return file && existsSync(join(dir, file)) ? readFileSync(join(dir, file), 'utf8') : null;
 }
 
+/** The two pages' accessibility snapshots compared; null when either has none. */
+function textOf(outDir: string, shot: Compared, baselineDir: string, baselineShot: Compared): TextChanges | null {
+  const head = snapshotOf(outDir, shot.aria);
+  const base = snapshotOf(baselineDir, baselineShot.aria);
+  return head !== null && base !== null ? textChanges(base, head) : null;
+}
+
+/** No difference to show: the shot as it was. */
+function unchanged(text: TextChanges | null): Difference {
+  const none = { baselineFile: null, baselineThumb: null, diffFile: null, diffThumb: null };
+  return { ...none, pixels: 0, ratio: 0, moved: 0, sizeChanged: false, text };
+}
+
 export async function compareShot(
   outDir: string,
   shot: Compared,
@@ -234,29 +247,19 @@ export async function compareShot(
   baselineShot: Compared,
   thumbnailer: Thumbnailer
 ): Promise<Difference> {
-  const current = PNG.sync.read(readFileSync(join(outDir, shot.file)));
-  const previous = PNG.sync.read(readFileSync(join(baselineDir, baselineShot.file)));
+  const currentBytes = readFileSync(join(outDir, shot.file));
+  const previousBytes = readFileSync(join(baselineDir, baselineShot.file));
+  // The same file (a shot taken from the baseline, or captured to the byte): nothing to decode.
+  if (currentBytes.equals(previousBytes)) return unchanged(textOf(outDir, shot, baselineDir, baselineShot));
+  const current = PNG.sync.read(currentBytes);
+  const previous = PNG.sync.read(previousBytes);
   const sizeChanged = current.width !== previous.width || current.height !== previous.height;
-  const headText = snapshotOf(outDir, shot.aria);
-  const baseText = snapshotOf(baselineDir, baselineShot.aria);
-  const text = headText !== null && baseText !== null ? textChanges(baseText, headText) : null;
-
+  const text = textOf(outDir, shot, baselineDir, baselineShot);
   const { pixels, moved, diff } = differenceOf(previous, current);
-  const area = diff.width * diff.height;
+  const area = Math.max(current.width * current.height, previous.width * previous.height, diff.width * diff.height);
   const ratio = pixels / area;
   const movedShare = moved / area;
-  if (pixels === 0)
-    return {
-      baselineFile: null,
-      baselineThumb: null,
-      diffFile: null,
-      diffThumb: null,
-      pixels,
-      ratio,
-      moved: movedShare,
-      sizeChanged,
-      text
-    };
+  if (pixels === 0) return { ...unchanged(text), moved: movedShare, sizeChanged, ratio };
 
   // Only what changed keeps its baseline and diff beside the report, each with a thumbnail for its card.
   const copied = join('baseline', baselineShot.file);

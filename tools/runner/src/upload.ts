@@ -40,7 +40,9 @@ type Missing = z.output<typeof MissingSchema>;
 const TYPES = new Map([
   ['png', 'image/png'],
   ['webp', 'image/webp'],
-  ['jpg', 'image/jpeg']
+  ['jpg', 'image/jpeg'],
+  // A page's accessibility snapshot, one beside each screenshot.
+  ['txt', 'text/plain; charset=utf-8']
 ]);
 
 async function request(to: Destination, method: string, path: string, body: string | Uint8Array, type: string) {
@@ -92,7 +94,7 @@ interface Hashed {
   type: string;
 }
 
-/** Whether a file is stored by its content: images a report wrote to disk; its JSON goes under its own path. */
+/** Whether a file is stored by its content: images and snapshots a report wrote to disk; its JSON goes under its own path. */
 function byContent(upload: Upload): upload is FileUpload {
   return 'path' in upload && TYPES.has(upload.name.split('.').pop() ?? '');
 }

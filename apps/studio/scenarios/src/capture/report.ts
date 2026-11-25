@@ -8,16 +8,20 @@ import { chromium, type Browser } from 'playwright';
 import { DEFAULT_WEB_ROOT, startServer } from '../serve.ts';
 import { findScenario, NAMED_SCENARIOS, worldOf, type Scenario } from '../world/scenarios.ts';
 import type { Fault } from '../world/spec.ts';
-import { capture, VIEWPORTS, type CaptureTask, type Shot, type Theme, type Viewport } from './capture.ts';
+import { capture, shotKey, VIEWPORTS, type CaptureGroup, type Shot, type Theme, type Viewport } from './capture.ts';
 import { compareShot, type Difference } from './compare.ts';
 import { renderReport } from './html.ts';
 import { Thumbnailer } from './thumbnails.ts';
 import { pagesOf, type Page } from './pages.ts';
+import { buildFilesOf, copyReused, Reuse, reuseSourceOf, type BuildFiles } from './reuse.ts';
 
 // `report`: screenshot every page of every chosen scenario's world, in each theme and viewport, against the web app's
 // production build and the mock API, into a directory holding the images, report.json and index.html. Given a
 // baseline (an earlier report: run one on main, then on a branch with `--baseline main`), each shot is compared with
 // the baseline's and the report leads with what changed most.
+
+/** Groups whose earlier shots are fetched at once: the files are small, and a remote source's come over the network. */
+const REUSE_CONCURRENCY = 16;
 
 const REPORTS_DIR = fileURLToPath(new URL('../../reports/', import.meta.url));
 const WEB_DIR = fileURLToPath(new URL('../../../web/', import.meta.url));
@@ -38,7 +42,12 @@ const HELP = `Usage: pnpm --filter @conservationtv/studio-scenarios report [opti
   --settle <ms>        How long a page may take to go quiet before it is captured anyway (default 10000).
   --port <n>           Port for the mock API and web app (default 6439).
   --shard <i>/<n>      Take only the i-th of n even slices of the shots (CI captures them on n runners at once).
-  --commit <sha>       The commit the web build is of, when it isn't this checkout's (CI captures the base's build).`;
+  --commit <sha>       The commit the web build is of, when it isn't this checkout's (CI captures the base's build).
+  --captured-with <id> What the shots are captured with besides the web app (the mock, worlds and capture code), as an
+                       ID the caller works out: recorded, so a later run can take shots from this one (--reuse).
+  --reuse <dir|url>    An earlier report to take shots from rather than capture them: those of pages whose every file
+                       loaded is the same in this build, in a report captured with the same --captured-with. A
+                       directory, or the review tool's address for a run's files. Repeatable; the first to offer wins.`;
 
 interface Options {
   scenarios: Scenario[];
@@ -55,6 +64,8 @@ interface Options {
   port: number;
   commit: string | undefined;
   shard: Shard;
+  capturedWith: string | null;
+  reuse: string[];
 }
 
 /** One of `count` slices of the shots, numbered from 1. */
@@ -80,7 +91,13 @@ export interface ReportScenario {
   faults: string[];
 }
 
-export interface ReportShot extends Shot {
+/** A shot of this run: captured, or taken from an earlier report. */
+interface Taken extends Shot {
+  /** The commit of the earlier report it was taken from (--reuse); null when captured. */
+  reusedFrom: string | null;
+}
+
+export interface ReportShot extends Taken {
   /** Where the shot comes among all of the run's, across shards: what merged reports are put back in order by. */
   order: number;
   difference: Difference | null;
@@ -120,6 +137,10 @@ export interface ReportData {
   shots: ReportShot[];
   /** Shots the baseline had that this run didn't take. */
   removed: string[];
+  /** The web app's files the shots were taken of, by content: what a later run checks a page's files against. */
+  build?: BuildFiles;
+  /** What the shots were captured with besides the web app (--captured-with); null when not given. */
+  capturedWith?: string | null;
 }
 
 function git(...args: string[]): string {
@@ -191,7 +212,9 @@ const OPTIONS = {
   settle: { type: 'string', default: '10000' },
   port: { type: 'string', default: '6439' },
   commit: { type: 'string' },
-  shard: { type: 'string' }
+  shard: { type: 'string' },
+  'captured-with': { type: 'string' },
+  reuse: { type: 'string', multiple: true }
 } as const;
 
 /** The options, or undefined after printing the help. A report is written to reports/<label> unless --out says. */
@@ -220,7 +243,9 @@ function parse(args: string[]): Options | undefined {
     settle: Number(values.settle),
     port: Number(values.port),
     commit: values.commit?.slice(0, 8),
-    shard: shardOf(values.shard)
+    shard: shardOf(values.shard),
+    capturedWith: values['captured-with'] ?? null,
+    reuse: (values.reuse ?? []).map(at => (/^https?:\/\//u.test(at) ? at.replace(/\/$/u, '') : resolve(at)))
   };
 }
 
@@ -311,39 +336,77 @@ function wanted(options: Options, page: Page): boolean {
   return options.pages.length === 0 || options.pages.some(id => page.id === id || page.id.startsWith(`${id}/`));
 }
 
-/** Every shot to take: each scenario's pages, at each viewport, in each theme. */
-function tasksOf(options: Options): CaptureTask[] {
-  const tasks: CaptureTask[] = [];
-  for (const scenario of options.scenarios) {
+/** Every page to take: each scenario's pages at each viewport, each in every theme. */
+function groupsOf(options: Options): CaptureGroup[] {
+  const groups: CaptureGroup[] = [];
+  for (const scenario of options.scenarios)
     for (const page of pagesOf(worldOf(scenario)).filter(page => wanted(options, page)))
-      for (const viewport of options.viewports)
-        for (const theme of options.themes) tasks.push({ scenario, page, theme, viewport });
-  }
-  return tasks;
+      for (const viewport of options.viewports) groups.push({ scenario, page, viewport, themes: options.themes });
+  return groups;
 }
 
-/** This shard's slice: every n-th shot from the i-th, so each gets a share of every scenario and of the slow pages. */
-function inShard(options: Options, tasks: CaptureTask[]): CaptureTask[] {
+/** Each shot's key in the order they are asked for. */
+function keysOf(groups: CaptureGroup[]): string[] {
+  return groups.flatMap(group =>
+    group.themes.map(theme =>
+      shotKey({ scenario: group.scenario.id, page: group.page.id, theme, viewport: group.viewport })
+    )
+  );
+}
+
+/** This shard's slice: every n-th page from the i-th, so each gets a share of every scenario and of the slow pages. */
+function inShard(options: Options, groups: CaptureGroup[]): CaptureGroup[] {
   const { index, count } = options.shard;
-  return tasks.filter((_task, at) => at % count === index - 1);
+  return groups.filter((_group, at) => at % count === index - 1);
 }
 
-/** Take every shot, a few at once, against the mock API and the built web app, printing each as it lands. */
-async function captureAll(options: Options, tasks: CaptureTask[], browser: Browser): Promise<Shot[]> {
+/** The group's shots from earlier reports, put in this one, when every one of its themes can be; else nothing. */
+async function reusedShots(options: Options, group: CaptureGroup, reuse: Reuse): Promise<Taken[] | null> {
+  const found = keysOf([group]).map(key => reuse.get(key));
+  if (found.some(each => !each)) return null;
+  const taken: Taken[] = [];
+  for (const each of found) {
+    if (!each || !(await copyReused(each, options.out))) return null;
+    const { order: _order, difference: _difference, issues: _issues, expected: _expected, ...shot } = each.shot;
+    taken.push({ ...shot, durationMs: 0, reusedFrom: each.source.data.git.commit });
+  }
+  return taken;
+}
+
+/** The groups none of whose shots could be reused, the reused ones put in `shots`; this many groups at once. */
+async function reuseWhatCan(options: Options, groups: CaptureGroup[], reuse: Reuse, shots: Taken[]) {
+  const pending: CaptureGroup[] = [];
+  let next = 0;
+  const worker = async () => {
+    for (let group = groups[next++]; group; group = groups[next++]) {
+      const reused = await reusedShots(options, group, reuse);
+      if (reused) shots.push(...reused);
+      else pending.push(group);
+    }
+  };
+  await Promise.all(Array.from({ length: REUSE_CONCURRENCY }, worker));
+  return pending;
+}
+
+/** Take every page, a few at once, against the mock API and the built web app, printing each shot as it lands. */
+async function captureAll(options: Options, groups: CaptureGroup[], browser: Browser, reuse: Reuse): Promise<Taken[]> {
   const served = await startServer(options.web, options.port);
-  console.log(`Capturing ${tasks.length} screenshots of ${options.scenarios.length} scenarios into ${options.out}`);
-  const shots: Shot[] = [];
+  const total = keysOf(groups).length;
+  console.log(`Taking ${total} screenshots of ${options.scenarios.length} scenarios into ${options.out}`);
+  const shots: Taken[] = [];
+  const pending = await reuseWhatCan(options, groups, reuse, shots);
+  if (shots.length) console.log(`${shots.length} taken from earlier reports, as nothing their pages load changed.`);
   let next = 0;
   const worker = async () => {
     const thumbnailer = await Thumbnailer.open(browser);
-    while (next < tasks.length) {
-      const task = tasks[next++]!;
-      const shot = await capture(browser, served.origin, options.out, task, options.settle, thumbnailer);
-      shots.push(shot);
-      const issues = issuesOf(shot);
-      const mark = issues.length ? `  ⚠ ${issues.join(', ')}` : '';
-      const progress = `[${String(shots.length).padStart(String(tasks.length).length)}/${tasks.length}]`;
-      console.log(`${progress} ${shot.key} ${(shot.durationMs / 1000).toFixed(1)}s${mark}`);
+    for (let group = pending[next++]; group; group = pending[next++]) {
+      for (const shot of await capture(browser, served.origin, options.out, group, options.settle, thumbnailer)) {
+        shots.push({ ...shot, reusedFrom: null });
+        const issues = issuesOf(shot);
+        const mark = issues.length ? `  ⚠ ${issues.join(', ')}` : '';
+        const progress = `[${String(shots.length).padStart(String(total).length)}/${total}]`;
+        console.log(`${progress} ${shot.key} ${(shot.durationMs / 1000).toFixed(1)}s${mark}`);
+      }
     }
     await thumbnailer.close();
   };
@@ -364,15 +427,13 @@ function readBaseline(dir: string | null): ReportData | null {
 /** The shots in the order they were asked for, each with its issues and, given a baseline, how it changed. */
 async function reportShotsOf(
   options: Options,
-  tasks: CaptureTask[],
-  shots: Shot[],
+  groups: CaptureGroup[],
+  shots: Taken[],
   baseline: ReportData | null,
   thumbnailer: Thumbnailer
 ): Promise<ReportShot[]> {
   const baselineShots = new Map((baseline?.shots ?? []).map(shot => [shot.key, shot]));
-  const order = new Map(
-    tasks.map((task, index) => [`${task.scenario.id}/${task.page.id}/${task.theme}-${task.viewport}`, index])
-  );
+  const order = new Map(keysOf(groups).map((key, index) => [key, index]));
   const sorted = shots.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
   const reportShots: ReportShot[] = [];
   for (const shot of sorted) {
@@ -388,10 +449,10 @@ async function reportShotsOf(
 }
 
 /** Every shot, then each compared with the baseline, in one browser that also makes their thumbnails. */
-async function captureAndCompare(options: Options, all: CaptureTask[], baseline: ReportData | null) {
+async function captureAndCompare(options: Options, all: CaptureGroup[], baseline: ReportData | null, reuse: Reuse) {
   const browser = await chromium.launch();
   try {
-    const shots = await captureAll(options, inShard(options, all), browser);
+    const shots = await captureAll(options, inShard(options, all), browser, reuse);
     const thumbnailer = await Thumbnailer.open(browser);
     // Ordered among all the run's shots, not just this shard's, so shards merge back in order.
     const reportShots = await reportShotsOf(options, all, shots, baseline, thumbnailer);
@@ -406,11 +467,21 @@ export async function report(args: string[]) {
   const options = parse(args);
   if (!options) return;
   ensureBuild(options);
-  const tasks = tasksOf(options);
+  const groups = groupsOf(options);
+  if (options.reuse.includes(options.out))
+    throw new Error('A report to reuse is the one being written: give this run another --out');
+  // Read before the output is emptied.
+  const sources = (await Promise.all(options.reuse.map(reuseSourceOf))).filter(source => source !== null);
   prepareOut(options.out);
   const started = Date.now();
   const baseline = readBaseline(options.baseline);
-  const { shots, reportShots } = await captureAndCompare(options, tasks, baseline);
+  const build = buildFilesOf(options.web);
+  const { shots, reportShots } = await captureAndCompare(
+    options,
+    groups,
+    baseline,
+    new Reuse(sources, options.capturedWith, build)
+  );
   const taken = new Set(shots.map(shot => shot.key));
   const data: ReportData = {
     label: options.label,
@@ -424,7 +495,9 @@ export async function report(args: string[]) {
     options: { themes: options.themes, viewports: options.viewports, pages: options.pages },
     scenarios: options.scenarios.map(summarise),
     shots: reportShots,
-    removed: baseline ? baseline.shots.map(shot => shot.key).filter(key => !taken.has(key)) : []
+    removed: baseline ? baseline.shots.map(shot => shot.key).filter(key => !taken.has(key)) : [],
+    build,
+    capturedWith: options.capturedWith
   };
   writeFileSync(join(options.out, 'report.json'), JSON.stringify(data, null, 2));
   writeFileSync(join(options.out, 'index.html'), renderReport(data));
