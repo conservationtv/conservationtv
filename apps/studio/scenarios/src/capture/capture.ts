@@ -130,6 +130,7 @@ interface Activity {
   /** Requests not yet finished, but for those the scenario hangs on purpose. */
   inFlight: Set<Request>;
   lastActivity: number;
+  /** A server error answered since the clock last moved on: the app may have a retry waiting on a timer. */
   sawServerError: boolean;
 }
 
@@ -165,10 +166,17 @@ function watchActivity(page: BrowserPage, scenario: Scenario): Activity {
 }
 
 /**
+ * How far the page's clock is moved on after a server error: past the longest wait before one of the app's retries
+ * (TanStack Query's, 1 s then 2 s), so a retry goes now rather than in real time.
+ */
+const RETRY_WAIT_MS = 2000;
+
+/**
  * Load the page and wait for it to settle, by its own requests: quiet once nothing is in flight but calls the scenario
- * hangs on purpose, and nothing has started for a moment. After a server error the moment is longer, to outlast the
- * app's retries (TanStack Query's, 1 s then 2 s), so the error state is what is captured rather than a retry's loading
- * state. False when it never settled in time.
+ * hangs on purpose, and nothing has started for a moment. A server error may leave a retry waiting on a timer, so the
+ * page's clock (fake since openPage fixed the time, so moving it doesn't change the time the page shows) is run past
+ * it, firing it at once, until the page stays quiet without one: the error state is what is captured rather than a
+ * retry's loading state. False when it never settled in time.
  */
 async function settle(page: BrowserPage, url: string, activity: Activity, settleMs: number): Promise<boolean> {
   const deadline = Date.now() + settleMs;
@@ -177,9 +185,16 @@ async function settle(page: BrowserPage, url: string, activity: Activity, settle
     // Poll until quiet, giving up at the deadline.
     while (true) {
       // Quiet first, so a page that settles right at the deadline still counts as settled.
-      const quietFor = activity.sawServerError ? 3500 : 600;
-      if (activity.inFlight.size === 0 && Date.now() - activity.lastActivity >= quietFor) return true;
+      const quiet = activity.inFlight.size === 0 && Date.now() - activity.lastActivity >= 600;
+      if (quiet && !activity.sawServerError) return true;
       if (Date.now() > deadline) return false;
+      if (quiet) {
+        activity.sawServerError = false;
+        await page.clock.runFor(RETRY_WAIT_MS);
+        // A retry's request is reported a moment after its timer fires: quiet is counted again from the jump.
+        activity.lastActivity = Date.now();
+        continue;
+      }
       await page.waitForTimeout(100);
     }
   } catch {
