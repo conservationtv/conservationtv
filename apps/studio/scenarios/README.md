@@ -61,8 +61,10 @@ fail to read it: those pages show as changed, which is worth a look anyway.
 - **The capture** (`src/capture/`) serves the web app's production build beside the mock, and screenshots each page in a
   fresh browser context with the clock fixed at the world's moment, motion reduced and animations stopped, the window
   grown to fit the app's scrolling pane. Beside each shot it records console and page errors, failed API calls, anything
-  the mock couldn't answer, an error boundary on screen and sideways scrolling. Against a baseline, each shot is
-  pixel-diffed and the report sorts by how much changed.
+  the mock couldn't answer, an error boundary on screen, sideways scrolling and the page's accessibility snapshot.
+  Against a baseline, each shot's rows are lined up with the baseline's first (`src/capture/align.ts`), so what only
+  moved is told apart from what changed; the rest is pixel-diffed, the snapshots' lines that came and went say what
+  changed in words, and the report sorts by how much changed.
 
 ## Adding to it
 

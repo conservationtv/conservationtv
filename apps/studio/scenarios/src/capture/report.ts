@@ -231,7 +231,7 @@ function prepareOut(out: string) {
       const entries = spawnSync('ls', ['-A', out], { encoding: 'utf8' }).stdout.trim();
       if (entries) throw new Error(`${out} isn't empty and isn't a report; choose another --out`);
     }
-    for (const part of ['shots', 'thumbs', 'diffs', 'baseline', 'index.html', 'report.json'])
+    for (const part of ['shots', 'aria', 'thumbs', 'diffs', 'baseline', 'index.html', 'report.json'])
       rmSync(join(out, part), { recursive: true, force: true });
   }
   mkdirSync(out, { recursive: true });
@@ -369,17 +369,17 @@ async function reportShotsOf(
   baseline: ReportData | null,
   thumbnailer: Thumbnailer
 ): Promise<ReportShot[]> {
-  const baselineFiles = new Map((baseline?.shots ?? []).map(shot => [shot.key, shot.file]));
+  const baselineShots = new Map((baseline?.shots ?? []).map(shot => [shot.key, shot]));
   const order = new Map(
     tasks.map((task, index) => [`${task.scenario.id}/${task.page.id}/${task.theme}-${task.viewport}`, index])
   );
   const sorted = shots.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
   const reportShots: ReportShot[] = [];
   for (const shot of sorted) {
-    const baselineFile = baselineFiles.get(shot.key);
+    const baselineShot = baselineShots.get(shot.key);
     const difference =
-      baselineFile && options.baseline
-        ? await compareShot(options.out, shot.file, options.baseline, baselineFile, thumbnailer)
+      baselineShot && options.baseline
+        ? await compareShot(options.out, shot, options.baseline, baselineShot, thumbnailer)
         : null;
     const at = order.get(shot.key) ?? 0;
     reportShots.push({ ...shot, order: at, difference, issues: issuesOf(shot), expected: expectedOf(shot) });

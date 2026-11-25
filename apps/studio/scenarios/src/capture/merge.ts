@@ -28,16 +28,14 @@ export async function compareCommand(args: string[]) {
     rmSync(join(dir, part), { recursive: true, force: true });
   }
 
-  const baselineFiles = new Map(baseline.shots.map(shot => [shot.key, shot.file]));
+  const baselineShots = new Map(baseline.shots.map(shot => [shot.key, shot]));
   const browser = await chromium.launch();
   const shots: ReportShot[] = [];
   try {
     const thumbnailer = await Thumbnailer.open(browser);
     for (const shot of data.shots) {
-      const baselineFile = baselineFiles.get(shot.key);
-      const difference = baselineFile
-        ? await compareShot(dir, shot.file, baselineDir, baselineFile, thumbnailer)
-        : null;
+      const baselineShot = baselineShots.get(shot.key);
+      const difference = baselineShot ? await compareShot(dir, shot, baselineDir, baselineShot, thumbnailer) : null;
       shots.push({ ...shot, difference });
     }
   } finally {

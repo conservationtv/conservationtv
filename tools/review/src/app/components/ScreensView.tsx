@@ -121,10 +121,31 @@ const ShotNotes: FC<ShotNotesProps> = ({ shot }) => {
   );
 };
 
+/** What a reader would find added or gone on the page, from its accessibility snapshot. */
+const ShotTextChanges: FC<ShotNotesProps> = ({ shot }) => {
+  const text = shot.difference?.text;
+  if (!text || (!text.added.length && !text.removed.length)) return null;
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {text.removed.map((line, index) => (
+        <li key={`removed-${index}`} className="deletions">
+          − {line}
+        </li>
+      ))}
+      {text.added.map((line, index) => (
+        <li key={`added-${index}`} className="additions">
+          + {line}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 /** Where the shot is of, how, and how far it changed. */
 function describe(shot: ScenarioShot): string {
   const parts = [shot.path, shot.theme, shot.viewport];
   if (shot.difference) parts.push(`${percent(shot.difference.ratio)} changed`);
+  if (shot.difference?.moved) parts.push(`${percent(shot.difference.moved)} moved`);
   if (shot.redirectedTo) parts.push(`went to ${shot.redirectedTo}`);
   return parts.join(' · ');
 }
@@ -157,6 +178,7 @@ const ShotDetail: FC<ShotDetailProps> = ({ sha, shot, scenario, onClose }) => {
         </DialogHeader>
         {shot.difference?.baselineFile ? <ViewSwitch view={view} onView={setView} /> : null}
         <ShotNotes shot={shot} />
+        <ShotTextChanges shot={shot} />
         <div className="min-h-0 overflow-auto rounded-md border border-border">
           <img src={scenarioFile(sha, fileFor(shot, view))} alt={`${shot.pageTitle}, ${view}`} className="w-full" />
         </div>

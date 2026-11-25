@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { Browser, Page as BrowserPage, ConsoleMessage, Request } from 'playwright';
 import { matchOperation } from '../api/contract.ts';
@@ -39,6 +39,8 @@ export interface Shot {
   file: string;
   /** Its first screen, small (src/capture/thumbnails.ts), for the report's card. */
   thumb: string;
+  /** The page's accessibility snapshot (Playwright's, as YAML), relative to the report; null when it couldn't be taken. */
+  aria: string | null;
   /** Where the app ended up, when it isn't where it was sent. */
   redirectedTo: string | null;
   /** Whether the network went quiet before the capture; a page waiting on a hung call never does. */
@@ -269,6 +271,19 @@ async function loadFontsFirst(page: BrowserPage) {
   });
 }
 
+/** The page's accessibility snapshot, written beside the shots: what a comparison reads to say what changed in words. */
+async function ariaSnapshotOf(page: BrowserPage, outDir: string, file: string): Promise<string | null> {
+  const snapshot = await page
+    .locator('body')
+    .ariaSnapshot()
+    .catch(() => null);
+  if (snapshot === null) return null;
+  const aria = join('aria', file.replace(/^shots\//u, '').replace(/\.png$/u, '.txt'));
+  mkdirSync(dirname(join(outDir, aria)), { recursive: true });
+  writeFileSync(join(outDir, aria), snapshot);
+  return aria;
+}
+
 export async function capture(
   browser: Browser,
   origin: string,
@@ -300,6 +315,7 @@ export async function capture(
   const finalPath = new URL(page.url()).pathname;
   const checks = await checksOf(page);
   await page.screenshot({ path: join(outDir, file), fullPage: true, animations: 'disabled', caret: 'hide' });
+  const aria = await ariaSnapshotOf(page, outDir, file);
   await context.close();
   const thumb = await thumbnailer.make(outDir, file);
 
@@ -313,6 +329,7 @@ export async function capture(
     viewport: task.viewport,
     file,
     thumb,
+    aria,
     redirectedTo: finalPath === task.page.path ? null : finalPath,
     settled,
     durationMs: Date.now() - started,
