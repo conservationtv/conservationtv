@@ -8,7 +8,9 @@ import { formatDuration } from '@/lib/format';
 
 // What the studio knows about chat commands, in words: who may use one, what one does, and how it is typed in chat
 // (apps/studio/api/src/chat/). A command that points a camera at a preset names both itself, or leaves either to the
-// words that follow it in chat, the camera first: `!ptz pond feeder`.
+// words that follow it in chat, the camera first: `!ptz pond feeder`. A command for the show the output follows takes
+// everything from chat: two cameras to swap, each a position or a name (`!swap 1 fox`), or a stream to take over with,
+// or `off` (`!takeover fox`).
 
 /** An audience, and who is in it. Each takes in those above it: a moderator may use what a subscriber may. */
 interface ChatAudienceDetails {
@@ -26,7 +28,7 @@ export const CHAT_AUDIENCES = [
 ] as const satisfies readonly ChatAudienceDetails[];
 
 /** What a command does, as a radio's value carries it, to be parsed back into one. */
-export const ChatActionChoiceSchema = z.enum(['reply', 'cameraPreset']);
+export const ChatActionChoiceSchema = z.enum(['reply', 'cameraPreset', 'showSwap', 'showTakeover']);
 export type ChatActionChoice = z.output<typeof ChatActionChoiceSchema>;
 
 /** Who is in an audience, in words. */
@@ -42,6 +44,8 @@ function cameraNameOf(camera: Camera): string {
 /** What a command does, in a line, with the camera it names by name. */
 export function chatActionWordsOf(action: ChatCommand['action'], cameras: Camera[]): string {
   if (action.kind === 'reply') return `Says “${action.text}”`;
+  if (action.kind === 'showSwap') return 'Swaps the two cameras named in chat, in the show its output follows';
+  if (action.kind === 'showTakeover') return 'Takes over the show its output follows with the stream named in chat';
   const camera = cameras.find(candidate => candidate.id === action.cameraId);
   const cameraWords =
     action.cameraId === null ? 'the camera named in chat' : camera ? cameraNameOf(camera) : 'a camera that is gone';
@@ -77,6 +81,9 @@ export function chatCommandInputOf(command: ChatCommand): ChatCommandSettingsInp
   if (action.kind === 'reply') {
     return { ...details, kind: 'reply', text: action.text, cameraId: '', presetSource: 'chat', preset: '' };
   }
+  if (action.kind === 'showSwap' || action.kind === 'showTakeover') {
+    return { ...details, kind: action.kind, text: '', cameraId: '', presetSource: 'chat', preset: '' };
+  }
   return {
     ...details,
     kind: 'cameraPreset',
@@ -94,6 +101,8 @@ export function chatCommandInputOf(command: ChatCommand): ChatCommandSettingsInp
 export function chatExampleOf(values: ChatCommandSettingsInput, cameras: Camera[]): string {
   const word = values.name.trim().replace(/^!/u, '').toLowerCase() || 'command';
   if (values.kind === 'reply') return `!${word}`;
+  if (values.kind === 'showSwap') return `!${word} 1 ${exampleCameraWordOf(cameras[0])}`;
+  if (values.kind === 'showTakeover') return `!${word} ${exampleCameraWordOf(cameras[0])}, or !${word} off`;
   const chosen = cameras.find(camera => camera.id === values.cameraId);
   // The camera the example goes on to name a preset of: the one chosen, or the one the example itself names.
   const camera = chosen ?? cameras[0];

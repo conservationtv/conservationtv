@@ -2,12 +2,11 @@ import type { Camera, Device, Gateway, Network, Stream } from '@conservationtv/s
 
 import {
   layoutTopology,
+  nodeStatusesOf,
   overallStatus,
-  ownStatus,
-  statusesOf,
   type NodeStatus,
   type OverallStatus,
-  type SubjectStatusInput,
+  type SubjectStatuses,
   type Topology
 } from '@/components/streams/topology';
 
@@ -19,18 +18,14 @@ export type ListedGateway = Gateway['gateways'][number];
 export type StreamExposure = Stream['exposures'][number];
 export type StreamRecorder = Stream['recorders'][number];
 
-/** A subject's state, as `subjectStateListQueryOptions` lists it. */
-interface SubjectStateInput extends SubjectStatusInput {
-  subjectId: string;
-}
-
 export interface StreamDetailInputs {
   stream: Stream;
   cameras: Camera[];
   devices: Device[];
   gateways: ListedGateway[];
   networks: Network[];
-  states: SubjectStateInput[];
+  /** Each subject's status, as the organisation's status judges it (`subjectStatusesOf`). */
+  statuses: SubjectStatuses;
 }
 
 /** One exposure, with what the page says about it. */
@@ -72,19 +67,20 @@ export interface StreamDetail {
   sourceCamera: Camera | undefined;
 }
 
-/** The stream laid out, its nodes' statuses from their states, and its exposures grouped as the topology groups them. */
+/**
+ * The stream laid out, its nodes' statuses as the organisation's status judges them, and its exposures grouped as the
+ * topology groups them.
+ */
 export function streamDetailOf({
   stream,
   cameras,
   devices,
   gateways,
   networks,
-  states
+  statuses: judged
 }: StreamDetailInputs): StreamDetail {
   const topology = layoutTopology({ stream, devices, gateways, networks });
-  const stateOf = new Map(states.map(state => [state.subjectId, state]));
-  const own = new Map(topology.nodes.map(node => [node.id, ownStatus(stateOf.get(node.subjectId))]));
-  const statuses = statusesOf(topology.nodes, own);
+  const statuses = nodeStatusesOf(topology.nodes, judged);
   const source = devices.find(device => device.id === stream.sourceDeviceId);
   const sourceCamera = cameras.find(camera => camera.id === stream.sourceDeviceId);
   const context: DeliveryContext = { stream, gateways, devices, statuses, source };

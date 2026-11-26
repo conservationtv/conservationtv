@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useNavigate } from 'react-router';
-import type { Show } from '@conservationtv/studio-sdk';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,13 +30,13 @@ import { TextField } from '@/forms/text-field';
 import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
-import { useDeleteShow, useUpdateShow } from '@/queries/shows';
+import { useDeleteShow, useUpdateShow, type ListedShow } from '@/queries/shows';
 
 // What an administrator changes about a show itself (making one is its own route, show-new): its name, and whether it
 // exists. What it places is its composition's; how it goes out is each output's that follows it.
 
 export interface ShowDialogProps {
-  show: Show;
+  show: ListedShow;
 }
 
 /** Renames the show; the form starts from its stored name each time the dialog opens. */

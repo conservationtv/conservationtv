@@ -335,31 +335,21 @@ export const GatewaySchema = z
 export type Gateway = z.output<typeof GatewaySchema>;
 export type GatewayInput = z.input<typeof GatewaySchema>;
 
-/** The qualities a stream is delivered at, as the API names them (apps/studio/api/src/topology/settings.ts). */
-const RenditionSchema = z.enum(['default', 'data_saver', 'balanced', 'quality']);
-export type Rendition = z.output<typeof RenditionSchema>;
-
-/** The renditions an exposure offers: at least one. */
-const OfferedRenditionsSchema = z.array(RenditionSchema).min(1, 'Offer at least one rendition.');
-export type OfferedRenditions = z.output<typeof OfferedRenditionsSchema>;
-
 /**
  * Delivering a stream to a gateway: what feeds it (another of the stream's exposures, or the empty string for its
- * source), the renditions it offers, and the device pinned to publish it (the empty string to let the system choose).
+ * source), and the device pinned to publish it (the empty string to let the system choose).
  */
 export const ExposureSchema = z.object({
   gatewayId: z.string().min(1, 'Choose a gateway.'),
   upstreamExposureId: z.string().transform(id => id || null),
-  renditions: OfferedRenditionsSchema,
   publisherDeviceId: z.string().transform(id => id || null)
 });
 export type Exposure = z.output<typeof ExposureSchema>;
 export type ExposureInput = z.input<typeof ExposureSchema>;
 
-/** Recording one of a stream's exposures, at one of the renditions it offers, by a kind of recorder. */
+/** Recording one of a stream's exposures, the largest picture it carries, by a kind of recorder. */
 export const RecorderSchema = z.object({
   exposureId: z.string().min(1, 'Choose a delivery to record.'),
-  rendition: RenditionSchema,
   kind: z.string().trim().min(1, 'Enter the kind of recorder.').max(60, 'Use 60 characters or fewer.')
 });
 export type Recorder = z.output<typeof RecorderSchema>;
@@ -370,14 +360,32 @@ export const StreamSourceSchema = z.enum(['camera', 'publisher']);
 export type StreamSource = z.output<typeof StreamSourceSchema>;
 
 /**
- * A new stream: its name; its source, a camera or whatever publishes it (with the device pinned to, or the empty
- * string for none yet); and the gateways it is delivered to from the start, each with the renditions it offers.
+ * A stream's short code, as typed: one to four letters and digits, kept in capitals, what chat and a show's controls
+ * call it by. Empty for none, which the API takes as null.
+ */
+export const StreamCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{0,4}$/u, 'Use up to four letters and digits.')
+  .transform(code => code || null);
+export type StreamCode = z.output<typeof StreamCodeSchema>;
+
+/** A stream's name and short code, as the form that renames it holds them. */
+export const StreamNameSchema = NameSchema.extend({ code: StreamCodeSchema });
+export type StreamName = z.output<typeof StreamNameSchema>;
+export type StreamNameInput = z.input<typeof StreamNameSchema>;
+
+/**
+ * A new stream: its name and short code; its source, a camera or whatever publishes it (with the device pinned to, or
+ * the empty string for none yet); and the gateways it is delivered to from the start.
  */
 export const NewStreamSchema = NameSchema.extend({
+  code: StreamCodeSchema,
   source: StreamSourceSchema,
   cameraId: z.string(),
   publisherDeviceId: z.string().transform(id => id || null),
-  deliveries: z.array(z.object({ gatewayId: z.string(), renditions: OfferedRenditionsSchema }))
+  deliveries: z.array(z.object({ gatewayId: z.string() }))
 }).refine(stream => stream.source !== 'camera' || stream.cameraId !== '', {
   message: 'Choose a camera.',
   path: ['cameraId']
@@ -429,12 +437,23 @@ export const EncodingSchema = z
 export type Encoding = z.output<typeof EncodingSchema>;
 export type EncodingInput = z.input<typeof EncodingSchema>;
 
+/**
+ * Where an output reads every stream from, chosen from a select: one gateway's ID, or the empty string for each
+ * stream's read to choose, which the API names `null`.
+ */
+export const InputGatewaySchema = z.object({ inputGatewayId: z.string().transform(id => id || null) });
+export type InputGateway = z.output<typeof InputGatewaySchema>;
+export type InputGatewayInput = z.input<typeof InputGatewaySchema>;
+
 /** Who may use a chat command: everyone, or only those who are at least this in the channel. */
 const ChatAudienceSchema = z.enum(['everyone', 'subscriber', 'vip', 'moderator', 'broadcaster']);
 export type ChatAudience = z.output<typeof ChatAudienceSchema>;
 
-/** What a chat command does: says something, or points a camera at one of its presets. */
-const ChatActionKindSchema = z.enum(['reply', 'cameraPreset']);
+/**
+ * What a chat command does: says something, points a camera at one of its presets, swaps two cameras in the show its
+ * output follows, or takes that show over with a stream.
+ */
+const ChatActionKindSchema = z.enum(['reply', 'cameraPreset', 'showSwap', 'showTakeover']);
 export type ChatActionKind = z.output<typeof ChatActionKindSchema>;
 
 /** Whether a command's preset is the word that follows it in chat, or one the command names itself. */
@@ -511,9 +530,21 @@ const PresetCommandFieldsSchema = z
   });
 type PresetCommandFields = z.output<typeof PresetCommandFieldsSchema>;
 
+/** A command for the show its output follows: everything it acts on is named in chat, so it has no fields of its own. */
+const ShowCommandFieldsSchema = z.object({
+  ...CHAT_COMMAND_DETAILS,
+  kind: z.enum(['showSwap', 'showTakeover']),
+  text: z.string(),
+  cameraId: z.string(),
+  presetSource: ChatPresetSourceSchema,
+  preset: z.string()
+});
+type ShowCommandFields = z.output<typeof ShowCommandFieldsSchema>;
+
 /** The action the API keeps for a command, from its kind's fields: what chat supplies is null. */
-function chatActionOf(fields: ReplyCommandFields | PresetCommandFields) {
+function chatActionOf(fields: ReplyCommandFields | PresetCommandFields | ShowCommandFields) {
   if (fields.kind === 'reply') return { kind: fields.kind, text: fields.text };
+  if (fields.kind === 'showSwap' || fields.kind === 'showTakeover') return { kind: fields.kind };
   return {
     kind: fields.kind,
     cameraId: fields.cameraId || null,
@@ -523,7 +554,7 @@ function chatActionOf(fields: ReplyCommandFields | PresetCommandFields) {
 
 /** A chat command, as the API takes it: the word it is used by, who may use it, how long it rests, and what it does. */
 export const ChatCommandSettingsSchema = ChatCommandFormFieldsSchema.pipe(
-  z.discriminatedUnion('kind', [ReplyCommandFieldsSchema, PresetCommandFieldsSchema])
+  z.discriminatedUnion('kind', [ReplyCommandFieldsSchema, PresetCommandFieldsSchema, ShowCommandFieldsSchema])
 ).transform(command => ({
   name: command.name,
   audience: command.audience,

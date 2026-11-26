@@ -26,29 +26,33 @@ import { FieldGroup } from '@conservationtv/ui/components/field';
 import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
 
 import { FormError } from '@/components/common/form-error';
-import { NameSchema, type NameInput } from '@/forms/schemas';
+import { CodeField } from '@/forms/code-field';
+import { StreamNameSchema, type StreamNameInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
 import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
 import { useDeleteStream, useUpdateStream } from '@/queries/streams';
 
-// What an administrator changes about a stream itself, beside its deliveries and recorders: its name, its source, and
-// whether it exists.
+// What an administrator changes about a stream itself, beside its deliveries and recorders: its name and short code,
+// its source, and whether it exists.
 
 export interface StreamDialogProps {
   stream: Stream;
 }
 
-/** Renames the stream; the form starts from its stored name each time the dialog opens. */
+/**
+ * Renames the stream and changes its short code; the form starts from what is stored each time the dialog opens. A code
+ * another of the organisation's streams has is refused, and says so.
+ */
 export const RenameStreamDialog: FC<StreamDialogProps> = ({ stream }) => {
   const organisationId = useOrganisationId();
   const update = useUpdateStream(organisationId);
-  const defaultValues: NameInput = { name: stream.name };
+  const defaultValues: StreamNameInput = { name: stream.name, code: stream.code ?? '' };
   const form = useForm({
     defaultValues,
-    validators: { onSubmit: NameSchema },
-    onSubmit: ({ value }) => dialog.mutate({ streamId: stream.id, ...NameSchema.parse(value) })
+    validators: { onSubmit: StreamNameSchema },
+    onSubmit: ({ value }) => dialog.mutate({ streamId: stream.id, ...StreamNameSchema.parse(value) })
   });
   const dialog = useDialog(update, { onOpen: () => form.reset() });
   return (
@@ -66,6 +70,17 @@ export const RenameStreamDialog: FC<StreamDialogProps> = ({ stream }) => {
           </DialogHeader>
           <FieldGroup className="py-4">
             <form.Field name="name">{field => <TextField field={field} label="Name" autoComplete="off" />}</form.Field>
+            <form.Field name="code">
+              {field => (
+                <CodeField
+                  field={field}
+                  label="Short code"
+                  maxLength={4}
+                  className="w-24"
+                  description="Up to four letters and digits, unique among your streams: what a show’s controls and chat call it by. Empty for none."
+                />
+              )}
+            </form.Field>
             <FormError error={update.error} />
           </FieldGroup>
           <DialogFooter>
