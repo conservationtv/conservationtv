@@ -5,15 +5,15 @@ import { trustedTransaction } from '../../db/transaction.ts';
 import { ensureGatewayTls } from '../../gateways/certificates.ts';
 import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
-import type { Rendition } from '../../topology/settings.ts';
+import { ONLY_RENDITION } from '../../topology/renditions.ts';
 import { useEnvironment } from '../../env/env.ts';
 import { selectListenedCommands } from '../../services/chat-commands.ts';
 import { selectDeviceOutput, selectOutputPlan } from '../../services/outputs.ts';
+import { selectStreamKeyDigests } from '../../services/publishing.ts';
 import {
   type ExposureInput,
   type Feed,
   type StreamInput,
-  cameraFeeds,
   mediamtxAuth,
   selectActiveNetwork,
   selectGatewayIdentity,
@@ -24,21 +24,25 @@ import {
   selectNetworkCameras,
   selectPeers,
   selectPreferredAddress,
+  selectRelayCoverage,
   selectStreams
 } from './helpers.ts';
 import type {
-  CameraMediamtxConfiguration,
-  CameraPlannedPath,
   CameraProbe,
   CamerasConfiguration,
   ChatConfiguration,
   ControllingConfiguration,
+  DeliveringConfiguration,
+  ExposurePublisher,
   ObsConfiguration,
   PlannedCamera,
+  PlannedDeviceConfiguration,
+  PlannedMediamtxConfiguration,
   PlannedPath,
   PlannedProbe,
-  PlannedPublisher,
   ProbingConfiguration,
+  RelaysConfiguration,
+  ServedPath,
   ShowConfiguration,
   SignedObsConfiguration
 } from './types.ts';
@@ -57,29 +61,75 @@ export type * from './types.ts';
 // The active agent also controls the cameras on its network (`cameras`), for whoever presents a grant this API signed
 // (src/cameras/grants.ts), and every agent serves the organisation's other agents and browsers over iroh (`peers`).
 //
-// A hop takes its media from its upstream, or with none from the stream's source, which only a camera can be so far.
-// What the agent does with it depends on where the hop is delivered:
+// A hop takes its media from its upstream, or with none from the stream's source, which only a camera can be so far;
+// a stream with no source is pushed (docs/shows.md, Going live), and its hop with no upstream on the agent's own
+// gateway is a path its publisher pushes to: by a token this API signs, or an encoder by the stream's key, which the
+// agent is told only the digest of. What the agent does with a hop depends on where it is delivered:
 //
-//   serves    an exposure of its own gateway: a path for each rendition, pulled from the camera or the upstream's path;
+//   serves    an exposure of its own gateway: a path, pulled from the camera or the upstream's path;
 //   publishes an exposure of another gateway, by MoQ: read from the upstream's path, or one pulling the camera.
+//
+// Either way an exposure carries the camera's own picture. Smaller pictures beside it, in a MoQ broadcast's catalog,
+// are for the publisher to add from what the source can do (docs/shows.md, Delivery): none does yet.
+//
+// Every exposure of the organisation on a gateway whose relays publish stats is covered by exactly one agent
+// (`selectRelayCoverage`): the one that delivers it, else the organisation's oldest active agent. From version 4 that
+// agent is given `relays`, where to read the stats and each exposure it covers but does not publish, which it watches
+// on the relay, so an exposure a browser publishes straight to the relay is reported about too (docs/shows.md, Health
+// and stats without an agent). Versions before 4 follow the stats of the gateways their publishers publish to, and
+// report only about those.
 //
 // The configuration says exactly what the agent runs, MediaMTX paths and MoQ publishers, so the agent decides nothing
 // itself. Planning reads the agent's part of the topology, then decides from it alone. What it cannot plan yet
-// (transcoding, upstreams another device delivers, publishing by other protocols) is left out.
+// (smaller pictures, upstreams another device delivers, publishing by other protocols) is left out. Versions before 4
+// say the same with each path and publisher at the `default` rendition (`withPathRenditions`).
 //
 // After the plan, outside its transaction since it waits on the network, the gateway's hostname and certificate
 // (src/gateways/certificates.ts): pointed at the agent's preferred address, and issued or renewed when due.
 
 /** The signing device's configuration, read by trusted code: a device principal cannot read the topology. */
-export async function planConfiguration(device: AuthenticatedDevice): Promise<ControllingConfiguration> {
+export async function planConfiguration(device: AuthenticatedDevice): Promise<PlannedDeviceConfiguration> {
   if (device.kind !== 'agent') {
     throw new Error('Currently planning configuration is only supported for agents.');
   }
   // One after the other: each is a trusted transaction, on the one admin connection.
   const gateway = await planMediamtx(device);
+  const relays = await planRelays(device, gateway?.configuration.publishers ?? []);
   const { obs, show, chat } = await planOutput(device);
   const { cameras, peers } = await planReach(device, gateway?.cameras ?? []);
-  return { mediamtx: gateway?.configuration, cameras, obs, show, chat, peers };
+  return { mediamtx: gateway?.configuration, relays, cameras, obs, show, chat, peers };
+}
+
+/** The configuration as version 4 returns it: where to read the relays' stats is `relays`'s alone. */
+export function withRelays(configuration: PlannedDeviceConfiguration): DeliveringConfiguration {
+  const { mediamtx, ...rest } = configuration;
+  if (mediamtx === undefined) return rest;
+  const { stats: _stats, ...delivering } = mediamtx;
+  return { ...rest, mediamtx: delivering };
+}
+
+/**
+ * The configuration as version 3 returns it: each path delivering its exposure's `default` rendition, and each
+ * publisher publishing that one rendition from it, which agents from before version 4 join into the broadcast readers
+ * watch, as they would several.
+ */
+export function withPathRenditions(configuration: PlannedDeviceConfiguration): ControllingConfiguration {
+  // Those agents follow the stats of the gateways they publish to, and watch nothing: `relays` is not theirs.
+  const { mediamtx, relays: _relays, ...rest } = configuration;
+  if (mediamtx === undefined) return rest;
+  // Those agents pull every path from somewhere: a pushed one, and whatever publishes from it, is left out.
+  const pushed = new Set(mediamtx.paths.filter(path => 'push' in path.source).map(path => path.name));
+  const paths = mediamtx.paths.flatMap(({ source, ...path }) =>
+    'push' in source ? [] : [{ ...path, source, rendition: ONLY_RENDITION }]
+  );
+  const read = mediamtx.publishers.filter(publisher => !pushed.has(publisher.path));
+  const publishers = read.map(({ exposureId, connect, path }) => ({
+    exposureId,
+    connect,
+    layout: 'tracks' as const,
+    renditions: [{ rendition: ONLY_RENDITION, path }]
+  }));
+  return { ...rest, mediamtx: { ...mediamtx, paths, publishers } };
 }
 
 /**
@@ -91,17 +141,17 @@ export function withCameraUrls(configuration: ControllingConfiguration): Probing
   const obs = configuration.obs && withoutSigners(configuration.obs);
   if (mediamtx === undefined) return { obs, show };
   const cameras = new Map((configuration.cameras?.cameras ?? []).map(camera => [camera.id, camera]));
-  const origin = (cameraId: string, rendition: Rendition) => {
+  const origin = (cameraId: string) => {
     const camera = cameras.get(cameraId)!;
-    return cameraOrigin(camera.settings, camera.credentials, rendition)!;
+    return cameraOrigin(camera.settings, camera.credentials);
   };
   const paths: PlannedPath[] = mediamtx.paths.map(({ source, ...path }) => ({
     ...path,
-    source: 'cameraId' in source ? { url: origin(source.cameraId, path.rendition) } : { path: source.path }
+    source: 'cameraId' in source ? { url: origin(source.cameraId) } : { path: source.path }
   }));
   const probes: PlannedProbe[] = mediamtx.probes.map(({ subjectId, cameraId }) => ({
     subjectId,
-    url: origin(cameraId, 'default')
+    url: origin(cameraId)
   }));
   return { mediamtx: { ...mediamtx, paths, probes }, obs, show };
 }
@@ -114,7 +164,7 @@ function withoutSigners(obs: SignedObsConfiguration): ObsConfiguration {
 
 /** The `mediamtx` runtime, with the cameras its paths and probes name. */
 interface PlannedGateway {
-  configuration: CameraMediamtxConfiguration;
+  configuration: PlannedMediamtxConfiguration;
   cameras: PlannedCamera[];
 }
 
@@ -143,9 +193,6 @@ async function planReach(device: AuthenticatedDevice, sources: PlannedCamera[]):
   return { cameras: { cameras: [...cameras.values()], grants: { issuer: environment.variables.APP_URL } }, peers };
 }
 
-/** The one rendition a preview is published at: the program, as it is encoded (src/gateways/connect.ts). */
-const PREVIEW_RENDITION: Rendition = 'default';
-
 /**
  * The `mediamtx` runtime, for the network's active agent on a network with a MediaMTX gateway: its streams' paths and
  * publishers, and a path for each output's preview delivered to its gateway.
@@ -157,6 +204,8 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<PlannedGateway
       if (!gatewayId) return undefined;
 
       const streams = await selectStreams(device.id, gatewayId);
+      const pushed = streams.filter(stream => stream.sourceDeviceId === null).map(stream => stream.id);
+      const keyDigests = await selectStreamKeyDigests(pushed);
       const gatewayKinds = await selectGatewayKinds(device.organisationId);
       const gateway = await selectGatewayIdentity(gatewayId);
       const address = await selectPreferredAddress(device.id);
@@ -165,10 +214,11 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<PlannedGateway
         organisationId: device.organisationId,
         gatewayId,
         gatewayKinds,
-        streams
+        streams,
+        keyDigests
       });
       configuration.previews = previews.map(preview => ({
-        name: mediamtxPath(preview.id, PREVIEW_RENDITION),
+        name: mediamtxPath(preview.id),
         previewId: preview.id
       }));
       return { configuration, gateway, address, cameras: sourceCameras(configuration, streams) };
@@ -184,7 +234,7 @@ async function planMediamtx(device: AuthenticatedDevice): Promise<PlannedGateway
 }
 
 /** The cameras the planned paths and probes name, as they are registered, each once. */
-function sourceCameras(configuration: CameraMediamtxConfiguration, streams: StreamInput[]): PlannedCamera[] {
+function sourceCameras(configuration: PlannedMediamtxConfiguration, streams: StreamInput[]): PlannedCamera[] {
   const named = new Set(configuration.probes.map(probe => probe.cameraId));
   for (const { source } of configuration.paths) if ('cameraId' in source) named.add(source.cameraId);
   const cameras = new Map<string, PlannedCamera>();
@@ -201,6 +251,38 @@ function sourceCameras(configuration: CameraMediamtxConfiguration, streams: Stre
     });
   }
   return [...cameras.values()];
+}
+
+/**
+ * The `relays` runtime, for an agent that covers some of its organisation's exposures on a gateway whose relays publish
+ * stats (`selectRelayCoverage`): each such gateway's stats, once, and each exposure it covers that `publishers` does not
+ * publish, to watch on the relay. None for an agent that covers nothing.
+ */
+async function planRelays(
+  device: AuthenticatedDevice,
+  publishers: ExposurePublisher[]
+): Promise<RelaysConfiguration | undefined> {
+  const coverage = await trustedTransaction(() => selectRelayCoverage(device.organisationId), {
+    name: 'configuration.relays'
+  });
+  const covered = coverage.filter(exposure => exposure.coveredBy === device.id);
+  if (covered.length === 0) return undefined;
+  const published = new Set(publishers.map(publisher => publisher.exposureId));
+  const gatewayIds = [...new Set(covered.map(exposure => exposure.gatewayId))];
+  const stats = gatewayIds.map(gatewayId => ({ id: device.organisationId, gatewayId }));
+  const watched = covered
+    .filter(exposure => !published.has(exposure.id))
+    .map(exposure => ({
+      exposureId: exposure.id,
+      connect: {
+        id: device.organisationId,
+        streamId: exposure.streamId,
+        exposureId: exposure.id,
+        action: 'read' as const,
+        protocol: 'moq' as const
+      }
+    }));
+  return { stats, watched };
 }
 
 /** The output's runtimes, for the agent it runs on: `obs`, and `show` while it follows a show. */
@@ -284,10 +366,10 @@ function planChat(
   return { organisationId, channels, commands };
 }
 
-/** How an output publishes a preview: by MoQ to a gateway that takes it as tracks of one broadcast, otherwise RTMP. */
+/** How an output publishes a preview: by MoQ to a gateway that takes it, otherwise RTMP. */
 function previewProtocol(gatewayId: string, gatewayKinds: Map<string, string>) {
   const provider = gatewayProvider(gatewayId, gatewayKinds.get(gatewayId) ?? '');
-  return provider.ingest.moq === 'tracks' ? 'moq' : 'rtmp';
+  return provider.ingest.includes('moq') ? 'moq' : 'rtmp';
 }
 
 /** What planning an active agent decides from: its MediaMTX gateway, and each stream it delivers some of. */
@@ -297,44 +379,43 @@ interface PlanningInput {
   /** The kind of each of the organisation's own gateways, by ID. */
   gatewayKinds: Map<string, string>;
   streams: StreamInput[];
+  /** The digest of each pushed stream's key, by stream ID: none for a stream without one. */
+  keyDigests: Map<string, string>;
 }
 
-function planActiveAgent(input: PlanningInput): CameraMediamtxConfiguration {
-  const paths: CameraPlannedPath[] = [];
-  const publishers: PlannedPublisher[] = [];
+function planActiveAgent(input: PlanningInput): PlannedMediamtxConfiguration {
+  const paths: ServedPath[] = [];
+  const publishers: ExposurePublisher[] = [];
   const auth = mediamtxAuth(input.gatewayId);
 
   for (const stream of input.streams) {
     const exposures = new Map(stream.exposures.map(exposure => [exposure.id, exposure]));
-    // Each exposure planned so far, by ID: the path each of its renditions is read from on this MediaMTX. Hops are
+    // Each exposure planned so far, by ID: the path it is read from on this MediaMTX, or null for none. Hops are
     // planned upstream first, whichever order they come in; the routes refuse a chain that loops.
-    const planned = new Map<string, Map<Rendition, string>>();
+    const planned = new Map<string, string | null>();
 
     /**
-     * Plans the hop once: each rendition from its feed, onto a path of the hop's own when it is served or pulled to be
-     * published, or straight from its upstream's path when published; then its publisher, when it has renditions.
+     * Plans the hop once: from its feed, onto a path of the hop's own when it is served or pulled to be published, or
+     * straight from its upstream's path when published; then its publisher, when it has a path to read.
      */
-    const plan = (exposure: ExposureInput): Map<Rendition, string> => {
+    const plan = (exposure: ExposureInput): string | null => {
       const done = planned.get(exposure.id);
       if (done !== undefined) return done;
-      const local = new Map<Rendition, string>();
-      planned.set(exposure.id, local);
+      planned.set(exposure.id, null);
       const serves = exposure.gatewayId === input.gatewayId;
-      const layout = serves ? undefined : publishLayout(exposure);
-      if (!serves && layout === undefined) return local;
+      if (!serves && !publishesByMoq(exposure)) return null;
+      const feed = feedOf(exposure);
+      if (feed === undefined) return null;
 
-      for (const [rendition, feed] of feedsOf(exposure)) {
-        // A publisher reads an upstream's path as it is; anything else is a path of the exposure's own.
-        if (!serves && 'path' in feed) {
-          local.set(rendition, feed.path);
-          continue;
-        }
-        const name = mediamtxPath(exposure.id, rendition);
-        paths.push({ name, exposureId: exposure.id, rendition, source: feed });
-        local.set(rendition, name);
+      // A publisher reads an upstream's path as it is; anything else is a path of the exposure's own.
+      let local = !serves && 'path' in feed ? feed.path : null;
+      if (local === null) {
+        local = mediamtxPath(exposure.id);
+        paths.push({ name: local, exposureId: exposure.id, source: feed });
       }
+      planned.set(exposure.id, local);
 
-      if (layout !== undefined && local.size > 0) {
+      if (!serves) {
         publishers.push({
           exposureId: exposure.id,
           connect: {
@@ -344,39 +425,39 @@ function planActiveAgent(input: PlanningInput): CameraMediamtxConfiguration {
             action: 'publish',
             protocol: 'moq'
           },
-          layout,
-          renditions: [...local].map(([rendition, path]) => ({ rendition, path }))
+          path: local
         });
       }
       return local;
     };
 
-    /** Where each of the hop's renditions comes from: its upstream if it has one, otherwise the stream's source. */
-    const feedsOf = (exposure: ExposureInput): Map<Rendition, Feed> => {
-      const feeds = new Map<Rendition, Feed>();
+    /** Where the hop comes from: its upstream's path if it has one, otherwise the stream's source. */
+    const feedOf = (exposure: ExposureInput): Feed | undefined => {
       if (exposure.upstreamExposureId !== null) {
         const upstream = exposures.get(exposure.upstreamExposureId);
         // TODO: Read an upstream another device delivers, by `connect` (action: 'read').
-        if (upstream === undefined) return feeds;
-        const served = plan(upstream);
-        for (const rendition of exposure.renditions) {
-          const path = served.get(rendition);
-          if (path !== undefined) feeds.set(rendition, { path });
-        }
-        return feeds;
+        if (upstream === undefined) return undefined;
+        const path = plan(upstream);
+        return path === null ? undefined : { path };
       }
+      // A stream with no source is pushed to its ingest on this gateway, by a token or the stream's key.
+      if (stream.sourceDeviceId === null) return pushFeed(exposure);
       // Only a camera can be pulled from, and only while it is enabled.
       const camera = stream.sourceDevice?.camera;
-      if (stream.sourceDeviceId === null || !camera || camera.state !== 'enabled') return feeds;
-      return cameraFeeds(exposure, stream.sourceDeviceId, camera);
+      if (!camera || camera.state !== 'enabled') return undefined;
+      return { cameraId: stream.sourceDeviceId };
     };
 
-    /** How the hop's gateway takes it by MoQ, the only protocol agents publish by, if it does in a way they can. */
-    const publishLayout = (exposure: ExposureInput) => {
+    /** A pushed stream's ingest, served by this agent's gateway, with its key's digest; none on another gateway. */
+    const pushFeed = (exposure: ExposureInput): Feed | undefined => {
+      if (exposure.gatewayId !== input.gatewayId) return undefined;
+      return { push: { keySha256: input.keyDigests.get(stream.id) ?? null } };
+    };
+
+    /** Whether the hop's gateway takes it by MoQ, the only protocol agents publish by. */
+    const publishesByMoq = (exposure: ExposureInput) => {
       const provider = gatewayProvider(exposure.gatewayId, input.gatewayKinds.get(exposure.gatewayId) ?? '');
-      // Agents publish by MoQ only as tracks of one broadcast.
-      const layout = provider.ingest.moq;
-      return layout === 'tracks' ? layout : undefined;
+      return provider.ingest.includes('moq');
     };
 
     for (const exposure of stream.exposures) plan(exposure);
@@ -387,25 +468,26 @@ function planActiveAgent(input: PlanningInput): CameraMediamtxConfiguration {
 }
 
 /**
- * Each camera the agent's streams come from, to probe as it is itself: its `default` rendition, which every driver
- * has. Only while it is enabled; each once, however many streams it is the source of.
+ * Each camera the agent's streams come from, to probe as it is itself: its own picture, which every driver has. Only
+ * while it is enabled; each once, however many streams it is the source of.
  */
 function cameraProbes(streams: StreamInput[]): CameraProbe[] {
   const probes = new Map<string, CameraProbe>();
   for (const stream of streams) {
-    // Only a stream whose source is a camera that is switched on, and has a rendition of its own to ask for.
+    // Only a stream whose source is a camera that is switched on.
     const camera = stream.sourceDevice?.camera;
     if (stream.sourceDeviceId === null || !camera || camera.state !== 'enabled') continue;
-    const url = cameraOrigin(camera.settings, camera.credentials ?? undefined, 'default');
-    if (url === undefined) continue;
     const subjectId = deviceSubject(stream.sourceDeviceId);
     probes.set(subjectId, { subjectId, cameraId: stream.sourceDeviceId });
   }
   return [...probes.values()];
 }
 
-/** The gateways the agent publishes to whose relays publish the traffic stats of what they carry, each once. */
-function statsGateways(input: PlanningInput, publishers: PlannedPublisher[]): string[] {
+/**
+ * The gateways the agent publishes to whose relays publish the traffic stats of what they carry, each once: what
+ * versions before 4 follow.
+ */
+function statsGateways(input: PlanningInput, publishers: ExposurePublisher[]): string[] {
   const published = new Set(publishers.map(publisher => publisher.exposureId));
   const gateways = input.streams
     .flatMap(stream => stream.exposures)

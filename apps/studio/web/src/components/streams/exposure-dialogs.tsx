@@ -1,7 +1,7 @@
 import type { FC, ReactNode } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { PlusIcon } from '@phosphor-icons/react';
-import type { Camera, Device, Network, Rendition, Stream } from '@conservationtv/studio-sdk';
+import type { Device, Network, Stream } from '@conservationtv/studio-sdk';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,8 +28,6 @@ import { NativeSelectOptGroup, NativeSelectOption } from '@conservationtv/ui/com
 
 import { FormError } from '@/components/common/form-error';
 import { PublisherOptions } from '@/components/streams/publisher-options';
-import { RenditionsField } from '@/components/streams/renditions-field';
-import { renditionChoices, sourceRenditions } from '@/components/streams/renditions';
 import {
   gatewayGroups,
   upstreamChoices,
@@ -44,8 +42,8 @@ import { useOrganisationId } from '@/hooks/use-organisation';
 import { useCreateExposure, useDeleteExposure, useUpdateExposure } from '@/queries/streams';
 
 // Adding, changing and removing a stream's deliveries: its exposures, each to one gateway, fed by its source or by
-// another of its exposures, offering some of the renditions what feeds it offers. The API checks the chain (no loops,
-// no rendition its upstream lacks, nothing removed from under what depends on it) and its refusals show in place.
+// another of its exposures, carrying the picture its source gives. The API checks the chain (no loops, nothing removed
+// from under what depends on it) and its refusals show in place.
 
 /** What a delivery's form chooses from: the stream, the gateways it can go to, and the devices that can send it. */
 export interface ExposureChoices {
@@ -53,8 +51,6 @@ export interface ExposureChoices {
   gateways: ListedGateway[];
   networks: Network[];
   devices: Device[];
-  /** The stream's source, when it is a camera: what it can produce limits what its first deliveries offer. */
-  sourceCamera: Camera | undefined;
   /** The source device's name, for "fed by". */
   sourceName: string | undefined;
 }
@@ -70,7 +66,6 @@ export const AddExposureDialog: FC<AddExposureDialogProps> = ({ choices }) => {
   const defaultValues: ExposureInput = {
     gatewayId: '',
     upstreamExposureId: '',
-    renditions: ['default'],
     publisherDeviceId: ''
   };
   const dialog = useDialog(create);
@@ -117,7 +112,6 @@ export const EditExposureDialog: FC<ExposureDialogProps> = ({ choices, delivery 
   const defaultValues: ExposureInput = {
     gatewayId: exposure.gatewayId,
     upstreamExposureId: exposure.upstreamExposureId ?? '',
-    renditions: exposure.renditions,
     publisherDeviceId: exposure.publisherDeviceId ?? ''
   };
   const dialog = useDialog(update);
@@ -189,7 +183,7 @@ interface ExposureFormProps {
   children: ReactNode;
 }
 
-/** A delivery's fields: its gateway, what feeds it, the renditions it offers, and who sends it. */
+/** A delivery's fields: its gateway, what feeds it, and who sends it. */
 const ExposureForm: FC<ExposureFormProps> = ({ choices, exposure, defaultValues, onSubmit, children }) => {
   const form = useForm({
     defaultValues,
@@ -223,18 +217,7 @@ const ExposureForm: FC<ExposureFormProps> = ({ choices, exposure, defaultValues,
             </SelectField>
           )}
         </form.Field>
-        <form.Field
-          name="upstreamExposureId"
-          listeners={{
-            // What the new upstream doesn't offer is unticked with its checkbox, which disappears; left with nothing,
-            // the delivery takes the first rendition it can.
-            onChange: ({ value }) => {
-              const offered = renditionChoices(availableFrom(choices, value));
-              const kept = form.getFieldValue('renditions').filter(rendition => offered.includes(rendition));
-              form.setFieldValue('renditions', kept.length > 0 ? kept : offered.slice(0, 1));
-            }
-          }}
-        >
+        <form.Field name="upstreamExposureId">
           {field => (
             <SelectField field={field} label="Fed by">
               <NativeSelectOption value="">{choices.sourceName ?? 'Its publisher'} (the source)</NativeSelectOption>
@@ -246,20 +229,6 @@ const ExposureForm: FC<ExposureFormProps> = ({ choices, exposure, defaultValues,
             </SelectField>
           )}
         </form.Field>
-        <form.Subscribe selector={state => state.values.upstreamExposureId}>
-          {upstreamId => (
-            <form.Field name="renditions">
-              {field => (
-                <RenditionsField
-                  field={field}
-                  label="Renditions"
-                  choices={renditionChoices(availableFrom(choices, upstreamId), exposure?.renditions)}
-                  description={renditionsNote(choices, upstreamId)}
-                />
-              )}
-            </form.Field>
-          )}
-        </form.Subscribe>
         <form.Field name="publisherDeviceId">
           {field => (
             <SelectField
@@ -277,19 +246,6 @@ const ExposureForm: FC<ExposureFormProps> = ({ choices, exposure, defaultValues,
     </form>
   );
 };
-
-/** The renditions what feeds a delivery offers: its upstream's, or what the source can produce. */
-function availableFrom(choices: ExposureChoices, upstreamId: string): Rendition[] {
-  const upstream = choices.stream.exposures.find(candidate => candidate.id === upstreamId);
-  return upstream ? upstream.renditions : sourceRenditions(choices.sourceCamera);
-}
-
-/** Why the choice of renditions is what it is, when it is narrower than all of them. */
-function renditionsNote(choices: ExposureChoices, upstreamId: string): string | undefined {
-  if (upstreamId !== '') return 'At most what it is fed.';
-  if (choices.sourceCamera?.settings.driver === 'rtsp') return 'A plain RTSP camera gives only its source, as it is.';
-  return undefined;
-}
 
 function gatewayName(gateways: ListedGateway[], gatewayId: string): string {
   return gateways.find(gateway => gateway.id === gatewayId)?.name ?? 'Unknown gateway';

@@ -1,8 +1,12 @@
 // What the studio draws as a topology: nodes, each fed by its parent, placed in delivery order (depth first, so each
 // branch follows what feeds it) and grouped into sections, the network they're on or the internet, each drawn as a
 // tree. A stream's is its source device, then each exposure along the chain it publishes from (`layoutTopology`); an
-// output's is its agent, its programme, then its forwards and previews (components/outputs/output-detail.ts). What
-// a node reports decides its status, and a failing node's status flows downstream: whatever it feeds is affected.
+// output's is its agent, its programme, then its forwards and previews (components/outputs/output-detail.ts). Each
+// node's status is its subject's as the organisation's status judges it (`organisations.status.get`, read through
+// `subjectStatusesOf`): what it reports, a failure upstream of it, which makes it affected, or nothing set to report
+// about it, which makes it off. A subject that status does not list is unknown.
+
+import type { Status } from '@conservationtv/studio-sdk';
 
 /**
  * What a node is, which decides its icon: a stream's camera, server or cloud gateway; an output's programme or
@@ -182,26 +186,45 @@ export const statusLabels = {
   off: 'Off'
 } satisfies Record<NodeStatus, string>;
 
-/** The parts of a subject's state that decide its status. */
-export interface SubjectStatusInput {
-  health: string;
-  /** Whether it is meant to be working, so judged: `active`, or `idle` or `off`. */
-  activity: string;
-  freshness: 'fresh' | 'stale';
+/** A subject as the organisation's status lists it. */
+type StatusSubject = Status['subjects'][number];
+
+/**
+ * Each subject's status as the organisation's status judges it, in the topology's words (`healthy` is `ok`), by
+ * subject ID: `status`, with failures upstream spread along the signal's path; `own`, its own before them; and why.
+ */
+export interface SubjectStatuses {
+  status: ReadonlyMap<string, NodeStatus>;
+  own: ReadonlyMap<string, NodeStatus>;
+  reasons: ReadonlyMap<string, readonly string[]>;
 }
 
-/** A node's own status, from its subject's state: undefined when nothing has been derived for it yet. */
-export function ownStatus(state: SubjectStatusInput | undefined): NodeStatus {
-  if (!state) return 'unknown';
-  // As the organisation's status reads a state (`organisations.status.get`): what is switched off stays off, however
-  // long ago it said so; what has gone quiet is failing; what nothing asks for is idle.
-  if (state.activity === 'off') return 'off';
-  if (state.freshness === 'stale') return 'failing';
-  if (state.activity === 'idle') return 'idle';
-  if (state.health === 'unhealthy') return 'failing';
-  if (state.health === 'degraded') return 'degraded';
-  if (state.health === 'unknown') return 'unknown';
-  return 'ok';
+/** A status as the organisation's status says it, in the topology's words. */
+function nodeStatusOf(status: StatusSubject['status']): NodeStatus {
+  return status === 'healthy' ? 'ok' : status;
+}
+
+/**
+ * Each subject's status, from `organisations.status.get`: a `select` over the organisation's status query
+ * (`organisationStatusQueryOptions`), so every view judges a subject as the overview does.
+ */
+export function subjectStatusesOf(status: Pick<Status, 'subjects'>): SubjectStatuses {
+  const { subjects } = status;
+  return {
+    status: new Map(subjects.map(subject => [subject.subjectId, nodeStatusOf(subject.status)])),
+    own: new Map(subjects.map(subject => [subject.subjectId, nodeStatusOf(subject.own)])),
+    reasons: new Map(subjects.map(subject => [subject.subjectId, subject.reasons]))
+  };
+}
+
+/** A subject's status, as `statuses` says it: unknown for one the organisation's status does not list. */
+export function statusOfSubject(statuses: ReadonlyMap<string, NodeStatus>, subjectId: string): NodeStatus {
+  return statuses.get(subjectId) ?? 'unknown';
+}
+
+/** Each node's status, by node ID: its subject's, as the organisation's status judges it. */
+export function nodeStatusesOf(nodes: readonly TopologyNode[], statuses: SubjectStatuses): Map<string, NodeStatus> {
+  return new Map(nodes.map(node => [node.id, statusOfSubject(statuses.status, node.subjectId)]));
 }
 
 // What each status means, as tables rather than comparisons, so a status added to `NodeStatus` doesn't compile until
@@ -253,23 +276,4 @@ export function overallStatus(statuses: Iterable<NodeStatus>): OverallStatus {
   const parts = [...statuses];
   if (parts.some(isDown)) return 'failing';
   return OVERALL_ORDER.find(status => parts.includes(status)) ?? 'unknown';
-}
-
-/**
- * Every node's status, with failures flowing downstream: a node fed by a failing or affected one is affected. A
- * degraded node still feeds what it feeds, so it affects nothing.
- */
-export function statusesOf(nodes: TopologyNode[], own: Map<string, NodeStatus>): Map<string, NodeStatus> {
-  const statuses = new Map<string, NodeStatus>();
-  for (const node of nodes) {
-    // Nodes are placed parents first, so each parent's status is settled before its children's. A node's own failure
-    // wins; otherwise a failure upstream makes it affected; otherwise it is as it reports.
-    const self = own.get(node.id) ?? 'unknown';
-    const parent = node.parentId ? statuses.get(node.parentId) : undefined;
-    const upstreamDown = parent !== undefined && isDown(parent);
-    // Cut off from what feeds it, whatever it says of itself is a consequence, as the organisation's status has it
-    // (`organisations.status.get`): only what is switched off stays as it is.
-    statuses.set(node.id, upstreamDown && self !== 'off' ? 'affected' : self);
-  }
-  return statuses;
 }

@@ -1,4 +1,4 @@
-import type { Camera, Device, Network, Rendition } from '@conservationtv/studio-sdk';
+import type { Camera, Device, Network } from '@conservationtv/studio-sdk';
 
 import type { ListedGateway } from '@/components/streams/stream-detail';
 import { layoutTopology, type NodeStatus, type Topology } from '@/components/streams/topology';
@@ -12,10 +12,9 @@ import { layoutTopology, type NodeStatus, type Topology } from '@/components/str
 
 export type SourceKind = 'camera' | 'publisher';
 
-/** A delivery chosen in the form: a gateway, and the renditions it is to offer. */
+/** A delivery chosen in the form: a gateway. */
 export interface ChosenDelivery {
   gatewayId: string;
-  renditions: Rendition[];
 }
 
 /** An exposure to create. `upstreamGatewayId` names the planned exposure that feeds it, by its gateway. */
@@ -23,7 +22,6 @@ export interface PlannedDelivery {
   gatewayId: string;
   name: string;
   upstreamGatewayId: string | null;
-  renditions: Rendition[];
   publisherDeviceId: string | null;
 }
 
@@ -41,13 +39,11 @@ export interface DeliveryPlan {
   deliveries: PlannedDelivery[];
   /** The delivery on a network that feeds those on the internet, if any is chosen. */
   feeder: PlannedDelivery | undefined;
-  /** What would be refused, by the gateway of the delivery it is about. */
-  problems: Map<string, string>;
   /** Deliveries that would be made but that nothing would send yet, and why, by gateway. */
   unsent: Map<string, string>;
 }
 
-/** The exposures the chosen deliveries become, with what feeds and publishes each, and anything the API would refuse. */
+/** The exposures the chosen deliveries become, with what feeds and publishes each. */
 export function planDeliveries({
   source,
   publisherDeviceId,
@@ -61,28 +57,22 @@ export function planDeliveries({
   const pinned = source === 'publisher' ? publisherDeviceId : null;
   const local = chosen
     .filter(delivery => gatewayOf(delivery.gatewayId)?.networkId !== null)
-    .map(delivery => planned(delivery, gatewayOf(delivery.gatewayId), null, delivery.renditions, pinned));
+    .map(delivery => planned(delivery, gatewayOf(delivery.gatewayId), null, pinned));
   const feeder = local[0];
   const feederNetworkId = feeder ? gatewayOf(feeder.gatewayId)?.networkId : camera?.device?.networkId;
   const agentId = networks.find(network => network.id === feederNetworkId)?.activeAgent?.id ?? null;
-  const problems = new Map<string, string>();
   const internet = chosen
     .filter(delivery => gatewayOf(delivery.gatewayId)?.networkId === null)
     .map(delivery => {
-      // Fed by a delivery on a network, it offers at most what that one does.
-      const renditions = feeder
-        ? delivery.renditions.filter(rendition => feeder.renditions.includes(rendition))
-        : delivery.renditions;
-      if (feeder && renditions.length === 0) {
-        problems.set(delivery.gatewayId, `Choose one of the renditions ${feeder.name} offers.`);
-      }
+      // Fed by a delivery on a network, or a camera's, it is sent up by that network's active agent; a publisher's
+      // stream fed by its source, by the publisher pinned.
       const publisher = feeder || source === 'camera' ? agentId : pinned;
-      return planned(delivery, gatewayOf(delivery.gatewayId), feeder?.gatewayId ?? null, renditions, publisher);
+      return planned(delivery, gatewayOf(delivery.gatewayId), feeder?.gatewayId ?? null, publisher);
     });
   const ordered = [...local, ...internet];
   const sendingNetwork = networks.find(network => network.id === feederNetworkId);
   const unsent = unsentOf(ordered, { source, gateways, networks, sendingNetwork });
-  return { deliveries: ordered, feeder, problems, unsent } satisfies DeliveryPlan;
+  return { deliveries: ordered, feeder, unsent } satisfies DeliveryPlan;
 }
 
 /** What deciding whether a delivery will be sent reads, beside the delivery. */
@@ -121,14 +111,12 @@ function planned(
   delivery: ChosenDelivery,
   gateway: ListedGateway | undefined,
   upstreamGatewayId: string | null,
-  renditions: Rendition[],
   publisherDeviceId: string | null
 ): PlannedDelivery {
   return {
     gatewayId: delivery.gatewayId,
     name: gateway?.name ?? 'Unknown gateway',
     upstreamGatewayId,
-    renditions,
     publisherDeviceId
   };
 }

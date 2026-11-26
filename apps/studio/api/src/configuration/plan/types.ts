@@ -3,10 +3,13 @@ import type { ChatAudience } from '@conservationtv/chat';
 import { z } from 'zod';
 import type { CameraState } from '../../cameras/states.ts';
 import type { OutputControl } from '../../topology/output-recorder-kinds.ts';
-import { RenditionSchema, type Rendition, type Settings } from '../../topology/settings.ts';
+import { RenditionSchema, type Rendition } from '../../topology/renditions.ts';
+import type { Settings } from '../../topology/settings.ts';
 
 // The shapes of a device's planned configuration (src/configuration/plan/index.ts), which mirror what the agent runs:
-// MediaMTX paths and MoQ publishers reading them, OBS sending an output out, and the show driving it.
+// MediaMTX paths and MoQ publishers reading them, OBS sending an output out, and the show driving it. Versions 1 to 3
+// of `deviceConfiguration.get` name the rendition each path and publisher delivers, always `default`
+// (src/topology/renditions.ts): from version 4 an exposure is one path, and one publisher reading it.
 
 /** A URL MediaMTX pulls a path from while it is read, such as a camera's, credentials included. */
 export interface UrlSource {
@@ -21,7 +24,7 @@ export interface LocalSource {
 /** Where a path gets its media. */
 export type PathSource = UrlSource | LocalSource;
 
-/** A path the agent's MediaMTX serves, delivering one rendition of an exposure. */
+/** A path the agent's MediaMTX serves, as versions 1 and 2 say it: delivering an exposure's `default` rendition. */
 export interface PlannedPath {
   name: string;
   exposureId: string;
@@ -60,16 +63,16 @@ export const PublisherConnectSchema = z
   .meta({ id: 'PublisherConnect' });
 export type PublisherConnect = z.output<typeof PublisherConnectSchema>;
 
-/** One rendition a publisher publishes: read from `path`, a path its MediaMTX serves. */
+/** One rendition a publisher publishes, as versions 1 to 3 say it: read from `path`, a path its MediaMTX serves. */
 export const PublishedRenditionSchema = z
   .object({ rendition: RenditionSchema, path: z.string() })
   .meta({ id: 'PublishedRendition' });
 export type PublishedRendition = z.output<typeof PublishedRenditionSchema>;
 
 /**
- * An exposure the agent publishes by MoQ: the `connect` ask for where to (kept out of the plan, so a renewed token
- * leaves the plan as it was), how its gateway takes the renditions, and where each is read. `tracks`: one broadcast,
- * each rendition a track of it.
+ * An exposure the agent publishes by MoQ, as versions 1 to 3 say it: the `connect` ask for where to (kept out of the
+ * plan, so a renewed token leaves the plan as it was), how its gateway takes the renditions, and where each is read.
+ * `tracks`: one broadcast, each rendition a track of it. Only ever `default`, read from the exposure's one path.
  */
 export const PlannedPublisherSchema = z
   .object({
@@ -80,6 +83,16 @@ export const PlannedPublisherSchema = z
   })
   .meta({ id: 'Publisher' });
 export type PlannedPublisher = z.output<typeof PlannedPublisherSchema>;
+
+/**
+ * An exposure the agent publishes by MoQ, from version 4: the `connect` ask for where to (kept out of the plan, so a
+ * renewed token leaves the plan as it was), and the `path` of its MediaMTX it reads it from. It publishes one
+ * broadcast, whose catalog says what it carries.
+ */
+export const ExposurePublisherSchema = z
+  .object({ exposureId: z.string(), connect: PublisherConnectSchema, path: z.string() })
+  .meta({ id: 'ExposurePublisher' });
+export type ExposurePublisher = z.output<typeof ExposurePublisherSchema>;
 
 /**
  * The `stats.connect` ask (`organisations.gateways.stats.connect`) for where to read what a gateway's relays carry of
@@ -266,7 +279,7 @@ export interface ProbingConfiguration {
 // From version 3 the agent is given its cameras as they are registered, and builds what it pulls from them itself
 // (`@conservationtv/cameras`): it needs their settings and credentials to control them anyway.
 
-/** A camera a path is pulled from, at the path's rendition: one of the configuration's `cameras`. */
+/** A camera a path is pulled from: one of the configuration's `cameras`. */
 export interface CameraSource {
   cameraId: string;
 }
@@ -283,7 +296,7 @@ export interface PathReference {
 /** Where a path gets its media, from version 3: a camera of the configuration's, or another of its paths. */
 export type CameraPathSource = CameraSource | PathReference;
 
-/** A path the agent's MediaMTX serves, from version 3. */
+/** A path the agent's MediaMTX serves, in version 3: delivering an exposure's `default` rendition. */
 export interface CameraPlannedPath {
   name: string;
   exposureId: string;
@@ -380,4 +393,94 @@ export interface ControllingConfiguration {
   show?: ShowConfiguration;
   chat?: ChatConfiguration;
   peers: PlannedPeer[];
+}
+
+// From version 4 a path delivers an exposure, and names no rendition.
+
+/** Who may push to a path, beside a holder of a token this API signs as the agent for the path (docs/shows.md, Going live). */
+export interface PathPush {
+  /**
+   * An encoder presenting the stream's key whose SHA-256, in lowercase hex, this is: the digest alone, never the key.
+   * Null while the stream has no key, when only token holders push.
+   */
+  keySha256: string | null;
+}
+
+/** A path publishers push to, from version 4: a pushed stream's ingest, a stream with no source device of its own. */
+export interface PushSource {
+  push: PathPush;
+}
+
+/**
+ * A path the agent's MediaMTX serves, from version 4: the one delivering an exposure, from a camera or another path,
+ * or pushed to by its publisher. Versions before 4 are told of no pushed path, nor of anything read from one.
+ */
+export interface ServedPath {
+  name: string;
+  exposureId: string;
+  source: CameraPathSource | PushSource;
+}
+
+/**
+ * The `mediamtx` runtime from version 4: a path for each exposure, and a publisher reading one for each it publishes.
+ * Where to read the relays' stats is no longer its own: it is the `relays` runtime's.
+ */
+export interface DeliveringMediamtxConfiguration extends Omit<
+  CameraMediamtxConfiguration,
+  'paths' | 'publishers' | 'stats'
+> {
+  paths: ServedPath[];
+  publishers: ExposurePublisher[];
+}
+
+/**
+ * The `connect` ask (`organisations.streams.exposures.connect`) for reading an exposure an agent covers but does not
+ * publish: only to read its catalog back through the relay, which says whether the relay has it.
+ */
+export const WatchConnectSchema = z
+  .object({
+    id: z.string(),
+    streamId: z.string(),
+    exposureId: z.string(),
+    action: z.literal('read'),
+    protocol: z.literal('moq')
+  })
+  .meta({ id: 'WatchConnect' });
+export type WatchConnect = z.output<typeof WatchConnectSchema>;
+
+/** An exposure an agent covers but does not publish, and the `connect` ask to watch it on the relay by. */
+export const WatchedExposureSchema = z
+  .object({ exposureId: z.string(), connect: WatchConnectSchema })
+  .meta({ id: 'WatchedExposure' });
+export type WatchedExposure = z.output<typeof WatchedExposureSchema>;
+
+/**
+ * The `relays` runtime, from version 4: for an agent that covers some of its organisation's exposures on a gateway
+ * whose relays publish stats (src/configuration/plan/helpers.ts, `selectRelayCoverage`), where to read those stats, and
+ * each exposure it covers but does not publish. It reports what the relays carry of every exposure it covers, and
+ * whether they have it: those it publishes from its `mediamtx` runtime's publishers, the others by watching them.
+ */
+export interface RelaysConfiguration {
+  stats: StatsConnect[];
+  watched: WatchedExposure[];
+}
+
+/**
+ * What a device runs, from version 4 of `deviceConfiguration.get`: as in version 3, with its `mediamtx` as above, and
+ * `relays` for an agent that covers exposures there.
+ */
+export interface DeliveringConfiguration extends Omit<ControllingConfiguration, 'mediamtx'> {
+  mediamtx?: DeliveringMediamtxConfiguration;
+  relays?: RelaysConfiguration;
+}
+
+/** The `mediamtx` runtime as planned: as version 4 says it, with the stats asks versions before it are told. */
+export interface PlannedMediamtxConfiguration extends DeliveringMediamtxConfiguration {
+  /** The gateways it publishes to whose relays publish stats: what versions 1 to 3 follow, for its publishers alone. */
+  stats: StatsConnect[];
+}
+
+/** A device's configuration as planned, which each version says its own way. */
+export interface PlannedDeviceConfiguration extends Omit<DeliveringConfiguration, 'mediamtx'> {
+  mediamtx?: PlannedMediamtxConfiguration;
 }
