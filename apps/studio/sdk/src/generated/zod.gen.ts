@@ -15,17 +15,12 @@ export const Schema0Schema = z.union([
     z.record(z.string(), z.lazy((): any => Schema0Schema))
 ]).nullable();
 
-/**
- * A quality the stream is delivered at.
- */
 export const RenditionSchema = z.enum([
     'default',
     'data_saver',
     'balanced',
     'quality'
-]).register(z.globalRegistry, {
-    description: 'A quality the stream is delivered at.'
-});
+]);
 
 export const RelaySchema = z.object({
     url: z.string(),
@@ -33,9 +28,18 @@ export const RelaySchema = z.object({
     authToken: z.string().optional()
 });
 
-export const StatsConnectSchema = z.object({
+export const PublisherConnectSchema = z.object({
     id: z.string(),
-    gatewayId: z.string()
+    streamId: z.string(),
+    exposureId: z.string(),
+    action: z.literal('publish'),
+    protocol: z.literal('moq')
+});
+
+export const ExposurePublisherSchema = z.object({
+    exposureId: z.string(),
+    connect: PublisherConnectSchema,
+    path: z.string()
 });
 
 export const MediamtxAuthSchema = z.object({
@@ -50,24 +54,22 @@ export const MediamtxTlsSchema = z.object({
     notAfter: z.string()
 });
 
-export const PublisherConnectSchema = z.object({
+export const StatsConnectSchema = z.object({
+    id: z.string(),
+    gatewayId: z.string()
+});
+
+export const WatchConnectSchema = z.object({
     id: z.string(),
     streamId: z.string(),
     exposureId: z.string(),
-    action: z.literal('publish'),
+    action: z.literal('read'),
     protocol: z.literal('moq')
 });
 
-export const PublishedRenditionSchema = z.object({
-    rendition: RenditionSchema,
-    path: z.string()
-});
-
-export const PublisherSchema = z.object({
+export const WatchedExposureSchema = z.object({
     exposureId: z.string(),
-    connect: PublisherConnectSchema,
-    layout: z.literal('tracks'),
-    renditions: z.array(PublishedRenditionSchema)
+    connect: WatchConnectSchema
 });
 
 export const PreviewConnectSchema = z.object({
@@ -299,7 +301,6 @@ export const StreamSchema = z.object({
     exposures: z.array(z.object({
         id: z.string(),
         gatewayId: z.string(),
-        renditions: z.array(RenditionSchema),
         publisherDeviceId: z.string().nullable(),
         upstreamExposureId: z.string().nullable(),
         params: z.record(z.string(), z.unknown()),
@@ -308,21 +309,57 @@ export const StreamSchema = z.object({
     recorders: z.array(z.object({
         id: z.string(),
         exposureId: z.string(),
-        rendition: RenditionSchema,
         kind: z.string(),
         params: z.record(z.string(), z.unknown()),
         createdAt: z.string()
     })),
     id: z.string(),
     name: z.string(),
+    code: z.string().nullable(),
     sourceDeviceId: z.string().nullable(),
+    createdAt: z.string()
+});
+
+export const LiveSchema = z.object({
+    exposures: z.array(z.object({
+        live: z.boolean().nullable(),
+        checkedAt: z.string().nullable(),
+        id: z.string(),
+        streamId: z.string(),
+        gatewayId: z.string()
+    }))
+});
+
+export const PersonalSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    code: z.string().nullable(),
+    sourceDeviceId: z.string().nullable(),
+    createdAt: z.string()
+});
+
+export const EncoderSchema = z.object({
+    exposureId: z.string(),
+    gatewayId: z.string(),
+    key: z.string(),
+    keyCreatedAt: z.string(),
+    servers: z.array(z.object({
+        protocol: z.string(),
+        url: z.string(),
+        server: z.string().optional(),
+        streamKey: z.string().optional(),
+        bearerToken: z.string().optional()
+    }))
+});
+
+export const KeySchema = z.object({
+    key: z.string(),
     createdAt: z.string()
 });
 
 export const ExposureSchema = z.object({
     id: z.string(),
     gatewayId: z.string(),
-    renditions: z.array(RenditionSchema),
     publisherDeviceId: z.string().nullable(),
     upstreamExposureId: z.string().nullable(),
     params: z.record(z.string(), z.unknown()),
@@ -332,7 +369,6 @@ export const ExposureSchema = z.object({
 export const RecorderSchema = z.object({
     id: z.string(),
     exposureId: z.string(),
-    rendition: RenditionSchema,
     kind: z.string(),
     params: z.record(z.string(), z.unknown()),
     createdAt: z.string()
@@ -561,36 +597,38 @@ export const LogSchema = z.object({
 });
 
 export const TopologySchema = z.object({
-    shows: z.array(z.object({
-        placed: z.array(z.string()),
+    outputs: z.array(z.object({
         name: z.string(),
+        device: z.object({
+            createdAt: z.string(),
+            deviceId: z.string()
+        }).nullable(),
         id: z.string(),
         createdAt: z.string(),
-        outputs: z.array(z.object({
-            name: z.string(),
-            id: z.string()
+        recorders: z.array(z.object({
+            params: z.record(z.string(), z.unknown()),
+            id: z.string(),
+            createdAt: z.string(),
+            kind: z.literal('obs')
+        })),
+        showId: z.string().nullable(),
+        control: z.enum(['external', 'show']),
+        width: z.number(),
+        height: z.number(),
+        fps: z.number(),
+        bitrateKbps: z.number(),
+        keyframeSeconds: z.number(),
+        forwards: z.array(z.object({
+            id: z.string(),
+            createdAt: z.string(),
+            enabled: z.boolean(),
+            channelId: z.string()
+        })),
+        previews: z.array(z.object({
+            id: z.string(),
+            createdAt: z.string(),
+            gatewayId: z.string()
         }))
-    })),
-    networks: z.array(z.object({
-        name: z.string(),
-        id: z.string(),
-        createdAt: z.string(),
-        activeAgent: z.object({
-            id: z.string()
-        }).nullable()
-    })),
-    devices: z.array(z.object({
-        id: z.string(),
-        kind: z.enum([
-            'agent',
-            'camera',
-            'browser'
-        ]),
-        name: z.string(),
-        networkId: z.string().nullable(),
-        publicKey: z.string(),
-        publicId: z.string(),
-        createdAt: z.string()
     })),
     gateways: z.array(z.union([z.object({
             id: z.literal('conservationtv'),
@@ -627,9 +665,9 @@ export const TopologySchema = z.object({
             id: z.string(),
             createdAt: z.string(),
             gatewayId: z.string(),
-            renditions: z.array(RenditionSchema),
             publisherDeviceId: z.string().nullable(),
-            upstreamExposureId: z.string().nullable()
+            upstreamExposureId: z.string().nullable(),
+            renditions: z.array(RenditionSchema)
         })),
         recorders: z.array(z.object({
             params: z.record(z.string(), z.unknown()),
@@ -640,38 +678,36 @@ export const TopologySchema = z.object({
             rendition: RenditionSchema
         }))
     })),
-    outputs: z.array(z.object({
+    shows: z.array(z.object({
+        placed: z.array(z.string()),
         name: z.string(),
         id: z.string(),
         createdAt: z.string(),
-        control: z.enum(['external', 'show']),
-        showId: z.string().nullable(),
-        width: z.number(),
-        height: z.number(),
-        fps: z.number(),
-        bitrateKbps: z.number(),
-        keyframeSeconds: z.number(),
-        device: z.object({
-            createdAt: z.string(),
-            deviceId: z.string()
-        }).nullable(),
-        recorders: z.array(z.object({
-            params: z.record(z.string(), z.unknown()),
-            id: z.string(),
-            createdAt: z.string(),
-            kind: z.literal('obs')
-        })),
-        forwards: z.array(z.object({
-            id: z.string(),
-            createdAt: z.string(),
-            enabled: z.boolean(),
-            channelId: z.string()
-        })),
-        previews: z.array(z.object({
-            id: z.string(),
-            createdAt: z.string(),
-            gatewayId: z.string()
+        outputs: z.array(z.object({
+            name: z.string(),
+            id: z.string()
         }))
+    })),
+    networks: z.array(z.object({
+        name: z.string(),
+        id: z.string(),
+        createdAt: z.string(),
+        activeAgent: z.object({
+            id: z.string()
+        }).nullable()
+    })),
+    devices: z.array(z.object({
+        id: z.string(),
+        kind: z.enum([
+            'agent',
+            'camera',
+            'browser'
+        ]),
+        name: z.string(),
+        networkId: z.string().nullable(),
+        publicKey: z.string(),
+        publicId: z.string(),
+        createdAt: z.string()
     })),
     channels: z.array(z.object({
         id: z.string(),
@@ -850,12 +886,64 @@ export const StatusSchema = z.object({
 });
 
 export const ShowSchema = z.object({
+    lineup: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        position: z.number().nullable(),
+        absence: z.enum([
+            'locked',
+            'disabled',
+            'undelivered'
+        ]).nullable(),
+        volumeDb: z.number(),
+        muted: z.boolean(),
+        syncOffsetMs: z.number(),
+        audioStreamId: z.string().nullable()
+    })),
+    takeoverMix: z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        volumeDb: z.number(),
+        muted: z.boolean(),
+        syncOffsetMs: z.number(),
+        audioStreamId: z.string().nullable()
+    }).nullable(),
+    unreachable: z.array(z.object({
+        outputId: z.string(),
+        inputGatewayId: z.string().nullable(),
+        streamIds: z.array(z.string())
+    })),
     name: z.string(),
     id: z.string(),
     createdAt: z.string(),
+    slots: z.number(),
+    volumeDb: z.number(),
+    muted: z.boolean(),
+    takeoverStreamId: z.string().nullable(),
+    takeoverLive: z.boolean(),
     outputs: z.array(z.object({
         name: z.string(),
         id: z.string()
+    }))
+});
+
+export const LineupSchema = z.object({
+    lineup: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        position: z.number().nullable(),
+        absence: z.enum([
+            'locked',
+            'disabled',
+            'undelivered'
+        ]).nullable(),
+        volumeDb: z.number(),
+        muted: z.boolean(),
+        syncOffsetMs: z.number(),
+        audioStreamId: z.string().nullable()
     }))
 });
 
@@ -863,8 +951,9 @@ export const OutputSchema = z.object({
     name: z.string(),
     id: z.string(),
     createdAt: z.string(),
-    control: z.enum(['external', 'show']),
     showId: z.string().nullable(),
+    control: z.enum(['external', 'show']),
+    inputGatewayId: z.string().nullable(),
     width: z.number(),
     height: z.number(),
     fps: z.number(),
@@ -931,6 +1020,12 @@ export const ChatCommandSchema = z.object({
             kind: z.literal('cameraPreset'),
             cameraId: z.string().nullable(),
             preset: z.string().nullable()
+        }),
+        z.object({
+            kind: z.literal('showSwap')
+        }),
+        z.object({
+            kind: z.literal('showTakeover')
         })
     ]),
     audience: z.enum([
@@ -964,21 +1059,21 @@ export const DeviceConfigurationSchema = z.object({
         paths: z.array(z.object({
             name: z.string(),
             exposureId: z.string(),
-            rendition: RenditionSchema,
             source: z.union([
                 z.object({
                     cameraId: z.string()
                 }),
                 z.object({
                     path: z.string()
+                }),
+                z.object({
+                    push: z.object({
+                        keySha256: z.string().nullable()
+                    })
                 })
             ])
         })),
-        probes: z.array(z.object({
-            subjectId: z.string(),
-            cameraId: z.string()
-        })),
-        stats: z.array(StatsConnectSchema),
+        publishers: z.array(ExposurePublisherSchema),
         auth: MediamtxAuthSchema,
         gatewayId: z.string(),
         previews: z.array(z.object({
@@ -986,7 +1081,14 @@ export const DeviceConfigurationSchema = z.object({
             previewId: z.string()
         })).optional(),
         tls: MediamtxTlsSchema.optional(),
-        publishers: z.array(PublisherSchema)
+        probes: z.array(z.object({
+            subjectId: z.string(),
+            cameraId: z.string()
+        }))
+    }).optional(),
+    relays: z.object({
+        stats: z.array(StatsConnectSchema),
+        watched: z.array(WatchedExposureSchema)
     }).optional(),
     cameras: z.object({
         cameras: z.array(z.object({
@@ -1017,6 +1119,10 @@ export const DeviceConfigurationSchema = z.object({
             issuer: z.string()
         })
     }).optional(),
+    show: z.object({
+        id: z.string(),
+        url: z.string()
+    }).optional(),
     obs: z.object({
         previews: z.array(z.object({
             signer: z.string().nullable(),
@@ -1042,18 +1148,14 @@ export const DeviceConfigurationSchema = z.object({
             forwardId: z.string(),
             stats: z.boolean()
         })),
+        program: z.object({
+            subjectId: z.string()
+        }),
         recording: z.object({
             recorderId: z.string(),
             kind: z.string(),
             params: z.record(z.string(), z.unknown())
-        }).optional(),
-        program: z.object({
-            subjectId: z.string()
-        })
-    }).optional(),
-    show: z.object({
-        id: z.string(),
-        url: z.string()
+        }).optional()
     }).optional(),
     chat: z.object({
         organisationId: z.string(),
@@ -1286,6 +1388,38 @@ export const PutOrganisationsByIdMembersByUserIdAdminPathSchema = z.object({
  */
 export const PutOrganisationsByIdMembersByUserIdAdminResponseSchema = z.void().register(z.globalRegistry, {
     description: 'The member is an administrator'
+});
+
+export const DeleteOrganisationsByIdMembersByUserIdPublisherPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    userId: z.string().min(1).max(64).register(z.globalRegistry, {
+        description: 'The member\'s account ID, or `me`.'
+    })
+});
+
+/**
+ * The member no longer holds the role on its own
+ */
+export const DeleteOrganisationsByIdMembersByUserIdPublisherResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'The member no longer holds the role on its own'
+});
+
+export const PutOrganisationsByIdMembersByUserIdPublisherPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    userId: z.string().min(1).max(64).register(z.globalRegistry, {
+        description: 'The member\'s account ID, or `me`.'
+    })
+});
+
+/**
+ * The member may go live
+ */
+export const PutOrganisationsByIdMembersByUserIdPublisherResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'The member may go live'
 });
 
 export const GetOrganisationsByIdInvitationsPathSchema = z.object({
@@ -2260,6 +2394,7 @@ export const GetOrganisationsByIdStreamsPathSchema = z.object({
  */
 export const GetOrganisationsByIdStreamsResponseSchema = z.object({
     streams: z.array(z.object({
+        code: z.string().nullable(),
         name: z.string(),
         id: z.string(),
         createdAt: z.string(),
@@ -2269,7 +2404,6 @@ export const GetOrganisationsByIdStreamsResponseSchema = z.object({
             id: z.string(),
             createdAt: z.string(),
             gatewayId: z.string(),
-            renditions: z.array(RenditionSchema),
             publisherDeviceId: z.string().nullable(),
             upstreamExposureId: z.string().nullable()
         })),
@@ -2278,8 +2412,7 @@ export const GetOrganisationsByIdStreamsResponseSchema = z.object({
             id: z.string(),
             createdAt: z.string(),
             kind: z.string(),
-            exposureId: z.string(),
-            rendition: RenditionSchema
+            exposureId: z.string()
         }))
     }))
 }).register(z.globalRegistry, {
@@ -2290,6 +2423,7 @@ export const PostOrganisationsByIdStreamsBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The stream name.'
     }),
+    code: z.string().regex(/^[A-Z0-9]{1,4}$/).nullish().default(null),
     sourceDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null)
 });
 
@@ -2305,11 +2439,37 @@ export const PostOrganisationsByIdStreamsPathSchema = z.object({
 export const PostOrganisationsByIdStreamsResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
+    code: z.string().nullable(),
     sourceDeviceId: z.string().nullable(),
     createdAt: z.string()
 }).register(z.globalRegistry, {
     description: 'The new stream'
 });
+
+export const GetOrganisationsByIdStreamsLivePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The exposures, oldest first, each with whether it is live
+ */
+export const GetOrganisationsByIdStreamsLiveResponseSchema = LiveSchema;
+
+export const PutOrganisationsByIdStreamsPersonalByDevicePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    device: z.enum(['phone', 'computer']).register(z.globalRegistry, {
+        description: 'The kind of device you go live from.'
+    })
+});
+
+/**
+ * The stream
+ */
+export const PutOrganisationsByIdStreamsPersonalByDeviceResponseSchema = PersonalSchema;
 
 export const DeleteOrganisationsByIdStreamsByStreamIdPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
@@ -2345,6 +2505,7 @@ export const PatchOrganisationsByIdStreamsByStreamIdBodySchema = z.object({
     name: z.string().min(1).max(120).register(z.globalRegistry, {
         description: 'The stream name.'
     }).optional(),
+    code: z.string().regex(/^[A-Z0-9]{1,4}$/).nullish(),
     sourceDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish()
 });
 
@@ -2363,20 +2524,111 @@ export const PatchOrganisationsByIdStreamsByStreamIdPathSchema = z.object({
 export const PatchOrganisationsByIdStreamsByStreamIdResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
+    code: z.string().nullable(),
     sourceDeviceId: z.string().nullable(),
     createdAt: z.string()
 }).register(z.globalRegistry, {
     description: 'The updated stream, without its exposures and recorders'
 });
 
+export const PostOrganisationsByIdStreamsByStreamIdConnectionsBodySchema = z.object({
+    protocols: z.array(z.string().min(1).max(60)).min(1).max(10).register(z.globalRegistry, {
+        description: 'The protocols the caller can play, in its order of preference, such as `moq` or `webrtc`.'
+    }),
+    action: z.enum(['read', 'publish']).register(z.globalRegistry, {
+        description: 'Whether to read the stream, or publish it: `read` when left out.'
+    }).optional().default('read'),
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null)
+});
+
+export const PostOrganisationsByIdStreamsByStreamIdConnectionsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream.'
+    })
+});
+
+/**
+ * The exposure chosen, and how to connect to it
+ */
+export const PostOrganisationsByIdStreamsByStreamIdConnectionsResponseSchema = z.object({
+    exposureId: z.string(),
+    gatewayId: z.string(),
+    connection: z.union([
+        z.object({
+            protocol: z.literal('moq'),
+            relay: z.string(),
+            path: z.string(),
+            broadcast: z.string(),
+            token: z.string().optional(),
+            expiresAt: z.string().optional()
+        }),
+        z.object({
+            protocol: z.string(),
+            url: z.string(),
+            token: z.string().optional(),
+            expiresAt: z.string().optional()
+        })
+    ])
+}).register(z.globalRegistry, {
+    description: 'The exposure chosen, and how to connect to it'
+});
+
+export const PutOrganisationsByIdStreamsByStreamIdEncoderBodySchema = z.object({
+    networkId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null)
+});
+
+export const PutOrganisationsByIdStreamsByStreamIdEncoderPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream.'
+    })
+});
+
+/**
+ * Where an encoder publishes, and the key
+ */
+export const PutOrganisationsByIdStreamsByStreamIdEncoderResponseSchema = EncoderSchema;
+
+export const DeleteOrganisationsByIdStreamsByStreamIdKeyPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream.'
+    })
+});
+
+/**
+ * Removed
+ */
+export const DeleteOrganisationsByIdStreamsByStreamIdKeyResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
+});
+
+export const PostOrganisationsByIdStreamsByStreamIdKeyPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream.'
+    })
+});
+
+/**
+ * The new key
+ */
+export const PostOrganisationsByIdStreamsByStreamIdKeyResponseSchema = KeySchema;
+
 export const PostOrganisationsByIdStreamsByStreamIdExposuresBodySchema = z.object({
     gatewayId: z.union([
         z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]),
-    renditions: z.array(RenditionSchema).min(1).register(z.globalRegistry, {
-        description: 'The renditions the exposure offers.'
-    }).optional().default(['default']),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
     upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish().default(null),
     params: z.record(z.string(), Schema0Schema).optional().default({})
@@ -2420,9 +2672,6 @@ export const PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdBodySch
         z.enum(['conservationtv']),
         z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
     ]).optional(),
-    renditions: z.array(RenditionSchema).min(1).register(z.globalRegistry, {
-        description: 'The renditions the exposure offers.'
-    }).optional(),
     publisherDeviceId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     upstreamExposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
     params: z.record(z.string(), Schema0Schema).optional()
@@ -2451,8 +2700,7 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
     }),
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'
-    }),
-    rendition: RenditionSchema.optional()
+    })
 });
 
 export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectionsPathSchema = z.object({
@@ -2477,15 +2725,13 @@ export const PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnecti
         path: z.string(),
         broadcast: z.string(),
         token: z.string().optional(),
-        expiresAt: z.string().optional(),
-        renditions: z.array(RenditionSchema)
+        expiresAt: z.string().optional()
     }),
     z.object({
         protocol: z.string(),
         url: z.string(),
         token: z.string().optional(),
-        expiresAt: z.string().optional(),
-        renditions: z.array(RenditionSchema)
+        expiresAt: z.string().optional()
     })
 ]);
 
@@ -2493,7 +2739,6 @@ export const PostOrganisationsByIdStreamsByStreamIdRecordersBodySchema = z.objec
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The exposure of this stream to record.'
     }),
-    rendition: RenditionSchema.optional(),
     kind: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The recording implementation.'
     }),
@@ -2539,7 +2784,6 @@ export const PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdBodySch
     exposureId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The exposure of this stream to record.'
     }).optional(),
-    rendition: RenditionSchema.optional(),
     kind: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'The recording implementation.'
     }).optional(),
@@ -2830,6 +3074,11 @@ export const GetOrganisationsByIdShowsResponseSchema = z.object({
         name: z.string(),
         id: z.string(),
         createdAt: z.string(),
+        slots: z.number(),
+        volumeDb: z.number(),
+        muted: z.boolean(),
+        takeoverStreamId: z.string().nullable(),
+        takeoverLive: z.boolean(),
         outputs: z.array(z.object({
             name: z.string(),
             id: z.string()
@@ -2918,6 +3167,126 @@ export const PatchOrganisationsByIdShowsByShowIdResponseSchema = z.object({
     description: 'The updated show, without its outputs'
 });
 
+export const PatchOrganisationsByIdShowsByShowIdControlsBodySchema = z.object({
+    slots: z.int().gte(0).lte(6).register(z.globalRegistry, {
+        description: 'How many slots its layout has, from none to six; the lineup fills them in order.'
+    }).optional(),
+    volumeDb: z.number().gte(-60).lte(12).register(z.globalRegistry, {
+        description: 'A level, in decibels: 0 is standard volume.'
+    }).optional(),
+    muted: z.boolean().register(z.globalRegistry, {
+        description: 'Whether it is muted.'
+    }).optional(),
+    takeoverStreamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
+    takeoverLive: z.boolean().register(z.globalRegistry, {
+        description: 'Whether the armed stream has taken over the screen. Only while one is armed.'
+    }).optional()
+});
+
+export const PatchOrganisationsByIdShowsByShowIdControlsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    showId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The show.'
+    })
+});
+
+/**
+ * The show, without its outputs and lineup
+ */
+export const PatchOrganisationsByIdShowsByShowIdControlsResponseSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    slots: z.number(),
+    volumeDb: z.number(),
+    muted: z.boolean(),
+    takeoverStreamId: z.string().nullable(),
+    takeoverLive: z.boolean(),
+    createdAt: z.string()
+}).register(z.globalRegistry, {
+    description: 'The show, without its outputs and lineup'
+});
+
+export const PostOrganisationsByIdShowsByShowIdLineupSwapBodySchema = z.object({
+    a: z.union([
+        z.object({
+            streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+                description: 'A stream in the lineup.'
+            })
+        }),
+        z.object({
+            position: z.int().gte(1).lte(9007199254740991).register(z.globalRegistry, {
+                description: 'A position in the lineup, from 1.'
+            })
+        })
+    ]),
+    b: z.union([
+        z.object({
+            streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+                description: 'A stream in the lineup.'
+            })
+        }),
+        z.object({
+            position: z.int().gte(1).lte(9007199254740991).register(z.globalRegistry, {
+                description: 'A position in the lineup, from 1.'
+            })
+        })
+    ])
+});
+
+export const PostOrganisationsByIdShowsByShowIdLineupSwapPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    showId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The show.'
+    })
+});
+
+/**
+ * The lineup after the swap
+ */
+export const PostOrganisationsByIdShowsByShowIdLineupSwapResponseSchema = LineupSchema;
+
+export const PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdBodySchema = z.object({
+    volumeDb: z.number().gte(-60).lte(12).register(z.globalRegistry, {
+        description: 'A level, in decibels: 0 is standard volume.'
+    }).optional(),
+    muted: z.boolean().register(z.globalRegistry, {
+        description: 'Whether it is muted.'
+    }).optional(),
+    syncOffsetMs: z.int().gte(-950).lte(20000).register(z.globalRegistry, {
+        description: 'How far its sound is shifted against its picture, in milliseconds: later when positive, and when negative its picture is held back instead, by at most 950.'
+    }).optional(),
+    audioStreamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish()
+});
+
+export const PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    showId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The show.'
+    }),
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream.'
+    })
+});
+
+/**
+ * The stream's settings in the show
+ */
+export const PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdResponseSchema = z.object({
+    streamId: z.string(),
+    volumeDb: z.number(),
+    muted: z.boolean(),
+    syncOffsetMs: z.number(),
+    audioStreamId: z.string().nullable()
+}).register(z.globalRegistry, {
+    description: 'The stream\'s settings in the show'
+});
+
 export const GetOrganisationsByIdShowsByShowIdFollowPathSchema = z.object({
     id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
         description: 'The organisation.'
@@ -2957,8 +3326,9 @@ export const GetOrganisationsByIdOutputsResponseSchema = z.object({
         name: z.string(),
         id: z.string(),
         createdAt: z.string(),
-        control: z.enum(['external', 'show']),
         showId: z.string().nullable(),
+        control: z.enum(['external', 'show']),
+        inputGatewayId: z.string().nullable(),
         width: z.number(),
         height: z.number(),
         fps: z.number(),
@@ -2998,6 +3368,10 @@ export const PostOrganisationsByIdOutputsBodySchema = z.object({
         description: 'Who drives OBS\'s scenes: `show`, the show the output follows, or `external`, something outside the studio, for which the output reads any of the organisation\'s exposures and follows no show.'
     }).optional(),
     showId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
+    inputGatewayId: z.union([
+        z.enum(['conservationtv']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ]).nullish(),
     width: z.int().gte(160).lte(3840).register(z.globalRegistry, {
         description: 'The programme\'s width in pixels: even.'
     }).optional(),
@@ -3029,6 +3403,7 @@ export const PostOrganisationsByIdOutputsResponseSchema = z.object({
     name: z.string(),
     control: z.enum(['external', 'show']),
     showId: z.string().nullable(),
+    inputGatewayId: z.string().nullable(),
     width: z.number(),
     height: z.number(),
     fps: z.number(),
@@ -3077,6 +3452,10 @@ export const PatchOrganisationsByIdOutputsByOutputIdBodySchema = z.object({
         description: 'Who drives OBS\'s scenes: `show`, the show the output follows, or `external`, something outside the studio, for which the output reads any of the organisation\'s exposures and follows no show.'
     }).optional(),
     showId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullish(),
+    inputGatewayId: z.union([
+        z.enum(['conservationtv']),
+        z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+    ]).nullish(),
     width: z.int().gte(160).lte(3840).register(z.globalRegistry, {
         description: 'The programme\'s width in pixels: even.'
     }).optional(),
@@ -3111,6 +3490,7 @@ export const PatchOrganisationsByIdOutputsByOutputIdResponseSchema = z.object({
     name: z.string(),
     control: z.enum(['external', 'show']),
     showId: z.string().nullable(),
+    inputGatewayId: z.string().nullable(),
     width: z.number(),
     height: z.number(),
     fps: z.number(),
@@ -3208,7 +3588,7 @@ export const PutOrganisationsByIdOutputsByOutputIdControlBodySchema = z.object({
         description: 'The scene collection OBS runs: the agent\'s own for a show, kept apart from an external controller\'s.'
     }),
     inputUrl: z.string().min(1).max(500).register(z.globalRegistry, {
-        description: 'Where OBS, on its own machine, reads any exposure the output may read, with `{streamId}` and `{exposureId}` in place of the stream and the exposure: for a media source.'
+        description: 'Where OBS, on its own machine, reads any stream the output may read, whatever delivers it, with `{streamId}` in place of the stream: for a media source. Agents before streams were read by stream also have `{exposureId}`, in place of the delivery.'
     })
 });
 
@@ -3339,8 +3719,7 @@ export const PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnection
     }),
     protocol: z.string().min(1).max(60).register(z.globalRegistry, {
         description: 'One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.'
-    }),
-    rendition: RenditionSchema.optional()
+    })
 });
 
 export const PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnectionsPathSchema = z.object({
@@ -3365,15 +3744,13 @@ export const PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnection
         path: z.string(),
         broadcast: z.string(),
         token: z.string().optional(),
-        expiresAt: z.string().optional(),
-        renditions: z.array(RenditionSchema)
+        expiresAt: z.string().optional()
     }),
     z.object({
         protocol: z.string(),
         url: z.string(),
         token: z.string().optional(),
-        expiresAt: z.string().optional(),
-        renditions: z.array(RenditionSchema)
+        expiresAt: z.string().optional()
     })
 ]);
 
@@ -3634,6 +4011,12 @@ export const GetOrganisationsByIdChatCommandsResponseSchema = z.object({
                 kind: z.literal('cameraPreset'),
                 cameraId: z.string().nullable(),
                 preset: z.string().nullable()
+            }),
+            z.object({
+                kind: z.literal('showSwap')
+            }),
+            z.object({
+                kind: z.literal('showTakeover')
             })
         ]),
         audience: z.enum([
@@ -3665,6 +4048,12 @@ export const PostOrganisationsByIdChatCommandsBodySchema = z.object({
             kind: z.literal('cameraPreset'),
             cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
             preset: z.string().min(1).max(60).nullable()
+        }),
+        z.object({
+            kind: z.literal('showSwap')
+        }),
+        z.object({
+            kind: z.literal('showTakeover')
         })
     ]),
     audience: z.enum([
@@ -3736,6 +4125,12 @@ export const PatchOrganisationsByIdChatCommandsByCommandIdBodySchema = z.object(
             kind: z.literal('cameraPreset'),
             cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
             preset: z.string().min(1).max(60).nullable()
+        }),
+        z.object({
+            kind: z.literal('showSwap')
+        }),
+        z.object({
+            kind: z.literal('showTakeover')
         })
     ]).optional(),
     audience: z.enum([

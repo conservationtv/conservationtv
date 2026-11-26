@@ -2213,9 +2213,9 @@
     "/system/spec": {
       "get": {
         "operationId": "system.spec",
-        "x-operation-version": 2,
+        "x-operation-version": 3,
         "summary": "Read the agent's currently defined spec",
-        "description": "From this version, with `probes`: the cameras it asks whether they are there.",
+        "description": "With `probes`: the cameras it asks whether they are there. From this version an exposure is one path: no path names a rendition, and each of `streams`'s `publishers` names the one `path` it publishes; and `relayTraffic` names the exposures it covers without publishing them, which it watches on the relay (`watched`).",
         "responses": {
           "200": {
             "description": "The current system specification",
@@ -2224,17 +2224,6 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "machine": {
-                      "type": "object",
-                      "properties": {
-                        "intervalMs": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "intervalMs"
-                      ]
-                    },
                     "streams": {
                       "type": "object",
                       "properties": {
@@ -2243,13 +2232,10 @@
                           "items": {
                             "type": "object",
                             "properties": {
-                              "name": {
-                                "type": "string"
-                              },
                               "exposureId": {
                                 "type": "string"
                               },
-                              "rendition": {
+                              "name": {
                                 "type": "string"
                               },
                               "source": {
@@ -2280,8 +2266,8 @@
                               }
                             },
                             "required": [
-                              "name",
-                              "exposureId"
+                              "exposureId",
+                              "name"
                             ]
                           }
                         },
@@ -2311,33 +2297,8 @@
                               "exposureId": {
                                 "type": "string"
                               },
-                              "layout": {
-                                "type": "string",
-                                "const": "tracks"
-                              },
-                              "renditions": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "rendition": {
-                                      "type": "string",
-                                      "enum": [
-                                        "default",
-                                        "data_saver",
-                                        "balanced",
-                                        "quality"
-                                      ]
-                                    },
-                                    "path": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "rendition",
-                                    "path"
-                                  ]
-                                }
+                              "path": {
+                                "type": "string"
                               },
                               "connect": {
                                 "type": "string"
@@ -2348,8 +2309,7 @@
                             },
                             "required": [
                               "exposureId",
-                              "layout",
-                              "renditions",
+                              "path",
                               "connect",
                               "broadcast"
                             ]
@@ -2403,6 +2363,17 @@
                         "publishers"
                       ]
                     },
+                    "machine": {
+                      "type": "object",
+                      "properties": {
+                        "intervalMs": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "intervalMs"
+                      ]
+                    },
                     "metrics": {
                       "type": "object",
                       "properties": {
@@ -2418,9 +2389,6 @@
                                 "type": "string"
                               },
                               "name": {
-                                "type": "string"
-                              },
-                              "rendition": {
                                 "type": "string"
                               }
                             },
@@ -2470,11 +2438,34 @@
                               "prefix"
                             ]
                           }
+                        },
+                        "watched": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "exposureId": {
+                                "type": "string"
+                              },
+                              "connect": {
+                                "type": "string"
+                              },
+                              "broadcast": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "exposureId",
+                              "connect",
+                              "broadcast"
+                            ]
+                          }
                         }
                       },
                       "required": [
                         "sources",
-                        "exposures"
+                        "exposures",
+                        "watched"
                       ]
                     },
                     "probes": {
@@ -2938,7 +2929,8 @@
         },
         "x-operation-versions": [
           1,
-          2
+          2,
+          3
         ]
       }
     },
@@ -8687,259 +8679,6 @@
           "System": {
             "type": "object",
             "properties": {
-              "machine": {
-                "type": "object",
-                "properties": {
-                  "intervalMs": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "intervalMs"
-                ]
-              },
-              "streams": {
-                "type": "object",
-                "properties": {
-                  "paths": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "exposureId": {
-                          "type": "string"
-                        },
-                        "rendition": {
-                          "type": "string"
-                        },
-                        "source": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "url"
-                              ]
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "path": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "path"
-                              ]
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "exposureId"
-                      ]
-                    }
-                  },
-                  "previews": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "previewId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "previewId"
-                      ]
-                    }
-                  },
-                  "publishers": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "exposureId": {
-                          "type": "string"
-                        },
-                        "layout": {
-                          "type": "string",
-                          "const": "tracks"
-                        },
-                        "renditions": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "rendition": {
-                                "type": "string",
-                                "enum": [
-                                  "default",
-                                  "data_saver",
-                                  "balanced",
-                                  "quality"
-                                ]
-                              },
-                              "path": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "rendition",
-                              "path"
-                            ]
-                          }
-                        },
-                        "connect": {
-                          "type": "string"
-                        },
-                        "broadcast": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "exposureId",
-                        "layout",
-                        "renditions",
-                        "connect",
-                        "broadcast"
-                      ]
-                    }
-                  },
-                  "gatewayId": {
-                    "type": "string"
-                  },
-                  "auth": {
-                    "type": "object",
-                    "properties": {
-                      "issuer": {
-                        "type": "string"
-                      },
-                      "audience": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "issuer",
-                      "audience"
-                    ]
-                  },
-                  "tls": {
-                    "type": "object",
-                    "properties": {
-                      "hostname": {
-                        "type": "string"
-                      },
-                      "certificate": {
-                        "type": "string"
-                      },
-                      "privateKey": {
-                        "type": "string"
-                      },
-                      "notAfter": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "hostname",
-                      "certificate",
-                      "privateKey",
-                      "notAfter"
-                    ]
-                  }
-                },
-                "required": [
-                  "paths",
-                  "previews",
-                  "publishers"
-                ]
-              },
-              "metrics": {
-                "type": "object",
-                "properties": {
-                  "intervalMs": {
-                    "type": "number"
-                  },
-                  "paths": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "exposureId": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "rendition": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "exposureId",
-                        "name"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "intervalMs",
-                  "paths"
-                ]
-              },
-              "relayTraffic": {
-                "type": "object",
-                "properties": {
-                  "sources": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "connect": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "connect"
-                      ]
-                    }
-                  },
-                  "exposures": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "exposureId": {
-                          "type": "string"
-                        },
-                        "prefix": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "exposureId",
-                        "prefix"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "sources",
-                  "exposures"
-                ]
-              },
               "obs": {
                 "type": "object",
                 "properties": {
@@ -9148,6 +8887,259 @@
                   "id",
                   "url"
                 ]
+              },
+              "relayTraffic": {
+                "type": "object",
+                "properties": {
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "connect": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "connect"
+                      ]
+                    }
+                  },
+                  "exposures": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "prefix": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "prefix"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "sources",
+                  "exposures"
+                ]
+              },
+              "metrics": {
+                "type": "object",
+                "properties": {
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "rendition": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "name"
+                      ]
+                    }
+                  },
+                  "intervalMs": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "paths",
+                  "intervalMs"
+                ]
+              },
+              "streams": {
+                "type": "object",
+                "properties": {
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "path"
+                              ]
+                            }
+                          ]
+                        },
+                        "rendition": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "name"
+                      ]
+                    }
+                  },
+                  "publishers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "layout": {
+                          "type": "string",
+                          "const": "tracks"
+                        },
+                        "renditions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "rendition": {
+                                "type": "string",
+                                "enum": [
+                                  "default",
+                                  "data_saver",
+                                  "balanced",
+                                  "quality"
+                                ]
+                              },
+                              "path": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "rendition",
+                              "path"
+                            ]
+                          }
+                        },
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "connect": {
+                          "type": "string"
+                        },
+                        "broadcast": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "layout",
+                        "renditions",
+                        "exposureId",
+                        "connect",
+                        "broadcast"
+                      ]
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "previewId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "previewId"
+                      ]
+                    }
+                  },
+                  "gatewayId": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "properties": {
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "audience": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "issuer",
+                      "audience"
+                    ]
+                  },
+                  "tls": {
+                    "type": "object",
+                    "properties": {
+                      "hostname": {
+                        "type": "string"
+                      },
+                      "certificate": {
+                        "type": "string"
+                      },
+                      "privateKey": {
+                        "type": "string"
+                      },
+                      "notAfter": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "hostname",
+                      "certificate",
+                      "privateKey",
+                      "notAfter"
+                    ]
+                  }
+                },
+                "required": [
+                  "paths",
+                  "publishers",
+                  "previews"
+                ]
+              },
+              "machine": {
+                "type": "object",
+                "properties": {
+                  "intervalMs": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "intervalMs"
+                ]
               }
             }
           }
@@ -9236,14 +9228,77 @@
           "System": {
             "type": "object",
             "properties": {
-              "machine": {
+              "relayTraffic": {
                 "type": "object",
                 "properties": {
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "connect": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "connect"
+                      ]
+                    }
+                  },
+                  "exposures": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "prefix": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "prefix"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "sources",
+                  "exposures"
+                ]
+              },
+              "metrics": {
+                "type": "object",
+                "properties": {
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "rendition": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "name"
+                      ]
+                    }
+                  },
                   "intervalMs": {
                     "type": "number"
                   }
                 },
                 "required": [
+                  "paths",
                   "intervalMs"
                 ]
               },
@@ -9255,13 +9310,10 @@
                     "items": {
                       "type": "object",
                       "properties": {
-                        "name": {
-                          "type": "string"
-                        },
                         "exposureId": {
                           "type": "string"
                         },
-                        "rendition": {
+                        "name": {
                           "type": "string"
                         },
                         "source": {
@@ -9289,29 +9341,14 @@
                               ]
                             }
                           ]
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "exposureId"
-                      ]
-                    }
-                  },
-                  "previews": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
                         },
-                        "previewId": {
+                        "rendition": {
                           "type": "string"
                         }
                       },
                       "required": [
-                        "name",
-                        "previewId"
+                        "exposureId",
+                        "name"
                       ]
                     }
                   },
@@ -9320,9 +9357,6 @@
                     "items": {
                       "type": "object",
                       "properties": {
-                        "exposureId": {
-                          "type": "string"
-                        },
                         "layout": {
                           "type": "string",
                           "const": "tracks"
@@ -9351,6 +9385,9 @@
                             ]
                           }
                         },
+                        "exposureId": {
+                          "type": "string"
+                        },
                         "connect": {
                           "type": "string"
                         },
@@ -9359,11 +9396,29 @@
                         }
                       },
                       "required": [
-                        "exposureId",
                         "layout",
                         "renditions",
+                        "exposureId",
                         "connect",
                         "broadcast"
+                      ]
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "previewId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "previewId"
                       ]
                     }
                   },
@@ -9411,82 +9466,19 @@
                 },
                 "required": [
                   "paths",
-                  "previews",
-                  "publishers"
+                  "publishers",
+                  "previews"
                 ]
               },
-              "metrics": {
+              "machine": {
                 "type": "object",
                 "properties": {
                   "intervalMs": {
                     "type": "number"
-                  },
-                  "paths": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "exposureId": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "rendition": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "exposureId",
-                        "name"
-                      ]
-                    }
                   }
                 },
                 "required": [
-                  "intervalMs",
-                  "paths"
-                ]
-              },
-              "relayTraffic": {
-                "type": "object",
-                "properties": {
-                  "sources": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "connect": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "connect"
-                      ]
-                    }
-                  },
-                  "exposures": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "exposureId": {
-                          "type": "string"
-                        },
-                        "prefix": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "exposureId",
-                        "prefix"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "sources",
-                  "exposures"
+                  "intervalMs"
                 ]
               },
               "probes": {
@@ -9974,6 +9966,781 @@
                 "schema": {
                   "type": "string",
                   "const": "2"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Agent API",
+        "description": "The conservation.tv agent API, served by the agent itself.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "System": {
+            "type": "object",
+            "properties": {
+              "streams": {
+                "type": "object",
+                "properties": {
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "path"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "name"
+                      ]
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "previewId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "previewId"
+                      ]
+                    }
+                  },
+                  "publishers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "connect": {
+                          "type": "string"
+                        },
+                        "broadcast": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "path",
+                        "connect",
+                        "broadcast"
+                      ]
+                    }
+                  },
+                  "gatewayId": {
+                    "type": "string"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "properties": {
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "audience": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "issuer",
+                      "audience"
+                    ]
+                  },
+                  "tls": {
+                    "type": "object",
+                    "properties": {
+                      "hostname": {
+                        "type": "string"
+                      },
+                      "certificate": {
+                        "type": "string"
+                      },
+                      "privateKey": {
+                        "type": "string"
+                      },
+                      "notAfter": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "hostname",
+                      "certificate",
+                      "privateKey",
+                      "notAfter"
+                    ]
+                  }
+                },
+                "required": [
+                  "paths",
+                  "previews",
+                  "publishers"
+                ]
+              },
+              "machine": {
+                "type": "object",
+                "properties": {
+                  "intervalMs": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "intervalMs"
+                ]
+              },
+              "metrics": {
+                "type": "object",
+                "properties": {
+                  "intervalMs": {
+                    "type": "number"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "name"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "intervalMs",
+                  "paths"
+                ]
+              },
+              "relayTraffic": {
+                "type": "object",
+                "properties": {
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "connect": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "connect"
+                      ]
+                    }
+                  },
+                  "exposures": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "prefix": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "prefix"
+                      ]
+                    }
+                  },
+                  "watched": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exposureId": {
+                          "type": "string"
+                        },
+                        "connect": {
+                          "type": "string"
+                        },
+                        "broadcast": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exposureId",
+                        "connect",
+                        "broadcast"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "sources",
+                  "exposures",
+                  "watched"
+                ]
+              },
+              "probes": {
+                "type": "object",
+                "properties": {
+                  "intervalMs": {
+                    "type": "number"
+                  },
+                  "cameras": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "subjectId": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "subjectId",
+                        "url"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "intervalMs",
+                  "cameras"
+                ]
+              },
+              "cameras": {
+                "type": "object",
+                "properties": {
+                  "issuer": {
+                    "type": "string"
+                  },
+                  "cameras": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "settings": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "driver": {
+                                  "type": "string",
+                                  "const": "axis"
+                                },
+                                "host": {
+                                  "type": "string"
+                                },
+                                "resolutions": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "rtspPort": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "driver",
+                                "host",
+                                "resolutions"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "driver": {
+                                  "type": "string",
+                                  "const": "rtsp"
+                                },
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "driver",
+                                "url"
+                              ]
+                            }
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "enabled",
+                            "locked",
+                            "disabled"
+                          ]
+                        },
+                        "credentials": {
+                          "type": "object",
+                          "properties": {
+                            "username": {
+                              "type": "string"
+                            },
+                            "password": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "username",
+                            "password"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "settings",
+                        "state"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "issuer",
+                  "cameras"
+                ]
+              },
+              "obs": {
+                "type": "object",
+                "properties": {
+                  "output": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "organisationId": {
+                        "type": "string"
+                      },
+                      "control": {
+                        "type": "string",
+                        "enum": [
+                          "external",
+                          "show"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "organisationId",
+                      "control"
+                    ]
+                  },
+                  "encoding": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "number"
+                      },
+                      "height": {
+                        "type": "number"
+                      },
+                      "fps": {
+                        "type": "number"
+                      },
+                      "bitrateKbps": {
+                        "type": "number"
+                      },
+                      "keyframeSeconds": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height",
+                      "fps",
+                      "bitrateKbps",
+                      "keyframeSeconds"
+                    ]
+                  },
+                  "forwards": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organisationId": {
+                          "type": "string"
+                        },
+                        "channelId": {
+                          "type": "string"
+                        },
+                        "forwardId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "organisationId",
+                        "channelId",
+                        "forwardId"
+                      ]
+                    }
+                  },
+                  "previews": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "previewId": {
+                          "type": "string"
+                        },
+                        "publish": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "protocol": {
+                                  "type": "string",
+                                  "const": "moq"
+                                },
+                                "connect": {
+                                  "type": "string"
+                                },
+                                "broadcast": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "protocol",
+                                "connect",
+                                "broadcast"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "protocol": {
+                                  "type": "string",
+                                  "enum": [
+                                    "rtmp",
+                                    "rtmps"
+                                  ]
+                                },
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "protocol",
+                                "url"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "previewId",
+                        "publish"
+                      ]
+                    }
+                  },
+                  "program": {
+                    "type": "object",
+                    "properties": {
+                      "subjectId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectId"
+                    ]
+                  },
+                  "recording": {
+                    "type": "object",
+                    "properties": {
+                      "recorderId": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "recorderId",
+                      "kind"
+                    ]
+                  }
+                },
+                "required": [
+                  "output",
+                  "encoding",
+                  "forwards",
+                  "previews",
+                  "program"
+                ]
+              },
+              "channels": {
+                "type": "object",
+                "properties": {
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organisationId": {
+                          "type": "string"
+                        },
+                        "channelId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "organisationId",
+                        "channelId"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "channels"
+                ]
+              },
+              "show": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "url"
+                ]
+              },
+              "chat": {
+                "type": "object",
+                "properties": {
+                  "organisationId": {
+                    "type": "string"
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "channelId": {
+                          "type": "string"
+                        },
+                        "platform": {
+                          "type": "string",
+                          "const": "twitch"
+                        },
+                        "login": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "channelId",
+                        "platform",
+                        "login"
+                      ]
+                    }
+                  },
+                  "commands": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "audience": {
+                          "type": "string",
+                          "enum": [
+                            "broadcaster",
+                            "everyone",
+                            "subscriber",
+                            "vip",
+                            "moderator"
+                          ]
+                        },
+                        "cooldownSeconds": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "audience",
+                        "cooldownSeconds"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "organisationId",
+                  "channels",
+                  "commands"
+                ]
+              },
+              "peers": {
+                "type": "object",
+                "properties": {
+                  "peers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "endpointId": {
+                          "type": "string"
+                        },
+                        "allow": {
+                          "type": "object",
+                          "properties": {
+                            "relayed": {
+                              "type": "boolean"
+                            },
+                            "direct": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "relayed",
+                            "direct"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "endpointId",
+                        "allow"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "peers"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "paths": {
+        "/system/spec": {
+          "get": {
+            "operationId": "system.spec",
+            "x-operation-version": 3,
+            "summary": "Read the agent's currently defined spec",
+            "description": "With `probes`: the cameras it asks whether they are there. From this version an exposure is one path: no path names a rendition, and each of `streams`'s `publishers` names the one `path` it publishes; and `relayTraffic` names the exposures it covers without publishing them, which it watches on the relay (`watched`).",
+            "responses": {
+              "200": {
+                "description": "The current system specification",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/System"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "3"
                 }
               }
             ]

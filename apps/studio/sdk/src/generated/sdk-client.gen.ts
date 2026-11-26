@@ -6,6 +6,7 @@ import type { DeviceAddressReplaceV1Input, DeviceAddressReplaceV1Output } from '
 import type { DeviceConfigurationGetV1Output } from '../versions/deviceConfiguration.get-v1/flat-params.gen.js';
 import type { DeviceConfigurationGetV2Output } from '../versions/deviceConfiguration.get-v2/flat-params.gen.js';
 import type { DeviceConfigurationGetV3Output } from '../versions/deviceConfiguration.get-v3/flat-params.gen.js';
+import type { DeviceConfigurationGetV4Output } from '../versions/deviceConfiguration.get-v4/flat-params.gen.js';
 import type { GatewayEndpointReplaceV1Input, GatewayEndpointReplaceV1Output } from '../versions/gatewayEndpoints.replace-v1/flat-params.gen.js';
 import type { InvitationAcceptV1Input, InvitationAcceptV1Output } from '../versions/invitations.accept-v1/flat-params.gen.js';
 import type { InvitationDeclineV1Input, InvitationDeclineV1Output } from '../versions/invitations.decline-v1/flat-params.gen.js';
@@ -43,12 +44,16 @@ import type { StatGetV1Input, StatGetV1Output } from '../versions/organisations.
 import type { TwitchAuthorizeV1Input, TwitchAuthorizeV1Output } from '../versions/organisations.channels.twitch.authorize-v1/flat-params.gen.js';
 import type { ChannelUpdateV1Input, ChannelUpdateV1Output } from '../versions/organisations.channels.update-v1/flat-params.gen.js';
 import type { ChatCommandCreateV1Input, ChatCommandCreateV1Output } from '../versions/organisations.chatCommands.create-v1/flat-params.gen.js';
+import type { ChatCommandCreateV2Input, ChatCommandCreateV2Output } from '../versions/organisations.chatCommands.create-v2/flat-params.gen.js';
 import type { ChatCommandDeleteV1Input, ChatCommandDeleteV1Output } from '../versions/organisations.chatCommands.delete-v1/flat-params.gen.js';
 import type { ChatCommandGetV1Input, ChatCommandGetV1Output } from '../versions/organisations.chatCommands.get-v1/flat-params.gen.js';
+import type { ChatCommandGetV2Input, ChatCommandGetV2Output } from '../versions/organisations.chatCommands.get-v2/flat-params.gen.js';
 import type { ChatCommandListV1Input, ChatCommandListV1Output } from '../versions/organisations.chatCommands.list-v1/flat-params.gen.js';
+import type { ChatCommandListV2Input, ChatCommandListV2Output } from '../versions/organisations.chatCommands.list-v2/flat-params.gen.js';
 import type { ChatCommandSettleV1Input, ChatCommandSettleV1Output } from '../versions/organisations.chatCommands.settle-v1/flat-params.gen.js';
 import type { ChatCommandTriggerV1Input, ChatCommandTriggerV1Output } from '../versions/organisations.chatCommands.trigger-v1/flat-params.gen.js';
 import type { ChatCommandUpdateV1Input, ChatCommandUpdateV1Output } from '../versions/organisations.chatCommands.update-v1/flat-params.gen.js';
+import type { ChatCommandUpdateV2Input, ChatCommandUpdateV2Output } from '../versions/organisations.chatCommands.update-v2/flat-params.gen.js';
 import type { OrganisationCreateV1Input, OrganisationCreateV1Output } from '../versions/organisations.create-v1/flat-params.gen.js';
 import type { OrganisationDeleteV1Input, OrganisationDeleteV1Output } from '../versions/organisations.delete-v1/flat-params.gen.js';
 import type { DeviceAllowlistV1Input, DeviceAllowlistV1Output } from '../versions/organisations.devices.allowlist-v1/flat-params.gen.js';
@@ -71,9 +76,11 @@ import type { InvitationCreateV1Input, InvitationCreateV1Output } from '../versi
 import type { InvitationListV1Input, InvitationListV1Output } from '../versions/organisations.invitations.list-v1/flat-params.gen.js';
 import type { OrganisationListV1Output } from '../versions/organisations.list-v1/flat-params.gen.js';
 import type { MemberGrantAdminV1Input, MemberGrantAdminV1Output } from '../versions/organisations.members.grantAdmin-v1/flat-params.gen.js';
+import type { MemberGrantPublisherV1Input, MemberGrantPublisherV1Output } from '../versions/organisations.members.grantPublisher-v1/flat-params.gen.js';
 import type { MemberListV1Input, MemberListV1Output } from '../versions/organisations.members.list-v1/flat-params.gen.js';
 import type { MemberRemoveV1Input, MemberRemoveV1Output } from '../versions/organisations.members.remove-v1/flat-params.gen.js';
 import type { MemberRevokeAdminV1Input, MemberRevokeAdminV1Output } from '../versions/organisations.members.revokeAdmin-v1/flat-params.gen.js';
+import type { MemberRevokePublisherV1Input, MemberRevokePublisherV1Output } from '../versions/organisations.members.revokePublisher-v1/flat-params.gen.js';
 import type { MemberUpdateSelfV1Input, MemberUpdateSelfV1Output } from '../versions/organisations.members.updateSelf-v1/flat-params.gen.js';
 import type { NetworkCreateV1Input, NetworkCreateV1Output } from '../versions/organisations.networks.create-v1/flat-params.gen.js';
 import type { NetworkDeleteV1Input, NetworkDeleteV1Output } from '../versions/organisations.networks.delete-v1/flat-params.gen.js';
@@ -84,6 +91,7 @@ import type { NetworkUpdateV1Input, NetworkUpdateV1Output } from '../versions/or
 import type { ControlGetV1Input, ControlGetV1Output } from '../versions/organisations.outputs.control.get-v1/flat-params.gen.js';
 import type { ControlReportV1Input, ControlReportV1Output } from '../versions/organisations.outputs.control.report-v1/flat-params.gen.js';
 import type { OutputCreateV1Input, OutputCreateV1Output } from '../versions/organisations.outputs.create-v1/flat-params.gen.js';
+import type { OutputCreateV2Input, OutputCreateV2Output } from '../versions/organisations.outputs.create-v2/flat-params.gen.js';
 import type { OutputCreateRecorderV1Input, OutputCreateRecorderV1Output } from '../versions/organisations.outputs.createRecorder-v1/flat-params.gen.js';
 import type { OutputDeleteV1Input, OutputDeleteV1Output } from '../versions/organisations.outputs.delete-v1/flat-params.gen.js';
 import type { OutputDeleteDeviceV1Input, OutputDeleteDeviceV1Output } from '../versions/organisations.outputs.deleteDevice-v1/flat-params.gen.js';
@@ -92,32 +100,56 @@ import type { ForwardCreateV1Input, ForwardCreateV1Output } from '../versions/or
 import type { ForwardDeleteV1Input, ForwardDeleteV1Output } from '../versions/organisations.outputs.forwards.delete-v1/flat-params.gen.js';
 import type { ForwardUpdateV1Input, ForwardUpdateV1Output } from '../versions/organisations.outputs.forwards.update-v1/flat-params.gen.js';
 import type { OutputGetV1Input, OutputGetV1Output } from '../versions/organisations.outputs.get-v1/flat-params.gen.js';
+import type { OutputGetV2Input, OutputGetV2Output } from '../versions/organisations.outputs.get-v2/flat-params.gen.js';
 import type { OutputGetDeviceV1Input, OutputGetDeviceV1Output } from '../versions/organisations.outputs.getDevice-v1/flat-params.gen.js';
 import type { OutputListV1Input, OutputListV1Output } from '../versions/organisations.outputs.list-v1/flat-params.gen.js';
+import type { OutputListV2Input, OutputListV2Output } from '../versions/organisations.outputs.list-v2/flat-params.gen.js';
 import type { PreviewConnectV1Input, PreviewConnectV1Output } from '../versions/organisations.outputs.previews.connect-v1/flat-params.gen.js';
+import type { PreviewConnectV2Input, PreviewConnectV2Output } from '../versions/organisations.outputs.previews.connect-v2/flat-params.gen.js';
 import type { PreviewCreateV1Input, PreviewCreateV1Output } from '../versions/organisations.outputs.previews.create-v1/flat-params.gen.js';
 import type { PreviewDeleteV1Input, PreviewDeleteV1Output } from '../versions/organisations.outputs.previews.delete-v1/flat-params.gen.js';
 import type { OutputSetDeviceV1Input, OutputSetDeviceV1Output } from '../versions/organisations.outputs.setDevice-v1/flat-params.gen.js';
 import type { OutputUpdateV1Input, OutputUpdateV1Output } from '../versions/organisations.outputs.update-v1/flat-params.gen.js';
+import type { OutputUpdateV2Input, OutputUpdateV2Output } from '../versions/organisations.outputs.update-v2/flat-params.gen.js';
 import type { OutputUpdateRecorderV1Input, OutputUpdateRecorderV1Output } from '../versions/organisations.outputs.updateRecorder-v1/flat-params.gen.js';
+import type { ControlUpdateV1Input, ControlUpdateV1Output } from '../versions/organisations.shows.controls.update-v1/flat-params.gen.js';
 import type { ShowCreateV1Input, ShowCreateV1Output } from '../versions/organisations.shows.create-v1/flat-params.gen.js';
 import type { ShowDeleteV1Input, ShowDeleteV1Output } from '../versions/organisations.shows.delete-v1/flat-params.gen.js';
 import type { ShowGetV1Input, ShowGetV1Output } from '../versions/organisations.shows.get-v1/flat-params.gen.js';
+import type { ShowGetV2Input, ShowGetV2Output } from '../versions/organisations.shows.get-v2/flat-params.gen.js';
+import type { LineupSwapV1Input, LineupSwapV1Output } from '../versions/organisations.shows.lineup.swap-v1/flat-params.gen.js';
 import type { ShowListV1Input, ShowListV1Output } from '../versions/organisations.shows.list-v1/flat-params.gen.js';
+import type { ShowListV2Input, ShowListV2Output } from '../versions/organisations.shows.list-v2/flat-params.gen.js';
+import type { StreamMixV1Input, StreamMixV1Output } from '../versions/organisations.shows.streams.mix-v1/flat-params.gen.js';
 import type { ShowUpdateV1Input, ShowUpdateV1Output } from '../versions/organisations.shows.update-v1/flat-params.gen.js';
 import type { StatusGetV1Input, StatusGetV1Output } from '../versions/organisations.status.get-v1/flat-params.gen.js';
+import type { StreamConnectV1Input, StreamConnectV1Output } from '../versions/organisations.streams.connect-v1/flat-params.gen.js';
 import type { StreamCreateV1Input, StreamCreateV1Output } from '../versions/organisations.streams.create-v1/flat-params.gen.js';
+import type { StreamCreateV2Input, StreamCreateV2Output } from '../versions/organisations.streams.create-v2/flat-params.gen.js';
 import type { StreamDeleteV1Input, StreamDeleteV1Output } from '../versions/organisations.streams.delete-v1/flat-params.gen.js';
+import type { EncoderEnsureV1Input, EncoderEnsureV1Output } from '../versions/organisations.streams.encoder.ensure-v1/flat-params.gen.js';
 import type { ExposureConnectV1Input, ExposureConnectV1Output } from '../versions/organisations.streams.exposures.connect-v1/flat-params.gen.js';
+import type { ExposureConnectV2Input, ExposureConnectV2Output } from '../versions/organisations.streams.exposures.connect-v2/flat-params.gen.js';
 import type { ExposureCreateV1Input, ExposureCreateV1Output } from '../versions/organisations.streams.exposures.create-v1/flat-params.gen.js';
+import type { ExposureCreateV2Input, ExposureCreateV2Output } from '../versions/organisations.streams.exposures.create-v2/flat-params.gen.js';
 import type { ExposureDeleteV1Input, ExposureDeleteV1Output } from '../versions/organisations.streams.exposures.delete-v1/flat-params.gen.js';
 import type { ExposureUpdateV1Input, ExposureUpdateV1Output } from '../versions/organisations.streams.exposures.update-v1/flat-params.gen.js';
+import type { ExposureUpdateV2Input, ExposureUpdateV2Output } from '../versions/organisations.streams.exposures.update-v2/flat-params.gen.js';
 import type { StreamGetV1Input, StreamGetV1Output } from '../versions/organisations.streams.get-v1/flat-params.gen.js';
+import type { StreamGetV2Input, StreamGetV2Output } from '../versions/organisations.streams.get-v2/flat-params.gen.js';
+import type { KeyDeleteV1Input, KeyDeleteV1Output } from '../versions/organisations.streams.key.delete-v1/flat-params.gen.js';
+import type { KeyReplaceV1Input, KeyReplaceV1Output } from '../versions/organisations.streams.key.replace-v1/flat-params.gen.js';
 import type { StreamListV1Input, StreamListV1Output } from '../versions/organisations.streams.list-v1/flat-params.gen.js';
+import type { StreamListV2Input, StreamListV2Output } from '../versions/organisations.streams.list-v2/flat-params.gen.js';
+import type { LiveListV1Input, LiveListV1Output } from '../versions/organisations.streams.live.list-v1/flat-params.gen.js';
+import type { PersonalEnsureV1Input, PersonalEnsureV1Output } from '../versions/organisations.streams.personal.ensure-v1/flat-params.gen.js';
 import type { RecorderCreateV1Input, RecorderCreateV1Output } from '../versions/organisations.streams.recorders.create-v1/flat-params.gen.js';
+import type { RecorderCreateV2Input, RecorderCreateV2Output } from '../versions/organisations.streams.recorders.create-v2/flat-params.gen.js';
 import type { RecorderDeleteV1Input, RecorderDeleteV1Output } from '../versions/organisations.streams.recorders.delete-v1/flat-params.gen.js';
 import type { RecorderUpdateV1Input, RecorderUpdateV1Output } from '../versions/organisations.streams.recorders.update-v1/flat-params.gen.js';
+import type { RecorderUpdateV2Input, RecorderUpdateV2Output } from '../versions/organisations.streams.recorders.update-v2/flat-params.gen.js';
 import type { StreamUpdateV1Input, StreamUpdateV1Output } from '../versions/organisations.streams.update-v1/flat-params.gen.js';
+import type { StreamUpdateV2Input, StreamUpdateV2Output } from '../versions/organisations.streams.update-v2/flat-params.gen.js';
 import type { LogListV1Input, LogListV1Output } from '../versions/organisations.subjects.logs.list-v1/flat-params.gen.js';
 import type { MetricGetV1Input, MetricGetV1Output } from '../versions/organisations.subjects.metrics.get-v1/flat-params.gen.js';
 import type { MetricListV1Input, MetricListV1Output } from '../versions/organisations.subjects.metrics.list-v1/flat-params.gen.js';
@@ -166,6 +198,10 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/shows',
                     fields: [{ in: 'path', key: 'id' }]
+                }), v2: operation<ShowListV2Output, ShowListV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/shows',
+                    fields: [{ in: 'path', key: 'id' }]
                 }) }),
             create: this.versioned('organisations.shows.create', { v1: operation<ShowCreateV1Output, ShowCreateV1Input>({
                     method: 'POST',
@@ -173,6 +209,10 @@ export class Client extends ClientCore {
                     fields: [{ in: 'path', key: 'id' }, { in: 'body', key: 'name' }]
                 }) }),
             get: this.versioned('organisations.shows.get', { v1: operation<ShowGetV1Output, ShowGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/shows/{showId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
+                }), v2: operation<ShowGetV2Output, ShowGetV2Input>({
                     method: 'GET',
                     url: '/organisations/{id}/shows/{showId}',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'showId' }]
@@ -186,6 +226,48 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'name' }
                     ]
                 }) }),
+            controls: {
+                update: this.versioned('organisations.shows.controls.update', { v1: operation<ControlUpdateV1Output, ControlUpdateV1Input>({
+                        method: 'PATCH',
+                        url: '/organisations/{id}/shows/{showId}/controls',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'showId' },
+                            { in: 'body', key: 'slots' },
+                            { in: 'body', key: 'volumeDb' },
+                            { in: 'body', key: 'muted' },
+                            { in: 'body', key: 'takeoverStreamId' },
+                            { in: 'body', key: 'takeoverLive' }
+                        ]
+                    }) })
+            },
+            lineup: {
+                swap: this.versioned('organisations.shows.lineup.swap', { v1: operation<LineupSwapV1Output, LineupSwapV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/shows/{showId}/lineup/swap',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'showId' },
+                            { in: 'body', key: 'a' },
+                            { in: 'body', key: 'b' }
+                        ]
+                    }) })
+            },
+            streams: {
+                mix: this.versioned('organisations.shows.streams.mix', { v1: operation<StreamMixV1Output, StreamMixV1Input>({
+                        method: 'PATCH',
+                        url: '/organisations/{id}/shows/{showId}/streams/{streamId}',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'showId' },
+                            { in: 'path', key: 'streamId' },
+                            { in: 'body', key: 'volumeDb' },
+                            { in: 'body', key: 'muted' },
+                            { in: 'body', key: 'syncOffsetMs' },
+                            { in: 'body', key: 'audioStreamId' }
+                        ]
+                    }) })
+            },
             delete: this.versioned('organisations.shows.delete', { v1: operation<ShowDeleteV1Output, ShowDeleteV1Input>({
                     method: 'DELETE',
                     url: '/organisations/{id}/shows/{showId}',
@@ -237,6 +319,16 @@ export class Client extends ClientCore {
             revokeAdmin: this.versioned('organisations.members.revokeAdmin', { v1: operation<MemberRevokeAdminV1Output, MemberRevokeAdminV1Input>({
                     method: 'DELETE',
                     url: '/organisations/{id}/members/{userId}/admin',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'userId' }]
+                }) }),
+            grantPublisher: this.versioned('organisations.members.grantPublisher', { v1: operation<MemberGrantPublisherV1Output, MemberGrantPublisherV1Input>({
+                    method: 'PUT',
+                    url: '/organisations/{id}/members/{userId}/publisher',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'userId' }]
+                }) }),
+            revokePublisher: this.versioned('organisations.members.revokePublisher', { v1: operation<MemberRevokePublisherV1Output, MemberRevokePublisherV1Input>({
+                    method: 'DELETE',
+                    url: '/organisations/{id}/members/{userId}/publisher',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'userId' }]
                 }) })
         },
@@ -583,7 +675,18 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/streams',
                     fields: [{ in: 'path', key: 'id' }]
+                }), v2: operation<StreamListV2Output, StreamListV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/streams',
+                    fields: [{ in: 'path', key: 'id' }]
                 }) }),
+            live: {
+                list: this.versioned('organisations.streams.live.list', { v1: operation<LiveListV1Output, LiveListV1Input>({
+                        method: 'GET',
+                        url: '/organisations/{id}/streams/live',
+                        fields: [{ in: 'path', key: 'id' }]
+                    }) })
+            },
             create: this.versioned('organisations.streams.create', { v1: operation<StreamCreateV1Output, StreamCreateV1Input>({
                     method: 'POST',
                     url: '/organisations/{id}/streams',
@@ -592,8 +695,28 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'name' },
                         { in: 'body', key: 'sourceDeviceId' }
                     ]
+                }), v2: operation<StreamCreateV2Output, StreamCreateV2Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/streams',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'code' },
+                        { in: 'body', key: 'sourceDeviceId' }
+                    ]
                 }) }),
+            personal: {
+                ensure: this.versioned('organisations.streams.personal.ensure', { v1: operation<PersonalEnsureV1Output, PersonalEnsureV1Input>({
+                        method: 'PUT',
+                        url: '/organisations/{id}/streams/personal/{device}',
+                        fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'device' }]
+                    }) })
+            },
             get: this.versioned('organisations.streams.get', { v1: operation<StreamGetV1Output, StreamGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/streams/{streamId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'streamId' }]
+                }), v2: operation<StreamGetV2Output, StreamGetV2Input>({
                     method: 'GET',
                     url: '/organisations/{id}/streams/{streamId}',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'streamId' }]
@@ -607,7 +730,51 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'name' },
                         { in: 'body', key: 'sourceDeviceId' }
                     ]
+                }), v2: operation<StreamUpdateV2Output, StreamUpdateV2Input>({
+                    method: 'PATCH',
+                    url: '/organisations/{id}/streams/{streamId}',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'streamId' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'code' },
+                        { in: 'body', key: 'sourceDeviceId' }
+                    ]
                 }) }),
+            connect: this.versioned('organisations.streams.connect', { v1: operation<StreamConnectV1Output, StreamConnectV1Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/streams/{streamId}/connections',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'streamId' },
+                        { in: 'body', key: 'protocols' },
+                        { in: 'body', key: 'action' },
+                        { in: 'body', key: 'networkId' }
+                    ]
+                }) }),
+            encoder: {
+                ensure: this.versioned('organisations.streams.encoder.ensure', { v1: operation<EncoderEnsureV1Output, EncoderEnsureV1Input>({
+                        method: 'PUT',
+                        url: '/organisations/{id}/streams/{streamId}/encoder',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'streamId' },
+                            { in: 'body', key: 'networkId' }
+                        ]
+                    }) })
+            },
+            key: {
+                replace: this.versioned('organisations.streams.key.replace', { v1: operation<KeyReplaceV1Output, KeyReplaceV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/streams/{streamId}/key',
+                        fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'streamId' }]
+                    }) }),
+                delete: this.versioned('organisations.streams.key.delete', { v1: operation<KeyDeleteV1Output, KeyDeleteV1Input>({
+                        method: 'DELETE',
+                        url: '/organisations/{id}/streams/{streamId}/key',
+                        fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'streamId' }]
+                    }) })
+            },
             delete: this.versioned('organisations.streams.delete', { v1: operation<StreamDeleteV1Output, StreamDeleteV1Input>({
                     method: 'DELETE',
                     url: '/organisations/{id}/streams/{streamId}',
@@ -626,6 +793,17 @@ export class Client extends ClientCore {
                             { in: 'body', key: 'upstreamExposureId' },
                             { in: 'body', key: 'params' }
                         ]
+                    }), v2: operation<ExposureCreateV2Output, ExposureCreateV2Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/streams/{streamId}/exposures',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'streamId' },
+                            { in: 'body', key: 'gatewayId' },
+                            { in: 'body', key: 'publisherDeviceId' },
+                            { in: 'body', key: 'upstreamExposureId' },
+                            { in: 'body', key: 'params' }
+                        ]
                     }) }),
                 update: this.versioned('organisations.streams.exposures.update', { v1: operation<ExposureUpdateV1Output, ExposureUpdateV1Input>({
                         method: 'PATCH',
@@ -636,6 +814,18 @@ export class Client extends ClientCore {
                             { in: 'path', key: 'exposureId' },
                             { in: 'body', key: 'gatewayId' },
                             { in: 'body', key: 'renditions' },
+                            { in: 'body', key: 'publisherDeviceId' },
+                            { in: 'body', key: 'upstreamExposureId' },
+                            { in: 'body', key: 'params' }
+                        ]
+                    }), v2: operation<ExposureUpdateV2Output, ExposureUpdateV2Input>({
+                        method: 'PATCH',
+                        url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'streamId' },
+                            { in: 'path', key: 'exposureId' },
+                            { in: 'body', key: 'gatewayId' },
                             { in: 'body', key: 'publisherDeviceId' },
                             { in: 'body', key: 'upstreamExposureId' },
                             { in: 'body', key: 'params' }
@@ -661,6 +851,16 @@ export class Client extends ClientCore {
                             { in: 'body', key: 'protocol' },
                             { in: 'body', key: 'rendition' }
                         ]
+                    }), v2: operation<ExposureConnectV2Output, ExposureConnectV2Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/streams/{streamId}/exposures/{exposureId}/connections',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'streamId' },
+                            { in: 'path', key: 'exposureId' },
+                            { in: 'body', key: 'action' },
+                            { in: 'body', key: 'protocol' }
+                        ]
                     }) })
             },
             recorders: {
@@ -675,6 +875,16 @@ export class Client extends ClientCore {
                             { in: 'body', key: 'kind' },
                             { in: 'body', key: 'params' }
                         ]
+                    }), v2: operation<RecorderCreateV2Output, RecorderCreateV2Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/streams/{streamId}/recorders',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'streamId' },
+                            { in: 'body', key: 'exposureId' },
+                            { in: 'body', key: 'kind' },
+                            { in: 'body', key: 'params' }
+                        ]
                     }) }),
                 update: this.versioned('organisations.streams.recorders.update', { v1: operation<RecorderUpdateV1Output, RecorderUpdateV1Input>({
                         method: 'PATCH',
@@ -685,6 +895,17 @@ export class Client extends ClientCore {
                             { in: 'path', key: 'recorderId' },
                             { in: 'body', key: 'exposureId' },
                             { in: 'body', key: 'rendition' },
+                            { in: 'body', key: 'kind' },
+                            { in: 'body', key: 'params' }
+                        ]
+                    }), v2: operation<RecorderUpdateV2Output, RecorderUpdateV2Input>({
+                        method: 'PATCH',
+                        url: '/organisations/{id}/streams/{streamId}/recorders/{recorderId}',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'streamId' },
+                            { in: 'path', key: 'recorderId' },
+                            { in: 'body', key: 'exposureId' },
                             { in: 'body', key: 'kind' },
                             { in: 'body', key: 'params' }
                         ]
@@ -817,6 +1038,10 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/outputs',
                     fields: [{ in: 'path', key: 'id' }]
+                }), v2: operation<OutputListV2Output, OutputListV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/outputs',
+                    fields: [{ in: 'path', key: 'id' }]
                 }) }),
             create: this.versioned('organisations.outputs.create', { v1: operation<OutputCreateV1Output, OutputCreateV1Input>({
                     method: 'POST',
@@ -832,8 +1057,27 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'bitrateKbps' },
                         { in: 'body', key: 'keyframeSeconds' }
                     ]
+                }), v2: operation<OutputCreateV2Output, OutputCreateV2Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/outputs',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'control' },
+                        { in: 'body', key: 'showId' },
+                        { in: 'body', key: 'inputGatewayId' },
+                        { in: 'body', key: 'width' },
+                        { in: 'body', key: 'height' },
+                        { in: 'body', key: 'fps' },
+                        { in: 'body', key: 'bitrateKbps' },
+                        { in: 'body', key: 'keyframeSeconds' }
+                    ]
                 }) }),
             get: this.versioned('organisations.outputs.get', { v1: operation<OutputGetV1Output, OutputGetV1Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/outputs/{outputId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'outputId' }]
+                }), v2: operation<OutputGetV2Output, OutputGetV2Input>({
                     method: 'GET',
                     url: '/organisations/{id}/outputs/{outputId}',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'outputId' }]
@@ -847,6 +1091,22 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'name' },
                         { in: 'body', key: 'control' },
                         { in: 'body', key: 'showId' },
+                        { in: 'body', key: 'width' },
+                        { in: 'body', key: 'height' },
+                        { in: 'body', key: 'fps' },
+                        { in: 'body', key: 'bitrateKbps' },
+                        { in: 'body', key: 'keyframeSeconds' }
+                    ]
+                }), v2: operation<OutputUpdateV2Output, OutputUpdateV2Input>({
+                    method: 'PATCH',
+                    url: '/organisations/{id}/outputs/{outputId}',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'outputId' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'control' },
+                        { in: 'body', key: 'showId' },
+                        { in: 'body', key: 'inputGatewayId' },
                         { in: 'body', key: 'width' },
                         { in: 'body', key: 'height' },
                         { in: 'body', key: 'fps' },
@@ -958,6 +1218,16 @@ export class Client extends ClientCore {
                             { in: 'body', key: 'protocol' },
                             { in: 'body', key: 'rendition' }
                         ]
+                    }), v2: operation<PreviewConnectV2Output, PreviewConnectV2Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/outputs/{outputId}/previews/{previewId}/connections',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'outputId' },
+                            { in: 'path', key: 'previewId' },
+                            { in: 'body', key: 'action' },
+                            { in: 'body', key: 'protocol' }
+                        ]
                     }) })
             },
             createRecorder: this.versioned('organisations.outputs.createRecorder', { v1: operation<OutputCreateRecorderV1Output, OutputCreateRecorderV1Input>({
@@ -1051,8 +1321,23 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/chat-commands',
                     fields: [{ in: 'path', key: 'id' }]
+                }), v2: operation<ChatCommandListV2Output, ChatCommandListV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/chat-commands',
+                    fields: [{ in: 'path', key: 'id' }]
                 }) }),
             create: this.versioned('organisations.chatCommands.create', { v1: operation<ChatCommandCreateV1Output, ChatCommandCreateV1Input>({
+                    method: 'POST',
+                    url: '/organisations/{id}/chat-commands',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'action' },
+                        { in: 'body', key: 'audience' },
+                        { in: 'body', key: 'cooldownSeconds' },
+                        { in: 'body', key: 'enabled' }
+                    ]
+                }), v2: operation<ChatCommandCreateV2Output, ChatCommandCreateV2Input>({
                     method: 'POST',
                     url: '/organisations/{id}/chat-commands',
                     fields: [
@@ -1068,8 +1353,24 @@ export class Client extends ClientCore {
                     method: 'GET',
                     url: '/organisations/{id}/chat-commands/{commandId}',
                     fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'commandId' }]
+                }), v2: operation<ChatCommandGetV2Output, ChatCommandGetV2Input>({
+                    method: 'GET',
+                    url: '/organisations/{id}/chat-commands/{commandId}',
+                    fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'commandId' }]
                 }) }),
             update: this.versioned('organisations.chatCommands.update', { v1: operation<ChatCommandUpdateV1Output, ChatCommandUpdateV1Input>({
+                    method: 'PATCH',
+                    url: '/organisations/{id}/chat-commands/{commandId}',
+                    fields: [
+                        { in: 'path', key: 'id' },
+                        { in: 'path', key: 'commandId' },
+                        { in: 'body', key: 'name' },
+                        { in: 'body', key: 'action' },
+                        { in: 'body', key: 'audience' },
+                        { in: 'body', key: 'cooldownSeconds' },
+                        { in: 'body', key: 'enabled' }
+                    ]
+                }), v2: operation<ChatCommandUpdateV2Output, ChatCommandUpdateV2Input>({
                     method: 'PATCH',
                     url: '/organisations/{id}/chat-commands/{commandId}',
                     fields: [
@@ -1155,7 +1456,8 @@ export class Client extends ClientCore {
         get: this.versioned('deviceConfiguration.get', {
             v1: operation<DeviceConfigurationGetV1Output>({ method: 'GET', url: '/device-configuration' }),
             v2: operation<DeviceConfigurationGetV2Output>({ method: 'GET', url: '/device-configuration' }),
-            v3: operation<DeviceConfigurationGetV3Output>({ method: 'GET', url: '/device-configuration' })
+            v3: operation<DeviceConfigurationGetV3Output>({ method: 'GET', url: '/device-configuration' }),
+            v4: operation<DeviceConfigurationGetV4Output>({ method: 'GET', url: '/device-configuration' })
         })
     };
     readonly deviceAddresses = {
