@@ -119,15 +119,52 @@ function reportedOf(device: AuthenticatedDevice, batch: Batch): Reported {
   return { organisationId: device.organisationId, reporterId: deviceSubject(device.id), subjects };
 }
 
-function storeBatch(device: AuthenticatedDevice, batch: Batch) {
+/** The series a batch's metrics belong to, as it names them: one per metric, repeats and all. */
+function seriesOf(device: AuthenticatedDevice, batch: Batch) {
+  const organisationId = device.organisationId;
+  const reporterId = deviceSubject(device.id);
+  const metrics = batch.reports.filter(report => report.kind === 'metric');
+  return metrics.map(({ subjectId, payload: { name, unit, dimensions } }) => ({
+    organisationId,
+    reporterId,
+    subjectId,
+    name,
+    unit,
+    dimensions
+  }));
+}
+
+/**
+ * Make the series the batch names that do not exist yet, in a transaction of their own, committed before any point is
+ * stored. `metric_point` is a hypertable with a foreign key to `metric_series`: the first point of a day makes the
+ * day's chunk, which locks `metric_point` and then `metric_series` more strongly than an insert into it does. Two
+ * batches that each held their own series insert while making that chunk waited on each other, and one was killed
+ * (deadlock, 40P01). With the series committed first, neither holds anything on `metric_series` by then. A series left
+ * behind by a batch whose points then fail is harmless: the next batch finds it.
+ */
+async function storeSeries(device: AuthenticatedDevice, batch: Batch) {
+  const series = seriesOf(device, batch);
+  if (series.length === 0) return;
+  await trustedTransaction(
+    async () => {
+      const db = useDB({ trusted: true });
+      await db.insert(metricSeries).values(series).onConflictDoNothing();
+    },
+    { name: 'reports.series' }
+  );
+}
+
+async function storeBatch(device: AuthenticatedDevice, batch: Batch) {
+  // Refuse the whole batch if any report is from the future, before anything of it is stored.
+  const environment = useEnvironment();
+  const now = environment.clock();
+  if (batch.reports.some(report => Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS))
+    throw new ApiFailure('invalid_report');
+  await storeSeries(device, batch);
   return trustedTransaction(
     async () => {
       const db = useDB({ trusted: true });
-      // Refuse the whole batch if any report is from the future, then store each kind with one insert.
-      const environment = useEnvironment();
-      const now = environment.clock();
-      if (batch.reports.some(report => Date.parse(report.observedAt) > now + MAX_CLOCK_SKEW_MS))
-        throw new ApiFailure('invalid_report');
+      // Each kind with one insert.
 
       const reported = (report: EventReport | MetricReport | LogReport) => ({
         organisationId: device.organisationId,
@@ -145,19 +182,10 @@ function storeBatch(device: AuthenticatedDevice, batch: Batch) {
             events.map(report => ({ ...reported(report), type: report.payload.type, data: report.payload.data }))
           );
       if (metrics.length > 0) {
-        // Make the series the batch names that do not exist yet, then look every one of them up: a series another
-        // batch made meanwhile is skipped by the first statement, and seen by the second.
+        // Look up every series the batch names: each exists by now (`storeSeries`), made by this batch or another.
         const organisationId = device.organisationId;
         const reporterId = deviceSubject(device.id);
-        const series = metrics.map(({ subjectId, payload: { name, unit, dimensions } }) => ({
-          organisationId,
-          reporterId,
-          subjectId,
-          name,
-          unit,
-          dimensions
-        }));
-        await db.insert(metricSeries).values(series).onConflictDoNothing();
+        const series = seriesOf(device, batch);
         const subjectIds = [...new Set(series.map(({ subjectId }) => subjectId))];
         const names = [...new Set(series.map(({ name }) => name))];
         const known = await db
