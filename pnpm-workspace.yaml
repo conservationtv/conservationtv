@@ -81,6 +81,6 @@ minimumReleaseAgeExclude:
   - '@strangecyan/iroh-http-browser@0.4.0'
   - '@strangecyan/iroh-http-core@0.4.0'
   - '@strangecyan/iroh-http-node@0.4.0'
-  - '@strangecyan/vignette@3.1.0'
+  - '@strangecyan/vignette@3.1.1'
   - drizzle-kit@1.0.0-rc.6
   - drizzle-orm@1.0.0-rc.6
