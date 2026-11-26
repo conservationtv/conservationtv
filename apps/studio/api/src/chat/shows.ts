@@ -69,10 +69,11 @@ function streamCalled(facts: ShowFacts, word: string, cameras: readonly NamedCam
   return onlyOne(calledIn(facts.streams, word, namesOf), noun);
 }
 
-/** Why a stream is not in the lineup, in words: undefined while it is. */
+/** Why a stream cannot be swapped, in words: undefined while it is in the lineup or on standby. */
 function whyNotInLineup(stream: StreamFact, facts: ShowFacts): string | undefined {
-  const absence = absenceOf(stream, facts.cameras);
+  const absence = absenceOf(stream, facts);
   if (absence === null) return undefined;
+  if (absence === undefined && stream.sourceDeviceId === null) return `${stream.name} isn't live.`;
   if (absence === undefined) return `${stream.name} isn't one of the cameras.`;
   if (absence === 'undelivered') return `${stream.name} isn't being delivered.`;
   return `${stream.name} is switched off.`;
@@ -104,7 +105,7 @@ export function planShowSwap(
   const b = lineupStream(facts, second, cameras);
   if ('reply' in b) return b;
   if (a.id === b.id) return unresolved('Those are the same camera.');
-  // Both are in the lineup, so they swap.
+  // Each is in the lineup or on standby, so they swap.
   const changes = swapped(facts, { streamId: a.id }, { streamId: b.id }) ?? [];
   return { ok: true, change: { kind: 'ranks', changes }, reply: `Swapped ${a.name} and ${b.name}.` };
 }
@@ -124,7 +125,7 @@ export function planShowTakeover(
   const facts = normalised(show);
   const stream = streamCalled(facts, word, cameras, 'stream');
   if ('reply' in stream) return stream;
-  const absence = absenceOf(stream, facts.cameras);
+  const absence = absenceOf(stream, facts);
   // A camera that is switched off is off every screen, a takeover's too.
   if (absence === 'locked' || absence === 'disabled') return unresolved(`${stream.name} is switched off.`);
   return {

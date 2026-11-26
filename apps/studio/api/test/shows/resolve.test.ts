@@ -82,7 +82,7 @@ describe('normalising the lineup', () => {
     ]);
   });
 
-  it('never puts a stream whose source is no camera in the lineup', () => {
+  it('never puts a pushed stream nobody publishes in the lineup', () => {
     const phone: StreamFact = { id: 'phone', name: 'phone', code: null, sourceDeviceId: null, exposures: [] };
     const normal = normalised(facts({ streams: [...facts().streams, phone] }));
     expect(ids(lineupOf(normal))).toEqual(['a', 'b', 'c']);
@@ -112,6 +112,89 @@ describe('swapping', () => {
     expect(swapped(normal, { position: 1 }, { position: 4 })).toBeUndefined();
     expect(swapped(normal, { streamId: 'nowhere' }, { position: 1 })).toBeUndefined();
     expect(swapped(normal, { streamId: 'a' }, { position: 1 })).toEqual([]);
+  });
+});
+
+/** A pushed stream (a phone going live), with one delivery at conservation.tv. */
+function phoneStream(id = 'phone'): StreamFact {
+  return {
+    id,
+    name: id,
+    code: null,
+    sourceDeviceId: null,
+    exposures: [{ id: `${id}-exposure`, gatewayId: 'conservationtv' }]
+  };
+}
+
+/** The state of a stream's delivery as health has it: `active` while someone publishes it. */
+function deliveryState(streamId: string, activity: 'active' | 'idle', freshness: 'fresh' | 'stale' = 'fresh') {
+  return {
+    subjectId: exposureSubject(`${streamId}-exposure`),
+    health: 'healthy' as const,
+    activity,
+    freshness,
+    observedAt: new Date(),
+    state: { findings: [] }
+  };
+}
+
+/** Six slots over the three cameras, and a phone being published. */
+function liveFacts(overrides: Partial<ShowFacts> = {}): ShowFacts {
+  const base = facts();
+  return facts({
+    show: { ...base.show, slots: 6 },
+    streams: [...base.streams, phoneStream()],
+    states: [deliveryState('phone', 'active')],
+    ...overrides
+  });
+}
+
+describe('pushed streams going live', () => {
+  it('waits on standby while published, never on air by itself, even with a slot empty', () => {
+    const live = liveFacts();
+    expect(normalisation(live)).toEqual([]);
+    expect(resolveShow(live).cameras.map(camera => camera.streamId)).toEqual(['a', 'b', 'c']);
+    expect(lineupEntries(live).map(e => [e.streamId, e.position, e.absence])).toEqual([
+      ['a', 1, null],
+      ['b', 2, null],
+      ['c', 3, null],
+      ['phone', null, 'standby']
+    ]);
+  });
+
+  it("goes on air in a camera's place when swapped with it, the camera rejoining at the end", () => {
+    const normal = normalised(liveFacts());
+    const changes = swapped(normal, { streamId: 'phone' }, { streamId: 'a' });
+    expect(changes).toEqual([
+      { streamId: 'phone', rank: 1 },
+      { streamId: 'a', rank: null }
+    ]);
+    const after = normalised(withRanks(normal, changes!));
+    expect(ids(lineupOf(after))).toEqual(['phone', 'b', 'c', 'a']);
+  });
+
+  it('takes the first empty slot when swapped with one', () => {
+    const normal = normalised(liveFacts());
+    const changes = swapped(normal, { streamId: 'phone' }, { position: 5 });
+    expect(changes).toEqual([{ streamId: 'phone', rank: 4 }]);
+    expect(resolveShow(withRanks(normal, changes!)).cameras.map(camera => camera.streamId)).toEqual([
+      'a',
+      'b',
+      'c',
+      'phone'
+    ]);
+    expect(swapped(normal, { streamId: 'phone' }, { position: 7 })).toBeUndefined();
+  });
+
+  it('leaves the lineup once nobody publishes it, or health has stopped saying so, and the rest move up', () => {
+    const on = withRanks(normalised(liveFacts()), [{ streamId: 'phone', rank: 0 }]);
+    expect(ids(lineupOf(on))).toEqual(['phone', 'a', 'b', 'c']);
+    for (const state of [deliveryState('phone', 'idle'), deliveryState('phone', 'active', 'stale')]) {
+      const off = { ...on, states: [state] };
+      expect(normalisation(off)).toEqual([{ streamId: 'phone', rank: null }]);
+      expect(ids(lineupOf(normalised(off)))).toEqual(['a', 'b', 'c']);
+      expect(lineupEntries(off).some(entry => entry.streamId === 'phone')).toBe(false);
+    }
   });
 });
 

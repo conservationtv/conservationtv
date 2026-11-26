@@ -16,7 +16,8 @@ export const LineupSchema = z.object({
         absence: z.enum([
             'locked',
             'disabled',
-            'undelivered'
+            'undelivered',
+            'standby'
         ]).nullable(),
         volumeDb: z.number(),
         muted: z.boolean(),

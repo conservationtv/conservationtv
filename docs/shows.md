@@ -20,22 +20,23 @@ is built, never where state lives. Nobody hands the show's object state: callers
 
 ## Decisions
 
-| Question                         | Decision                                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Where state lives                | The database. The object's copy is a cache, rebuilt from the database whenever it is missing or poked. |
-| A cam locked, disabled, deleted  | Leaves the lineup; the rest move up.                                                                   |
-| A cam unlocked, or a new cam     | Joins at the end, so it never disrupts what is on screen. Swap it in.                                  |
-| Fewer cams than slots            | The layout keeps its shape; the spare slots show the empty card.                                       |
-| A cam never given audio settings | Standard volume (0 dB), not muted.                                                                     |
-| Short codes                      | `stream.code`, at most 4 characters, unique in the organisation.                                       |
-| A cam an output cannot reach     | Keeps its slot and shows its card on that output; the show's controls warn, naming the output.         |
-| Who operates a show              | Any member: slots, order, audio, takeover. Naming and deleting stay with administrators.               |
-| What delivers a stream           | Not the show's business. Each reader resolves its own delivery.                                        |
-| Takeover                         | A mode of the show, not slot one. The grid's state is untouched, and not placed while it is live.      |
-| A takeover that drops            | Holds on its card until someone ends it.                                                               |
-| Sizes                            | No named renditions. Readers say what size they need; a delivery gives the closest it has.             |
-| A stream with no source          | Pushed: its deliveries are plumbing the API makes when someone publishes it, and keeps.                |
-| Who goes live                    | Holders of `streamPublisher`: administrators, and members one lets. It also reads and replaces keys.   |
+| Question                            | Decision                                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Where state lives                   | The database. The object's copy is a cache, rebuilt from the database whenever it is missing or poked. |
+| A cam locked, disabled, deleted     | Leaves the lineup; the rest move up.                                                                   |
+| A cam unlocked, or a new cam        | Joins at the end, so it never disrupts what is on screen. Swap it in.                                  |
+| Someone goes live (a pushed stream) | Waits on standby while published, never on air by itself: swap it in, or put it in an empty slot.      |
+| Fewer cams than slots               | The layout keeps its shape; the spare slots show the empty card.                                       |
+| A cam never given audio settings    | Standard volume (0 dB), not muted.                                                                     |
+| Short codes                         | `stream.code`, at most 4 characters, unique in the organisation.                                       |
+| A cam an output cannot reach        | Keeps its slot and shows its card on that output; the show's controls warn, naming the output.         |
+| Who operates a show                 | Any member: slots, order, audio, takeover. Naming and deleting stay with administrators.               |
+| What delivers a stream              | Not the show's business. Each reader resolves its own delivery.                                        |
+| Takeover                            | A mode of the show, not slot one. The grid's state is untouched, and not placed while it is live.      |
+| A takeover that drops               | Holds on its card until someone ends it.                                                               |
+| Sizes                               | No named renditions. Readers say what size they need; a delivery gives the closest it has.             |
+| A stream with no source             | Pushed: its deliveries are plumbing the API makes when someone publishes it, and keeps.                |
+| Who goes live                       | Holders of `streamPublisher`: administrators, and members one lets. It also reads and replaces keys.   |
 
 ## Data
 
@@ -70,24 +71,37 @@ is built, never where state lives. Nobody hands the show's object state: callers
 
 ## The lineup
 
-The **lineup** is the show's cameras in order. A stream is in it while its source is a camera whose state is
-`enabled`, and it has at least one exposure. Streams with no camera source (a phone, a PC, OBS) are never in it: they
-are [takeover](#takeover) sources.
+The **lineup** is the show's streams in order. A camera's stream may be in it while its camera is `enabled` and it
+has at least one exposure. A pushed stream (no camera: a phone or a PC going live, OBS) may be in it while someone
+publishes it, as its deliveries' health says: an exposure of it `active` and fresh, which is while its relay
+announces it or its ingest path is ready, for a quarter of the window ([Health and stats without an
+agent](#health-and-stats-without-an-agent)). That takes about half a minute after it starts and lasts about a minute
+and a half after it stops, and needs an agent covering the relay. A health transition pokes the show, so it is
+noticed as soon as health says so.
+
+A pushed stream is never placed by itself, even in an empty slot: it waits on **standby** (out of the lineup, with no
+rank, `absence: standby`) until a swap ranks it, in another stream's place or an empty slot's. When nobody publishes
+it any more it leaves the lineup like a locked camera, and the rest move up; going live again puts it back on
+standby. Any stream can still [take over](#takeover).
 
 `rank` orders the lineup. Positions are never stored: position _n_ is the *n*th stream by rank, and the first `slots`
 of them are on screen.
 
 Every sync **normalises** before it resolves, in the same transaction, holding the show's row:
 
-1. a ranked stream that is not in the lineup loses its rank;
-2. a lineup stream with no rank is given the next rank after the greatest, oldest stream first.
+1. a ranked stream that may no longer be in the lineup loses its rank;
+2. a camera's stream that may be in it with no rank is given the next rank after the greatest, oldest stream first. A
+   pushed stream is never ranked here: only a swap ranks it.
 
 So a camera that is locked and unlocked comes back last, a new camera joins last, and no stale rank survives a sync.
 Nothing else has to remember to do this.
 
 A command names streams. Anything that speaks in positions (chat, a keyboard shortcut) is resolved to streams inside
 the command's transaction, against the lineup as it is then. `swap(a, b)` exchanges two streams' ranks, wherever they
-are: both on screen, or one off it, which is how a camera is brought on.
+are: both on screen, or one off it, which is how a camera is brought on. A stream on standby swapped with one in the
+lineup takes its place, and that one leaves the lineup (a camera's rejoins at the end, a pushed one goes back to
+standby); swapped with an empty slot (a position past the lineup's end that is on screen), it takes the first empty
+slot.
 
 ## Layouts
 
@@ -366,10 +380,11 @@ Whichever, check that the two encodes' timestamps are close enough for `@moq/wat
 | `deviceConfiguration.get` v4                  | devices          | `relays`: the stats to read and the exposures to watch; `mediamtx` has no `stats`         |
 | `organisations.members.grantPublisher`        | administrators   | give a member `streamPublisher`; `revokePublisher` takes it away                          |
 
-`get` returns every camera stream of the organisation for the show (`lineup`): those in the lineup with their
-`position` (from 1), and those out of it with why (`absence`: `locked`, `disabled`, `undelivered`), each with its
-`show_stream` settings. `lineup.swap` answers with the same `lineup`. A stream with no camera is in no lineup, so `get`
-also says how the armed takeover is mixed (`takeoverMix`, null with none armed), which is where the show's controls
+`get` returns the organisation's camera streams, and its pushed streams while someone publishes them, for the show
+(`lineup`): those in the lineup with their `position` (from 1), and those out of it with why (`absence`: `standby`,
+`locked`, `disabled`, `undelivered`), each with its `show_stream` settings. `lineup.swap` answers with the same
+`lineup`, and takes a stream on standby by ID, or an empty slot by position. A stream out of the lineup has no row
+there to mix, so `get` also says how the armed takeover is mixed (`takeoverMix`, null with none armed), which is where the show's controls
 set its level and mute. And it says what the outputs following the show cannot read (`unreachable`,
 src/shows/reach.ts; see [What an output cannot reach](#what-an-output-cannot-reach)).
 
@@ -403,7 +418,7 @@ Two action kinds, run by the studio API as the answer to the trigger (`ran`, wit
 nothing (src/chat/shows.ts):
 
 - `showSwap`: two words, each a position (a number) or a name. `!swap 1 2`, `!swap serval 2`, `!swap serval fox`. Both
-  must be in the lineup.
+  must be in the lineup, or a name may be a stream going live on standby (`!swap phone 2`, which puts it on).
 - `showTakeover`: one word, a name or `off`. A name arms that stream and puts it on air at once; `off` ends the
   takeover: not live, and disarmed. Any stream can take over but one whose camera is locked or disabled.
 
