@@ -22,11 +22,12 @@ import { cameraAddressOf, cameraDriverLabelOf, cameraStateDetailsOf } from '@/co
 import { Page, PageActions, PageDescription, PageHeader, PageHeading, PageTitle } from '@/components/common/page';
 import { networkNameOf } from '@/components/devices/devices';
 import { SubjectHealth } from '@/components/devices/subject-health';
-import { deviceSubjectId, statesBySubject, type SubjectState } from '@/components/devices/subjects';
+import { deviceSubjectId } from '@/components/devices/subjects';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { cameraListQueryOptions } from '@/queries/cameras';
 import { networkListQueryOptions } from '@/queries/networks';
-import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
+import { streamListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Cameras · conservation.tv studio' }];
 
@@ -38,16 +39,16 @@ export const meta: Route.MetaFunction = () => [{ title: 'Cameras · conservation
 const CamerasRoute: FC = () => {
   const organisationId = useOrganisationId();
   const administrator = useIsAdministrator();
-  const [camerasQuery, networksQuery, streamsQuery, statesQuery] = useSuspenseQueries({
+  const [camerasQuery, networksQuery, streamsQuery] = useSuspenseQueries({
     queries: [
       cameraListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
       streamListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId)
+      // What each camera's health reads (SubjectHealth), loaded with the page.
+      organisationStatusQueryOptions(organisationId)
     ]
   });
   const cameras = camerasQuery.data;
-  const states = statesBySubject(statesQuery.data);
   return (
     <Page>
       <PageHeader>
@@ -75,7 +76,6 @@ const CamerasRoute: FC = () => {
               camera={camera}
               networks={networksQuery.data}
               streams={streamsQuery.data.filter(stream => stream.sourceDeviceId === camera.id)}
-              state={states.get(deviceSubjectId(camera.id))}
             />
           ))}
         </ItemGroup>
@@ -107,15 +107,13 @@ interface CameraRowProps {
   networks: Network[];
   /** The streams the camera is the source of. */
   streams: Stream[];
-  /** What agents last said about the camera. */
-  state: SubjectState | undefined;
 }
 
 /**
  * A camera, opening its page: its health and state, how it is reached, and the streams it feeds. The whole row is its
  * page's link; the links to its streams sit above it.
  */
-const CameraRow: FC<CameraRowProps> = ({ camera, networks, streams, state }) => {
+const CameraRow: FC<CameraRowProps> = ({ camera, networks, streams }) => {
   const organisationId = useOrganisationId();
   const name = camera.device?.name ?? 'Unnamed camera';
   const networkName = networkNameOf(networks, camera.device?.networkId ?? null);
@@ -142,7 +140,7 @@ const CameraRow: FC<CameraRowProps> = ({ camera, networks, streams, state }) => 
         )}
       </ItemContent>
       <ItemActions>
-        <SubjectHealth state={state} />
+        <SubjectHealth subjectId={deviceSubjectId(camera.id)} />
       </ItemActions>
       <ItemFooter className="justify-start gap-3 border-t border-border pt-2.5">
         <span className="text-custom-12 text-custom-text-secondary">{streams.length === 1 ? 'Stream' : 'Streams'}</span>

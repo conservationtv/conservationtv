@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQueries } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import type { Topology } from '@conservationtv/studio-sdk';
 
@@ -17,7 +17,9 @@ import { signalSystemOf } from '@/components/signal/signal-from-topology';
 import { SignalMapView } from '@/components/signal/signal-map-view';
 import { SignalStackView } from '@/components/signal/signal-stack-view';
 import { useSignalHoverPreview } from '@/components/signal/signal-things';
+import { subjectStatusesOf } from '@/components/streams/topology';
 import { useOrganisationId } from '@/hooks/use-organisation';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
 import { topologyQueryOptions } from '@/queries/topology';
 
 // The organisation's signal on its overview: how it runs from the cameras, through the shows that place them and the
@@ -46,20 +48,24 @@ function pagesOf(topology: Topology): Map<string, string> {
   return new Map([...ingests.toReversed(), ...cameras, ...outputs]);
 }
 
-/** The view, and what it links to, from the topology: one select, so both are worked out once a refresh. */
-function overviewOf(topology: Topology) {
-  return { system: signalSystemOf(topology), pages: pagesOf(topology) };
+/** The topology, and what each thing on the view links to. */
+function pagesAndTopology(topology: Topology) {
+  return { topology, pages: pagesOf(topology) };
 }
 
 /** Nothing, for an organisation with nothing to draw yet: its setup steps say what comes first. */
 export const OverviewSignal: FC = () => {
   const organisationId = useOrganisationId();
-  const { data } = useSuspenseQuery({
-    ...topologyQueryOptions(organisationId),
-    select: overviewOf,
-    refetchInterval: 30_000
+  // What it links to is worked out once a refresh of the topology; how each thing is doing, from the organisation's
+  // status, which refreshes itself.
+  const [topologyQuery, statusQuery] = useSuspenseQueries({
+    queries: [
+      { ...topologyQueryOptions(organisationId), select: pagesAndTopology, refetchInterval: 30_000 },
+      { ...organisationStatusQueryOptions(organisationId), select: subjectStatusesOf }
+    ]
   });
-  const { system, pages } = data;
+  const { topology, pages } = topologyQuery.data;
+  const system = signalSystemOf(topology, statusQuery.data);
   if (system.broadcasts.length + system.cameras.length + system.ingests.length === 0) return null;
   // The first network open to begin with, so its cameras are on show; any other opens on a press.
   const firstNetwork = system.networks.slice(0, 1).map(network => network.id);

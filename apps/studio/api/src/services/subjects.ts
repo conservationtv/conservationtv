@@ -32,6 +32,15 @@ export interface MetricQuery {
   names: string[];
 }
 
+/** The newest of one metric across subjects: those of a metric, by its name and unit, observed in the last seconds. */
+export interface LatestQuery {
+  subjectIds: string[];
+  name: string;
+  unit: string;
+  /** How far back a point may be and still say how the series is now. */
+  seconds: number;
+}
+
 /** A time range, read in buckets of `step` seconds. */
 export interface BucketRange {
   from: Date;
@@ -62,6 +71,8 @@ export async function getSubjectState(organisationId: string, subjectId: string)
 export interface SubjectStateFilter {
   /** Only subjects of this kind: the part of their ID before the colon, such as `exposure`. */
   kind?: string;
+  /** Only these subjects. */
+  subjectIds?: string[];
 }
 
 /**
@@ -87,7 +98,8 @@ export function listSubjectStates(organisationId: string, filter: SubjectStateFi
     .where(
       and(
         eq(subjectStates.organisationId, organisationId),
-        filter.kind === undefined ? undefined : like(subjectStates.subjectId, `${filter.kind}:%`)
+        filter.kind === undefined ? undefined : like(subjectStates.subjectId, `${filter.kind}:%`),
+        filter.subjectIds === undefined ? undefined : inArray(subjectStates.subjectId, filter.subjectIds)
       )
     )
     .orderBy(asc(subjectStates.subjectId));
@@ -293,6 +305,37 @@ export async function queryMetrics(organisationId: string, query: MetricQuery, r
     range
   );
   return series.map(row => ({ ...row, points: points.get(row.id) ?? [] }));
+}
+
+/**
+ * Each series of a metric about any of the subjects that has a point in the last `seconds`, by Postgres's clock: its
+ * subject and dimensions, the last value it reported, and when. A series with none so recent is absent.
+ */
+export function latestPoints(organisationId: string, query: LatestQuery) {
+  const db = useDB();
+  const since = sql`now() - make_interval(secs => ${query.seconds})`;
+  return db
+    .select({
+      seriesId: metricPoints.seriesId,
+      subjectId: metricSeries.subjectId,
+      dimensions: metricSeries.dimensions,
+      last: sql<number>`last(${metricPoints.last}, ${metricPoints.observedAt})`,
+      observedAt: sql`max(${metricPoints.observedAt})`.mapWith(metricPoints.observedAt)
+    })
+    .from(metricPoints)
+    .innerJoin(metricSeries, eq(metricSeries.id, metricPoints.seriesId))
+    .where(
+      and(
+        eq(metricSeries.organisationId, organisationId),
+        inArray(metricSeries.subjectId, query.subjectIds),
+        eq(metricSeries.name, query.name),
+        eq(metricSeries.unit, query.unit),
+        eq(metricPoints.organisationId, organisationId),
+        gte(metricPoints.observedAt, since)
+      )
+    )
+    .groupBy(metricPoints.seriesId, metricSeries.subjectId, metricSeries.dimensions)
+    .orderBy(metricPoints.seriesId);
 }
 
 /**

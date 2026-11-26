@@ -16,14 +16,15 @@ import type {
   SignalStatus,
   SignalSystem
 } from '@/components/signal/signal-system';
-import { ownStatus, type SubjectStatusInput } from '@/components/streams/topology';
+import { statusOfSubject, type SubjectStatuses } from '@/components/streams/topology';
 
 // The signal view's system from an organisation's real topology (`organisations.topology.get`): its outputs as the
 // broadcasts, each a programme going out from OBS on an agent; each output's forwards as the channels they go out to;
 // its networks with their active agents, the cameras on them and the other devices streams come from; and the
 // internet-facing gateways its shows read them at. A source feeds the outputs following a show that places one of its
 // streams (each show's `placed`), and none otherwise. An output driven from outside the studio follows no show, so
-// nothing feeds it: it starts the way out on its own. Pure; the query that reads the topology hands it here.
+// nothing feeds it: it starts the way out on its own. Each thing's status is its subject's as the organisation's status
+// judges it (`organisations.status.get`, `subjectStatusesOf`). Pure; the queries that read both hand them here.
 
 type TopologyDevice = Topology['devices'][number];
 type TopologyOutput = Topology['outputs'][number];
@@ -31,21 +32,8 @@ type TopologyOutput = Topology['outputs'][number];
 /** The built-in gateway a show reads its streams from (apps/studio/api/src/shows/broadcast.ts). */
 const BROADCAST_GATEWAY = 'conservationtv';
 
-/** Something's status from what its subject last reported. */
+/** Something's status, by its subject. */
 type StatusOf = (subjectId: string) => SignalStatus;
-
-/**
- * Each subject's status from its state: as the studio's topology reads it (`ownStatus`), and degraded for a subject
- * the state consumer judges working, but not as it should, while it is still reporting.
- */
-function statusesOf(topology: Topology): StatusOf {
-  const states = new Map<string, SubjectStatusInput>(topology.states.map(state => [state.subjectId, state]));
-  return subjectId => {
-    const state = states.get(subjectId);
-    if (state?.freshness === 'fresh' && state.health === 'degraded') return 'degraded';
-    return ownStatus(state);
-  };
-}
 
 // What isn't judged says least: only when nothing else is known does a group read as off, then idle, then unknown.
 const SEVERITY = {
@@ -196,8 +184,8 @@ function sourceKindOf(device: TopologyDevice): SignalSource['kind'] {
   return 'rtmp';
 }
 
-export function signalSystemOf(topology: Topology): SignalSystem {
-  const statusOf = statusesOf(topology);
+export function signalSystemOf(topology: Topology, statuses: SubjectStatuses): SignalSystem {
+  const statusOf: StatusOf = subjectId => statusOfSubject(statuses.status, subjectId);
   const devices = new Map(topology.devices.map(device => [device.id, device]));
   const placements = placementsOf(topology);
   const broadcasts = topology.outputs.map(output => broadcastOf(output, devices, statusOf));

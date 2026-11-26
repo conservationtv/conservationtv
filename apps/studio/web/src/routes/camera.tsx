@@ -47,12 +47,13 @@ import { DeviceAddresses } from '@/components/devices/device-addresses';
 import { networkNameOf } from '@/components/devices/devices';
 import { EditDeviceDialog } from '@/components/devices/edit-device-dialog';
 import { SubjectHealth } from '@/components/devices/subject-health';
-import { deviceSubjectId, type SubjectState } from '@/components/devices/subjects';
+import { deviceSubjectId } from '@/components/devices/subjects';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate, shortPublicId } from '@/lib/format';
 import { cameraListQueryOptions } from '@/queries/cameras';
 import { networkListQueryOptions } from '@/queries/networks';
-import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
+import { streamListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Camera · conservation.tv studio' }];
 
@@ -66,7 +67,7 @@ export const meta: Route.MetaFunction = () => [{ title: 'Camera · conservation.
 const CameraRoute: FC<Route.ComponentProps> = ({ params }) => {
   const { cameraId } = params;
   const organisationId = useOrganisationId();
-  const [cameraQuery, networksQuery, streamsQuery, stateQuery] = useSuspenseQueries({
+  const [cameraQuery, networksQuery, streamsQuery] = useSuspenseQueries({
     queries: [
       {
         ...cameraListQueryOptions(organisationId),
@@ -77,10 +78,8 @@ const CameraRoute: FC<Route.ComponentProps> = ({ params }) => {
         ...streamListQueryOptions(organisationId),
         select: (streams: Stream[]) => streams.filter(stream => stream.sourceDeviceId === cameraId)
       },
-      {
-        ...subjectStateListQueryOptions(organisationId),
-        select: (states: SubjectState[]) => states.find(state => state.subjectId === deviceSubjectId(cameraId))
-      }
+      // What the camera's health reads (SubjectHealth), loaded with the page.
+      organisationStatusQueryOptions(organisationId)
     ]
   });
   const camera = cameraQuery.data;
@@ -97,7 +96,7 @@ const CameraRoute: FC<Route.ComponentProps> = ({ params }) => {
         <PageHeading>
           <div className="flex min-w-0 items-center gap-3">
             <PageTitle className="truncate">{name}</PageTitle>
-            <SubjectHealth state={stateQuery.data} />
+            <SubjectHealth subjectId={deviceSubjectId(cameraId)} />
           </div>
           <PageDescription className="flex items-center gap-2">
             <CameraStateBadge state={camera.state} />

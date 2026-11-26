@@ -5,7 +5,7 @@ import { z } from 'zod';
 // any metric a reporter names: the catalogue below is what the agent ships, so the agent, and whatever shows its
 // metrics, agree on each one's name and unit.
 
-/** Metric dimensions, such as a rendition or measurement point. */
+/** Metric dimensions, such as a load average's window or a measurement point. */
 export const MetricDimensionsSchema = z.record(z.string().min(1).max(60), z.string().max(200));
 export type MetricDimensions = z.output<typeof MetricDimensionsSchema>;
 
@@ -45,9 +45,9 @@ export interface MetricDefinition {
 }
 
 /**
- * A MediaMTX path's metrics, summarised from reads every few seconds. About the exposure the path delivers, with the
- * exposure's `rendition` as a dimension when it has several paths, or about the agent's device with the `path` as a
- * dimension when the agent's spec names no paths.
+ * A MediaMTX path's metrics, summarised from reads every few seconds. About the exposure the path delivers, or about
+ * the agent's device with the `path` as a dimension when the agent's spec names no paths. Agents from before an
+ * exposure was one path name its path by a `rendition` dimension.
  */
 export const pathMetrics = {
   /** 1 while the path is ready, else 0: a summary's mean is the share of its interval the path was ready. */
@@ -82,8 +82,9 @@ export const relayMetrics = {
   /** Sessions watching the exposure: of its broadcasts, the most watched. */
   viewers: { name: 'relay.viewers', unit: 'sessions', label: 'Relay viewers' },
   /**
-   * 1 while the relay has one of the exposure's renditions to give, else 0, with the rendition as a dimension: its
-   * broadcast is announced there, and the agent has read its catalog back through the relay. A relay asks a publisher
+   * 1 while the relay has the exposure to give, else 0: its broadcast is announced there, and the agent has read its
+   * catalog back through the relay. Agents from before an exposure was one broadcast name it by a `rendition`
+   * dimension. A relay asks a publisher
    * only for what viewers take, so what it receives says how much is watched, not whether it works; this says whether
    * a viewer who asked would be served, whether or not anyone is.
    */

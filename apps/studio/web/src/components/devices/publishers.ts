@@ -1,6 +1,6 @@
 import type { Device, Exposure, Stream } from '@conservationtv/studio-sdk';
 
-import { exposureSubjectId, type SubjectState } from '@/components/devices/subjects';
+import { exposureSubjectId } from '@/components/devices/subjects';
 import type { ListedGateway } from '@/components/gateways/gateways';
 
 // What is publishing what, to where: each delivery of a stream (an exposure) that names the device publishing it,
@@ -12,8 +12,8 @@ export interface Publication {
   exposure: Exposure;
   /** Where it is published: undefined if the gateway is gone. */
   gateway: ListedGateway | undefined;
-  /** What agents last said about the delivery. */
-  state: SubjectState | undefined;
+  /** What reports about the delivery are filed under, for its health. */
+  subjectId: string;
 }
 
 /** A device and everything it publishes. */
@@ -29,17 +29,16 @@ export interface PublisherInputs {
   streams: Stream[];
   devices: Device[];
   gateways: ListedGateway[];
-  states: Map<string, SubjectState>;
 }
 
 /** Every exposure with a publisher, grouped by publishing device, in the order the devices were made. */
-export function publishersOf({ streams, devices, gateways, states }: PublisherInputs): Publisher[] {
+export function publishersOf({ streams, devices, gateways }: PublisherInputs): Publisher[] {
   const publications = streams.flatMap(stream =>
     stream.exposures.flatMap(exposure => {
       if (exposure.publisherDeviceId === null) return [];
       const gateway = gateways.find(candidate => candidate.id === exposure.gatewayId);
-      const state = states.get(exposureSubjectId(exposure.id));
-      return [{ deviceId: exposure.publisherDeviceId, publication: { stream, exposure, gateway, state } }];
+      const subjectId = exposureSubjectId(exposure.id);
+      return [{ deviceId: exposure.publisherDeviceId, publication: { stream, exposure, gateway, subjectId } }];
     })
   );
   const deviceIds = [...new Set(publications.map(entry => entry.deviceId))];

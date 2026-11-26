@@ -7,6 +7,7 @@ import { type Evaluator, formOpinion, type Subject } from './evaluator.ts';
 import { evaluatorOf } from './evaluators.ts';
 import { type Health, mostActive, type ReportedFinding, worstHealth } from './health.ts';
 import { subjectMetrics } from './metrics.ts';
+import { pokeOrganisationShows } from '../shows/pokes.ts';
 
 // The state consumer: after a batch is stored (src/reports/ingest.ts), each subject its metrics are about is judged
 // again by its kind's evaluator (src/health/evaluators.ts), as the reporter's opinion of it, and the opinions of all
@@ -17,7 +18,9 @@ import { subjectMetrics } from './metrics.ts';
 // Each subject is judged in a trusted transaction of its own, holding a lock on the subject for the transaction, so
 // two reporters' batches about one subject combine one after the other. A subject whose kind isn't judged by its own
 // reports, or that names something outside the topology, is left alone. Each judgement is a `health.evaluate` span in
-// the request's trace, with the subject, and what the reporter's opinion and the subject's state became.
+// the request's trace, with the subject, and what the reporter's opinion and the subject's state became. A batch that
+// recorded a transition pokes the organisation's shows once it has committed, since a show's cards are chosen by its
+// streams' states (src/shows/resolve.ts).
 
 /** A judgement skipped: the reporter's opinion already rests on newer reports. */
 interface LateEvaluation {
@@ -31,6 +34,8 @@ interface FormedEvaluation {
   opinion: Health;
   /** Undefined only if no opinion of the subject was there to combine. */
   state?: Health;
+  /** Whether the subject's state changed, so a transition was recorded. */
+  transitioned: boolean;
 }
 
 /** What judging a subject again came to. */
@@ -43,8 +48,13 @@ export interface Reported {
   subjects: Map<string, Date>;
 }
 
-/** Judge each reported subject again, and combine its state. A subject that fails to is logged, and the rest go on. */
+/**
+ * Judge each reported subject again, and combine its state. A subject that fails to is logged, and the rest go on.
+ * Once any recorded a transition, the organisation's shows are poked to look again (src/shows/pokes.ts): a card may
+ * have changed.
+ */
 export async function evaluateReported({ organisationId, reporterId, subjects }: Reported) {
+  let transitioned = false;
   for (const [subjectId, at] of subjects) {
     const evaluator = evaluatorOf(subjectId);
     if (evaluator === null) continue;
@@ -57,12 +67,14 @@ export async function evaluateReported({ organisationId, reporterId, subjects }:
         async span => {
           const evaluation = await trustedTransaction(() => evaluateSubject(evaluator, subject));
           span.setAttributes(evaluationAttributes(evaluation));
+          if (!evaluation.late && evaluation.transitioned) transitioned = true;
         }
       );
     } catch (error) {
       console.warn(JSON.stringify({ event: 'subject_evaluation_failed', subjectId, reporterId, cause: String(error) }));
     }
   }
+  if (transitioned) pokeOrganisationShows(organisationId);
 }
 
 /** What a judgement came to, as its span's attributes. */
@@ -108,8 +120,15 @@ async function evaluateSubject(evaluator: Evaluator, subject: Subject): Promise<
     .values({ organisationId, subjectId, reporterId, ...opinion })
     .onConflictDoUpdate({ target: [reporterOpinions.subjectId, reporterOpinions.reporterId], set: opinion });
 
-  const state = await combine(organisationId, subjectId);
-  return { late: false, previous: previous?.health, opinion: opinion.health, state };
+  const combined = await combine(organisationId, subjectId);
+  const { state, transitioned } = combined ?? { state: undefined, transitioned: false };
+  return { late: false, previous: previous?.health, opinion: opinion.health, state, transitioned };
+}
+
+/** A subject's state as its opinions combine to, and whether it changed, so a transition was recorded. */
+interface Combined {
+  state: Health;
+  transitioned: boolean;
 }
 
 /**
@@ -118,7 +137,7 @@ async function evaluateSubject(evaluator: Evaluator, subject: Subject): Promise<
  * it had, and goes stale with the newest of them. A state that differs in health or activity from the one before is a
  * transition, kept (`subject_transition`).
  */
-async function combine(organisationId: string, subjectId: string): Promise<Health | undefined> {
+async function combine(organisationId: string, subjectId: string): Promise<Combined | undefined> {
   const db = useDB({ trusted: true });
   const environment = useEnvironment();
   const now = new Date(environment.clock());
@@ -164,7 +183,8 @@ async function combine(organisationId: string, subjectId: string): Promise<Healt
     .select({ health: subjectStates.health, activity: subjectStates.activity })
     .from(subjectStates)
     .where(and(eq(subjectStates.organisationId, organisationId), eq(subjectStates.subjectId, subjectId)));
-  if (before === undefined || before.health !== health || before.activity !== activity) {
+  const transitioned = before === undefined || before.health !== health || before.activity !== activity;
+  if (transitioned) {
     // A first state, or one that differs in health or activity from the one before, is a transition.
     await db.insert(subjectTransitions).values({
       organisationId,
@@ -181,5 +201,5 @@ async function combine(organisationId: string, subjectId: string): Promise<Healt
     .insert(subjectStates)
     .values({ organisationId, subjectId, ...state })
     .onConflictDoUpdate({ target: [subjectStates.organisationId, subjectStates.subjectId], set: state });
-  return health;
+  return { state: health, transitioned };
 }
