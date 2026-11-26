@@ -18,8 +18,7 @@ import { type PathIndex, PathAttributionsSchema, pathIndexOf } from '../streams/
 // seconds, read its metrics page for each path's state, readers, and how fast its byte and frame-error counters moved
 // since the last read; the read that ends an interval then submits each path's samples summarised (least, greatest,
 // mean and last; reporting/sampler.ts), so each path is a series of its own: about the exposure the spec says it
-// delivers, with its rendition as a dimension, or, while the spec names no paths, about the agent's device with the
-// path as the `path` dimension. A path the spec does not name is not reported. A path missing from a read counts as
+// delivers, or, while the spec names no paths, about the agent's device with the path as the `path` dimension. A path the spec does not name is not reported. A path missing from a read counts as
 // not ready with nothing flowing, so one that stops mid-interval shows in that interval's summary; one missing for a
 // whole interval is not reported.
 //
@@ -126,7 +125,7 @@ export type MetricsStatus = SamplerStatus & MetricsReads;
 /** Reads MediaMTX's metrics page every few seconds, and submits each path's summary to the studio API per interval. */
 export class MediamtxMetricsRuntime {
   readonly status$: Observable<MetricsStatus>;
-  private readonly url: string;
+  private readonly url: () => string;
   private readonly reporter: MetricReporter;
   private readonly journal: Journal;
   private readonly sampler: Sampler<MetricsReads>;
@@ -136,10 +135,13 @@ export class MediamtxMetricsRuntime {
   /** What each path's metrics are about, from the spec. */
   private index: PathIndex = null;
 
-  /** @param url The metrics page, such as `http://127.0.0.1:9998/metrics` (`reach.metrics`, streams/reach.ts). */
+  /**
+   * @param url Where the metrics page is now, such as `http://127.0.0.1:9998/metrics` (`reach.metrics`,
+   *   streams/listening.ts), asked at each read: MediaMTX may be started on another port.
+   */
   constructor(
     private readonly config: AgentConfiguration,
-    url: string
+    url: () => string
   ) {
     this.url = url;
     this.reporter = useMetricReporter();
@@ -187,7 +189,7 @@ export class MediamtxMetricsRuntime {
 
   /** Read the metrics page into each path's samples. A failed read throws, for the status, and is skipped. */
   private async sample(samples: IntervalSamples): Promise<void> {
-    const page = await readMetricsPage(this.url);
+    const page = await readMetricsPage(this.url());
     this.record(samples, page.read);
     const at = new Date(page.read.at);
     this.sampler.update({ lastScrapedAt: at.toISOString(), samples: page.samples });

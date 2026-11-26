@@ -67,6 +67,16 @@ paths:
       # - dest: moqt://…  the program to conservation.tv's relay, as a stream of the organisation
 ```
 
+- **Listeners and ports.** Every listener a MediaMTX of the agent's opens is either off or on a port the agent chose,
+  in all three configs (the gateway's, the program's, and each input's pull, which listens on nothing): MediaMTX's
+  pprof, playback and MoQ servers are off in all of them, and the agent publishes MoQ with the moq CLI only. On an
+  upgrade, check the release's `mediamtx.yml` for a new listener and turn it off or give it a port (the rule is at
+  `apps/agent/core/src/mediamtx/config.ts`). Ports are chosen just before each MediaMTX starts, never under one that
+  runs: last time's (remembered in its directory) if free, else the default, else any free one, checked by binding as
+  MediaMTX will. The gateway's ports can be pinned (`AGENT_MEDIAMTX_PORTS`): a pinned port is never moved, and
+  a start fails while it is taken. An unpinned gateway port that moves is said with a warning and a
+  `mediamtx.port.moved` event; the studio learns the new one from the endpoints the agent registers. A start that
+  fails to bind (`listen … bind: …` in its log) chooses again, keeping off what failed.
 - **Never offline.** While OBS is up, `program` carries its stream; when OBS's RTMP connection drops, MediaMTX plays
   the slate on repeat (`alwaysAvailable`), so the forward to Twitch never ends. When OBS reconnects it takes over.
   Twitch sees one continuous broadcast.
@@ -164,7 +174,9 @@ show. Each step is idempotent, so a crash of any piece is just the next converge
 - One OBS output per show, many shows per agent? (One OBS can only stream once; a second show needs a second OBS or a
   multi-output plugin.) Assume one show per OBS agent for now.
 - Slate content: static image rendered to MP4 per output profile, or a show-defined "offline" scene?
-- Audio: the cameras are muted today, so the program needs at least a silent AAC track (see "Encoding"), and later a
-  deliberate mix.
+- Audio: settled by [shows.md](shows.md), Audio. A show mixes each stream it places (its level, mute and sync, or
+  another stream's sound), through vignette's channels, and OBS plays each input's sound as its relay passes it
+  through ([outputs.md](outputs.md), Inputs). The program still always carries an AAC track (see "Encoding"), silent
+  when nothing is heard. Not yet heard in OBS itself: shows.md, Not checked yet.
 - Should the program also go to conservation.tv's own relay (`forward: moqt://`), so the studio can watch the exact
   output?

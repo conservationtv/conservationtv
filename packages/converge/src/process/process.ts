@@ -37,6 +37,12 @@ export interface Run {
   cwd?: string;
   /** Variables to set in its environment, on top of the agent's own. */
   env?: Record<string, string>;
+  /**
+   * Run before each start, by `ensure` or after a crash, once the process before it is gone: where a process that binds
+   * ports has them chosen and its config written, so a start that failed to bind is retried on others. It throws to
+   * fail the start, which is then retried as any failed start is.
+   */
+  prepare?(signal: AbortSignal): Promise<void>;
   /** Run once the process answers, whether already running, started or restarted, and before `ensure` resolves. */
   configure?(signal: AbortSignal): Promise<void>;
 }
@@ -159,11 +165,12 @@ export function describe(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }
 
-/** The process this agent started, what it was started for, and whether it has exited yet. */
+/** The process this agent started, what it was started for, whether it ever answered, and whether it has exited yet. */
 interface Child {
   process: ResultPromise;
   pid: number;
   key: string;
+  ready: boolean;
   exited: boolean;
 }
 
@@ -177,13 +184,15 @@ interface Child {
  * start while anything else answers in its place.
  *
  * The process is watched through its exit: the moment it exits unexpectedly, it is started again after a backoff,
- * and the status says so.
+ * and the status says so. One that exits before it ever answered failed to start instead: whoever was starting it
+ * (`ensure`'s caller, or the restart) is told, and decides when to try again, through the run's `prepare`.
  */
 export class AttachedProcess {
   readonly status$ = new BehaviorSubject<ProcessStatus>(STOPPED);
-  /** Where the process's pid is kept, for an orphan's sake; its log is written beside it. */
+  /** Where the process's pid is kept, for an orphan's sake. */
   readonly pidfile: string;
-  private readonly log: string;
+  /** Where its output is appended, beside the pidfile: what it said as it failed to start, say. */
+  readonly log: string;
   private readonly serially = exclusive();
   private child: Child | undefined = undefined;
   /** What should be running; `undefined` once stopped. */
@@ -238,10 +247,18 @@ export class AttachedProcess {
     return pid;
   }
 
-  /** Stops the process running, if any, so the new one can take its ports, then starts one from `run`. */
+  /**
+   * Stops the process running, if any, so the new one can take its ports, then starts one from `run`. A start that
+   * fails leaves it crashed, saying why.
+   */
   private async replace(run: Run, signal: AbortSignal): Promise<number> {
     await this.halt();
-    return this.spawn(run, signal);
+    try {
+      return await this.spawn(run, signal);
+    } catch (error) {
+      if (!signal.aborted) this.update({ state: 'crashed', pid: null, lastError: describe(error) });
+      throw error;
+    }
   }
 
   private async spawn(run: Run, signal: AbortSignal): Promise<number> {
@@ -250,6 +267,7 @@ export class AttachedProcess {
     // answers, refuse to start, rather than quietly drive a process this agent doesn't own while its own fails to bind.
     const stale = await findProcess(this.pidfile, this.definition);
     if (stale !== undefined) await stopProcess(stale, this.definition);
+    await run.prepare?.(signal);
     if (await answering(this.definition))
       throw new Error(`Something else is answering in place of ${this.definition.name}`);
     await mkdir(this.directory, { recursive: true });
@@ -271,12 +289,13 @@ export class AttachedProcess {
       const result = await subprocess;
       throw new Error(`${this.definition.name} could not be started: ${result.message ?? 'no pid'}`);
     }
-    const child: Child = { process: subprocess, pid, key: run.key, exited: false };
+    const child: Child = { process: subprocess, pid, key: run.key, ready: false, exited: false };
     this.child = child;
     void subprocess.then(result => this.exited(child, result.exitCode, result.signal));
     await writeFile(this.pidfile, String(pid));
     try {
       await ready(this.definition, signal, () => child.exited);
+      child.ready = true;
       return pid;
     } catch (error) {
       // Half started: don't leave it behind.
@@ -285,11 +304,15 @@ export class AttachedProcess {
     }
   }
 
-  /** The process exited. If nobody asked it to, start it again after a backoff. */
+  /**
+   * The process exited. If nobody asked it to, start it again after a backoff; unless it never answered, when the
+   * start waiting for it fails instead, and whoever made it tries again.
+   */
   private exited(child: Child, code: number | undefined, signal: string | undefined): void {
     child.exited = true;
     if (child !== this.child) return;
     this.child = undefined;
+    if (!child.ready) return;
     const run = this.wanted;
     if (run === undefined || this.disposed) return;
     this.crashes++;
