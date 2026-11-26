@@ -38,7 +38,9 @@ const oneOf = (column: string, values: readonly string[]) =>
  * this says, with the programme MediaMTX behind it that forwards, previews and records it. Who drives OBS's scenes is
  * its `control`: `show`, the show it follows (`show_id`, none to follow nothing yet), or `external`, something outside
  * the studio, for which the output reads any of its organisation's exposures (src/gateways/connect.ts). An external
- * output follows no show. The programme's encoding defaults to 1080p30 at 6000 kbps with 2-second keyframes, Twitch's
+ * output follows no show. Its `input_gateway_id`, when set, is the one gateway (built in, or the organisation's own) it
+ * reads every stream from, whatever else delivers them; none lets each stream's read choose (src/gateways/connect.ts).
+ * The programme's encoding defaults to 1080p30 at 6000 kbps with 2-second keyframes, Twitch's
  * ceiling for unpartnered channels, and the size of MediaMTX's built-in offline slate, which the programme's fallback
  * plays when OBS is gone.
  *
@@ -58,6 +60,8 @@ export const outputs = withAccess(
       name: text('name').notNull(),
       control: text('control').$type<OutputControl>().default('show').notNull(),
       showId: uuid('show_id'),
+      // A built-in gateway's slug or one of the organisation's gateways, as an exposure's is.
+      inputGatewayId: text('input_gateway_id'),
       width: integer('width').default(1920).notNull(),
       height: integer('height').default(1080).notNull(),
       fps: integer('fps').default(30).notNull(),
@@ -173,7 +177,7 @@ export const outputForwards = withAccess(
 /**
  * A place an output's programme is published to and read from, as an exposure is a stream's: a gateway, built in or the
  * organisation's own, which decides where it can be read and by which protocols. The programme is one encoding, so a
- * preview offers the one `default` rendition.
+ * preview carries that one picture.
  */
 export const outputPreviews = withAccess(
   pgTable(

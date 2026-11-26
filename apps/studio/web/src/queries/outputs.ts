@@ -1,10 +1,5 @@
 import { queryOptions, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
-import {
-  HttpError,
-  type OutputCreateParams,
-  type OutputUpdateParams,
-  type Rendition
-} from '@conservationtv/studio-sdk';
+import { HttpError, type OutputCreateParams, type OutputUpdateParams } from '@conservationtv/studio-sdk';
 
 import { api } from '@/lib/api';
 import {
@@ -22,14 +17,15 @@ import {
 // (src/queries/shows.ts), or, under `external` control, by something outside the studio.
 //
 // The shows list names the outputs following each show, so whatever changes which show an output follows reads the
-// shows again too.
+// shows again too; and a show's read says which streams each output's agent cannot reach (its network, and the gateway
+// the output reads from), so whatever changes an output's agent or input gateway does as well.
 
 /** The organisation's outputs, oldest first, each with its device (null for none), forwards, previews and recorders. */
 export const outputListQueryOptions = (organisationId: string) =>
   queryOptions({
     queryKey: ['outputs', organisationId, 'list'] as const,
     queryFn: async () => {
-      const result = await api.organisations.outputs.list.v1({ id: organisationId });
+      const result = await api.organisations.outputs.list.v2({ id: organisationId });
       if (result instanceof Error) throw result;
       return result.outputs;
     }
@@ -63,7 +59,7 @@ export const previewMoqReadQueryOptions = (organisationId: string, outputId: str
     queryKey: ['outputs', organisationId, 'moq-read', outputId, previewId] as const,
     queryFn: async () =>
       moqReadOf(
-        await api.organisations.outputs.previews.connect.v1({
+        await api.organisations.outputs.previews.connect.v2({
           id: organisationId,
           outputId,
           previewId,
@@ -77,28 +73,25 @@ export const previewMoqReadQueryOptions = (organisationId: string, outputId: str
 
 /**
  * How this account reads an output's preview at one of the organisation's gateways by one protocol, as a stream's
- * delivery there is read (`exposureReadQueryOptions`): the URL and the token beside it, or why not. A preview offers
- * one rendition, `default`.
+ * delivery there is read (`exposureReadQueryOptions`): the URL and the token beside it, or why not.
  */
 export const previewReadQueryOptions = (
   organisationId: string,
   outputId: string,
   previewId: string,
-  protocol: string,
-  rendition: Rendition
+  protocol: string
 ) =>
   // As moqReadQueryOptions: one type for a stream's read and an output's.
   queryOptions<ProtocolRead, Error, ProtocolRead, QueryKey>({
-    queryKey: ['outputs', organisationId, 'read', outputId, previewId, protocol, rendition] as const,
+    queryKey: ['outputs', organisationId, 'read', outputId, previewId, protocol] as const,
     queryFn: async () =>
       protocolReadOf(
-        await api.organisations.outputs.previews.connect.v1({
+        await api.organisations.outputs.previews.connect.v2({
           id: organisationId,
           outputId,
           previewId,
           action: 'read',
-          protocol,
-          rendition
+          protocol
         })
       ),
     staleTime: query => readStaleTime(query.state.data),
@@ -110,7 +103,7 @@ export function useCreateOutput(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (output: Omit<OutputCreateParams, 'id'>) => {
-      const result = await api.organisations.outputs.create.v1({ id: organisationId, ...output });
+      const result = await api.organisations.outputs.create.v2({ id: organisationId, ...output });
       if (result instanceof Error) throw result;
       return result;
     },
@@ -127,7 +120,7 @@ export function useUpdateOutput(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (changes: Omit<OutputUpdateParams, 'id'>) => {
-      const result = await api.organisations.outputs.update.v1({ id: organisationId, ...changes });
+      const result = await api.organisations.outputs.update.v2({ id: organisationId, ...changes });
       if (result instanceof Error) throw result;
       return result;
     },
@@ -170,7 +163,11 @@ export function useSetOutputDevice(organisationId: string) {
       if (result instanceof Error) throw result;
       return result;
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: ['outputs', organisationId] })
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['outputs', organisationId] }),
+        client.invalidateQueries({ queryKey: ['shows', organisationId] })
+      ])
   });
 }
 
@@ -182,7 +179,11 @@ export function useClearOutputDevice(organisationId: string) {
       const result = await api.organisations.outputs.deleteDevice.v1({ id: organisationId, outputId });
       if (result instanceof Error) throw result;
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: ['outputs', organisationId] })
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['outputs', organisationId] }),
+        client.invalidateQueries({ queryKey: ['shows', organisationId] })
+      ])
   });
 }
 

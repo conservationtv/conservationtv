@@ -79,9 +79,9 @@ export interface ObsRuntimeOptions {
   directory: string;
   /** The OBS release to run. */
   binary: ObsManifest;
-  /** The moq CLI release the exposures are relayed by. */
+  /** The moq CLI release streams delivered by MoQ are relayed by. */
   moq: MoqManifest;
-  /** The MediaMTX release the programme and the exposures go through. */
+  /** The MediaMTX release the programme and the streams go through, and streams delivered by URL are pulled by. */
   mediamtx: MediamtxManifest;
   /** Where the program MediaMTX listens, on loopback. */
   programPorts: ProgramPorts;
@@ -108,7 +108,7 @@ export interface ObsStatus extends ProcessStatus {
   recording: RecordingState | null;
   /** The program MediaMTX, and the channels and previews it sends to. */
   program: ProgramStatus | null;
-  /** The exposures relayed for OBS to play. */
+  /** The streams relayed for OBS to play. */
   inputs: InputsStatus;
   /** The programme's reports. */
   reports: ProgramMetricsStatus | null;
@@ -157,7 +157,7 @@ interface ControlReport {
  * The `obs` key, fulfilled by an OBS of the agent's own: installed by the runtime, started with a configuration it
  * writes (obs-websocket on its port, with its password, and the scene collection of the output's control), and lived
  * and died with the agent. OBS streams whatever is on its programme to the program MediaMTX, which forwards, previews
- * and records it; the exposures OBS reads are relayed into the same MediaMTX (inputs.ts). What is on screen is not this
+ * and records it; the streams OBS reads are relayed into the same MediaMTX (inputs.ts). What is on screen is not this
  * runtime's: the `show` key drives the scenes, or something outside the studio does, which reads how to reach OBS
  * from the studio API, as this reports it. OBS runs on Windows and macOS only (binaries/obs.ts).
  *
@@ -165,7 +165,7 @@ interface ControlReport {
  */
 export class ObsRuntime {
   readonly status$ = new BehaviorSubject<ObsStatus>(STOPPED);
-  /** The exposures OBS plays, relayed while it reads them: what the `show` key's sources read too. */
+  /** The streams OBS plays, relayed while it reads them: what the `show` key's sources read too. */
   readonly inputs: InputRelays;
   private readonly binaries: BinaryStore;
   private readonly process: AttachedProcess;
@@ -222,7 +222,7 @@ export class ObsRuntime {
 
   /**
    * Installs OBS, moq and MediaMTX if need be; has the program MediaMTX running, forwarding to the spec's channels,
-   * publishing to its previews, and relaying the exposures OBS reads; has OBS running with obs-websocket on, the
+   * publishing to its previews, and relaying the streams OBS reads; has OBS running with obs-websocket on, the
    * agent's profile, streaming to it, and the collection of the spec's control; then the watchdog keeping OBS
    * streaming (and recording, with a recorder), the programme's reports, and how to drive OBS reported. Resolves once
    * OBS answers.
@@ -242,13 +242,14 @@ export class ObsRuntime {
     await this.program.ensure(mediamtx, moq.path, signal);
     await this.forward(spec.forwards);
     await this.program.setPreviews(spec.previews);
-    await this.inputs.serve(output.organisationId, moq.path);
+    await this.inputs.serve(output.organisationId, { moq: moq.path, mediamtx: mediamtx.path });
     const { password } = await this.websocket();
     const launch = obsLaunch(installed.path, directory, collection);
     await writeObsSettings(launch.config, websocketPort, password);
     await writeObsProfile(launch.config, spec.encoding, { server: this.program.server, key: PROGRAM_KEY }, collection);
-    // Another collection is another launch: OBS is restarted into it.
-    const key = `${installed.id}:${collection}`;
+    // Another collection is another launch: OBS is restarted into it. So is another server, which OBS reads from its
+    // profile only as it starts: the program MediaMTX was started again on another port, its own being taken.
+    const key = `${installed.id}:${collection}:${this.program.server}`;
     await this.process.ensure(
       { key, binary: installed.path, args: launch.args, cwd: launch.cwd, env: launch.env },
       signal

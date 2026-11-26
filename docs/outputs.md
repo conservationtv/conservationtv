@@ -10,7 +10,7 @@ recorded and monitored.
 ┌───────────────────────┐   drives      ┌──────────────────────────────────────────────┐
 │ composition, commands │──scenes──▶    │ agent + OBS: install, profile, launch        │
 │ its own object, by ID │  (show_id,    │ program MediaMTX: forwards, previews, slate  │
-│ places exposures      │   nullable)   │ inputs: any exposure OBS reads, on demand    │
+│ places streams        │   nullable)   │ inputs: any stream OBS reads, on demand      │
 └───────────────────────┘               │ encoding, recorder; program:/forward:/… reports │
                                         └──────────────────────────────────────────────┘
 ```
@@ -23,10 +23,10 @@ What each side promises the other:
 
 ## Who drives an output: `control`
 
-| `control`  | Scenes driven by                                     | May read                            | OBS scene collection |
-| ---------- | ---------------------------------------------------- | ----------------------------------- | -------------------- |
-| `show`     | the `show` key following `show_id` (none while null) | what that show places               | `vignette`           |
-| `external` | something outside the studio, via obs-websocket      | any of the organisation's exposures | `external`           |
+| `control`  | Scenes driven by                                     | May read                          | OBS scene collection |
+| ---------- | ---------------------------------------------------- | --------------------------------- | -------------------- |
+| `show`     | the `show` key following `show_id` (none while null) | what that show places             | `vignette`           |
+| `external` | something outside the studio, via obs-websocket      | any of the organisation's streams | `external`           |
 
 - **External is an advanced mode.** It is an explicit choice, never what a missing show means. An output under `show`
   control that follows no show reads nothing, so leaving a show can never widen what an agent may read. A check
@@ -69,8 +69,9 @@ again.
 
 ## API
 
-- `organisations.shows.list|create|get|update|delete`: name only, each with the outputs following it.
-  `organisations.shows.follow` (WebSocket) and `organisations.shows.compose` (temporary) are per show.
+- `organisations.shows.list|create|get|update|delete`, each with the outputs following it, and
+  `organisations.shows.follow` (WebSocket), per show. How a show is operated, and `compose`'s removal, are in
+  [shows.md](shows.md).
 - `organisations.outputs.list|create|get|update|delete`: `control`, `showId` and the encoding.
   - `getDevice|setDevice|deleteDevice`: the agent the output runs on.
   - `forwards.*`, `previews.*` (with `previews.connect`), and `createRecorder|updateRecorder|deleteRecorder`.
@@ -78,7 +79,8 @@ again.
   collection, and the input URL template.
 - `organisations.outputs.control.get`, administrators only: what the agent last reported. An external controller
   reads it with the API or CLI, and finds the host in `organisations.devices.listAddresses`.
-- `organisations.topology.get`: `shows` (each with `placed`) and `outputs`.
+- `organisations.topology.get`: `shows` (each with `placed`: every exposure of each stream it places, as the versions
+  released before shows named streams say it: [shows.md](shows.md)) and `outputs`.
 
 `deviceConfiguration.get` has two output sections:
 
@@ -95,29 +97,51 @@ again.
 
 ### Inputs: shared plumbing
 
-Both kinds of control play exposures the same way. OBS reads `rtmp://127.0.0.1:<port>/inputs/<streamId>/<exposureId>`
-from the program MediaMTX: vignette's `ctv-stream` source points a media source there, and an external controller
-does the same. The agent relays each exposure only while something reads it (`output/obs/inputs.ts`):
+Both kinds of control play streams the same way. OBS reads `rtmp://127.0.0.1:<port>/inputs/<streamId>` from the
+program MediaMTX, whatever delivers the stream: vignette's `ctv-stream` source points a media source there, and an
+external controller does the same (`inputUrl` in `organisations.outputs.control.get`). The agent relays each stream
+only while something reads it (`output/obs/inputs.ts`), asking the studio API which delivery to read
+(`organisations.streams.connect`), naming every protocol it can play: MoQ first, then RTSPS, RTMPS, RTSP and RTMP.
 
 1. The first read hits a regex path whose `runOnDemand` runs a small Node launcher. While it runs, the launcher holds a
    request open to the agent's loopback demand server, naming the path.
-2. The agent asks for a read session as its device and starts `moq … export rtmp`, which publishes into the same path,
-   so the waiting reader plays it as soon as it arrives, within the path's 30 s start timeout. No path gets a config
-   of its own, so relays coming and going never rewrite MediaMTX's config. The camera's tracks pass through as it
-   sends them, audio included.
-3. There is no offline segment: while a relay is down, OBS has nothing from that input. When the relay restarts on
-   renewing its session (about hourly), OBS's media source reconnects after its reconnect delay. vignette's
-   `ctv-stream` sets 1 s; OBS's default is 10 s, so an external controller should set its media sources' reconnect
-   delay to 1 s.
-4. Once no launcher has held the path for 30 s, the relay stops. A launcher gives up its request once its MediaMTX is
+2. The agent asks for a read as its device and starts the stream's relay (`output/obs/relay.ts`), which publishes
+   into the same path, so the waiting reader plays it as soon as it arrives, within the path's 30 s start timeout:
+   - MoQ (conservation.tv): `moq … export rtmp`, pushing the broadcast into the path.
+   - RTSP(S) or RTMP(S) (a MediaMTX gateway, on the agent's network or the internet): a small MediaMTX of the relay's
+     own (`output/obs/pull.ts`), the agent's pinned binary with every server off, whose one path pulls the gateway's
+     URL and forwards what it gets to the input path. The URL and its token are given in its environment, never in a
+     file or a log.
+
+   No input path gets a config of its own, so relays coming and going never rewrite the program MediaMTX's config.
+   The tracks pass through as they are sent, audio included, except where RTMP cannot carry them (below).
+
+3. There is no offline segment: while a relay is down, OBS has nothing from that input. OBS's media source reconnects
+   after its reconnect delay. vignette's `ctv-stream` sets 1 s; OBS's default is 10 s, so an external controller should
+   set its media sources' reconnect delay to 1 s.
+4. Each read is renewed 10 minutes before it expires (an hour after it was given):
+   - A pull carries on: a gateway checks a token only as a reader connects, so the running pull reads past its token's
+     expiry, and is given the new token for the next time it starts. Renewing a pull restarts nothing. Only a pull
+     that has dropped, with its token expired, is started again with the latest, as soon as its input is found dark.
+   - MoQ restarts: the relay ends a session as its token expires, so `moq` is started again with the new one, which
+     is a gap on air of about the reconnect delay. Restarts are kept at least 15 s apart across the agent's relays, so
+     cameras that started together don't all blink together each hour. A longer read for a show's streams would make
+     these rarer: [shows.md](shows.md), Reads for a show, says why it is not done yet.
+5. Once no launcher has held the path for 30 s, the relay stops. A launcher gives up its request once its MediaMTX is
    gone (its parent process changes), so a crashed MediaMTX doesn't leave paths held.
 
-The studio API decides what may be read (`src/gateways/connect.ts`): what the followed show places, or, under
-`external`, anything in the organisation.
+Both relays write into the input by RTMP, and OBS reads it by RTMP, so a stream whose sound is Opus (a browser or OBS
+publishing by WebRTC) plays without it: MediaMTX's RTMP reader skips Opus. See [shows.md](shows.md), Not checked yet.
+
+The studio API decides what may be read (`src/gateways/connect.ts`): what the followed show places (`placedStreams`,
+resolved from the database: [shows.md](shows.md)), or, under `external`, anything in the organisation.
 
 Checked by hand against MediaMTX v1.21.2 on macOS:
 
 - `runOnDemand` on a regex path, with single-quoted arguments containing spaces.
+- A pull's RTSP and RTMP sources carrying `?jwt=` to an HTTP-authenticated MediaMTX, which asked once per connection
+  and never again while it stayed up; both tracks (H.264, AAC) forwarded; a dropped source and a restarted program
+  MediaMTX both recovered by themselves.
 
 ## Not done yet
 

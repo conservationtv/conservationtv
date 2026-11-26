@@ -1,76 +1,41 @@
-import { randomBytes } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { AttachedProcess } from '@conservationtv/converge/process';
 import type { Client } from '@conservationtv/studio-sdk';
-import { getLogger } from '@logtape/logtape';
 import { BehaviorSubject } from 'rxjs';
-import { mediamtxCommand } from '../../mediamtx/command.ts';
-import { expiryOf, withToken } from '../../studio.ts';
-import { type InputExposure, inputOf, inputPath, type ProgramMediamtx } from './program.ts';
+import { PathHolds } from '../../mediamtx/hold.ts';
+import { inputOf, inputPath, type ProgramMediamtx } from './program.ts';
+import { Relay, RESTART_SPACING_MS, RETRY_MS, StudioTooOldError } from './relay.ts';
 
-// The exposures OBS plays, whoever drives its scenes: the show (output/show/ctv-stream.ts), or something outside the
-// studio. OBS reads any of its organisation's exposures from the program MediaMTX, at `inputs/<stream>/<exposure>`
-// (program.ts), and the agent relays it there for as long as something reads it:
+// The streams OBS plays, whoever drives its scenes: the show (output/show/ctv-stream.ts), or something outside the
+// studio. OBS reads any of its organisation's streams from the program MediaMTX, at `inputs/<stream>` (program.ts),
+// whatever delivers it, and the agent relays it there for as long as something reads it:
 //
-//   OBS reads inputs/<s>/<e>  ─▶  MediaMTX runs the demand launcher (`runOnDemand`)
-//                                    │ holds a request to the agent's demand server open while it runs
-//                                    ▼
-//   a relay per exposure:  moq --connect <relay?jwt=…> --broadcast <name> export rtmp --connect rtmp://…/inputs/<s>/<e>
+//   OBS reads inputs/<s>  ─▶  MediaMTX runs the demand launcher (`runOnDemand`, mediamtx/hold.ts)
+//                               │ holds a request to the agent's hold server open while it runs
+//                               ▼
+//   a relay per stream (relay.ts), by whatever the studio API says delivers it:
+//     MoQ          moq --broadcast <name> export rtmp --connect rtmp://…/inputs/<s>       (MOQ_CONNECT=<relay?jwt=…>)
+//     RTSP, RTMP   mediamtx pull.yml: its one path pulling the gateway, forwarding to rtmp://…/inputs/<s>
 //
-// The launcher is a small Node script the agent writes, run by the agent's own Node, whose one request says which path
-// is wanted (MediaMTX gives it `MTX_PATH`) and, by staying open, for how long: MediaMTX stops it once nothing reads the
-// path. A launcher also gives up its request once MediaMTX is gone (its parent changes): outside Windows, MediaMTX
-// starts commands in their own process group and doesn't kill them when it dies, so a crashed MediaMTX's launchers
-// would otherwise hold their paths, and keep their relays running, forever. The first time an exposure is wanted, the agent asks for a read session as its device (the studio API admits
-// what the output may play: src/gateways/connect.ts). The relay passes the stream's tracks through as they are, with
-// no offline segment of MediaMTX's behind them: one would have to declare exactly the tracks the camera sends, codec,
-// sample rate and channels, and MediaMTX can't make one for many a camera's audio. What OBS shows while an input is down
-// is the show's to decide. A relay is stopped once nothing has read it for `RELEASE_AFTER_MS`.
+// The launcher's one request says which path is wanted and, by staying open, for how long: MediaMTX stops it once
+// nothing reads the path, or once MediaMTX itself is gone. The first time a stream is wanted, its
+// relay asks the studio API how to read it, as its device (`organisations.streams.connect`): the API chooses the
+// delivery, and admits what the output may play (src/gateways/connect.ts). Either relay passes the stream's tracks
+// through as they are, with no offline segment of MediaMTX's behind them: one would have to declare exactly the tracks
+// the camera sends, codec, sample rate and channels, and MediaMTX can't make one for many a camera's audio. What OBS
+// shows while an input is down is the show's to decide. A relay is stopped once nothing has read it for
+// `RELEASE_AFTER_MS`.
 //
-// The session is renewed before it expires, restarting `moq` to the same path, so OBS's input never changes. Each
-// `moq` is the agent's child (converge's AttachedProcess), restarted if it dies.
+// No relay changes the program MediaMTX's config: each publishes into the one input pattern. Restarting a relay is a
+// gap in its input, so the relays' restarts are kept `RESTART_SPACING_MS` apart (`book`). A stream's relays share its
+// folder, and with it their processes' pidfiles, so a stream's next relay starts only once its last has stopped: one
+// still stopping would otherwise find the new one's process by its pidfile, and stop it.
+//
+// A studio API that doesn't serve `organisations.streams.connect` is older than this agent: no stream can be relayed
+// until it is updated, so nothing is asked for `RETRY_MS` after it said so (each relay that asked logs why it failed),
+// rather than again on every reader OBS sends.
 
-const logger = getLogger(['agent', 'obs', 'inputs']);
-
-/** How long an exposure is relayed after the last reader goes. */
+/** How long a stream is relayed after the last reader goes. */
 const RELEASE_AFTER_MS = 30_000;
-
-/** How long before a session expires to ask for the next, and the soonest to ask again after a failure. */
-const RENEW_BEFORE_MS = 10 * 60_000;
-const RETRY_MS = 60_000;
-
-/**
- * How stale a group may get before `moq` skips it: RTMP is unpaced, so this bounds what `moq` buffers. Low, as
- * MediaMTX is on the same machine and the stream is live: skipping beats falling behind.
- */
-const MAX_AGE = '100ms';
-
-/** The launcher MediaMTX runs for a wanted path: one request to the demand server, held open until it is stopped. */
-const LAUNCHER = `import { request } from 'node:http';
-// Written by the conservation.tv agent (output/obs/inputs.ts): tells it, for as long as this runs, that MediaMTX's
-// path MTX_PATH is wanted, and stops once MediaMTX, its parent, is gone.
-const [port, secret] = process.argv.slice(2);
-const path = process.env.MTX_PATH ?? '';
-const held = request({ host: '127.0.0.1', port: Number(port), path: '/' + secret + '/' + path }, response => {
-  response.resume();
-  response.on('end', () => process.exit(0));
-});
-held.on('error', () => process.exit(1));
-held.end();
-const stop = () => {
-  held.destroy();
-  process.exit(0);
-};
-process.on('SIGINT', stop);
-process.on('SIGTERM', stop);
-const parent = process.ppid;
-setInterval(() => {
-  if (process.ppid !== parent) stop();
-}, 1000).unref();
-`;
 
 /**
  * What the relays need: the studio API, as the device, the program MediaMTX, the Node it runs the launcher with, and a
@@ -84,19 +49,18 @@ export interface InputRelaysOptions {
   directory: string;
 }
 
-/** What is relayed: for each exposure's path, how many read it now. */
+/** What is relayed: for each stream's path, how many read it now. */
 export interface InputsStatus {
   reading: Record<string, number>;
 }
 
-/** Where to read an exposure: the relay URL, carrying its token as `?jwt=`, the broadcast, and when it expires. */
-interface Session {
-  url: string;
-  broadcast: string;
-  expiresAt: number;
+/** The CLIs the relays run: an installed moq CLI and MediaMTX. */
+export interface RelayBinaries {
+  moq: string;
+  mediamtx: string;
 }
 
-/** One exposure being relayed: the relay, how many read it, and when it is let go of when none does. */
+/** One stream being relayed: the relay, how many read it, and when it is let go of when none does. */
 interface Wanted {
   relay: Relay;
   readers: number;
@@ -104,101 +68,80 @@ interface Wanted {
 }
 
 /**
- * The exposures OBS plays, relayed into the program MediaMTX while they are read, for the organisation `serve` names.
- * Its demand server listens on loopback from `serve` until `dispose`.
+ * The streams OBS plays, relayed into the program MediaMTX while they are read, for the organisation `serve` names.
+ * Its hold server listens on loopback from `serve` until `stop` or `dispose`.
  */
 export class InputRelays {
   readonly status$ = new BehaviorSubject<InputsStatus>({ reading: {} });
-  private readonly secret = randomBytes(18).toString('base64url');
+  private readonly holds = new PathHolds(path => this.held(path));
   private readonly wanted = new Map<string, Wanted>();
-  private server: Server | undefined = undefined;
-  private moq: string | undefined = undefined;
+  /** When each stream's relay restarts next, as booked: kept `RESTART_SPACING_MS` apart. */
+  private readonly restarts = new Map<string, number>();
+  /** Each stream's relays stopping, by the stream, until they have: its next relay starts after. */
+  private readonly stopping = new Map<string, Promise<void>>();
+  /** Until when (epoch milliseconds) nothing is relayed, the studio API having said it is too old to ask. */
+  private unsupportedUntil = 0;
+  private binaries: RelayBinaries | undefined = undefined;
   private organisationId: string | undefined = undefined;
 
   constructor(private readonly options: InputRelaysOptions) {}
 
   /**
-   * Relay the organisation's exposures, by the `moq` CLI at `moq`: the demand server listening, the launcher written,
-   * and the program MediaMTX told to run it.
+   * Relay the organisation's streams, by the CLIs installed at `binaries`: the hold server listening, the launcher
+   * written, and the program MediaMTX told to run it.
    */
-  async serve(organisationId: string, moq: string): Promise<void> {
+  async serve(organisationId: string, binaries: RelayBinaries): Promise<void> {
     if (this.organisationId !== undefined && this.organisationId !== organisationId) this.releaseAll();
     this.organisationId = organisationId;
-    this.moq = moq;
-    const port = await this.listen();
+    this.binaries = binaries;
     const launcher = join(this.options.directory, 'demand.mjs');
-    await mkdir(this.options.directory, { recursive: true });
-    await writeFile(launcher, LAUNCHER);
-    await this.options.program.setDemand(demandCommand(this.options.node, launcher, port, this.secret));
+    const command = await this.holds.command(this.options.node, launcher);
+    await this.options.program.setDemand(command);
   }
 
-  /** Where OBS reads the exposure, at the program MediaMTX. */
-  url(exposure: InputExposure): string {
-    return this.options.program.pathUrl(inputPath(exposure));
+  /** Where OBS reads the stream, at the program MediaMTX. */
+  url(streamId: string): string {
+    return this.options.program.pathUrl(inputPath(streamId));
   }
 
-  /**
-   * Stop relaying anything, and stop listening. Launchers' requests still held are cut: `close` alone waits for them,
-   * and one whose MediaMTX has gone may never end its own.
-   */
+  /** Stop relaying anything, and stop listening. */
   async stop(): Promise<void> {
     this.releaseAll();
     await this.options.program.setDemand(undefined);
-    const { server } = this;
-    this.server = undefined;
-    if (server === undefined) return;
-    const closed = new Promise<void>(resolve => server.close(() => resolve()));
-    server.closeAllConnections();
-    await closed;
+    await this.holds.close();
   }
 
   dispose(): void {
     this.releaseAll();
-    this.server?.close();
-    this.server?.closeAllConnections();
-    this.server = undefined;
+    this.holds.dispose();
   }
 
-  /** The demand server, on a port of the system's choosing on loopback: started once. */
-  private async listen(): Promise<number> {
-    if (this.server === undefined) {
-      const server = createServer((request, response) => this.demanded(request, response));
-      await new Promise<void>((resolve, reject) => {
-        server.once('error', reject);
-        server.listen(0, '127.0.0.1', () => resolve());
-      });
-      this.server = server;
-    }
-    // SAFETY: a server listening on TCP has an address of its own.
-    return (this.server.address() as AddressInfo).port;
+  /** A launcher's request: an input's path is wanted until it closes. Any other path is refused. */
+  private held(path: string): (() => void) | undefined {
+    const streamId = inputOf(path);
+    if (streamId === undefined) return undefined;
+    this.acquire(path, streamId);
+    return () => this.release(path);
   }
 
-  /** A launcher's request: the path it names is wanted until the request closes. Anything else is refused. */
-  private demanded(request: IncomingMessage, response: ServerResponse): void {
-    const prefix = `/${this.secret}/`;
-    const path = request.url?.startsWith(prefix) ? request.url.slice(prefix.length) : undefined;
-    const exposure = path === undefined ? undefined : inputOf(path);
-    if (path === undefined || exposure === undefined) {
-      response.writeHead(404).end();
-      return;
-    }
-    response.writeHead(200);
-    response.flushHeaders();
-    this.acquire(path, exposure);
-    request.socket.once('close', () => this.release(path));
-  }
-
-  /** One more reader of the exposure: its relay started if it isn't running. */
-  private acquire(path: string, exposure: InputExposure): void {
-    const { moq, organisationId } = this;
-    if (moq === undefined || organisationId === undefined) return;
+  /** One more reader of the stream: its relay started if it isn't running, once the stream's last has stopped. */
+  private acquire(path: string, streamId: string): void {
+    const { binaries, organisationId } = this;
+    if (binaries === undefined || organisationId === undefined) return;
+    if (Date.now() < this.unsupportedUntil) return;
     let wanted = this.wanted.get(path);
     if (wanted === undefined) {
-      const relay = new Relay(this.options, moq, path, { organisationId, ...exposure });
+      const { studio, program, directory } = this.options;
+      const book = (at: number) => this.book(streamId, at);
+      const options = { studio, program, ...binaries, directory: join(directory, streamId), book };
+      const relay = new Relay(options, { organisationId, streamId }, path);
       wanted = { relay, readers: 0, release: undefined };
       this.wanted.set(path, wanted);
+      const stopping = this.stopping.get(streamId);
+      const started = stopping === undefined ? relay.start() : stopping.then(() => relay.start());
       // One that cannot start is let go of now, for the next reader to try afresh.
-      relay.start().catch(() => {
+      started.catch((error: Error) => {
+        if (error instanceof StudioTooOldError) this.unsupported();
         if (this.wanted.get(path)?.relay === relay) this.drop(path);
       });
     }
@@ -206,6 +149,11 @@ export class InputRelays {
     wanted.release = undefined;
     wanted.readers += 1;
     this.report();
+  }
+
+  /** The studio API is too old to say how to read a stream: nothing is asked of it for a while. */
+  private unsupported(): void {
+    this.unsupportedUntil = Date.now() + RETRY_MS;
   }
 
   /** One reader fewer: with none, the relay is stopped once none has come back for a while. */
@@ -217,13 +165,43 @@ export class InputRelays {
     this.report();
   }
 
+  /**
+   * When the stream's relay may restart, wanted at `at`: the soonest from then at least `RESTART_SPACING_MS` from every
+   * other relay's booked restart. Restarts long past are forgotten.
+   */
+  private book(streamId: string, at: number): number {
+    this.restarts.delete(streamId);
+    for (const [other, booked] of this.restarts) if (booked < at - RESTART_SPACING_MS) this.restarts.delete(other);
+    const slot = spacedFrom([...this.restarts.values()], at, RESTART_SPACING_MS);
+    this.restarts.set(streamId, slot);
+    return slot;
+  }
+
   private drop(path: string): void {
     const wanted = this.wanted.get(path);
     if (wanted === undefined) return;
     clearTimeout(wanted.release);
     this.wanted.delete(path);
-    void wanted.relay.stop();
+    const streamId = inputOf(path);
+    const stopped = wanted.relay.stop();
+    if (streamId !== undefined) {
+      this.restarts.delete(streamId);
+      this.stopped(streamId, stopped);
+    }
     this.report();
+  }
+
+  /** The stream's relays stopping, `stopped` among them, until all have: forgotten once they have. */
+  private stopped(streamId: string, stopped: Promise<void>): void {
+    const earlier = this.stopping.get(streamId);
+    const all = Promise.all([earlier, stopped]).then(
+      () => undefined,
+      () => undefined
+    );
+    this.stopping.set(streamId, all);
+    void all.then(() => {
+      if (this.stopping.get(streamId) === all) this.stopping.delete(streamId);
+    });
   }
 
   private releaseAll(): void {
@@ -236,105 +214,9 @@ export class InputRelays {
   }
 }
 
-/** The command MediaMTX runs for a wanted path: Node running the launcher, which asks the demand server on `port`. */
-export function demandCommand(node: string, launcher: string, port: number, secret: string): string {
-  return mediamtxCommand(node, launcher, String(port), secret);
-}
-
-/** An exposure, as its read session is asked for. */
-interface RelayedExposure extends InputExposure {
-  organisationId: string;
-}
-
-/**
- * One exposure's relay: `moq` pushing its broadcast into its path of the program MediaMTX, from the latest session,
- * which it renews before it expires.
- */
-class Relay {
-  private readonly process: AttachedProcess;
-  private session: Session | undefined = undefined;
-  private renewal: ReturnType<typeof setTimeout> | undefined = undefined;
-  private readonly stopping = new AbortController();
-
-  constructor(
-    private readonly options: InputRelaysOptions,
-    private readonly moq: string,
-    private readonly path: string,
-    private readonly exposure: RelayedExposure
-  ) {
-    // Ready once MediaMTX has the push: before it starts, nothing publishes there, so nothing else is taken for it.
-    this.process = new AttachedProcess(join(options.directory, exposure.exposureId), {
-      name: 'moq',
-      probe: signal => options.program.publishing(path, signal),
-      readyTimeoutMs: 30_000
-    });
-  }
-
-  /** Relay the exposure: throws if its first session can't be had, or `moq` won't start. */
-  start(): Promise<void> {
-    return this.renew();
-  }
-
-  /**
-   * Ask for a session and restart `moq` with it, then schedule the next. A failure once relaying is tried again a
-   * minute on; the first is thrown.
-   */
-  private async renew(): Promise<void> {
-    clearTimeout(this.renewal);
-    if (this.stopping.signal.aborted) return;
-    try {
-      const session = await readSession(this.options.studio, this.exposure);
-      await this.run(session);
-      this.session = session;
-      this.schedule(Math.max(session.expiresAt - Date.now() - RENEW_BEFORE_MS, RETRY_MS));
-    } catch (error) {
-      if (this.stopping.signal.aborted) return;
-      logger.error('Exposure {exposureId} cannot be relayed: {error}', { exposureId: this.exposure.exposureId, error });
-      if (this.session === undefined) throw error;
-      this.schedule(RETRY_MS);
-    }
-  }
-
-  private schedule(delay: number): void {
-    if (!Number.isFinite(delay)) return;
-    this.renewal = setTimeout(() => void this.renew().catch(() => undefined), delay);
-  }
-
-  /** `moq` pushing `session`: the same process while the session is the same, a new one to the same path when not. */
-  private async run(session: Session): Promise<void> {
-    const { program } = this.options;
-    if (this.session === undefined) program.setInput(this.path);
-    const args = [
-      ['--connect', session.url, '--broadcast', session.broadcast, 'export'],
-      ['rtmp', '--connect', program.pathUrl(this.path), '--max-age', MAX_AGE]
-    ].flat();
-    await this.process.ensure(
-      { key: session.url, binary: this.moq, args, env: { NO_COLOR: '1' } },
-      this.stopping.signal
-    );
-  }
-
-  async stop(): Promise<void> {
-    clearTimeout(this.renewal);
-    this.stopping.abort();
-    // Before the process has stopped, which takes up to STOP_GRACE_MS: a relay for the path started meanwhile sets it
-    // again, and must not have it removed after.
-    this.options.program.removeInput(this.path);
-    await this.process.stop();
-  }
-}
-
-/** A read session for the exposure, as the device. Throws if the API refuses it, or offers anything but MoQ. */
-async function readSession(studio: Client, exposure: RelayedExposure): Promise<Session> {
-  const connection = await studio.organisations.streams.exposures.connect.v1({
-    id: exposure.organisationId,
-    streamId: exposure.streamId,
-    exposureId: exposure.exposureId,
-    action: 'read',
-    protocol: 'moq'
-  });
-  if (connection instanceof Error) throw connection;
-  if (!('relay' in connection)) throw new Error(`Exposure ${exposure.exposureId} is not read by MoQ`);
-  const url = new URL(connection.path, connection.relay);
-  return { url: withToken(url, connection.token), broadcast: connection.broadcast, expiresAt: expiryOf(connection) };
+/** The soonest time from `at` at least `spacing` from every one of `booked`. */
+export function spacedFrom(booked: number[], at: number, spacing: number): number {
+  let slot = at;
+  for (const other of [...booked].sort((a, b) => a - b)) if (Math.abs(other - slot) < spacing) slot = other + spacing;
+  return slot;
 }

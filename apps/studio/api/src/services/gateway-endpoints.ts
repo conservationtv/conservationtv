@@ -123,6 +123,37 @@ export function listGatewayEndpoints(organisationId: string, gatewayId: string) 
 }
 
 /**
+ * The protocols each of the organisation's gateways has a live endpoint registered for, by gateway ID, in whichever
+ * transaction the caller is in: what choosing a delivery or an ingest counts (`servedProtocols`,
+ * src/gateways/provider.ts). A gateway with none is absent.
+ */
+export async function selectRegisteredProtocols(organisationId: string): Promise<Map<string, Set<string>>> {
+  const db = useDB();
+  const environment = useEnvironment();
+  const now = new Date(environment.clock());
+  // As `liveEndpoints` counts them, for every gateway at once.
+  const rows = await db
+    .select({ gatewayId: gatewayEndpoints.gatewayId, protocol: gatewayEndpoints.protocol })
+    .from(gatewayEndpoints)
+    .innerJoin(gateways, eq(gateways.id, gatewayEndpoints.gatewayId))
+    .innerJoin(agents, and(eq(agents.id, gatewayEndpoints.deviceId), eq(agents.networkId, gateways.networkId)))
+    .where(
+      and(
+        eq(gatewayEndpoints.organisationId, organisationId),
+        eq(agents.active, true),
+        gt(gatewayEndpoints.expiresAt, now)
+      )
+    );
+  const registered = new Map<string, Set<string>>();
+  for (const { gatewayId, protocol } of rows) {
+    const protocols = registered.get(gatewayId) ?? new Set<string>();
+    protocols.add(protocol);
+    registered.set(gatewayId, protocols);
+  }
+  return registered;
+}
+
+/**
  * The URL of each protocol's server at the gateway, by protocol, as registered and live: trusted code, since `connect`
  * serves devices too, which cannot read the topology.
  */

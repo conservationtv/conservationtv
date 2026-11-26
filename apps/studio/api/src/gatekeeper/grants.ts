@@ -64,7 +64,8 @@ export async function leaseEndpoint(device: AuthenticatedDevice) {
 
 /**
  * A MoQ token for the subject at the path: to subscribe to everything under it, and to publish there too when it
- * publishes, which reads back the rendition broadcasts it joins into one. `gateway_unavailable` if it cannot be had.
+ * publishes, which reads back what it publishes to see the relay has it. The one token covers every broadcast under
+ * the path, whatever sizes of picture they carry. `gateway_unavailable` if it cannot be had.
  */
 export async function moqToken(subject: string, path: string, publish: boolean, lifetimeSeconds: number) {
   const request: GrantRequest = {

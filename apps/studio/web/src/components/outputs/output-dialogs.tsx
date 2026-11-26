@@ -1,7 +1,8 @@
 import type { FC } from 'react';
 import { useForm } from '@tanstack/react-form';
+import { useSuspenseQueries } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import type { Agent, Output } from '@conservationtv/studio-sdk';
+import { HttpError, type Agent, type Output } from '@conservationtv/studio-sdk';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,17 +28,27 @@ import { FieldGroup } from '@conservationtv/ui/components/field';
 import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
 
 import { FormError } from '@/components/common/form-error';
-import { EncodingSchema, NameSchema, type EncodingInput, type NameInput } from '@/forms/schemas';
+import { inputGatewayHintOf } from '@/components/outputs/output-detail';
+import {
+  EncodingSchema,
+  InputGatewaySchema,
+  NameSchema,
+  type EncodingInput,
+  type InputGatewayInput,
+  type NameInput
+} from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
 import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useUnpinPage } from '@/hooks/use-unpin-page';
+import { gatewayListQueryOptions } from '@/queries/gateways';
+import { networkListQueryOptions } from '@/queries/networks';
 import { useClearOutputDevice, useDeleteOutput, useSetOutputDevice, useUpdateOutput } from '@/queries/outputs';
 
 // What an administrator changes about an output itself, beside its forwards, previews and recorder (making one is its
 // own route, output-new; what drives it is output-control): whether it exists, its name, how its programme is encoded,
-// and the agent it runs on.
+// where it reads the show's streams from, and the agent it runs on.
 
 export interface OutputDialogProps {
   output: Output;
@@ -206,6 +217,80 @@ export const EncodingDialog: FC<OutputDialogProps> = ({ output }) => {
               )}
             </form.Field>
             <FormError error={update.error} />
+          </FieldGroup>
+          <DialogFooter>
+            <Button type="submit" loading={update.isPending}>
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/** A refusal to set the input gateway, in the page's words: the API only says the reference is not the organisation's. */
+function inputGatewayRefusalOf(error: Error | null): Error | null {
+  if (error instanceof HttpError && error.code === 'invalid_reference') {
+    return new Error('That gateway is no longer the organisation’s. Choose another, or Automatic.', { cause: error });
+  }
+  return error;
+}
+
+/**
+ * Changes where the output reads the show's streams from: Automatic, or one gateway, built in or the organisation's own
+ * (the only ones the API takes), with what the choice means under it.
+ */
+export const InputGatewayDialog: FC<OutputDialogProps> = ({ output }) => {
+  const organisationId = useOrganisationId();
+  const update = useUpdateOutput(organisationId);
+  const [gatewaysQuery, networksQuery] = useSuspenseQueries({
+    queries: [gatewayListQueryOptions(organisationId), networkListQueryOptions(organisationId)]
+  });
+  const gateways = gatewaysQuery.data;
+  const networks = networksQuery.data;
+  const defaultValues: InputGatewayInput = { inputGatewayId: output.inputGatewayId ?? '' };
+  const form = useForm({
+    defaultValues,
+    validators: { onSubmit: InputGatewaySchema },
+    onSubmit: ({ value }) => dialog.mutate({ outputId: output.id, ...InputGatewaySchema.parse(value) })
+  });
+  const dialog = useDialog(update, { onOpen: () => form.reset() });
+  return (
+    <Dialog {...dialog.props}>
+      <DialogTrigger render={<Button variant="ghost" size="sm" />}>Edit</DialogTrigger>
+      <DialogContent>
+        <form
+          onSubmit={event => {
+            event.preventDefault();
+            form.handleSubmit();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Where {output.name} reads streams from</DialogTitle>
+            <DialogDescription>
+              Its agent reads each stream the show places, to play it in OBS. A stream it cannot reach keeps its slot
+              and shows its card, and the show’s controls say so.
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup className="py-4">
+            <form.Field name="inputGatewayId">
+              {field => (
+                <SelectField
+                  field={field}
+                  label="Reads from"
+                  description={inputGatewayHintOf(field.state.value, gateways, networks)}
+                >
+                  <NativeSelectOption value="">Automatic</NativeSelectOption>
+                  {gateways.map(gateway => (
+                    <NativeSelectOption key={gateway.id} value={gateway.id}>
+                      {gateway.name}
+                    </NativeSelectOption>
+                  ))}
+                </SelectField>
+              )}
+            </form.Field>
+            <FormError error={inputGatewayRefusalOf(update.error)} />
           </FieldGroup>
           <DialogFooter>
             <Button type="submit" loading={update.isPending}>

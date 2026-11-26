@@ -34,7 +34,7 @@ import {
 } from '@/components/common/page';
 import { networkNameOf } from '@/components/devices/devices';
 import { SubjectHealth } from '@/components/devices/subject-health';
-import { deviceSubjectId, statesBySubject, type SubjectState } from '@/components/devices/subjects';
+import { deviceSubjectId } from '@/components/devices/subjects';
 import { DeleteGatewayDialog, EditGatewayDialog } from '@/components/gateways/gateway-dialogs';
 import { GatewayEndpoints } from '@/components/gateways/gateway-endpoints';
 import { GatewayHostname } from '@/components/gateways/gateway-hostname';
@@ -44,7 +44,8 @@ import { counted } from '@/lib/format';
 import { deviceListQueryOptions } from '@/queries/devices';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
-import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
+import { streamListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Gateways · conservation.tv studio' }];
 
@@ -56,18 +57,18 @@ export const meta: Route.MetaFunction = () => [{ title: 'Gateways · conservatio
 const GatewaysRoute: FC = () => {
   const organisationId = useOrganisationId();
   const administrator = useIsAdministrator();
-  const [gatewaysQuery, networksQuery, streamsQuery, devicesQuery, statesQuery] = useSuspenseQueries({
+  const [gatewaysQuery, networksQuery, streamsQuery, devicesQuery] = useSuspenseQueries({
     queries: [
       gatewayListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
       streamListQueryOptions(organisationId),
       deviceListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId)
+      // What each runner's health reads (SubjectHealth), loaded with the page.
+      organisationStatusQueryOptions(organisationId)
     ]
   });
   const builtin = gatewaysQuery.data.filter(gateway => gateway.builtin);
   const own = gatewaysQuery.data.filter(gateway => !gateway.builtin);
-  const states = statesBySubject(statesQuery.data);
   const networks = networksQuery.data;
   return (
     <Page>
@@ -115,7 +116,6 @@ const GatewaysRoute: FC = () => {
                   networks={networks}
                   streamCount={streamCountOf(streamsQuery.data, gateway.id)}
                   runner={runner}
-                  runnerState={runner ? states.get(deviceSubjectId(runner.id)) : undefined}
                 />
               );
             })}
@@ -187,15 +187,13 @@ interface GatewayRowProps {
   streamCount: number;
   /** The agent running it, if any. */
   runner: Device | undefined;
-  /** What agents last said about the agent running it. */
-  runnerState: SubjectState | undefined;
 }
 
 /**
  * One of the organisation's gateways: where it is, how many streams it carries, the hostname it is reached at, and who
  * runs it. Where it is reachable right now, and what its settings override, open below it on demand.
  */
-const GatewayRow: FC<GatewayRowProps> = ({ gateway, networks, streamCount, runner, runnerState }) => {
+const GatewayRow: FC<GatewayRowProps> = ({ gateway, networks, streamCount, runner }) => {
   const administrator = useIsAdministrator();
   return (
     <Collapsible render={<Item variant="outline" />}>
@@ -224,7 +222,7 @@ const GatewayRow: FC<GatewayRowProps> = ({ gateway, networks, streamCount, runne
           {runner ? (
             <>
               <span className="truncate text-custom-12 text-foreground">{runner.name}</span>
-              <SubjectHealth state={runnerState} />
+              <SubjectHealth subjectId={deviceSubjectId(runner.id)} />
             </>
           ) : (
             <span className="text-custom-12 text-custom-text-secondary">No active agent on its network</span>

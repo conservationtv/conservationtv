@@ -10,7 +10,6 @@ import type {
   ExposureUpdateParams,
   RecorderCreateParams,
   RecorderUpdateParams,
-  Rendition,
   StreamUpdateParams
 } from '@conservationtv/studio-sdk';
 
@@ -31,25 +30,10 @@ export const streamListQueryOptions = (organisationId: string) =>
   queryOptions({
     queryKey: ['streams', organisationId, 'list'] as const,
     queryFn: async () => {
-      const result = await api.organisations.streams.list.v1({ id: organisationId });
+      const result = await api.organisations.streams.list.v2({ id: organisationId });
       if (result instanceof Error) throw result;
       return result.streams;
     }
-  });
-
-/**
- * What agents report about every subject in the organisation (`device:<id>`, `exposure:<id>`), combined: refreshed
- * while the page is open, as a subject goes stale without a new report.
- */
-export const subjectStateListQueryOptions = (organisationId: string) =>
-  queryOptions({
-    queryKey: ['subjects', organisationId, 'states'] as const,
-    queryFn: async () => {
-      const result = await api.organisations.subjects.states.list.v2({ id: organisationId });
-      if (result instanceof Error) throw result;
-      return result.states;
-    },
-    refetchInterval: 30_000
   });
 
 /** What a metric read shares across the subjects it asks about. */
@@ -108,7 +92,7 @@ export const moqReadQueryOptions = (organisationId: string, streamId: string, ex
     queryKey: ['streams', organisationId, 'moq-read', streamId, exposureId] as const,
     queryFn: async () =>
       moqReadOf(
-        await api.organisations.streams.exposures.connect.v1({
+        await api.organisations.streams.exposures.connect.v2({
           id: organisationId,
           streamId,
           exposureId,
@@ -120,8 +104,37 @@ export const moqReadQueryOptions = (organisationId: string, streamId: string, ex
     refetchInterval: query => readRefetchInterval(query.state.data)
   });
 
+/** How often to ask again for a stream's read that was refused, while something shows it. */
+const REFUSED_RETRY_MS = 10_000;
+
 /**
- * How this account reads one rendition of a delivery by one protocol, as the API answers `exposures.connect`: the URL,
+ * Where to watch a stream over MoQ, by whatever delivers it: the delivery the API chooses for this account
+ * (`organisations.streams.connect`), with its short-lived credential, as a show's sources read one, and which delivery
+ * that is. A refusal (nothing a browser reaches delivers it by MoQ) comes back as its message rather than thrown.
+ * Asked again a little before the credential expires, when the API may choose another delivery; a refusal is asked
+ * again every few seconds while shown, since a pushed stream's delivery appears when its publisher starts. A delivery
+ * going live elsewhere has it asked again too (src/components/shows/stream-read-refresh.tsx).
+ */
+export const streamMoqReadQueryOptions = (organisationId: string, streamId: string) =>
+  // As moqReadQueryOptions: one type for every MoQ read.
+  queryOptions<MoqRead, Error, MoqRead, QueryKey>({
+    queryKey: ['streams', organisationId, 'stream-moq-read', streamId] as const,
+    queryFn: async () => {
+      const result = await api.organisations.streams.connect.v1({ id: organisationId, streamId, protocols: ['moq'] });
+      if (result instanceof Error) return moqReadOf(result);
+      const read = moqReadOf(result.connection);
+      return 'failure' in read ? read : { ...read, exposureId: result.exposureId };
+    },
+    staleTime: query => readStaleTime(query.state.data),
+    // An interval runs only while an observer is mounted: nothing asks again for a stream no longer shown.
+    refetchInterval: query => {
+      const read = query.state.data;
+      return read !== undefined && 'failure' in read ? REFUSED_RETRY_MS : readRefetchInterval(read);
+    }
+  });
+
+/**
+ * How this account reads a delivery by one protocol, as the API answers `exposures.connect`: the URL,
  * and the short-lived token the gateway admits it with, which goes beside it (`?jwt=`, or a bearer header). It follows
  * the gateway's URL overrides and what its agent registered, as every reader's does. Kept, like the MoQ preview's, so
  * a copy is ready the moment it is asked for, and asked again a little before the token expires. A refusal (no agent
@@ -131,21 +144,19 @@ export const exposureReadQueryOptions = (
   organisationId: string,
   streamId: string,
   exposureId: string,
-  protocol: string,
-  rendition: Rendition
+  protocol: string
 ) =>
   // As moqReadQueryOptions: one type for a stream's read and a show's.
   queryOptions<ProtocolRead, Error, ProtocolRead, QueryKey>({
-    queryKey: ['streams', organisationId, 'read', streamId, exposureId, protocol, rendition] as const,
+    queryKey: ['streams', organisationId, 'read', streamId, exposureId, protocol] as const,
     queryFn: async () =>
       protocolReadOf(
-        await api.organisations.streams.exposures.connect.v1({
+        await api.organisations.streams.exposures.connect.v2({
           id: organisationId,
           streamId,
           exposureId,
           action: 'read',
-          protocol,
-          rendition
+          protocol
         })
       ),
     staleTime: query => readStaleTime(query.state.data),
@@ -186,6 +197,8 @@ export interface MoqReadable {
   url: string;
   broadcast: string;
   renewIn: number;
+  /** The delivery it reads, where the API chose one (a stream's read, not an exposure's or a show's). */
+  exposureId?: string;
 }
 export type MoqRead = MoqReadable | ReadRefused;
 
@@ -250,16 +263,21 @@ function renewalDelay(expiresAt: string | undefined): number {
   return Math.max(Date.parse(expiresAt) - Date.now() - RENEW_BEFORE_MS, 60_000);
 }
 
-/** Rename a stream, or change the device it comes from. */
+/** Rename a stream, change its short code, or change the device it comes from. */
 export function useUpdateStream(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (changes: Omit<StreamUpdateParams, 'id'>) => {
-      const result = await api.organisations.streams.update.v1({ id: organisationId, ...changes });
+      const result = await api.organisations.streams.update.v2({ id: organisationId, ...changes });
       if (result instanceof Error) throw result;
       return result;
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: ['streams', organisationId, 'list'] })
+    // A show's controls name its streams by name and code, so its read is asked again too.
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['streams', organisationId, 'list'] }),
+        client.invalidateQueries({ queryKey: ['shows', organisationId] })
+      ])
   });
 }
 
@@ -283,7 +301,7 @@ export function useCreateExposure(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (exposure: Omit<ExposureCreateParams, 'id'>) => {
-      const result = await api.organisations.streams.exposures.create.v1({ id: organisationId, ...exposure });
+      const result = await api.organisations.streams.exposures.create.v2({ id: organisationId, ...exposure });
       if (result instanceof Error) throw result;
       return result;
     },
@@ -291,12 +309,12 @@ export function useCreateExposure(organisationId: string) {
   });
 }
 
-/** Change an exposure: its gateway, the renditions it offers, what feeds it, or who publishes it. */
+/** Change an exposure: its gateway, what feeds it, or who publishes it. */
 export function useUpdateExposure(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (changes: Omit<ExposureUpdateParams, 'id'>) => {
-      const result = await api.organisations.streams.exposures.update.v1({ id: organisationId, ...changes });
+      const result = await api.organisations.streams.exposures.update.v2({ id: organisationId, ...changes });
       if (result instanceof Error) throw result;
       return result;
     },
@@ -326,12 +344,12 @@ export function useDeleteExposure(organisationId: string) {
   });
 }
 
-/** Record one of a stream's exposures, at one of the renditions it offers. */
+/** Record one of a stream's exposures: the largest picture it carries. */
 export function useCreateRecorder(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (recorder: Omit<RecorderCreateParams, 'id'>) => {
-      const result = await api.organisations.streams.recorders.create.v1({ id: organisationId, ...recorder });
+      const result = await api.organisations.streams.recorders.create.v2({ id: organisationId, ...recorder });
       if (result instanceof Error) throw result;
       return result;
     },
@@ -344,7 +362,7 @@ export function useUpdateRecorder(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (changes: Omit<RecorderUpdateParams, 'id'>) => {
-      const result = await api.organisations.streams.recorders.update.v1({ id: organisationId, ...changes });
+      const result = await api.organisations.streams.recorders.update.v2({ id: organisationId, ...changes });
       if (result instanceof Error) throw result;
       return result;
     },
@@ -374,13 +392,14 @@ export interface NewStreamDelivery {
   /** The gateway's name, for saying which delivery was refused. */
   name: string;
   upstreamGatewayId: string | null;
-  renditions: ExposureCreateParams['renditions'];
   publisherDeviceId: string | null;
 }
 
-/** A stream to create, and its deliveries in the order they are to be made: each after whatever feeds it. */
+/** A stream to create, its short code, and its deliveries in the order they are to be made: each after whatever feeds it. */
 export interface NewStreamWithDeliveries {
   name: string;
+  /** Its short code, or null for none. */
+  code: string | null;
   sourceDeviceId: string | null;
   deliveries: NewStreamDelivery[];
 }
@@ -393,8 +412,8 @@ export interface NewStreamWithDeliveries {
 export function useCreateStreamWithDeliveries(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ name, sourceDeviceId, deliveries }: NewStreamWithDeliveries) => {
-      const stream = await api.organisations.streams.create.v1({ id: organisationId, name, sourceDeviceId });
+    mutationFn: async ({ name, code, sourceDeviceId, deliveries }: NewStreamWithDeliveries) => {
+      const stream = await api.organisations.streams.create.v2({ id: organisationId, name, code, sourceDeviceId });
       if (stream instanceof Error) throw stream;
       const made = new Map<string, string>();
       // Each delivery needs the ID of the exposure made for its upstream, so they are made in turn. Once the stream
@@ -403,11 +422,10 @@ export function useCreateStreamWithDeliveries(organisationId: string) {
       for (const delivery of deliveries) {
         const upstreamExposureId = delivery.upstreamGatewayId ? (made.get(delivery.upstreamGatewayId) ?? null) : null;
         const exposure = await api.organisations.streams.exposures.create
-          .v1({
+          .v2({
             id: organisationId,
             streamId: stream.id,
             gatewayId: delivery.gatewayId,
-            renditions: delivery.renditions,
             publisherDeviceId: delivery.publisherDeviceId,
             upstreamExposureId
           })
