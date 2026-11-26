@@ -1,4 +1,4 @@
-import { absenceOf, lineupOf, normalised } from '../../../api/src/shows/resolve.ts';
+import { normalised, positionedOf, stateOf } from '../../../api/src/shows/resolve.ts';
 import { assignHealth } from './health.ts';
 import type {
   AddressRow,
@@ -540,9 +540,10 @@ function showsOf(build: Build, streams: StreamRow[]): Shows {
       takeoverLive: false,
       outputs: []
     };
-    // Ranked in the order it was set up with, those still in the lineup; normalising ranks the rest after them.
+    // Ranked in the order it was set up with, its cameras' streams (a locked one keeping its place); normalising ranks
+    // any new camera after them.
     const sources = { organisationId: build.organisation.id, streams, cameras: build.cameras, showStreams, states: [] };
-    const inLineup = setUpWith.filter(stream => absenceOf(stream, build.cameras) === null);
+    const inLineup = setUpWith.filter(stream => stateOf(stream, { cameras: build.cameras, states: [] }) !== undefined);
     showStreams[show.id] = inLineup.map((stream, index) => ({ ...STANDARD_MIX, streamId: stream.id, rank: index + 1 }));
     showStreams[show.id] = normalised(showFactsOf(sources, show)).members;
     shows.push(show);
@@ -703,7 +704,7 @@ function operateShow(build: Build, s: number, show: ShowRow, sources: ShowSource
   const rng = build.root.child('show', s);
   show.volumeDb = levelOf(rng.child('show-mix'), 0.15, [-6, -3]);
   const facts = normalised(showFactsOf(sources, show));
-  const onScreen = lineupOf(facts)
+  const onScreen = positionedOf(facts)
     .slice(0, show.slots)
     .map(stream => stream.id);
   sources.showStreams[show.id] = facts.members.map(member => {

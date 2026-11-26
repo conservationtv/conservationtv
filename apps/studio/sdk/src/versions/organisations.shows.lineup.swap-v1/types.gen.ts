@@ -15,7 +15,7 @@ export type Lineup = {
         name: string;
         code: string | null;
         position: number | null;
-        absence: 'locked' | 'disabled' | 'undelivered' | 'standby' | null;
+        absence: 'locked' | null;
         volumeDb: number;
         muted: boolean;
         syncOffsetMs: number;

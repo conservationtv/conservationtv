@@ -2,11 +2,14 @@ import { exposureSubject } from '@conservationtv/reports';
 import { placedStreams } from '@conservationtv/shows';
 import { describe, expect, it } from 'vitest';
 import {
+  addableStreams,
+  added,
   lineupEntries,
   lineupOf,
   neededStreams,
   normalisation,
   normalised,
+  removed,
   resolveShow,
   swapped,
   withRanks,
@@ -53,17 +56,20 @@ describe('normalising the lineup', () => {
     expect(normalisation(facts())).toEqual([]);
   });
 
-  it('drops the rank of a locked camera, and ranks it last once it is unlocked', () => {
+  it('skips a locked camera, which keeps its place and comes back to it once unlocked', () => {
     const base = facts();
     const locked = { ...base, cameras: base.cameras.map(c => (c.id === 'a-camera' ? { ...c, state: 'locked' } : c)) };
-    expect(normalisation(locked)).toEqual([{ streamId: 'a', rank: null }]);
-
-    const unlocked = { ...normalised(locked), cameras: base.cameras };
-    expect(normalisation(unlocked)).toEqual([{ streamId: 'a', rank: 4 }]);
-    expect(ids(lineupOf(normalised(unlocked)))).toEqual(['b', 'c', 'a']);
+    expect(normalisation(locked)).toEqual([]);
+    expect(lineupEntries(locked).map(e => [e.streamId, e.position, e.absence])).toEqual([
+      ['a', null, 'locked'],
+      ['b', 1, null],
+      ['c', 2, null]
+    ]);
+    expect(resolveShow(locked).cameras.map(camera => camera.streamId)).toEqual(['b', 'c']);
+    expect(resolveShow(base).cameras.map(camera => camera.streamId)).toEqual(['a', 'b']);
   });
 
-  it('ranks unranked cameras after the last, oldest first', () => {
+  it('ranks cameras new to the show after the last, oldest first', () => {
     const changes = normalisation(facts({ members: [member('b', 5)] }));
     expect(changes).toEqual([
       { streamId: 'a', rank: 6 },
@@ -71,15 +77,25 @@ describe('normalising the lineup', () => {
     ]);
   });
 
-  it('keeps a camera that nothing delivers out of the lineup, saying why', () => {
+  it('joins a new camera only once it is delivered, but keeps one in the lineup that stops being, on its card', () => {
     const streams = [cameraStream('a', []), cameraStream('b'), cameraStream('c')];
-    const normal = normalised(facts({ streams }));
-    expect(ids(lineupOf(normal))).toEqual(['b', 'c']);
-    expect(lineupEntries(facts({ streams })).map(e => [e.streamId, e.position, e.absence])).toEqual([
-      ['b', 1, null],
-      ['c', 2, null],
-      ['a', null, 'undelivered']
+    const fresh = facts({ streams, members: [member('b', 1), member('c', 2)] });
+    expect(normalisation(fresh)).toEqual([]);
+    expect(addableStreams(fresh).map(s => [s.streamId, s.state])).toEqual([['a', 'undelivered']]);
+
+    const kept = facts({ streams });
+    expect(ids(lineupOf(normalised(kept)))).toEqual(['a', 'b', 'c']);
+    expect(resolveShow(kept).cameras.map(camera => [camera.streamId, camera.card])).toEqual([
+      ['a', 'offline'],
+      ['b', 'loading']
     ]);
+  });
+
+  it('never ranks a removed camera again by itself', () => {
+    const out = facts({ members: [member('a', null), member('b', 2), member('c', 3)] });
+    expect(normalisation(out)).toEqual([]);
+    expect(ids(lineupOf(out))).toEqual(['b', 'c']);
+    expect(addableStreams(out).map(s => [s.streamId, s.source, s.state])).toEqual([['a', 'camera', 'ready']]);
   });
 
   it('never puts a pushed stream nobody publishes in the lineup', () => {
@@ -149,52 +165,56 @@ function liveFacts(overrides: Partial<ShowFacts> = {}): ShowFacts {
   });
 }
 
-describe('pushed streams going live', () => {
-  it('waits on standby while published, never on air by itself, even with a slot empty', () => {
+describe('adding and removing', () => {
+  it('offers a phone while someone publishes it, and adds it at the end: on screen only if a slot is free', () => {
+    expect(addableStreams(facts({ streams: [...facts().streams, phoneStream()] }))).toEqual([]);
     const live = liveFacts();
     expect(normalisation(live)).toEqual([]);
     expect(resolveShow(live).cameras.map(camera => camera.streamId)).toEqual(['a', 'b', 'c']);
-    expect(lineupEntries(live).map(e => [e.streamId, e.position, e.absence])).toEqual([
-      ['a', 1, null],
-      ['b', 2, null],
-      ['c', 3, null],
-      ['phone', null, 'standby']
-    ]);
-  });
+    expect(addableStreams(live).map(s => [s.streamId, s.source, s.state])).toEqual([['phone', 'pushed', 'live']]);
 
-  it("goes on air in a camera's place when swapped with it, the camera rejoining at the end", () => {
-    const normal = normalised(liveFacts());
-    const changes = swapped(normal, { streamId: 'phone' }, { streamId: 'a' });
-    expect(changes).toEqual([
-      { streamId: 'phone', rank: 1 },
-      { streamId: 'a', rank: null }
-    ]);
-    const after = normalised(withRanks(normal, changes!));
-    expect(ids(lineupOf(after))).toEqual(['phone', 'b', 'c', 'a']);
-  });
-
-  it('takes the first empty slot when swapped with one', () => {
-    const normal = normalised(liveFacts());
-    const changes = swapped(normal, { streamId: 'phone' }, { position: 5 });
+    const changes = added(normalised(live), 'phone');
     expect(changes).toEqual([{ streamId: 'phone', rank: 4 }]);
-    expect(resolveShow(withRanks(normal, changes!)).cameras.map(camera => camera.streamId)).toEqual([
-      'a',
-      'b',
-      'c',
-      'phone'
-    ]);
-    expect(swapped(normal, { streamId: 'phone' }, { position: 7 })).toBeUndefined();
+    const on = withRanks(live, changes!);
+    expect(resolveShow(on).cameras.map(camera => camera.streamId)).toEqual(['a', 'b', 'c', 'phone']);
+    expect(addableStreams(on)).toEqual([]);
+
+    const full = withRanks({ ...live, show: { ...live.show, slots: 3 } }, changes!);
+    expect(resolveShow(full).cameras.map(camera => camera.streamId)).toEqual(['a', 'b', 'c']);
+    expect(lineupEntries(full).at(-1)).toMatchObject({ streamId: 'phone', position: 4, absence: null });
   });
 
-  it('leaves the lineup once nobody publishes it, or health has stopped saying so, and the rest move up', () => {
+  it('refuses a stream in the lineup already, a locked camera, or a phone nobody publishes', () => {
+    const live = normalised(liveFacts());
+    expect(added(live, 'a')).toBeUndefined();
+    expect(added({ ...live, states: [] }, 'phone')).toBeUndefined();
+    const locked = { ...live, cameras: live.cameras.map(c => (c.id === 'a-camera' ? { ...c, state: 'locked' } : c)) };
+    const out = withRanks(locked, [{ streamId: 'a', rank: null }]);
+    expect(addableStreams(out).find(s => s.streamId === 'a')?.state).toBe('locked');
+    expect(added(out, 'a')).toBeUndefined();
+  });
+
+  it('keeps a phone that stops being published in its slot, on its offline card, until it is removed', () => {
     const on = withRanks(normalised(liveFacts()), [{ streamId: 'phone', rank: 0 }]);
-    expect(ids(lineupOf(on))).toEqual(['phone', 'a', 'b', 'c']);
-    for (const state of [deliveryState('phone', 'idle'), deliveryState('phone', 'active', 'stale')]) {
-      const off = { ...on, states: [state] };
-      expect(normalisation(off)).toEqual([{ streamId: 'phone', rank: null }]);
-      expect(ids(lineupOf(normalised(off)))).toEqual(['a', 'b', 'c']);
-      expect(lineupEntries(off).some(entry => entry.streamId === 'phone')).toBe(false);
-    }
+    const stopped = { ...on, states: [deliveryState('phone', 'idle')] };
+    expect(normalisation(stopped)).toEqual([]);
+    expect(resolveShow(stopped).cameras.map(camera => [camera.streamId, camera.card])).toEqual([
+      ['phone', 'offline'],
+      ['a', 'loading'],
+      ['b', 'loading'],
+      ['c', 'loading']
+    ]);
+    const changes = removed(stopped, { streamId: 'phone' });
+    expect(changes).toEqual([{ streamId: 'phone', rank: null }]);
+    expect(ids(lineupOf(withRanks(stopped, changes!)))).toEqual(['a', 'b', 'c']);
+    expect(removed(stopped, { streamId: 'nowhere' })).toBeUndefined();
+  });
+
+  it('takes a camera out by its position, the rest moving up', () => {
+    const normal = normalised(facts());
+    const changes = removed(normal, { position: 1 });
+    expect(changes).toEqual([{ streamId: 'a', rank: null }]);
+    expect(resolveShow(withRanks(normal, changes!)).cameras.map(camera => camera.streamId)).toEqual(['b', 'c']);
   });
 });
 

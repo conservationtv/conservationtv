@@ -16,15 +16,15 @@ import { streamOffline, type StateInput } from '../health/status.ts';
 // so the show's object composing it, a read authorising what an output plays, and the studio listing the lineup can
 // never disagree.
 //
-// The lineup is the show's streams in order. A camera's stream may be in it while its camera is `enabled` and it has at
-// least one exposure; a pushed stream (no camera: a phone, a PC, OBS going live) while someone publishes it, as its
-// deliveries' health says (src/health/exposure.ts). `rank` orders it; positions are never stored, so position n is
-// the nth by rank, and the first `slots` are on screen. Before anything is resolved the lineup is normalised: a ranked
-// stream that may no longer be in it loses its rank, and a camera's that may be with none is ranked after the last,
-// oldest first. So a camera locked and unlocked comes back last, a new one joins last, and no stale rank survives. A
-// pushed stream is never ranked by itself, so it never goes on air by itself: it waits on `standby` until a swap ranks
-// it, and loses its rank when it is no longer published. Resolving normalises in memory; the show's sync writes what
-// normalising changed (src/shows/lineup.ts), so nothing else has to remember to.
+// The lineup is the streams the show's operators put in it, in order: `rank` orders it, a stream with no rank is not in
+// it. Positions are never stored: position n is the nth stream by rank that is not skipped, and the first `slots` are
+// on screen. Only a stream whose camera is locked is skipped, keeping its place to come back to; anything else in the
+// lineup stays where it was put, showing its offline card while it has nothing to show (a camera switched off or not
+// delivered, a phone that stopped going live), until someone removes it. Streams are added (at the end) and removed by
+// the show's controls; the only stream that joins by itself is a camera's new to the show (with no `show_stream` row)
+// once it is enabled and delivered, ranked after the last, oldest first, which is all normalising does. Resolving
+// normalises in memory; the show's sync writes what normalising changed (src/shows/lineup.ts), so nothing else has to
+// remember to.
 
 /** One of a stream's deliveries. */
 export interface ExposureFact {
@@ -80,34 +80,45 @@ export interface ShowFacts {
   states: StateInput[];
 }
 
+/** Why a stream in the lineup has no position: its camera is locked, so it is skipped, keeping its place. */
+export type Absence = 'locked';
+
 /**
- * Why a stream is out of the lineup: its camera is locked or disabled, or nothing delivers it; or, for a pushed stream
- * that is being published, that nobody has swapped it in yet (`standby`).
+ * What a stream not in the lineup would be if it were added: a camera's that is `ready` (enabled and delivered),
+ * `locked` (it would be skipped), `disabled` or `undelivered` (it would show its offline card); or a pushed stream that
+ * is `live` (someone is publishing it).
  */
-export type Absence = 'locked' | 'disabled' | 'undelivered' | 'standby';
+export type StreamState = 'ready' | 'locked' | 'disabled' | 'undelivered' | 'live';
 
-/** What a stream's place in the lineup is decided by: the cameras, and the states of the streams' deliveries. */
-export type LineupFacts = Pick<ShowFacts, 'cameras' | 'states'>;
-
-/** A rank to write: a stream joining the lineup at the end, or leaving it (null). */
+/** A rank to write: a stream joining the lineup, or leaving it (null). */
 export interface RankChange {
   streamId: string;
   rank: number | null;
 }
 
-/** One of the organisation's streams as the show has it: in the lineup at its position, or out of it and why. */
+/** A stream in the lineup, as the show has it: at its position, or skipped and why. */
 export interface LineupEntry {
   streamId: string;
   name: string;
   code: string | null;
-  /** From 1, while it is in the lineup. */
+  /** From 1; null while it is skipped. */
   position: number | null;
-  /** Why it is out of the lineup; null while it is in it. */
+  /** Why it is skipped; null while it has a position. */
   absence: Absence | null;
   volumeDb: number;
   muted: boolean;
   syncOffsetMs: number;
   audioStreamId: string | null;
+}
+
+/** A stream not in the lineup that could be added: what it is, and what it would be if it were. */
+export interface AddableStream {
+  streamId: string;
+  name: string;
+  code: string | null;
+  /** Its source: a camera, or none (a phone, a PC, OBS going live). */
+  source: 'camera' | 'pushed';
+  state: StreamState;
 }
 
 /** Which stream a command means: one by its ID, or whichever is at a position of the lineup (from 1). */
@@ -141,42 +152,39 @@ export function published(stream: StreamFact, states: readonly StateInput[]): bo
   );
 }
 
-/** Whether a stream is pushed: it has no source device (a phone, a PC, OBS going live). */
-function isPushed(stream: StreamFact): boolean {
-  return stream.sourceDeviceId === null;
-}
-
 /**
- * Whether a stream may be in the lineup (null), or why a camera's may not. Undefined for one the lineup has nothing to
- * say of: a pushed stream nobody is publishing, or one whose source is a device that is not a camera. Either can still
- * take over. Whether it is ranked is another matter: see `lineupEntries`.
+ * What a stream is now, for the lineup: as `StreamState` says. Undefined for a pushed stream nobody is publishing, and
+ * one whose source is a device that is not a camera: neither can be added, though either can take over.
  */
-export function absenceOf(stream: StreamFact, facts: LineupFacts): Exclude<Absence, 'standby'> | null | undefined {
-  if (isPushed(stream)) return published(stream, facts.states) ? null : undefined;
+export function stateOf(stream: StreamFact, facts: Pick<ShowFacts, 'cameras' | 'states'>): StreamState | undefined {
+  if (stream.sourceDeviceId === null) return published(stream, facts.states) ? 'live' : undefined;
   const camera = facts.cameras.find(candidate => candidate.id === stream.sourceDeviceId);
   if (camera === undefined) return undefined;
   if (camera.state === 'locked' || camera.state === 'disabled') return camera.state;
-  return stream.exposures.length === 0 ? 'undelivered' : null;
+  return stream.exposures.length === 0 ? 'undelivered' : 'ready';
 }
 
 /**
- * The ranks normalising the lineup writes, in the order above: none when it is already normal. Only a camera's stream
- * is ranked by it; a pushed one keeps whatever rank a swap gave it while it may stay.
+ * Whether a stream has nothing to show, whatever its health says: a pushed one nobody is publishing, or a camera's that
+ * is not ready. One from a device that is not a camera is left to its health.
+ */
+function hasNothing(stream: StreamFact, facts: ShowFacts): boolean {
+  const state = stateOf(stream, facts);
+  if (stream.sourceDeviceId === null) return state !== 'live';
+  return state !== undefined && state !== 'ready';
+}
+
+/**
+ * The ranks normalising the lineup writes: a camera's stream new to the show (with no `show_stream` row) that is ready
+ * joins after the last, oldest first; none when there is none.
  */
 export function normalisation(facts: ShowFacts): RankChange[] {
-  const eligible = facts.streams.filter(stream => absenceOf(stream, facts) === null);
-  const inLineup = new Set(eligible.map(({ id }) => id));
-  const rankable = new Set(eligible.filter(stream => !isPushed(stream)).map(({ id }) => id));
-  const ranked = facts.members.filter(member => member.rank !== null);
-  const leaving = ranked.filter(member => !inLineup.has(member.streamId));
-  const staying = ranked.filter(member => inLineup.has(member.streamId));
-  const rankedIds = new Set(staying.map(member => member.streamId));
-  let next = Math.max(0, ...staying.map(member => member.rank!)) + 1;
-  // The organisation's streams are oldest first, so the oldest unranked joins first.
-  const joining = [...rankable]
-    .filter(streamId => !rankedIds.has(streamId))
-    .map(streamId => ({ streamId, rank: next++ }));
-  return [...leaving.map(({ streamId }) => ({ streamId, rank: null })), ...joining];
+  const known = new Set(facts.members.map(member => member.streamId));
+  let next = Math.max(0, ...facts.members.map(member => member.rank ?? 0)) + 1;
+  // The organisation's streams are oldest first, so the oldest joins first.
+  return facts.streams
+    .filter(stream => !known.has(stream.id) && stream.sourceDeviceId !== null && stateOf(stream, facts) === 'ready')
+    .map(stream => ({ streamId: stream.id, rank: next++ }));
 }
 
 /** The facts with `changes` applied to the show's members: a stream new to the show joins with a standard channel. */
@@ -194,61 +202,44 @@ export function normalised(facts: ShowFacts): ShowFacts {
   return withRanks(facts, normalisation(facts));
 }
 
-/** The lineup of normalised facts, in position order: by rank, then oldest first. */
+/** Every stream in the lineup of normalised facts, skipped ones too, in order: by rank, then oldest first. */
 export function lineupOf(facts: ShowFacts): StreamFact[] {
   const ranks = new Map(facts.members.map(member => [member.streamId, member.rank]));
   const order = new Map(facts.streams.map((stream, index) => [stream.id, index]));
   return facts.streams
-    .filter(stream => absenceOf(stream, facts) === null && ranks.get(stream.id) != null)
+    .filter(stream => ranks.get(stream.id) != null)
     .sort((a, b) => ranks.get(a.id)! - ranks.get(b.id)! || order.get(a.id)! - order.get(b.id)!);
 }
 
-/** The pushed streams of normalised facts that are published but not ranked: on `standby`, oldest first. */
-export function standbyOf(facts: ShowFacts): StreamFact[] {
-  const ranks = new Map(facts.members.map(member => [member.streamId, member.rank]));
-  return facts.streams.filter(
-    stream => isPushed(stream) && absenceOf(stream, facts) === null && ranks.get(stream.id) == null
-  );
+/** Whether a stream in the lineup is skipped: its camera is locked. */
+function skipped(stream: StreamFact, facts: ShowFacts): boolean {
+  return stateOf(stream, facts) === 'locked';
+}
+
+/** The lineup's streams that have positions, in position order: every one but those skipped. */
+export function positionedOf(facts: ShowFacts): StreamFact[] {
+  return lineupOf(facts).filter(stream => !skipped(stream, facts));
 }
 
 /**
- * The stream a reference means in normalised facts: one in the lineup, by its ID or its position, or one on standby,
- * by its ID. Undefined for any other, or a position past the lineup's end.
+ * The stream a reference means in normalised facts' lineup: by its ID (skipped or not), or the stream at a position.
+ * Undefined for one not in the lineup, or a position past its end.
  */
 export function referencedStream(facts: ShowFacts, reference: StreamReference): StreamFact | undefined {
-  const lineup = lineupOf(facts);
-  if ('position' in reference) return lineup[reference.position - 1];
-  return [...lineup, ...standbyOf(facts)].find(stream => stream.id === reference.streamId);
-}
-
-/** Whether a reference is to an empty slot: a position past the lineup's end that is still on screen. */
-function emptySlot(facts: ShowFacts, reference: StreamReference): boolean {
-  return (
-    'position' in reference && reference.position > lineupOf(facts).length && reference.position <= facts.show.slots
-  );
+  if ('position' in reference) return positionedOf(facts)[reference.position - 1];
+  return lineupOf(facts).find(stream => stream.id === reference.streamId);
 }
 
 /**
  * Exchange two streams' ranks in normalised facts, wherever they are in the lineup: both on screen, or one off it,
- * which is how a camera is brought on. A stream on standby swapped with one in the lineup takes its place, and the
- * other leaves it: a camera's rejoins at the end, a pushed one goes back to standby. A stream swapped with an empty
- * slot is ranked after the last, so it takes the first empty slot. Undefined if either is neither; none for a stream
- * swapped with itself.
+ * which is how a stream is brought on. Undefined if either is not in it; none for a stream swapped with itself.
  */
 export function swapped(facts: ShowFacts, a: StreamReference, b: StreamReference): RankChange[] | undefined {
-  const rank = (stream: StreamFact) => facts.members.find(member => member.streamId === stream.id)?.rank ?? null;
-  const last = () => Math.max(0, ...facts.members.map(member => member.rank ?? 0));
-  for (const [stream, slot] of [
-    [a, b],
-    [b, a]
-  ] as const) {
-    const moving = referencedStream(facts, stream);
-    if (moving !== undefined && emptySlot(facts, slot)) return [{ streamId: moving.id, rank: last() + 1 }];
-  }
   const first = referencedStream(facts, a);
   const second = referencedStream(facts, b);
   if (first === undefined || second === undefined) return undefined;
   if (first.id === second.id) return [];
+  const rank = (stream: StreamFact) => facts.members.find(member => member.streamId === stream.id)!.rank;
   return [
     { streamId: first.id, rank: rank(second) },
     { streamId: second.id, rank: rank(first) }
@@ -256,27 +247,47 @@ export function swapped(facts: ShowFacts, a: StreamReference, b: StreamReference
 }
 
 /**
- * Every stream the lineup has something to say of, as the show has it: the lineup in order, then the pushed streams on
- * standby, then the cameras' streams out of it, with why.
+ * Add a stream to the end of normalised facts' lineup: on screen at once if a slot is free. Undefined for one that
+ * cannot be added: in the lineup already, a camera's that is locked, a pushed one nobody publishes, or no stream.
  */
+export function added(facts: ShowFacts, streamId: string): RankChange[] | undefined {
+  const stream = facts.streams.find(candidate => candidate.id === streamId);
+  if (stream === undefined || lineupOf(facts).includes(stream)) return undefined;
+  const state = stateOf(stream, facts);
+  if (state === undefined || state === 'locked') return undefined;
+  return [{ streamId, rank: Math.max(0, ...facts.members.map(member => member.rank ?? 0)) + 1 }];
+}
+
+/** Take a stream out of normalised facts' lineup: the rest move up. Undefined for one not in it. */
+export function removed(facts: ShowFacts, reference: StreamReference): RankChange[] | undefined {
+  const stream = referencedStream(facts, reference);
+  return stream === undefined ? undefined : [{ streamId: stream.id, rank: null }];
+}
+
+/** The lineup as the show has it, in order: each at its position, or skipped and why, with how the show mixes it. */
 export function lineupEntries(facts: ShowFacts): LineupEntry[] {
   const normal = normalised(facts);
-  const lineup = lineupOf(normal);
-  const standby = standbyOf(normal).map(stream => ({ stream, absence: 'standby' as const }));
-  const out = normal.streams.flatMap(stream => {
-    const absence = absenceOf(stream, normal);
-    return absence === undefined || absence === null ? [] : [{ stream, absence }];
-  });
-  const entry = (stream: StreamFact, position: number | null, absence: Absence | null): LineupEntry => {
+  const positions = new Map(positionedOf(normal).map((stream, index) => [stream.id, index + 1]));
+  return lineupOf(normal).map(stream => {
     const member = normal.members.find(candidate => candidate.streamId === stream.id) ?? STANDARD_MEMBER;
     const { volumeDb, muted, syncOffsetMs, audioStreamId } = member;
+    const position = positions.get(stream.id) ?? null;
+    const absence = position === null ? ('locked' as const) : null;
     const { name, code } = stream;
     return { streamId: stream.id, name, code, position, absence, volumeDb, muted, syncOffsetMs, audioStreamId };
-  };
-  return [
-    ...lineup.map((stream, index) => entry(stream, index + 1, null)),
-    ...[...standby, ...out].map(({ stream, absence }) => entry(stream, null, absence))
-  ];
+  });
+}
+
+/** The streams that could be added to the lineup, oldest first: as `added` takes them, and locked cameras' too. */
+export function addableStreams(facts: ShowFacts): AddableStream[] {
+  const normal = normalised(facts);
+  const inLineup = new Set(lineupOf(normal).map(stream => stream.id));
+  return normal.streams.flatMap(stream => {
+    const state = stateOf(stream, normal);
+    if (state === undefined || inLineup.has(stream.id)) return [];
+    const source = stream.sourceDeviceId === null ? ('pushed' as const) : ('camera' as const);
+    return [{ streamId: stream.id, name: stream.name, code: stream.code, source, state }];
+  });
 }
 
 /** How the show mixes a stream: as `lineupEntries` says it, without where it is in the lineup. */
@@ -313,9 +324,12 @@ function channelOf(facts: ShowFacts, streamId: string): BroadcastChannel {
   return { volumeDb, muted, syncOffsetMs, from: known ? audioStreamId : null };
 }
 
-/** A stream as the broadcast places it, with the card its health chooses. */
+/**
+ * A stream as the broadcast places it, with the card its health chooses: offline while it has nothing to show (a
+ * camera's switched off or not delivered, a pushed one nobody publishes), or every delivery is failing.
+ */
 function broadcastStream(facts: ShowFacts, stream: StreamFact, states: ReadonlyMap<string, StateInput>) {
-  const card = streamOffline(stream, states) ? 'offline' : 'loading';
+  const card = hasNothing(stream, facts) || streamOffline(stream, states) ? 'offline' : 'loading';
   const { organisationId } = facts.show;
   return { organisationId, streamId: stream.id, name: stream.name, code: stream.code, card } satisfies BroadcastStream;
 }
@@ -330,7 +344,7 @@ export function resolveShow(facts: ShowFacts): BroadcastState {
   const normal = normalised(facts);
   const { show } = normal;
   const states = new Map(normal.states.map(state => [state.subjectId, state]));
-  const cameras = lineupOf(normal)
+  const cameras = positionedOf(normal)
     .slice(0, show.slots)
     .map(stream => broadcastStream(normal, stream, states));
   const armed = normal.streams.find(stream => stream.id === show.takeoverStreamId);

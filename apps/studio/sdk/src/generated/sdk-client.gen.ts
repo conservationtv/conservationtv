@@ -117,6 +117,8 @@ import type { ShowCreateV1Input, ShowCreateV1Output } from '../versions/organisa
 import type { ShowDeleteV1Input, ShowDeleteV1Output } from '../versions/organisations.shows.delete-v1/flat-params.gen.js';
 import type { ShowGetV1Input, ShowGetV1Output } from '../versions/organisations.shows.get-v1/flat-params.gen.js';
 import type { ShowGetV2Input, ShowGetV2Output } from '../versions/organisations.shows.get-v2/flat-params.gen.js';
+import type { LineupAddV1Input, LineupAddV1Output } from '../versions/organisations.shows.lineup.add-v1/flat-params.gen.js';
+import type { LineupRemoveV1Input, LineupRemoveV1Output } from '../versions/organisations.shows.lineup.remove-v1/flat-params.gen.js';
 import type { LineupSwapV1Input, LineupSwapV1Output } from '../versions/organisations.shows.lineup.swap-v1/flat-params.gen.js';
 import type { ShowListV1Input, ShowListV1Output } from '../versions/organisations.shows.list-v1/flat-params.gen.js';
 import type { ShowListV2Input, ShowListV2Output } from '../versions/organisations.shows.list-v2/flat-params.gen.js';
@@ -250,6 +252,24 @@ export class Client extends ClientCore {
                             { in: 'path', key: 'showId' },
                             { in: 'body', key: 'a' },
                             { in: 'body', key: 'b' }
+                        ]
+                    }) }),
+                add: this.versioned('organisations.shows.lineup.add', { v1: operation<LineupAddV1Output, LineupAddV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/shows/{showId}/lineup/add',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'showId' },
+                            { in: 'body', key: 'streamId' }
+                        ]
+                    }) }),
+                remove: this.versioned('organisations.shows.lineup.remove', { v1: operation<LineupRemoveV1Output, LineupRemoveV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/shows/{showId}/lineup/remove',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'showId' },
+                            { in: 'body', key: 'stream' }
                         ]
                     }) })
             },

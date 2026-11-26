@@ -13,12 +13,7 @@ export const LineupSchema = z.object({
         name: z.string(),
         code: z.string().nullable(),
         position: z.number().nullable(),
-        absence: z.enum([
-            'locked',
-            'disabled',
-            'undelivered',
-            'standby'
-        ]).nullable(),
+        absence: z.enum(['locked']).nullable(),
         volumeDb: z.number(),
         muted: z.boolean(),
         syncOffsetMs: z.number(),

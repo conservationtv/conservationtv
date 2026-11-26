@@ -15,11 +15,18 @@ export type Show = {
         name: string;
         code: string | null;
         position: number | null;
-        absence: 'locked' | 'disabled' | 'undelivered' | 'standby' | null;
+        absence: 'locked' | null;
         volumeDb: number;
         muted: boolean;
         syncOffsetMs: number;
         audioStreamId: string | null;
+    }>;
+    addable: Array<{
+        streamId: string;
+        name: string;
+        code: string | null;
+        source: 'camera' | 'pushed';
+        state: 'locked' | 'disabled' | 'ready' | 'live' | 'undelivered';
     }>;
     takeoverMix: {
         streamId: string;

@@ -1,86 +1,72 @@
-import type { ComponentProps, FC } from 'react';
+import { useState, type ComponentProps, type FC } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { BroadcastIcon, CloudSlashIcon, LockIcon, ProhibitIcon } from '@phosphor-icons/react';
+import { BroadcastIcon, CloudSlashIcon, LockIcon, PlusIcon, ProhibitIcon, XIcon } from '@phosphor-icons/react';
 import { Button } from '@conservationtv/ui/components/button';
-import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@conservationtv/ui/components/native-select';
+import { NativeSelect, NativeSelectOption } from '@conservationtv/ui/components/native-select';
+import { Popover, PopoverContent, PopoverTrigger } from '@conservationtv/ui/components/popover';
 
 import { FormError } from '@/components/common/form-error';
 import { StreamReachWarning } from '@/components/shows/show-reach';
 import { SoundControl } from '@/components/shows/sound-control';
 import { StreamCode } from '@/components/streams/stream-code';
 import { useOrganisationId } from '@/hooks/use-organisation';
-import { showQueryOptions, useMixShowStream, useSwapLineup, type LineupStream } from '@/queries/shows';
+import {
+  showQueryOptions,
+  useAddToLineup,
+  useMixShowStream,
+  useRemoveFromLineup,
+  useSwapLineup,
+  type AddableStream,
+  type LineupStream
+} from '@/queries/shows';
 
-// A show's lineup as its controls operate it (docs/shows.md): its streams in order, one row per position, the first
-// `slots` on screen. Choosing another stream in a row swaps the two, by stream, never by position; each row also sets
-// how the show mixes that stream's sound, and warns of any output following the show that cannot reach it. Streams
-// going live (a phone, a PC, OBS) wait on standby until someone chooses one for a position, or puts it in an empty
-// slot: nothing goes on air by itself. The organisation's cameras out of the lineup follow, greyed, saying why.
+// A show's lineup as its controls operate it (docs/shows.md): the streams its operators put in it, in order, one row
+// per position, the first `slots` on screen. Choosing another stream in a row swaps the two, by stream, never by
+// position; each row also sets how the show mixes that stream's sound, takes it out of the lineup, and warns of any
+// output following the show that cannot reach it. A camera that is locked keeps its row, greyed, and is skipped.
+// "Add a stream" offers what could be added: the cameras out of the lineup, and streams going live.
 
 export interface ShowLineupProps {
   showId: string;
 }
 
-/** One row per position in the lineup, then the streams on standby, then the cameras out of it. Any member. */
+/** The lineup in order, then a way to add to it. Any member. */
 export const ShowLineup: FC<ShowLineupProps> = ({ showId }) => {
   const organisationId = useOrganisationId();
   const swap = useSwapLineup(organisationId, showId);
+  const remove = useRemoveFromLineup(organisationId, showId);
   const showQuery = useSuspenseQuery(showQueryOptions(organisationId, showId));
-  const { slots, lineup } = showQuery.data;
-  const inLineup = lineup.filter(stream => stream.position !== null);
-  const standby = lineup.filter(stream => stream.absence === 'standby');
-  const absent = lineup.filter(stream => stream.position === null && stream.absence !== 'standby');
-  // The first empty slot, while the lineup doesn't fill the layout: where a stream on standby can go.
-  const emptySlot = inLineup.length < slots ? inLineup.length + 1 : undefined;
-  if (lineup.length === 0) {
-    return (
-      <p className="text-custom-13 text-muted-foreground">
-        The organisation has no camera streams yet. A stream whose source is a camera joins the lineup once it is
-        delivered; one going live waits here to be put on.
-      </p>
-    );
-  }
+  const { slots, lineup, addable } = showQuery.data;
+  const positioned = lineup.filter(stream => stream.position !== null);
   return (
     <div className="flex flex-col gap-1.5">
-      <FormError error={swap.error} />
-      <ol className="flex flex-col gap-1.5" aria-label="Lineup">
-        {inLineup.map(stream => (
-          <li key={stream.streamId} className="flex flex-col gap-1.5">
-            {stream.position === slots + 1 && <OffScreenDivider />}
-            <LineupRow
-              showId={showId}
-              stream={stream}
-              lineup={inLineup}
-              standby={standby}
-              onChoose={chosen => swap.mutate({ a: stream.streamId, b: chosen })}
-            />
-          </li>
-        ))}
-      </ol>
-      {standby.length > 0 && (
-        <ul className="flex flex-col gap-1.5" aria-label="Live, on standby">
-          {standby.map(stream => (
-            <li key={stream.streamId}>
-              <StandbyRow
-                showId={showId}
-                stream={stream}
-                onPutOn={
-                  emptySlot === undefined ? undefined : () => swap.mutate({ a: stream.streamId, slot: emptySlot })
-                }
-              />
+      <FormError error={swap.error ?? remove.error} />
+      {lineup.length === 0 ? (
+        <p className="text-custom-13 text-muted-foreground">
+          Nothing is in the lineup. A camera joins it once it is delivered; add a stream going live, or a camera taken
+          out, below.
+        </p>
+      ) : (
+        <ol className="flex flex-col gap-1.5" aria-label="Lineup">
+          {lineup.map(stream => (
+            <li key={stream.streamId} className="flex flex-col gap-1.5">
+              {stream.position === slots + 1 && <OffScreenDivider />}
+              {stream.position === null ? (
+                <SkippedRow stream={stream} onRemove={() => remove.mutate(stream.streamId)} />
+              ) : (
+                <LineupRow
+                  showId={showId}
+                  stream={stream}
+                  positioned={positioned}
+                  onChoose={chosen => swap.mutate({ a: stream.streamId, b: chosen })}
+                  onRemove={() => remove.mutate(stream.streamId)}
+                />
+              )}
             </li>
           ))}
-        </ul>
+        </ol>
       )}
-      {absent.length > 0 && (
-        <ul className="flex flex-col gap-1.5" aria-label="Out of the lineup">
-          {absent.map(stream => (
-            <li key={stream.streamId}>
-              <AbsentRow stream={stream} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <AddStream showId={showId} addable={addable} />
     </div>
   );
 };
@@ -99,19 +85,18 @@ const OffScreenDivider: FC = () => {
 interface LineupRowProps {
   showId: string;
   stream: LineupStream;
-  /** The streams in the lineup, any of which may be chosen for this position. */
-  lineup: LineupStream[];
-  /** The streams going live on standby, any of which may be chosen for this position too. */
-  standby: LineupStream[];
+  /** The streams in the lineup with a position, any of which may be chosen for this one. */
+  positioned: LineupStream[];
   /** Swaps the chosen stream into this position, and this one into the chosen stream's. */
   onChoose: (streamId: string) => void;
+  onRemove: () => void;
 }
 
 /**
- * A position: the code of the stream in it, the stream chosen from the lineup, and how its sound is mixed; under them,
- * any output that cannot reach it.
+ * A position: the code of the stream in it, the stream chosen from the lineup, how its sound is mixed, and taking it
+ * out; under them, any output that cannot reach it.
  */
-const LineupRow: FC<LineupRowProps> = ({ showId, stream, lineup, standby, onChoose }) => {
+const LineupRow: FC<LineupRowProps> = ({ showId, stream, positioned, onChoose, onRemove }) => {
   const position = stream.position ?? 0;
   return (
     <div className="flex flex-col gap-1">
@@ -127,68 +112,60 @@ const LineupRow: FC<LineupRowProps> = ({ showId, stream, lineup, standby, onChoo
             if (event.target.value !== stream.streamId) onChoose(event.target.value);
           }}
         >
-          {lineup.map(option => (
-            <StreamOption key={option.streamId} stream={option} />
+          {positioned.map(option => (
+            <NativeSelectOption key={option.streamId} value={option.streamId}>
+              {streamLabel(option)}
+            </NativeSelectOption>
           ))}
-          {standby.length > 0 && (
-            <NativeSelectOptGroup label="Live, on standby">
-              {standby.map(option => (
-                <StreamOption key={option.streamId} stream={option} />
-              ))}
-            </NativeSelectOptGroup>
-          )}
         </NativeSelect>
         <StreamSound showId={showId} stream={stream} />
+        <RemoveButton name={stream.name} onRemove={onRemove} />
       </div>
       <StreamReachWarning showId={showId} streamId={stream.streamId} className="pl-10.5" />
     </div>
   );
 };
 
-interface StreamOptionProps {
+interface SkippedRowProps {
   stream: LineupStream;
+  onRemove: () => void;
 }
 
-/** A stream to choose for a position, by its code and name. */
-const StreamOption: FC<StreamOptionProps> = ({ stream }) => {
+/** A camera that is locked: greyed where it stands in the lineup, skipped until it is unlocked. */
+const SkippedRow: FC<SkippedRowProps> = ({ stream, onRemove }) => {
   return (
-    <NativeSelectOption value={stream.streamId}>
-      {stream.code ? `${stream.code} · ${stream.name}` : stream.name}
-    </NativeSelectOption>
+    <div className="flex items-center gap-1.5">
+      <StreamCode aria-hidden className="h-7 opacity-60">
+        {stream.code ?? '–'}
+      </StreamCode>
+      <div
+        className="flex h-7 min-w-0 flex-1 items-center justify-between gap-2 rounded-md border border-dashed border-input px-2 text-xs/relaxed opacity-60"
+        aria-disabled
+      >
+        <span className="truncate">{stream.name}</span>
+        <Reason>
+          <LockIcon />
+          Locked, skipped
+        </Reason>
+      </div>
+      {/* Where the sound control is on a row with a position, so the names line up. */}
+      <span className="size-6 shrink-0" />
+      <RemoveButton name={stream.name} onRemove={onRemove} />
+    </div>
   );
 };
 
-interface StandbyRowProps {
-  showId: string;
-  stream: LineupStream;
-  /** Puts it in the first empty slot; absent while every slot is filled. */
-  onPutOn: (() => void) | undefined;
+interface RemoveButtonProps {
+  name: string;
+  onRemove: () => void;
 }
 
-/**
- * A stream going live, waiting to be put on: on screen in an empty slot while there is one, or chosen for a position
- * above. Its sound can be set before it goes on.
- */
-const StandbyRow: FC<StandbyRowProps> = ({ showId, stream, onPutOn }) => {
+/** Takes a stream out of the lineup: the rest move up, and it can be added again. */
+const RemoveButton: FC<RemoveButtonProps> = ({ name, onRemove }) => {
   return (
-    <div className="flex items-center gap-1.5">
-      <StreamCode aria-hidden className="h-7">
-        {stream.code ?? '–'}
-      </StreamCode>
-      <div className="flex h-7 min-w-0 flex-1 items-center justify-between gap-2 rounded-md border border-input px-2 text-xs/relaxed">
-        <span className="truncate">{stream.name}</span>
-        <Reason>
-          <BroadcastIcon />
-          Live
-        </Reason>
-      </div>
-      {onPutOn !== undefined && (
-        <Button size="sm" variant="outline" className="h-7" onClick={onPutOn}>
-          Put on screen
-        </Button>
-      )}
-      <StreamSound showId={showId} stream={stream} />
-    </div>
+    <Button variant="ghost" size="icon-sm" aria-label={`Take ${name} out of the lineup`} onClick={onRemove}>
+      <XIcon />
+    </Button>
   );
 };
 
@@ -212,34 +189,76 @@ const StreamSound: FC<StreamSoundProps> = ({ showId, stream }) => {
   );
 };
 
-interface AbsentRowProps {
-  stream: LineupStream;
+interface AddStreamProps {
+  showId: string;
+  addable: AddableStream[];
 }
 
-/** A camera out of the lineup, greyed, with why: it joins at the end once that is no longer so. */
-const AbsentRow: FC<AbsentRowProps> = ({ stream }) => {
+/**
+ * Adds a stream to the end of the lineup, on screen at once if a slot is free: one of the cameras out of it, or a
+ * stream going live. A locked camera is listed, but cannot be added until it is unlocked.
+ */
+const AddStream: FC<AddStreamProps> = ({ showId, addable }) => {
+  const organisationId = useOrganisationId();
+  const add = useAddToLineup(organisationId, showId);
+  const [open, setOpen] = useState(false);
   return (
-    <div className="flex items-center gap-1.5 opacity-60" aria-disabled>
-      <StreamCode aria-hidden className="h-7">
-        {stream.code ?? '–'}
-      </StreamCode>
-      <div className="flex h-7 min-w-0 flex-1 items-center justify-between gap-2 rounded-md border border-dashed border-input px-2 text-xs/relaxed">
-        <span className="truncate">{stream.name}</span>
-        <AbsenceReason absence={stream.absence} />
-      </div>
-      {/* Where the sound control is on a row in the lineup, so the names line up. */}
-      <span className="size-6 shrink-0" />
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<Button variant="outline" size="sm" className="self-start" />}>
+        <PlusIcon />
+        Add a stream
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 gap-1.5">
+        {addable.length === 0 ? (
+          <p className="text-custom-13 text-muted-foreground">
+            Every camera is in the lineup, and nobody is going live.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-0.5" aria-label="Streams to add">
+            {addable.map(stream => (
+              <li key={stream.streamId}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between"
+                  disabled={stream.state === 'locked' || add.isPending}
+                  onClick={() => {
+                    add.mutate(stream.streamId, { onSuccess: () => setOpen(false) });
+                  }}
+                >
+                  <span className="truncate">{streamLabel(stream)}</span>
+                  <StreamStateReason state={stream.state} />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <FormError error={add.error} />
+      </PopoverContent>
+    </Popover>
   );
 };
 
-interface AbsenceReasonProps {
-  absence: LineupStream['absence'];
+/** A stream as it is chosen: its code and name, or its name. */
+function streamLabel(stream: Pick<LineupStream, 'code' | 'name'>): string {
+  return stream.code ? `${stream.code} · ${stream.name}` : stream.name;
 }
 
-/** Why a camera is out of the lineup, in a word with its icon. */
-const AbsenceReason: FC<AbsenceReasonProps> = ({ absence }) => {
-  if (absence === 'locked') {
+interface StreamStateReasonProps {
+  state: AddableStream['state'];
+}
+
+/** What a stream that could be added would be, in a word with its icon: nothing for a camera that is ready. */
+const StreamStateReason: FC<StreamStateReasonProps> = ({ state }) => {
+  if (state === 'live') {
+    return (
+      <Reason>
+        <BroadcastIcon />
+        Live
+      </Reason>
+    );
+  }
+  if (state === 'locked') {
     return (
       <Reason>
         <LockIcon />
@@ -247,7 +266,7 @@ const AbsenceReason: FC<AbsenceReasonProps> = ({ absence }) => {
       </Reason>
     );
   }
-  if (absence === 'disabled') {
+  if (state === 'disabled') {
     return (
       <Reason>
         <ProhibitIcon />
@@ -255,7 +274,7 @@ const AbsenceReason: FC<AbsenceReasonProps> = ({ absence }) => {
       </Reason>
     );
   }
-  if (absence === 'undelivered') {
+  if (state === 'undelivered') {
     return (
       <Reason>
         <CloudSlashIcon />

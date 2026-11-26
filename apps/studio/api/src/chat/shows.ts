@@ -1,8 +1,9 @@
 import { chatName } from '@conservationtv/cameras';
 import {
-  absenceOf,
   lineupOf,
   normalised,
+  positionedOf,
+  stateOf,
   swapped,
   type RankChange,
   type ShowFacts,
@@ -69,20 +70,17 @@ function streamCalled(facts: ShowFacts, word: string, cameras: readonly NamedCam
   return onlyOne(calledIn(facts.streams, word, namesOf), noun);
 }
 
-/** Why a stream cannot be swapped, in words: undefined while it is in the lineup or on standby. */
+/** Why a stream cannot be swapped, in words: undefined while it is in the lineup with a position. */
 function whyNotInLineup(stream: StreamFact, facts: ShowFacts): string | undefined {
-  const absence = absenceOf(stream, facts);
-  if (absence === null) return undefined;
-  if (absence === undefined && stream.sourceDeviceId === null) return `${stream.name} isn't live.`;
-  if (absence === undefined) return `${stream.name} isn't one of the cameras.`;
-  if (absence === 'undelivered') return `${stream.name} isn't being delivered.`;
-  return `${stream.name} is switched off.`;
+  if (!lineupOf(facts).includes(stream)) return `${stream.name} isn't in the lineup: add it from the show's controls.`;
+  // A locked camera keeps its place but is skipped: swapping it would move a blank, not a picture.
+  return stateOf(stream, facts) === 'locked' ? `${stream.name} is switched off.` : undefined;
 }
 
 /** The lineup stream a word means: a position, or a name of a stream in it. */
 function lineupStream(facts: ShowFacts, word: string, cameras: readonly NamedCamera[]): StreamFact | Unresolved {
   if (POSITION.test(word)) {
-    const stream = lineupOf(facts)[Number(word) - 1];
+    const stream = positionedOf(facts)[Number(word) - 1];
     return stream ?? unresolved('There is no camera at that position.');
   }
   const stream = streamCalled(facts, word, cameras, 'camera');
@@ -105,7 +103,7 @@ export function planShowSwap(
   const b = lineupStream(facts, second, cameras);
   if ('reply' in b) return b;
   if (a.id === b.id) return unresolved('Those are the same camera.');
-  // Each is in the lineup or on standby, so they swap.
+  // Both are in the lineup, so they swap.
   const changes = swapped(facts, { streamId: a.id }, { streamId: b.id }) ?? [];
   return { ok: true, change: { kind: 'ranks', changes }, reply: `Swapped ${a.name} and ${b.name}.` };
 }
@@ -125,9 +123,9 @@ export function planShowTakeover(
   const facts = normalised(show);
   const stream = streamCalled(facts, word, cameras, 'stream');
   if ('reply' in stream) return stream;
-  const absence = absenceOf(stream, facts);
+  const state = stateOf(stream, facts);
   // A camera that is switched off is off every screen, a takeover's too.
-  if (absence === 'locked' || absence === 'disabled') return unresolved(`${stream.name} is switched off.`);
+  if (state === 'locked' || state === 'disabled') return unresolved(`${stream.name} is switched off.`);
   return {
     ok: true,
     change: { kind: 'takeover', streamId: stream.id, live: true },

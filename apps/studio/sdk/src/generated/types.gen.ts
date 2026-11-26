@@ -746,11 +746,18 @@ export type Show = {
         name: string;
         code: string | null;
         position: number | null;
-        absence: 'locked' | 'disabled' | 'undelivered' | 'standby' | null;
+        absence: 'locked' | null;
         volumeDb: number;
         muted: boolean;
         syncOffsetMs: number;
         audioStreamId: string | null;
+    }>;
+    addable: Array<{
+        streamId: string;
+        name: string;
+        code: string | null;
+        source: 'camera' | 'pushed';
+        state: 'locked' | 'disabled' | 'ready' | 'live' | 'undelivered';
     }>;
     takeoverMix: {
         streamId: string;
@@ -786,7 +793,7 @@ export type Lineup = {
         name: string;
         code: string | null;
         position: number | null;
-        absence: 'locked' | 'disabled' | 'undelivered' | 'standby' | null;
+        absence: 'locked' | null;
         volumeDb: number;
         muted: boolean;
         syncOffsetMs: number;
@@ -6438,6 +6445,180 @@ export type PostOrganisationsByIdShowsByShowIdLineupSwapResponses = {
 };
 
 export type PostOrganisationsByIdShowsByShowIdLineupSwapResponse = PostOrganisationsByIdShowsByShowIdLineupSwapResponses[keyof PostOrganisationsByIdShowsByShowIdLineupSwapResponses];
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddData = {
+    body: {
+        /**
+         * The stream to add.
+         */
+        streamId: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/lineup/add';
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddError = PostOrganisationsByIdShowsByShowIdLineupAddErrors[keyof PostOrganisationsByIdShowsByShowIdLineupAddErrors];
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddResponses = {
+    /**
+     * The lineup after the stream is added
+     */
+    200: {
+        lineup: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            position: number | null;
+            absence: 'locked' | null;
+            volumeDb: number;
+            muted: boolean;
+            syncOffsetMs: number;
+            audioStreamId: string | null;
+        }>;
+        addable: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            source: 'camera' | 'pushed';
+            state: 'locked' | 'disabled' | 'ready' | 'live' | 'undelivered';
+        }>;
+    };
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddResponse = PostOrganisationsByIdShowsByShowIdLineupAddResponses[keyof PostOrganisationsByIdShowsByShowIdLineupAddResponses];
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveData = {
+    body: {
+        /**
+         * A stream in the lineup, by its ID or its position.
+         */
+        stream: {
+            /**
+             * A stream in the lineup.
+             */
+            streamId: string;
+        } | {
+            /**
+             * A position in the lineup, from 1.
+             */
+            position: number;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/lineup/remove';
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveError = PostOrganisationsByIdShowsByShowIdLineupRemoveErrors[keyof PostOrganisationsByIdShowsByShowIdLineupRemoveErrors];
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveResponses = {
+    /**
+     * The lineup after the stream is taken out
+     */
+    200: {
+        lineup: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            position: number | null;
+            absence: 'locked' | null;
+            volumeDb: number;
+            muted: boolean;
+            syncOffsetMs: number;
+            audioStreamId: string | null;
+        }>;
+        addable: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            source: 'camera' | 'pushed';
+            state: 'locked' | 'disabled' | 'ready' | 'live' | 'undelivered';
+        }>;
+    };
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveResponse = PostOrganisationsByIdShowsByShowIdLineupRemoveResponses[keyof PostOrganisationsByIdShowsByShowIdLineupRemoveResponses];
 
 export type PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdData = {
     body: {

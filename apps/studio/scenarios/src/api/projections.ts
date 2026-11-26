@@ -35,7 +35,7 @@ import type { JSONValue } from 'hono/utils/types';
 // as are a show's lineup and takeover mix (src/shows/resolve.ts), and how the versions from before renditions were
 // removed say a stream (src/topology/renditions.ts).
 import { organisationStatus } from '../../../api/src/health/status.ts';
-import { lineupEntries, takeoverMix } from '../../../api/src/shows/resolve.ts';
+import { addableStreams, lineupEntries, takeoverMix } from '../../../api/src/shows/resolve.ts';
 import { withStreamRenditions } from '../../../api/src/topology/renditions.ts';
 import { BUILTIN_GATEWAY_ID } from '../world/generate.ts';
 import { queryMetrics } from '../world/metrics.ts';
@@ -212,7 +212,8 @@ function showOf(world: World, showId: string): ShowGetV2Output {
     ...world.gateways.map((gateway): [string, string | null] => [gateway.id, gateway.networkId])
   ]);
   const unreachable = unreachableOf(sources, world, show, networks);
-  return { ...show, lineup: lineupEntries(facts), takeoverMix: takeoverMix(facts), unreachable };
+  const lineup = lineupEntries(facts);
+  return { ...show, lineup, addable: addableStreams(facts), takeoverMix: takeoverMix(facts), unreachable };
 }
 
 /**

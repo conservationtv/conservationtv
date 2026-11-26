@@ -3525,10 +3525,7 @@
                     {
                       "type": "string",
                       "enum": [
-                        "locked",
-                        "disabled",
-                        "undelivered",
-                        "standby"
+                        "locked"
                       ]
                     },
                     {
@@ -3566,6 +3563,54 @@
                 "muted",
                 "syncOffsetMs",
                 "audioStreamId"
+              ]
+            }
+          },
+          "addable": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "streamId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "code": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "camera",
+                    "pushed"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "locked",
+                    "disabled",
+                    "ready",
+                    "live",
+                    "undelivered"
+                  ]
+                }
+              },
+              "required": [
+                "streamId",
+                "name",
+                "code",
+                "source",
+                "state"
               ]
             }
           },
@@ -3709,6 +3754,7 @@
         },
         "required": [
           "lineup",
+          "addable",
           "takeoverMix",
           "unreachable",
           "name",
@@ -3761,10 +3807,7 @@
                     {
                       "type": "string",
                       "enum": [
-                        "locked",
-                        "disabled",
-                        "undelivered",
-                        "standby"
+                        "locked"
                       ]
                     },
                     {
@@ -16138,7 +16181,7 @@
         "operationId": "organisations.shows.get",
         "x-operation-version": 2,
         "summary": "Read a show",
-        "description": "How it is operated (`slots`, its layout; `volumeDb` and `muted`, its own mix; `takeoverStreamId`, the stream armed to take over, and `takeoverLive`, whether it has), the outputs following it, and its `lineup`: the camera streams of the organisation, and its pushed streams (going live from a phone, a PC or OBS) while someone publishes them, as the health of their deliveries says. Those in the lineup come first, in position order (the first `slots` are on screen), then those out of it, each with why (`absence`: a pushed stream waiting to be swapped in, `standby`; a camera that is `locked` or `disabled`; or nothing delivering it, `undelivered`), and each with how the show mixes its sound. A camera that is unlocked, or new, joins the lineup at the end; a pushed stream is never placed by itself, and leaves the lineup once nobody publishes it. `takeoverMix` is how the show mixes the stream armed to take over, as a lineup entry says it but for where it is (null with none armed): a stream that is not in the lineup has its level and mute here. `unreachable` says, for each output following the show that has an agent (an output with none reads nothing, and is left out), which of the streams the show needs its agent reaches no delivery of (`streamIds`, empty when it reaches them all): the cameras on screen, the stream armed to take over, and any stream one of those brings the sound of, each with at least one delivery but none at a gateway the agent reaches, from its network or the internet, and only at the gateway the output reads from when it names one (`inputGatewayId`). The output still places such a stream, so its card shows there. Protocols are not considered: which an agent asks with is its own.",
+        "description": "How it is operated (`slots`, its layout; `volumeDb` and `muted`, its own mix; `takeoverStreamId`, the stream armed to take over, and `takeoverLive`, whether it has), the outputs following it, and its `lineup`: the streams its operators put in it, in order (the first `slots` with a position are on screen), each with its position (from 1), or none while it is skipped because its camera is locked (`absence: locked`; it keeps its place, and the rest move up), and each with how the show mixes its sound. Anything else in the lineup keeps its place, showing its offline card while it has nothing to show, until it is removed (`organisations.shows.lineup.remove`). A camera stream new to the show joins at the end once it is enabled and delivered; anything else is added (`organisations.shows.lineup.add`). `addable` is what could be: every camera stream out of the lineup (`state`: `ready`, `locked`, which cannot be added, `disabled` or `undelivered`) and every pushed stream someone is publishing (`live`, as the health of its deliveries says). `takeoverMix` is how the show mixes the stream armed to take over, as a lineup entry says it but for where it is (null with none armed): a stream not in the lineup has its level and mute here. `unreachable` says, for each output following the show that has an agent (an output with none reads nothing, and is left out), which of the streams the show needs its agent reaches no delivery of (`streamIds`, empty when it reaches them all): the cameras on screen, the stream armed to take over, and any stream one of those brings the sound of, each with at least one delivery but none at a gateway the agent reaches, from its network or the internet, and only at the gateway the output reads from when it names one (`inputGatewayId`). The output still places such a stream, so its card shows there. Protocols are not considered: which an agent asks with is its own.",
         "responses": {
           "200": {
             "description": "The show",
@@ -16693,7 +16736,7 @@
         "operationId": "organisations.shows.lineup.swap",
         "x-operation-version": 1,
         "summary": "Swap two streams in a show's lineup",
-        "description": "Any member. `a` and `b` each name a stream in the lineup, by its ID or its position (from 1), or a pushed stream on standby by its ID, resolved against the lineup as it is when the swap is made; the two exchange places wherever they are: both on screen, or one off it, which is how a camera is brought on. A stream on standby takes the other's place, and that one leaves the lineup: a camera's rejoins at the end, a pushed one goes back to standby. A stream swapped with an empty slot (a position past the lineup's end that is on screen) takes the first empty slot. Refused (`invalid_reference`) for a stream that is neither in the lineup nor on standby, or a position past both. Returns the lineup after, as `organisations.shows.get` reads it.",
+        "description": "Any member. `a` and `b` each name a stream in the lineup, by its ID or its position (from 1), resolved against the lineup as it is when the swap is made; the two exchange places wherever they are: both on screen, or one off it, which is how a stream is brought on. Refused (`invalid_reference`) for a stream that is not in the lineup, or a position past its end. Returns the lineup after, as `organisations.shows.get` reads it.",
         "responses": {
           "200": {
             "description": "The lineup after the swap",
@@ -16881,6 +16924,575 @@
                 "required": [
                   "a",
                   "b"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/shows/{showId}/lineup/add": {
+      "post": {
+        "operationId": "organisations.shows.lineup.add",
+        "x-operation-version": 1,
+        "summary": "Add a stream to a show's lineup",
+        "description": "Any member. Adds `streamId` at the end of the lineup: on screen at once if a slot is free, otherwise off it, to be swapped on. Any of `addable` but a locked camera: refused (`invalid_reference`) for a stream already in the lineup, a camera that is locked, a pushed stream nobody is publishing, or a stream that is neither. Returns the lineup and `addable` after, as `organisations.shows.get` reads them.",
+        "responses": {
+          "200": {
+            "description": "The lineup after the stream is added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lineup": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "streamId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "position": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "absence": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "locked"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "volumeDb": {
+                            "type": "number"
+                          },
+                          "muted": {
+                            "type": "boolean"
+                          },
+                          "syncOffsetMs": {
+                            "type": "number"
+                          },
+                          "audioStreamId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "streamId",
+                          "name",
+                          "code",
+                          "position",
+                          "absence",
+                          "volumeDb",
+                          "muted",
+                          "syncOffsetMs",
+                          "audioStreamId"
+                        ]
+                      }
+                    },
+                    "addable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "streamId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "camera",
+                              "pushed"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "locked",
+                              "disabled",
+                              "ready",
+                              "live",
+                              "undelivered"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "streamId",
+                          "name",
+                          "code",
+                          "source",
+                          "state"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "lineup",
+                    "addable"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The resource is visible, but this account may not do this to it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "showId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The show."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "streamId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "The stream to add."
+                  }
+                },
+                "required": [
+                  "streamId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-operation-versions": [
+          1
+        ]
+      }
+    },
+    "/organisations/{id}/shows/{showId}/lineup/remove": {
+      "post": {
+        "operationId": "organisations.shows.lineup.remove",
+        "x-operation-version": 1,
+        "summary": "Take a stream out of a show's lineup",
+        "description": "Any member. Takes `stream` (by its ID or its position, from 1) out of the lineup, and the rest move up. It is then among `addable`, and a camera does not rejoin by itself. Refused (`invalid_reference`) for a stream that is not in the lineup, or a position past its end. Returns the lineup and `addable` after, as `organisations.shows.get` reads them.",
+        "responses": {
+          "200": {
+            "description": "The lineup after the stream is taken out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lineup": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "streamId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "position": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "absence": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "locked"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "volumeDb": {
+                            "type": "number"
+                          },
+                          "muted": {
+                            "type": "boolean"
+                          },
+                          "syncOffsetMs": {
+                            "type": "number"
+                          },
+                          "audioStreamId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "streamId",
+                          "name",
+                          "code",
+                          "position",
+                          "absence",
+                          "volumeDb",
+                          "muted",
+                          "syncOffsetMs",
+                          "audioStreamId"
+                        ]
+                      }
+                    },
+                    "addable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "streamId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "camera",
+                              "pushed"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "locked",
+                              "disabled",
+                              "ready",
+                              "live",
+                              "undelivered"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "streamId",
+                          "name",
+                          "code",
+                          "source",
+                          "state"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "lineup",
+                    "addable"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No signed-in session was presented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The resource is visible, but this account may not do this to it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist or is not visible to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The selected operation version is not served",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The organisation."
+          },
+          {
+            "in": "path",
+            "name": "showId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true,
+            "description": "The show."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stream": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "streamId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "A stream in the lineup."
+                          }
+                        },
+                        "required": [
+                          "streamId"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "position": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991,
+                            "description": "A position in the lineup, from 1."
+                          }
+                        },
+                        "required": [
+                          "position"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "description": "A stream in the lineup, by its ID or its position."
+                  }
+                },
+                "required": [
+                  "stream"
                 ],
                 "additionalProperties": false
               }
@@ -49537,10 +50149,7 @@
                         {
                           "type": "string",
                           "enum": [
-                            "locked",
-                            "disabled",
-                            "undelivered",
-                            "standby"
+                            "locked"
                           ]
                         },
                         {
@@ -49578,6 +50187,54 @@
                     "muted",
                     "syncOffsetMs",
                     "audioStreamId"
+                  ]
+                }
+              },
+              "addable": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "streamId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "camera",
+                        "pushed"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "locked",
+                        "disabled",
+                        "ready",
+                        "live",
+                        "undelivered"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "streamId",
+                    "name",
+                    "code",
+                    "source",
+                    "state"
                   ]
                 }
               },
@@ -49721,6 +50378,7 @@
             },
             "required": [
               "lineup",
+              "addable",
               "takeoverMix",
               "unreachable",
               "name",
@@ -49742,7 +50400,7 @@
             "operationId": "organisations.shows.get",
             "x-operation-version": 2,
             "summary": "Read a show",
-            "description": "How it is operated (`slots`, its layout; `volumeDb` and `muted`, its own mix; `takeoverStreamId`, the stream armed to take over, and `takeoverLive`, whether it has), the outputs following it, and its `lineup`: the camera streams of the organisation, and its pushed streams (going live from a phone, a PC or OBS) while someone publishes them, as the health of their deliveries says. Those in the lineup come first, in position order (the first `slots` are on screen), then those out of it, each with why (`absence`: a pushed stream waiting to be swapped in, `standby`; a camera that is `locked` or `disabled`; or nothing delivering it, `undelivered`), and each with how the show mixes its sound. A camera that is unlocked, or new, joins the lineup at the end; a pushed stream is never placed by itself, and leaves the lineup once nobody publishes it. `takeoverMix` is how the show mixes the stream armed to take over, as a lineup entry says it but for where it is (null with none armed): a stream that is not in the lineup has its level and mute here. `unreachable` says, for each output following the show that has an agent (an output with none reads nothing, and is left out), which of the streams the show needs its agent reaches no delivery of (`streamIds`, empty when it reaches them all): the cameras on screen, the stream armed to take over, and any stream one of those brings the sound of, each with at least one delivery but none at a gateway the agent reaches, from its network or the internet, and only at the gateway the output reads from when it names one (`inputGatewayId`). The output still places such a stream, so its card shows there. Protocols are not considered: which an agent asks with is its own.",
+            "description": "How it is operated (`slots`, its layout; `volumeDb` and `muted`, its own mix; `takeoverStreamId`, the stream armed to take over, and `takeoverLive`, whether it has), the outputs following it, and its `lineup`: the streams its operators put in it, in order (the first `slots` with a position are on screen), each with its position (from 1), or none while it is skipped because its camera is locked (`absence: locked`; it keeps its place, and the rest move up), and each with how the show mixes its sound. Anything else in the lineup keeps its place, showing its offline card while it has nothing to show, until it is removed (`organisations.shows.lineup.remove`). A camera stream new to the show joins at the end once it is enabled and delivered; anything else is added (`organisations.shows.lineup.add`). `addable` is what could be: every camera stream out of the lineup (`state`: `ready`, `locked`, which cannot be added, `disabled` or `undelivered`) and every pushed stream someone is publishing (`live`, as the health of its deliveries says). `takeoverMix` is how the show mixes the stream armed to take over, as a lineup entry says it but for where it is (null with none armed): a stream not in the lineup has its level and mute here. `unreachable` says, for each output following the show that has an agent (an output with none reads nothing, and is left out), which of the streams the show needs its agent reaches no delivery of (`streamIds`, empty when it reaches them all): the cameras on screen, the stream armed to take over, and any stream one of those brings the sound of, each with at least one delivery but none at a gateway the agent reaches, from its network or the internet, and only at the gateway the output reads from when it names one (`inputGatewayId`). The output still places such a stream, so its card shows there. Protocols are not considered: which an agent asks with is its own.",
             "responses": {
               "200": {
                 "description": "The show",
@@ -50381,10 +51039,7 @@
                         {
                           "type": "string",
                           "enum": [
-                            "locked",
-                            "disabled",
-                            "undelivered",
-                            "standby"
+                            "locked"
                           ]
                         },
                         {
@@ -50438,7 +51093,7 @@
             "operationId": "organisations.shows.lineup.swap",
             "x-operation-version": 1,
             "summary": "Swap two streams in a show's lineup",
-            "description": "Any member. `a` and `b` each name a stream in the lineup, by its ID or its position (from 1), or a pushed stream on standby by its ID, resolved against the lineup as it is when the swap is made; the two exchange places wherever they are: both on screen, or one off it, which is how a camera is brought on. A stream on standby takes the other's place, and that one leaves the lineup: a camera's rejoins at the end, a pushed one goes back to standby. A stream swapped with an empty slot (a position past the lineup's end that is on screen) takes the first empty slot. Refused (`invalid_reference`) for a stream that is neither in the lineup nor on standby, or a position past both. Returns the lineup after, as `organisations.shows.get` reads it.",
+            "description": "Any member. `a` and `b` each name a stream in the lineup, by its ID or its position (from 1), resolved against the lineup as it is when the swap is made; the two exchange places wherever they are: both on screen, or one off it, which is how a stream is brought on. Refused (`invalid_reference`) for a stream that is not in the lineup, or a position past its end. Returns the lineup after, as `organisations.shows.get` reads it.",
             "responses": {
               "200": {
                 "description": "The lineup after the swap",
@@ -50636,6 +51291,677 @@
                     "required": [
                       "a",
                       "b"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Lineup": {
+            "type": "object",
+            "properties": {
+              "lineup": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "streamId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "absence": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "locked"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "volumeDb": {
+                      "type": "number"
+                    },
+                    "muted": {
+                      "type": "boolean"
+                    },
+                    "syncOffsetMs": {
+                      "type": "number"
+                    },
+                    "audioStreamId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "streamId",
+                    "name",
+                    "code",
+                    "position",
+                    "absence",
+                    "volumeDb",
+                    "muted",
+                    "syncOffsetMs",
+                    "audioStreamId"
+                  ]
+                }
+              },
+              "addable": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "streamId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "camera",
+                        "pushed"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "locked",
+                        "disabled",
+                        "ready",
+                        "live",
+                        "undelivered"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "streamId",
+                    "name",
+                    "code",
+                    "source",
+                    "state"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "lineup",
+              "addable"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/shows/{showId}/lineup/add": {
+          "post": {
+            "operationId": "organisations.shows.lineup.add",
+            "x-operation-version": 1,
+            "summary": "Add a stream to a show's lineup",
+            "description": "Any member. Adds `streamId` at the end of the lineup: on screen at once if a slot is free, otherwise off it, to be swapped on. Any of `addable` but a locked camera: refused (`invalid_reference`) for a stream already in the lineup, a camera that is locked, a pushed stream nobody is publishing, or a stream that is neither. Returns the lineup and `addable` after, as `organisations.shows.get` reads them.",
+            "responses": {
+              "200": {
+                "description": "The lineup after the stream is added",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Lineup"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The resource is visible, but this account may not do this to it",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "422": {
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "showId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The show."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "streamId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "description": "The stream to add."
+                      }
+                    },
+                    "required": [
+                      "streamId"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "openapi": "3.1.0",
+      "info": {
+        "title": "Studio API",
+        "description": "The conservation.tv studio API. Sign in through the Better Auth routes under `/auth`; the operations below run as the signed-in account, and the database shows each account only the rows it may see.",
+        "version": "0.1.0"
+      },
+      "components": {
+        "responses": {
+          "InvalidRequest": {
+            "description": "The request is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "Error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "error",
+              "error_description"
+            ]
+          },
+          "Lineup": {
+            "type": "object",
+            "properties": {
+              "lineup": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "streamId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "position": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "absence": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "locked"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "volumeDb": {
+                      "type": "number"
+                    },
+                    "muted": {
+                      "type": "boolean"
+                    },
+                    "syncOffsetMs": {
+                      "type": "number"
+                    },
+                    "audioStreamId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "streamId",
+                    "name",
+                    "code",
+                    "position",
+                    "absence",
+                    "volumeDb",
+                    "muted",
+                    "syncOffsetMs",
+                    "audioStreamId"
+                  ]
+                }
+              },
+              "addable": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "streamId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "camera",
+                        "pushed"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "locked",
+                        "disabled",
+                        "ready",
+                        "live",
+                        "undelivered"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "streamId",
+                    "name",
+                    "code",
+                    "source",
+                    "state"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "lineup",
+              "addable"
+            ]
+          }
+        }
+      },
+      "paths": {
+        "/organisations/{id}/shows/{showId}/lineup/remove": {
+          "post": {
+            "operationId": "organisations.shows.lineup.remove",
+            "x-operation-version": 1,
+            "summary": "Take a stream out of a show's lineup",
+            "description": "Any member. Takes `stream` (by its ID or its position, from 1) out of the lineup, and the rest move up. It is then among `addable`, and a camera does not rejoin by itself. Refused (`invalid_reference`) for a stream that is not in the lineup, or a position past its end. Returns the lineup and `addable` after, as `organisations.shows.get` reads them.",
+            "responses": {
+              "200": {
+                "description": "The lineup after the stream is taken out",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Lineup"
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "The request is malformed",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "No signed-in session was presented",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "403": {
+                "description": "The resource is visible, but this account may not do this to it",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "404": {
+                "description": "The resource does not exist or is not visible to this account",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "412": {
+                "description": "The selected operation version is not served",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "422": {
+                "description": "A referenced resource does not exist, is not visible to this account, or belongs to another organisation",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "503": {
+                "description": "The database is unavailable",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "parameters": [
+              {
+                "in": "path",
+                "name": "id",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The organisation."
+              },
+              {
+                "in": "path",
+                "name": "showId",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "required": true,
+                "description": "The show."
+              },
+              {
+                "in": "header",
+                "name": "Operation-Version",
+                "required": true,
+                "description": "Selects this immutable operation contract.",
+                "schema": {
+                  "type": "string",
+                  "const": "1"
+                }
+              }
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "stream": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "streamId": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                "description": "A stream in the lineup."
+                              }
+                            },
+                            "required": [
+                              "streamId"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "position": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991,
+                                "description": "A position in the lineup, from 1."
+                              }
+                            },
+                            "required": [
+                              "position"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ],
+                        "description": "A stream in the lineup, by its ID or its position."
+                      }
+                    },
+                    "required": [
+                      "stream"
                     ],
                     "additionalProperties": false
                   }

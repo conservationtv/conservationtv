@@ -13,16 +13,24 @@ export const ShowSchema = z.object({
         name: z.string(),
         code: z.string().nullable(),
         position: z.number().nullable(),
-        absence: z.enum([
-            'locked',
-            'disabled',
-            'undelivered',
-            'standby'
-        ]).nullable(),
+        absence: z.enum(['locked']).nullable(),
         volumeDb: z.number(),
         muted: z.boolean(),
         syncOffsetMs: z.number(),
         audioStreamId: z.string().nullable()
+    })),
+    addable: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        source: z.enum(['camera', 'pushed']),
+        state: z.enum([
+            'locked',
+            'disabled',
+            'ready',
+            'live',
+            'undelivered'
+        ])
     })),
     takeoverMix: z.object({
         streamId: z.string(),

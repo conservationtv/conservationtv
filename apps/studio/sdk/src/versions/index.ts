@@ -154,6 +154,8 @@ export * from './organisations.shows.list-v2/index.js';
 export * from './organisations.shows.get-v2/index.js';
 export * from './organisations.shows.controls.update-v1/index.js';
 export * from './organisations.shows.lineup.swap-v1/index.js';
+export * from './organisations.shows.lineup.add-v1/index.js';
+export * from './organisations.shows.lineup.remove-v1/index.js';
 export * from './organisations.shows.streams.mix-v1/index.js';
 export * from './organisations.outputs.list-v2/index.js';
 export * from './organisations.outputs.create-v2/index.js';

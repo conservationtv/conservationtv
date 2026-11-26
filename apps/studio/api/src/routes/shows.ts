@@ -11,11 +11,13 @@ import { requirePrincipal, usePrincipal } from '../middleware/principal.ts';
 import { audited } from '../audit/audit.ts';
 import { selectDeviceOutput } from '../services/outputs.ts';
 import {
+  addToLineup,
   createShow,
   deleteShow,
   getShow,
   getShowLineup,
   listShows,
+  removeFromLineup,
   renameShow,
   showVisible,
   swapLineup,
@@ -235,7 +237,7 @@ export default new Hono()
       ...operationVersion(2),
       summary: 'Read a show',
       description:
-        'How it is operated (`slots`, its layout; `volumeDb` and `muted`, its own mix; `takeoverStreamId`, the stream armed to take over, and `takeoverLive`, whether it has), the outputs following it, and its `lineup`: the camera streams of the organisation, and its pushed streams (going live from a phone, a PC or OBS) while someone publishes them, as the health of their deliveries says. Those in the lineup come first, in position order (the first `slots` are on screen), then those out of it, each with why (`absence`: a pushed stream waiting to be swapped in, `standby`; a camera that is `locked` or `disabled`; or nothing delivering it, `undelivered`), and each with how the show mixes its sound. A camera that is unlocked, or new, joins the lineup at the end; a pushed stream is never placed by itself, and leaves the lineup once nobody publishes it. `takeoverMix` is how the show mixes the stream armed to take over, as a lineup entry says it but for where it is (null with none armed): a stream that is not in the lineup has its level and mute here. `unreachable` says, for each output following the show that has an agent (an output with none reads nothing, and is left out), which of the streams the show needs its agent reaches no delivery of (`streamIds`, empty when it reaches them all): the cameras on screen, the stream armed to take over, and any stream one of those brings the sound of, each with at least one delivery but none at a gateway the agent reaches, from its network or the internet, and only at the gateway the output reads from when it names one (`inputGatewayId`). The output still places such a stream, so its card shows there. Protocols are not considered: which an agent asks with is its own.',
+        'How it is operated (`slots`, its layout; `volumeDb` and `muted`, its own mix; `takeoverStreamId`, the stream armed to take over, and `takeoverLive`, whether it has), the outputs following it, and its `lineup`: the streams its operators put in it, in order (the first `slots` with a position are on screen), each with its position (from 1), or none while it is skipped because its camera is locked (`absence: locked`; it keeps its place, and the rest move up), and each with how the show mixes its sound. Anything else in the lineup keeps its place, showing its offline card while it has nothing to show, until it is removed (`organisations.shows.lineup.remove`). A camera stream new to the show joins at the end once it is enabled and delivered; anything else is added (`organisations.shows.lineup.add`). `addable` is what could be: every camera stream out of the lineup (`state`: `ready`, `locked`, which cannot be added, `disabled` or `undelivered`) and every pushed stream someone is publishing (`live`, as the health of its deliveries says). `takeoverMix` is how the show mixes the stream armed to take over, as a lineup entry says it but for where it is (null with none armed): a stream not in the lineup has its level and mute here. `unreachable` says, for each output following the show that has an agent (an output with none reads nothing, and is left out), which of the streams the show needs its agent reaches no delivery of (`streamIds`, empty when it reaches them all): the cameras on screen, the stream armed to take over, and any stream one of those brings the sound of, each with at least one delivery but none at a gateway the agent reaches, from its network or the internet, and only at the gateway the output reads from when it names one (`inputGatewayId`). The output still places such a stream, so its card shows there. Protocols are not considered: which an agent asks with is its own.',
       responses: {
         200: { description: 'The show' },
         400: invalidRequest,
@@ -256,7 +258,13 @@ export default new Hono()
         if (!show) return undefined;
         const mixed = await getShowLineup(id, showId);
         const unreachable = mixed?.unreachable ?? [];
-        return { ...show, lineup: mixed?.lineup ?? [], takeoverMix: mixed?.takeover ?? null, unreachable };
+        return {
+          ...show,
+          lineup: mixed?.lineup ?? [],
+          addable: mixed?.addable ?? [],
+          takeoverMix: mixed?.takeover ?? null,
+          unreachable
+        };
       });
       if (!row) throw new ApiFailure('not_found');
       c.header('Cache-Control', 'no-store');
@@ -343,7 +351,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: "Swap two streams in a show's lineup",
       description:
-        "Any member. `a` and `b` each name a stream in the lineup, by its ID or its position (from 1), or a pushed stream on standby by its ID, resolved against the lineup as it is when the swap is made; the two exchange places wherever they are: both on screen, or one off it, which is how a camera is brought on. A stream on standby takes the other's place, and that one leaves the lineup: a camera's rejoins at the end, a pushed one goes back to standby. A stream swapped with an empty slot (a position past the lineup's end that is on screen) takes the first empty slot. Refused (`invalid_reference`) for a stream that is neither in the lineup nor on standby, or a position past both. Returns the lineup after, as `organisations.shows.get` reads it.",
+        'Any member. `a` and `b` each name a stream in the lineup, by its ID or its position (from 1), resolved against the lineup as it is when the swap is made; the two exchange places wherever they are: both on screen, or one off it, which is how a stream is brought on. Refused (`invalid_reference`) for a stream that is not in the lineup, or a position past its end. Returns the lineup after, as `organisations.shows.get` reads it.',
       responses: {
         200: { description: 'The lineup after the swap' },
         400: invalidRequest,
@@ -366,6 +374,70 @@ export default new Hono()
       const lineup = await trustedTransaction(() => swapLineup(principal, id, showId, a, b));
       c.header('Cache-Control', 'no-store');
       return c.json({ lineup }, 200);
+    }
+  )
+  .post(
+    '/:showId/lineup/add',
+    describeRoute({
+      operationId: 'organisations.shows.lineup.add',
+      ...operationVersion(1),
+      summary: "Add a stream to a show's lineup",
+      description:
+        'Any member. Adds `streamId` at the end of the lineup: on screen at once if a slot is free, otherwise off it, to be swapped on. Any of `addable` but a locked camera: refused (`invalid_reference`) for a stream already in the lineup, a camera that is locked, a pushed stream nobody is publishing, or a stream that is neither. Returns the lineup and `addable` after, as `organisations.shows.get` reads them.',
+      responses: {
+        200: { description: 'The lineup after the stream is added' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', ShowParamsSchema),
+    validator('json', z.strictObject({ streamId: z.uuid().describe('The stream to add.') })),
+    async c => {
+      const { id, showId } = c.req.valid('param');
+      const { streamId } = c.req.valid('json');
+      const principal = usePrincipal();
+      const result = await trustedTransaction(() => addToLineup(principal, id, showId, streamId));
+      c.header('Cache-Control', 'no-store');
+      return c.json(result, 200);
+    }
+  )
+  .post(
+    '/:showId/lineup/remove',
+    describeRoute({
+      operationId: 'organisations.shows.lineup.remove',
+      ...operationVersion(1),
+      summary: "Take a stream out of a show's lineup",
+      description:
+        'Any member. Takes `stream` (by its ID or its position, from 1) out of the lineup, and the rest move up. It is then among `addable`, and a camera does not rejoin by itself. Refused (`invalid_reference`) for a stream that is not in the lineup, or a position past its end. Returns the lineup and `addable` after, as `organisations.shows.get` reads them.',
+      responses: {
+        200: { description: 'The lineup after the stream is taken out' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', ShowParamsSchema),
+    validator('json', z.strictObject({ stream: StreamReferenceSchema })),
+    async c => {
+      const { id, showId } = c.req.valid('param');
+      const { stream } = c.req.valid('json');
+      const principal = usePrincipal();
+      const result = await trustedTransaction(() => removeFromLineup(principal, id, showId, stream));
+      c.header('Cache-Control', 'no-store');
+      return c.json(result, 200);
     }
   )
   .patch(

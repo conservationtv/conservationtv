@@ -891,16 +891,24 @@ export const ShowSchema = z.object({
         name: z.string(),
         code: z.string().nullable(),
         position: z.number().nullable(),
-        absence: z.enum([
-            'locked',
-            'disabled',
-            'undelivered',
-            'standby'
-        ]).nullable(),
+        absence: z.enum(['locked']).nullable(),
         volumeDb: z.number(),
         muted: z.boolean(),
         syncOffsetMs: z.number(),
         audioStreamId: z.string().nullable()
+    })),
+    addable: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        source: z.enum(['camera', 'pushed']),
+        state: z.enum([
+            'locked',
+            'disabled',
+            'ready',
+            'live',
+            'undelivered'
+        ])
     })),
     takeoverMix: z.object({
         streamId: z.string(),
@@ -936,12 +944,7 @@ export const LineupSchema = z.object({
         name: z.string(),
         code: z.string().nullable(),
         position: z.number().nullable(),
-        absence: z.enum([
-            'locked',
-            'disabled',
-            'undelivered',
-            'standby'
-        ]).nullable(),
+        absence: z.enum(['locked']).nullable(),
         volumeDb: z.number(),
         muted: z.boolean(),
         syncOffsetMs: z.number(),
@@ -3250,6 +3253,109 @@ export const PostOrganisationsByIdShowsByShowIdLineupSwapPathSchema = z.object({
  * The lineup after the swap
  */
 export const PostOrganisationsByIdShowsByShowIdLineupSwapResponseSchema = LineupSchema;
+
+export const PostOrganisationsByIdShowsByShowIdLineupAddBodySchema = z.object({
+    streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The stream to add.'
+    })
+});
+
+export const PostOrganisationsByIdShowsByShowIdLineupAddPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    showId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The show.'
+    })
+});
+
+/**
+ * The lineup after the stream is added
+ */
+export const PostOrganisationsByIdShowsByShowIdLineupAddResponseSchema = z.object({
+    lineup: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        position: z.number().nullable(),
+        absence: z.enum(['locked']).nullable(),
+        volumeDb: z.number(),
+        muted: z.boolean(),
+        syncOffsetMs: z.number(),
+        audioStreamId: z.string().nullable()
+    })),
+    addable: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        source: z.enum(['camera', 'pushed']),
+        state: z.enum([
+            'locked',
+            'disabled',
+            'ready',
+            'live',
+            'undelivered'
+        ])
+    }))
+}).register(z.globalRegistry, {
+    description: 'The lineup after the stream is added'
+});
+
+export const PostOrganisationsByIdShowsByShowIdLineupRemoveBodySchema = z.object({
+    stream: z.union([
+        z.object({
+            streamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+                description: 'A stream in the lineup.'
+            })
+        }),
+        z.object({
+            position: z.int().gte(1).lte(9007199254740991).register(z.globalRegistry, {
+                description: 'A position in the lineup, from 1.'
+            })
+        })
+    ])
+});
+
+export const PostOrganisationsByIdShowsByShowIdLineupRemovePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    showId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The show.'
+    })
+});
+
+/**
+ * The lineup after the stream is taken out
+ */
+export const PostOrganisationsByIdShowsByShowIdLineupRemoveResponseSchema = z.object({
+    lineup: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        position: z.number().nullable(),
+        absence: z.enum(['locked']).nullable(),
+        volumeDb: z.number(),
+        muted: z.boolean(),
+        syncOffsetMs: z.number(),
+        audioStreamId: z.string().nullable()
+    })),
+    addable: z.array(z.object({
+        streamId: z.string(),
+        name: z.string(),
+        code: z.string().nullable(),
+        source: z.enum(['camera', 'pushed']),
+        state: z.enum([
+            'locked',
+            'disabled',
+            'ready',
+            'live',
+            'undelivered'
+        ])
+    }))
+}).register(z.globalRegistry, {
+    description: 'The lineup after the stream is taken out'
+});
 
 export const PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdBodySchema = z.object({
     volumeDb: z.number().gte(-60).lte(12).register(z.globalRegistry, {

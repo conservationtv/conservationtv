@@ -283,6 +283,12 @@
     "organisations.shows.lineup.swap": [
       1
     ],
+    "organisations.shows.lineup.add": [
+      1
+    ],
+    "organisations.shows.lineup.remove": [
+      1
+    ],
     "organisations.shows.streams.mix": [
       1
     ],

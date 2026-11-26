@@ -92,7 +92,7 @@ describe('!swap', () => {
     expect(reply(facts(), ['serval', '1'])).toBe('Those are the same camera.');
     expect(reply(facts(), ['serval', 'badger'])).toBe('There is no camera by that name.');
     expect(reply(facts({ otter: 'locked' }), ['otter', '1'])).toBe('Otter is switched off.');
-    expect(reply(facts(), ['kp', '1'])).toBe("Keeper phone isn't live.");
+    expect(reply(facts(), ['kp', '1'])).toBe("Keeper phone isn't in the lineup: add it from the show's controls.");
   });
 });
 

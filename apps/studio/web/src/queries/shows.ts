@@ -22,8 +22,8 @@ export type ListedShow = ShowListOutput['shows'][number];
 export type OperatedShow = ShowGetOutput;
 
 /**
- * One of the organisation's camera streams as the show has it: in the lineup at its `position` (from 1; the first
- * `slots` are on screen), or out of it with why (`absence`), and how the show mixes its sound.
+ * A stream in the show's lineup, as the show has it: at its `position` (from 1; the first
+ * `slots` are on screen), or skipped while its camera is locked (`absence`), and how the show mixes its sound.
  */
 export type LineupStream = OperatedShow['lineup'][number];
 
@@ -33,23 +33,14 @@ export type ShowControls = Omit<ControlUpdateParams, 'id' | 'showId'>;
 /** How the show mixes one stream's sound. Only the fields given change. */
 export type StreamMix = Omit<StreamMixParams, 'id' | 'showId'>;
 
-/** Two streams to exchange places in the lineup, by ID; or a stream to put in an empty slot. */
-export type LineupSwap = StreamSwap | EmptySlotSwap;
-
-/** Two streams, by ID, to exchange places. */
-interface StreamSwap {
+/** Two streams to exchange places in the lineup, by ID. */
+export interface LineupSwap {
   a: string;
   b: string;
 }
 
-/**
- * A stream, by ID, and an empty slot of the layout, by its position (from 1): the stream goes in the first empty slot,
- * which is how a stream on standby goes on screen while one is free.
- */
-interface EmptySlotSwap {
-  a: string;
-  slot: number;
-}
+/** A stream that could be added to a show's lineup, and what it would be. */
+export type AddableStream = OperatedShow['addable'][number];
 
 /** The organisation's shows, oldest first, each with the outputs following it. */
 export const showListQueryOptions = (organisationId: string) =>
@@ -181,30 +172,25 @@ function controlled(show: OperatedShow, controls: ShowControls): OperatedShow {
 }
 
 /**
- * Exchange two streams' places in the show's lineup, by ID: both on screen, or one off it, which is how a camera is
- * brought on; or bring a stream on standby on, in another's place or an empty slot. Any member; shown at once where it
- * can be.
+ * Exchange two streams' places in the show's lineup, by ID: both on screen, or one off it, which is how a stream is
+ * brought on. Any member; shown at once.
  */
 export function useSwapLineup(organisationId: string, showId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationKey: showOperationMutationKey(organisationId, showId),
-    mutationFn: async (swap: LineupSwap) => {
+    mutationFn: async ({ a, b }: LineupSwap) => {
       const result = await api.organisations.shows.lineup.swap.v1({
         id: organisationId,
         showId,
-        a: { streamId: swap.a },
-        b: 'slot' in swap ? { position: swap.slot } : { streamId: swap.b }
+        a: { streamId: a },
+        b: { streamId: b }
       });
       if (result instanceof Error) throw result;
       return result;
     },
-    // Two streams in the lineup are shown exchanged at once; anything else (a stream on standby, an empty slot) is
-    // shown as the API answers.
-    onMutate: swap =>
-      changeOptimistically(client, organisationId, showId, show =>
-        'slot' in swap ? show : { ...show, lineup: swapped(show.lineup, swap.a, swap.b) }
-      ),
+    onMutate: ({ a, b }) =>
+      changeOptimistically(client, organisationId, showId, show => ({ ...show, lineup: swapped(show.lineup, a, b) })),
     onSuccess: (_result, _swap, rollback) => answered(rollback),
     onError: (_error, _swap, rollback) => {
       answered(rollback);
@@ -212,6 +198,59 @@ export function useSwapLineup(organisationId: string, showId: string) {
     },
     onSettled: () => readAgainWhenSettled(client, organisationId, showId)
   });
+}
+
+/**
+ * Add a stream to the end of the show's lineup, by ID: on screen at once if a slot is free. Any member; shown as the
+ * API answers, since where it lands depends on the lineup as the API has it.
+ */
+export function useAddToLineup(organisationId: string, showId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationKey: showOperationMutationKey(organisationId, showId),
+    mutationFn: async (streamId: string) => {
+      const result = await api.organisations.shows.lineup.add.v1({ id: organisationId, showId, streamId });
+      if (result instanceof Error) throw result;
+      return result;
+    },
+    onSettled: () => readAgainWhenSettled(client, organisationId, showId)
+  });
+}
+
+/** Take a stream out of the show's lineup, by ID: the rest move up. Any member; shown at once. */
+export function useRemoveFromLineup(organisationId: string, showId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationKey: showOperationMutationKey(organisationId, showId),
+    mutationFn: async (streamId: string) => {
+      const result = await api.organisations.shows.lineup.remove.v1({
+        id: organisationId,
+        showId,
+        stream: { streamId }
+      });
+      if (result instanceof Error) throw result;
+      return result;
+    },
+    onMutate: streamId =>
+      changeOptimistically(client, organisationId, showId, show => ({
+        ...show,
+        lineup: without(show.lineup, streamId)
+      })),
+    onSuccess: (_result, _streamId, rollback) => answered(rollback),
+    onError: (_error, _streamId, rollback) => {
+      answered(rollback);
+      rollBack(client, organisationId, showId, rollback);
+    },
+    onSettled: () => readAgainWhenSettled(client, organisationId, showId)
+  });
+}
+
+/** The lineup without a stream, the rest moved up: positions counted again over those that have one. */
+function without(lineup: LineupStream[], streamId: string): LineupStream[] {
+  let position = 0;
+  return lineup
+    .filter(stream => stream.streamId !== streamId)
+    .map(stream => (stream.position === null ? stream : { ...stream, position: ++position }));
 }
 
 /** The lineup with two of its streams' positions exchanged, in position order; as it was if either is out of it. */

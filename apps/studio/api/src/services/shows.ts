@@ -5,7 +5,18 @@ import { useAccess, useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
 import { selectGatewayNetworks, selectShowReaders } from '../gateways/connect.ts';
 import { unreachableStreams } from '../shows/reach.ts';
-import { lineupEntries, normalised, swapped, takeoverMix, type StreamReference } from '../shows/resolve.ts';
+import {
+  addableStreams,
+  added,
+  lineupEntries,
+  normalised,
+  removed,
+  swapped,
+  takeoverMix,
+  type RankChange,
+  type ShowFacts,
+  type StreamReference
+} from '../shows/resolve.ts';
 import { readShowFacts, writeLineup } from '../shows/lineup.ts';
 import { unchanged } from '../topology/transaction.ts';
 import { organisationScope } from './organisations.ts';
@@ -108,7 +119,7 @@ export async function getShowLineup(organisationId: string, showId: string) {
   const networks = await selectGatewayNetworks(organisationId);
   const readers = await selectShowReaders(organisationId, showId);
   const unreachable = unreachableStreams(facts, networks, readers);
-  return { lineup: lineupEntries(facts), takeover: takeoverMix(facts), unreachable };
+  return { lineup: lineupEntries(facts), addable: addableStreams(facts), takeover: takeoverMix(facts), unreachable };
 }
 
 /** Whether the show is visible: what reaching its object checks first, so a show that is not there is `not_found`. */
@@ -199,14 +210,36 @@ export async function updateShowControls(organisationId: string, showId: string,
 }
 
 /**
- * Exchange two streams' places in the show's lineup, each named by its ID or its position, wherever they are: both on
- * screen, or one off it, which is how a camera is brought on. In a trusted transaction, once umbrella says the
- * principal may operate the organisation's shows: normalising reads and writes every camera's rank, which must not
- * depend on what the caller sees (src/shows/lineup.ts), as the show's own sync and chat's swap do it. Positions are
- * resolved against the lineup as it is now, normalised in this transaction, which holds the show's row. `not_found`
- * for a principal who cannot see the organisation's shows, or a show that is not there; `forbidden` for one who may
- * not operate them; `invalid_reference` for a stream that is not in the lineup, or a position past its end. Returns
- * the lineup after.
+ * Change a show's lineup by a change decided against its facts, normalised in memory (`swapped`, `added`, `removed`,
+ * src/shows/resolve.ts), in a trusted transaction, once umbrella says the principal may operate the organisation's
+ * shows: normalising reads and writes every camera's rank, which must not depend on what the caller sees
+ * (src/shows/lineup.ts), as the show's own sync and chat's swap do it. References are resolved against the lineup as it
+ * is now, normalised in this transaction, which holds the show's row. `not_found` for a principal who cannot see the
+ * organisation's shows, or a show that is not there; `forbidden` for one who may not operate them;
+ * `invalid_reference` for a change the lineup refuses. Returns the facts after.
+ */
+async function changeLineup(
+  principal: Principal,
+  organisationId: string,
+  showId: string,
+  decide: (facts: ShowFacts) => RankChange[] | undefined
+): Promise<ShowFacts> {
+  const access = useAccess();
+  const scope = organisationScope(organisationId);
+  const decision = await access.inspect({ principal, resource: shows, scope });
+  if (!decision.permissions.read?.allowed) throw new ApiFailure('not_found');
+  if (!decision.permissions.operate?.allowed) throw new ApiFailure('forbidden');
+  const facts = await readShowFacts({ organisationId, showId }, true);
+  if (facts === undefined) throw new ApiFailure('not_found');
+  const changes = decide(normalised(facts));
+  if (changes === undefined) throw new ApiFailure('invalid_reference');
+  return writeLineup(facts, changes);
+}
+
+/**
+ * Exchange two streams' places in a show's lineup, wherever they are: both on screen, or one off it, which is how a
+ * stream is brought on (`changeLineup`). `invalid_reference` for a stream that is not in the lineup, or a position past
+ * its end. Returns the lineup after.
  */
 export async function swapLineup(
   principal: Principal,
@@ -215,17 +248,32 @@ export async function swapLineup(
   a: StreamReference,
   b: StreamReference
 ) {
-  const access = useAccess();
-  const scope = organisationScope(organisationId);
-  const decision = await access.inspect({ principal, resource: shows, scope });
-  if (!decision.permissions.read?.allowed) throw new ApiFailure('not_found');
-  if (!decision.permissions.operate?.allowed) throw new ApiFailure('forbidden');
-  const facts = await readShowFacts({ organisationId, showId }, true);
-  if (facts === undefined) throw new ApiFailure('not_found');
-  const changes = swapped(normalised(facts), a, b);
-  if (changes === undefined) throw new ApiFailure('invalid_reference');
-  const after = await writeLineup(facts, changes);
+  const after = await changeLineup(principal, organisationId, showId, facts => swapped(facts, a, b));
   return lineupEntries(after);
+}
+
+/**
+ * Add a stream to the end of a show's lineup (`changeLineup`): on screen at once if a slot is free. `invalid_reference`
+ * for one already in it, a camera's that is locked, or a pushed stream nobody is publishing. Returns the lineup and
+ * what can be added after.
+ */
+export async function addToLineup(principal: Principal, organisationId: string, showId: string, streamId: string) {
+  const after = await changeLineup(principal, organisationId, showId, facts => added(facts, streamId));
+  return { lineup: lineupEntries(after), addable: addableStreams(after) };
+}
+
+/**
+ * Take a stream out of a show's lineup (`changeLineup`): the rest move up. `invalid_reference` for one not in it.
+ * Returns the lineup and what can be added after.
+ */
+export async function removeFromLineup(
+  principal: Principal,
+  organisationId: string,
+  showId: string,
+  stream: StreamReference
+) {
+  const after = await changeLineup(principal, organisationId, showId, facts => removed(facts, stream));
+  return { lineup: lineupEntries(after), addable: addableStreams(after) };
 }
 
 /**
