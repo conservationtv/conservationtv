@@ -28,7 +28,7 @@ const ClockParamsSchema = z.object({
 });
 export type ClockParams = z.output<typeof ClockParamsSchema>;
 
-/** The time in `timeZone`, right-aligned in white Nunito outlined in black, ticking each second. */
+/** The time in `timeZone`, in the page's top right corner, in white Nunito outlined in black, ticking each second. */
 const ClockView: FC<ClockParams> = ({ timeZone }) => {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -41,13 +41,16 @@ const ClockView: FC<ClockParams> = ({ timeZone }) => {
       <style>{FONT_FACE}</style>
       <div
         style={{
+          // The page covers the show's whole canvas (broadcast.show.tsx): the time sits in its top right corner.
           boxSizing: 'border-box',
           width: '100vw',
           height: '100vh',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'flex-end',
           padding: '0 24px',
+          // One line, as tall as the strip the time sits in, so it is centred in that strip.
+          lineHeight: '96px',
           fontFamily: 'Nunito, sans-serif',
           fontWeight: 700,
           fontSize: '48px',
