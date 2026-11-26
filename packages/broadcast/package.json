@@ -1,0 +1,25 @@
+{
+  "name": "@conservationtv/broadcast",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sending a browser's camera or screen at its best for what the device can afford: a profile resolved against the encoders it has, captured at the size it is sent, encoded with Mediabunny, and handed to a sink that does not care how it travels (MoQ).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./moq": "./src/sinks/moq.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "mediabunny": "1.66.4"
+  },
+  "peerDependencies": {
+    "@moq/publish": "0.5.4"
+  },
+  "devDependencies": {
+    "@moq/publish": "0.5.4",
+    "typescript": "catalog:",
+    "zod": "catalog:"
+  }
+}

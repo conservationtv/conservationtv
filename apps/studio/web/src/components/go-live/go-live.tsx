@@ -10,7 +10,6 @@ import { cn } from '@conservationtv/ui/lib/utils';
 
 import { useGoLiveSession, type GoLivePhase, type GoLiveStatus } from '@/components/go-live/go-live-session';
 import { QuietBoundary } from '@/components/common/quiet-boundary';
-import { PlaceField } from '@/components/go-live/place-field';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import {
   canShareScreen,
@@ -23,12 +22,12 @@ import {
 import { liveExposureListQueryOptions, liveStreamIds } from '@/queries/publishing';
 
 // Going live from this browser, on a phone or a computer (docs/shows.md, Going live): pick a camera or a screen, see
-// what will be sent, say where you are if you are on one of the organisation's sites, and go live. What is sent goes
-// to conservation.tv by MoQ where this browser can, and otherwise by WebRTC to a gateway it reaches; the stream is
-// yours for this kind of device, made the first time and kept, so a show that took it over before finds it again.
+// what will be sent, and go live. It goes to conservation.tv by MoQ, at every size readers draw it at, each sent only
+// while someone watches it: there is nothing else to choose. The stream is yours for this kind of device, made the
+// first time and kept, so a show that took it over before finds it again.
 
 /**
- * The whole of going live: the capture and its preview, the choices, and the session's state. The capture stays
+ * The whole of going live: the capture and its preview, what to send, and the session's state. The capture stays
  * while the session starts and stops, and goes when the page does.
  */
 export const GoLive: FC = () => {
@@ -37,7 +36,6 @@ export const GoLive: FC = () => {
   const capturing = useCapture(session.stop);
   const [source, setSource] = useState<CaptureSource>('camera');
   const [devices, setDevices] = useState<CaptureDevices>({});
-  const [networkId, setNetworkId] = useState<string | null>(null);
   const { media } = capturing;
   const { phase, streamId } = session.status;
   const sending = phase !== 'idle' && phase !== 'failed';
@@ -76,23 +74,13 @@ export const GoLive: FC = () => {
             onChoose={chosen => void chooseDevices(chosen)}
           />
         )}
-        <Suspense fallback={null}>
-          <PlaceField
-            id="go-live-place"
-            value={networkId ?? ''}
-            disabled={sending}
-            onChange={event => setNetworkId(event.target.value === '' ? null : event.target.value)}
-          >
-            Where are you?
-          </PlaceField>
-        </Suspense>
         <GoLiveActions
           source={source}
           media={media}
           sending={sending}
           onCapture={() => void capturing.preview(source, devices)}
           onTurnOff={capturing.turnOff}
-          onStart={captured => void session.start(captured, networkId)}
+          onStart={captured => void session.start(captured, source)}
           onStop={session.stop}
         />
       </div>
@@ -315,22 +303,11 @@ interface GoLiveMessageProps {
 
 /** Why it isn't live, or what it is waiting for; and how it is sent, once it is. */
 const GoLiveMessage: FC<GoLiveMessageProps> = ({ status, captureError }) => {
-  const text = captureError ?? status.message ?? sentBy(status);
+  const text = captureError ?? status.message ?? (status.phase === 'live' ? 'Sending to conservation.tv.' : undefined);
   if (text === undefined) return null;
   const failing = captureError !== undefined || status.phase === 'failed';
   return <p className={cn('text-custom-13', failing ? 'text-destructive' : 'text-muted-foreground')}>{text}</p>;
 };
-
-/**
- * How a live session is sent, for its person: straight to conservation.tv, or through a gateway. By WebRTC a show
- * gets the picture without the sound: the browser sends Opus, which the gateway's onward hop and an output's agent read
- * by RTMP, and MediaMTX's RTMP reader drops (docs/shows.md, Not checked yet).
- */
-function sentBy(status: GoLiveStatus): string | undefined {
-  if (status.phase !== 'live') return undefined;
-  if (status.protocol === 'moq') return 'Sending straight to conservation.tv.';
-  return 'Sending to a gateway by WebRTC. Shows get your picture but not your sound this way yet.';
-}
 
 interface GoLiveReadersProps {
   streamId: string;

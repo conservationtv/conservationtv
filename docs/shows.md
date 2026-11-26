@@ -425,10 +425,10 @@ A stream stands; its deliveries are made when they are needed. Someone going liv
 what they can send, and the API picks the gateway and makes sure the chain of exposures exists
 (src/gateways/publish.ts).
 
-| Publisher                 | Sends              | Lands on                                         |
-| ------------------------- | ------------------ | ------------------------------------------------ |
-| A browser, phone or PC    | MoQ, WebRTC (WHIP) | conservation.tv directly, or a MediaMTX gateway  |
-| OBS, a phone's stream app | RTMPS, RTMP, WHIP  | a MediaMTX gateway, on a network or the internet |
+| Publisher                 | Sends             | Lands on                                         |
+| ------------------------- | ----------------- | ------------------------------------------------ |
+| A browser, phone or PC    | MoQ               | conservation.tv directly                         |
+| OBS, a phone's stream app | RTMPS, RTMP, WHIP | a MediaMTX gateway, on a network or the internet |
 
 ### The chain
 
@@ -531,16 +531,19 @@ hold `streamPublisher` or are administrators, as the organisation list says of t
 opens the page is told an administrator can let them, on the Members settings. "Go live" makes or reuses their stream for this kind of device
 (`organisations.streams.personal.ensure`: "Ada's phone", "Ada's computer"), not a throwaway.
 
-- The browser is asked at runtime what it can do (`@moq/publish/support`, pinned at 0.5.4: the release matching
-  `@moq/watch` 0.6.6's `@moq/hang` 0.5 and `@moq/net` 0.4): MoQ first where it has WebTransport and WebCodecs
-  encoders; after WebRTC where MoQ would fall back to a WebSocket; WebRTC alone where it cannot encode. Nothing assumes
-  Safari on an iPhone can publish MoQ.
-- MoQ goes straight to conservation.tv as the broadcast readers watch, `live.hang`, with its picture as captured and a
-  640-wide one beside it for small slots (each encoded only while watched), and its sound. Its credential is renewed
-  before it expires; the connection redials by itself.
-- WHIP goes to a MediaMTX gateway with the browser's own RTCPeerConnection, H.264 first. A session that is lost is
-  asked for again and started afresh. Its sound is Opus, which reaches no show yet (see [Not checked yet](#not-checked-yet)):
-  the page says so once it is live by WebRTC.
+- The browser is asked at runtime whether it can encode (`@moq/publish/support`, pinned at 0.5.4: the release matching
+  `@moq/watch` 0.6.6's `@moq/hang` 0.5 and `@moq/net` 0.4), over WebTransport or the WebSocket fallback; one that
+  cannot is told so. Nothing assumes Safari on an iPhone can publish. Going live by WebRTC (WHIP to a gateway) is not
+  offered for now: a WebRTC reader picks no size, and the gateway's onward hop drops Opus (see
+  [Not checked yet](#not-checked-yet)). So there is no "Where are you?" either: only conservation.tv takes MoQ.
+- There is nothing to choose but the camera, microphone or screen. MoQ goes straight to conservation.tv as the
+  broadcast readers watch, `live.hang`, as a ladder of sizes (packages/broadcast, src/profile.ts): a camera's 1080,
+  720, 540 and 360 high, a screen's 2160 and 1440 above them, each no larger than the capture, all at 30 fps in
+  hardware H.264 where the device has it. Each rung is Mediabunny's: a `MediaStreamVideoTrackSource` resizing the
+  capture (halving past 2:1, so text stays whole) at its `Quality` level `high` (about 6 Mb/s at 1080p, 2.8 at 720p;
+  360p is lifted to 1 Mb/s), in variable bitrate. The rungs are the sizes slots draw at ([Sizes](#sizes)); each is
+  encoded only while someone watches it, and readers pick theirs by size. The sound is stereo Opus, untouched by voice processing. Its credential is renewed before it
+  expires; the connection redials by itself.
 - The page says where it is: not live, starting, connecting, live, or lost and retrying; and, from
   `organisations.streams.live.list`, whether the studio sees it live.
 - Members publish as themselves, signed in; their browser's own device may sign for them. No credential lasts beyond

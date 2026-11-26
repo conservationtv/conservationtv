@@ -1,38 +1,41 @@
-import type { Audio, Net, Signals, Video } from '@moq/publish';
+import {
+  cameraProfile,
+  captureCamera,
+  captureScreen,
+  screenProfile,
+  type BroadcastPipeline,
+  type BroadcastProfile,
+  type CaptureDevices
+} from '@conservationtv/broadcast';
+import type { Net, Signals } from '@moq/publish';
 
-// Publishing from this browser (docs/shows.md, Going live): what it captures, what it can send, and the two ways it
-// sends it. Plain I/O, like src/lib/agent-connection.ts; the page decides when (src/components/go-live).
+// Publishing from this browser (docs/shows.md, Going live): what it captures, whether it can send it, and sending it.
+// Plain I/O, like src/lib/agent-connection.ts; the page decides when (src/components/go-live).
 //
-//   MoQ   straight to conservation.tv, with the moq project's own publisher (`@moq/publish`, encoding with WebCodecs),
-//         where the browser can: it is asked at runtime (`canPublishMoq`), never assumed, since Safari on an iPhone
-//         may have neither WebTransport nor a WebCodecs encoder.
-//   WHIP  WebRTC to a MediaMTX gateway, with the browser's own RTCPeerConnection: what any browser can send.
-//
-// The API chooses which, from the protocols this browser names in its order of preference and where its person says
-// they are (`organisations.streams.connect`, `action: publish`).
+// What is sent is a broadcast pipeline (`@conservationtv/broadcast`): the source's profile (a camera's or a
+// screen's: nothing for its person to choose), resolved against the encoders this device has, captured at the size
+// it is sent, and encoded by Mediabunny as a ladder of sizes, each only while someone watches it. It goes by MoQ,
+// straight to conservation.tv, where the browser can: that is asked at runtime (`publishProtocols`), never assumed,
+// since Safari on an iPhone may have neither WebTransport nor a WebCodecs encoder. Going live by WebRTC (WHIP to a
+// gateway) is not offered for now: a WebRTC reader picks no size, and the gateway drops its sound.
+
+export type { CaptureDevices } from '@conservationtv/broadcast';
 
 /** What is captured: a camera (and its microphone), or a screen, window or tab. */
 export type CaptureSource = 'camera' | 'screen';
 
-/** The devices to capture from: undefined for whichever the browser chooses. */
-export interface CaptureDevices {
-  cameraId?: string;
-  microphoneId?: string;
+/** The profile a source is sent by: a camera's or a screen's. */
+export function profileFor(source: CaptureSource): BroadcastProfile {
+  return source === 'screen' ? screenProfile() : cameraProfile();
 }
 
-/** The picture asked of a camera: 720p at 30 fps, which a phone sends comfortably and a show's slots draw well. */
-const CAMERA_VIDEO: MediaTrackConstraints = {
-  width: { ideal: 1280 },
-  height: { ideal: 720 },
-  frameRate: { ideal: 30 }
-};
-
-/** Capture from a camera and its microphone, or a screen with any sound it shares. Asks for permission. */
+/**
+ * Capture from a camera and its microphone, or a screen with any sound it shares, as its profile asks: its largest
+ * size and rate, and sound untouched by voice processing. Asks for permission.
+ */
 export async function capture(source: CaptureSource, devices: CaptureDevices): Promise<MediaStream> {
-  if (source === 'screen') return navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-  const camera = devices.cameraId === undefined ? {} : { deviceId: { exact: devices.cameraId } };
-  const microphone = devices.microphoneId === undefined ? true : { deviceId: { exact: devices.microphoneId } };
-  return navigator.mediaDevices.getUserMedia({ video: { ...CAMERA_VIDEO, ...camera }, audio: microphone });
+  const profile = profileFor(source);
+  return source === 'screen' ? captureScreen(profile) : captureCamera(profile, devices);
 }
 
 /** Whether this browser can share a screen: no phone browser can. */
@@ -60,16 +63,11 @@ export function personalDevice(): 'phone' | 'computer' {
 }
 
 /**
- * The protocols this browser can publish by, in its order of preference: MoQ first where it has WebTransport and can
- * encode with WebCodecs, after WebRTC where it would have to fall back to a WebSocket, and not at all where it cannot
- * encode; WebRTC (WHIP) wherever there is an RTCPeerConnection.
+ * The protocols this browser can publish by: MoQ where it can encode with WebCodecs (over WebTransport, or a
+ * WebSocket where it has none), and none where it cannot.
  */
 export async function publishProtocols(): Promise<string[]> {
-  const webrtc = 'RTCPeerConnection' in window ? ['webrtc'] : [];
-  const moq = await moqSupport();
-  if (moq === 'full') return ['moq', ...webrtc];
-  if (moq === 'partial') return [...webrtc, 'moq'];
-  return webrtc;
+  return (await moqSupport()) === 'none' ? [] : ['moq'];
 }
 
 /** How well `@moq/publish` works here: `full` with WebTransport, `partial` over a WebSocket, `none` without encoders. */
@@ -115,7 +113,7 @@ export interface MoqTarget {
   token?: string;
 }
 
-/** Where to publish by URL: a WHIP endpoint, and the token to present as a bearer token. */
+/** Where to publish by URL (a WHIP endpoint, and its bearer token): what the API may answer, never asked for here. */
 export interface UrlTarget {
   protocol: string;
   url: string;
@@ -132,20 +130,18 @@ function relayUrl(connection: MoqTarget): URL {
   return url;
 }
 
-/** The largest picture of the smaller rung published beside the capture's own: a 640-wide slot's (docs/shows.md, Sizes). */
-const SMALL_RUNG_PIXELS = 640 * 360;
-
 /**
- * Publish the capture over MoQ as the broadcast readers watch: its picture as it is captured, a 640-wide one beside it
- * for small slots (each encoded only while someone watches it), and its sound. The connection redials by itself when
- * it drops, for as long as the session lasts, with whatever credential it was last handed.
+ * Publish a pipeline over MoQ as the broadcast readers watch: its renditions (the capture's picture, and a smaller one
+ * beside it for small slots), each encoded only while someone watches it and limited to its share of the connection,
+ * and its sound. The connection redials by itself when it drops, for as long as the session lasts, with whatever
+ * credential it was last handed.
  */
 export async function publishMoq(
-  media: MediaStream,
+  pipeline: BroadcastPipeline,
   target: MoqTarget,
   events: SessionEvents
 ): Promise<PublishSession> {
-  const Publish = await import('@moq/publish');
+  const [Publish, { moqSink }] = await Promise.all([import('@moq/publish'), import('@conservationtv/broadcast/moq')]);
   // Retry for as long as the session lasts: a phone between networks comes back.
   const delay: Net.Connection.Backoff = { timeout: Publish.Net.Time.Milli(0) };
   const connection = new Publish.Net.Connection({ url: relayUrl(target), enabled: true, delay });
@@ -154,36 +150,7 @@ export async function publishMoq(
     enabled: true,
     name: Publish.Net.Path.from(target.broadcast)
   });
-  const closers: (() => void)[] = [];
-  const [video] = media.getVideoTracks();
-  if (video !== undefined) {
-    // SAFETY: a video track from getUserMedia or getDisplayMedia, which is what the publisher's `StreamTrack` describes.
-    const capture = new Publish.Video.Capture({ source: video as Video.StreamTrack });
-    const bandwidth = connection.bandwidth;
-    const large = new Publish.Video.Encoder('video/source', { broadcast, capture, bandwidth, enabled: true });
-    const small = new Publish.Video.Encoder('video/small', {
-      broadcast,
-      capture,
-      bandwidth,
-      enabled: true,
-      config: { maxPixels: SMALL_RUNG_PIXELS }
-    });
-    closers.push(
-      () => small.close(),
-      () => large.close(),
-      () => capture.close()
-    );
-  }
-  const [audio] = media.getAudioTracks();
-  if (audio !== undefined) {
-    // SAFETY: an audio track from getUserMedia or getDisplayMedia, as the publisher's audio `StreamTrack` describes.
-    const capture = new Publish.Audio.Capture({ source: audio as Audio.StreamTrack, enabled: true });
-    const encoder = new Publish.Audio.Encoder('audio/source', { broadcast, capture, enabled: true });
-    closers.push(
-      () => encoder.close(),
-      () => capture.close()
-    );
-  }
+  const disconnect = pipeline.connect(moqSink(broadcast, { bandwidth: connection.bandwidth }));
   const watching = new Publish.Signals.Effect();
   watching.run(effect => reportStatus(effect, connection, events));
   // A renewed credential waits for the next dial. A new URL reconnects at once, so handing it over while connected
@@ -203,7 +170,7 @@ export async function publishMoq(
     },
     close: () => {
       watching.close();
-      for (const close of closers) close();
+      disconnect();
       broadcast.close();
       connection.close();
     }
@@ -217,121 +184,4 @@ function reportStatus(effect: Signals.Effect, connection: Net.Connection, events
   if (status === 'connected') events.onState('live');
   else if (status === 'connecting') events.onState('connecting');
   else events.onState('lost', error?.message);
-}
-
-/** How long to wait for ICE candidates before offering what has been gathered: MediaMTX takes no trickled ones here. */
-const ICE_GATHERING_MS = 2_000;
-
-/** How long a WebRTC peer may stay `disconnected` before the session is given up as lost. */
-const DISCONNECTED_GRACE_MS = 5_000;
-
-/** A WHIP endpoint's refusal, with its HTTP status: 404 while the gateway's agent has not yet served the path. */
-export class WhipRefused extends Error {
-  readonly status: number;
-
-  constructor(status: number) {
-    super(
-      status === 404
-        ? 'The gateway isn’t taking this stream yet.'
-        : status === 401
-          ? 'The gateway refused the credential.'
-          : `The gateway answered HTTP ${status}.`
-    );
-    this.status = status;
-  }
-}
-
-/**
- * Publish the capture over WebRTC to a WHIP endpoint, presenting the token as a bearer token: H.264 first where the
- * browser can choose, which is what the gateway republishes to conservation.tv. Throws `WhipRefused` if the endpoint
- * refuses. The session is live while the peer connection is connected; a connection that fails, closes, or stays
- * disconnected past a short grace is lost for good, and the caller asks again for another.
- */
-export async function publishWhip(
-  media: MediaStream,
-  target: UrlTarget,
-  events: SessionEvents
-): Promise<PublishSession> {
-  const peer = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
-  for (const track of media.getTracks()) {
-    const transceiver = peer.addTransceiver(track, { direction: 'sendonly', streams: [media] });
-    if (track.kind === 'video') preferH264(transceiver);
-  }
-  events.onState('connecting');
-  let resource: string | undefined = undefined;
-  // `disconnected` is often a moment's loss that ICE recovers from by itself (a phone handing over between networks);
-  // only one that lasts, or a peer that has failed or closed, ends the session.
-  let grace: ReturnType<typeof setTimeout> | undefined = undefined;
-  const endGrace = () => {
-    clearTimeout(grace);
-    grace = undefined;
-  };
-  peer.addEventListener('connectionstatechange', () => {
-    // Any state but `disconnected` ends a grace; the first `disconnected` starts one, which ends the session only if
-    // the peer is still disconnected when it runs out.
-    const state = peer.connectionState;
-    if (state !== 'disconnected') endGrace();
-    if (state === 'connected') events.onState('live');
-    else if (state === 'failed' || state === 'closed') events.onState('lost');
-    else if (state === 'disconnected' && grace === undefined) {
-      events.onState('connecting');
-      grace = setTimeout(() => {
-        grace = undefined;
-        if (peer.connectionState === 'disconnected') events.onState('lost');
-      }, DISCONNECTED_GRACE_MS);
-    }
-  });
-  try {
-    // Offer what has been gathered, with the token where there is one; anything but `201 Created` is a refusal. The
-    // session's own URL, for ending it, is its `Location`, if the gateway gives one.
-    await peer.setLocalDescription(await peer.createOffer());
-    await gathered(peer);
-    const headers = new Headers({ 'Content-Type': 'application/sdp' });
-    if (target.token !== undefined) headers.set('Authorization', `Bearer ${target.token}`);
-    const response = await fetch(target.url, { method: 'POST', headers, body: peer.localDescription?.sdp });
-    if (response.status !== 201) throw new WhipRefused(response.status);
-    const location = response.headers.get('Location');
-    resource = location === null ? undefined : new URL(location, target.url).href;
-    await peer.setRemoteDescription({ type: 'answer', sdp: await response.text() });
-  } catch (error) {
-    endGrace();
-    peer.close();
-    throw error;
-  }
-  return {
-    // A WebRTC session is admitted once, when it starts: a renewed token is for the next one.
-    renew: () => undefined,
-    close: () => {
-      endGrace();
-      peer.close();
-      // Ending the session at the gateway frees its path at once, rather than when the peer times out.
-      if (resource !== undefined) void fetch(resource, { method: 'DELETE' }).catch(() => undefined);
-    }
-  };
-}
-
-/** Put H.264 first among the video codecs the transceiver offers, where the browser lets it be chosen. */
-function preferH264(transceiver: RTCRtpTransceiver) {
-  const capabilities = RTCRtpSender.getCapabilities?.('video');
-  if (capabilities === null || capabilities === undefined || !('setCodecPreferences' in transceiver)) return;
-  const h264 = capabilities.codecs.filter(codec => codec.mimeType.toLowerCase() === 'video/h264');
-  const others = capabilities.codecs.filter(codec => codec.mimeType.toLowerCase() !== 'video/h264');
-  if (h264.length > 0) transceiver.setCodecPreferences([...h264, ...others]);
-}
-
-/** Once the peer has gathered its ICE candidates, or `ICE_GATHERING_MS` has passed. */
-function gathered(peer: RTCPeerConnection): Promise<void> {
-  if (peer.iceGatheringState === 'complete') return Promise.resolve();
-  return new Promise(resolve => {
-    const done = () => {
-      clearTimeout(timer);
-      peer.removeEventListener('icegatheringstatechange', check);
-      resolve();
-    };
-    const check = () => {
-      if (peer.iceGatheringState === 'complete') done();
-    };
-    const timer = setTimeout(done, ICE_GATHERING_MS);
-    peer.addEventListener('icegatheringstatechange', check);
-  });
 }
