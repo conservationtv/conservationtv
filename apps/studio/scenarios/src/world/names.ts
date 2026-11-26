@@ -86,6 +86,9 @@ function nth(items: readonly string[], index: number): string {
   return items[index % items.length] as string;
 }
 
+/** Streams someone publishes to rather than a camera feeding them: an encoder, a phone, a laptop. */
+const PUSHED = ['OBS studio', 'Keeper’s phone', 'Vet room encoder', 'Drone', 'Education talks', 'Visitor kiosk'];
+
 const PRESETS = ['Home', 'Water', 'Feeding', 'Nest', 'Wide', 'Gate', 'Shelter', 'Close-up'];
 const COMMANDS = ['!cam', '!otters', '!feed', '!wide', '!nest', '!hello', '!rules', '!zoom'];
 
@@ -143,6 +146,13 @@ export class Namer {
     return `${cameraName} (${['backup', 'low bandwidth', 'archive', 'second feed'][index - 1] ?? `feed ${index + 1}`})`;
   }
 
+  /** A shared pushed stream: what publishes to it, as people name such a stream. */
+  pushed(index: number): string {
+    const rng = this.rng.child('pushed', index);
+    const base = nth(PUSHED, index);
+    return this.styled(rng, index >= PUSHED.length ? `${base} ${Math.floor(index / PUSHED.length) + 1}` : base);
+  }
+
   gateway(networkName: string, index: number): string {
     const rng = this.rng.child('gateway', networkName, index);
     return this.styled(rng, `${networkName} MediaMTX${index ? ` ${index + 1}` : ''}`);
@@ -191,5 +201,10 @@ export class Namer {
 
   command(index: number): string {
     return nth(COMMANDS, index);
+  }
+
+  /** A command that operates a show, the `count`th of its kind: `!swap`, then `!swap2`. */
+  showCommand(kind: 'showSwap' | 'showTakeover', count: number): string {
+    return `${kind === 'showSwap' ? '!swap' : '!takeover'}${count ? count + 1 : ''}`;
   }
 }

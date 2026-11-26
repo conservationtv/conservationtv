@@ -1,4 +1,4 @@
-import { statusOf } from '../api/projections.ts';
+import { liveOf, statusOf } from '../api/projections.ts';
 import { focusOrganisation, type World } from '../world/model.ts';
 
 // The pages to capture in a world: every page of the app that it has something for. A detail page shows the entity the
@@ -22,8 +22,8 @@ function mostTroubled(ids: string[], statuses: Map<string, string>): string | un
   return [...ids].sort((a, b) => rank(a) - rank(b))[0];
 }
 
-/** The lists a detail page can show one of. */
-type Detailed = 'streams' | 'shows' | 'outputs' | 'agents' | 'cameras';
+/** The lists a detail page can show one of: `pushed` is the streams people publish to, one live now first. */
+type Detailed = 'streams' | 'pushed' | 'shows' | 'outputs' | 'agents' | 'cameras';
 
 /** A page of an organisation; a detail page shows one of a list, beneath the list's path. */
 interface OrganisationPage {
@@ -37,8 +37,10 @@ interface OrganisationPage {
 const ORGANISATION_PAGES: OrganisationPage[] = [
   { id: 'home', title: 'Overview', path: '' },
   { id: 'controls', title: 'Controls', path: '/controls' },
+  { id: 'live', title: 'Go live', path: '/live' },
   { id: 'streams', title: 'Streams', path: '/streams' },
   { id: 'streams/detail', title: 'Stream', path: '/streams', detail: 'streams' },
+  { id: 'streams/pushed', title: 'Pushed stream', path: '/streams', detail: 'pushed' },
   { id: 'shows', title: 'Shows', path: '/shows' },
   { id: 'shows/detail', title: 'Show', path: '/shows', detail: 'shows' },
   { id: 'outputs', title: 'Outputs', path: '/outputs' },
@@ -73,8 +75,12 @@ function detailSources(world: World) {
     status.subjects.map(subject => [subject.subjectId.replace(/^device:/u, ''), subject.status])
   );
   const idsOf = (rows: readonly Identified[]) => rows.map(row => row.id);
+  // A pushed stream is never in trouble for nobody publishing it, so the one shown is one live now, shared first.
+  const pushed = [...world.sharedStreams, ...world.personalStreams.map(personal => personal.streamId)];
+  const live = new Set(liveOf(world).exposures.flatMap(exposure => (exposure.live ? [exposure.streamId] : [])));
   return {
     streams: { ids: idsOf(world.streams), statuses: groups },
+    pushed: { ids: [...pushed.filter(id => live.has(id)), ...pushed.filter(id => !live.has(id))], statuses: new Map() },
     shows: { ids: idsOf(world.shows), statuses: groups },
     outputs: { ids: idsOf(world.outputs), statuses: groups },
     agents: { ids: idsOf(world.agents), statuses: subjects },

@@ -16,7 +16,7 @@ export interface Gaps {
   networkWithoutActiveAgent: number;
   /** An output with no agent running it. */
   outputWithoutDevice: number;
-  /** A show never composed: it places nothing. */
+  /** A show left at no slots, as one never composed was: it places nothing but a takeover. */
   showUncomposed: number;
   /** A forward switched off. */
   forwardDisabled: number;
@@ -69,10 +69,38 @@ export interface Fault {
   hang?: boolean;
 }
 
+/**
+ * What goes on in the organisation's shows and who goes live in it: each a chance per thing it is about. All none in
+ * the base spec, so an ordinary world is an organisation not using them yet.
+ */
+export interface Operating {
+  /** A stream given a short code, as chat names it (`!swap OTT FOX`). */
+  streamCodes: number;
+  /** A camera's stream delivered only through its site's own gateway, never to conservation.tv: no browser plays it. */
+  siteOnlyStreams: number;
+  /** A member who isn't an administrator let publish (`streamPublisher`). Administrators always may. */
+  publishers: number;
+  /** Someone who may publish having gone live from a phone or a computer before, so having their own stream. */
+  personalStreams: number;
+  /** A pushed stream (shared or personal) being published to right now. */
+  pushedLive: number;
+  /** A show with a stream armed to take over. */
+  takeoverArmed: number;
+  /** An armed takeover on air. */
+  takeoverLive: number;
+  /** An output reading every stream from one gateway (`inputGatewayId`) rather than choosing per stream. */
+  outputInputGateways: number;
+  /** A chat command that operates the show its output follows (`!swap`, `!takeover`) rather than a camera or a reply. */
+  showChatCommands: number;
+}
+
 export interface WorldSpec {
   seed: string;
-  /** Whether the signed-in account administers the organisation. */
-  viewer: 'admin' | 'member';
+  /**
+   * Whether the signed-in account administers the organisation, is a member let publish (`streamPublisher`), or is a
+   * member who may not.
+   */
+  viewer: 'admin' | 'publisher' | 'member';
   names: NameStyle;
   /** The organisations the account is in; the first is the one the world is about. 0 for an account in none. */
   organisations: number;
@@ -85,6 +113,10 @@ export interface WorldSpec {
   gatewaysPerNetwork: Range;
   presetsPerCamera: Range;
   shows: number;
+  /** Each show's slot count (0–6). Null for as many as the cameras it was set up with (1–4), its lineup's first. */
+  slotsPerShow: Range | null;
+  /** The organisation's shared pushed streams: no camera feeds them, someone publishes to them (OBS, a phone). */
+  pushedStreams: number;
   outputs: number;
   /**
    * The chance of each output being driven from outside the studio (`external` control) rather than following a show:
@@ -101,6 +133,7 @@ export interface WorldSpec {
   /** Invitations waiting for the signed-in account, to other organisations. */
   myInvitations: number;
   gaps: Gaps;
+  operating: Operating;
   health: HealthSpec;
   /** Faults by operation ID, such as `organisations.topology.get`. */
   faults: Record<string, Fault>;
@@ -125,6 +158,18 @@ export const NO_GAPS: Gaps = {
   gatewayTlsError: 0
 };
 
+export const NOT_OPERATING: Operating = {
+  streamCodes: 0,
+  siteOnlyStreams: 0,
+  publishers: 0,
+  personalStreams: 0,
+  pushedLive: 0,
+  takeoverArmed: 0,
+  takeoverLive: 0,
+  outputInputGateways: 0,
+  showChatCommands: 0
+};
+
 /** A small, healthy, fully set-up sanctuary: what a scenario changes. */
 export const BASE_SPEC: WorldSpec = {
   seed: 'base',
@@ -138,6 +183,8 @@ export const BASE_SPEC: WorldSpec = {
   gatewaysPerNetwork: [0, 1],
   presetsPerCamera: [0, 3],
   shows: 1,
+  slotsPerShow: null,
+  pushedStreams: 0,
   outputs: 1,
   externalOutputs: 0,
   channels: 1,
@@ -146,13 +193,15 @@ export const BASE_SPEC: WorldSpec = {
   invitations: 0,
   myInvitations: 0,
   gaps: NO_GAPS,
+  operating: NOT_OPERATING,
   health: HEALTHY,
   faults: {}
 };
 
-/** A spec, partly overridden: `gaps`, `health` and `health.outages` merge with what they override. */
-export interface SpecOverrides extends Partial<Omit<WorldSpec, 'gaps' | 'health'>> {
+/** A spec, partly overridden: `gaps`, `operating`, `health` and `health.outages` merge with what they override. */
+export interface SpecOverrides extends Partial<Omit<WorldSpec, 'gaps' | 'operating' | 'health'>> {
   gaps?: Partial<Gaps>;
+  operating?: Partial<Operating>;
   health?: HealthOverrides;
 }
 
@@ -167,6 +216,7 @@ export function specOf(base: WorldSpec, overrides: SpecOverrides): WorldSpec {
     ...base,
     ...overrides,
     gaps: { ...base.gaps, ...overrides.gaps },
+    operating: { ...base.operating, ...overrides.operating },
     health: {
       ...base.health,
       ...overrides.health,

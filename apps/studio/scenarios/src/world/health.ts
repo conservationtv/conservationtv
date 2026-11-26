@@ -9,15 +9,28 @@ import {
 } from '@conservationtv/reports';
 
 import { BUILTIN_GATEWAY_ID } from './generate.ts';
-import type { CameraRow, GatewayRow, Incident, OutputRow, StateRow, StreamRow, World } from './model.ts';
+import {
+  focusOrganisation,
+  type CameraRow,
+  type GatewayRow,
+  type Incident,
+  type OutputRow,
+  type StateRow,
+  type StreamRow,
+  type World
+} from './model.ts';
 import type { Rng } from './rng.ts';
+import { placedStreamsOf } from './shows.ts';
 import type { OutageKind } from './spec.ts';
 
 // Health over a generated topology. The spec's outages pick root causes (an agent, a camera, a gateway, an output's
 // programme, a forward, a channel); each then reaches what depends on it as it would for real: an agent that stops
 // reporting leaves everything it reports about stale, a camera that stops answering takes its deliveries down, a
 // failing programme takes its forwards with it. On top of that, noise: anything judged may be degraded, go quiet or
-// never have reported. What is switched off is `off`; a delivery nothing reads is `idle`.
+// never have reported. What is switched off is `off`; a delivery nothing reads is `idle`. A pushed stream's deliveries
+// (no camera feeds it) are judged only while someone publishes to them, and are `idle` otherwise, as the API judges
+// them (apps/studio/api/src/health/exposure.ts); one on the relay that no agent delivers is covered by the
+// organisation's oldest active agent (docs/shows.md, Health and stats without an agent).
 //
 // Only states are made here. What they add up to (failing, affected, off) is the studio API's own rule, run over the
 // world by the mock (apps/studio/api/src/health/status.ts), so the status the UI shows is what the API would say.
@@ -256,10 +269,14 @@ const verdict = (failing: boolean) => (failing ? 'unhealthy' : 'healthy');
 
 /**
  * What outputs driven from outside play. The topology doesn't say (their controller picks, and the agent connects to
- * each as OBS plays it), so each one an agent runs plays a few of the relay's deliveries, keyed by the output.
+ * each as OBS plays it), so each one an agent runs plays a few of the relay's deliveries, keyed by the output: of the
+ * streams the organisation was set up with, not those people publish to.
  */
 function playedFromOutside(world: World, rng: Rng, deliveries: Delivery[]): string[] {
-  const relay = deliveries.filter(delivery => delivery.gatewayId === BUILTIN_GATEWAY_ID);
+  const published = new Set([...world.sharedStreams, ...world.personalStreams.map(personal => personal.streamId)]);
+  const relay = deliveries.filter(
+    delivery => delivery.gatewayId === BUILTIN_GATEWAY_ID && !published.has(delivery.stream.id)
+  );
   return world.outputs
     .filter(output => output.control === 'external' && output.device)
     .flatMap(output => {
@@ -269,9 +286,16 @@ function playedFromOutside(world: World, rng: Rng, deliveries: Delivery[]): stri
     .map(delivery => delivery.id);
 }
 
+/** Every delivery of the streams the world's shows place, as their states say (`placedStreams`, packages/shows). */
+function placedDeliveries(world: World): string[] {
+  const sources = { ...world, organisationId: focusOrganisation(world)?.id ?? '' };
+  const placed = new Set(world.shows.flatMap(show => placedStreamsOf(sources, show)));
+  return world.streams.filter(stream => placed.has(stream.id)).flatMap(stream => stream.exposures.map(({ id }) => id));
+}
+
 /** Which deliveries are read: placed in a show, played from outside, recorded, or upstream of one that is. */
 function readDeliveries(world: World, rng: Rng, deliveries: Delivery[]): Set<string> {
-  const placed = new Set([...world.shows.flatMap(show => show.placed), ...playedFromOutside(world, rng, deliveries)]);
+  const placed = new Set([...placedDeliveries(world), ...playedFromOutside(world, rng, deliveries)]);
   const recorded = new Set(world.streams.flatMap(stream => stream.recorders.map(recorder => recorder.exposureId)));
   const read = new Set<string>();
   for (const delivery of deliveries) {
@@ -314,10 +338,15 @@ function pathOf(world: World, deliveries: Delivery[], delivery: Delivery): Deliv
   };
 }
 
+/** Whether either gateway on a delivery's path is down. */
+function gatewayDown(down: RootCauses, path: DeliveryPath): boolean {
+  return [path.gateway, path.upstream].some(gateway => gateway !== undefined && down.gateways.has(gateway.id));
+}
+
 /** Whether a read delivery is failing: it has no camera, or its camera or either gateway on its path is down. */
 function deliveryFailing(down: RootCauses, path: DeliveryPath): boolean {
   if (!path.camera || down.cameras.has(path.camera.id)) return true;
-  return [path.gateway, path.upstream].some(gateway => gateway !== undefined && down.gateways.has(gateway.id));
+  return gatewayDown(down, path);
 }
 
 /** A delivery's judgement: switched off with its camera, idle while nothing reads it, else judged by what feeds it. */
@@ -327,19 +356,42 @@ function deliveryJudgement(down: RootCauses, path: DeliveryPath, isRead: boolean
   return judged('exposure', verdict(deliveryFailing(down, path)));
 }
 
+/**
+ * A pushed stream's delivery's judgement: asked for only while someone publishes to it, whoever reads it, and then
+ * failing only with a gateway on its path; idle until then, not down.
+ */
+function pushedJudgement(assessment: Assessment, path: DeliveryPath, delivery: Delivery): Judgement {
+  if (!assessment.world.publishing.includes(delivery.id)) return IDLE;
+  return judged('exposure', verdict(gatewayDown(assessment.down, path)));
+}
+
 /** The network whose active agent runs a delivery: its gateway's, the one it is published from's, or its camera's. */
 function deliveryNetwork(path: DeliveryPath): string | null | undefined {
   return path.gateway?.networkId ?? path.upstream?.networkId ?? path.camera?.device?.networkId;
 }
 
 /**
- * Judge one delivery, run by the active agent of its network. Returns its camera when something delivers it, as that
- * is a camera that gets probed.
+ * The agent that covers a delivery on the relay that no agent delivers: the organisation's oldest active agent (the
+ * lowest ID), chosen from rows alone (`selectRelayCoverage`, apps/studio/api/src/configuration/plan/helpers.ts).
+ */
+function coveringAgent(world: World): string | null {
+  return world.agents.filter(agent => agent.active).sort((a, b) => (a.id < b.id ? -1 : 1))[0]?.id ?? null;
+}
+
+/**
+ * Judge one delivery, run by the active agent of its network, or for a pushed stream's on the relay that none runs,
+ * by the agent covering it. Returns its camera when something delivers it, as that is a camera that gets probed.
  */
 function judgeDelivery(assessment: Assessment, deliveries: Delivery[], read: Set<string>, delivery: Delivery) {
-  const path = pathOf(assessment.world, deliveries, delivery);
-  const deliverer = activeAgentOf(assessment.world, deliveryNetwork(path));
-  const judgement = deliveryJudgement(assessment.down, path, read.has(delivery.id));
+  const { world } = assessment;
+  const path = pathOf(world, deliveries, delivery);
+  const pushed = delivery.stream.sourceDeviceId === null;
+  const network = deliveryNetwork(path);
+  const covered = pushed && network === undefined && delivery.gatewayId === BUILTIN_GATEWAY_ID;
+  const deliverer = covered ? coveringAgent(world) : activeAgentOf(world, network);
+  const judgement = pushed
+    ? pushedJudgement(assessment, path, delivery)
+    : deliveryJudgement(assessment.down, path, read.has(delivery.id));
   record(assessment, 'exposure', exposureSubject(delivery.id), deliverer, judgement);
   return path.camera && deliverer ? path.camera.id : null;
 }
