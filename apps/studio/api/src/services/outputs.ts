@@ -2,6 +2,8 @@ import { device } from '@conservationtv/umbrella';
 import { and, eq } from 'drizzle-orm';
 import { channelBroadcaster } from '../db/roles.ts';
 import {
+  channels,
+  outputControlChannels,
   outputControls,
   outputDevices,
   outputForwards,
@@ -10,6 +12,7 @@ import {
   outputs
 } from '../db/schema.ts';
 import { useAccess, useDB } from '../db/transaction.ts';
+import { ApiFailure } from '../errors.ts';
 import { checkGateway } from '../topology/exposures.ts';
 import type { OutputControl, OutputRecorderKind } from '../topology/output-recorder-kinds.ts';
 import type { Settings } from '../topology/settings.ts';
@@ -94,6 +97,7 @@ const OUTPUT_COLUMNS = {
 const OUTPUT_HOPS = {
   device: { columns: { deviceId: true, createdAt: true } },
   forwards: { columns: { id: true, channelId: true, enabled: true, createdAt: true }, orderBy: { id: 'asc' } },
+  controlChannels: { columns: { channelId: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
   previews: { columns: { id: true, gatewayId: true, createdAt: true }, orderBy: { id: 'asc' } },
   recorders: { columns: { id: true, kind: true, params: true, createdAt: true }, orderBy: { id: 'asc' } }
 } as const;
@@ -118,9 +122,20 @@ interface InputGatewayed {
   inputGatewayId: string | null;
 }
 
-/** An output as the operations before outputs had an input gateway return it. */
-export function withoutInputGateway<Output extends InputGatewayed>(output: Output) {
-  const { inputGatewayId: _inputGatewayId, ...rest } = output;
+/** What an output is read with from the versions that list the channels whose chat controls it. */
+interface ControlChannelled {
+  controlChannels?: unknown[];
+}
+
+/** An output as the operations before control channels return it. */
+export function withoutControlChannels<Output extends ControlChannelled>(output: Output) {
+  const { controlChannels: _controlChannels, ...rest } = output;
+  return rest;
+}
+
+/** An output as the operations before outputs had an input gateway, or control channels, return it. */
+export function withoutInputGateway<Output extends InputGatewayed & ControlChannelled>(output: Output) {
+  const { inputGatewayId: _inputGatewayId, ...rest } = withoutControlChannels(output);
   return rest;
 }
 
@@ -259,6 +274,47 @@ export async function createOutputForward(organisationId: string, outputId: stri
       createdAt: outputForwards.createdAt
     });
   return row!;
+}
+
+/**
+ * Let the chat of one of the organisation's Twitch channels control the output, whether or not it goes out there:
+ * `invalid_reference` for a channel the organisation does not have, or one that is not a Twitch connection with a login
+ * to listen by; `conflict` for one that controls it already.
+ */
+export async function createOutputControlChannel(organisationId: string, outputId: string, channelId: string) {
+  const db = useDB();
+  const [channel] = await db
+    .select({ kind: channels.kind, externalLogin: channels.externalLogin })
+    .from(channels)
+    .where(and(eq(channels.organisationId, organisationId), eq(channels.id, channelId)));
+  if (channel?.kind !== 'twitch' || channel.externalLogin === null) throw new ApiFailure('invalid_reference');
+  const [row] = await db
+    .insert(outputControlChannels)
+    .values({ organisationId, outputId, channelId })
+    .returning({ channelId: outputControlChannels.channelId, createdAt: outputControlChannels.createdAt });
+  return row!;
+}
+
+/** Stop the channel's chat controlling the output: `forbidden` or `not_found` when the write reaches no row. */
+export async function deleteOutputControlChannel(organisationId: string, outputId: string, channelId: string) {
+  const db = useDB();
+  const deleted = await db
+    .delete(outputControlChannels)
+    .where(
+      and(
+        eq(outputControlChannels.organisationId, organisationId),
+        eq(outputControlChannels.outputId, outputId),
+        eq(outputControlChannels.channelId, channelId)
+      )
+    )
+    .returning({ channelId: outputControlChannels.channelId });
+  if (deleted.length > 0) return;
+  // Visible but not deleted: the principal may not; otherwise it is not there for them.
+  const [visible] = await db
+    .select({ channelId: outputControlChannels.channelId })
+    .from(outputControlChannels)
+    .where(and(eq(outputControlChannels.outputId, outputId), eq(outputControlChannels.channelId, channelId)));
+  throw new ApiFailure(visible === undefined ? 'not_found' : 'forbidden');
 }
 
 /** Turn the forward on or off: `forbidden` or `not_found` when the write reaches no row. */
@@ -433,7 +489,8 @@ export async function selectDeviceOutput(deviceId: string) {
 
 /**
  * What the output sends out, for planning its device's configuration: its encoding, its enabled forwards, its previews
- * and its recorders. Trusted code: IDs and settings only.
+ * and its recorders; and the channels whose chat controls it besides those it goes out to. Trusted code: IDs and
+ * settings only.
  */
 export async function selectOutputPlan(outputId: string) {
   const db = useDB({ trusted: true });
@@ -446,11 +503,33 @@ export async function selectOutputPlan(outputId: string) {
         where: { enabled: true },
         orderBy: { id: 'asc' }
       },
+      controlChannels: {
+        columns: { channelId: true },
+        with: { channel: { columns: { kind: true, externalLogin: true } } },
+        orderBy: { createdAt: 'asc' }
+      },
       previews: { columns: { id: true, gatewayId: true }, orderBy: { id: 'asc' } },
       recorders: { columns: { id: true, kind: true, params: true }, orderBy: { id: 'asc' } }
     },
     where: { id: outputId }
   });
+}
+
+/**
+ * The channels whose chat controls the output: those it has an enabled forward to, and its control channels. Trusted
+ * code, for checking the agent that says a command was used in one (src/chat/uses.ts).
+ */
+export async function selectOutputChatChannelIds(outputId: string) {
+  const db = useDB({ trusted: true });
+  const forwarded = await db
+    .select({ channelId: outputForwards.channelId })
+    .from(outputForwards)
+    .where(and(eq(outputForwards.outputId, outputId), eq(outputForwards.enabled, true)));
+  const controlling = await db
+    .select({ channelId: outputControlChannels.channelId })
+    .from(outputControlChannels)
+    .where(eq(outputControlChannels.outputId, outputId));
+  return [...forwarded, ...controlling].map(row => row.channelId);
 }
 
 /**

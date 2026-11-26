@@ -90,8 +90,6 @@ export interface Operating {
   takeoverLive: number;
   /** An output reading every stream from one gateway (`inputGatewayId`) rather than choosing per stream. */
   outputInputGateways: number;
-  /** A chat command that operates the show its output follows (`!swap`, `!takeover`) rather than a camera or a reply. */
-  showChatCommands: number;
 }
 
 export interface WorldSpec {
@@ -166,8 +164,7 @@ export const NOT_OPERATING: Operating = {
   pushedLive: 0,
   takeoverArmed: 0,
   takeoverLive: 0,
-  outputInputGateways: 0,
-  showChatCommands: 0
+  outputInputGateways: 0
 };
 
 /** A small, healthy, fully set-up sanctuary: what a scenario changes. */

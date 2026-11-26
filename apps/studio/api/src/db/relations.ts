@@ -172,6 +172,7 @@ export const relations = defineRelations(schema, r => ({
     show: r.one.shows({ from: r.outputs.showId, to: r.shows.id }),
     device: r.one.outputDevices({ from: r.outputs.id, to: r.outputDevices.outputId }),
     forwards: r.many.outputForwards({ from: r.outputs.id, to: r.outputForwards.outputId }),
+    controlChannels: r.many.outputControlChannels({ from: r.outputs.id, to: r.outputControlChannels.outputId }),
     previews: r.many.outputPreviews({ from: r.outputs.id, to: r.outputPreviews.outputId }),
     recorders: r.many.outputRecorders({ from: r.outputs.id, to: r.outputRecorders.outputId })
   },
@@ -182,6 +183,10 @@ export const relations = defineRelations(schema, r => ({
   outputForwards: {
     output: r.one.outputs({ from: r.outputForwards.outputId, to: r.outputs.id }),
     channel: r.one.channels({ from: r.outputForwards.channelId, to: r.channels.id })
+  },
+  outputControlChannels: {
+    output: r.one.outputs({ from: r.outputControlChannels.outputId, to: r.outputs.id }),
+    channel: r.one.channels({ from: r.outputControlChannels.channelId, to: r.channels.id })
   },
   outputPreviews: {
     output: r.one.outputs({ from: r.outputPreviews.outputId, to: r.outputs.id })

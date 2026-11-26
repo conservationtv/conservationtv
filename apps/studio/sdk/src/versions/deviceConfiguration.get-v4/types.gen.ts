@@ -93,6 +93,27 @@ export type DeviceConfiguration = {
         stats: Array<StatsConnect>;
         watched: Array<WatchedExposure>;
     };
+    chat?: {
+        standard: Array<{
+            name: 'slots' | 'ptzhome' | 'ptzload' | 'ptzlist' | 'ptzpan' | 'ptztilt' | 'ptzzoom' | 'ptzset' | 'ptzseta' | 'ptzmove' | 'ptzcenter' | 'ptzfocusa' | 'swap' | 'scenecams' | 'takeover' | 'livecams' | 'mute' | 'unmute' | 'setvolume' | 'getvolume' | 'resetvolume';
+            words: Array<string>;
+            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+            cooldownSeconds: number;
+            target: 'camera' | 'show';
+        }>;
+        organisationId: string;
+        channels: Array<{
+            channelId: string;
+            platform: 'twitch';
+            login: string;
+        }>;
+        commands: Array<{
+            id: string;
+            name: string;
+            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+            cooldownSeconds: number;
+        }>;
+    };
     cameras?: {
         cameras: Array<{
             id: string;
@@ -154,20 +175,6 @@ export type DeviceConfiguration = {
                 [key: string]: unknown;
             };
         };
-    };
-    chat?: {
-        organisationId: string;
-        channels: Array<{
-            channelId: string;
-            platform: 'twitch';
-            login: string;
-        }>;
-        commands: Array<{
-            id: string;
-            name: string;
-            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
-            cooldownSeconds: number;
-        }>;
     };
     peers: Array<{
         endpointId: string;

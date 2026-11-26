@@ -1,5 +1,5 @@
 import type { CameraCredentials, CameraSettings } from '@conservationtv/cameras';
-import type { ChatAudience } from '@conservationtv/chat';
+import type { ChatAudience, StandardCommandName, StandardTarget } from '@conservationtv/chat';
 import { z } from 'zod';
 import type { CameraState } from '../../cameras/states.ts';
 import type { OutputControl } from '../../topology/output-recorder-kinds.ts';
@@ -358,14 +358,36 @@ export interface ListenedCommand {
 }
 
 /**
- * The `chat` runtime, for an output's agent while the output goes out to a Twitch channel and the organisation has
- * commands: the channels to listen to, and the commands to tell this API were used
+ * The `chat` runtime as version 3 says it, for an output's agent while the output listens to a Twitch channel's chat
+ * and the organisation has commands of its own: the channels to listen to, and the commands to tell this API were used
  * (`organisations.chatCommands.trigger`).
  */
 export interface ChatConfiguration {
   organisationId: string;
   channels: ChatChannel[];
   commands: ListenedCommand[];
+}
+
+/**
+ * A standard command the agent listens for (`@conservationtv/chat`): every word it is used by, and who may use it and
+ * how long it rests on each camera or show it acts on (`target`), so the agent need not tell this API of a use that
+ * would come to nothing. This API decides both again when told.
+ */
+export interface ListenedStandardCommand {
+  name: StandardCommandName;
+  words: string[];
+  audience: ChatAudience;
+  cooldownSeconds: number;
+  target: StandardTarget;
+}
+
+/**
+ * The `chat` runtime, from version 4: as version 3 says it, with the `standard` commands the organisation has on, and
+ * for an output's agent whenever the output listens to a Twitch channel's chat, whatever commands there are. A use of
+ * any is told by its word (`organisations.chatCommands.uses.create`).
+ */
+export interface StandardChatConfiguration extends ChatConfiguration {
+  standard: ListenedStandardCommand[];
 }
 
 /** How a peer may connect to the agent. */
@@ -469,9 +491,10 @@ export interface RelaysConfiguration {
  * What a device runs, from version 4 of `deviceConfiguration.get`: as in version 3, with its `mediamtx` as above, and
  * `relays` for an agent that covers exposures there.
  */
-export interface DeliveringConfiguration extends Omit<ControllingConfiguration, 'mediamtx'> {
+export interface DeliveringConfiguration extends Omit<ControllingConfiguration, 'mediamtx' | 'chat'> {
   mediamtx?: DeliveringMediamtxConfiguration;
   relays?: RelaysConfiguration;
+  chat?: StandardChatConfiguration;
 }
 
 /** The `mediamtx` runtime as planned: as version 4 says it, with the stats asks versions before it are told. */

@@ -1,0 +1,38 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "7ed6634d-2cdf-4ed0-a4d2-46c03106e430",
+  "prevIds": [
+    "b8b4026a-878f-49c7-925d-ca7fcf255f03"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "chat_command_setting"
+      ],
+      "writes": [
+        "s|ck|public.chat_command_setting.chat_command_setting_command"
+      ],
+      "reads": [
+        "n|tbl|public.chat_command_setting",
+        "n|sch|public",
+        "n|col|public.chat_command_setting.command",
+        "e|col|public.chat_command_setting.command"
+      ],
+      "sqlHash": "d5ff37371d5ffd48"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "alter",
+      "key": "checks\u0000[\"public\",\"chat_command_setting\",\"chat_command_setting_command\"]",
+      "set": {
+        "value": "command in ('ptzhome', 'ptzload', 'ptzlist', 'ptzpan', 'ptztilt', 'ptzzoom', 'ptzset', 'ptzseta', 'ptzmove', 'ptzcenter', 'ptzfocusa', 'swap', 'slots', 'scenecams', 'takeover', 'livecams', 'mute', 'unmute', 'setvolume', 'getvolume', 'resetvolume')"
+      }
+    }
+  ]
+}

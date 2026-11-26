@@ -1,4 +1,5 @@
-import { CHAT_AUDIENCES, type CarryResult, inAudience } from '@conservationtv/chat';
+import { chatName } from '@conservationtv/cameras';
+import { CHAT_AUDIENCES, type CarryResult, inAudience, STANDARD_TARGETS } from '@conservationtv/chat';
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
 import { createStore, type EnqueueObject, type ExtractEvents, type Store } from '@xstate/store';
@@ -19,7 +20,7 @@ import type { ChatMessage, ChatUser } from './twitch.ts';
 //                            ▲              │
 //                            └── applied ───┘ (a new spec)
 //
-//   each command, by its ID. One with nothing in hand whose quiet is over is ready, and isn't kept at all:
+//   each command, by its key (`keyOf`). One with nothing in hand whose quiet is over is ready, and isn't kept at all:
 //
 //                                     a use, its quiet over
 //       ┌─────────────────────────────────────────────────────────────────────────┐
@@ -56,6 +57,13 @@ import type { ChatMessage, ChatUser } from './twitch.ts';
 // is settled with what came of them, once, with nothing retried: the receipt lasts a minute, and the carry and the
 // settle each give up long before that. A settle that fails is logged, and the command rests as the plan said.
 //
+// A command's state is kept by its key, which is what it rests by. An organisation's own command rests as one, and is
+// kept by its ID. A standard command rests per camera or per show, as its `target` says, which only the studio API
+// resolves: one that acts on a camera is kept by its name and the camera its first word names, as chat writes camera
+// names (`standard:ptzload:pond`), and one that acts on the show by its name alone (`standard:swap`). The `restsUntil`
+// the studio API answers is that key's. The same camera named another way (by its alias, or its position) is another
+// key here, and only the studio API holds it to the camera's one rest.
+//
 // A new spec keeps what each command is doing, its rest and quiet too, even for a command it no longer has, in case it
 // comes back: only a use waiting on a command or channel the spec no longer has is dropped.
 //
@@ -91,36 +99,80 @@ const ListenedCommandSchema = z.object({
 });
 export type ListenedCommand = z.output<typeof ListenedCommandSchema>;
 
+const ListenedStandardCommandSchema = z.object({
+  name: z.string(),
+  /** The words it is used by: its name and its aliases. */
+  words: z.array(z.string()),
+  audience: z.enum(CHAT_AUDIENCES),
+  cooldownSeconds: z.number(),
+  /** What it acts on, which it rests per. */
+  target: z.enum(STANDARD_TARGETS)
+});
+export type ListenedStandardCommand = z.output<typeof ListenedStandardCommandSchema>;
+
 export const ChatSpecSchema = z.object({
   organisationId: z.string(),
   /** The channels whose chat to listen to. */
   channels: z.array(ChatChannelSchema),
-  /** The commands to listen for, by the word each is used by. */
-  commands: z.array(ListenedCommandSchema)
+  /** The organisation's own commands to listen for, by the word each is used by. */
+  commands: z.array(ListenedCommandSchema),
+  /** The standard commands to listen for, by any of their words: none from a configuration from before them. */
+  standard: z.array(ListenedStandardCommandSchema).default([])
 });
 export type ChatSpec = z.output<typeof ChatSpecSchema>;
 
-type ChatCommands = Client['organisations']['chatCommands'];
-type TriggerCall = ChatCommands['trigger']['v1'];
-type SettleCall = ChatCommands['settle']['v1'];
-export type TriggerInput = Parameters<TriggerCall>[0];
-export type TriggerAnswer = Exclude<Awaited<ReturnType<TriggerCall>>, Error>;
+type UseCalls = Client['organisations']['chatCommands']['uses'];
+type CreateCall = UseCalls['create']['v1'];
+type SettleCall = UseCalls['settle']['v1'];
+export type UseInput = Parameters<CreateCall>[0];
+export type UseAnswer = Exclude<Awaited<ReturnType<CreateCall>>, Error>;
 export type SettleInput = Parameters<SettleCall>[0];
 export type SettleAnswer = Exclude<Awaited<ReturnType<SettleCall>>, Error>;
 
 /** The two calls the uses make of the studio API, each given up on once `signal` aborts. */
 export interface ChatStudio {
-  trigger: (input: TriggerInput, signal: AbortSignal) => Promise<TriggerAnswer | Error>;
+  /** Tell it of a use (`organisations.chatCommands.uses.create`). */
+  create: (input: UseInput, signal: AbortSignal) => Promise<UseAnswer | Error>;
+  /** Say what came of a planned use (`organisations.chatCommands.uses.settle`). */
   settle: (input: SettleInput, signal: AbortSignal) => Promise<SettleAnswer | Error>;
 }
 
-/** The studio API's chat command calls, on its client. */
+/** The studio API's chat use calls, on its client. */
 export function studioOf(client: Client): ChatStudio {
-  const { trigger, settle } = client.organisations.chatCommands;
+  const { create, settle } = client.organisations.chatCommands.uses;
   return {
-    trigger: (input, signal) => trigger.v1(input, { signal }),
+    create: (input, signal) => create.v1(input, { signal }),
     settle: (input, signal) => settle.v1(input, { signal })
   };
+}
+
+/** A command, as its uses are kept and told: by its key, and by the word the studio API is told it was used by. */
+export interface UsedCommand {
+  key: string;
+  /** Its name, as the studio API is told it: a standard command's own name, whichever of its words was used. */
+  name: string;
+}
+
+/** What a standard command's key starts with: an own command's is its ID, which never does. */
+const STANDARD_KEY = 'standard:';
+
+/** The key a use of a standard command is kept by: by camera, from its first word, for one that acts on a camera. */
+export function keyOf(command: ListenedStandardCommand, words: readonly string[]): string {
+  if (command.target === 'show') return `${STANDARD_KEY}${command.name}`;
+  const [camera = ''] = words;
+  const cameraName = chatName(camera);
+  return `${STANDARD_KEY}${command.name}:${cameraName}`;
+}
+
+/** The command a key is kept by, while the spec has it. */
+function commandOf(spec: ChatSpec, key: string): UsedCommand | undefined {
+  if (!key.startsWith(STANDARD_KEY)) {
+    const own = spec.commands.find(candidate => candidate.id === key);
+    return own === undefined ? undefined : { key, name: own.name };
+  }
+  const [name] = key.slice(STANDARD_KEY.length).split(':');
+  const standard = spec.standard.find(candidate => candidate.name === name);
+  return standard === undefined ? undefined : { key, name: standard.name };
 }
 
 /** A use of a command, as heard: enough to tell the studio API of it. */
@@ -138,8 +190,8 @@ export interface Tell {
   /** Its number, by which its answer is told from a stale one. */
   seq: number;
   organisationId: string;
-  commandId: string;
-  /** The command's word, to log by. */
+  key: string;
+  /** The command's name: told to the studio API, and logged by. */
   name: string;
   /** Epoch milliseconds: when it was told. */
   sentAt: number;
@@ -208,7 +260,7 @@ interface Disposed {
 /** Whether chat is listened to for the spec's commands. */
 export type Life = Stopped | Listening | Disposed;
 
-/** What each command with something in hand is doing, by its ID. */
+/** What each command with something in hand is doing, by its key. */
 export type Commands = Record<string, CommandUse>;
 
 export interface UsesContext {
@@ -219,7 +271,7 @@ export interface UsesContext {
   triggered: number;
   /** ISO 8601: when a use was last told. */
   lastTriggeredAt: string | null;
-  /** Each command with something in hand, by its ID: one that isn't here is ready. */
+  /** Each command with something in hand, by its key: one that isn't here is ready. */
   commands: Commands;
 }
 
@@ -237,7 +289,7 @@ interface HeardEvent extends AtEvent {
 }
 
 interface CommandEvent extends AtEvent {
-  commandId: string;
+  key: string;
 }
 
 interface TellEvent extends CommandEvent {
@@ -246,7 +298,7 @@ interface TellEvent extends CommandEvent {
 }
 
 interface AnsweredEvent extends TellEvent {
-  answer: TriggerAnswer;
+  answer: UseAnswer;
 }
 
 interface FailedEvent extends TellEvent {
@@ -315,10 +367,10 @@ export function inFlight(use: CommandUse | undefined): use is Telling | Carrying
 }
 
 /** The context with what the command is doing replaced: forgotten, when it is undefined. */
-function withCommand(context: UsesContext, commandId: string, use: CommandUse | undefined): UsesContext {
+function withCommand(context: UsesContext, key: string, use: CommandUse | undefined): UsesContext {
   const commands = { ...context.commands };
-  if (use === undefined) delete commands[commandId];
-  else commands[commandId] = use;
+  if (use === undefined) delete commands[key];
+  else commands[key] = use;
   return { ...context, commands };
 }
 
@@ -328,11 +380,11 @@ function quietOf(quietUntil: number, at: number): Ready | undefined {
 }
 
 /** The command and channel a use names, while they are both in the spec being listened for. */
-function listenedFor(context: UsesContext, commandId: string, channelId: string) {
+function listenedFor(context: UsesContext, key: string, channelId: string) {
   const { life } = context;
   if (life.status !== 'listening') return undefined;
   const { spec } = life;
-  const command = spec.commands.find(candidate => candidate.id === commandId);
+  const command = commandOf(spec, key);
   const channel = spec.channels.find(candidate => candidate.channelId === channelId);
   if (command === undefined || channel === undefined) return undefined;
   return { spec, command };
@@ -344,13 +396,26 @@ export function useOf(spec: ChatSpec, message: ChatMessage, at: number) {
   if (!message.text.startsWith('!')) return undefined;
   const [word = '', ...rest] = message.text.slice(1).trim().split(/\s+/u);
   const name = word.toLowerCase();
-  const command = spec.commands.find(candidate => candidate.name === name);
-  const channel = spec.channels.find(candidate => candidate.login.toLowerCase() === message.channel);
-  if (command === undefined || channel === undefined) return undefined;
-  if (!inAudience(command.audience, message.user.roles)) return undefined;
   const words = rest.slice(0, MAX_WORDS).map(text => text.slice(0, MAX_WORD_LENGTH));
+  const listened = listenedOf(spec, name, words);
+  const channel = spec.channels.find(candidate => candidate.login.toLowerCase() === message.channel);
+  if (listened === undefined || channel === undefined) return undefined;
+  if (!inAudience(listened.audience, message.user.roles)) return undefined;
+  const command: UsedCommand = { key: listened.key, name: listened.name };
   const use: Use = { messageId: message.id, channelId: channel.channelId, user: message.user, words, at };
   return { command, use };
+}
+
+/**
+ * The spec's command a word is, with who may use it: an own command by its name, a standard one by any of its words.
+ */
+function listenedOf(spec: ChatSpec, word: string, words: readonly string[]) {
+  const own = spec.commands.find(candidate => candidate.name === word);
+  if (own !== undefined) return { key: own.id, name: own.name, audience: own.audience };
+  const standard = spec.standard.find(candidate => candidate.words.includes(word));
+  if (standard === undefined) return undefined;
+  const key = keyOf(standard, words);
+  return { key, name: standard.name, audience: standard.audience };
 }
 
 /** Epoch milliseconds, from the studio API's ISO 8601: null for null, or for what isn't a time. */
@@ -360,12 +425,15 @@ function epochOf(iso: string | null): number | null {
   return Number.isNaN(ms) ? null : ms;
 }
 
-/** What each command is to be woken for, and when (epoch milliseconds), as its state says: by `gap:` or `rest:` and its ID. */
+/**
+ * What each command is to be woken for, and when (epoch milliseconds), as its state says: by `gap:` or `rest:` and its
+ * key.
+ */
 export function alarmsOf(context: UsesContext): Map<string, number> {
   const alarms = new Map<string, number>();
-  for (const [commandId, use] of Object.entries(context.commands)) {
-    if (use.status === 'spaced') alarms.set(`gap:${commandId}`, use.until);
-    if (use.status === 'resting') alarms.set(`rest:${commandId}`, use.until);
+  for (const [key, use] of Object.entries(context.commands)) {
+    if (use.status === 'spaced') alarms.set(`gap:${key}`, use.until);
+    if (use.status === 'resting') alarms.set(`rest:${key}`, use.until);
   }
   return alarms;
 }
@@ -375,10 +443,10 @@ export function alarmsOf(context: UsesContext): Map<string, number> {
  * command the spec no longer has, in case it comes back; only a use waiting on a command or channel the spec no
  * longer has is dropped, and a ready command whose quiet is over isn't kept at all.
  */
-function keptOnApply(commandId: string, use: CommandUse, spec: ChatSpec, at: number): CommandUse | undefined {
+function keptOnApply(key: string, use: CommandUse, spec: ChatSpec, at: number): CommandUse | undefined {
   const heardHere = (heard: Use | null) =>
     heard !== null &&
-    spec.commands.some(command => command.id === commandId) &&
+    commandOf(spec, key) !== undefined &&
     spec.channels.some(channel => channel.channelId === heard.channelId);
   if (inFlight(use)) return { ...use, waiting: heardHere(use.waiting) ? use.waiting : null };
   if (use.status === 'spaced') return heardHere(use.use) ? use : quietOf(use.until, at);
@@ -397,11 +465,11 @@ function keptOnStop(use: CommandUse, at: number): CommandUse | undefined {
 }
 
 /** Each command's use, as `kept` keeps it: those it keeps nothing of are forgotten. */
-function keeping(commands: Commands, kept: (commandId: string, use: CommandUse) => CommandUse | undefined) {
+function keeping(commands: Commands, kept: (key: string, use: CommandUse) => CommandUse | undefined) {
   const next: Commands = {};
-  for (const [commandId, use] of Object.entries(commands)) {
-    const keptUse = kept(commandId, use);
-    if (keptUse !== undefined) next[commandId] = keptUse;
+  for (const [key, use] of Object.entries(commands)) {
+    const keptUse = kept(key, use);
+    if (keptUse !== undefined) next[key] = keptUse;
   }
   return next;
 }
@@ -409,9 +477,9 @@ function keeping(commands: Commands, kept: (commandId: string, use: CommandUse) 
 /** The event an alarm of `alarmsOf` wakes the store with. */
 export function ringOf(name: string, at: number) {
   const colon = name.indexOf(':');
-  const commandId = name.slice(colon + 1);
+  const key = name.slice(colon + 1);
   const type = name.slice(0, colon) === 'gap' ? 'gapEnded' : 'restEnded';
-  return { type, commandId, at } as const;
+  return { type, key, at } as const;
 }
 
 /** Carry the commands in order until one isn't: what came of them. */
@@ -428,46 +496,46 @@ export function usesStore(io: UsesIO): UsesStore {
   const { time, studio, courier, ends } = io;
 
   /** Tell the studio API of the use, as the next tell by number: `answered` or `unanswered` says how it went. */
-  function tell(context: UsesContext, spec: ChatSpec, command: ListenedCommand, use: Use, at: number, enq: Enqueue) {
+  function tell(context: UsesContext, spec: ChatSpec, command: UsedCommand, use: Use, at: number, enq: Enqueue) {
     const seq = context.seq + 1;
     const { organisationId } = spec;
-    const commandId = command.id;
-    const told: Tell = { seq, organisationId, commandId, name: command.name, sentAt: at };
-    const input: TriggerInput = {
+    const { key, name } = command;
+    const told: Tell = { seq, organisationId, key, name, sentAt: at };
+    const input: UseInput = {
       id: organisationId,
-      commandId,
+      command: name,
       channelId: use.channelId,
       messageId: use.messageId,
       user: use.user,
       words: use.words
     };
     enq.effect(({ trigger }) => {
-      const asked = within(time, TELL_TIMEOUT_MS, ends, signal => studio.trigger(input, signal));
+      const asked = within(time, TELL_TIMEOUT_MS, ends, signal => studio.create(input, signal));
       void asked.then(
         answer => {
-          if (answer instanceof Error) trigger.unanswered({ commandId, seq, error: answer, at: time.now() });
-          else trigger.answered({ commandId, seq, answer, at: time.now() });
+          if (answer instanceof Error) trigger.unanswered({ key, seq, error: answer, at: time.now() });
+          else trigger.answered({ key, seq, answer, at: time.now() });
         },
-        error => trigger.unanswered({ commandId, seq, error, at: time.now() })
+        error => trigger.unanswered({ key, seq, error, at: time.now() })
       );
     });
     const lastTriggeredAt = new Date(at).toISOString();
     const next = { ...context, seq, triggered: context.triggered + 1, lastTriggeredAt };
-    return withCommand(next, commandId, { status: 'telling', tell: told, waiting: null });
+    return withCommand(next, key, { status: 'telling', tell: told, waiting: null });
   }
 
   /** A use of a command with nothing in flight: told now, or once the quiet after its last tell ends. */
   function admit(
     context: UsesContext,
     spec: ChatSpec,
-    command: ListenedCommand,
+    command: UsedCommand,
     use: Use,
     quietUntil: number,
     at: number,
     enq: Enqueue
   ) {
     if (at >= quietUntil) return tell(context, spec, command, use, at, enq);
-    return withCommand(context, command.id, { status: 'spaced', until: quietUntil, use });
+    return withCommand(context, command.key, { status: 'spaced', until: quietUntil, use });
   }
 
   /**
@@ -476,16 +544,16 @@ export function usesStore(io: UsesIO): UsesStore {
    */
   function through(context: UsesContext, flight: InFlight, restsUntil: number | null, at: number, enq: Enqueue) {
     const { tell: told, waiting } = flight;
-    const { commandId } = told;
+    const { key } = told;
     const quietUntil = told.sentAt + MIN_GAP_MS;
     const { life } = context;
-    if (life.status === 'disposed') return withCommand(context, commandId, undefined);
-    if (life.status === 'stopped') return withCommand(context, commandId, quietOf(quietUntil, at));
+    if (life.status === 'disposed') return withCommand(context, key, undefined);
+    if (life.status === 'stopped') return withCommand(context, key, quietOf(quietUntil, at));
     if (restsUntil !== null && restsUntil > at) {
-      return withCommand(context, commandId, { status: 'resting', until: restsUntil, quietUntil });
+      return withCommand(context, key, { status: 'resting', until: restsUntil, quietUntil });
     }
-    const found = waiting === null ? undefined : listenedFor(context, commandId, waiting.channelId);
-    if (waiting === null || found === undefined) return withCommand(context, commandId, quietOf(quietUntil, at));
+    const found = waiting === null ? undefined : listenedFor(context, key, waiting.channelId);
+    if (waiting === null || found === undefined) return withCommand(context, key, quietOf(quietUntil, at));
     return admit(context, found.spec, found.command, waiting, quietUntil, at, enq);
   }
 
@@ -496,22 +564,22 @@ export function usesStore(io: UsesIO): UsesStore {
   function heardOf(
     context: UsesContext,
     spec: ChatSpec,
-    command: ListenedCommand,
+    command: UsedCommand,
     use: Use,
     at: number,
     enq: Enqueue
   ): UsesContext {
-    const current = context.commands[command.id];
+    const current = context.commands[command.key];
     if (current === undefined) return admit(context, spec, command, use, 0, at, enq);
     switch (current.status) {
       case 'ready':
         return admit(context, spec, command, use, current.quietUntil, at, enq);
       case 'spaced':
-        return withCommand(context, command.id, { ...current, use });
+        return withCommand(context, command.key, { ...current, use });
       case 'telling':
       case 'carrying':
       case 'settling':
-        return withCommand(context, command.id, { ...current, waiting: use });
+        return withCommand(context, command.key, { ...current, waiting: use });
       case 'resting':
         // Resting, as the studio API said: dropped, unless the rest is over and its alarm not yet come.
         if (current.until > at) return context;
@@ -525,13 +593,13 @@ export function usesStore(io: UsesIO): UsesStore {
       applied: (context, event) => {
         if (context.life.status === 'disposed') return context;
         const { spec, at } = event;
-        const commands = keeping(context.commands, (commandId, use) => keptOnApply(commandId, use, spec, at));
+        const commands = keeping(context.commands, (key, use) => keptOnApply(key, use, spec, at));
         return { ...context, life: { status: 'listening', spec }, commands };
       },
       stopped: (context, event) => {
         if (context.life.status !== 'listening') return context;
         const { at } = event;
-        const commands = keeping(context.commands, (_commandId, use) => keptOnStop(use, at));
+        const commands = keeping(context.commands, (_key, use) => keptOnStop(use, at));
         return { ...context, life: STOPPED, commands };
       },
       disposed: context => ({ ...context, life: DISPOSED, commands: {} }),
@@ -548,24 +616,24 @@ export function usesStore(io: UsesIO): UsesStore {
       gapEnded: (context, event, enq) => {
         // The use that waited out the quiet is told, if its command and channel are still listened for; a stale
         // alarm, rung before its time or after the use moved on, changes nothing.
-        const { commandId, at } = event;
-        const current = context.commands[commandId];
+        const { key, at } = event;
+        const current = context.commands[key];
         if (current?.status !== 'spaced' || current.until > at) return context;
-        const found = listenedFor(context, commandId, current.use.channelId);
-        if (found === undefined) return withCommand(context, commandId, undefined);
+        const found = listenedFor(context, key, current.use.channelId);
+        if (found === undefined) return withCommand(context, key, undefined);
         return tell(context, found.spec, found.command, current.use, at, enq);
       },
       restEnded: (context, event) => {
-        const { commandId, at } = event;
-        const current = context.commands[commandId];
+        const { key, at } = event;
+        const current = context.commands[key];
         if (current?.status !== 'resting' || current.until > at) return context;
-        return withCommand(context, commandId, quietOf(current.quietUntil, at));
+        return withCommand(context, key, quietOf(current.quietUntil, at));
       },
       answered: (context, event, enq) => {
         // Only the answer to the tell in flight counts. One that didn't plan anything is through, resting as it says;
         // a planned one is carried.
-        const { commandId, seq, answer, at } = event;
-        const current = context.commands[commandId];
+        const { key, seq, answer, at } = event;
+        const current = context.commands[key];
         if (current?.status !== 'telling' || current.tell.seq !== seq) return context;
         const { tell: told } = current;
         const restsUntil = epochOf(answer.restsUntil);
@@ -579,16 +647,16 @@ export function usesStore(io: UsesIO): UsesStore {
         enq.effect(({ trigger }) => {
           const carrying = within(time, CARRY_TIMEOUT_MS, ends, signal => carryAll(courier, cameraCommands, signal));
           void carrying.then(
-            result => trigger.carried({ commandId, seq, result, at: time.now() }),
-            () => trigger.carried({ commandId, seq, result: 'failed', at: time.now() })
+            result => trigger.carried({ key, seq, result, at: time.now() }),
+            () => trigger.carried({ key, seq, result: 'failed', at: time.now() })
           );
         });
         const carryingUse: Carrying = { ...current, status: 'carrying', receipt, restsUntil };
-        return withCommand(context, commandId, carryingUse);
+        return withCommand(context, key, carryingUse);
       },
       unanswered: (context, event, enq) => {
-        const { commandId, seq, error, at } = event;
-        const current = context.commands[commandId];
+        const { key, seq, error, at } = event;
+        const current = context.commands[key];
         if (current?.status !== 'telling' || current.tell.seq !== seq) return context;
         const { name } = current.tell;
         enq.effect(() => logger.error('Telling the studio !{name} was used failed: {error}', { name, error }));
@@ -596,37 +664,37 @@ export function usesStore(io: UsesIO): UsesStore {
         return through(context, current, null, at, enq);
       },
       carried: (context, event, enq) => {
-        const { commandId, seq, result } = event;
-        const current = context.commands[commandId];
+        const { key, seq, result } = event;
+        const current = context.commands[key];
         if (current?.status !== 'carrying' || current.tell.seq !== seq) return context;
         // What the carrying came to is told to the studio API, which says so in chat and gives the turn back if the
         // camera didn't move: the command settles until it answers, or has had `SETTLE_TIMEOUT_MS` to.
         const { tell: told, receipt } = current;
         const { name, organisationId } = told;
         if (result !== 'carried') enq.effect(() => logger.warn('!{name} came to {result}', { name, result }));
-        const input: SettleInput = { id: organisationId, commandId, receipt, result };
+        const input: SettleInput = { id: organisationId, receipt, result };
         enq.effect(({ trigger }) => {
           const settling = within(time, SETTLE_TIMEOUT_MS, ends, signal => studio.settle(input, signal));
           void settling.then(
             answer => {
-              if (answer instanceof Error) trigger.unsettled({ commandId, seq, error: answer, at: time.now() });
-              else trigger.settled({ commandId, seq, answer, at: time.now() });
+              if (answer instanceof Error) trigger.unsettled({ key, seq, error: answer, at: time.now() });
+              else trigger.settled({ key, seq, answer, at: time.now() });
             },
-            error => trigger.unsettled({ commandId, seq, error, at: time.now() })
+            error => trigger.unsettled({ key, seq, error, at: time.now() })
           );
         });
-        return withCommand(context, commandId, { ...current, status: 'settling', result });
+        return withCommand(context, key, { ...current, status: 'settling', result });
       },
       settled: (context, event, enq) => {
-        const { commandId, seq, answer, at } = event;
-        const current = context.commands[commandId];
+        const { key, seq, answer, at } = event;
+        const current = context.commands[key];
         if (current?.status !== 'settling' || current.tell.seq !== seq) return context;
         const restsUntil = epochOf(answer.restsUntil);
         return through(context, current, restsUntil, at, enq);
       },
       unsettled: (context, event, enq) => {
-        const { commandId, seq, error, at } = event;
-        const current = context.commands[commandId];
+        const { key, seq, error, at } = event;
+        const current = context.commands[key];
         if (current?.status !== 'settling' || current.tell.seq !== seq) return context;
         const { name } = current.tell;
         enq.effect(() => logger.error('Settling a use of !{name} failed: {error}', { name, error }));

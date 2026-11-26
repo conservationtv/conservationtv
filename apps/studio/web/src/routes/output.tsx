@@ -72,10 +72,12 @@ import {
 } from '@/components/outputs/output-dialogs';
 import { OutputLive } from '@/components/outputs/output-live';
 import {
+  AddControlChannelMenu,
   AddForwardMenu,
   AddPreviewMenu,
   ForwardSwitch,
   RecorderSwitch,
+  RemoveControlChannelDialog,
   RemoveForwardDialog,
   RemovePreviewDialog
 } from '@/components/outputs/output-parts';
@@ -108,8 +110,9 @@ export const meta: Route.MetaFunction = () => [{ title: 'Output · conservation.
 
 /**
  * One output, laid out as a stream's page is: what drives its scenes, how it goes out (its agent, its programme, the
- * channels it is forwarded to and the gateways it is previewed at), how to read its previews, its recording, and its
- * traffic, with the show it follows a button away. Everyone reads it; administrators change it.
+ * channels it is forwarded to, the channels whose chat controls it and the gateways it is previewed at), how to read
+ * its previews, its recording, and its traffic, with the show it follows a button away. Everyone reads it;
+ * administrators change it.
  */
 const OutputRoute: FC<Route.ComponentProps> = ({ params }) => {
   return (
@@ -315,6 +318,7 @@ const ConfigurationPanel: FC<OutputTabsProps> = ({ detail, choices }) => {
       </Section>
       {administrator && output.control === 'external' && <ControlSection detail={detail} />}
       <ChannelsSection detail={detail} channels={choices.channels} />
+      <ChatControlSection detail={detail} channels={choices.channels} />
       <PreviewsSection detail={detail} gateways={choices.gateways} />
       {administrator && (
         <Section className="border-t border-border pt-8">
@@ -455,6 +459,87 @@ const ChannelsSection: FC<ChannelsSectionProps> = ({ detail, channels }) => {
             <EmptyTitle>Not sent to any channel</EmptyTitle>
             <EmptyDescription>
               Add one of the organisation’s channels for the programme to go out to it.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
+    </Section>
+  );
+};
+
+/**
+ * The Twitch channels whose chat controls the output's broadcast: those added for it, and those it is forwarded to,
+ * which control it without being added. For administrators, adding another and removing one added.
+ */
+const ChatControlSection: FC<ChannelsSectionProps> = ({ detail, channels }) => {
+  const administrator = useIsAdministrator();
+  const { output } = detail;
+  const forwarded = detail.forwards.filter(part => {
+    // The Twitch channels it is sent to control it already, if they have a login to be listened to by: those not also
+    // added are listed after the added ones.
+    const added = output.controlChannels.some(control => control.channelId === part.forward.channelId);
+    return part.forward.enabled && part.channel?.kind === 'twitch' && part.channel.externalLogin !== null && !added;
+  });
+  return (
+    <Section>
+      <SectionHeader>
+        <SectionHeading>
+          <SectionTitle>Chat control</SectionTitle>
+          <SectionDescription>
+            Twitch channels whose chat can use{' '}
+            <Link to="../../chat-commands" relative="path" className="underline underline-offset-2">
+              chat commands
+            </Link>{' '}
+            on this output. The Twitch channels it is sent to control it too; add another to take commands from a
+            channel it doesn’t stream to.
+          </SectionDescription>
+        </SectionHeading>
+        {administrator && <AddControlChannelMenu output={output} channels={channels} />}
+      </SectionHeader>
+      {output.controlChannels.length > 0 || forwarded.length > 0 ? (
+        <ItemGroup className="gap-2">
+          {output.controlChannels.map(control => {
+            const channel = channels.find(candidate => candidate.id === control.channelId);
+            const name = channel?.name ?? 'Removed channel';
+            return (
+              <Item key={control.channelId} variant="outline">
+                <ItemMedia variant="icon">
+                  <TwitchLogoIcon />
+                </ItemMedia>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="flex-wrap">{name}</ItemTitle>
+                  <ItemDescription>
+                    {channelDescriptionOf(channel)} · added {formatDate(control.createdAt)}
+                  </ItemDescription>
+                </ItemContent>
+                {administrator && (
+                  <ItemActions>
+                    <RemoveControlChannelDialog outputId={output.id} channelId={control.channelId} name={name} />
+                  </ItemActions>
+                )}
+              </Item>
+            );
+          })}
+          {forwarded.map(part => (
+            <Item key={part.forward.id} variant="outline">
+              <ItemMedia variant="icon">
+                <TwitchLogoIcon />
+              </ItemMedia>
+              <ItemContent className="min-w-0">
+                <ItemTitle className="flex-wrap">{part.name}</ItemTitle>
+                <ItemDescription>
+                  {channelDescriptionOf(part.channel)} · controls it while the output is sent there
+                </ItemDescription>
+              </ItemContent>
+            </Item>
+          ))}
+        </ItemGroup>
+      ) : (
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyTitle>No chat controls it</EmptyTitle>
+            <EmptyDescription>
+              Send it to a Twitch channel, or add one here, for that channel’s chat to control it.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

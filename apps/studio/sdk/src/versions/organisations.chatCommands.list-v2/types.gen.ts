@@ -16,14 +16,6 @@ export type ChatCommand = {
         action: {
             kind: 'reply';
             text: string;
-        } | {
-            kind: 'cameraPreset';
-            cameraId: string | null;
-            preset: string | null;
-        } | {
-            kind: 'showSwap';
-        } | {
-            kind: 'showTakeover';
         };
         audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
         cooldownSeconds: number;

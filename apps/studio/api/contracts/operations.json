@@ -338,6 +338,12 @@
     "organisations.outputs.forwards.delete": [
       1
     ],
+    "organisations.outputs.controlChannels.create": [
+      1
+    ],
+    "organisations.outputs.controlChannels.delete": [
+      1
+    ],
     "organisations.outputs.previews.create": [
       1
     ],
@@ -386,7 +392,6 @@
       2
     ],
     "organisations.chatCommands.create": [
-      1,
       2
     ],
     "organisations.chatCommands.get": [
@@ -394,7 +399,6 @@
       2
     ],
     "organisations.chatCommands.update": [
-      1,
       2
     ],
     "organisations.chatCommands.delete": [
@@ -404,6 +408,21 @@
       1
     ],
     "organisations.chatCommands.settle": [
+      1
+    ],
+    "organisations.chatCommands.standard.list": [
+      1
+    ],
+    "organisations.chatCommands.standard.update": [
+      1
+    ],
+    "organisations.chatCommands.standard.reset": [
+      1
+    ],
+    "organisations.chatCommands.uses.create": [
+      1
+    ],
+    "organisations.chatCommands.uses.settle": [
       1
     ],
     "invitations.listMine": [

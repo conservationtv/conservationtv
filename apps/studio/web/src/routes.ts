@@ -36,7 +36,8 @@ export default [
         route('outputs/:outputId', './routes/output.tsx'),
         // Where outputs go out to: Twitch channels and RTMP destinations.
         route('channels', './routes/channels.tsx', [route('rtmp/new', './routes/channel-rtmp-new.tsx')]),
-        // What viewers can ask for in those channels' chat: a reply, or a camera pointed at one of its presets.
+        // What viewers can ask for in those channels' chat: the standard camera, layout and audio commands, and
+        // replies.
         route('chat-commands', './routes/chat-commands.tsx', [route('new', './routes/chat-command-new.tsx')]),
         // What the streams run on: the sites, and the agents, cameras and gateways on them.
         // Adding one is a dialog routed over its list, at `new`, so it can be linked to.

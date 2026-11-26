@@ -772,6 +772,23 @@ function forwardsOf(build: Build, rng: Rng, created: Date, channels: ChannelRow[
   return byId(forwards);
 }
 
+/** Twitch channels whose chat controls the output though it doesn't go out to them: now and then, one. */
+function controlChannelsOf(
+  rng: Rng,
+  created: Date,
+  channels: ChannelRow[],
+  forwards: OutputRow['forwards']
+): OutputRow['controlChannels'] {
+  const draw = rng.child('control-channels');
+  const forwarded = new Set(forwards.map(forward => forward.channelId));
+  const candidates = channels.filter(
+    channel => channel.kind === 'twitch' && channel.externalLogin !== null && !forwarded.has(channel.id)
+  );
+  if (candidates.length === 0 || !draw.chance(0.4)) return [];
+  const channel = draw.pick(candidates);
+  return [{ channelId: channel.id, createdAt: after(draw.child('at'), created).toISOString() }];
+}
+
 /** What an output is attached to: the show it follows (none when driven from outside) and the agent running it. */
 interface OutputPlacement {
   show: ShowRow | undefined;
@@ -853,6 +870,7 @@ function outputsOf(build: Build, shows: ShowRow[], channels: ChannelRow[]) {
     const forwards = forwardsOf(build, rng, created, channels);
     const previews = previewsOf(rng, created);
     const recorders = outputRecordersOf(rng, created);
+    const controlChannels = controlChannelsOf(rng, created, channels, forwards);
     const output: OutputRow = {
       name: build.names.output(show?.name ?? null, o),
       id,
@@ -868,6 +886,7 @@ function outputsOf(build: Build, shows: ShowRow[], channels: ChannelRow[]) {
       device: deviceId ? { createdAt: after(rng.child('device-at'), created).toISOString(), deviceId } : null,
       recorders,
       forwards,
+      controlChannels,
       previews
     };
     outputs.push(output);
@@ -878,32 +897,19 @@ function outputsOf(build: Build, shows: ShowRow[], channels: ChannelRow[]) {
 }
 
 /**
- * Chat commands: replies, or a camera with presets pointed at one of them; or, by the spec's share where there are
- * shows, one operating the show its output follows (swapping two of its cameras, or taking over).
+ * Chat commands of the organisation's own: each replies. The cameras, the layout and the mix are the standard
+ * commands'.
  */
-function chatCommandsOf(build: Build, shows: ShowRow[]): ChatCommandRow[] {
+function chatCommandsOf(build: Build): ChatCommandRow[] {
   const chatCommands: ChatCommandRow[] = [];
-  const presetCameras = build.cameras.filter(camera => camera.presets.length > 0);
-  const showCommands = { showSwap: 0, showTakeover: 0 };
   for (let c = 0; c < build.spec.chatCommands; c++) {
-    // A camera preset command when there's a camera with presets to point, more often than not; else a reply. A show's
-    // is decided apart, after them, so the other draws stay as they were.
     const rng = build.root.child('chat-command', c);
     const created = after(rng, build.orgCreated);
-    const camera = presetCameras.length && rng.chance(0.6) ? rng.pick(presetCameras) : undefined;
     const id = rng.uuid(created);
-    const preset = camera ? rng.pick(camera.presets).name : null;
-    const showAction = rng.child('show-action');
-    const operatesShow = shows.length > 0 && showAction.chance(build.spec.operating.showChatCommands);
-    const kind = showAction.pick(['showSwap', 'showTakeover'] as const);
     chatCommands.push({
       id,
-      name: operatesShow ? build.names.showCommand(kind, showCommands[kind]++) : build.names.command(c),
-      action: operatesShow
-        ? { kind }
-        : camera
-          ? { kind: 'cameraPreset', cameraId: camera.id, preset }
-          : { kind: 'reply', text: 'Welcome to the sanctuary! Type !cam to look around.' },
+      name: build.names.command(c),
+      action: { kind: 'reply', text: 'Welcome to the sanctuary! Type !scenecams to see who is on screen.' },
       audience: rng.pick(['everyone', 'everyone', 'subscriber', 'moderator', 'vip', 'broadcaster']),
       cooldownSeconds: rng.pick([0, 30, 60, 300]),
       enabled: rng.chance(0.85),
@@ -1007,7 +1013,7 @@ export function generateWorld(spec: WorldSpec): World {
   for (const [s, show] of shows.entries()) operateShow(build, s, show, sources, pushed, live);
   const channels = channelsOf(build);
   const { outputs, outputControls } = outputsOf(build, shows, channels);
-  const chatCommands = chatCommandsOf(build, shows);
+  const chatCommands = chatCommandsOf(build);
   addBrowsers(build, members);
 
   const world: World = {

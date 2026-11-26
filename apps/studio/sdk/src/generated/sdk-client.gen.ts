@@ -51,9 +51,14 @@ import type { ChatCommandGetV2Input, ChatCommandGetV2Output } from '../versions/
 import type { ChatCommandListV1Input, ChatCommandListV1Output } from '../versions/organisations.chatCommands.list-v1/flat-params.gen.js';
 import type { ChatCommandListV2Input, ChatCommandListV2Output } from '../versions/organisations.chatCommands.list-v2/flat-params.gen.js';
 import type { ChatCommandSettleV1Input, ChatCommandSettleV1Output } from '../versions/organisations.chatCommands.settle-v1/flat-params.gen.js';
+import type { StandardListV1Input, StandardListV1Output } from '../versions/organisations.chatCommands.standard.list-v1/flat-params.gen.js';
+import type { StandardResetV1Input, StandardResetV1Output } from '../versions/organisations.chatCommands.standard.reset-v1/flat-params.gen.js';
+import type { StandardUpdateV1Input, StandardUpdateV1Output } from '../versions/organisations.chatCommands.standard.update-v1/flat-params.gen.js';
 import type { ChatCommandTriggerV1Input, ChatCommandTriggerV1Output } from '../versions/organisations.chatCommands.trigger-v1/flat-params.gen.js';
 import type { ChatCommandUpdateV1Input, ChatCommandUpdateV1Output } from '../versions/organisations.chatCommands.update-v1/flat-params.gen.js';
 import type { ChatCommandUpdateV2Input, ChatCommandUpdateV2Output } from '../versions/organisations.chatCommands.update-v2/flat-params.gen.js';
+import type { UseCreateV1Input, UseCreateV1Output } from '../versions/organisations.chatCommands.uses.create-v1/flat-params.gen.js';
+import type { UseSettleV1Input, UseSettleV1Output } from '../versions/organisations.chatCommands.uses.settle-v1/flat-params.gen.js';
 import type { OrganisationCreateV1Input, OrganisationCreateV1Output } from '../versions/organisations.create-v1/flat-params.gen.js';
 import type { OrganisationDeleteV1Input, OrganisationDeleteV1Output } from '../versions/organisations.delete-v1/flat-params.gen.js';
 import type { DeviceAllowlistV1Input, DeviceAllowlistV1Output } from '../versions/organisations.devices.allowlist-v1/flat-params.gen.js';
@@ -90,6 +95,8 @@ import type { NetworkSetActiveAgentV1Input, NetworkSetActiveAgentV1Output } from
 import type { NetworkUpdateV1Input, NetworkUpdateV1Output } from '../versions/organisations.networks.update-v1/flat-params.gen.js';
 import type { ControlGetV1Input, ControlGetV1Output } from '../versions/organisations.outputs.control.get-v1/flat-params.gen.js';
 import type { ControlReportV1Input, ControlReportV1Output } from '../versions/organisations.outputs.control.report-v1/flat-params.gen.js';
+import type { ControlChannelCreateV1Input, ControlChannelCreateV1Output } from '../versions/organisations.outputs.controlChannels.create-v1/flat-params.gen.js';
+import type { ControlChannelDeleteV1Input, ControlChannelDeleteV1Output } from '../versions/organisations.outputs.controlChannels.delete-v1/flat-params.gen.js';
 import type { OutputCreateV1Input, OutputCreateV1Output } from '../versions/organisations.outputs.create-v1/flat-params.gen.js';
 import type { OutputCreateV2Input, OutputCreateV2Output } from '../versions/organisations.outputs.create-v2/flat-params.gen.js';
 import type { OutputCreateRecorderV1Input, OutputCreateRecorderV1Output } from '../versions/organisations.outputs.createRecorder-v1/flat-params.gen.js';
@@ -1208,6 +1215,26 @@ export class Client extends ClientCore {
                         ]
                     }) })
             },
+            controlChannels: {
+                create: this.versioned('organisations.outputs.controlChannels.create', { v1: operation<ControlChannelCreateV1Output, ControlChannelCreateV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/outputs/{outputId}/control-channels',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'outputId' },
+                            { in: 'body', key: 'channelId' }
+                        ]
+                    }) }),
+                delete: this.versioned('organisations.outputs.controlChannels.delete', { v1: operation<ControlChannelDeleteV1Output, ControlChannelDeleteV1Input>({
+                        method: 'DELETE',
+                        url: '/organisations/{id}/outputs/{outputId}/control-channels/{channelId}',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'outputId' },
+                            { in: 'path', key: 'channelId' }
+                        ]
+                    }) })
+            },
             previews: {
                 create: this.versioned('organisations.outputs.previews.create', { v1: operation<PreviewCreateV1Output, PreviewCreateV1Input>({
                         method: 'POST',
@@ -1429,7 +1456,53 @@ export class Client extends ClientCore {
                         { in: 'body', key: 'receipt' },
                         { in: 'body', key: 'result' }
                     ]
-                }) })
+                }) }),
+            standard: {
+                list: this.versioned('organisations.chatCommands.standard.list', { v1: operation<StandardListV1Output, StandardListV1Input>({
+                        method: 'GET',
+                        url: '/organisations/{id}/standard-chat-commands',
+                        fields: [{ in: 'path', key: 'id' }]
+                    }) }),
+                update: this.versioned('organisations.chatCommands.standard.update', { v1: operation<StandardUpdateV1Output, StandardUpdateV1Input>({
+                        method: 'PATCH',
+                        url: '/organisations/{id}/standard-chat-commands/{name}',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'path', key: 'name' },
+                            { in: 'body', key: 'enabled' },
+                            { in: 'body', key: 'audience' },
+                            { in: 'body', key: 'cooldownSeconds' }
+                        ]
+                    }) }),
+                reset: this.versioned('organisations.chatCommands.standard.reset', { v1: operation<StandardResetV1Output, StandardResetV1Input>({
+                        method: 'DELETE',
+                        url: '/organisations/{id}/standard-chat-commands/{name}',
+                        fields: [{ in: 'path', key: 'id' }, { in: 'path', key: 'name' }]
+                    }) })
+            },
+            uses: {
+                create: this.versioned('organisations.chatCommands.uses.create', { v1: operation<UseCreateV1Output, UseCreateV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/chat-uses',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'body', key: 'channelId' },
+                            { in: 'body', key: 'messageId' },
+                            { in: 'body', key: 'user' },
+                            { in: 'body', key: 'words' },
+                            { in: 'body', key: 'command' }
+                        ]
+                    }) }),
+                settle: this.versioned('organisations.chatCommands.uses.settle', { v1: operation<UseSettleV1Output, UseSettleV1Input>({
+                        method: 'POST',
+                        url: '/organisations/{id}/chat-uses/settlements',
+                        fields: [
+                            { in: 'path', key: 'id' },
+                            { in: 'body', key: 'receipt' },
+                            { in: 'body', key: 'result' }
+                        ]
+                    }) })
+            }
         }
     };
     readonly account = {

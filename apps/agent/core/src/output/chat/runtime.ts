@@ -5,29 +5,39 @@ import { Alarms, realTime, type Time } from '../../time.ts';
 import { type Connect, TwitchChat } from './twitch.ts';
 import { alarmsOf, type ChatSpec, type ChatStudio, ringOf, studioOf, type UsesStore, usesStore } from './uses.ts';
 
-// The `chat` key: listening to the chat of the channels the output goes out to, for the organisation's commands. The
-// agent only listens. When a command's word is used it tells the studio API (`organisations.chatCommands.trigger`),
-// which decides whether it runs, what it does, and what is said back in chat; the agent then carries out whatever
-// camera commands came of it (cameras/courier.ts), and says what came of them (`organisations.chatCommands.settle`).
+// The `chat` key: listening to the chat of the channels the spec lists (those the output goes out to, and those whose
+// chat controls its broadcast), for the standard commands and the organisation's own. The agent only listens. When a
+// command's word is used it tells the studio API (`organisations.chatCommands.uses.create`), which decides whether it
+// runs, what it does, and what is said back in chat; the agent then carries out whatever camera commands came of it, in
+// order (cameras/courier.ts), and says what came of them (`organisations.chatCommands.uses.settle`).
 // Listening here, not in the studio API, keeps a connection open only where a show is going out, and costs the studio
 // a request only when a command is used.
 //
-// A use that would come to nothing isn't told to the studio API: one by someone outside the command's audience, or of
-// a command resting until the time the studio API last said. And a command is told of at most once at a time, and no
-// more often than every second and a half. That is all the agent decides itself, to keep a busy chat from becoming a
-// busy API; the studio API decides it all again, and its answer is the one that counts.
+// A use that would come to nothing isn't told to the studio API: one by someone outside the command's audience, or of a
+// command resting until the time the studio API last said. And a command is told of at most once at a time, and no more
+// often than every second and a half: a standard command per camera or per show, as it rests (uses.ts). That is all the
+// agent decides itself, to keep a busy chat from becoming a busy API; the studio API decides it all again, and its
+// answer is the one that counts.
 //
 // Two stores hold it all: the connection to Twitch's chat (twitch.ts) and the uses of the commands (uses.ts), where
 // their machines are drawn. This class is the shell around them: it turns each call into their events, passes each
 // message heard on to the uses, keeps the uses' timers to what their state wants, and reads the status off both. It
 // keeps no state of its own.
 
-export { ChatSpecSchema, type ChatChannel, type ChatSpec, type ChatStudio, type ListenedCommand } from './uses.ts';
+export {
+  ChatSpecSchema,
+  type ChatChannel,
+  type ChatSpec,
+  type ChatStudio,
+  type ListenedCommand,
+  type ListenedStandardCommand
+} from './uses.ts';
 
 export interface ChatStatus {
   /** Whether the connection to the channels' chat is open. */
   connected: boolean;
   channels: number;
+  /** How many commands are listened for: the standard ones and the organisation's own. */
   commands: number;
   /** How many uses of a command were told to the studio API since the agent started. */
   triggered: number;
@@ -42,7 +52,7 @@ export interface ChatRuntimeOptions {
   studio?: ChatStudio;
 }
 
-/** The studio API's chat command calls, on the agent's client. */
+/** The studio API's chat use calls, on the agent's client. */
 function agentStudio(): ChatStudio {
   const client = useStudio();
   return studioOf(client);
@@ -113,10 +123,11 @@ export class ChatRuntime {
     const { life, triggered, lastTriggeredAt } = context;
     // Zeroes while there is no spec.
     const spec = life.status === 'listening' ? life.spec : undefined;
+    const commands = spec === undefined ? 0 : spec.commands.length + spec.standard.length;
     return {
       connected: this.twitch.connected,
       channels: spec?.channels.length ?? 0,
-      commands: spec?.commands.length ?? 0,
+      commands,
       triggered,
       lastTriggeredAt
     };

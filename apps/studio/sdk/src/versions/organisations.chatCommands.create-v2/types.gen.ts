@@ -15,14 +15,6 @@ export type ChatCommand = {
     action: {
         kind: 'reply';
         text: string;
-    } | {
-        kind: 'cameraPreset';
-        cameraId: string | null;
-        preset: string | null;
-    } | {
-        kind: 'showSwap';
-    } | {
-        kind: 'showTakeover';
     };
     audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
     cooldownSeconds: number;
@@ -34,23 +26,15 @@ export type ChatCommand = {
 export type PostOrganisationsByIdChatCommandsData = {
     body: {
         /**
-         * The word the command is used by, without its `!`.
+         * The word the command is used by, without its `!`: not one a standard command is used by.
          */
         name: string;
         /**
-         * What the command does, by `kind`: `reply` with `text`; `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first; `showSwap`, swapping two streams in the lineup of the show the output follows, each named by a word that follows it, a position or a name; or `showTakeover`, taking over that show with the stream the word that follows it names, or ending the takeover with `off`. A name is a stream's code or name, or its camera's name or one of its aliases.
+         * What the command does: `reply`, saying `text` in chat.
          */
         action: {
             kind: 'reply';
             text: string;
-        } | {
-            kind: 'cameraPreset';
-            cameraId: string | null;
-            preset: string | null;
-        } | {
-            kind: 'showSwap';
-        } | {
-            kind: 'showTakeover';
         };
         /**
          * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.

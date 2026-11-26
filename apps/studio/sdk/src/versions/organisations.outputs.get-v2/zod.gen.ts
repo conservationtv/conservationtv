@@ -35,6 +35,10 @@ export const OutputSchema = z.object({
         enabled: z.boolean(),
         channelId: z.string()
     })),
+    controlChannels: z.array(z.object({
+        createdAt: z.string(),
+        channelId: z.string()
+    })),
     previews: z.array(z.object({
         id: z.string(),
         createdAt: z.string(),

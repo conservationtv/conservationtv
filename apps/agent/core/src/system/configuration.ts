@@ -111,7 +111,9 @@ function answered<Answer>(answer: Answer | Error): Answer {
 
 /** The configuration as version 3 gives it, as the agent works from it. */
 function fromVersion3(configuration: VersionAnswer<'v3'>): DeviceConfiguration {
-  const { mediamtx, ...rest } = configuration;
+  const { mediamtx, chat, ...others } = configuration;
+  // Version 3 listens for the organisation's own commands only: it has no standard ones.
+  const rest = { ...others, chat: chat === undefined ? undefined : { ...chat, standard: [] } };
   if (mediamtx === undefined) return withCameraUrls(rest);
   const { stats, ...section } = onePathEach(mediamtx);
   return withCameraUrls({ ...rest, mediamtx: section, relays: publishedRelays(stats) });

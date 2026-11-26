@@ -39,6 +39,10 @@ export type Output = {
         enabled: boolean;
         channelId: string;
     }>;
+    controlChannels: Array<{
+        createdAt: string;
+        channelId: string;
+    }>;
     previews: Array<{
         id: string;
         createdAt: string;

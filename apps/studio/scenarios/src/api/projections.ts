@@ -1,3 +1,4 @@
+import { STANDARD_COMMANDS } from '@conservationtv/chat';
 import {
   MetricQueryV1ParamsSchema,
   type AccountGetV1Output,
@@ -5,6 +6,7 @@ import {
   type CameraListV2Output,
   type ChannelListV1Output,
   type ChatCommandListV2Output,
+  type StandardListV1Output,
   type ControlGetV1Output,
   type DeviceListAddressesV1Output,
   type DeviceListV2Output,
@@ -29,6 +31,14 @@ import {
 } from '@conservationtv/studio-sdk/versions';
 import { exposureSubject } from '@conservationtv/reports';
 import type { JSONValue } from 'hono/utils/types';
+
+/** The standard chat commands as an organisation has them when it hasn't changed them. */
+const STANDARD_LISTED: StandardListV1Output['commands'] = STANDARD_COMMANDS.map(command => ({
+  ...command,
+  aliases: [...command.aliases],
+  enabled: true,
+  changedAt: null
+}));
 
 // The API's own status rule, so the status the UI shows is the one the API would work out from these states. It is
 // pure (it reads only the lists it is given), and imported from the API's source because the API doesn't export it;
@@ -71,6 +81,7 @@ export type ProjectedResponse =
   | CameraListV2Output
   | ChannelListV1Output
   | ChatCommandListV2Output
+  | StandardListV1Output
   | ControlGetV1Output
   | DeviceListAddressesV1Output
   | DeviceListV2Output
@@ -321,6 +332,8 @@ export const PROJECTIONS = new Map(
     },
     'organisations.channels.list@1': (call): ChannelListV1Output => ({ channels: scope(call).channels }),
     'organisations.chatCommands.list@2': (call): ChatCommandListV2Output => ({ commands: scope(call).chatCommands }),
+    // Every organisation has the standard commands; these worlds leave them as they come.
+    'organisations.chatCommands.standard.list@1': (): StandardListV1Output => ({ commands: STANDARD_LISTED }),
     'organisations.subjects.states.list@2': (call): StateListV2Output => {
       const kind = call.query.get('kind');
       return { states: scope(call).states.filter(state => !kind || state.subjectId.startsWith(`${kind}:`)) };

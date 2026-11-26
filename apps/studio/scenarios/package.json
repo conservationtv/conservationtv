@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@conservationtv/chat": "workspace:*",
     "@conservationtv/reports": "workspace:*",
     "@conservationtv/studio-sdk": "workspace:*",
     "@hono/node-server": "2.1.4",

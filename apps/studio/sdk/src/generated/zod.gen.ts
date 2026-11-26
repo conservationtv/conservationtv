@@ -980,6 +980,10 @@ export const OutputSchema = z.object({
         enabled: z.boolean(),
         channelId: z.string()
     })),
+    controlChannels: z.array(z.object({
+        createdAt: z.string(),
+        channelId: z.string()
+    })),
     previews: z.array(z.object({
         id: z.string(),
         createdAt: z.string(),
@@ -991,6 +995,11 @@ export const ForwardSchema = z.object({
     id: z.string(),
     channelId: z.string(),
     enabled: z.boolean(),
+    createdAt: z.string()
+});
+
+export const ControlChannelSchema = z.object({
+    channelId: z.string(),
     createdAt: z.string()
 });
 
@@ -1016,23 +1025,10 @@ export const TwitchSchema = z.object({
 export const ChatCommandSchema = z.object({
     id: z.string(),
     name: z.string(),
-    action: z.union([
-        z.object({
-            kind: z.literal('reply'),
-            text: z.string()
-        }),
-        z.object({
-            kind: z.literal('cameraPreset'),
-            cameraId: z.string().nullable(),
-            preset: z.string().nullable()
-        }),
-        z.object({
-            kind: z.literal('showSwap')
-        }),
-        z.object({
-            kind: z.literal('showTakeover')
-        })
-    ]),
+    action: z.object({
+        kind: z.literal('reply'),
+        text: z.string()
+    }),
     audience: z.enum([
         'broadcaster',
         'everyone',
@@ -1044,6 +1040,58 @@ export const ChatCommandSchema = z.object({
     enabled: z.boolean(),
     triggeredAt: z.string().nullable(),
     createdAt: z.string()
+});
+
+export const StandardSchema = z.object({
+    commands: z.array(z.object({
+        name: z.enum([
+            'slots',
+            'ptzhome',
+            'ptzload',
+            'ptzlist',
+            'ptzpan',
+            'ptztilt',
+            'ptzzoom',
+            'ptzset',
+            'ptzseta',
+            'ptzmove',
+            'ptzcenter',
+            'ptzfocusa',
+            'swap',
+            'scenecams',
+            'takeover',
+            'livecams',
+            'mute',
+            'unmute',
+            'setvolume',
+            'getvolume',
+            'resetvolume'
+        ]),
+        aliases: z.array(z.string()),
+        group: z.enum([
+            'camera',
+            'layout',
+            'audio'
+        ]),
+        target: z.enum(['camera', 'show']),
+        usage: z.string(),
+        description: z.string(),
+        enabled: z.boolean(),
+        audience: z.enum([
+            'broadcaster',
+            'everyone',
+            'subscriber',
+            'vip',
+            'moderator'
+        ]),
+        cooldownSeconds: z.number(),
+        changedAt: z.string().nullable()
+    }))
+});
+
+export const UseSchema = z.object({
+    restsUntil: z.string().nullable(),
+    replied: z.boolean()
 });
 
 export const ReportSchema = z.object({
@@ -1094,6 +1142,61 @@ export const DeviceConfigurationSchema = z.object({
     relays: z.object({
         stats: z.array(StatsConnectSchema),
         watched: z.array(WatchedExposureSchema)
+    }).optional(),
+    chat: z.object({
+        standard: z.array(z.object({
+            name: z.enum([
+                'slots',
+                'ptzhome',
+                'ptzload',
+                'ptzlist',
+                'ptzpan',
+                'ptztilt',
+                'ptzzoom',
+                'ptzset',
+                'ptzseta',
+                'ptzmove',
+                'ptzcenter',
+                'ptzfocusa',
+                'swap',
+                'scenecams',
+                'takeover',
+                'livecams',
+                'mute',
+                'unmute',
+                'setvolume',
+                'getvolume',
+                'resetvolume'
+            ]),
+            words: z.array(z.string()),
+            audience: z.enum([
+                'broadcaster',
+                'everyone',
+                'subscriber',
+                'vip',
+                'moderator'
+            ]),
+            cooldownSeconds: z.number(),
+            target: z.enum(['camera', 'show'])
+        })),
+        organisationId: z.string(),
+        channels: z.array(z.object({
+            channelId: z.string(),
+            platform: z.literal('twitch'),
+            login: z.string()
+        })),
+        commands: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            audience: z.enum([
+                'broadcaster',
+                'everyone',
+                'subscriber',
+                'vip',
+                'moderator'
+            ]),
+            cooldownSeconds: z.number()
+        }))
     }).optional(),
     cameras: z.object({
         cameras: z.array(z.object({
@@ -1161,26 +1264,6 @@ export const DeviceConfigurationSchema = z.object({
             kind: z.string(),
             params: z.record(z.string(), z.unknown())
         }).optional()
-    }).optional(),
-    chat: z.object({
-        organisationId: z.string(),
-        channels: z.array(z.object({
-            channelId: z.string(),
-            platform: z.literal('twitch'),
-            login: z.string()
-        })),
-        commands: z.array(z.object({
-            id: z.string(),
-            name: z.string(),
-            audience: z.enum([
-                'broadcaster',
-                'everyone',
-                'subscriber',
-                'vip',
-                'moderator'
-            ]),
-            cooldownSeconds: z.number()
-        }))
     }).optional(),
     peers: z.array(z.object({
         endpointId: z.string(),
@@ -3458,6 +3541,10 @@ export const GetOrganisationsByIdOutputsResponseSchema = z.object({
             enabled: z.boolean(),
             channelId: z.string()
         })),
+        controlChannels: z.array(z.object({
+            createdAt: z.string(),
+            channelId: z.string()
+        })),
         previews: z.array(z.object({
             id: z.string(),
             createdAt: z.string(),
@@ -3780,6 +3867,45 @@ export const PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdPathSchem
  * The updated forward
  */
 export const PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponseSchema = ForwardSchema;
+
+export const PostOrganisationsByIdOutputsByOutputIdControlChannelsBodySchema = z.object({
+    channelId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The channel: one of the organisation\'s Twitch channels.'
+    })
+});
+
+export const PostOrganisationsByIdOutputsByOutputIdControlChannelsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    outputId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The output.'
+    })
+});
+
+/**
+ * The channel, controlling the output
+ */
+export const PostOrganisationsByIdOutputsByOutputIdControlChannelsResponseSchema = ControlChannelSchema;
+
+export const DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    outputId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The output.'
+    }),
+    channelId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The channel.'
+    })
+});
+
+/**
+ * Removed
+ */
+export const DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdResponseSchema = z.void().register(z.globalRegistry, {
+    description: 'Removed'
+});
 
 export const PostOrganisationsByIdOutputsByOutputIdPreviewsBodySchema = z.object({
     gatewayId: z.union([
@@ -4110,23 +4236,10 @@ export const GetOrganisationsByIdChatCommandsResponseSchema = z.object({
     commands: z.array(z.object({
         id: z.string(),
         name: z.string(),
-        action: z.union([
-            z.object({
-                kind: z.literal('reply'),
-                text: z.string()
-            }),
-            z.object({
-                kind: z.literal('cameraPreset'),
-                cameraId: z.string().nullable(),
-                preset: z.string().nullable()
-            }),
-            z.object({
-                kind: z.literal('showSwap')
-            }),
-            z.object({
-                kind: z.literal('showTakeover')
-            })
-        ]),
+        action: z.object({
+            kind: z.literal('reply'),
+            text: z.string()
+        }),
         audience: z.enum([
             'broadcaster',
             'everyone',
@@ -4145,25 +4258,14 @@ export const GetOrganisationsByIdChatCommandsResponseSchema = z.object({
 
 export const PostOrganisationsByIdChatCommandsBodySchema = z.object({
     name: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/).register(z.globalRegistry, {
-        description: 'The word the command is used by, without its `!`.'
+        description: 'The word the command is used by, without its `!`: not one a standard command is used by.'
     }),
-    action: z.union([
-        z.object({
-            kind: z.literal('reply'),
-            text: z.string().min(1).max(400)
-        }),
-        z.object({
-            kind: z.literal('cameraPreset'),
-            cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-            preset: z.string().min(1).max(60).nullable()
-        }),
-        z.object({
-            kind: z.literal('showSwap')
-        }),
-        z.object({
-            kind: z.literal('showTakeover')
-        })
-    ]),
+    action: z.object({
+        kind: z.literal('reply'),
+        text: z.string().min(1).max(400)
+    }).register(z.globalRegistry, {
+        description: 'What the command does: `reply`, saying `text` in chat.'
+    }),
     audience: z.enum([
         'everyone',
         'subscriber',
@@ -4222,25 +4324,14 @@ export const GetOrganisationsByIdChatCommandsByCommandIdResponseSchema = ChatCom
 
 export const PatchOrganisationsByIdChatCommandsByCommandIdBodySchema = z.object({
     name: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/).register(z.globalRegistry, {
-        description: 'The word the command is used by, without its `!`.'
+        description: 'The word the command is used by, without its `!`: not one a standard command is used by.'
     }).optional(),
-    action: z.union([
-        z.object({
-            kind: z.literal('reply'),
-            text: z.string().min(1).max(400)
-        }),
-        z.object({
-            kind: z.literal('cameraPreset'),
-            cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-            preset: z.string().min(1).max(60).nullable()
-        }),
-        z.object({
-            kind: z.literal('showSwap')
-        }),
-        z.object({
-            kind: z.literal('showTakeover')
-        })
-    ]).optional(),
+    action: z.object({
+        kind: z.literal('reply'),
+        text: z.string().min(1).max(400)
+    }).register(z.globalRegistry, {
+        description: 'What the command does: `reply`, saying `text` in chat.'
+    }).optional(),
     audience: z.enum([
         'everyone',
         'subscriber',
@@ -4426,6 +4517,346 @@ export const PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponseSche
 }).register(z.globalRegistry, {
     description: 'Settled'
 });
+
+export const GetOrganisationsByIdStandardChatCommandsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * The commands, camera commands first
+ */
+export const GetOrganisationsByIdStandardChatCommandsResponseSchema = StandardSchema;
+
+export const DeleteOrganisationsByIdStandardChatCommandsByNamePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    name: z.enum([
+        'ptzhome',
+        'ptzload',
+        'ptzlist',
+        'ptzpan',
+        'ptztilt',
+        'ptzzoom',
+        'ptzset',
+        'ptzseta',
+        'ptzmove',
+        'ptzcenter',
+        'ptzfocusa',
+        'swap',
+        'slots',
+        'scenecams',
+        'takeover',
+        'livecams',
+        'mute',
+        'unmute',
+        'setvolume',
+        'getvolume',
+        'resetvolume'
+    ]).register(z.globalRegistry, {
+        description: 'A standard command, by its name: `ptzload`, `swap`, `mute` and the rest.'
+    })
+});
+
+/**
+ * The command, as it comes
+ */
+export const DeleteOrganisationsByIdStandardChatCommandsByNameResponseSchema = z.object({
+    name: z.enum([
+        'slots',
+        'ptzhome',
+        'ptzload',
+        'ptzlist',
+        'ptzpan',
+        'ptztilt',
+        'ptzzoom',
+        'ptzset',
+        'ptzseta',
+        'ptzmove',
+        'ptzcenter',
+        'ptzfocusa',
+        'swap',
+        'scenecams',
+        'takeover',
+        'livecams',
+        'mute',
+        'unmute',
+        'setvolume',
+        'getvolume',
+        'resetvolume'
+    ]),
+    aliases: z.array(z.string()),
+    group: z.enum([
+        'camera',
+        'layout',
+        'audio'
+    ]),
+    target: z.enum(['camera', 'show']),
+    usage: z.string(),
+    description: z.string(),
+    enabled: z.boolean(),
+    audience: z.enum([
+        'broadcaster',
+        'everyone',
+        'subscriber',
+        'vip',
+        'moderator'
+    ]),
+    cooldownSeconds: z.number(),
+    changedAt: z.string().nullable()
+}).register(z.globalRegistry, {
+    description: 'The command, as it comes'
+});
+
+export const PatchOrganisationsByIdStandardChatCommandsByNameBodySchema = z.object({
+    enabled: z.boolean().register(z.globalRegistry, {
+        description: 'Whether chat can use it.'
+    }).optional(),
+    audience: z.enum([
+        'everyone',
+        'subscriber',
+        'vip',
+        'moderator',
+        'broadcaster'
+    ]).register(z.globalRegistry, {
+        description: 'Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.'
+    }).optional(),
+    cooldownSeconds: z.int().gte(0).lte(86400).register(z.globalRegistry, {
+        description: 'How many seconds it rests after it runs on a camera (a camera command) or the show (a layout or audio command).'
+    }).optional()
+});
+
+export const PatchOrganisationsByIdStandardChatCommandsByNamePathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    }),
+    name: z.enum([
+        'ptzhome',
+        'ptzload',
+        'ptzlist',
+        'ptzpan',
+        'ptztilt',
+        'ptzzoom',
+        'ptzset',
+        'ptzseta',
+        'ptzmove',
+        'ptzcenter',
+        'ptzfocusa',
+        'swap',
+        'slots',
+        'scenecams',
+        'takeover',
+        'livecams',
+        'mute',
+        'unmute',
+        'setvolume',
+        'getvolume',
+        'resetvolume'
+    ]).register(z.globalRegistry, {
+        description: 'A standard command, by its name: `ptzload`, `swap`, `mute` and the rest.'
+    })
+});
+
+/**
+ * The command, as the organisation has it now
+ */
+export const PatchOrganisationsByIdStandardChatCommandsByNameResponseSchema = z.object({
+    name: z.enum([
+        'slots',
+        'ptzhome',
+        'ptzload',
+        'ptzlist',
+        'ptzpan',
+        'ptztilt',
+        'ptzzoom',
+        'ptzset',
+        'ptzseta',
+        'ptzmove',
+        'ptzcenter',
+        'ptzfocusa',
+        'swap',
+        'scenecams',
+        'takeover',
+        'livecams',
+        'mute',
+        'unmute',
+        'setvolume',
+        'getvolume',
+        'resetvolume'
+    ]),
+    aliases: z.array(z.string()),
+    group: z.enum([
+        'camera',
+        'layout',
+        'audio'
+    ]),
+    target: z.enum(['camera', 'show']),
+    usage: z.string(),
+    description: z.string(),
+    enabled: z.boolean(),
+    audience: z.enum([
+        'broadcaster',
+        'everyone',
+        'subscriber',
+        'vip',
+        'moderator'
+    ]),
+    cooldownSeconds: z.number(),
+    changedAt: z.string().nullable()
+}).register(z.globalRegistry, {
+    description: 'The command, as the organisation has it now'
+});
+
+export const PostOrganisationsByIdChatUsesBodySchema = z.object({
+    channelId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The channel it was used in.'
+    }),
+    messageId: z.string().min(1).max(120).register(z.globalRegistry, {
+        description: 'The chat message\'s ID on its platform, to answer it.'
+    }),
+    user: z.object({
+        id: z.string().min(1).max(120),
+        name: z.string().min(1).max(120),
+        roles: z.array(z.enum([
+            'everyone',
+            'subscriber',
+            'vip',
+            'moderator',
+            'broadcaster'
+        ]).register(z.globalRegistry, {
+            description: 'Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.'
+        })).max(8).register(z.globalRegistry, {
+            description: 'What they are in the channel, as its platform says.'
+        })
+    }).register(z.globalRegistry, {
+        description: 'Who used it.'
+    }),
+    words: z.array(z.string().min(1).max(60)).max(8).register(z.globalRegistry, {
+        description: 'The words that followed the command, in order.'
+    }),
+    command: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/).register(z.globalRegistry, {
+        description: 'The word the command was used by, after its `!`, lowercased: a standard command\'s name or alias, or one of the organisation\'s own.'
+    })
+});
+
+export const PostOrganisationsByIdChatUsesPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * What came of it
+ */
+export const PostOrganisationsByIdChatUsesResponseSchema = z.union([
+    z.object({
+        status: z.literal('planned'),
+        restsUntil: z.string().nullable(),
+        cameraCommands: z.array(z.object({
+            agent: z.object({
+                id: z.string(),
+                publicId: z.string()
+            }),
+            cameraId: z.string(),
+            command: z.union([
+                z.object({
+                    kind: z.literal('moveTo'),
+                    pan: z.number().optional(),
+                    tilt: z.number().optional(),
+                    zoom: z.number().optional(),
+                    focus: z.number().optional()
+                }),
+                z.object({
+                    kind: z.literal('moveBy'),
+                    pan: z.number().optional(),
+                    tilt: z.number().optional(),
+                    zoom: z.number().optional()
+                }),
+                z.object({
+                    kind: z.literal('moveToPoint'),
+                    x: z.number(),
+                    y: z.number()
+                }),
+                z.object({
+                    kind: z.literal('moveToRegion'),
+                    x: z.number(),
+                    y: z.number(),
+                    width: z.number(),
+                    height: z.number()
+                }),
+                z.object({
+                    kind: z.literal('drive'),
+                    pan: z.number().optional(),
+                    tilt: z.number().optional(),
+                    zoom: z.number().optional(),
+                    focus: z.number().optional()
+                }),
+                z.object({
+                    kind: z.literal('stop')
+                }),
+                z.object({
+                    kind: z.literal('configure'),
+                    key: z.string(),
+                    value: z.string()
+                }),
+                z.object({
+                    kind: z.literal('run'),
+                    action: z.string()
+                })
+            ]),
+            grant: z.string(),
+            expiresAt: z.string()
+        })),
+        receipt: z.string()
+    }),
+    z.object({
+        replied: z.boolean(),
+        status: z.literal('notRun'),
+        reason: z.enum([
+            'disabled',
+            'audience',
+            'resting',
+            'unresolved',
+            'unavailable'
+        ]),
+        reply: z.string().nullable(),
+        restsUntil: z.string().nullable()
+    }),
+    z.object({
+        replied: z.boolean(),
+        status: z.literal('ran'),
+        reply: z.string(),
+        restsUntil: z.string().nullable()
+    })
+]);
+
+export const PostOrganisationsByIdChatUsesSettlementsBodySchema = z.object({
+    receipt: z.string().min(1).max(4096).register(z.globalRegistry, {
+        description: 'The `receipt` the use was planned with.'
+    }),
+    result: z.enum([
+        'carried',
+        'held',
+        'unreachable',
+        'refused',
+        'failed'
+    ]).register(z.globalRegistry, {
+        description: 'What came of carrying the camera commands out: `carried`, and the camera took them; or the camera was `held` by someone at its controls, the agent that reaches it was `unreachable`, it `refused` the grant, or the camera `failed` to take the command.'
+    })
+});
+
+export const PostOrganisationsByIdChatUsesSettlementsPathSchema = z.object({
+    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).register(z.globalRegistry, {
+        description: 'The organisation.'
+    })
+});
+
+/**
+ * Settled
+ */
+export const PostOrganisationsByIdChatUsesSettlementsResponseSchema = UseSchema;
 
 /**
  * The invitations, oldest first
