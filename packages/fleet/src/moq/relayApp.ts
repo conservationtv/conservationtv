@@ -3,7 +3,7 @@ import * as pulumi from '@pulumi/pulumi';
 import type { ComposeApp, PublicTlsMaterial } from '../core/contracts';
 import { readHttpsUrl } from '../core/validate';
 
-export const MOQ_RELAY_IMAGE = 'moqdev/moq-relay:0.17.2';
+export const MOQ_RELAY_IMAGE = 'moqdev/moq-relay:0.17.18';
 export const MOQ_HTTPS_ENDPOINT = 'moq.https';
 export const MOQ_WEBTRANSPORT_ENDPOINT = 'moq.webtransport';
 export const MOQ_PROMETHEUS_ENDPOINT = 'moq.prometheus';

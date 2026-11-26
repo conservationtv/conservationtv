@@ -73,7 +73,7 @@ Signed with the control plane's own ES256 key (`kid` = the active key). Tokens c
 authorises its subtree (`camera` → `camera/**`); the empty path authorises the whole root (`**`). `sub` is
 deliberately omitted because older moq-token releases read it as the subscribe list.
 
-moq-relay 0.17.2 asks gatekeeper about each session. Relay callbacks authenticate with a shared relay key,
+moq-relay 0.17.18 asks gatekeeper about each session. Relay callbacks authenticate with a shared relay key,
 `MOQ_RELAY_TOKEN`. moq-relay has no header setting for its auth callout, so the key is userinfo in its auth URL
 (`https://moq-relay:<key>@<gatekeeper>/relays/moq/admission`), which the relay sends as HTTP Basic credentials.
 Gatekeeper compares the Basic password with the fixed-length digest comparison and ignores the username. There is

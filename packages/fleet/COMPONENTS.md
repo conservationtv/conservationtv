@@ -124,7 +124,7 @@ characters; one leading `*.` label is allowed) via DNS-01, renewed by `pulumi up
 | `tls`     | Must cover every relay hostname.                                                                |
 | `auth`    | `{ origin, token, clusterToken }`, see below.                                                   |
 | `dns`     | Optional `DnsZone` for relay hostnames.                                                         |
-| `image`   | Defaults to `MOQ_RELAY_IMAGE` (`moqdev/moq-relay:0.17.2`).                                      |
+| `image`   | Defaults to `MOQ_RELAY_IMAGE` (`moqdev/moq-relay:0.17.18`).                                      |
 | `rollout` | `parallel` (default) or `serial`.                                                               |
 
 Each relay serves HTTPS on TCP 443 (`moq.https`), WebTransport on UDP 443 (`moq.webtransport`) and Prometheus on private
@@ -134,7 +134,7 @@ Outputs: `directory` (per relay: `id`, `region`, `providerRegion`, `priority`, `
 `endpoints`, `connectUrl`, `webtransportUrl`, `publicHealthUrl`), `clusterNodeUrls`, `clusterPeersByNodeUrl`, `summary`.
 
 **Admission callbacks.** `auth.token` is a shared key the relays present to gatekeeper: generate 32 bytes with
-`random.RandomBytes` and pass its hex; it is gatekeeper's `MOQ_RELAY_TOKEN`. moq-relay 0.17.2 has no header setting for
+`random.RandomBytes` and pass its hex; it is gatekeeper's `MOQ_RELAY_TOKEN`. moq-relay 0.17.18 has no header setting for
 its auth callout, so the key is userinfo in the callback URL (`https://moq-relay:<key>@<origin>/relays/moq/admission`),
 sent as HTTP Basic credentials. The URL travels in the `MOQ_AUTH_URL` environment variable inside the `0600` compose
 file, never in the world-readable `relay.toml`. `auth.origin` must be an HTTPS origin without a path.

@@ -36,7 +36,7 @@ services:
   # moq-relay with a generated certificate: QUIC on :4433, plain HTTP (and /certificate.sha256) on :4443.
   moq-relay:
     profiles: [relays]
-    image: moqdev/moq-relay:0.17.2
+    image: moqdev/moq-relay:0.17.18
     environment:
       MOQ_LISTEN: '[::]:4433'
       MOQ_LISTEN_TLS_GENERATE: localhost
