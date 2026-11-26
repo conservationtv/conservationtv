@@ -15,48 +15,50 @@ import { about, findingOf, report, reportSamples, reporter } from './harness.ts'
 
 const GB = 1024 ** 3;
 
-/** A minute of an exposure delivering cleanly, at both renditions, and reaching the relay. */
-function deliveringExposure(qualityReady = 1) {
+/** A minute of an exposure delivering cleanly from its one path, and reaching the relay. */
+function deliveringExposure(ready = 1) {
   return [
-    report(pathMetrics.ready, 1, { rendition: 'default' }),
-    report(pathMetrics.ready, qualityReady, { rendition: 'quality' }),
-    report(pathMetrics.ingestBitrate, 2_400_000, { rendition: 'default' }),
-    report(pathMetrics.ingestFrameErrors, 0, { rendition: 'default' }),
+    report(pathMetrics.ready, ready),
+    report(pathMetrics.ingestBitrate, 2_400_000),
+    report(pathMetrics.ingestFrameErrors, 0),
     report(relayMetrics.ingestBitrate, 2_400_000)
   ];
 }
 
-/** An exposure with both renditions, that nothing is published from: as the topology holds it. */
+/** As an agent from before an exposure was one path reports it: its path's series named by the `default` rendition. */
+const RELEASED = { rendition: 'default' };
+
+/** An exposure that nothing is published from: as the topology holds it. */
 const served: ExposureContext = {
-  renditions: ['default', 'quality'],
-  published: [],
+  published: false,
   upstreamExposureId: null,
-  sourceOff: false
+  sourceOff: false,
+  pushed: false
 };
 
 /** An exposure published to a relay from another the same agent serves. */
 const relayed: ExposureContext = {
-  renditions: ['default'],
-  published: [],
+  published: false,
   upstreamExposureId: '0199e8b2-0000-7000-8000-00000000000c',
-  sourceOff: false
+  sourceOff: false,
+  pushed: false
 };
 
 describe('exposure', () => {
-  it('is healthy while every rendition delivers', async () => {
+  it('is healthy while its path delivers', async () => {
     const agent = reporter(evaluators.exposure, { context: served });
     const opinion = await agent.minute(...deliveringExposure());
     expect(opinion.health).toBe('healthy');
   });
 
-  it('is judged by its worst rendition, and says which', async () => {
+  it('judges the series an agent from before names by its rendition, by the worst of each check', async () => {
     const agent = reporter(evaluators.exposure, { context: served });
-    const opinion = await agent.minute(...deliveringExposure(0.4));
+    const opinion = await agent.minute(...deliveringExposure(), report(pathMetrics.ready, 0.4, RELEASED));
     expect(opinion.health).toBe('unhealthy');
     expect(findingOf(opinion, pathMetrics.ready.name)).toMatchObject({
       health: 'unhealthy',
       summary: 'Ready 40% of the last 2 min',
-      evidence: [{ dimensions: { rendition: 'quality' }, value: expect.closeTo(0.4) }]
+      evidence: [{ dimensions: RELEASED, value: expect.closeTo(0.4) }]
     });
   });
 
@@ -84,42 +86,48 @@ describe('exposure', () => {
     expect(findingOf(opinion, relayMetrics.ingestBitrate.name)).toBeUndefined();
   });
 
-  it('judges only the renditions that are read, and is idle when none is', async () => {
+  it('judges its path only while it is read, and is idle when it is not', async () => {
     const agent = reporter(evaluators.exposure, { context: served });
-    const unread = (rendition: string) => [
-      report(pathMetrics.ready, 0, { rendition }),
-      report(pathMetrics.read, 0, { rendition }),
-      report(pathMetrics.ingestBitrate, 0, { rendition })
-    ];
     const read = [
-      report(pathMetrics.ready, 1, { rendition: 'default' }),
-      report(pathMetrics.read, 1, { rendition: 'default' }),
-      report(pathMetrics.ingestBitrate, 2_400_000, { rendition: 'default' })
+      report(pathMetrics.ready, 1),
+      report(pathMetrics.read, 1),
+      report(pathMetrics.ingestBitrate, 2_400_000)
     ];
-    const partly = await agent.minute(...read, ...unread('quality'));
-    expect(partly).toMatchObject({ health: 'healthy', activity: 'active' });
+    const unread = [report(pathMetrics.ready, 0), report(pathMetrics.read, 0), report(pathMetrics.ingestBitrate, 0)];
+    const active = await agent.minute(...read);
+    expect(active).toMatchObject({ health: 'healthy', activity: 'active' });
 
-    const idle = await agent.minutes(3, ...unread('default'), ...unread('quality'));
+    const idle = await agent.minutes(3, ...unread);
     expect(idle).toMatchObject({ health: 'unknown', activity: 'idle' });
     expect(findingOf(idle, 'demand')?.summary).toBe('Idle: nothing is reading it');
   });
 
-  it('expects a rendition a publisher is planned to read, whether or not the publisher is there', async () => {
-    const agent = reporter(evaluators.exposure, { context: { ...served, published: ['default'] } });
+  it('expects a path a publisher is planned to read, whether or not the publisher is there', async () => {
+    const agent = reporter(evaluators.exposure, { context: { ...served, published: true } });
     const opinion = await agent.minute(
-      report(pathMetrics.ready, 0, { rendition: 'default' }),
-      report(pathMetrics.read, 0, { rendition: 'default' }),
-      report(pathMetrics.ingestBitrate, 0, { rendition: 'default' })
+      report(pathMetrics.ready, 0),
+      report(pathMetrics.read, 0),
+      report(pathMetrics.ingestBitrate, 0)
+    );
+    expect(opinion).toMatchObject({ health: 'unhealthy', activity: 'active' });
+  });
+
+  it('expects it of an agent from before as well', async () => {
+    const agent = reporter(evaluators.exposure, { context: { ...served, published: true } });
+    const opinion = await agent.minute(
+      report(pathMetrics.ready, 0, RELEASED),
+      report(pathMetrics.read, 0, RELEASED),
+      report(pathMetrics.ingestBitrate, 0, RELEASED)
     );
     expect(opinion).toMatchObject({ health: 'unhealthy', activity: 'active' });
   });
 
   it('is unhealthy when its publisher reads little of what the path receives', async () => {
-    const agent = reporter(evaluators.exposure, { context: { ...served, published: ['default'] } });
+    const agent = reporter(evaluators.exposure, { context: { ...served, published: true } });
     const opinion = await agent.minute(
-      report(pathMetrics.ready, 1, { rendition: 'default' }),
-      report(pathMetrics.ingestBitrate, 2_000_000, { rendition: 'default' }),
-      report(pathMetrics.publisherEgressBitrate, 100_000, { rendition: 'default' })
+      report(pathMetrics.ready, 1),
+      report(pathMetrics.ingestBitrate, 2_000_000),
+      report(pathMetrics.publisherEgressBitrate, 100_000)
     );
     expect(findingOf(opinion, pathMetrics.publisherEgressBitrate.name)).toMatchObject({
       health: 'unhealthy',
@@ -127,15 +135,22 @@ describe('exposure', () => {
     });
   });
 
-  it('judges the relay by whether it has the rendition, whoever is watching', async () => {
+  it('judges the relay by whether it has the exposure, whoever is watching', async () => {
     const agent = reporter(evaluators.exposure, { context: relayed });
     const unwatched = [report(relayMetrics.ingestBitrate, 884), report(relayMetrics.viewers, 1)];
-    const there = await agent.minute(report(relayMetrics.announced, 1, { rendition: 'default' }), ...unwatched);
+    const there = await agent.minute(report(relayMetrics.announced, 1), ...unwatched);
     expect(there).toMatchObject({ health: 'healthy', activity: 'active' });
 
-    const gone = await agent.minutes(2, report(relayMetrics.announced, 0, { rendition: 'default' }), ...unwatched);
+    const gone = await agent.minutes(2, report(relayMetrics.announced, 0), ...unwatched);
     expect(gone).toMatchObject({ health: 'unhealthy', activity: 'active' });
     expect(findingOf(gone, relayMetrics.announced.name)?.summary).toBe('On the relay 0% of the last 105 sec');
+  });
+
+  it('judges the relay as an agent from before reports it, by its rendition', async () => {
+    const agent = reporter(evaluators.exposure, { context: relayed });
+    const unwatched = [report(relayMetrics.ingestBitrate, 884), report(relayMetrics.viewers, 1)];
+    const gone = await agent.minutes(2, report(relayMetrics.announced, 0, RELEASED), ...unwatched);
+    expect(gone).toMatchObject({ health: 'unhealthy', activity: 'active' });
   });
 
   it("doesn't judge the relay by what it carries, from an agent that says nothing else of it", async () => {
@@ -145,6 +160,28 @@ describe('exposure', () => {
     expect(findingOf(opinion, relayMetrics.announced.name)?.summary).toBe(
       "Its agent doesn't say whether the relay has it"
     );
+  });
+
+  it('is idle while nobody publishes a pushed stream, though its path is planned to be read', async () => {
+    const agent = reporter(evaluators.exposure, { context: { ...served, published: true, pushed: true } });
+    const opinion = await agent.minute(report(pathMetrics.ready, 0), report(pathMetrics.ingestBitrate, 0));
+    expect(opinion).toMatchObject({ health: 'unknown', activity: 'idle' });
+  });
+
+  it('judges a pushed stream while someone publishes it', async () => {
+    const agent = reporter(evaluators.exposure, { context: { ...served, published: true, pushed: true } });
+    const opinion = await agent.minute(
+      report(pathMetrics.ready, 1),
+      report(pathMetrics.ingestBitrate, 2_000_000),
+      report(pathMetrics.publisherEgressBitrate, 2_000_000)
+    );
+    expect(opinion).toMatchObject({ health: 'healthy', activity: 'active' });
+  });
+
+  it("doesn't judge a pushed stream's relay while it is not there", async () => {
+    const agent = reporter(evaluators.exposure, { context: { ...relayed, pushed: true } });
+    const opinion = await agent.minutes(2, report(relayMetrics.announced, 0));
+    expect(opinion).toMatchObject({ health: 'unknown', activity: 'idle' });
   });
 
   it('is off while its camera is switched off', async () => {

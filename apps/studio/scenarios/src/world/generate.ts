@@ -1,3 +1,4 @@
+import { normalised, positionedOf, stateOf } from '../../../api/src/shows/resolve.ts';
 import { assignHealth } from './health.ts';
 import type {
   AddressRow,
@@ -15,18 +16,21 @@ import type {
   OrganisationListing,
   OutputControl,
   OutputRow,
+  PersonalStreamRow,
   ShowRow,
+  ShowStreamRow,
   StreamRow,
   Viewer,
   World
 } from './model.ts';
 import { Namer } from './names.ts';
 import { Rng } from './rng.ts';
+import { showFactsOf, type ShowSources } from './shows.ts';
 import type { WorldSpec } from './spec.ts';
 
 // A world from its spec: an organisation built the way people build one (networks, then the agents and cameras on
-// them, then streams of those cameras delivered through gateways, shows placing them, outputs going out to channels),
-// with whatever gaps the spec asks for, then health over the top (src/world/health.ts).
+// them, then streams of those cameras delivered through gateways, shows lining them up, streams people publish to,
+// outputs going out to channels), with whatever gaps the spec asks for, then health over the top (src/world/health.ts).
 
 /** Where every world is in time. Fixed, so relative times ("3 minutes ago") and timestamps render the same each run. */
 export const WORLD_NOW = new Date('2026-06-01T10:30:00.000Z');
@@ -38,6 +42,8 @@ const DAY_MS = 86_400_000;
 
 export const MEMBER_ROLE = { id: '@shared/organisationMember', label: 'Member' };
 export const ADMINISTRATOR_ROLE = { id: '@shared/organisationAdmin', label: 'Administrator' };
+/** Granted on its own to a member who may go live; administrators hold it as part of their role, unlisted. */
+export const PUBLISHER_ROLE = { id: '@shared/streamPublisher', label: 'Publisher' };
 
 /** A time `minDays`–`maxDays` before the world's now. */
 function daysAgo(rng: Rng, minDays: number, maxDays: number): Date {
@@ -136,18 +142,24 @@ function viewerOf(root: Rng, names: Namer): Viewer {
   };
 }
 
-/** The organisations the account is in: administering the first as the spec says, and the others by chance. */
+/** The roles the account holds in its own organisation, as the spec says. */
+function viewerRoles(spec: WorldSpec): OrganisationListing['roles'] {
+  if (spec.viewer === 'admin') return [MEMBER_ROLE, ADMINISTRATOR_ROLE];
+  return spec.viewer === 'publisher' ? [MEMBER_ROLE, PUBLISHER_ROLE] : [MEMBER_ROLE];
+}
+
+/** The organisations the account is in: its roles in the first as the spec says, administering the others by chance. */
 function organisationsOf(spec: WorldSpec, root: Rng, names: Namer): OrganisationListing[] {
   const organisations: OrganisationListing[] = [];
   for (let index = 0; index < spec.organisations; index++) {
     const rng = root.child('organisation', index);
     const created = daysAgo(rng, 200, 400);
-    const admin = index === 0 ? spec.viewer === 'admin' : rng.chance(0.5);
+    const admin = index === 0 ? false : rng.chance(0.5);
     organisations.push({
       id: rng.uuid(created),
       name: names.organisation(index),
       createdAt: created.toISOString(),
-      roles: admin ? [MEMBER_ROLE, ADMINISTRATOR_ROLE] : [MEMBER_ROLE]
+      roles: index === 0 ? viewerRoles(spec) : admin ? [MEMBER_ROLE, ADMINISTRATOR_ROLE] : [MEMBER_ROLE]
     });
   }
   return organisations;
@@ -168,7 +180,10 @@ function myInvitationsOf(spec: WorldSpec, root: Rng, names: Namer): MyInvitation
   return myInvitations;
 }
 
-/** The account first, as a founding member, then the others; a few administer it, and a few have no display name. */
+/**
+ * The account first, as a founding member, then the others; a few administer it, some of the rest may go live, and a
+ * few have no display name.
+ */
 function membersOf(build: Build, viewer: Viewer): MemberRow[] {
   const members: MemberRow[] = [
     {
@@ -182,11 +197,15 @@ function membersOf(build: Build, viewer: Viewer): MemberRow[] {
     const rng = build.root.child('member', index);
     const joined = after(rng, build.orgCreated);
     const person = build.names.person(index + 1);
+    const userId = rng.uuid(joined);
+    const displayName = rng.chance(0.9) ? person.name : null;
+    const admin = rng.chance(0.25);
+    const publisher = rng.child('publisher').chance(build.spec.operating.publishers);
     members.push({
-      userId: rng.uuid(joined),
-      displayName: rng.chance(0.9) ? person.name : null,
+      userId,
+      displayName,
       joinedAt: joined.toISOString(),
-      roles: rng.chance(0.25) ? [MEMBER_ROLE, ADMINISTRATOR_ROLE] : [MEMBER_ROLE]
+      roles: admin ? [MEMBER_ROLE, ADMINISTRATOR_ROLE] : publisher ? [MEMBER_ROLE, PUBLISHER_ROLE] : [MEMBER_ROLE]
     });
   }
   return members;
@@ -377,8 +396,11 @@ function addSite(build: Build, n: number) {
   build.sites.push({ network, cameras, gateways });
 }
 
-/** A stream's deliveries: first through a gateway on its network when it has one, then on to the built-in relay. */
-function deliveriesOf(rng: Rng, created: Date, siteGateways: GatewayRow[]): StreamRow['exposures'] {
+/**
+ * A stream's deliveries: first through a gateway on its network when it has one, then on to the built-in relay, unless
+ * it is delivered only on its site (`siteOnly`, with a gateway there to deliver it).
+ */
+function deliveriesOf(rng: Rng, created: Date, siteGateways: GatewayRow[], siteOnly: boolean): StreamRow['exposures'] {
   const exposures: StreamRow['exposures'] = [];
   const local = siteGateways.length ? rng.pick(siteGateways) : undefined;
   let upstream: string | null = null;
@@ -390,18 +412,20 @@ function deliveriesOf(rng: Rng, created: Date, siteGateways: GatewayRow[]): Stre
       id: upstream,
       createdAt: exposureCreated.toISOString(),
       gatewayId: local.id,
-      renditions: ['default'],
       publisherDeviceId: null,
       upstreamExposureId: null
     });
   }
+  // Drawn and thrown away: this once chose whether the relay's delivery also offered a smaller rendition, and the
+  // stream's ID is drawn from this sequence after it, so keeping the draw keeps every stream's ID as it was.
+  rng.float();
+  if (local && siteOnly) return exposures;
   const relayCreated = after(rng.child('relay'), created);
   exposures.push({
     params: {},
     id: rng.child('relay').uuid(relayCreated),
     createdAt: relayCreated.toISOString(),
     gatewayId: BUILTIN_GATEWAY_ID,
-    renditions: rng.chance(0.5) ? ['default', 'data_saver'] : ['default'],
     publisherDeviceId: null,
     upstreamExposureId: upstream
   });
@@ -414,10 +438,11 @@ function streamOf(
   rng: Rng,
   name: string,
   source: CameraRow | null,
-  siteGateways: GatewayRow[]
+  siteGateways: GatewayRow[],
+  siteOnly = false
 ): StreamRow {
   const created = after(rng, source ? new Date(source.device?.createdAt ?? build.orgCreated) : build.orgCreated);
-  const exposures = deliveriesOf(rng, created, siteGateways);
+  const exposures = deliveriesOf(rng, created, siteGateways, siteOnly);
   const recorders: StreamRow['recorders'] = [];
   const first = exposures[0];
   if (first && rng.child('recorder').chance(0.2)) {
@@ -427,11 +452,12 @@ function streamOf(
       id: rng.child('recorder').uuid(recorderCreated),
       createdAt: recorderCreated.toISOString(),
       kind: 'mp4-segments',
-      exposureId: first.id,
-      rendition: 'default'
+      exposureId: first.id
     });
   }
+  // Its code, if it has one, is given once every stream is made (`withCodes`).
   return {
+    code: null,
     name,
     id: rng.uuid(created),
     createdAt: created.toISOString(),
@@ -454,8 +480,9 @@ function streamsOf(build: Build): StreamRow[] {
         // Named after its camera, even when the spec's gaps leave it without one.
         const streamRng = rng.child(s);
         const orphan = streamRng.child('orphan').chance(build.spec.gaps.streamWithoutSource);
+        const siteOnly = !orphan && streamRng.child('site-only').chance(build.spec.operating.siteOnlyStreams);
         const name = build.names.stream(camera.device?.name ?? 'Camera', s);
-        streams.push(streamOf(build, streamRng, name, orphan ? null : camera, site.gateways));
+        streams.push(streamOf(build, streamRng, name, orphan ? null : camera, site.gateways, siteOnly));
       }
     }
   }
@@ -465,30 +492,245 @@ function streamsOf(build: Build): StreamRow[] {
   return streams;
 }
 
-/** Shows place deliveries on the relay; one never composed places nothing. */
-function showsOf(build: Build, streams: StreamRow[]): ShowRow[] {
-  const relayDeliveries = streams.flatMap(stream =>
-    stream.exposures.filter(exposure => exposure.gatewayId === BUILTIN_GATEWAY_ID)
-  );
+/** The organisation's shows, and each one's `show_stream` rows by show ID. */
+interface Shows {
+  shows: ShowRow[];
+  showStreams: Record<string, ShowStreamRow[]>;
+}
+
+/** How a stream is mixed in a show it has never been given settings in: standard volume, unmuted, its own sound. */
+const STANDARD_MIX = { volumeDb: 0, muted: false, syncOffsetMs: 0, audioStreamId: null } as const;
+
+/**
+ * A show's slot count: none when left uncomposed, the spec's when it names a range, else as many as the cameras it was
+ * set up with; a show made where nothing is delivered yet keeps the default layout (six), every slot empty.
+ */
+function slotsOf(build: Build, rng: Rng, leftUncomposed: boolean, setUpWith: number): number {
+  if (leftUncomposed) return 0;
+  if (build.spec.slotsPerShow) return Math.min(6, Math.max(0, rng.child('slots').range(build.spec.slotsPerShow)));
+  return setUpWith === 0 ? 6 : setUpWith;
+}
+
+/**
+ * Each show's lineup, as the API keeps it in `show_stream`: the cameras it was set up with first, in that order, then
+ * every other camera stream oldest first, as normalising leaves them (src/shows/resolve.ts). The cameras it was set up
+ * with are drawn as shows once placed deliveries were, so a show places what it did (and its ID is as it was).
+ */
+function showsOf(build: Build, streams: StreamRow[]): Shows {
+  // One draw per delivered stream: once each stream's delivery on the relay, which every stream then had.
+  const delivered = streams.filter(stream => stream.exposures.length > 0);
   const shows: ShowRow[] = [];
+  const showStreams: Record<string, ShowStreamRow[]> = {};
   for (let s = 0; s < build.spec.shows; s++) {
     const rng = build.root.child('show', s);
     const created = after(rng, build.orgCreated);
-    const uncomposed = rng.child('uncomposed').chance(build.spec.gaps.showUncomposed) || relayDeliveries.length === 0;
-    shows.push({
-      placed: uncomposed
+    const leftUncomposed = rng.child('uncomposed').chance(build.spec.gaps.showUncomposed);
+    const setUpWith =
+      leftUncomposed || delivered.length === 0
         ? []
-        : rng
-            .child('placed')
-            .sample(relayDeliveries, rng.int(1, Math.min(4, relayDeliveries.length)))
-            .map(exposure => exposure.id),
+        : rng.child('placed').sample(delivered, rng.int(1, Math.min(4, delivered.length)));
+    const show: ShowRow = {
       name: build.names.show(s),
       id: rng.uuid(created),
       createdAt: created.toISOString(),
+      slots: slotsOf(build, rng, leftUncomposed, setUpWith.length),
+      volumeDb: 0,
+      muted: false,
+      takeoverStreamId: null,
+      takeoverLive: false,
       outputs: []
+    };
+    // Ranked in the order it was set up with, its cameras' streams (a locked one keeping its place); normalising ranks
+    // any new camera after them.
+    const sources = { organisationId: build.organisation.id, streams, cameras: build.cameras, showStreams, states: [] };
+    const inLineup = setUpWith.filter(stream => stateOf(stream, { cameras: build.cameras, states: [] }) !== undefined);
+    showStreams[show.id] = inLineup.map((stream, index) => ({ ...STANDARD_MIX, streamId: stream.id, rank: index + 1 }));
+    showStreams[show.id] = normalised(showFactsOf(sources, show)).members;
+    shows.push(show);
+  }
+  return { shows, showStreams };
+}
+
+/** Whether a member may go live: given the right on its own, or as an administrator. */
+function mayPublish(member: MemberRow): boolean {
+  return member.roles.some(role => role.id === PUBLISHER_ROLE.id || role.id === ADMINISTRATOR_ROLE.id);
+}
+
+/**
+ * What a stream made for someone to go live on is called, as the API names it ("Ada’s phone"): `personalName` in
+ * apps/studio/api/src/services/publishing.ts, which isn't exported, and sits among database code.
+ */
+function personalName(displayName: string | null, device: PersonalStreamRow['device']): string {
+  const whose = displayName === null || displayName.trim() === '' ? 'My' : `${displayName.trim()}’s`;
+  return `${whose} ${device}`.slice(0, 120);
+}
+
+/**
+ * A pushed stream's deliveries, as publishing it the first time made them (docs/shows.md, The chain), kept whether or
+ * not anyone publishes now: straight to the relay, as a browser publishes by MoQ; or, by `throughGateway`'s chance,
+ * into one of the organisation's gateways (RTMP from an encoder, WHIP from a browser), with an onward hop to the relay
+ * that the gateway's agent republishes it to.
+ */
+function pushedDeliveriesOf(build: Build, rng: Rng, created: Date, throughGateway: number): StreamRow['exposures'] {
+  const exposures: StreamRow['exposures'] = [];
+  const ingestAt =
+    build.gateways.length && rng.child('route').chance(throughGateway)
+      ? rng.child('gateway').pick(build.gateways)
+      : undefined;
+  let upstream: string | null = null;
+  let relayAfter = created;
+  if (ingestAt) {
+    relayAfter = after(rng.child('ingest'), created);
+    upstream = rng.child('ingest').uuid(relayAfter);
+    exposures.push({
+      params: {},
+      id: upstream,
+      createdAt: relayAfter.toISOString(),
+      gatewayId: ingestAt.id,
+      publisherDeviceId: null,
+      upstreamExposureId: null
     });
   }
-  return shows;
+  const relayCreated = after(rng.child('relay'), relayAfter);
+  exposures.push({
+    params: {},
+    id: rng.child('relay').uuid(relayCreated),
+    createdAt: relayCreated.toISOString(),
+    gatewayId: BUILTIN_GATEWAY_ID,
+    publisherDeviceId: null,
+    upstreamExposureId: upstream
+  });
+  return byId(exposures);
+}
+
+/** A stream no camera feeds, made at `created`, with the deliveries publishing it made. */
+function pushedStreamOf(build: Build, rng: Rng, name: string, created: Date, throughGateway: number): StreamRow {
+  return {
+    code: null,
+    name,
+    id: rng.uuid(created),
+    createdAt: created.toISOString(),
+    sourceDeviceId: null,
+    exposures: pushedDeliveriesOf(build, rng, created, throughGateway),
+    recorders: []
+  };
+}
+
+/** The organisation's pushed streams: those it shares, and those members made going live, and whose each is. */
+interface Pushed {
+  streams: StreamRow[];
+  sharedStreams: string[];
+  personalStreams: PersonalStreamRow[];
+}
+
+/**
+ * Pushed streams: the spec's shared ones (mostly an encoder's, into a gateway), and each one someone who may publish
+ * made by going live from a phone or a computer (mostly by MoQ, straight to the relay), keyed by who and which device.
+ */
+function pushedStreamsOf(build: Build, members: MemberRow[]): Pushed {
+  const streams: StreamRow[] = [];
+  const sharedStreams: string[] = [];
+  for (let p = 0; p < build.spec.pushedStreams; p++) {
+    const rng = build.root.child('pushed-stream', p);
+    const stream = pushedStreamOf(build, rng, build.names.pushed(p), after(rng, build.orgCreated), 0.7);
+    streams.push(stream);
+    sharedStreams.push(stream.id);
+  }
+  const personalStreams: PersonalStreamRow[] = [];
+  for (const member of members.filter(mayPublish)) {
+    const rng = build.root.child('personal-stream', member.userId);
+    if (!rng.chance(build.spec.operating.personalStreams)) continue;
+    const first = rng.child('device').pick(['phone', 'computer'] as const);
+    const devices = rng.child('both').chance(0.2) ? (['phone', 'computer'] as const) : [first];
+    for (const device of devices) {
+      const deviceRng = rng.child(device);
+      const name = personalName(member.displayName, device);
+      const stream = pushedStreamOf(build, deviceRng, name, after(deviceRng, new Date(member.joinedAt)), 0.2);
+      streams.push(stream);
+      personalStreams.push({ userId: member.userId, device, streamId: stream.id });
+    }
+  }
+  return { streams, sharedStreams, personalStreams };
+}
+
+/**
+ * A short code from a stream's name, as someone would choose one for chat: its first word when that is short, else
+ * the word's first three letters, numbered when another stream has it (1–4 of `A-Z0-9`, unique in the organisation).
+ */
+function codeOf(name: string, taken: ReadonlySet<string>): string {
+  const words = name
+    .normalize('NFKD')
+    .toUpperCase()
+    .split(/\s+/u)
+    .map(word => word.replace(/[^A-Z0-9]/gu, ''));
+  const word = words.find(candidate => candidate !== '') ?? 'S';
+  const base = word.length <= 4 ? word : word.slice(0, 3);
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n++) {
+    const candidate = `${base.slice(0, 4 - String(n).length)}${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
+/** The streams, some given a code by the spec's chance, each keyed by its stream: the oldest has first pick. */
+function withCodes(build: Build, streams: StreamRow[]): StreamRow[] {
+  const taken = new Set<string>();
+  for (const stream of byId([...streams])) {
+    if (!build.root.child('stream-code', stream.id).chance(build.spec.operating.streamCodes)) continue;
+    stream.code = codeOf(stream.name, taken);
+    taken.add(stream.code);
+  }
+  return streams;
+}
+
+/** The deliveries someone is publishing to now: each pushed stream's whole chain, by the spec's chance. */
+function publishingOf(build: Build, pushed: StreamRow[]): string[] {
+  return pushed
+    .filter(stream => build.root.child('pushed-live', stream.id).chance(build.spec.operating.pushedLive))
+    .flatMap(stream => stream.exposures.map(exposure => exposure.id));
+}
+
+/** A level someone set, or standard volume. */
+function levelOf(rng: Rng, chance: number, levels: readonly number[]): number {
+  return rng.chance(chance) ? rng.pick(levels) : 0;
+}
+
+/**
+ * How a show is operated, keyed by the show: its own mix, each stream on screen's channel (its sound sometimes taken
+ * from another on screen, so it places nothing more), and the stream armed to take over, if any: one live now, else
+ * any pushed stream, else a camera on screen ("solo").
+ */
+function operateShow(build: Build, s: number, show: ShowRow, sources: ShowSources, pushed: Pushed, live: Set<string>) {
+  const rng = build.root.child('show', s);
+  show.volumeDb = levelOf(rng.child('show-mix'), 0.15, [-6, -3]);
+  const facts = normalised(showFactsOf(sources, show));
+  const onScreen = positionedOf(facts)
+    .slice(0, show.slots)
+    .map(stream => stream.id);
+  sources.showStreams[show.id] = facts.members.map(member => {
+    if (!onScreen.includes(member.streamId)) return member;
+    const mixRng = rng.child('mix', member.streamId);
+    const others = onScreen.filter(streamId => streamId !== member.streamId);
+    const from = mixRng.child('from');
+    return {
+      ...member,
+      volumeDb: levelOf(mixRng.child('volume'), 0.2, [-12, -6, -3, 3]),
+      muted: mixRng.child('muted').chance(0.1),
+      syncOffsetMs: levelOf(mixRng.child('sync'), 0.1, [-200, 120, 450]),
+      audioStreamId: others.length && from.chance(0.05) ? from.pick(others) : null
+    };
+  });
+  const takeover = rng.child('takeover');
+  if (!takeover.chance(build.spec.operating.takeoverArmed)) return;
+  const livePushed = pushed.streams.filter(stream => stream.exposures.some(exposure => live.has(exposure.id)));
+  const candidates = livePushed.length
+    ? livePushed.map(stream => stream.id)
+    : pushed.streams.length
+      ? pushed.streams.map(stream => stream.id)
+      : onScreen;
+  if (candidates.length === 0) return;
+  show.takeoverStreamId = takeover.child('stream').pick(candidates);
+  show.takeoverLive = takeover.child('live').chance(build.spec.operating.takeoverLive);
 }
 
 /** Channels: the first on Twitch, the rest mostly so, the others RTMP destinations. */
@@ -586,6 +828,17 @@ function controlOf(build: Build, rng: Rng, id: string, deviceId: string): Output
   };
 }
 
+/**
+ * The gateway an output reads every stream from, by the spec's chance: its agent's own site's, where it has one, else
+ * conservation.tv. Null, choosing per stream, otherwise.
+ */
+function inputGatewayOf(build: Build, rng: Rng, deviceId: string | null): string | null {
+  if (!rng.chance(build.spec.operating.outputInputGateways)) return null;
+  const networkId = build.agents.find(agent => agent.id === deviceId)?.networkId;
+  const own = build.gateways.filter(gateway => gateway.networkId === networkId);
+  return own.length ? rng.pick(own).id : BUILTIN_GATEWAY_ID;
+}
+
 /** Outputs follow shows (or are driven from outside), run on an agent (or none yet), and go out to channels. */
 function outputsOf(build: Build, shows: ShowRow[], channels: ChannelRow[]) {
   const outputs: OutputRow[] = [];
@@ -606,6 +859,7 @@ function outputsOf(build: Build, shows: ShowRow[], channels: ChannelRow[]) {
       createdAt: created.toISOString(),
       control: show ? 'show' : 'external',
       showId: show?.id ?? null,
+      inputGatewayId: inputGatewayOf(build, rng.child('input-gateway'), deviceId),
       width: 1920,
       height: 1080,
       fps: rng.pick([25, 30]),
@@ -623,21 +877,33 @@ function outputsOf(build: Build, shows: ShowRow[], channels: ChannelRow[]) {
   return { outputs, outputControls };
 }
 
-/** Chat commands: replies, or a camera with presets pointed at one of them. */
-function chatCommandsOf(build: Build): ChatCommandRow[] {
+/**
+ * Chat commands: replies, or a camera with presets pointed at one of them; or, by the spec's share where there are
+ * shows, one operating the show its output follows (swapping two of its cameras, or taking over).
+ */
+function chatCommandsOf(build: Build, shows: ShowRow[]): ChatCommandRow[] {
   const chatCommands: ChatCommandRow[] = [];
   const presetCameras = build.cameras.filter(camera => camera.presets.length > 0);
+  const showCommands = { showSwap: 0, showTakeover: 0 };
   for (let c = 0; c < build.spec.chatCommands; c++) {
-    // A camera preset command when there's a camera with presets to point, more often than not; else a reply.
+    // A camera preset command when there's a camera with presets to point, more often than not; else a reply. A show's
+    // is decided apart, after them, so the other draws stay as they were.
     const rng = build.root.child('chat-command', c);
     const created = after(rng, build.orgCreated);
     const camera = presetCameras.length && rng.chance(0.6) ? rng.pick(presetCameras) : undefined;
+    const id = rng.uuid(created);
+    const preset = camera ? rng.pick(camera.presets).name : null;
+    const showAction = rng.child('show-action');
+    const operatesShow = shows.length > 0 && showAction.chance(build.spec.operating.showChatCommands);
+    const kind = showAction.pick(['showSwap', 'showTakeover'] as const);
     chatCommands.push({
-      id: rng.uuid(created),
-      name: build.names.command(c),
-      action: camera
-        ? { kind: 'cameraPreset', cameraId: camera.id, preset: rng.pick(camera.presets).name }
-        : { kind: 'reply', text: 'Welcome to the sanctuary! Type !cam to look around.' },
+      id,
+      name: operatesShow ? build.names.showCommand(kind, showCommands[kind]++) : build.names.command(c),
+      action: operatesShow
+        ? { kind }
+        : camera
+          ? { kind: 'cameraPreset', cameraId: camera.id, preset }
+          : { kind: 'reply', text: 'Welcome to the sanctuary! Type !cam to look around.' },
       audience: rng.pick(['everyone', 'everyone', 'subscriber', 'moderator', 'vip', 'broadcaster']),
       cooldownSeconds: rng.pick([0, 30, 60, 300]),
       enabled: rng.chance(0.85),
@@ -682,6 +948,10 @@ function emptyWorld(
     gateways: [],
     streams: [],
     shows: [],
+    showStreams: {},
+    sharedStreams: [],
+    personalStreams: [],
+    publishing: [],
     outputs: [],
     channels: [],
     chatCommands: [],
@@ -721,11 +991,23 @@ export function generateWorld(spec: WorldSpec): World {
   const members = membersOf(build, viewer);
   const invitations = invitationsOf(build, viewer);
   for (let n = 0; n < spec.networks; n++) addSite(build, n);
-  const streams = streamsOf(build);
-  const shows = showsOf(build, streams);
+  const cameraStreams = streamsOf(build);
+  const { shows, showStreams } = showsOf(build, cameraStreams);
+  const pushed = pushedStreamsOf(build, members);
+  const streams = withCodes(build, [...cameraStreams, ...pushed.streams]);
+  const publishing = publishingOf(build, pushed.streams);
+  const sources: ShowSources = {
+    organisationId: organisation.id,
+    streams,
+    cameras: build.cameras,
+    showStreams,
+    states: []
+  };
+  const live = new Set(publishing);
+  for (const [s, show] of shows.entries()) operateShow(build, s, show, sources, pushed, live);
   const channels = channelsOf(build);
   const { outputs, outputControls } = outputsOf(build, shows, channels);
-  const chatCommands = chatCommandsOf(build);
+  const chatCommands = chatCommandsOf(build, shows);
   addBrowsers(build, members);
 
   const world: World = {
@@ -739,6 +1021,10 @@ export function generateWorld(spec: WorldSpec): World {
     gateways: byId(build.gateways),
     streams: byId(streams),
     shows: byId(shows),
+    showStreams,
+    sharedStreams: pushed.sharedStreams,
+    personalStreams: pushed.personalStreams,
+    publishing,
     outputs: byId(outputs),
     channels: byId(channels),
     chatCommands: byId(chatCommands),

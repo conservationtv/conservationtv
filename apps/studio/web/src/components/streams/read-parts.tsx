@@ -1,14 +1,9 @@
 import type { ComponentProps, FC } from 'react';
-import type { Rendition } from '@conservationtv/studio-sdk';
-import { Tabs, TabsList, TabsTrigger } from '@conservationtv/ui/components/tabs';
 import { cn } from '@conservationtv/ui/lib/utils';
 
-import { renditionLabels } from '@/components/streams/renditions';
-
-// The parts of a delivery's card that say how to read it, composed where they're used: the renditions it offers as
-// compact tabs across the card, then one row per way to read it, each its name, what it is for, and its buttons.
+// The parts of a delivery's card that say how to read it, composed where they're used: one row per way to read it,
+// each its name, what it is for, and its buttons.
 //
-//   <RenditionTabs renditions={offered} value={selected} onValueChange={choose} />
 //   <ReadRows>
 //     <ReadRow>
 //       <ReadRowHeading>
@@ -19,41 +14,7 @@ import { renditionLabels } from '@/components/streams/renditions';
 //     </ReadRow>
 //   </ReadRows>
 
-export interface RenditionTabsProps {
-  /** The renditions offered, in the order they are shown. */
-  renditions: Rendition[];
-  value: Rendition;
-  onValueChange: (rendition: Rendition) => void;
-}
-
-/** The renditions as compact line tabs across the card, its rule beneath them running to the card's edges. */
-export const RenditionTabs: FC<RenditionTabsProps> = ({ renditions, value, onValueChange }) => {
-  return (
-    <Tabs
-      value={value}
-      onValueChange={next => {
-        const chosen = renditions.find(candidate => candidate === next);
-        if (chosen !== undefined) onValueChange(chosen);
-      }}
-      className="gap-0"
-    >
-      <TabsList
-        variant="line"
-        size="sm"
-        aria-label="Rendition"
-        className="w-full justify-start border-b border-border px-3 pb-1"
-      >
-        {renditions.map(rendition => (
-          <TabsTrigger key={rendition} value={rendition} className="flex-none">
-            {renditionLabels[rendition]}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
-  );
-};
-
-/** The rows under the tabs, divided, inset as the card's summary is. */
+/** The rows, divided, inset as the card's summary is. */
 export const ReadRows: FC<ComponentProps<'ul'>> = ({ className, ...props }) => {
   return <ul className={cn('divide-y divide-border px-5 pb-1.5', className)} {...props} />;
 };

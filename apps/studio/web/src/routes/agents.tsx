@@ -36,11 +36,11 @@ import {
   SectionTitle
 } from '@/components/common/page';
 import { SubjectHealth } from '@/components/devices/subject-health';
-import { deviceSubjectId, statesBySubject, type SubjectState } from '@/components/devices/subjects';
+import { deviceSubjectId } from '@/components/devices/subjects';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { agentListQueryOptions } from '@/queries/agents';
 import { networkListQueryOptions } from '@/queries/networks';
-import { subjectStateListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Agents · conservation.tv studio' }];
 
@@ -51,16 +51,16 @@ export const meta: Route.MetaFunction = () => [{ title: 'Agents · conservation.
 const AgentsRoute: FC = () => {
   const organisationId = useOrganisationId();
   const administrator = useIsAdministrator();
-  const [agentsQuery, networksQuery, statesQuery] = useSuspenseQueries({
+  const [agentsQuery, networksQuery] = useSuspenseQueries({
     queries: [
       agentListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId)
+      // What each agent's health reads (SubjectHealth), loaded with the page.
+      organisationStatusQueryOptions(organisationId)
     ]
   });
   const networks = networksQuery.data;
   const agents = agentsQuery.data;
-  const states = statesBySubject(statesQuery.data);
   return (
     <Page>
       <PageHeader>
@@ -107,7 +107,6 @@ const AgentsRoute: FC = () => {
           key={network.id}
           network={network}
           agents={agents.filter(agent => agent.networkId === network.id)}
-          states={states}
         />
       ))}
       {/* A dialog routed over the page, such as adding one: `new`. */}
@@ -122,12 +121,10 @@ interface NetworkAgentsProps {
   network: Network;
   /** The agents on this network. */
   agents: Agent[];
-  /** What has been reported about each subject, by subject ID. */
-  states: Map<string, SubjectState>;
 }
 
 /** One network's agents, the active one first; nothing at all for a network without any. */
-const NetworkAgents: FC<NetworkAgentsProps> = ({ network, agents, states }) => {
+const NetworkAgents: FC<NetworkAgentsProps> = ({ network, agents }) => {
   if (agents.length === 0) return null;
   const ordered = agents.toSorted((a, b) => Number(b.active) - Number(a.active) || b.priority - a.priority);
   return (
@@ -149,7 +146,7 @@ const NetworkAgents: FC<NetworkAgentsProps> = ({ network, agents, states }) => {
               <ItemDescription>Priority {agent.priority}</ItemDescription>
             </ItemContent>
             <ItemActions>
-              <SubjectHealth state={states.get(deviceSubjectId(agent.id))} />
+              <SubjectHealth subjectId={deviceSubjectId(agent.id)} />
               <CaretRightIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
             </ItemActions>
           </Item>

@@ -1,30 +1,42 @@
-import { and, eq } from 'drizzle-orm';
-import { exposures, recorders, streams } from '../db/schema.ts';
+import { and, eq, sql } from 'drizzle-orm';
+import { exposures, recorders, shows, showStreams, streams } from '../db/schema.ts';
 import { useDB } from '../db/transaction.ts';
 import { ApiFailure } from '../errors.ts';
-import { checkChain, checkGateway, checkRecorderRendition, checkRenditions } from '../topology/exposures.ts';
-import type { ExposureParams, Rendition, Settings } from '../topology/settings.ts';
+import { checkChain, checkGateway } from '../topology/exposures.ts';
+import type { ExposureParams, Settings } from '../topology/settings.ts';
 import { unchanged } from '../topology/transaction.ts';
 
 // An organisation's streams, each with the exposures that deliver it and the recorders that record them. The database's
 // composite foreign keys keep every reference inside one organisation, and stream; what they cannot check, an
-// exposure's gateway (which may be built in), its upstream chain and the renditions along it, each write checks after
-// it is made (src/topology/exposures.ts), so row-level security has refused a principal who may not first, and checks
-// only what the change could break.
+// exposure's gateway (which may be built in) and its upstream chain, each write checks after it is made
+// (src/topology/exposures.ts), so row-level security has refused a principal who may not first, and checks only what
+// the change could break.
 
 export interface NewStream {
   name: string;
+  code?: string | null;
   sourceDeviceId: string | null;
 }
 
 export interface StreamChanges {
   name?: string;
+  code?: string | null;
   sourceDeviceId?: string | null;
+}
+
+/** What a stream is read with from the versions that have short codes, which earlier versions leave out. */
+interface CodedStream {
+  code: string | null;
+}
+
+/** A stream as the operations before short codes return it. */
+export function withoutCode<Stream extends CodedStream>(stream: Stream) {
+  const { code: _code, ...rest } = stream;
+  return rest;
 }
 
 export interface NewExposure {
   gatewayId: string;
-  renditions: Rendition[];
   publisherDeviceId: string | null;
   upstreamExposureId: string | null;
   params: ExposureParams;
@@ -32,7 +44,6 @@ export interface NewExposure {
 
 export interface ExposureChanges {
   gatewayId?: string;
-  renditions?: Rendition[];
   publisherDeviceId?: string | null;
   upstreamExposureId?: string | null;
   params?: ExposureParams;
@@ -40,14 +51,12 @@ export interface ExposureChanges {
 
 export interface NewRecorder {
   exposureId: string;
-  rendition: Rendition;
   kind: string;
   params: Settings;
 }
 
 export interface RecorderChanges {
   exposureId?: string;
-  rendition?: Rendition;
   kind?: string;
   params?: Settings;
 }
@@ -56,13 +65,12 @@ export interface RecorderChanges {
 export function listStreams(organisationId: string) {
   const db = useDB();
   return db.query.streams.findMany({
-    columns: { id: true, name: true, sourceDeviceId: true, createdAt: true },
+    columns: { id: true, name: true, code: true, sourceDeviceId: true, createdAt: true },
     with: {
       exposures: {
         columns: {
           id: true,
           gatewayId: true,
-          renditions: true,
           publisherDeviceId: true,
           upstreamExposureId: true,
           params: true,
@@ -71,7 +79,7 @@ export function listStreams(organisationId: string) {
         orderBy: { id: 'asc' }
       },
       recorders: {
-        columns: { id: true, exposureId: true, rendition: true, kind: true, params: true, createdAt: true },
+        columns: { id: true, exposureId: true, kind: true, params: true, createdAt: true },
         orderBy: { id: 'asc' }
       }
     },
@@ -87,6 +95,7 @@ export async function getStream(organisationId: string, streamId: string) {
     .select({
       id: streams.id,
       name: streams.name,
+      code: streams.code,
       sourceDeviceId: streams.sourceDeviceId,
       createdAt: streams.createdAt
     })
@@ -99,26 +108,31 @@ export async function createStream(organisationId: string, payload: NewStream) {
   const db = useDB();
   const [row] = await db
     .insert(streams)
-    .values({ organisationId, name: payload.name, sourceDeviceId: payload.sourceDeviceId })
+    .values({ organisationId, name: payload.name, code: payload.code, sourceDeviceId: payload.sourceDeviceId })
     .returning({
       id: streams.id,
       name: streams.name,
+      code: streams.code,
       sourceDeviceId: streams.sourceDeviceId,
       createdAt: streams.createdAt
     });
   return row!;
 }
 
-/** Rename the stream, or change its source: `forbidden` or `not_found` when the write reaches no row. */
+/**
+ * Rename the stream, change its short code, or change its source: `forbidden` or `not_found` when the write reaches no
+ * row, `conflict` for a code another of the organisation's streams has.
+ */
 export async function updateStream(organisationId: string, streamId: string, changes: StreamChanges) {
   const db = useDB();
   const [row] = await db
     .update(streams)
-    .set({ name: changes.name, sourceDeviceId: changes.sourceDeviceId })
+    .set({ name: changes.name, code: changes.code, sourceDeviceId: changes.sourceDeviceId })
     .where(and(eq(streams.organisationId, organisationId), eq(streams.id, streamId)))
     .returning({
       id: streams.id,
       name: streams.name,
+      code: streams.code,
       sourceDeviceId: streams.sourceDeviceId,
       createdAt: streams.createdAt
     });
@@ -126,9 +140,21 @@ export async function updateStream(organisationId: string, streamId: string, cha
   return row;
 }
 
-/** Delete the stream, with its exposures and recorders: `forbidden` or `not_found` when the write reaches no row. */
+/**
+ * Delete the stream, with its exposures and recorders and its settings in each show: `forbidden` or `not_found` when
+ * the write reaches no row. A show it is armed to take over is disarmed first, and a show's stream that brings its
+ * sound goes back to its own, since their foreign keys cannot clear just the one column (src/db/schemas/shows.ts).
+ */
 export async function deleteStream(organisationId: string, streamId: string) {
   const db = useDB();
+  await db
+    .update(shows)
+    .set({ takeoverStreamId: null, takeoverLive: false })
+    .where(and(eq(shows.organisationId, organisationId), eq(shows.takeoverStreamId, streamId)));
+  await db
+    .update(showStreams)
+    .set({ audioStreamId: null })
+    .where(and(eq(showStreams.organisationId, organisationId), eq(showStreams.audioStreamId, streamId)));
   const deleted = await db
     .delete(streams)
     .where(and(eq(streams.organisationId, organisationId), eq(streams.id, streamId)))
@@ -143,7 +169,6 @@ export function listExposures(organisationId: string, streamId: string) {
     .select({
       id: exposures.id,
       gatewayId: exposures.gatewayId,
-      renditions: exposures.renditions,
       publisherDeviceId: exposures.publisherDeviceId,
       upstreamExposureId: exposures.upstreamExposureId,
       params: exposures.params,
@@ -155,8 +180,8 @@ export function listExposures(organisationId: string, streamId: string) {
 }
 
 /**
- * Expose the stream: `invalid_reference` for a gateway that is not there, and `rendition_not_offered` for a rendition
- * its upstream does not offer. A new exposure is no one's upstream yet, so its chain cannot loop.
+ * Expose the stream: `invalid_reference` for a gateway that is not there. A new exposure is no one's upstream yet, so
+ * its chain cannot loop.
  */
 export async function createExposure(organisationId: string, streamId: string, payload: NewExposure) {
   const db = useDB();
@@ -166,7 +191,6 @@ export async function createExposure(organisationId: string, streamId: string, p
       organisationId,
       streamId,
       gatewayId: payload.gatewayId,
-      renditions: payload.renditions,
       publisherDeviceId: payload.publisherDeviceId,
       upstreamExposureId: payload.upstreamExposureId,
       params: payload.params
@@ -174,21 +198,20 @@ export async function createExposure(organisationId: string, streamId: string, p
     .returning({
       id: exposures.id,
       gatewayId: exposures.gatewayId,
-      renditions: exposures.renditions,
       publisherDeviceId: exposures.publisherDeviceId,
       upstreamExposureId: exposures.upstreamExposureId,
       params: exposures.params,
       createdAt: exposures.createdAt
     });
   await checkGateway(organisationId, payload.gatewayId);
-  if (payload.upstreamExposureId) await checkRenditions(row!.id);
   return row!;
 }
 
 /**
  * Change the exposure: `forbidden` or `not_found` when the write reaches no row, then what the change could break:
- * the gateway when it changed, the chain when it gained an upstream (`exposure_cycle`), and the renditions along it
- * when they or the upstream changed.
+ * the gateway when it changed, and the chain when it gained an upstream (`exposure_cycle`). With nothing to change,
+ * as a released version's change of renditions alone, it is written as it is, so whether the caller may is decided
+ * the same.
  */
 export async function updateExposure(
   organisationId: string,
@@ -201,8 +224,7 @@ export async function updateExposure(
   const [row] = await db
     .update(exposures)
     .set({
-      gatewayId: changes.gatewayId,
-      renditions: changes.renditions,
+      gatewayId: changes.gatewayId ?? sql`${exposures.gatewayId}`,
       publisherDeviceId: changes.publisherDeviceId,
       upstreamExposureId: changes.upstreamExposureId,
       params: changes.params
@@ -213,7 +235,6 @@ export async function updateExposure(
     .returning({
       id: exposures.id,
       gatewayId: exposures.gatewayId,
-      renditions: exposures.renditions,
       publisherDeviceId: exposures.publisherDeviceId,
       upstreamExposureId: exposures.upstreamExposureId,
       params: exposures.params,
@@ -222,7 +243,6 @@ export async function updateExposure(
   if (!row) throw await unchanged(exposures.id, exposureId);
   if (changes.gatewayId !== undefined) await checkGateway(organisationId, row.gatewayId);
   if (changes.upstreamExposureId) await checkChain(streamId, exposureId);
-  if (changes.renditions !== undefined || changes.upstreamExposureId !== undefined) await checkRenditions(exposureId);
   return row;
 }
 
@@ -245,7 +265,6 @@ export function listRecorders(organisationId: string, streamId: string) {
     .select({
       id: recorders.id,
       exposureId: recorders.exposureId,
-      rendition: recorders.rendition,
       kind: recorders.kind,
       params: recorders.params,
       createdAt: recorders.createdAt
@@ -255,7 +274,7 @@ export function listRecorders(organisationId: string, streamId: string) {
     .orderBy(recorders.id);
 }
 
-/** Record one of the renditions an exposure of the stream offers: `rendition_not_offered` for one it does not. */
+/** Record what an exposure of the stream carries. */
 export async function createRecorder(organisationId: string, streamId: string, payload: NewRecorder) {
   const db = useDB();
   const [row] = await db
@@ -264,25 +283,22 @@ export async function createRecorder(organisationId: string, streamId: string, p
       organisationId,
       streamId,
       exposureId: payload.exposureId,
-      rendition: payload.rendition,
       kind: payload.kind,
       params: payload.params
     })
     .returning({
       id: recorders.id,
       exposureId: recorders.exposureId,
-      rendition: recorders.rendition,
       kind: recorders.kind,
       params: recorders.params,
       createdAt: recorders.createdAt
     });
-  await checkRecorderRendition(row!.id);
   return row!;
 }
 
 /**
- * Change the recorder: `forbidden` or `not_found` when the write reaches no row, and `rendition_not_offered` when
- * what it records changed to a rendition its exposure does not offer.
+ * Change the recorder: `forbidden` or `not_found` when the write reaches no row. With nothing to change, as a released
+ * version's change of rendition alone, it is written as it is, so whether the caller may is decided the same.
  */
 export async function updateRecorder(
   organisationId: string,
@@ -293,20 +309,22 @@ export async function updateRecorder(
   const db = useDB();
   const [row] = await db
     .update(recorders)
-    .set({ exposureId: changes.exposureId, rendition: changes.rendition, kind: changes.kind, params: changes.params })
+    .set({
+      exposureId: changes.exposureId ?? sql`${recorders.exposureId}`,
+      kind: changes.kind,
+      params: changes.params
+    })
     .where(
       and(eq(recorders.organisationId, organisationId), eq(recorders.streamId, streamId), eq(recorders.id, recorderId))
     )
     .returning({
       id: recorders.id,
       exposureId: recorders.exposureId,
-      rendition: recorders.rendition,
       kind: recorders.kind,
       params: recorders.params,
       createdAt: recorders.createdAt
     });
   if (!row) throw await unchanged(recorders.id, recorderId);
-  if (changes.exposureId !== undefined || changes.rendition !== undefined) await checkRecorderRendition(recorderId);
   return row;
 }
 

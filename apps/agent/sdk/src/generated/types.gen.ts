@@ -427,14 +427,10 @@ export type GetSystemSpecResponses = {
      * The current system specification
      */
     200: {
-        machine?: {
-            intervalMs: number;
-        };
         streams?: {
             paths: Array<{
-                name: string;
                 exposureId: string;
-                rendition?: string;
+                name: string;
                 source?: {
                     url: string;
                 } | {
@@ -447,11 +443,7 @@ export type GetSystemSpecResponses = {
             }>;
             publishers: Array<{
                 exposureId: string;
-                layout: 'tracks';
-                renditions: Array<{
-                    rendition: 'default' | 'data_saver' | 'balanced' | 'quality';
-                    path: string;
-                }>;
+                path: string;
                 connect: string;
                 broadcast: string;
             }>;
@@ -467,12 +459,14 @@ export type GetSystemSpecResponses = {
                 notAfter: string;
             };
         };
+        machine?: {
+            intervalMs: number;
+        };
         metrics?: {
             intervalMs: number;
             paths: Array<{
                 exposureId: string;
                 name: string;
-                rendition?: string;
             }>;
         };
         relayTraffic?: {
@@ -482,6 +476,11 @@ export type GetSystemSpecResponses = {
             exposures: Array<{
                 exposureId: string;
                 prefix: string;
+            }>;
+            watched: Array<{
+                exposureId: string;
+                connect: string;
+                broadcast: string;
             }>;
         };
         probes?: {

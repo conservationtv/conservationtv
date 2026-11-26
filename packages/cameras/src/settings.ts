@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 // What a camera is registered with: its settings, chosen by `driver`, and how to authenticate to it. A driver is what
-// is known about one kind of camera: where each rendition of its stream is pulled from (origins.ts), and how it is
-// controlled (control/). Credentials are kept apart from the settings, encrypted, since members read the settings.
+// is known about one kind of camera: where its stream is pulled from, and any smaller one it can make itself
+// (origins.ts), and how it is controlled (control/). Credentials are kept apart from the settings, encrypted, since members read the settings.
 
 /** How a camera is reached. Kept encrypted, and never returned. */
 export const CameraCredentialsSchema = z
@@ -27,7 +27,7 @@ const AxisSettingsSchema = z.strictObject({
 });
 export type AxisSettings = z.output<typeof AxisSettingsSchema>;
 
-/** Any camera with one RTSP stream, which it produces as it is: only the `default` rendition, and no control. */
+/** Any camera with one RTSP stream, which it produces as it is: one picture, and no control. */
 const RtspSettingsSchema = z.strictObject({
   driver: z.literal('rtsp'),
   /** Its stream, without credentials. */

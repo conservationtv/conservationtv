@@ -1,5 +1,5 @@
 import { pipeline } from '@conservationtv/mediamtx';
-import { PublisherSchema, type MediamtxAuth } from '@conservationtv/studio-sdk';
+import { ExposurePublisherSchema, type MediamtxAuth } from '@conservationtv/studio-sdk';
 import { z } from 'zod';
 import { common, renderYaml } from '../../mediamtx/config.ts';
 import { auth } from './builders/auth.ts';
@@ -23,16 +23,17 @@ export interface MediamtxListening {
 }
 
 /**
- * An exposure the agent publishes to a MoQ relay, from renditions its own MediaMTX serves. Each rendition is a
- * broadcast of its own under the exposure's path, which MediaMTX runs the moq CLI for, pulling it over RTMP from
- * MediaMTX itself (`reach.rtmp`). The agent joins them (joiner.ts) into the one broadcast readers watch, whose catalog
- * names each rendition's tracks in its own broadcast. `connect` carries its token as `?jwt=`, so new credentials are a
- * changed config, which restarts the CLI.
+ * An exposure the agent publishes to a MoQ relay, from the path its own MediaMTX serves it at: the moq CLI pulls the
+ * path over RTMP from MediaMTX itself (`reach.rtmp`) and publishes it as the one broadcast readers watch under the
+ * exposure's path, with a catalog of its own saying what it carries. The agent reads that back through the relay
+ * (relay-check.ts). `connect` carries its token as `?jwt=`, so new credentials restart the CLI: MediaMTX runs it for a
+ * path with a source, from a path of its own whose config they change; the agent runs it for a pushed path (pushed.ts),
+ * whose config they must not.
  */
-export const MoqPublisherSchema = PublisherSchema.extend({
+export const MoqPublisherSchema = ExposurePublisherSchema.extend({
   /** The relay URL to dial, with the exposure's path and token, in place of the `connect` ask it came from. */
   connect: z.url(),
-  /** The joined broadcast under it. */
+  /** The broadcast under it, which readers watch. */
   broadcast: z.string().min(1)
 }).strict();
 export type MoqPublisher = z.output<typeof MoqPublisherSchema>;
@@ -51,6 +52,11 @@ export interface MediamtxServing {
   auth?: MediamtxAuth;
   /** Absent when it publishes nothing. */
   publishing?: MoqPublishing;
+  /**
+   * The hook every pushed path runs while it is published, telling the agent so (pushed.ts), the same for as long as
+   * the agent runs; absent, they run none.
+   */
+  available?: string;
   /** The certificate it serves TLS with (tls.ts); absent, it serves everything in the clear. */
   tls?: TlsFiles;
 }

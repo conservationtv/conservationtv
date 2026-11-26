@@ -149,7 +149,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: "List where a gateway's servers are reached",
       description:
-        "One base URL per protocol, as the agent running the gateway registered them (`gatewayEndpoints.replace`) from what its MediaMTX actually listens on, by protocol. Only the network's active agent's count, and only until they expire, which they do soon after it stops. An exposure's rendition is served under each at `<exposure>/<rendition>`. Empty while no agent runs the gateway, and for a built-in gateway, which registers none.",
+        "One base URL per protocol, as the agent running the gateway registered them (`gatewayEndpoints.replace`) from what its MediaMTX actually listens on, by protocol. Only the network's active agent's count, and only until they expire, which they do soon after it stops. An exposure is served under each at `<exposure>/live`, as a preview is at `<preview>/live`. Empty while no agent runs the gateway, and for a built-in gateway, which registers none.",
       responses: {
         200: { description: 'The endpoints, by protocol' },
         400: invalidRequest,

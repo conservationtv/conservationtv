@@ -230,6 +230,83 @@ export const NAMED_SCENARIOS: Scenario[] = [
     }
   ),
   scenario(
+    'takeover-live',
+    'A takeover on air',
+    'A pushed stream someone is publishing to has taken over the show, on air: the grid is released. Streams have short codes, and chat can swap and take over.',
+    {
+      networks: 2,
+      camerasPerNetwork: [2, 3],
+      gatewaysPerNetwork: [1, 1],
+      slotsPerShow: [4, 4],
+      pushedStreams: 1,
+      operating: { pushedLive: 1, takeoverArmed: 1, takeoverLive: 1, streamCodes: 1, showChatCommands: 0.6 },
+      chatCommands: 4,
+      channels: 1
+    }
+  ),
+  scenario(
+    'went-live',
+    'Just went live',
+    'Someone has just gone live on a pushed stream and the show has nothing armed: its controls offer Preview and Take over.',
+    {
+      networks: 2,
+      camerasPerNetwork: [2, 3],
+      gatewaysPerNetwork: [1, 1],
+      pushedStreams: 1,
+      operating: { pushedLive: 1 }
+    }
+  ),
+  scenario(
+    'empty-slots',
+    'Fewer cameras than slots',
+    'A six-slot show on a site with two cameras: the layout keeps its shape and four slots show the empty card.',
+    {
+      networks: 1,
+      camerasPerNetwork: [2, 2],
+      gatewaysPerNetwork: [1, 1],
+      slotsPerShow: [6, 6]
+    }
+  ),
+  scenario(
+    'no-slots',
+    'No slots',
+    'A show set to no slots, with cameras to spare: nothing is on screen and every camera in its lineup is not placed.',
+    {
+      networks: 2,
+      camerasPerNetwork: [2, 3],
+      gatewaysPerNetwork: [1, 1],
+      slotsPerShow: [0, 0]
+    }
+  ),
+  scenario(
+    'site-only',
+    'Delivered on site only',
+    "Every camera is delivered only through its site's own gateway, never to conservation.tv, and each output reads from its site's: no browser can play the show's cameras, so the stage shows their cards, and the show's controls warn that its outputs cannot reach any camera on screen from the other site.",
+    {
+      networks: 2,
+      camerasPerNetwork: [2, 3],
+      gatewaysPerNetwork: [1, 1],
+      shows: 1,
+      outputs: 2,
+      channels: 1,
+      operating: { siteOnlyStreams: 1, outputInputGateways: 1 }
+    }
+  ),
+  scenario(
+    'publisher',
+    'A member who may publish',
+    'Signed in as a member an administrator let go live: Go live offers the camera and screen, and their own stream has gone live before.',
+    {
+      viewer: 'publisher',
+      networks: 2,
+      camerasPerNetwork: [2, 3],
+      gatewaysPerNetwork: [1, 1],
+      members: 3,
+      pushedStreams: 1,
+      operating: { personalStreams: 1 }
+    }
+  ),
+  scenario(
     'slow-api',
     'A slow API',
     'The typical sanctuary with its topology and status never answering: what pages show while they load.',
@@ -275,7 +352,37 @@ const CAMERAS_BY_SCALE = { tiny: [0, 1], small: [1, 3], medium: [2, 6], large: [
   Range
 >;
 
-/** A world sampled from the knobs: scale, gaps and health each drawn at random for seed `n`. */
+/**
+ * How a random world's shows are operated and who goes live in it, each knob from a stream of its own so drawing them
+ * moves none of the world's other draws: by one level for all of it, which for most worlds is none yet.
+ */
+function randomOperating(rng: Rng, scale: Scale): Pick<SpecOverrides, 'slotsPerShow' | 'pushedStreams' | 'operating'> {
+  const level = rng.child('operating').pick([0, 0, 0.3, 0.7]);
+  const operate = (name: string) => rng.child('operating', name).float() * level;
+  return {
+    slotsPerShow: rng.child('slotsPerShow').pick([null, null, null, [0, 6], [6, 6]] as const),
+    pushedStreams: level ? rng.child('pushedStreams').int(0, scale === 'large' ? 4 : 2) : 0,
+    operating: {
+      streamCodes: operate('streamCodes'),
+      siteOnlyStreams: operate('siteOnlyStreams') / 2,
+      publishers: operate('publishers'),
+      personalStreams: operate('personalStreams'),
+      pushedLive: operate('pushedLive'),
+      takeoverArmed: operate('takeoverArmed'),
+      takeoverLive: operate('takeoverLive'),
+      outputInputGateways: operate('outputInputGateways') / 2,
+      showChatCommands: operate('showChatCommands')
+    }
+  };
+}
+
+/** Who a random world is seen by: mostly an administrator; else a member, some of them let publish. */
+function randomViewer(rng: Rng): WorldSpec['viewer'] {
+  if (rng.chance(0.75)) return 'admin';
+  return rng.child('viewer').chance(0.3) ? 'publisher' : 'member';
+}
+
+/** A world sampled from the knobs: scale, gaps, operating and health each drawn at random for seed `n`. */
 export function randomScenario(n: number): Scenario {
   const rng = new Rng(`random/${n}`);
   const scale = rng.weighted({ tiny: 2, small: 4, medium: 3, large: 1 });
@@ -288,7 +395,7 @@ export function randomScenario(n: number): Scenario {
   const roll = (name: string) => rng.child('health', name).float() * outage;
   const spec = specOf(BASE_SPEC, {
     seed: `random-${n}`,
-    viewer: rng.chance(0.75) ? 'admin' : 'member',
+    viewer: randomViewer(rng),
     names: rng.chance(0.15) ? 'long' : 'normal',
     organisations: rng.chance(0.75) ? 1 : rng.int(2, 3),
     networks: rng.range(networks),
@@ -301,6 +408,7 @@ export function randomScenario(n: number): Scenario {
     outputs: rng.int(0, scale === 'large' ? 8 : 3),
     // Its own stream, so drawing it moves none of the others: most worlds drive none from outside, some some, a few all.
     externalOutputs: rng.child('externalOutputs').pick([0, 0, 0, 0.3, 0.5, 1]),
+    ...randomOperating(rng, scale),
     channels: rng.int(0, scale === 'large' ? 6 : 3),
     chatCommands: rng.int(0, 8),
     members: rng.int(0, scale === 'large' ? 30 : 5),

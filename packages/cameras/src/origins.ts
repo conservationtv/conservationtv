@@ -1,14 +1,16 @@
 import type { AxisSettings, CameraCredentials, CameraSettings, Resolution, RtspSettings } from './settings.ts';
 
-// Where each rendition of a camera's stream is pulled from, by its driver. A driver says which renditions the camera
-// can produce itself; the others need a publisher that transcodes, which nothing does yet. The agent that reaches the
-// camera builds these from its settings and credentials; the studio API still does for agents built before they did.
+// Where a camera's stream is pulled from, by its driver: the camera's own picture, which every driver has, and a
+// smaller one where the camera can encode it itself. A delivery carries the camera's picture, and, where its protocol
+// can, smaller ones beside it, which the system decides from what the source can do (docs/shows.md, Delivery):
+// nothing asks for a smaller one yet. The agent that reaches the camera builds these from its settings and
+// credentials; the studio API still does for agents built before they did.
 
-/**
- * The qualities a stream is delivered at, as the studio API names them (its `RENDITIONS`): `default` is the camera's
- * stream as it comes, which every driver has.
- */
-export type CameraRendition = 'default' | 'data_saver' | 'balanced' | 'quality';
+/** A smaller picture than the camera's own: the largest it has within a width, at most a bitrate. */
+export interface CameraRung {
+  maxWidth: number;
+  maxBitrateKbps: number;
+}
 
 /** The URL with the credentials as its userinfo, which RTSP clients such as MediaMTX read. */
 function withCredentials(url: URL, credentials: CameraCredentials | undefined) {
@@ -17,18 +19,6 @@ function withCredentials(url: URL, credentials: CameraCredentials | undefined) {
   url.password = credentials.password;
   return url.href;
 }
-
-/** What an Axis rendition asks for: the largest resolution the camera has within a size, at most a bitrate. */
-interface AxisTarget {
-  maxWidth: number;
-  maxBitrateKbps: number;
-}
-
-const AXIS_TARGETS = {
-  quality: { maxWidth: Number.POSITIVE_INFINITY, maxBitrateKbps: 4_000 },
-  balanced: { maxWidth: 960, maxBitrateKbps: 1_500 },
-  data_saver: { maxWidth: 640, maxBitrateKbps: 500 }
-} satisfies Record<Exclude<CameraRendition, 'default'>, AxisTarget>;
 
 /**
  * The largest of the camera's resolutions within the width, in the aspect ratio of its largest (Axis lists 4:3 and
@@ -41,17 +31,17 @@ function axisResolution(resolutions: Resolution[], maxWidth: number) {
   });
   const bySize = sizes.toSorted((a, b) => b.width - a.width);
   const largest = bySize[0]!;
-  // Only the largest's aspect ratio, so one stream's renditions are never letterboxed apart.
+  // Only the largest's aspect ratio, so a smaller picture is never letterboxed apart from the camera's.
   const matching = bySize.filter(size => size.width * largest.height === largest.width * size.height);
   const chosen = matching.find(size => size.width <= maxWidth) ?? matching.at(-1)!;
   return `${chosen.width}x${chosen.height}`;
 }
 
 /**
- * An Axis rendition: `default` is the camera's own settings, in H.264; the others are sized and capped per request.
- * Audio is AAC, which RTMP carries to MoQ publishers, though MediaMTX's WebRTC cannot send it.
+ * An Axis camera's stream: its own settings, in H.264, or a smaller encode it makes per request (VAPIX `resolution`,
+ * `videomaxbitrate`). Audio is AAC, which RTMP carries to MoQ publishers, though MediaMTX's WebRTC cannot send it.
  */
-function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | undefined, rendition: CameraRendition) {
+function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | undefined, rung?: CameraRung) {
   // Its RTSP server is on the same host, on its own port (554 unless set), under the same base path (a proxy may serve
   // several cameras, each under its own). Built anew: a web URL's scheme cannot become `rtsp:`.
   const host = new URL(settings.host);
@@ -60,31 +50,42 @@ function axisOrigin(settings: AxisSettings, credentials: CameraCredentials | und
   if (settings.rtspPort !== undefined) url.port = String(settings.rtspPort);
   url.searchParams.set('videocodec', 'h264');
   url.searchParams.set('audiocodec', 'aac');
-  if (rendition !== 'default') {
-    const target = AXIS_TARGETS[rendition];
-    url.searchParams.set('resolution', axisResolution(settings.resolutions, target.maxWidth));
+  if (rung !== undefined) {
+    url.searchParams.set('resolution', axisResolution(settings.resolutions, rung.maxWidth));
     url.searchParams.set('videobitratemode', 'mbr');
-    url.searchParams.set('videomaxbitrate', String(target.maxBitrateKbps));
+    url.searchParams.set('videomaxbitrate', String(rung.maxBitrateKbps));
   }
   return withCredentials(url, credentials);
 }
 
-/** A plain RTSP camera's only rendition, `default`. */
-function rtspOrigin(settings: RtspSettings, credentials: CameraCredentials | undefined, rendition: CameraRendition) {
-  if (rendition !== 'default') return undefined;
+/** A plain RTSP camera's one stream, as it is. */
+function rtspOrigin(settings: RtspSettings, credentials: CameraCredentials | undefined) {
   return withCredentials(new URL(settings.url), credentials);
 }
 
-/** Where to pull the rendition from the camera, credentials included; `undefined` when the camera cannot produce it. */
-export function cameraOrigin(
+/** Where to pull the camera's own picture from, credentials included. */
+export function cameraOrigin(settings: CameraSettings, credentials: CameraCredentials | undefined): string {
+  switch (settings.driver) {
+    case 'axis':
+      return axisOrigin(settings, credentials);
+    case 'rtsp':
+      return rtspOrigin(settings, credentials);
+  }
+}
+
+/**
+ * Where to pull a smaller picture the camera encodes itself, credentials included: `undefined` when it cannot, as a
+ * plain RTSP camera, which has its one stream.
+ */
+export function cameraRungOrigin(
   settings: CameraSettings,
   credentials: CameraCredentials | undefined,
-  rendition: CameraRendition
+  rung: CameraRung
 ): string | undefined {
   switch (settings.driver) {
     case 'axis':
-      return axisOrigin(settings, credentials, rendition);
+      return axisOrigin(settings, credentials, rung);
     case 'rtsp':
-      return rtspOrigin(settings, credentials, rendition);
+      return undefined;
   }
 }

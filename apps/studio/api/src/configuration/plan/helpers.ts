@@ -1,11 +1,20 @@
 import { and, eq, inArray, ne } from 'drizzle-orm';
-import { cameraOrigin } from '@conservationtv/cameras';
-import { agents, cameras, deviceAddresses, devices, gateways, organisations, outputPreviews } from '../../db/schema.ts';
+import { alias } from 'drizzle-orm/pg-core';
+import {
+  agents,
+  cameras,
+  deviceAddresses,
+  devices,
+  exposures,
+  gateways,
+  organisations,
+  outputPreviews
+} from '../../db/schema.ts';
 import { useDB } from '../../db/transaction.ts';
 import { useEnvironment } from '../../env/env.ts';
+import { BUILTIN_GATEWAY_IDS, BUILTIN_GATEWAYS } from '../../gateways/index.ts';
 import type { AuthenticatedDevice } from '../../middleware/device.ts';
-import type { Rendition } from '../../topology/settings.ts';
-import type { CameraPathSource, MediamtxAuth, PlannedCamera, PlannedPeer } from './types.ts';
+import type { CameraPathSource, MediamtxAuth, PlannedCamera, PlannedPeer, PushSource } from './types.ts';
 
 // The steps of planning a device's configuration (src/configuration/plan/index.ts).
 
@@ -156,7 +165,7 @@ export function selectStreams(agentId: string, gatewayId: string) {
         with: { camera: { columns: { settings: true, credentials: true, state: true } } }
       },
       exposures: {
-        columns: { id: true, gatewayId: true, upstreamExposureId: true, renditions: true },
+        columns: { id: true, gatewayId: true, upstreamExposureId: true },
         where: delivered(agentId, gatewayId),
         orderBy: { id: 'asc' }
       }
@@ -167,8 +176,77 @@ export function selectStreams(agentId: string, gatewayId: string) {
 }
 export type StreamInput = Awaited<ReturnType<typeof selectStreams>>[number];
 export type ExposureInput = StreamInput['exposures'][number];
-/** A stream's source device's camera, when it is one. */
-export type CameraInput = NonNullable<NonNullable<StreamInput['sourceDevice']>['camera']>;
+
+/** One of the organisation's exposures on a gateway whose relays publish stats, and the agent that covers it. */
+export interface CoveredExposure {
+  id: string;
+  streamId: string;
+  gatewayId: string;
+  /** The agent that reports what the relays carry of it, and whether they have it; null while the organisation has none. */
+  coveredBy: string | null;
+}
+
+/**
+ * Who covers each of the organisation's exposures on a gateway whose relays publish stats (docs/shows.md, Health and
+ * stats without an agent): exactly one agent, which reports what the relays carry of it and whether they have it.
+ *
+ *   the agent that delivers it   as `delivered` decides: its pinned publisher, or with none the active agent whose
+ *                                MediaMTX gateway its upstream is on, while that agent runs a gateway, so has the
+ *                                exposure in its plan, whether or not it can publish it now;
+ *   otherwise the fallback       the organisation's oldest active agent (the lowest ID: they are UUIDv7). A browser
+ *                                publishing straight to the relay, an exposure whose upstream no agent delivers, or one
+ *                                pinned to a device that is not an agent running a gateway, is covered by it.
+ *
+ * The fallback is chosen from rows alone, never from who is online, so every agent that asks works it out the same, and
+ * it changes only when that agent is removed or stops being its network's active agent. Two agents can both believe
+ * they cover an exposure for at most one configuration interval each: both read the same relay, so their opinions
+ * agree, and the one no longer told to stops reporting and goes stale.
+ */
+export async function selectRelayCoverage(organisationId: string): Promise<CoveredExposure[]> {
+  const statsGatewayIds = BUILTIN_GATEWAY_IDS.filter(id => BUILTIN_GATEWAYS[id].stats !== undefined);
+  if (statsGatewayIds.length === 0) return [];
+  const db = useDB({ trusted: true });
+  const upstreams = alias(exposures, 'upstream');
+  const rows = await db
+    .select({
+      id: exposures.id,
+      streamId: exposures.streamId,
+      gatewayId: exposures.gatewayId,
+      publisherDeviceId: exposures.publisherDeviceId,
+      upstreamGatewayId: upstreams.gatewayId
+    })
+    .from(exposures)
+    .leftJoin(upstreams, eq(upstreams.id, exposures.upstreamExposureId))
+    .where(and(eq(exposures.organisationId, organisationId), inArray(exposures.gatewayId, statsGatewayIds)))
+    .orderBy(exposures.id);
+  if (rows.length === 0) return [];
+  // Each active agent, oldest first, with the MediaMTX gateway it runs, as `selectLocalGateway` picks it: the first.
+  const active = await db
+    .select({ id: agents.id, gatewayId: gateways.id })
+    .from(agents)
+    .leftJoin(
+      gateways,
+      and(
+        eq(gateways.organisationId, agents.organisationId),
+        eq(gateways.networkId, agents.networkId),
+        eq(gateways.kind, 'mediamtx')
+      )
+    )
+    .where(and(eq(agents.organisationId, organisationId), eq(agents.active, true)))
+    .orderBy(agents.id, gateways.id);
+  const runs = new Map<string, string>();
+  for (const { id, gatewayId } of active) if (gatewayId !== null && !runs.has(id)) runs.set(id, gatewayId);
+  const agentOf = new Map([...runs].map(([agentId, gatewayId]) => [gatewayId, agentId]));
+  const fallback = active[0]?.id ?? null;
+  return rows.map(({ publisherDeviceId, upstreamGatewayId, ...exposure }) => {
+    // Its pinned publisher, while that agent runs a gateway; with none pinned, the agent whose gateway its upstream is
+    // on; otherwise, or with neither delivering it, the fallback.
+    const pinned = publisherDeviceId !== null && runs.has(publisherDeviceId) ? publisherDeviceId : undefined;
+    const upstream =
+      publisherDeviceId === null && upstreamGatewayId !== null ? agentOf.get(upstreamGatewayId) : undefined;
+    return { ...exposure, coveredBy: pinned ?? upstream ?? fallback };
+  });
+}
 
 /** The kind of each of the organisation's own gateways, by ID: a built-in gateway's slug says what it is. */
 export async function selectGatewayKinds(organisationId: string) {
@@ -191,19 +269,11 @@ export function selectGatewayPreviews(organisationId: string, gatewayId: string)
 
 // Planning, from what was read alone.
 
-/** Where one rendition of an exposure comes from on this agent: a camera to pull, or a path its MediaMTX already serves. */
-export type Feed = CameraPathSource;
-
-/** A camera's renditions, each pulled from the camera; the ones its driver cannot produce are left out. */
-export function cameraFeeds(exposure: ExposureInput, cameraId: string, camera: CameraInput) {
-  const feeds = new Map<Rendition, Feed>();
-  for (const rendition of exposure.renditions) {
-    const url = cameraOrigin(camera.settings, camera.credentials ?? undefined, rendition);
-    // Nothing transcodes yet.
-    if (url !== undefined) feeds.set(rendition, { cameraId });
-  }
-  return feeds;
-}
+/**
+ * Where an exposure comes from on this agent: a camera to pull, a path its MediaMTX already serves, or, for a pushed
+ * stream's ingest, its publisher.
+ */
+export type Feed = CameraPathSource | PushSource;
 
 /**
  * How tokens are checked by the agent's MediaMTX: as src/gateways/mediamtx.ts signs them, with the agent's own key,

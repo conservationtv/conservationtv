@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
-import type { Output, Show } from '@conservationtv/studio-sdk';
+import type { Output } from '@conservationtv/studio-sdk';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +24,7 @@ import { useOrganisationId } from '@/hooks/use-organisation';
 import { formatRelative } from '@/lib/format';
 import { deviceAddressListQueryOptions } from '@/queries/devices';
 import { outputControlQueryOptions, useUpdateOutput } from '@/queries/outputs';
+import type { ListedShow } from '@/queries/shows';
 
 // Who drives an output's scenes (docs/outputs.md): under `show` control, the show it follows, or nothing while it
 // follows none; under `external`, something outside the studio, over obs-websocket, which may read any of the
@@ -33,7 +34,7 @@ import { outputControlQueryOptions, useUpdateOutput } from '@/queries/outputs';
 export interface ShowSelectProps {
   output: Output;
   /** The organisation's shows, to choose among. */
-  shows: Show[];
+  shows: ListedShow[];
 }
 
 /** Chooses the show the output follows, or none, under `show` control. Shows the choice being saved until it is. */

@@ -1,9 +1,17 @@
-import { layoutTopology, ownStatus, statusesOf, type NodeStatus, type Topology } from '@/components/streams/topology';
+import {
+  layoutTopology,
+  nodeStatusesOf,
+  type NodeStatus,
+  type SubjectStatuses,
+  type Topology
+} from '@/components/streams/topology';
 import type { ChartedStream } from '@/components/streams/stream-charts';
 
 /** A stream as the page shows it: where it is delivered, and how each step of that is doing. */
 export interface PageStream extends ChartedStream {
   name: string;
+  /** Its short code, if it has one. */
+  code: string | null;
   sourceDeviceId: string | null;
   topology: Topology;
   statuses: Map<string, NodeStatus>;
@@ -20,32 +28,29 @@ type TopologyInputs = Parameters<typeof layoutTopology>[0];
 type StreamInput = TopologyInputs['stream'] & ChartedStream & ListedStreamName;
 interface ListedStreamName {
   name: string;
+  code: string | null;
   sourceDeviceId: string | null;
 }
 interface CameraInput {
   id: string;
   state: string;
 }
-interface SubjectStateInput {
-  subjectId: string;
-  health: string;
-  activity: string;
-  freshness: 'fresh' | 'stale';
-}
 
 export interface StreamPageInputs extends Omit<TopologyInputs, 'stream'> {
   streams: StreamInput[];
   cameras: CameraInput[];
-  states: SubjectStateInput[];
+  /** Each subject's status, as the organisation's status judges it (`subjectStatusesOf`). */
+  statuses: SubjectStatuses;
 }
 
-/** Each stream laid out with the organisation's topology, its nodes' statuses from their states, split by activity. */
-export function streamPageOf({ streams, cameras, states, ...topology }: StreamPageInputs): StreamPage {
-  const stateOf = new Map(states.map(state => [state.subjectId, state]));
+/**
+ * Each stream laid out with the organisation's topology, its nodes' statuses as the organisation's status judges
+ * them, split by activity.
+ */
+export function streamPageOf({ streams, cameras, statuses, ...topology }: StreamPageInputs): StreamPage {
   const pageStreams = streams.map((stream): PageStream => {
     const laidOut = layoutTopology({ ...topology, stream });
-    const own = new Map(laidOut.nodes.map(node => [node.id, ownStatus(stateOf.get(node.subjectId))]));
-    return { ...stream, topology: laidOut, statuses: statusesOf(laidOut.nodes, own) };
+    return { ...stream, topology: laidOut, statuses: nodeStatusesOf(laidOut.nodes, statuses) };
   });
   const fed = (stream: PageStream) => isFed(stream, cameras);
   return { active: pageStreams.filter(fed), inactive: pageStreams.filter(stream => !fed(stream)) };

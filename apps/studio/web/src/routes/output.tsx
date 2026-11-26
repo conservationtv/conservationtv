@@ -1,6 +1,7 @@
 import { Suspense, type FC, type ReactNode } from 'react';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import {
+  ArrowSquareInIcon,
   BroadcastIcon,
   CloudIcon,
   FilmStripIcon,
@@ -14,7 +15,7 @@ import {
   TwitchLogoIcon,
   XIcon
 } from '@phosphor-icons/react';
-import type { Agent, Channel, Output, Show } from '@conservationtv/studio-sdk';
+import type { Agent, Channel, Output } from '@conservationtv/studio-sdk';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
 import { Button } from '@conservationtv/ui/components/button';
 import {
@@ -52,9 +53,10 @@ import {
   SectionTitle
 } from '@/components/common/page';
 import { StatusLabel } from '@/components/common/status';
-import { gatewayNameOf, type ListedGateway } from '@/components/gateways/gateways';
+import { CONSERVATIONTV_GATEWAY, gatewayNameOf, type ListedGateway } from '@/components/gateways/gateways';
 import { ControlDialog, OutputControlDetails, ShowSelect } from '@/components/outputs/output-control';
 import {
+  inputGatewayHintOf,
   outputDetailOf,
   type ForwardPart,
   type OutputDetail,
@@ -65,6 +67,7 @@ import {
   DeleteOutputDialog,
   DeviceSelect,
   EncodingDialog,
+  InputGatewayDialog,
   RenameOutputDialog
 } from '@/components/outputs/output-dialogs';
 import { OutputLive } from '@/components/outputs/output-live';
@@ -88,9 +91,8 @@ import { BroadcastStage } from '@/components/shows/broadcast-stage';
 import { DeliveryRow } from '@/components/streams/delivery-list';
 import { LocalRead } from '@/components/streams/local-read';
 import { MoqRead } from '@/components/streams/output-read';
-import { CONSERVATIONTV_GATEWAY } from '@/components/streams/renditions';
 import { TopologyDiagram } from '@/components/streams/stream-topology';
-import { statusLabels } from '@/components/streams/topology';
+import { statusLabels, subjectStatusesOf } from '@/components/streams/topology';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
 import { formatDate } from '@/lib/format';
@@ -99,8 +101,8 @@ import { channelListQueryOptions } from '@/queries/channels';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
 import { outputListQueryOptions, previewMoqReadQueryOptions, previewReadQueryOptions } from '@/queries/outputs';
-import { showListQueryOptions } from '@/queries/shows';
-import { subjectStateListQueryOptions } from '@/queries/streams';
+import { showListQueryOptions, type ListedShow } from '@/queries/shows';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Output · conservation.tv studio' }];
 
@@ -131,7 +133,7 @@ interface OutputViewProps {
 /** The output and everything it names, read at once from the organisation's lists, then laid out in render. */
 const OutputView: FC<OutputViewProps> = ({ outputId }) => {
   const organisationId = useOrganisationId();
-  const [outputsQuery, showsQuery, agentsQuery, channelsQuery, gatewaysQuery, networksQuery, statesQuery] =
+  const [outputsQuery, showsQuery, agentsQuery, channelsQuery, gatewaysQuery, networksQuery, statusQuery] =
     useSuspenseQueries({
       queries: [
         {
@@ -144,7 +146,7 @@ const OutputView: FC<OutputViewProps> = ({ outputId }) => {
         channelListQueryOptions(organisationId),
         gatewayListQueryOptions(organisationId),
         networkListQueryOptions(organisationId),
-        subjectStateListQueryOptions(organisationId)
+        { ...organisationStatusQueryOptions(organisationId), select: subjectStatusesOf }
       ]
     });
   const { output, outputs } = outputsQuery.data;
@@ -156,7 +158,7 @@ const OutputView: FC<OutputViewProps> = ({ outputId }) => {
     channels: channelsQuery.data.channels,
     gateways: gatewaysQuery.data,
     networks: networksQuery.data,
-    states: statesQuery.data
+    statuses: statusQuery.data
   });
   const choices: OutputChoices = {
     outputs,
@@ -201,7 +203,7 @@ const OutputNotFound: FC = () => {
 /** What the output's controls choose among: the organisation's outputs, shows, agents, channels and gateways. */
 interface OutputChoices {
   outputs: Output[];
-  shows: Show[];
+  shows: ListedShow[];
   agents: Agent[];
   channels: Channel[];
   gateways: ListedGateway[];
@@ -306,6 +308,7 @@ const ConfigurationPanel: FC<OutputTabsProps> = ({ detail, choices }) => {
         <ItemGroup className="gap-2">
           <DriverRow detail={detail} shows={choices.shows} />
           <AgentRow detail={detail} choices={choices} />
+          <InputGatewayRow detail={detail} />
           <ProgrammeRow detail={detail} />
           <RecorderRow detail={detail} />
         </ItemGroup>
@@ -400,10 +403,11 @@ const ControlSection: FC<RowProps> = ({ detail }) => {
           <SectionDescription>
             Whatever drives it (a script, a vision mixer, a control surface) connects to obs-websocket on the agent’s
             network and switches the scenes in the scene collection below. To play one of the organisation’s streams in
-            OBS, add a media source reading the stream input, with the stream’s and its delivery’s IDs in place of
-            <code>{'{streamId}'}</code> and <code>{'{exposureId}'}</code>, and its reconnect delay set to 1 second: the
-            first time a stream is read, OBS is dropped from it once as it is set up, and OBS’s default delay leaves it
-            blank for 10 seconds. The studio still keeps OBS running, streaming, forwarded, previewed and recorded.
+            OBS, add a media source reading the stream input, with the stream’s ID in place of{' '}
+            <code>{'{streamId}'}</code> (and an older agent’s delivery’s ID in place of <code>{'{exposureId}'}</code>),
+            and its reconnect delay set to 1 second: the first time a stream is read, OBS is dropped from it once as it
+            is set up, and OBS’s default delay leaves it blank for 10 seconds. The studio still keeps OBS running,
+            streaming, forwarded, previewed and recorded.
           </SectionDescription>
         </SectionHeading>
       </SectionHeader>
@@ -511,7 +515,7 @@ interface RowProps {
 }
 
 interface DriverRowProps extends RowProps {
-  shows: Show[];
+  shows: ListedShow[];
 }
 
 /**
@@ -583,6 +587,42 @@ const AgentRow: FC<AgentRowProps> = ({ detail, choices }) => {
         <ItemActions>
           <DeviceSelect output={output} agents={choices.agents} outputs={choices.outputs} />
           {agent && <ClearDeviceDialog output={output} />}
+        </ItemActions>
+      )}
+    </Item>
+  );
+};
+
+/**
+ * Where the output's agent reads the show's streams from, Automatic or one gateway, with what that means, and for
+ * administrators, changing it.
+ */
+const InputGatewayRow: FC<RowProps> = ({ detail }) => {
+  const administrator = useIsAdministrator();
+  const organisationId = useOrganisationId();
+  const { output } = detail;
+  const [gatewaysQuery, networksQuery] = useSuspenseQueries({
+    queries: [gatewayListQueryOptions(organisationId), networkListQueryOptions(organisationId)]
+  });
+  const gateways = gatewaysQuery.data;
+  const gatewayId = output.inputGatewayId ?? '';
+  const gateway = gateways.find(candidate => candidate.id === gatewayId);
+  const reads = gatewayId === '' ? 'Automatic' : (gateway?.name ?? 'A gateway it no longer has');
+  return (
+    <Item variant="outline">
+      <ItemMedia variant="icon">
+        <ArrowSquareInIcon />
+      </ItemMedia>
+      <ItemContent className="min-w-0">
+        <ItemTitle className="flex-wrap">
+          Reads streams from
+          <span className="font-normal text-muted-foreground">{reads}</span>
+        </ItemTitle>
+        <ItemDescription>{inputGatewayHintOf(gatewayId, gateways, networksQuery.data)}</ItemDescription>
+      </ItemContent>
+      {administrator && (
+        <ItemActions>
+          <InputGatewayDialog output={output} />
         </ItemActions>
       )}
     </Item>
@@ -799,9 +839,6 @@ const PreviewsPanel: FC<RowProps> = ({ detail }) => {
   );
 };
 
-/** A preview offers the programme as OBS encodes it: the one rendition. */
-const PREVIEW_RENDITIONS = ['default' as const];
-
 /**
  * A preview at a MediaMTX gateway is read by HLS alone: OBS encodes the programme with B-frames, which WebRTC refuses
  * (apps/studio/api/src/gateways/connect.ts).
@@ -830,22 +867,16 @@ const PreviewOutput: FC<PreviewOutputProps> = ({ detail, part }) => {
     );
   }
   return (
-    // As a stream's outputs: the tabs and rows run to the card's edges, so the card's own padding is the summary's alone.
+    // As a stream's outputs: the rule and rows run to the card's edges, so the card's own padding is the summary's alone.
     <DeliveryRow className="flex-col flex-nowrap items-stretch gap-0 p-0">
-      <div className="flex items-start gap-2.5 px-5 pt-3.5 pb-2">
+      <div className="flex items-start gap-2.5 border-b border-border px-5 pt-3.5 pb-2">
         <PreviewSummary part={part} agent={detail.agent?.name} />
       </div>
       {conservationtv ? (
-        <MoqRead
-          read={previewMoqReadQueryOptions(organisationId, outputId, previewId)}
-          renditions={PREVIEW_RENDITIONS}
-        />
+        <MoqRead read={previewMoqReadQueryOptions(organisationId, outputId, previewId)} />
       ) : (
         <LocalRead
-          read={(protocol, rendition) =>
-            previewReadQueryOptions(organisationId, outputId, previewId, protocol, rendition)
-          }
-          renditions={PREVIEW_RENDITIONS}
+          read={protocol => previewReadQueryOptions(organisationId, outputId, previewId, protocol)}
           protocols={PREVIEW_PROTOCOLS}
           name={gatewayNameOf(part.gateway)}
         />

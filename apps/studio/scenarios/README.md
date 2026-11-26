@@ -42,13 +42,25 @@ fail to read it: those pages show as changed, which is worth a look anyway.
 
 ## How it fits together
 
-- **A world** (`src/world/`) is one organisation in the contract's own shapes: networks, agents, cameras, gateways,
-  streams and their deliveries, shows, outputs, channels, members, and every subject's health state. It is generated
-  from a **spec** (`spec.ts`): a seed and a few knobs for scale, gaps (half-set-up things: streams with no camera,
-  networks with no active agent, uncomposed shows) and health.
+- **A world** (`src/world/`) is one organisation in the contract's own shapes (each list as its current version
+  returns it): networks, agents, cameras, gateways, streams (with their short codes) and their deliveries, shows (their
+  slots, mix and takeover) with each one's `show_stream` rows (lineup rank and mix), pushed streams people publish to
+  (shared ones, and members' own from a phone or a computer) and which of their deliveries are being published to now,
+  outputs (and the gateway each reads from), channels, chat commands (show ones too), members (some let publish), and
+  every subject's health state. It is generated from a **spec** (`spec.ts`): a seed and a few knobs for scale, gaps
+  (half-set-up things: streams with no camera, networks with no active agent, shows at no slots), how the shows are
+  operated and who goes live (`operating`: none in the base spec), and health.
+- **Shows** (`shows.ts`) are resolved by the API's own pure code (`apps/studio/api/src/shows/resolve.ts`, and
+  `packages/shows` for what a state places), imported rather than copied, from facts made from the world as the API
+  reads them: so the lineup, positions, what is not placed and why, the cards and what a show places (and so what its
+  deliveries' health and the status are of) are the API's, as is which streams each output following it cannot reach
+  (`apps/studio/api/src/shows/reach.ts`): `site-only` has some.
 - **Health** (`health.ts`) picks root causes (an agent stops reporting, a camera stops answering, a gateway, programme,
-  forward or channel fails) and lets each reach what depends on it as it would for real. What those states add up to is
-  worked out by the API's own status rule (`apps/studio/api/src/health/status.ts`), imported rather than copied.
+  forward or channel fails) and lets each reach what depends on it as it would for real. A pushed stream's deliveries
+  are judged only while someone publishes to them, and are idle otherwise; whether a delivery is live
+  (`organisations.streams.live.list`) is read from its state, so the live list and the status agree. What those states
+  add up to is worked out by the API's own status rule (`apps/studio/api/src/health/status.ts`), imported rather than
+  copied.
 - **Randomness is keyed by path**, not drawn in sequence: each entity draws from a stream seeded by the world's seed
   and where it sits (`network/2/camera/0`). Changing one part of the generator leaves everything else as it was, so a
   generator change doesn't make every screenshot differ.
@@ -74,7 +86,13 @@ fail to read it: those pages show as changed, which is worth a look anyway.
 ## Adding to it
 
 - **A scenario**: add one to `NAMED_SCENARIOS` in `src/world/scenarios.ts`. `health.incidents` gives an exact number of
-  failures of a kind; `faults` makes an operation hang or fail, for loading and error states.
+  failures of a kind; `faults` makes an operation hang or fail, for loading and error states; `operating` chances of 1
+  (or 0) make every show, stream or member one way, for a scenario about one thing.
+- **A knob or a field**: draw it from a child stream of its own, named for what it decides (`rng.child('takeover')`),
+  never from a sequence that is already drawn from, so everything already generated keeps its IDs, names and health. A
+  draw that is no longer needed is still drawn and thrown away, with a comment saying why.
 - **A page**: add it to `src/capture/pages.ts`.
-- **An operation the web app starts reading**: add its projection to `src/api/projections.ts`. Until then the report
-  shows it as an unmocked call on the pages that make it.
+- **An operation the web app starts reading**: add its projection to `src/api/projections.ts`, and drop the projection
+  of a version it no longer reads: the map holds only what the web app reads. Until then the report shows it as an
+  unmocked call on the pages that make it. Writes, including the ensure-style ones a button makes
+  (`organisations.streams.personal.ensure`, `encoder.ensure`), aren't projected.

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { arkenv } from '@arkenv/standard';
-import { Agent, MediamtxPortsSchema, PeersSchema } from '@conservationtv/agent-api';
+import { Agent, MediamtxPortPinsSchema, PeersSchema } from '@conservationtv/agent-api';
 import { z } from 'zod';
 
 /** The runner's settings, from the environment. */
@@ -32,15 +32,18 @@ export const config = {
    */
   AGENT_PEERS_FILE: z.string().min(1).optional(),
   /**
-   * JSON moving any of the ports MediaMTX listens on from its own, such as `{"rtsp":9554,"api":9897}`, when another
-   * program has one or a second agent shares the machine: `rtsp`, `rtp`, `rtcp`, `rtsps`, `srtp`, `srtcp`, `rtmp`,
-   * `rtmps`, `hls`, `webrtc`, `webrtcUdp`, `srt`, and on loopback `api`, `metrics` and `auth`. The agent registers
-   * where it listens with the studio API, so nothing else needs telling.
+   * JSON pinning any of the ports MediaMTX listens on, such as `{"rtsp":9554,"api":9897}`, for a firewalled site or a
+   * Docker port mapping: `rtsp`, `rtp`, `rtcp`, `rtsps`, `srtp`, `srtcp`, `rtmp`, `rtmps`, `hls`, `webrtc`,
+   * `webrtcUdp`, `srt`, and on loopback `api`, `metrics` and `auth`; `rtp` and `rtcp` (and `srtp` and `srtcp`) together,
+   * an even port and the next. A pinned port is used as given and never moved: if another program has it, MediaMTX is
+   * not started, saying which, and is tried again. Those not pinned need no setting: the agent uses the one it used
+   * last time, else MediaMTX's own, and moves one that is taken to a free one, with a warning. The agent registers where
+   * it listens with the studio API, so nothing else needs telling.
    */
   AGENT_MEDIAMTX_PORTS: z
     .string()
     .min(1)
-    .transform(text => MediamtxPortsSchema.parse(JSON.parse(text)))
+    .transform(text => MediamtxPortPinsSchema.parse(JSON.parse(text)))
     .optional(),
   /**
    * The port the agent's OBS serves obs-websocket on, when OBS's own (4455) is taken, such as by another OBS on the

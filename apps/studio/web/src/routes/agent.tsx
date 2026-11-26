@@ -54,7 +54,7 @@ import {
   SectionTitle
 } from '@/components/common/page';
 import { SubjectHealth } from '@/components/devices/subject-health';
-import { deviceSubjectId, type SubjectState } from '@/components/devices/subjects';
+import { deviceSubjectId } from '@/components/devices/subjects';
 import { AgentSettingsSchema, type AgentSettingsInput } from '@/forms/schemas';
 import { TextField } from '@/forms/text-field';
 import { useDialog } from '@/hooks/use-dialog';
@@ -65,7 +65,7 @@ import { agentListQueryOptions, useDeleteAgent, useUpdateAgent } from '@/queries
 import { deviceAddressListQueryOptions, useUpdateDevice } from '@/queries/devices';
 import { networkListQueryOptions, useSetActiveAgent } from '@/queries/networks';
 import { outputListQueryOptions } from '@/queries/outputs';
-import { subjectStateListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Agent · conservation.tv studio' }];
 
@@ -77,12 +77,13 @@ export const meta: Route.MetaFunction = () => [{ title: 'Agent · conservation.t
 const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
   const organisationId = useOrganisationId();
   const administrator = useIsAdministrator();
-  const [agentsQuery, networksQuery, statesQuery, outputsQuery] = useSuspenseQueries({
+  const [agentsQuery, networksQuery, outputsQuery] = useSuspenseQueries({
     queries: [
       agentListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId),
-      outputListQueryOptions(organisationId)
+      outputListQueryOptions(organisationId),
+      // What the agent's health reads (SubjectHealth), loaded with the page.
+      organisationStatusQueryOptions(organisationId)
     ]
   });
   const agent = agentsQuery.data.find(candidate => candidate.id === params.agentId);
@@ -111,7 +112,6 @@ const AgentRoute: FC<Route.ComponentProps> = ({ params }) => {
         agent={agent}
         name={agent.device.name}
         network={network}
-        state={statesQuery.data.find(state => state.subjectId === deviceSubjectId(agent.id))}
         output={outputsQuery.data.find(output => output.device?.deviceId === agent.id)}
       />
 
@@ -202,14 +202,12 @@ interface AgentHeaderProps {
   agent: Agent;
   name: string;
   network: Network | undefined;
-  /** What has been reported to the studio about it: undefined when nothing has. */
-  state: SubjectState | undefined;
   /** The output this agent runs OBS for, if any. */
   output: AgentOutput | undefined;
 }
 
 /** The way back, the agent's name with how it is doing and what it is for, and its pin. */
-const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, output }) => {
+const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, output }) => {
   const site = network?.name ?? 'its network';
   return (
     <>
@@ -220,7 +218,7 @@ const AgentHeader: FC<AgentHeaderProps> = ({ agent, name, network, state, output
         <PageHeading>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <PageTitle>{name}</PageTitle>
-            <SubjectHealth state={state} />
+            <SubjectHealth subjectId={deviceSubjectId(agent.id)} />
             {agent.active ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">Standby</Badge>}
             {output && (
               <Badge variant="outline" render={<Link to={`../../outputs/${output.id}`} relative="path" />}>

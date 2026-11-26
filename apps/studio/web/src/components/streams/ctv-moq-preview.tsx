@@ -3,7 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Skeleton } from '@conservationtv/ui/components/skeleton';
 
 import { MoqPlayer } from '@/components/streams/moq-player';
-import { CONSERVATIONTV_GATEWAY } from '@/components/streams/renditions';
+import { CONSERVATIONTV_GATEWAY } from '@/components/gateways/gateways';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { moqReadQueryOptions, streamListQueryOptions } from '@/queries/streams';
 

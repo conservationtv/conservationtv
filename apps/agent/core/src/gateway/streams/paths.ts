@@ -15,14 +15,20 @@ export const MediamtxPathSchema = z.strictObject({
   name: z.string().max(200).regex(PATH_NAME),
   /** The exposure it delivers: its metrics are about `exposure:<id>`. */
   exposureId: z.uuid(),
-  /** Which of the exposure's renditions it delivers, by ID, when the exposure has several paths. */
-  rendition: z.string().min(1).max(60).optional(),
   /**
    * Where MediaMTX pulls it from while it is read: a URL, such as a camera's RTSP URL, or another of its own paths;
    * none, and publishers push to it.
    */
   source: z
     .union([z.strictObject({ url: z.string().min(1) }), z.strictObject({ path: z.string().regex(PATH_NAME) })])
+    .optional(),
+  /**
+   * For a path publishers push to (no `source`): the SHA-256, in lowercase hex, of the key an encoder that only takes a
+   * URL may publish to it with (auth.ts). The digest alone: the agent never holds the key. None, and only a token admits.
+   */
+  keySha256: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/u)
     .optional()
 });
 export type MediamtxPath = z.output<typeof MediamtxPathSchema>;
@@ -35,27 +41,33 @@ export const MediamtxPreviewPathSchema = z.strictObject({
 export type MediamtxPreviewPath = z.output<typeof MediamtxPreviewPathSchema>;
 
 /** What tells one path from another: its name, and what it delivers. */
-type PathIdentity = Pick<MediamtxPath, 'name' | 'exposureId' | 'rendition'>;
+type PathIdentity = Pick<MediamtxPath, 'name' | 'exposureId'>;
 
-/** Paths with different names, and each delivering something different: otherwise their metrics would collide. */
+/** Paths with different names, and each delivering a different exposure: otherwise their metrics would collide. */
 function distinct<T extends z.ZodType<PathIdentity>>(path: T) {
   return z
     .array(path)
     .refine(paths => new Set(paths.map(({ name }) => name)).size === paths.length, 'Path names must be unique')
     .refine(
-      paths =>
-        new Set(paths.map(({ exposureId, rendition }) => `${exposureId}/${rendition ?? ''}`)).size === paths.length,
-      'Each path must deliver a different exposure or rendition'
+      paths => new Set(paths.map(({ exposureId }) => exposureId)).size === paths.length,
+      'Each path must deliver a different exposure'
     );
 }
 
 export const MediamtxPathsSchema = distinct(MediamtxPathSchema);
 export type MediamtxPaths = z.output<typeof MediamtxPathsSchema>;
 
+/** Each pushed path's key digest, by the path's name: what an encoder's key is checked against (auth.ts). */
+export function keyDigestsOf(paths: MediamtxPaths): Map<string, string> {
+  const digests = new Map<string, string>();
+  for (const { name, source, keySha256 } of paths) {
+    if (source === undefined && keySha256 !== undefined) digests.set(name, keySha256);
+  }
+  return digests;
+}
+
 /** The paths whose metrics are reported, each by its name and the exposure it delivers, but not where it comes from. */
-export const PathAttributionsSchema = distinct(
-  MediamtxPathSchema.pick({ name: true, exposureId: true, rendition: true })
-);
+export const PathAttributionsSchema = distinct(MediamtxPathSchema.pick({ name: true, exposureId: true }));
 export type PathAttributions = z.output<typeof PathAttributionsSchema>;
 
 /** What a path's metrics are about: a subject, or the agent's device without one, and their dimensions. */
@@ -73,10 +85,6 @@ export type PathIndex = Map<string, PathTarget> | null;
 export function pathIndexOf(paths: PathAttributions): PathIndex {
   if (paths.length === 0) return null;
   const index = new Map<string, PathTarget>();
-  for (const { name, exposureId, rendition } of paths) {
-    const dimensions: Record<string, string> = {};
-    if (rendition !== undefined) dimensions.rendition = rendition;
-    index.set(name, { subjectId: exposureSubject(exposureId), dimensions });
-  }
+  for (const { name, exposureId } of paths) index.set(name, { subjectId: exposureSubject(exposureId), dimensions: {} });
   return index;
 }

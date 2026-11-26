@@ -440,14 +440,10 @@ export const GetSystemResponseSchema = SystemSchema;
  * The current system specification
  */
 export const GetSystemSpecResponseSchema = z.object({
-    machine: z.object({
-        intervalMs: z.number()
-    }).optional(),
     streams: z.object({
         paths: z.array(z.object({
-            name: z.string(),
             exposureId: z.string(),
-            rendition: z.string().optional(),
+            name: z.string(),
             source: z.union([
                 z.object({
                     url: z.string()
@@ -463,16 +459,7 @@ export const GetSystemSpecResponseSchema = z.object({
         })),
         publishers: z.array(z.object({
             exposureId: z.string(),
-            layout: z.literal('tracks'),
-            renditions: z.array(z.object({
-                rendition: z.enum([
-                    'default',
-                    'data_saver',
-                    'balanced',
-                    'quality'
-                ]),
-                path: z.string()
-            })),
+            path: z.string(),
             connect: z.string(),
             broadcast: z.string()
         })),
@@ -488,12 +475,14 @@ export const GetSystemSpecResponseSchema = z.object({
             notAfter: z.string()
         }).optional()
     }).optional(),
+    machine: z.object({
+        intervalMs: z.number()
+    }).optional(),
     metrics: z.object({
         intervalMs: z.number(),
         paths: z.array(z.object({
             exposureId: z.string(),
-            name: z.string(),
-            rendition: z.string().optional()
+            name: z.string()
         }))
     }).optional(),
     relayTraffic: z.object({
@@ -503,6 +492,11 @@ export const GetSystemSpecResponseSchema = z.object({
         exposures: z.array(z.object({
             exposureId: z.string(),
             prefix: z.string()
+        })),
+        watched: z.array(z.object({
+            exposureId: z.string(),
+            connect: z.string(),
+            broadcast: z.string()
         }))
     }).optional(),
     probes: z.object({

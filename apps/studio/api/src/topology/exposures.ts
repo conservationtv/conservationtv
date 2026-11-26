@@ -1,16 +1,14 @@
-import { and, arrayContained, eq, not, notInArray, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
-import { exposures, gateways, outputPreviews, recorders } from '../db/schema.ts';
+import { and, eq, sql } from 'drizzle-orm';
+import { exposures, gateways, outputPreviews, outputs } from '../db/schema.ts';
 import { ApiFailure } from '../errors.ts';
 import { useDB } from '../db/transaction.ts';
 import { isBuiltinGateway } from '../gateways/index.ts';
 
 // What the database cannot check about exposures on its own. An exposure's gateway, as a show's preview's, is a built-in
 // gateway's slug or one of its organisation's gateways, so no foreign key holds it: it must name a gateway that exists,
-// and a gateway cannot go while exposures or previews use it. A chain of upstreams must never loop, and offers at each step at most the renditions of
-// the step before, as a recorder records only a rendition its exposure offers. Each check runs after the write it
-// guards, so a principal who may not write has already been refused by row-level security, and takes the lock that
-// serialises it with the writes it races.
+// and a gateway cannot go while exposures or previews use it, or an output reads from it. A chain of upstreams must
+// never loop. Each check runs after the write it guards, so a principal who may not write has already been refused by
+// row-level security, and takes the lock that serialises it with the writes it races.
 
 /** Refuses an exposure or preview whose gateway is not there for its organisation. */
 export async function checkGateway(organisationId: string, gatewayId: string) {
@@ -25,7 +23,10 @@ export async function checkGateway(organisationId: string, gatewayId: string) {
   if (!gateway) throw new ApiFailure('invalid_reference');
 }
 
-/** Refuses removing a gateway, already deleted in this transaction, that exposures or previews still use. */
+/**
+ * Refuses removing a gateway, already deleted in this transaction, that exposures or previews still use, or that an
+ * output reads every stream from.
+ */
 export async function checkGatewayUnused(gatewayId: string) {
   const db = useDB();
   const [used] = await db
@@ -40,6 +41,12 @@ export async function checkGatewayUnused(gatewayId: string) {
     .where(eq(outputPreviews.gatewayId, gatewayId))
     .limit(1);
   if (previewed) throw new ApiFailure('in_use');
+  const [input] = await db
+    .select({ id: outputs.id })
+    .from(outputs)
+    .where(eq(outputs.inputGatewayId, gatewayId))
+    .limit(1);
+  if (input) throw new ApiFailure('in_use');
 }
 
 /** Refuses an exposure whose upstream chain, already written, leads back to it. */
@@ -56,70 +63,4 @@ export async function checkChain(streamId: string, exposureId: string) {
     select 1 from chain where id = ${exposureId} limit 1
   `);
   if (rows.length > 0) throw new ApiFailure('exposure_cycle');
-}
-
-/**
- * The renditions an exposure offers, sharing its row lock: a concurrent change to them waits for this transaction, or
- * this read for that change, and then sees it.
- */
-async function offeredRenditions(exposureId: string) {
-  const db = useDB();
-  const [exposure] = await db
-    .select({ renditions: exposures.renditions })
-    .from(exposures)
-    .where(eq(exposures.id, exposureId))
-    .for('share');
-  return exposure?.renditions ?? [];
-}
-
-const downstream = alias(exposures, 'downstream');
-
-/**
- * Refuses an exposure, already written, offering a rendition its upstream does not (`rendition_not_offered`), or no
- * longer offering one an exposure downstream of it or a recorder of it uses (`in_use`). Writing the exposure locked its
- * row, which a downstream exposure or recorder shares to check it: one checked first has committed before that write,
- * so is read here, and one checked after waits for this transaction, and then sees what it leaves.
- */
-export async function checkRenditions(exposureId: string) {
-  const db = useDB();
-  const [exposure] = await db
-    .select({ renditions: exposures.renditions, upstreamExposureId: exposures.upstreamExposureId })
-    .from(exposures)
-    .where(eq(exposures.id, exposureId));
-  if (!exposure) return;
-  if (exposure.upstreamExposureId !== null) {
-    const offered = await offeredRenditions(exposure.upstreamExposureId);
-    if (exposure.renditions.some(rendition => !offered.includes(rendition))) {
-      throw new ApiFailure('rendition_not_offered');
-    }
-  }
-  const [stranded] = await db
-    .select({ id: downstream.id })
-    .from(downstream)
-    .where(
-      and(
-        eq(downstream.upstreamExposureId, exposureId),
-        not(arrayContained(downstream.renditions, exposure.renditions))
-      )
-    )
-    .limit(1);
-  if (stranded) throw new ApiFailure('in_use');
-  const [unrecorded] = await db
-    .select({ id: recorders.id })
-    .from(recorders)
-    .where(and(eq(recorders.exposureId, exposureId), notInArray(recorders.rendition, exposure.renditions)))
-    .limit(1);
-  if (unrecorded) throw new ApiFailure('in_use');
-}
-
-/** Refuses a recorder, already written, of a rendition its exposure does not offer. */
-export async function checkRecorderRendition(recorderId: string) {
-  const db = useDB();
-  const [recorder] = await db
-    .select({ exposureId: recorders.exposureId, rendition: recorders.rendition })
-    .from(recorders)
-    .where(eq(recorders.id, recorderId));
-  if (!recorder) return;
-  const offered = await offeredRenditions(recorder.exposureId);
-  if (!offered.includes(recorder.rendition)) throw new ApiFailure('rendition_not_offered');
 }

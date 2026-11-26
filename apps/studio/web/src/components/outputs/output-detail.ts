@@ -1,4 +1,4 @@
-import type { Agent, Channel, Network, Output, Show } from '@conservationtv/studio-sdk';
+import type { Agent, Channel, Network, Output } from '@conservationtv/studio-sdk';
 
 import {
   deviceSubjectId,
@@ -9,16 +9,17 @@ import {
 } from '@/components/devices/subjects';
 import type { ListedGateway } from '@/components/gateways/gateways';
 import {
+  nodeStatusesOf,
   overallStatus,
-  ownStatus,
   placeTopology,
-  statusesOf,
+  statusOfSubject,
   type NodeStatus,
   type OverallStatus,
-  type SubjectStatusInput,
+  type SubjectStatuses,
   type Topology,
   type UnplacedNode
 } from '@/components/streams/topology';
+import type { ListedShow } from '@/queries/shows';
 
 // An output as the studio shows it, worked out from the organisation's lists: what drives its scenes (the show it
 // follows, or something outside the studio), the agent it runs on, its programme and how it is encoded, the channels it
@@ -30,19 +31,15 @@ export type OutputForward = Output['forwards'][number];
 export type OutputPreview = Output['previews'][number];
 export type OutputRecorder = Output['recorders'][number];
 
-/** A subject's state, as `subjectStateListQueryOptions` lists it. */
-interface SubjectStateInput extends SubjectStatusInput {
-  subjectId: string;
-}
-
 export interface OutputDetailInputs {
   output: Output;
-  shows: Show[];
+  shows: ListedShow[];
   agents: Agent[];
   channels: Channel[];
   gateways: ListedGateway[];
   networks: Network[];
-  states: SubjectStateInput[];
+  /** Each subject's status, as the organisation's status judges it (`subjectStatusesOf`). */
+  statuses: SubjectStatuses;
 }
 
 /** The agent that runs the output's OBS: the one the organisation lists, or a note that it has gone. */
@@ -82,7 +79,7 @@ export interface OutputLiveness {
 export interface OutputDetail {
   output: Output;
   /** The show it follows, under `show` control: undefined for none, or one the organisation no longer lists. */
-  show: Show | undefined;
+  show: ListedShow | undefined;
   /** Its programme's encoding, in a few characters: "1080p30 · 6000 kbps". */
   encoding: string;
   agent: OutputAgent | null;
@@ -108,7 +105,10 @@ export function encodingOf(output: Pick<Output, 'height' | 'fps' | 'bitrateKbps'
 const AGENT_ID = 'agent';
 const PROGRAMME_ID = 'programme';
 
-/** The output laid out, each part's status from its subject's state flowing downstream, and one status for it all. */
+/**
+ * The output laid out, each part's status as the organisation's status judges it (failures upstream flowing
+ * downstream), and one status for it all.
+ */
 export function outputDetailOf({
   output,
   shows,
@@ -116,13 +116,11 @@ export function outputDetailOf({
   channels,
   gateways,
   networks,
-  states
+  statuses: judged
 }: OutputDetailInputs): OutputDetail {
-  const stateOf = new Map(states.map(state => [state.subjectId, state]));
   const outputAgent = output.device ? agents.find(agent => agent.id === output.device?.deviceId) : undefined;
   const topology = placeTopology(outputNodes({ output, outputAgent, channels, gateways }), networks);
-  const own = new Map(topology.nodes.map(node => [node.id, ownStatus(stateOf.get(node.subjectId))]));
-  const statuses = statusesOf(topology.nodes, own);
+  const statuses = nodeStatusesOf(topology.nodes, judged);
   const statusOf = (id: string): NodeStatus => statuses.get(id) ?? 'unknown';
   const forwards = output.forwards.map(forward => forwardPartOf(forward, channels, statusOf(forward.id)));
   const previews = output.previews.map(preview => previewPartOf(preview, gateways, networks, statusOf(preview.id)));
@@ -142,7 +140,8 @@ export function outputDetailOf({
     forwards,
     previews,
     recorder,
-    recorderStatus: recorder ? ownStatus(stateOf.get(recorderSubjectId(recorder.id))) : 'unknown',
+    // A recorder records what the programme gives it: its own status says whether it records.
+    recorderStatus: recorder ? statusOfSubject(judged.own, recorderSubjectId(recorder.id)) : 'unknown',
     liveForwardCount: output.forwards.filter(forward => forward.enabled).length,
     topology,
     statuses,
@@ -251,4 +250,20 @@ function livenessOf(output: Output, topology: Topology, statuses: Map<string, No
   const on = topology.nodes.filter(node => !node.off).map(node => statuses.get(node.id) ?? 'unknown');
   const status = overallStatus(on);
   return { status, label: outputLabels[status] };
+}
+
+/**
+ * What a choice of input gateway means, in a line: each stream from the nearest delivery its agent reaches (the empty
+ * string, automatic), or every stream from that one gateway alone, which an agent reaches only from its network when
+ * it is on one (apps/studio/api/src/gateways/delivery.ts).
+ */
+export function inputGatewayHintOf(gatewayId: string, gateways: ListedGateway[], networks: Network[]): string {
+  if (gatewayId === '') {
+    return 'Each stream from the nearest delivery its agent reaches: its own site’s gateway, then conservation.tv, then the rest of the internet.';
+  }
+  const gateway = gateways.find(candidate => candidate.id === gatewayId);
+  const name = gateway?.name ?? 'that gateway';
+  const network = networks.find(candidate => candidate.id === gateway?.networkId);
+  const where = network ? `, which only an agent on ${network.name} reaches` : ', over the internet';
+  return `Every stream from ${name} alone${where}. A stream not delivered there shows its card on this output.`;
 }

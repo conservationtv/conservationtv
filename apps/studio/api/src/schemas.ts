@@ -3,6 +3,7 @@
 export { ApiErrorSchema, type ApiError } from '@conservationtv/versioned-api/server';
 export { RelaySchema, type Relay } from './topology/iroh.ts';
 export {
+  ExposurePublisherSchema,
   MediamtxAuthSchema,
   MediamtxTlsSchema,
   PlannedPublisherSchema,
@@ -10,12 +11,17 @@ export {
   PublishedRenditionSchema,
   PublisherConnectSchema,
   StatsConnectSchema,
+  WatchConnectSchema,
+  WatchedExposureSchema,
+  type ExposurePublisher,
   type MediamtxAuth,
   type MediamtxTls,
   type PlannedPublisher,
   type PreviewConnect,
   type PublishedRendition,
   type PublisherConnect,
-  type StatsConnect
+  type StatsConnect,
+  type WatchConnect,
+  type WatchedExposure
 } from './configuration/plan/types.ts';
-export { RenditionSchema, type Rendition } from './topology/settings.ts';
+export { RenditionSchema, type Rendition } from './topology/renditions.ts';

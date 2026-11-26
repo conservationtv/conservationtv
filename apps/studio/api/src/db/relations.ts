@@ -132,7 +132,8 @@ export const relations = defineRelations(schema, r => ({
     organisation: r.one.organisations({ from: r.streams.organisationId, to: r.organisations.id }),
     sourceDevice: r.one.devices({ from: r.streams.sourceDeviceId, to: r.devices.id }),
     exposures: r.many.exposures({ from: r.streams.id, to: r.exposures.streamId }),
-    recorders: r.many.recorders({ from: r.streams.id, to: r.recorders.streamId })
+    recorders: r.many.recorders({ from: r.streams.id, to: r.recorders.streamId }),
+    shows: r.many.showStreams({ from: r.streams.id, to: r.showStreams.streamId })
   },
   exposures: {
     organisation: r.one.organisations({ from: r.exposures.organisationId, to: r.organisations.id }),
@@ -155,10 +156,15 @@ export const relations = defineRelations(schema, r => ({
     stream: r.one.streams({ from: r.recorders.streamId, to: r.streams.id }),
     exposure: r.one.exposures({ from: r.recorders.exposureId, to: r.exposures.id })
   },
-  // A show, and the outputs that follow it.
+  // A show, the outputs that follow it, and its streams.
   shows: {
     organisation: r.one.organisations({ from: r.shows.organisationId, to: r.organisations.id }),
-    outputs: r.many.outputs({ from: r.shows.id, to: r.outputs.showId })
+    outputs: r.many.outputs({ from: r.shows.id, to: r.outputs.showId }),
+    streams: r.many.showStreams({ from: r.shows.id, to: r.showStreams.showId })
+  },
+  showStreams: {
+    show: r.one.shows({ from: r.showStreams.showId, to: r.shows.id }),
+    stream: r.one.streams({ from: r.showStreams.streamId, to: r.streams.id })
   },
   // Something going out, and each hop of its way out.
   outputs: {

@@ -36,6 +36,12 @@
     "organisations.members.revokeAdmin": [
       1
     ],
+    "organisations.members.grantPublisher": [
+      1
+    ],
+    "organisations.members.revokePublisher": [
+      1
+    ],
     "organisations.invitations.list": [
       1
     ],
@@ -162,37 +168,64 @@
       1
     ],
     "organisations.streams.list": [
+      1,
+      2
+    ],
+    "organisations.streams.live.list": [
       1
     ],
     "organisations.streams.create": [
+      1,
+      2
+    ],
+    "organisations.streams.personal.ensure": [
       1
     ],
     "organisations.streams.get": [
-      1
+      1,
+      2
     ],
     "organisations.streams.update": [
+      1,
+      2
+    ],
+    "organisations.streams.connect": [
+      1
+    ],
+    "organisations.streams.encoder.ensure": [
+      1
+    ],
+    "organisations.streams.key.replace": [
+      1
+    ],
+    "organisations.streams.key.delete": [
       1
     ],
     "organisations.streams.delete": [
       1
     ],
     "organisations.streams.exposures.create": [
-      1
+      1,
+      2
     ],
     "organisations.streams.exposures.update": [
-      1
+      1,
+      2
     ],
     "organisations.streams.exposures.delete": [
       1
     ],
     "organisations.streams.exposures.connect": [
-      1
+      1,
+      2
     ],
     "organisations.streams.recorders.create": [
-      1
+      1,
+      2
     ],
     "organisations.streams.recorders.update": [
-      1
+      1,
+      2
     ],
     "organisations.streams.recorders.delete": [
       1
@@ -231,31 +264,52 @@
       1
     ],
     "organisations.shows.list": [
-      1
+      1,
+      2
     ],
     "organisations.shows.create": [
       1
     ],
     "organisations.shows.get": [
-      1
+      1,
+      2
     ],
     "organisations.shows.update": [
+      1
+    ],
+    "organisations.shows.controls.update": [
+      1
+    ],
+    "organisations.shows.lineup.swap": [
+      1
+    ],
+    "organisations.shows.lineup.add": [
+      1
+    ],
+    "organisations.shows.lineup.remove": [
+      1
+    ],
+    "organisations.shows.streams.mix": [
       1
     ],
     "organisations.shows.delete": [
       1
     ],
     "organisations.outputs.list": [
-      1
+      1,
+      2
     ],
     "organisations.outputs.create": [
-      1
+      1,
+      2
     ],
     "organisations.outputs.get": [
-      1
+      1,
+      2
     ],
     "organisations.outputs.update": [
-      1
+      1,
+      2
     ],
     "organisations.outputs.delete": [
       1
@@ -291,7 +345,8 @@
       1
     ],
     "organisations.outputs.previews.connect": [
-      1
+      1,
+      2
     ],
     "organisations.outputs.createRecorder": [
       1
@@ -327,16 +382,20 @@
       1
     ],
     "organisations.chatCommands.list": [
-      1
+      1,
+      2
     ],
     "organisations.chatCommands.create": [
-      1
+      1,
+      2
     ],
     "organisations.chatCommands.get": [
-      1
+      1,
+      2
     ],
     "organisations.chatCommands.update": [
-      1
+      1,
+      2
     ],
     "organisations.chatCommands.delete": [
       1
@@ -368,7 +427,8 @@
     "deviceConfiguration.get": [
       1,
       2,
-      3
+      3,
+      4
     ],
     "deviceAddresses.replace": [
       1

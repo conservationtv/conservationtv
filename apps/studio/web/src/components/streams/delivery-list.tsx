@@ -1,7 +1,5 @@
 import type { ComponentProps, FC, ReactNode } from 'react';
 import { CloudIcon, GlobeIcon, HardDrivesIcon, NetworkIcon } from '@phosphor-icons/react';
-import type { Rendition } from '@conservationtv/studio-sdk';
-import { Badge } from '@conservationtv/ui/components/badge';
 import {
   Item,
   ItemContent,
@@ -13,13 +11,12 @@ import {
 import { cn } from '@conservationtv/ui/lib/utils';
 
 import { StatusLabel } from '@/components/common/status';
-import { RENDITIONS, renditionLabels } from '@/components/streams/renditions';
 import type { Delivery, DeliverySection } from '@/components/streams/stream-detail';
 import { statusLabels } from '@/components/streams/topology';
 
 // A stream's deliveries as rows, composed where they're used: grouped by where they are (each network, then the
-// internet) as the topology above them groups them, each row its gateway, what feeds it, who sends it, the renditions
-// it offers and how it is doing, with whatever the page offers to do about it.
+// internet) as the topology above them groups them, each row its gateway, what feeds it, who sends it and how it is
+// doing, with whatever the page offers to do about it.
 //
 //   <DeliveryGroup>
 //     <DeliveryGroupHeading section={section} />
@@ -60,7 +57,7 @@ export const DeliveryRow: FC<ComponentProps<typeof Item>> = props => {
 
 export interface DeliverySummaryProps {
   delivery: Delivery;
-  /** Anything more about it, under what feeds it: its Renditions, say. */
+  /** Anything more about it, under what feeds it. */
   children?: ReactNode;
 }
 
@@ -83,22 +80,5 @@ export const DeliverySummary: FC<DeliverySummaryProps> = ({ delivery, children }
         {children}
       </ItemContent>
     </>
-  );
-};
-
-interface RenditionsProps {
-  renditions: Rendition[];
-}
-
-/** The renditions offered, as quiet badges in their usual order. */
-export const Renditions: FC<RenditionsProps> = ({ renditions }) => {
-  return (
-    <ul className="flex flex-wrap gap-1 pt-1" aria-label="Renditions">
-      {RENDITIONS.filter(rendition => renditions.includes(rendition)).map(rendition => (
-        <li key={rendition}>
-          <Badge variant="outline">{renditionLabels[rendition]}</Badge>
-        </li>
-      ))}
-    </ul>
   );
 };

@@ -1,12 +1,11 @@
-import { BROADCAST_CAMERAS, type BroadcastState } from '@conservationtv/shows';
+import type { BroadcastState } from '@conservationtv/shows';
 import { AssetManifestSchema, FramesJsonSchema, type AssetManifest, type Serve } from '@strangecyan/vignette';
-import { listStreams } from '../services/streams.ts';
 import type { StaticAssets } from '../env/config.ts';
-import type { BuiltinGatewayId } from '../gateways/index.ts';
 
 /**
  * What a broadcast is composed from: its state, the show's bundle as served (see `ShowBundle`), and where what targets
- * fetch for it is served.
+ * fetch for it is served. Not all it depends on: the composition's code does too, which is why its object composes
+ * afresh on every sync rather than comparing these (src/shows/host.tsx).
  */
 export interface Presentation extends ShowBundle {
   state: BroadcastState;
@@ -25,15 +24,15 @@ export interface ShowBundle {
 
 /** A show, as request handling reaches it: its object (src/shows/host.tsx), by RPC. */
 export interface Broadcast {
-  /** Set what the show is composed from: compose it, and send it to everyone following it. */
-  setComposition(presentation: Presentation): Promise<void>;
-  /** Whether the show's composition places the exposure: what the outputs following it may read. */
-  places(exposureId: string): Promise<boolean>;
-  /** The exposures the show's composition places, in its order: none before it is composed. */
-  placed(): Promise<string[]>;
+  /**
+   * Look again: read the show and its streams from the database, compose it, and send what changed to everyone
+   * following it. Takes nothing, so no caller can hand it stale state (src/shows/pokes.ts). Never rejects for a sync
+   * that failed: that is logged in the object, whose alarm tries again.
+   */
+  sync(): Promise<void>;
   /**
    * Hand a WebSocket upgrade to the show, to follow it, or a frame page's to follow its source
-   * (`…/stream?source=`): 404 until it has been composed.
+   * (`…/stream?source=`). The first follow since the object started syncs first; 404 for a show that is not composed.
    */
   fetch(request: Request): Promise<Response>;
 }
@@ -41,33 +40,6 @@ export interface Broadcast {
 /** Every show's object, by the show's ID. */
 export interface Broadcasts {
   get(showId: string): Broadcast;
-}
-
-/** The built-in gateway readers reach by MoQ (src/gateways/conservationtv.ts): the only one a broadcast can watch. */
-const MOQ_GATEWAY: BuiltinGatewayId = 'conservationtv';
-
-/**
- * A composition for one of the organisation's shows, from its streams as the caller sees them: those delivered to
- * conservation.tv, each at its first exposure there, in a random order, as many as there are slots, maybe none.
- * Random only while it is set by a temporary button; choosing cameras is what a show's controls will do.
- */
-export async function shuffledComposition(organisationId: string): Promise<BroadcastState> {
-  const streams = await listStreams(organisationId);
-  const cameras = streams.flatMap(stream => {
-    const exposure = stream.exposures.find(candidate => candidate.gatewayId === MOQ_GATEWAY);
-    return exposure ? [{ organisationId, streamId: stream.id, exposureId: exposure.id, name: stream.name }] : [];
-  });
-  return { cameras: shuffled(cameras).slice(0, BROADCAST_CAMERAS) };
-}
-
-/** The values in a random order: Fisher–Yates, each place in turn, from the last, taking one not yet placed. */
-function shuffled<Value>(values: readonly Value[]): Value[] {
-  const result = [...values];
-  for (let index = result.length - 1; index > 0; index--) {
-    const other = Math.floor(Math.random() * (index + 1));
-    [result[index], result[other]] = [result[other]!, result[index]!];
-  }
-  return result;
 }
 
 /** Where this API serves the show's bundle (`pnpm bundle:show`, packages/shows) from its static assets (contracts/). */

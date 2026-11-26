@@ -2,7 +2,7 @@ import { Suspense, type FC } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { MonitorPlayIcon, ScreencastIcon } from '@phosphor-icons/react';
 import { Link } from 'react-router';
-import type { Show } from '@conservationtv/studio-sdk';
+
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@conservationtv/ui/components/empty';
 import { Item, ItemContent, ItemGroup, ItemMedia, ItemTitle } from '@conservationtv/ui/components/item';
 import { Skeleton } from '@conservationtv/ui/components/skeleton';
@@ -26,22 +26,29 @@ import {
   SectionHeading,
   SectionTitle
 } from '@/components/common/page';
+import { QuietBoundary } from '@/components/common/quiet-boundary';
 import { BroadcastStage } from '@/components/shows/broadcast-stage';
+import { ShowControls, ShowControlsSection, ShowDesk, ShowMix } from '@/components/shows/show-controls';
 import { DeleteShowDialog, RenameShowDialog } from '@/components/shows/show-dialogs';
+import { ShowLayoutMap, ShowLayoutPicker } from '@/components/shows/show-layout';
+import { ShowLineup } from '@/components/shows/show-lineup';
+import { ShowLiveSources } from '@/components/shows/show-live-sources';
+import { ShowTakeover } from '@/components/shows/show-takeover';
+import { StreamReadRefresh } from '@/components/shows/stream-read-refresh';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate } from '@/lib/format';
-import { showListQueryOptions } from '@/queries/shows';
+import { showListQueryOptions, type ListedShow } from '@/queries/shows';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Show · conservation.tv studio' }];
 
 /**
- * One show: what is on screen, on its stage, with Compose beside it for now; its name; and the outputs following it,
- * each opening its own page, where how it goes out is. Everyone reads it and may compose it; administrators rename and
- * delete it.
+ * One show: what is on screen, on its stage, with its controls beside it (its layout, its lineup and their sound, its
+ * takeover); its name; and the outputs following it, each opening its own page, where how it goes out is. Everyone
+ * reads and operates it; administrators rename and delete it.
  */
 const ShowRoute: FC<Route.ComponentProps> = ({ params }) => {
   return (
-    <Page className="max-w-5xl gap-6">
+    <Page className="max-w-6xl gap-6">
       <BackLink to=".." relative="path">
         Shows
       </BackLink>
@@ -64,7 +71,7 @@ const ShowView: FC<ShowViewProps> = ({ showId }) => {
   const organisationId = useOrganisationId();
   const { data: show } = useSuspenseQuery({
     ...showListQueryOptions(organisationId),
-    select: (shows: Show[]) => shows.find(candidate => candidate.id === showId)
+    select: (shows: ListedShow[]) => shows.find(candidate => candidate.id === showId)
   });
   if (!show) return <ShowNotFound />;
   return (
@@ -77,7 +84,31 @@ const ShowView: FC<ShowViewProps> = ({ showId }) => {
           <PinButton label={show.name} kind="show" />
         </PageActions>
       </PageHeader>
-      <BroadcastStage key={show.id} showId={show.id} />
+      <ShowDesk>
+        <BroadcastStage key={show.id} showId={show.id} />
+        <ShowControls>
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+            <ShowControlsSection>
+              <ShowLayoutPicker showId={show.id} />
+              <ShowLayoutMap showId={show.id} />
+            </ShowControlsSection>
+            <ShowControlsSection>
+              <ShowMix showId={show.id} />
+              <ShowLineup showId={show.id} />
+            </ShowControlsSection>
+            <ShowControlsSection>
+              {/* What the controls can go without: the live list failing to load leaves the rest running. */}
+              <QuietBoundary>
+                <Suspense fallback={null}>
+                  <ShowLiveSources showId={show.id} />
+                  <StreamReadRefresh />
+                </Suspense>
+              </QuietBoundary>
+              <ShowTakeover showId={show.id} />
+            </ShowControlsSection>
+          </Suspense>
+        </ShowControls>
+      </ShowDesk>
       <Section>
         <Facts>
           <Fact>
@@ -112,7 +143,7 @@ const ShowView: FC<ShowViewProps> = ({ showId }) => {
 };
 
 interface ShowOutputsProps {
-  show: Show;
+  show: ListedShow;
 }
 
 /** The outputs following the show, each opening its page; or, with none, where one is made to follow it. */

@@ -4,26 +4,70 @@ import { createStore } from '@conservationtv/store';
 /** The studio API, signed as the agent's device. The agent supplies it on start; runtimes read it with `useStudio()`. */
 export const [withStudio, useStudio] = createStore<Client>('studio');
 
-/** The configuration as version 3 of `deviceConfiguration.get` returns it, which names cameras rather than URLs. */
-export type ControllingConfiguration = Exclude<Awaited<ReturnType<Client['deviceConfiguration']['get']['v3']>>, Error>;
+/**
+ * The configuration as version 4 of `deviceConfiguration.get` returns it, which names cameras rather than URLs, and
+ * serves each exposure at one path.
+ */
+export type DeliveringConfiguration = Exclude<Awaited<ReturnType<Client['deviceConfiguration']['get']['v4']>>, Error>;
 
-/** The configuration as version 2 returns it: each path and probe with the URL to pull. */
-type ProbingConfiguration = Exclude<Awaited<ReturnType<Client['deviceConfiguration']['get']['v2']>>, Error>;
+/** The `mediamtx` section as version 4 gives it. */
+type DeliveringMediamtx = NonNullable<DeliveringConfiguration['mediamtx']>;
+
+/** Where a path is pulled from while it is read: a URL, credentials included, such as a camera's. */
+export interface UrlSource {
+  url: string;
+}
+
+/** Another path of the same MediaMTX, which a path is read from while it is read. */
+export interface PathSource {
+  path: string;
+}
 
 /**
- * What only version 3 says: the cameras to control, the chat to listen to, and the peers to serve; and who signs each
- * preview's tokens, as signed by no one before it.
+ * A path as the gateway works from it: with the URL to pull, or another of its paths; or none, a pushed stream's
+ * ingest, which its publisher pushes to, an encoder admitted by the stream's key whose digest is `keySha256`.
  */
-type Reach = Partial<Pick<ControllingConfiguration, 'cameras' | 'chat' | 'peers'>> &
-  Pick<ControllingConfiguration, 'obs'>;
+export interface PulledPath extends Omit<DeliveringMediamtx['paths'][number], 'source'> {
+  source?: UrlSource | PathSource;
+  keySha256?: string;
+}
+
+/** A camera to probe, as the probes work from it: the URL to ask for a stream description, credentials included. */
+export interface UrlProbe {
+  subjectId: string;
+  url: string;
+}
+
+/** The `mediamtx` section the agent works from: as version 4 gives it, with URLs where it names cameras. */
+export interface MediamtxSection extends Omit<DeliveringMediamtx, 'paths' | 'probes'> {
+  paths: PulledPath[];
+  probes: UrlProbe[];
+}
+
+/**
+ * What only version 3 and later say: the cameras to control, the chat to listen to, and the peers to serve; and who
+ * signs each preview's tokens, as signed by no one before it.
+ */
+type Reach = Partial<Pick<DeliveringConfiguration, 'cameras' | 'chat' | 'peers'>> &
+  Pick<DeliveringConfiguration, 'obs' | 'show'>;
+
+/**
+ * The `relays` section as version 4 gives it: where to read the relays' stats, and the exposures the agent covers but
+ * does not publish. Versions before 4 name only the stats, in their `mediamtx` section, and nothing to watch.
+ */
+export type RelaysSection = NonNullable<DeliveringConfiguration['relays']>;
 
 /**
  * The configuration the agent works from, whichever version the studio API serves: a section for each part of the
  * agent to run (system/configuration.ts), each turned into its keys' specs by that part (gateway/configuration.ts,
- * output/configuration.ts). Its `mediamtx` section is as version 2 gives it, with URLs: from version 3 the agent makes
- * them itself, from the cameras it is given. Its `obs` section is as version 3 gives it.
+ * output/configuration.ts). Its `mediamtx` section is as version 4 gives it, with URLs: from version 3 the agent makes
+ * them itself, from the cameras it is given. Its `obs` section is as version 3 and later give it, and its `relays` as
+ * version 4 does.
  */
-export type DeviceConfiguration = Omit<ProbingConfiguration, 'obs'> & Reach;
+export interface DeviceConfiguration extends Reach {
+  mediamtx?: MediamtxSection;
+  relays?: RelaysSection;
+}
 
 /**
  * How long before a credential the studio API hands out expires it is asked for again: longer than the configuration's
@@ -57,6 +101,15 @@ export async function leased<Lease extends Expiring>(
   if (renewed instanceof Error) throw renewed;
   leases.set(id, renewed);
   return renewed;
+}
+
+/**
+ * Forgets every lease in `leases` but those under `kept`: one for something the configuration no longer names would
+ * otherwise be kept for good.
+ */
+export function keepLeases(leases: Map<string, unknown>, kept: Iterable<string>): void {
+  const keep = new Set(kept);
+  for (const id of leases.keys()) if (!keep.has(id)) leases.delete(id);
 }
 
 /** `url` carrying `token` as `?jwt=`, which relays and gateways read, as the studio API hands them out together. */

@@ -15,19 +15,31 @@ import {
 import { FINDINGS_LOCALE, type Finding, type Health, isWorse } from './health.ts';
 import type { Reading } from './metrics.ts';
 
-// An exposure's opinion: one of a stream's deliveries, from the agent whose MediaMTX serves its paths (one per
-// rendition), or publishes it to a relay. Neither is judged by what flows, since both only carry what is asked for:
-// MediaMTX pulls a path from its camera only while it is read, and a relay asks a publisher only for what viewers
-// take. So each is judged by what says whether it would deliver:
+// An exposure's opinion: one of a stream's deliveries, from the agent whose MediaMTX serves its path, or the agent that
+// covers it on a relay: the one that publishes it there, or, for one no agent publishes (a browser publishing straight
+// to the relay), the one the configuration picks to cover it (`selectRelayCoverage`, src/configuration/plan/
+// helpers.ts), which watches it there. Neither is judged by what flows, since both only carry what is asked for:
+// MediaMTX pulls a path from its camera only while it is read, and a relay asks a publisher only for what viewers take,
+// so a relay that received little of an exposure says only that little was watched. So each is judged by what says
+// whether it would deliver:
 //
-//   a path      for the share of the window it was asked for: all of it when a publisher is planned to read the
-//               rendition (so a publisher that died is a failure, not a path gone idle), otherwise while it had
-//               readers. Then whether it was ready for that share, received anything, cleanly, and whether its
-//               publisher read what it received;
-//   the relay   by whether it has each rendition to give: its broadcast announced there, and its catalog read back
-//               through the relay by the agent. That holds whether or not anyone watches, so a published exposure is
-//               never idle. How much the relay carries, and for how many, is charted, not judged: it is how much is
-//               watched.
+//   a path      for the share of the window it was asked for: all of it when a publisher is planned to read it (so a
+//               publisher that died is a failure, not a path gone idle), otherwise while it had readers. Then whether
+//               it was ready for that share, received anything, cleanly, and whether its publisher read what it
+//               received;
+//   the relay   by whether it has the exposure to give: its broadcast announced there, and its catalog read back
+//               through the relay by the agent covering it, whether it publishes it or only watches it. That holds
+//               whether or not anyone watches, so a published exposure is never idle. For one the agent only watches,
+//               being announced is the only sign anyone is publishing it at all. How much the relay carries, and for
+//               how many, is charted, not judged: it is how much is watched.
+//
+// An agent from before an exposure was one path names each path's series by a `rendition` dimension, always `default`
+// now (src/topology/renditions.ts), and its relay's by the same: each series is judged on its own, by the worst of
+// each check, so those agents' reports are judged as anyone's.
+//
+// A pushed stream's exposures (a stream with no source: a phone, a PC, OBS) stand whether or not anyone publishes
+// them (docs/shows.md, Going live), so they are asked for only while someone does: its ingest path while it is ready,
+// which is while it has a publisher, and its relay while it is announced there. Until then they are `idle`, not down.
 //
 // A path nothing asked for isn't judged. An exposure of only such paths is `idle`; one whose camera is switched off is
 // `off`.
@@ -40,14 +52,14 @@ const MIN_DEMAND = 0.25;
 
 /** What the topology expects of an exposure. */
 export interface ExposureContext {
-  /** Its renditions. */
-  renditions: string[];
-  /** Those of its renditions an exposure downstream is published from: read by a publisher for as long as it runs. */
-  published: string[];
+  /** Whether an exposure downstream is published from it: its path is read by a publisher for as long as it runs. */
+  published: boolean;
   /** The exposure it is published from, if it is. */
   upstreamExposureId: string | null;
   /** Whether its stream's camera is switched off. */
   sourceOff: boolean;
+  /** Whether its stream is pushed: it has no source device, so it is there only while someone publishes it. */
+  pushed: boolean;
 }
 
 /** What the topology expects of the exposure; undefined once it is gone. */
@@ -56,8 +68,8 @@ export async function exposureContext({ organisationId, entityId }: Subject): Pr
   const [exposure] = await db
     .select({
       streamId: exposures.streamId,
-      renditions: exposures.renditions,
       upstreamExposureId: exposures.upstreamExposureId,
+      sourceDeviceId: streams.sourceDeviceId,
       cameraState: cameras.state
     })
     .from(exposures)
@@ -65,16 +77,16 @@ export async function exposureContext({ organisationId, entityId }: Subject): Pr
     .leftJoin(cameras, eq(cameras.id, streams.sourceDeviceId))
     .where(and(eq(exposures.organisationId, organisationId), eq(exposures.id, entityId)));
   if (exposure === undefined) return undefined;
-  const downstream = await db
-    .select({ renditions: exposures.renditions })
+  const [downstream] = await db
+    .select({ id: exposures.id })
     .from(exposures)
-    .where(and(eq(exposures.organisationId, organisationId), eq(exposures.upstreamExposureId, entityId)));
-  const read = new Set(downstream.flatMap(each => each.renditions));
+    .where(and(eq(exposures.organisationId, organisationId), eq(exposures.upstreamExposureId, entityId)))
+    .limit(1);
   return {
-    renditions: exposure.renditions,
-    published: exposure.renditions.filter(rendition => read.has(rendition)),
+    published: downstream !== undefined,
     upstreamExposureId: exposure.upstreamExposureId,
-    sourceOff: exposure.cameraState !== null && exposure.cameraState !== 'enabled'
+    sourceOff: exposure.cameraState !== null && exposure.cameraState !== 'enabled',
+    pushed: exposure.sourceDeviceId === null
   };
 }
 
@@ -117,19 +129,22 @@ function worse(current: Finding | undefined, candidate: Finding): Finding {
   return isWorse(candidate.health, current.health) ? candidate : current;
 }
 
-/** Each check's worst finding, of several renditions'. */
+/** Each check's worst finding, of several series'. */
 function worstOfEach(findings: Finding[]): Finding[] {
   const worst = new Map<string, Finding>();
   for (const finding of findings) worst.set(finding.check, worse(worst.get(finding.check), finding));
   return [...worst.values()];
 }
 
-/** Each rendition's reading of a metric: a path without the dimension is the exposure's only one. */
-function byRendition(readings: Reading[]): Map<string, Reading> {
+/**
+ * Each series' reading of a metric, by the rendition an agent from before an exposure was one path names it by, or
+ * none: the exposure's path.
+ */
+function bySeries(readings: Reading[]): Map<string, Reading> {
   return new Map(readings.map(reading => [reading.dimensions.rendition ?? '', reading]));
 }
 
-/** What the reporter said of the exposure's paths over the window, each metric by rendition. */
+/** What the reporter said of the exposure's paths over the window, each metric by series. */
 interface PathReadings {
   ready: Map<string, Reading>;
   read: Map<string, Reading>;
@@ -149,64 +164,61 @@ async function pathReadings({ metrics, window }: Judged): Promise<PathReadings> 
     metrics.over(pathMetrics.publisherEgressBitrate, window)
   ]);
   return {
-    ready: byRendition(ready),
-    read: byRendition(read),
-    readers: byRendition(readers),
-    ingest: byRendition(ingest),
-    errors: byRendition(errors),
-    publisher: byRendition(publisher)
+    ready: bySeries(ready),
+    read: bySeries(read),
+    readers: bySeries(readers),
+    ingest: bySeries(ingest),
+    errors: bySeries(errors),
+    publisher: bySeries(publisher)
   };
 }
 
-/** Whether a publisher is planned to read the rendition. A path that names none is the exposure's only one. */
-function isPublished(rendition: string, { published }: ExposureContext): boolean {
-  return rendition === '' ? published.length > 0 : published.includes(rendition);
-}
-
 /**
- * The share of the window a rendition was asked for. All of it when a publisher is planned to read it, whether or not
- * the publisher is there; otherwise for as long as it was read. An agent that doesn't say is taken to be read while it
+ * The share of the window a path was asked for. A pushed one's, while it was published to. All of it when a publisher
+ * is planned to read it, whether or not the publisher is there; otherwise for as long as it was read. An agent that doesn't say is taken to be read while it
  * had readers, and one that says neither is judged as it always was.
  */
-function demandFor(rendition: string, readings: PathReadings, context: ExposureContext): number {
-  if (isPublished(rendition, context)) return 1;
-  const asked = readings.read.get(rendition) ?? readings.readers.get(rendition);
+function demandFor(series: string, readings: PathReadings, context: ExposureContext): number {
+  // A pushed path is asked for while it has a publisher, which is while it is ready.
+  if (context.pushed) return share(readings.ready.get(series)?.summary.avg ?? 0);
+  if (context.published) return 1;
+  const asked = readings.read.get(series) ?? readings.readers.get(series);
   return asked === undefined ? 1 : share(asked.summary.avg);
 }
 
-/** A rendition, and the share of the window it was asked for. */
+/** A path's series, and the share of the window it was asked for. */
 interface Asked {
-  rendition: string;
+  series: string;
   demand: number;
 }
 
-/** One rendition's findings, for the share of the window it was asked for. */
-function renditionFindings({ rendition, demand }: Asked, readings: PathReadings, { context, window }: Judged) {
+/** One path's findings, for the share of the window it was asked for. */
+function pathFindings({ series, demand }: Asked, readings: PathReadings, { context, window }: Judged) {
   const findings: Finding[] = [];
-  const ready = readings.ready.get(rendition);
+  const ready = readings.ready.get(series);
   if (ready !== undefined) findings.push(readyFinding(ready, demand, window));
-  const received = readings.ingest.get(rendition);
+  const received = readings.ingest.get(series);
   if (received !== undefined) findings.push(ingestFinding(received, window));
-  const erring = readings.errors.get(rendition);
+  const erring = readings.errors.get(series);
   if (erring !== undefined) findings.push(errorsFinding(erring, window));
   // A publisher reads all a path receives, so only what it receives says how much that should be.
-  const sent = isPublished(rendition, context) ? readings.publisher.get(rendition) : undefined;
+  const sent = context.published ? readings.publisher.get(series) : undefined;
   const flowing = received !== undefined && received.summary.avg > 0;
   if (sent !== undefined && flowing) findings.push(publisherFinding(sent, received, window));
   return findings;
 }
 
 /**
- * The paths' findings: each check's worst rendition, of those asked for. Undefined when no path reported being ready
- * or not, as for an exposure this reporter only publishes.
+ * The paths' findings: each check's worst, of the series asked for. Undefined when no path reported being ready or
+ * not, as for an exposure this reporter only publishes.
  */
 async function pathPart(judged: Judged): Promise<Part | undefined> {
   const readings = await pathReadings(judged);
   if (readings.ready.size === 0) return undefined;
   const asked = [...readings.ready.keys()]
-    .map((rendition): Asked => ({ rendition, demand: demandFor(rendition, readings, judged.context) }))
+    .map((series): Asked => ({ series, demand: demandFor(series, readings, judged.context) }))
     .filter(({ demand }) => demand >= MIN_DEMAND);
-  const findings = asked.flatMap(each => renditionFindings(each, readings, judged));
+  const findings = asked.flatMap(each => pathFindings(each, readings, judged));
   return { demanded: asked.length > 0, findings: worstOfEach(findings) };
 }
 
@@ -251,7 +263,7 @@ function errorsFinding(reading: Reading, window: number): Finding {
   };
 }
 
-/** Whether the rendition's publisher read what the path received: a publisher reads all of it, for as long as it runs. */
+/** Whether the path's publisher read what it received: a publisher reads all of it, for as long as it runs. */
 function publisherFinding(sent: Reading, received: Reading, window: number): Finding {
   const value = sent.summary.avg / received.summary.avg;
   const health: Health = value < 0.5 ? 'unhealthy' : value < 0.9 ? 'degraded' : 'healthy';
@@ -264,7 +276,7 @@ function publisherFinding(sent: Reading, received: Reading, window: number): Fin
   };
 }
 
-/** Whether the relay had a rendition to give for the window: announced there, its catalog read back. */
+/** Whether the relay had the exposure to give for the window: announced there, its catalog read back. */
 function announcedFinding(reading: Reading, window: number): Finding {
   const value = reading.summary.avg;
   const health: Health = value < 0.5 ? 'unhealthy' : value < 0.99 ? 'degraded' : 'healthy';
@@ -278,19 +290,21 @@ function announcedFinding(reading: Reading, window: number): Finding {
 }
 
 /**
- * The relay's finding: whether it had the exposure's renditions to give, by the worst of them. Undefined when nothing
- * was reported of the relay, as for an exposure that isn't published. An agent from before it said whether the relay
- * has a rendition reports only what the relay carried, which says how much was watched, not whether it works: then
- * there is nothing to judge by.
+ * The relay's finding: whether it had the exposure to give, by the worst of its series. Undefined when nothing was
+ * reported of the relay, as for an exposure that isn't published. An agent from before it said whether the relay has
+ * it reports only what the relay carried, which says how much was watched, not whether it works: then there is
+ * nothing to judge by.
  */
-async function relayPart({ metrics, window }: Judged): Promise<Part | undefined> {
+async function relayPart({ metrics, window, context }: Judged): Promise<Part | undefined> {
   const [announced, carried] = await Promise.all([
     metrics.over(relayMetrics.announced, window),
     metrics.over(relayMetrics.ingestBitrate, window)
   ]);
   if (announced.length > 0) {
-    const findings = announced.map(reading => announcedFinding(reading, window));
-    return { demanded: true, findings: worstOfEach(findings) };
+    // A pushed stream's relay is asked for only while someone publishes it, as long as it was there for a while.
+    const asked = context.pushed ? announced.filter(reading => reading.summary.avg >= MIN_DEMAND) : announced;
+    const findings = asked.map(reading => announcedFinding(reading, window));
+    return { demanded: asked.length > 0, findings: worstOfEach(findings) };
   }
   if (carried.length === 0) return undefined;
   const summary = "Its agent doesn't say whether the relay has it";

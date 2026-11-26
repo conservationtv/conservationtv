@@ -131,7 +131,7 @@ interface ReportedPoints {
 }
 
 /**
- * The bitrate in each bucket: each reporter's paths (every rendition of every exposure it serves) add up, as they are
+ * The bitrate in each bucket: each reporter's paths (one for every exposure it serves) add up, as they are
  * separate, but two reporters measure the same thing, so the larger stands rather than their sum.
  */
 export function totalBitrate(series: ReportedPoints[]): Map<number, number> {

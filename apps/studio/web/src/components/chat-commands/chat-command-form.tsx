@@ -34,8 +34,9 @@ export interface ChatCommandFormProps {
 /**
  * A chat command's form, for adding one and for changing one: the word it is used by, who may use it, how long it
  * rests, and what it does. A command that points a camera at a preset names the camera and the preset itself, or
- * leaves either to the words that follow it in chat; beneath the fields, how the command is then typed. The
- * organisation's cameras, for the choices, come from the query cache.
+ * leaves either to the words that follow it in chat; a command for the show its output follows takes everything from
+ * chat, so it has nothing more to fill in. Beneath the fields, how the command is then typed. The organisation's
+ * cameras, for the choices and the example, come from the query cache.
  */
 export const ChatCommandForm: FC<ChatCommandFormProps> = ({ defaultValues, onSubmit, children }) => {
   const organisationId = useOrganisationId();
@@ -93,12 +94,17 @@ export const ChatCommandForm: FC<ChatCommandFormProps> = ({ defaultValues, onSub
         </div>
         <form.Field name="kind">{field => <ChatActionField field={field} />}</form.Field>
         <form.Subscribe selector={state => state.values}>
-          {values =>
-            values.kind === 'reply' ? (
-              <form.Field name="text">
-                {field => <TextField field={field} label="What it says" placeholder="The feeder is filled at 8am." />}
-              </form.Field>
-            ) : (
+          {values => {
+            if (values.kind === 'reply') {
+              return (
+                <form.Field name="text">
+                  {field => <TextField field={field} label="What it says" placeholder="The feeder is filled at 8am." />}
+                </form.Field>
+              );
+            }
+            // A show command takes everything it acts on from chat.
+            if (values.kind !== 'cameraPreset') return null;
+            return (
               <>
                 <form.Field name="cameraId">{field => <ChatCameraField field={field} cameras={cameras} />}</form.Field>
                 <div className="grid grid-cols-2 items-start gap-4">
@@ -119,8 +125,8 @@ export const ChatCommandForm: FC<ChatCommandFormProps> = ({ defaultValues, onSub
                   )}
                 </div>
               </>
-            )
-          }
+            );
+          }}
         </form.Subscribe>
         <form.Subscribe selector={state => state.values}>
           {values => (
@@ -168,6 +174,24 @@ const ChatActionField: FC<ChatFieldProps> = ({ field }) => {
               <FieldDescription>Says something in chat.</FieldDescription>
             </FieldContent>
             <RadioGroupItem id="action-reply" value="reply" />
+          </Field>
+        </FieldLabel>
+        <FieldLabel htmlFor="action-showSwap">
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldTitle>Swap cameras</FieldTitle>
+              <FieldDescription>Swaps two cameras in the show, by position or name.</FieldDescription>
+            </FieldContent>
+            <RadioGroupItem id="action-showSwap" value="showSwap" />
+          </Field>
+        </FieldLabel>
+        <FieldLabel htmlFor="action-showTakeover">
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldTitle>Take over</FieldTitle>
+              <FieldDescription>Puts one stream on the whole screen, or ends it with off.</FieldDescription>
+            </FieldContent>
+            <RadioGroupItem id="action-showTakeover" value="showTakeover" />
           </Field>
         </FieldLabel>
       </RadioGroup>

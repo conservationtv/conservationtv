@@ -20,11 +20,13 @@ import type { Activity, Health } from './health.ts';
 //                      ├▶ preview
 //                      └▶ recorder
 //
-// A show is the exposures its composition places. Pure: from the lists as they are read, and the states.
+// A show is the streams its state places (`placedStreams`, src/shows/resolve.ts): each one's source and deliveries.
+// Pure: from the lists as they are read, and the states.
 //
 // A state only says something while something is set to report about its subject: an output's parts while an agent
 // runs the output, a delivery while an agent delivers it (the one it is pinned to, the active agent on its gateway's
-// network, or whichever delivers the exposure it is published from), a camera while an agent delivering one of its
+// network, or whichever delivers the exposure it is published from) or, on a relay that publishes stats, while the
+// organisation has an active agent to cover it (src/configuration/plan/helpers.ts, `selectRelayCoverage`), a camera while an agent delivering one of its
 // streams probes it, a channel while an output with an agent forwards to it. A camera that is switched off feeds
 // nothing and is probed by nothing, so neither it nor its streams' deliveries are set to report; nor is a forward that
 // is switched off, which its output's agent isn't sent. With nothing set to, silence is not a failure, and whatever was
@@ -73,8 +75,8 @@ interface NamedInput {
   name: string;
 }
 interface ShowInput extends NamedInput {
-  /** The exposures its composition places. */
-  placed: string[];
+  /** The streams its state places, by ID. */
+  streams: string[];
 }
 interface OutputDeviceInput {
   deviceId: string;
@@ -128,6 +130,11 @@ export interface StatusInputs {
   outputs: OutputInput[];
   channels: NamedInput[];
   states: StateInput[];
+  /**
+   * The gateways whose relays publish stats (conservation.tv), where every exposure is covered by an agent of the
+   * organisation's while it has an active one. None when left out.
+   */
+  statsGatewayIds?: readonly string[];
 }
 
 /** One subject in the signal's path: what it is called, and what feeds it. */
@@ -214,6 +221,28 @@ function ownStatus(state: StateInput | undefined, unreported: boolean): Status {
   return state.activity === 'idle' ? 'idle' : HEALTH_STATUS[state.health];
 }
 
+/** Whether a subject is failing by its own state, whatever feeds it: reporting unhealthy, or gone quiet. */
+export function isFailing(state: StateInput | undefined): boolean {
+  return ownStatus(state, false) === 'failing';
+}
+
+/** A stream as `streamOffline` judges it: its source, and its deliveries. */
+export interface StreamSubjectsInput {
+  sourceDeviceId: string | null;
+  exposures: Identified[];
+}
+
+/**
+ * Whether a stream is offline to whoever reads it, as a show's card says (docs/shows.md): its source is failing, or
+ * every delivery of it is, each by its own state (failing is reporting unhealthy, or gone quiet). A stream with no
+ * deliveries, or one nothing has said anything of, is not: it may yet start.
+ */
+export function streamOffline(stream: StreamSubjectsInput, states: ReadonlyMap<string, StateInput>): boolean {
+  const failing = (subjectId: string) => isFailing(states.get(subjectId));
+  if (stream.sourceDeviceId !== null && failing(deviceSubject(stream.sourceDeviceId))) return true;
+  return stream.exposures.length > 0 && stream.exposures.every(exposure => failing(exposureSubject(exposure.id)));
+}
+
 /** What each health is as a status, of a subject that is active and still reporting. */
 const HEALTH_STATUS = {
   healthy: 'healthy',
@@ -244,14 +273,21 @@ const DOWN = {
   unknown: false
 } satisfies Record<Status, boolean>;
 
-/** Whether each of a stream's exposures has an agent set to deliver it, and so to report about it. */
-function deliveredExposures(stream: StreamInput, { agents, gateways }: StatusInputs): Set<string> {
+/**
+ * Whether each of a stream's exposures has an agent set to report about it: one that delivers it, or on a relay that
+ * publishes stats, the organisation's agent covering what nobody delivers.
+ */
+function deliveredExposures(stream: StreamInput, inputs: StatusInputs): Set<string> {
+  const { agents, gateways, statsGatewayIds = [] } = inputs;
   const delivered = new Set<string>();
   const byId = new Map(stream.exposures.map(exposure => [exposure.id, exposure]));
+  const covered = agents.some(agent => agent.active);
   const isDelivered = (exposure: ExposureInput, seen: Set<string>): boolean => {
-    // Pinned to a device; else on a network with an active agent, which runs its gateway; else, on the internet, by
-    // whichever agent delivers the exposure it is published from.
+    // Pinned to a device; else on a network with an active agent, which runs its gateway; else, on a relay that
+    // publishes stats, while any agent is active to cover it; else, on the internet, by whichever agent delivers the
+    // exposure it is published from.
     if (exposure.publisherDeviceId !== null) return true;
+    if (covered && statsGatewayIds.includes(exposure.gatewayId)) return true;
     const networkId = gateways.find(gateway => gateway.id === exposure.gatewayId)?.networkId ?? null;
     if (networkId !== null) return agents.some(agent => agent.networkId === networkId && agent.active);
     const upstream = byId.get(exposure.upstreamExposureId ?? '');
@@ -501,6 +537,20 @@ function groupOf(named: NamedInput, subjectIds: string[], subjects: Map<string, 
   return { id: named.id, name: named.name, status, summary, subjectIds, causes };
 }
 
+/** The subjects of the streams a show places, in its order: each stream's source, then its deliveries. */
+function placedSubjects(show: ShowInput, perStream: readonly StreamNodes[]): string[] {
+  return show.streams.flatMap(streamId => {
+    const placed = perStream.find(({ stream }) => stream.id === streamId);
+    return placed === undefined ? [] : placed.nodes.map(node => node.subjectId);
+  });
+}
+
+/** A stream, and its nodes in the signal's path. */
+interface StreamNodes {
+  stream: StreamInput;
+  nodes: Node[];
+}
+
 /** The groups a subject is a cause of, each as what a problem affects. */
 function affectedBy(subjectId: string, groups: Record<Affected['kind'], Group[]>): Affected[] {
   const kinds = ['stream', 'show', 'output', 'channel'] as const;
@@ -526,7 +576,7 @@ export function organisationStatus(inputs: StatusInputs): OrganisationStatus {
   const { devices, streams, shows, outputs, channels } = inputs;
   const states = new Map(inputs.states.map(state => [state.subjectId, state]));
 
-  const perStream = streams.map(stream => ({ stream, nodes: streamNodes(stream, inputs) }));
+  const perStream = streams.map((stream): StreamNodes => ({ stream, nodes: streamNodes(stream, inputs) }));
   const perOutput = outputs.map(output => ({ output, nodes: outputNodes(output, inputs) }));
   const perChannel = channels.map(channel => ({ channel, node: channelNode(channel, outputs) }));
   // An agent or a camera that nothing above reaches still has a status: an agent that serves a gateway, say. Other
@@ -560,7 +610,7 @@ export function organisationStatus(inputs: StatusInputs): OrganisationStatus {
   const idsOf = (group: Node[]) => group.map(node => node.subjectId);
   const groups = {
     stream: perStream.map(({ stream, nodes: parts }) => groupOf(stream, idsOf(parts), subjects, STREAM_WORDS)),
-    show: shows.map(show => groupOf(show, show.placed.map(exposureSubject), subjects, SHOW_WORDS)),
+    show: shows.map(show => groupOf(show, placedSubjects(show, perStream), subjects, SHOW_WORDS)),
     output: perOutput.map(({ output, nodes: parts }) => groupOf(output, idsOf(parts), subjects, OUTPUT_WORDS)),
     channel: perChannel.map(({ channel, node }) => groupOf(channel, [node.subjectId], subjects, CHANNEL_WORDS))
   };

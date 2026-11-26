@@ -2,9 +2,10 @@ import { MEDIAMTX_AUTH_PATH } from './auth.ts';
 import { loopback, type MediamtxPorts } from './ports.ts';
 
 // Where the agent and MediaMTX reach each other, and where MediaMTX reaches its own servers. Everything that talks to
-// MediaMTX, or that MediaMTX talks to, takes its address from here rather than working it out from the ports, so how
-// they reach each other is decided once, by whoever puts the agent together (gateway/index.ts). Today MediaMTX is the agent's own
-// child on the same machine, so every address is on loopback (`localReach`).
+// MediaMTX, or that MediaMTX talks to, takes its address from here rather than working it out from the ports, as
+// listening.ts has it now: the ports are chosen before each start of MediaMTX (chosen.ts), so an address is read as it
+// is used, never kept. Today MediaMTX is the agent's own child on the same machine, so every address is on loopback
+// (`localReach`).
 
 export interface MediamtxReach {
   /** MediaMTX's control API, as the agent calls it, such as `http://127.0.0.1:9997`. */
@@ -17,7 +18,7 @@ export interface MediamtxReach {
   authCallback: string;
   /** MediaMTX's RTSP server, as its own paths read one another, such as `rtsp://127.0.0.1:8554`. */
   rtsp: string;
-  /** MediaMTX's RTMP server, as the publishers it runs read renditions, such as `rtmp://127.0.0.1:1935`. */
+  /** MediaMTX's RTMP server, as the publishers it runs read their paths, such as `rtmp://127.0.0.1:1935`. */
   rtmp: string;
 }
 

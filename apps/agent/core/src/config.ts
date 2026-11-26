@@ -1,11 +1,14 @@
 import { createStore } from '@conservationtv/store';
 import type { Peers } from './iroh/admission.ts';
-import type { MediamtxPorts } from './gateway/streams/ports.ts';
+import type { MediamtxPortPins } from './gateway/streams/ports.ts';
 
 /** How the agent runs MediaMTX. */
 export interface MediamtxSettings {
-  /** The ports MediaMTX listens on, when MediaMTX's own will not do: another program has one, say. */
-  ports?: MediamtxPorts;
+  /**
+   * Ports pinned for MediaMTX, each used as given and never moved (gateway/streams/ports.ts): for a firewalled site or a
+   * Docker port mapping. Any not named is chosen by the agent, from MediaMTX's own.
+   */
+  ports?: MediamtxPortPins;
 }
 
 /**

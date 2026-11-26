@@ -337,8 +337,8 @@ importers:
         specifier: 'catalog:'
         version: 0.4.0
       '@strangecyan/vignette':
-        specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: 3.1.1
+        version: 3.1.1(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@xstate/store':
         specifier: 'catalog:'
         version: 4.3.0(xstate@5.33.3)
@@ -817,8 +817,8 @@ importers:
         specifier: 2.10.0
         version: 2.10.0
       '@strangecyan/vignette':
-        specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: 3.1.1
+        version: 3.1.1(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       better-auth:
         specifier: 'catalog:'
         version: 1.7.7(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(drizzle-kit@1.0.0-rc.6(drizzle-orm@1.0.0-rc.6(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2)))(drizzle-orm@1.0.0-rc.6(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(better-sqlite3@12.11.1)(pg@8.23.1)(valibot@1.5.0)(zod@4.6.2))(next@16.4.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.17)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.10.1)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)))
@@ -1016,6 +1016,9 @@ importers:
       '@conservationtv/agent-sdk':
         specifier: workspace:*
         version: link:../../agent/sdk
+      '@conservationtv/broadcast':
+        specifier: workspace:*
+        version: link:../../../packages/broadcast
       '@conservationtv/cameras':
         specifier: workspace:*
         version: link:../../../packages/cameras
@@ -1031,6 +1034,9 @@ importers:
       '@conservationtv/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
+      '@moq/publish':
+        specifier: 0.5.4
+        version: 0.5.4(@types/react@19.3.0)(@zod/mini@4.6.7(zod@4.6.2))(react@19.3.0)(solid-js@1.9.17)(zod@4.6.2)
       '@moq/watch':
         specifier: 0.6.6
         version: 0.6.6(@types/react@19.3.0)(@zod/mini@4.6.7(zod@4.6.2))(react@19.3.0)(solid-js@1.9.17)(zod@4.6.2)
@@ -1044,8 +1050,8 @@ importers:
         specifier: 'catalog:'
         version: 0.4.0
       '@strangecyan/vignette':
-        specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: 3.1.1
+        version: 3.1.1(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       '@tanstack/react-form':
         specifier: 1.33.5
         version: 1.33.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1137,6 +1143,22 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.2
+
+  packages/broadcast:
+    dependencies:
+      mediabunny:
+        specifier: 1.66.4
+        version: 1.66.4
+    devDependencies:
+      '@moq/publish':
+        specifier: 0.5.4
+        version: 0.5.4(@types/react@19.3.0)(@zod/mini@4.6.7(zod@4.6.2))(react@19.3.0)(solid-js@1.9.17)(zod@4.6.2)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
       zod:
         specifier: 'catalog:'
         version: 4.6.2
@@ -1313,8 +1335,8 @@ importers:
   packages/shows:
     dependencies:
       '@strangecyan/vignette':
-        specifier: 2.1.0
-        version: 2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
+        specifier: 3.1.1
+        version: 3.1.1(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
       react-dom:
         specifier: ^19.3.0
         version: 19.3.0(react@19.3.0)
@@ -2710,6 +2732,9 @@ packages:
 
   '@moq/pattern@0.2.1':
     resolution: {integrity: sha512-NXlegs0abkYoIUkcxyJjnUHC1CGw8VkooAbuNKLK5AF0hCAyUWw1QNliHaLBty4K76qfrrvJK6cf7j31Z0KF0A==}
+
+  '@moq/publish@0.5.4':
+    resolution: {integrity: sha512-uOMShdgkpXZ4WNjD8IDPlbrXl6UB69IeT3OrcDzX45nAJxuzNKJsOMwh7XPxa2/2Kr6fmV71XxUGb1ap74GHjg==}
 
   '@moq/qmux@0.3.3':
     resolution: {integrity: sha512-Ez1GCVwpyNGB0eWvhKIXOjXrfRlMdmO0lpJ7gqInZFzsOsYTyML0WRgh24Itczp9Kev0CXsUA/K+XrGs1dRKUA==}
@@ -4342,8 +4367,8 @@ packages:
     resolution: {integrity: sha512-o1+r+WD3kdl9oii0DhOp9iNZq2FKSSto3rsRh/3kFLwhOKe7TOpS2RZRe0bDoTwbScy+Lup8fa5Hb9LPiKr/yA==}
     engines: {node: '>= 20.3.0'}
 
-  '@strangecyan/vignette@2.1.0':
-    resolution: {integrity: sha512-Z1sqeHvCZ0BawFkwRasjg8Xl8squIae56xICzB3he4wmgduM6tfbRkpNvyq7IypInkBKmV7Y1PcD0ihs4JCIbQ==}
+  '@strangecyan/vignette@3.1.1':
+    resolution: {integrity: sha512-XJfUl8H4RSPpdYXpKsMKdw4LK6tHhiKnOeInTws9IvHH0QLtZm71r1xiHU2PY8kGLKSVRkHcH1R//VoWLxJrEQ==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -4596,6 +4621,12 @@ packages:
 
   '@types/dockerode@4.0.1':
     resolution: {integrity: sha512-cmUpB+dPN955PxBEuXE3f6lKO1hHiIGYJA46IVF3BJpNsZGvtBDcRnlrHYHtOH/B6vtDOyl2kZ2ShAu3mgc27Q==}
+
+  '@types/dom-mediacapture-transform@0.1.12':
+    resolution: {integrity: sha512-d7/QsLRwF864A5mgIM/YrfiglHoYn7zgCcAoJgW404r+2DwnNr7EBbLnCWpmOMgH8y0te73L1AV6H1bmauaWFw==}
+
+  '@types/dom-webcodecs@0.1.13':
+    resolution: {integrity: sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ==}
 
   '@types/estree-jsx@1.0.5':
     resolution: {integrity: sha512-52CcUVNFyfb1A2ALocQw/Dd1BQFNmSdkuC3BkZ6iqhdMfQz7JWOFRuJFloOzjk+6WijU56m9oKXFAXc7o3Towg==}
@@ -7104,6 +7135,9 @@ packages:
   media-typer@1.1.1:
     resolution: {integrity: sha512-yz3xRaG20c6/BOzvYoDaGtPmGscs7YivItZEEqe6GbwNfHuxu9YNmvnEkMzKldAGY4/80pRcQRZSEnhquk9XuQ==}
     engines: {node: '>= 0.8'}
+
+  mediabunny@1.66.4:
+    resolution: {integrity: sha512-VIPwwaVpY5mUnf9mAOJlBii4P1nHK05X8//veRjJrddn514BSOuYaMrUy1UReLMVVsm85id6eMu0z5K71Kkf+g==}
 
   merge-descriptors@2.0.0:
     resolution: {integrity: sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g==}
@@ -10472,6 +10506,20 @@ snapshots:
 
   '@moq/pattern@0.2.1': {}
 
+  '@moq/publish@0.5.4(@types/react@19.3.0)(@zod/mini@4.6.7(zod@4.6.2))(react@19.3.0)(solid-js@1.9.17)(zod@4.6.2)':
+    dependencies:
+      '@moq/hang': 0.5.4(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.17)
+      '@moq/json': 0.4.3(@types/react@19.3.0)(@zod/mini@4.6.7(zod@4.6.2))(react@19.3.0)(solid-js@1.9.17)(zod@4.6.2)
+      '@moq/net': 0.4.7(@types/react@19.3.0)(@zod/mini@4.6.7(zod@4.6.2))(react@19.3.0)(solid-js@1.9.17)(zod@4.6.2)
+      '@moq/signals': 0.2.6(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.17)
+      mediabunny: 1.66.4
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@zod/mini'
+      - react
+      - solid-js
+      - zod
+
   '@moq/qmux@0.3.3':
     dependencies:
       '@moq/web-socket-stream': 0.1.1
@@ -11871,7 +11919,7 @@ snapshots:
       '@strangecyan/iroh-linux-x64-musl': 1.1.0-relayed.1
       '@strangecyan/iroh-win32-x64-msvc': 1.1.0-relayed.1
 
-  '@strangecyan/vignette@2.1.0(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
+  '@strangecyan/vignette@3.1.1(@tanstack/react-query@5.104.2(react@19.3.0))(playwright@1.65.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(vite@8.3.4(@types/node@24.10.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))':
     dependencies:
       obs-websocket-js: 5.0.8(supports-color@10.2.2)
       react: 19.3.0
@@ -12124,6 +12172,12 @@ snapshots:
       '@types/docker-modem': 3.0.6
       '@types/node': 24.10.1
       '@types/ssh2': 1.15.6
+
+  '@types/dom-mediacapture-transform@0.1.12':
+    dependencies:
+      '@types/dom-webcodecs': 0.1.13
+
+  '@types/dom-webcodecs@0.1.13': {}
 
   '@types/estree-jsx@1.0.5':
     dependencies:
@@ -14639,6 +14693,11 @@ snapshots:
   media-captions@0.0.18: {}
 
   media-typer@1.1.1: {}
+
+  mediabunny@1.66.4:
+    dependencies:
+      '@types/dom-mediacapture-transform': 0.1.12
+      '@types/dom-webcodecs': 0.1.13
 
   merge-descriptors@2.0.0: {}
 

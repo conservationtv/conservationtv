@@ -49,9 +49,17 @@ export const MOQ_MANIFEST: MoqManifest = {
 };
 
 /**
+ * The moq CLI's arguments for pulling `source` over RTMP from a MediaMTX on the same machine, and publishing it as
+ * `broadcast` at the relay it is given as `--connect` before them, or as `MOQ_CONNECT` in its environment.
+ */
+export function moqPublishArgs(broadcast: string, source: string): string[] {
+  return ['import', '--broadcast', broadcast, 'rtmp', '--connect', source];
+}
+
+/**
  * The moq CLI (`moq`, installed) pulling `source` over RTMP from a MediaMTX on the same machine, and publishing it as
  * `broadcast` at `connect`, the relay URL carrying its token. For MediaMTX to run directly (`runOnInit`).
  */
 export function moqPublishCommand(moq: string, connect: string, broadcast: string, source: string): string {
-  return mediamtxCommand(moq, '--connect', connect, 'import', '--broadcast', broadcast, 'rtmp', '--connect', source);
+  return mediamtxCommand(moq, '--connect', connect, ...moqPublishArgs(broadcast, source));
 }

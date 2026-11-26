@@ -11,8 +11,8 @@ import { type Evidence, FINDINGS_LOCALE, type Finding, type Health } from './hea
 import type { Reading } from './metrics.ts';
 
 // Checks evaluators are made of (src/health/evaluators.ts): each reads one metric over a window and judges it against
-// thresholds. A metric can have several series about one subject, such as an exposure's renditions; a check judges
-// the worst of them and cites it. A metric with no points in the window can't be judged: the finding is `unknown`,
+// thresholds. A metric can have several series about one subject, told apart by their dimensions; a check judges the
+// worst of them and cites it. A metric with no points in the window can't be judged: the finding is `unknown`,
 // which never outweighs a judgement.
 
 /** Which of a summary's values a check judges. */

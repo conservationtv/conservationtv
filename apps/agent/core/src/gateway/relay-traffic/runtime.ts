@@ -2,9 +2,10 @@ import { exposureSubject, relayMetrics } from '@conservationtv/reports';
 import type { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import { type IntervalSamples, REPORT_INTERVAL_MS, Sampler, type SamplerStatus } from '../../reporting/sampler.ts';
+import { RelayCheck } from '../streams/relay-check.ts';
 import { type Counters, followStats, type Role, type Traffic, type TrafficEntry } from './follow.ts';
 
-// The `relayTraffic` key: what the MoQ relays carry of the exposures the agent publishes, as the relays count it. Each
+// The `relayTraffic` key: what the MoQ relays carry of the exposures the agent covers, as the relays count it. Each
 // relay node publishes its traffic stats for the organisation as a broadcast, `node/<node>`, beneath the stats path the
 // studio API hands out (`organisations.gateways.stats.connect`), with a pair of tracks per tier of session:
 // `subscriber.json`, what the node received, and `publisher.json`, what it sent, each a JSON object of cumulative
@@ -15,9 +16,16 @@ import { type Counters, followStats, type Role, type Traffic, type TrafficEntry 
 // sent on to its viewers, and how many watch.
 //
 // The spec says where to read the stats, each URL carrying its token, and each exposure by the path its broadcasts
-// are beneath on the relay (gateway/configuration.ts, from the `streams` key's publishers), so the publishers' own
-// URLs and tokens never reach it. With no exposures the relays are still followed, and nothing is reported. A renewed
-// stats token is a new URL: it is followed afresh and the old one stopped, which takes each node's counters with it
+// are beneath on the relay (gateway/configuration.ts, from the `streams` key's publishers and the exposures it
+// watches), so the publishers' own URLs and tokens never reach it. With no exposures the relays are still followed, and
+// nothing is reported.
+//
+// The agent covers some exposures it does not publish: one a browser publishes straight to the relay, or one nobody
+// else covers (docs/shows.md, Health and stats without an agent). For each it is told where to read it (`watched`), and
+// reads its catalog back through the relay, as the `streams` key does for each exposure it publishes
+// (streams/relay-check.ts): that says whether the relay has it (`relay.announced`), which for these is whether anyone
+// is publishing it at all, since what the relay carries depends on who watches. A renewed watch is the same check, read
+// with the new token (relay-check.ts), so it is never taken for the exposure going. A renewed stats token is a new URL: it is followed afresh and the old one stopped, which takes each node's counters with it
 // until the new connection's first frame, so the sample or two after a renewal have no rates. The rest of that
 // interval's samples still make its summary.
 
@@ -29,12 +37,21 @@ export type RelayStatsSource = z.output<typeof RelayStatsSourceSchema>;
 const ExposurePathSchema = z.object({ exposureId: z.string(), prefix: z.string() });
 type ExposurePath = z.output<typeof ExposurePathSchema>;
 
-/** The relays' stats to read, and the exposures to report what they carry of. */
+/**
+ * An exposure the agent covers but does not publish, to watch on the relay: the URL to dial, carrying its read token
+ * as `?jwt=`, and its broadcast there.
+ */
+const WatchedBroadcastSchema = z.object({ exposureId: z.string(), connect: z.url(), broadcast: z.string().min(1) });
+export type WatchedBroadcast = z.output<typeof WatchedBroadcastSchema>;
+
+/** The relays' stats to read, the exposures to report what they carry of, and those to watch there. */
 export const RelayTrafficSpecSchema = z.object({
   /** Each relay's stats, followed while it is named. */
   sources: z.array(RelayStatsSourceSchema),
   /** The exposures to report about, each by the path its broadcasts are beneath on the relay. */
-  exposures: z.array(ExposurePathSchema)
+  exposures: z.array(ExposurePathSchema),
+  /** The exposures it covers but does not publish, each watched on the relay while it is named. */
+  watched: z.array(WatchedBroadcastSchema).default([])
 });
 export type RelayTrafficSpec = z.output<typeof RelayTrafficSpecSchema>;
 
@@ -53,10 +70,14 @@ interface RelayReads {
 
 export type RelayTrafficStatus = SamplerStatus & RelayReads;
 
-/** Reports what the relays carry of the exposures the agent publishes, from the stats each relay node publishes. */
+/**
+ * Reports what the relays carry of the exposures the agent covers, from the stats each relay node publishes, and
+ * whether the relay has each it watches.
+ */
 export class RelayTrafficRuntime {
   readonly status$: BehaviorSubject<RelayTrafficStatus>;
   private readonly sampler: Sampler<RelayReads>;
+  private readonly relayCheck = new RelayCheck();
   /** Each stats source being followed, by its URL, with how to stop following it. */
   private readonly sources = new Map<string, () => void>();
   private readonly counters: Counters = new Map();
@@ -73,21 +94,29 @@ export class RelayTrafficRuntime {
   }
 
   /**
-   * Follow the stats at each of the spec's sources, and report about each of its exposures. A source no longer given
-   * is stopped; one that is new (as a renewed token is) is followed afresh.
+   * Follow the stats at each of the spec's sources, report about each of its exposures, and watch each it names to
+   * watch. A source or watch no longer given is stopped; a source that is new (as a renewed token is) is started
+   * afresh, and a watch with a renewed token carries on with it.
    */
   async apply(spec: RelayTrafficSpec): Promise<void> {
+    this.relayCheck.set(spec.watched);
     this.follow(spec.sources.map(({ connect }) => connect));
     this.paths = spec.exposures;
     this.sampler.update({ sources: this.sources.size });
-    if (this.sources.size === 0) return this.teardown();
+    if (this.sources.size === 0) return this.stopSampling();
     if (this.sampler.running) return;
     this.previous = undefined;
     this.sampler.start({ sampleMs: SAMPLE_MS, reportMs: REPORT_INTERVAL_MS });
   }
 
-  /** Stop following every source, and drop what was not submitted. Safe when it never started. */
+  /** Stop following every source and watching every exposure, and drop what was not submitted. Safe when it never started. */
   async teardown(): Promise<void> {
+    this.relayCheck.close();
+    this.stopSampling();
+  }
+
+  /** Stop following every source, and drop what was not submitted. */
+  private stopSampling(): void {
     this.follow([]);
     this.paths = [];
     this.previous = undefined;
@@ -98,6 +127,7 @@ export class RelayTrafficRuntime {
   /** Stop following and sampling for good when the agent stops; not a removal, so the status is left as it was. */
   dispose(): void {
     this.follow([]);
+    this.relayCheck.dispose();
     this.sampler.dispose();
   }
 

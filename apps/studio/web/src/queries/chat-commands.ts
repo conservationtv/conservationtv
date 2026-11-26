@@ -13,7 +13,7 @@ export const chatCommandListQueryOptions = (organisationId: string) =>
   queryOptions({
     queryKey: ['chat-commands', organisationId, 'list'] as const,
     queryFn: async () => {
-      const result = await api.organisations.chatCommands.list.v1({ id: organisationId });
+      const result = await api.organisations.chatCommands.list.v2({ id: organisationId });
       if (result instanceof Error) throw result;
       return result.commands;
     }
@@ -24,7 +24,7 @@ export function useCreateChatCommand(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (command: Omit<ChatCommandCreateParams, 'id'>) => {
-      const result = await api.organisations.chatCommands.create.v1({ id: organisationId, ...command });
+      const result = await api.organisations.chatCommands.create.v2({ id: organisationId, ...command });
       if (result instanceof Error) throw result;
       return result;
     },
@@ -37,7 +37,7 @@ export function useUpdateChatCommand(organisationId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (changes: Omit<ChatCommandUpdateParams, 'id'>) => {
-      const result = await api.organisations.chatCommands.update.v1({ id: organisationId, ...changes });
+      const result = await api.organisations.chatCommands.update.v2({ id: organisationId, ...changes });
       if (result instanceof Error) throw result;
       return result;
     },

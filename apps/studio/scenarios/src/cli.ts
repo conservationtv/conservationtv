@@ -60,7 +60,13 @@ function countsOf(world: World) {
     gateways: world.gateways.length,
     streams: world.streams.length,
     deliveries: world.streams.reduce((sum, stream) => sum + stream.exposures.length, 0),
+    'shared pushed': world.sharedStreams.length,
+    personal: world.personalStreams.length,
+    publishing: world.publishing.length,
     shows: world.shows.length,
+    slots: world.shows.map(show => show.slots).join(' ') || 'none',
+    takeovers: world.shows.filter(show => show.takeoverStreamId).length,
+    'on air': world.shows.filter(show => show.takeoverLive).length,
     outputs: world.outputs.length,
     channels: world.channels.length,
     states: world.states.length

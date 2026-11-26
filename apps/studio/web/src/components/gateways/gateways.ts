@@ -7,6 +7,9 @@ import type { GatewayName } from '@/components/streams/local-read';
 // What the studio knows about gateways, in words: their kinds, the protocols a MediaMTX gateway serves, and the URL
 // overrides its settings keep (apps/studio/api/src/gateways/).
 
+/** The built-in gateway every organisation has, by its slug: the only one readers reach over MoQ. */
+export const CONSERVATIONTV_GATEWAY = 'conservationtv';
+
 /** A gateway as the organisation's list carries it: a built-in one, or one of its own. */
 export type ListedGateway = Gateway['gateways'][number];
 

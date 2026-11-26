@@ -53,8 +53,7 @@ import {
   DeliveryGroupHeading,
   DeliveryRow,
   DeliveryRows,
-  DeliverySummary,
-  Renditions
+  DeliverySummary
 } from '@/components/streams/delivery-list';
 import {
   AddExposureDialog,
@@ -62,31 +61,28 @@ import {
   EditExposureDialog,
   type ExposureChoices
 } from '@/components/streams/exposure-dialogs';
-import { gatewayNameOf } from '@/components/gateways/gateways';
+import { CONSERVATIONTV_GATEWAY, gatewayNameOf } from '@/components/gateways/gateways';
+import { EncoderSettings } from '@/components/streams/encoder-settings';
 import { LocalRead } from '@/components/streams/local-read';
 import { MoqRead } from '@/components/streams/output-read';
 import { AddRecorderDialog, DeleteRecorderDialog, EditRecorderDialog } from '@/components/streams/recorder-dialogs';
-import { CONSERVATIONTV_GATEWAY, renditionLabels } from '@/components/streams/renditions';
 import { BitrateChartLegend } from '@/components/streams/stream-chart';
 import { STREAM_LINES } from '@/components/streams/stream-charts';
 import { streamDetailOf, type Delivery, type StreamDetail } from '@/components/streams/stream-detail';
+import { StreamCode } from '@/components/streams/stream-code';
 import { DeleteStreamDialog, RenameStreamDialog, SourceSelect } from '@/components/streams/stream-dialogs';
 import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { StreamTrafficChart } from '@/components/streams/stream-traffic';
-import { isGoingOut } from '@/components/streams/topology';
+import { isGoingOut, subjectStatusesOf } from '@/components/streams/topology';
 import { useTabsQuery } from '@/hooks/use-tabs-query';
-import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
+import { useIsAdministrator, useMayPublish, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate } from '@/lib/format';
 import { cameraListQueryOptions } from '@/queries/cameras';
 import { deviceListQueryOptions } from '@/queries/devices';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
-import {
-  exposureReadQueryOptions,
-  moqReadQueryOptions,
-  streamListQueryOptions,
-  subjectStateListQueryOptions
-} from '@/queries/streams';
+import { exposureReadQueryOptions, moqReadQueryOptions, streamListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Stream · conservation.tv studio' }];
 
@@ -116,7 +112,7 @@ interface StreamViewProps {
 /** The stream and everything it names, read at once from the organisation's lists, then laid out in render. */
 const StreamView: FC<StreamViewProps> = ({ streamId }) => {
   const organisationId = useOrganisationId();
-  const [streamQuery, camerasQuery, devicesQuery, gatewaysQuery, networksQuery, statesQuery] = useSuspenseQueries({
+  const [streamQuery, camerasQuery, devicesQuery, gatewaysQuery, networksQuery, statusQuery] = useSuspenseQueries({
     queries: [
       {
         ...streamListQueryOptions(organisationId),
@@ -126,7 +122,7 @@ const StreamView: FC<StreamViewProps> = ({ streamId }) => {
       deviceListQueryOptions(organisationId),
       gatewayListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId)
+      { ...organisationStatusQueryOptions(organisationId), select: subjectStatusesOf }
     ]
   });
   const stream = streamQuery.data;
@@ -137,14 +133,13 @@ const StreamView: FC<StreamViewProps> = ({ streamId }) => {
     devices: devicesQuery.data,
     gateways: gatewaysQuery.data,
     networks: networksQuery.data,
-    states: statesQuery.data
+    statuses: statusQuery.data
   });
   const choices: ExposureChoices = {
     stream,
     gateways: gatewaysQuery.data,
     networks: networksQuery.data,
     devices: devicesQuery.data,
-    sourceCamera: detail.sourceCamera,
     sourceName: detail.source?.name
   };
   return (
@@ -264,6 +259,20 @@ const StreamTabs: FC<StreamTabsProps> = ({ detail, choices, cameras }) => {
   );
 };
 
+interface PushedStreamEncoderProps {
+  stream: Stream;
+}
+
+/**
+ * Where an encoder publishes the stream, for those who may go live (`streamPublisher`, which administrators hold), of
+ * a stream with no source of its own; else nothing.
+ */
+const PushedStreamEncoder: FC<PushedStreamEncoderProps> = ({ stream }) => {
+  const mayPublish = useMayPublish();
+  if (!mayPublish || stream.sourceDeviceId !== null) return null;
+  return <EncoderSettings streamId={stream.id} />;
+};
+
 /** The stream's name and source, its delivery drawn and as rows to change, its traffic, and deleting it. */
 const ConfigurationPanel: FC<StreamTabsProps> = ({ detail, choices, cameras }) => {
   const administrator = useIsAdministrator();
@@ -277,6 +286,12 @@ const ConfigurationPanel: FC<StreamTabsProps> = ({ detail, choices, cameras }) =
             <FactValue className="flex items-center gap-1">
               <span className="truncate">{stream.name}</span>
               {administrator && <RenameStreamDialog stream={stream} />}
+            </FactValue>
+          </Fact>
+          <Fact>
+            <FactLabel>Short code</FactLabel>
+            <FactValue>
+              <ShortCode code={stream.code} />
             </FactValue>
           </Fact>
           <Fact>
@@ -317,9 +332,7 @@ const ConfigurationPanel: FC<StreamTabsProps> = ({ detail, choices, cameras }) =
               <DeliveryRows>
                 {section.deliveries.map(delivery => (
                   <DeliveryRow key={delivery.exposure.id}>
-                    <DeliverySummary delivery={delivery}>
-                      <Renditions renditions={delivery.exposure.renditions} />
-                    </DeliverySummary>
+                    <DeliverySummary delivery={delivery} />
                     {administrator && (
                       <ItemActions>
                         <EditExposureDialog choices={choices} delivery={delivery} />
@@ -342,6 +355,7 @@ const ConfigurationPanel: FC<StreamTabsProps> = ({ detail, choices, cameras }) =
           </Empty>
         )}
       </Section>
+      <PushedStreamEncoder stream={stream} />
       <Section>
         <SectionHeader>
           <SectionHeading>
@@ -379,7 +393,7 @@ interface PanelProps {
   detail: StreamDetail;
 }
 
-/** The stream's recorders, which delivery and rendition each keeps, and what recording amounts to today. */
+/** The stream's recorders, which delivery each keeps, and what recording amounts to today. */
 const RecordingPanel: FC<PanelProps> = ({ detail }) => {
   const administrator = useIsAdministrator();
   const { stream } = detail;
@@ -390,8 +404,8 @@ const RecordingPanel: FC<PanelProps> = ({ detail }) => {
         <SectionHeading>
           <SectionTitle>Recorders</SectionTitle>
           <SectionDescription>
-            A recorder names one delivery and the rendition of it to keep. Nothing acts on recorders yet: no agent
-            records, and there are no archives to play back.
+            A recorder names one delivery to keep, at the largest picture it carries. Nothing acts on recorders yet: no
+            agent records, and there are no archives to play back.
           </SectionDescription>
         </SectionHeading>
         {administrator && <AddRecorderDialog streamId={stream.id} deliveries={deliveries} />}
@@ -404,9 +418,7 @@ const RecordingPanel: FC<PanelProps> = ({ detail }) => {
                 <RecordIcon />
               </ItemMedia>
               <ItemContent>
-                <ItemTitle>
-                  {deliveryName(deliveries, recorder.exposureId)} · {renditionLabels[recorder.rendition]}
-                </ItemTitle>
+                <ItemTitle>{deliveryName(deliveries, recorder.exposureId)}</ItemTitle>
                 <ItemDescription>
                   {recorder.kind} · added {formatDate(recorder.createdAt)}
                 </ItemDescription>
@@ -509,32 +521,24 @@ interface LocalOutputProps {
   delivery: Delivery;
 }
 
-/**
- * A delivery on a network: its gateway and health, then for a MediaMTX gateway its renditions as tabs, each listing
- * the ways to read it; for anything else, just its renditions.
- */
+/** A delivery on a network: its gateway and health, then for a MediaMTX gateway the ways to read it. */
 const LocalOutput: FC<LocalOutputProps> = ({ streamId, delivery }) => {
   const organisationId = useOrganisationId();
   if (delivery.gateway?.kind !== 'mediamtx') {
     return (
       <DeliveryRow>
-        <DeliverySummary delivery={delivery}>
-          <Renditions renditions={delivery.exposure.renditions} />
-        </DeliverySummary>
+        <DeliverySummary delivery={delivery} />
       </DeliveryRow>
     );
   }
   return (
-    // The tabs and their rows run to the card's edges, so the card's own padding is the summary's alone.
+    // The rule and the rows under it run to the card's edges, so the card's own padding is the summary's alone.
     <DeliveryRow className="flex-col flex-nowrap items-stretch gap-0 p-0">
-      <div className="flex items-start gap-2.5 px-5 pt-3.5 pb-2">
+      <div className="flex items-start gap-2.5 border-b border-border px-5 pt-3.5 pb-2">
         <DeliverySummary delivery={delivery} />
       </div>
       <LocalRead
-        read={(protocol, rendition) =>
-          exposureReadQueryOptions(organisationId, streamId, delivery.exposure.id, protocol, rendition)
-        }
-        renditions={delivery.exposure.renditions}
+        read={protocol => exposureReadQueryOptions(organisationId, streamId, delivery.exposure.id, protocol)}
         name={gatewayNameOf(delivery.gateway)}
       />
     </DeliveryRow>
@@ -547,30 +551,34 @@ interface OutputProps {
 }
 
 /**
- * An internet delivery: its gateway and health, then for conservation.tv its renditions as tabs and how to read it,
- * laid out as a network delivery's card is; for anything else, just its renditions.
+ * An internet delivery: its gateway and health, then for conservation.tv how to read it, laid out as a network
+ * delivery's card is.
  */
 const Output: FC<OutputProps> = ({ streamId, output }) => {
   const organisationId = useOrganisationId();
   if (output.exposure.gatewayId !== CONSERVATIONTV_GATEWAY) {
     return (
       <DeliveryRow>
-        <DeliverySummary delivery={output}>
-          <Renditions renditions={output.exposure.renditions} />
-        </DeliverySummary>
+        <DeliverySummary delivery={output} />
       </DeliveryRow>
     );
   }
   return (
-    // As LocalOutput: the tabs and rows run to the card's edges, so the card's own padding is the summary's alone.
+    // As LocalOutput: the rule and rows run to the card's edges, so the card's own padding is the summary's alone.
     <DeliveryRow className="flex-col flex-nowrap items-stretch gap-0 p-0">
-      <div className="flex items-start gap-2.5 px-5 pt-3.5 pb-2">
+      <div className="flex items-start gap-2.5 border-b border-border px-5 pt-3.5 pb-2">
         <DeliverySummary delivery={output} />
       </div>
-      <MoqRead
-        read={moqReadQueryOptions(organisationId, streamId, output.exposure.id)}
-        renditions={output.exposure.renditions}
-      />
+      <MoqRead read={moqReadQueryOptions(organisationId, streamId, output.exposure.id)} />
     </DeliveryRow>
   );
+};
+
+interface ShortCodeProps {
+  code: string | null;
+}
+
+/** A stream's short code as a chip, or that it has none. */
+const ShortCode: FC<ShortCodeProps> = ({ code }) => {
+  return code ? <StreamCode>{code}</StreamCode> : 'None';
 };

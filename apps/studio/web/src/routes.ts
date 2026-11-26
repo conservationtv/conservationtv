@@ -19,6 +19,8 @@ export default [
         index('./routes/organisation-home.tsx'),
         // Operating the organisation's cameras: one on screen with its controls, the others beside it to swap to.
         route('controls', './routes/controls.tsx'),
+        // Going live from this browser, a phone's or a computer's: one tap from the app bar on a phone.
+        route('live', './routes/go-live.tsx'),
         route('streams', './routes/streams.tsx'),
         route('streams/new', './routes/stream-new.tsx', [
           // Adding a camera without leaving the new stream's form, which then chooses it.

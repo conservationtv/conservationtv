@@ -13,9 +13,6 @@ export type Schema0 = string | number | boolean | null | Array<Schema0> | {
     [key: string]: Schema0;
 };
 
-/**
- * A quality the stream is delivered at.
- */
 export type Rendition = 'default' | 'data_saver' | 'balanced' | 'quality';
 
 export type Relay = {
@@ -24,9 +21,18 @@ export type Relay = {
     authToken?: string;
 };
 
-export type StatsConnect = {
+export type ExposurePublisher = {
+    exposureId: string;
+    connect: PublisherConnect;
+    path: string;
+};
+
+export type PublisherConnect = {
     id: string;
-    gatewayId: string;
+    streamId: string;
+    exposureId: string;
+    action: 'publish';
+    protocol: 'moq';
 };
 
 export type MediamtxAuth = {
@@ -41,24 +47,22 @@ export type MediamtxTls = {
     notAfter: string;
 };
 
-export type Publisher = {
-    exposureId: string;
-    connect: PublisherConnect;
-    layout: 'tracks';
-    renditions: Array<PublishedRendition>;
+export type StatsConnect = {
+    id: string;
+    gatewayId: string;
 };
 
-export type PublisherConnect = {
+export type WatchedExposure = {
+    exposureId: string;
+    connect: WatchConnect;
+};
+
+export type WatchConnect = {
     id: string;
     streamId: string;
     exposureId: string;
-    action: 'publish';
+    action: 'read';
     protocol: 'moq';
-};
-
-export type PublishedRendition = {
-    rendition: Rendition;
-    path: string;
 };
 
 export type PreviewConnect = {
@@ -271,7 +275,6 @@ export type Stream = {
     exposures: Array<{
         id: string;
         gatewayId: string;
-        renditions: Array<Rendition>;
         publisherDeviceId: string | null;
         upstreamExposureId: string | null;
         params: {
@@ -282,7 +285,6 @@ export type Stream = {
     recorders: Array<{
         id: string;
         exposureId: string;
-        rendition: Rendition;
         kind: string;
         params: {
             [key: string]: unknown;
@@ -291,14 +293,51 @@ export type Stream = {
     }>;
     id: string;
     name: string;
+    code: string | null;
     sourceDeviceId: string | null;
+    createdAt: string;
+};
+
+export type Live = {
+    exposures: Array<{
+        live: boolean | null;
+        checkedAt: string | null;
+        id: string;
+        streamId: string;
+        gatewayId: string;
+    }>;
+};
+
+export type Personal = {
+    id: string;
+    name: string;
+    code: string | null;
+    sourceDeviceId: string | null;
+    createdAt: string;
+};
+
+export type Encoder = {
+    exposureId: string;
+    gatewayId: string;
+    key: string;
+    keyCreatedAt: string;
+    servers: Array<{
+        protocol: string;
+        url: string;
+        server?: string;
+        streamKey?: string;
+        bearerToken?: string;
+    }>;
+};
+
+export type Key = {
+    key: string;
     createdAt: string;
 };
 
 export type Exposure = {
     id: string;
     gatewayId: string;
-    renditions: Array<Rendition>;
     publisherDeviceId: string | null;
     upstreamExposureId: string | null;
     params: {
@@ -310,7 +349,6 @@ export type Exposure = {
 export type Recorder = {
     id: string;
     exposureId: string;
-    rendition: Rendition;
     kind: string;
     params: {
         [key: string]: unknown;
@@ -485,32 +523,40 @@ export type Log = {
 };
 
 export type Topology = {
-    shows: Array<{
-        placed: Array<string>;
+    outputs: Array<{
         name: string;
-        id: string;
-        createdAt: string;
-        outputs: Array<{
-            name: string;
-            id: string;
-        }>;
-    }>;
-    networks: Array<{
-        name: string;
-        id: string;
-        createdAt: string;
-        activeAgent: {
-            id: string;
+        device: {
+            createdAt: string;
+            deviceId: string;
         } | null;
-    }>;
-    devices: Array<{
         id: string;
-        kind: 'agent' | 'camera' | 'browser';
-        name: string;
-        networkId: string | null;
-        publicKey: string;
-        publicId: string;
         createdAt: string;
+        recorders: Array<{
+            params: {
+                [key: string]: unknown;
+            };
+            id: string;
+            createdAt: string;
+            kind: 'obs';
+        }>;
+        showId: string | null;
+        control: 'external' | 'show';
+        width: number;
+        height: number;
+        fps: number;
+        bitrateKbps: number;
+        keyframeSeconds: number;
+        forwards: Array<{
+            id: string;
+            createdAt: string;
+            enabled: boolean;
+            channelId: string;
+        }>;
+        previews: Array<{
+            id: string;
+            createdAt: string;
+            gatewayId: string;
+        }>;
     }>;
     gateways: Array<{
         id: 'conservationtv';
@@ -553,9 +599,9 @@ export type Topology = {
             id: string;
             createdAt: string;
             gatewayId: string;
-            renditions: Array<Rendition>;
             publisherDeviceId: string | null;
             upstreamExposureId: string | null;
+            renditions: Array<Rendition>;
         }>;
         recorders: Array<{
             params: {
@@ -568,40 +614,32 @@ export type Topology = {
             rendition: Rendition;
         }>;
     }>;
-    outputs: Array<{
+    shows: Array<{
+        placed: Array<string>;
         name: string;
         id: string;
         createdAt: string;
-        control: 'external' | 'show';
-        showId: string | null;
-        width: number;
-        height: number;
-        fps: number;
-        bitrateKbps: number;
-        keyframeSeconds: number;
-        device: {
-            createdAt: string;
-            deviceId: string;
+        outputs: Array<{
+            name: string;
+            id: string;
+        }>;
+    }>;
+    networks: Array<{
+        name: string;
+        id: string;
+        createdAt: string;
+        activeAgent: {
+            id: string;
         } | null;
-        recorders: Array<{
-            params: {
-                [key: string]: unknown;
-            };
-            id: string;
-            createdAt: string;
-            kind: 'obs';
-        }>;
-        forwards: Array<{
-            id: string;
-            createdAt: string;
-            enabled: boolean;
-            channelId: string;
-        }>;
-        previews: Array<{
-            id: string;
-            createdAt: string;
-            gatewayId: string;
-        }>;
+    }>;
+    devices: Array<{
+        id: string;
+        kind: 'agent' | 'camera' | 'browser';
+        name: string;
+        networkId: string | null;
+        publicKey: string;
+        publicId: string;
+        createdAt: string;
     }>;
     channels: Array<{
         id: string;
@@ -703,12 +741,63 @@ export type Status = {
 };
 
 export type Show = {
+    lineup: Array<{
+        streamId: string;
+        name: string;
+        code: string | null;
+        position: number | null;
+        absence: 'locked' | null;
+        volumeDb: number;
+        muted: boolean;
+        syncOffsetMs: number;
+        audioStreamId: string | null;
+    }>;
+    addable: Array<{
+        streamId: string;
+        name: string;
+        code: string | null;
+        source: 'camera' | 'pushed';
+        state: 'locked' | 'disabled' | 'ready' | 'live' | 'undelivered';
+    }>;
+    takeoverMix: {
+        streamId: string;
+        name: string;
+        code: string | null;
+        volumeDb: number;
+        muted: boolean;
+        syncOffsetMs: number;
+        audioStreamId: string | null;
+    } | null;
+    unreachable: Array<{
+        outputId: string;
+        inputGatewayId: string | null;
+        streamIds: Array<string>;
+    }>;
     name: string;
     id: string;
     createdAt: string;
+    slots: number;
+    volumeDb: number;
+    muted: boolean;
+    takeoverStreamId: string | null;
+    takeoverLive: boolean;
     outputs: Array<{
         name: string;
         id: string;
+    }>;
+};
+
+export type Lineup = {
+    lineup: Array<{
+        streamId: string;
+        name: string;
+        code: string | null;
+        position: number | null;
+        absence: 'locked' | null;
+        volumeDb: number;
+        muted: boolean;
+        syncOffsetMs: number;
+        audioStreamId: string | null;
     }>;
 };
 
@@ -716,8 +805,9 @@ export type Output = {
     name: string;
     id: string;
     createdAt: string;
-    control: 'external' | 'show';
     showId: string | null;
+    control: 'external' | 'show';
+    inputGatewayId: string | null;
     width: number;
     height: number;
     fps: number;
@@ -784,6 +874,10 @@ export type ChatCommand = {
         kind: 'cameraPreset';
         cameraId: string | null;
         preset: string | null;
+    } | {
+        kind: 'showSwap';
+    } | {
+        kind: 'showTakeover';
     };
     audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
     cooldownSeconds: number;
@@ -810,18 +904,17 @@ export type DeviceConfiguration = {
         paths: Array<{
             name: string;
             exposureId: string;
-            rendition: Rendition;
             source: {
                 cameraId: string;
             } | {
                 path: string;
+            } | {
+                push: {
+                    keySha256: string | null;
+                };
             };
         }>;
-        probes: Array<{
-            subjectId: string;
-            cameraId: string;
-        }>;
-        stats: Array<StatsConnect>;
+        publishers: Array<ExposurePublisher>;
         auth: MediamtxAuth;
         gatewayId: string;
         previews?: Array<{
@@ -829,7 +922,14 @@ export type DeviceConfiguration = {
             previewId: string;
         }>;
         tls?: MediamtxTls;
-        publishers: Array<Publisher>;
+        probes: Array<{
+            subjectId: string;
+            cameraId: string;
+        }>;
+    };
+    relays?: {
+        stats: Array<StatsConnect>;
+        watched: Array<WatchedExposure>;
     };
     cameras?: {
         cameras: Array<{
@@ -852,6 +952,10 @@ export type DeviceConfiguration = {
         grants: {
             issuer: string;
         };
+    };
+    show?: {
+        id: string;
+        url: string;
     };
     obs?: {
         previews: Array<{
@@ -878,6 +982,9 @@ export type DeviceConfiguration = {
             forwardId: string;
             stats: boolean;
         }>;
+        program: {
+            subjectId: string;
+        };
         recording?: {
             recorderId: string;
             kind: string;
@@ -885,13 +992,6 @@ export type DeviceConfiguration = {
                 [key: string]: unknown;
             };
         };
-        program: {
-            subjectId: string;
-        };
-    };
-    show?: {
-        id: string;
-        url: string;
     };
     chat?: {
         organisationId: string;
@@ -1553,6 +1653,114 @@ export type PutOrganisationsByIdMembersByUserIdAdminResponses = {
 };
 
 export type PutOrganisationsByIdMembersByUserIdAdminResponse = PutOrganisationsByIdMembersByUserIdAdminResponses[keyof PutOrganisationsByIdMembersByUserIdAdminResponses];
+
+export type DeleteOrganisationsByIdMembersByUserIdPublisherData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The member's account ID, or `me`.
+         */
+        userId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/members/{userId}/publisher';
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdPublisherErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdPublisherError = DeleteOrganisationsByIdMembersByUserIdPublisherErrors[keyof DeleteOrganisationsByIdMembersByUserIdPublisherErrors];
+
+export type DeleteOrganisationsByIdMembersByUserIdPublisherResponses = {
+    /**
+     * The member no longer holds the role on its own
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdMembersByUserIdPublisherResponse = DeleteOrganisationsByIdMembersByUserIdPublisherResponses[keyof DeleteOrganisationsByIdMembersByUserIdPublisherResponses];
+
+export type PutOrganisationsByIdMembersByUserIdPublisherData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The member's account ID, or `me`.
+         */
+        userId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/members/{userId}/publisher';
+};
+
+export type PutOrganisationsByIdMembersByUserIdPublisherErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdMembersByUserIdPublisherError = PutOrganisationsByIdMembersByUserIdPublisherErrors[keyof PutOrganisationsByIdMembersByUserIdPublisherErrors];
+
+export type PutOrganisationsByIdMembersByUserIdPublisherResponses = {
+    /**
+     * The member may go live
+     */
+    204: void;
+};
+
+export type PutOrganisationsByIdMembersByUserIdPublisherResponse = PutOrganisationsByIdMembersByUserIdPublisherResponses[keyof PutOrganisationsByIdMembersByUserIdPublisherResponses];
 
 export type GetOrganisationsByIdInvitationsData = {
     body?: never;
@@ -4048,6 +4256,7 @@ export type GetOrganisationsByIdStreamsResponses = {
      */
     200: {
         streams: Array<{
+            code: string | null;
             name: string;
             id: string;
             createdAt: string;
@@ -4059,7 +4268,6 @@ export type GetOrganisationsByIdStreamsResponses = {
                 id: string;
                 createdAt: string;
                 gatewayId: string;
-                renditions: Array<Rendition>;
                 publisherDeviceId: string | null;
                 upstreamExposureId: string | null;
             }>;
@@ -4071,7 +4279,6 @@ export type GetOrganisationsByIdStreamsResponses = {
                 createdAt: string;
                 kind: string;
                 exposureId: string;
-                rendition: Rendition;
             }>;
         }>;
     };
@@ -4085,6 +4292,10 @@ export type PostOrganisationsByIdStreamsData = {
          * The stream name.
          */
         name: string;
+        /**
+         * A short name for the stream, one to four letters and digits (kept in capitals), unique in the organisation: what chat and a show's controls may call it by. Null for none.
+         */
+        code?: string | null;
         /**
          * The device the stream comes from, such as its camera, or null for none yet.
          */
@@ -4114,6 +4325,10 @@ export type PostOrganisationsByIdStreamsErrors = {
      */
     403: Error;
     /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;
@@ -4136,12 +4351,109 @@ export type PostOrganisationsByIdStreamsResponses = {
     201: {
         id: string;
         name: string;
+        code: string | null;
         sourceDeviceId: string | null;
         createdAt: string;
     };
 };
 
 export type PostOrganisationsByIdStreamsResponse = PostOrganisationsByIdStreamsResponses[keyof PostOrganisationsByIdStreamsResponses];
+
+export type GetOrganisationsByIdStreamsLiveData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/live';
+};
+
+export type GetOrganisationsByIdStreamsLiveErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdStreamsLiveError = GetOrganisationsByIdStreamsLiveErrors[keyof GetOrganisationsByIdStreamsLiveErrors];
+
+export type GetOrganisationsByIdStreamsLiveResponses = {
+    /**
+     * The exposures, oldest first, each with whether it is live
+     */
+    200: Live;
+};
+
+export type GetOrganisationsByIdStreamsLiveResponse = GetOrganisationsByIdStreamsLiveResponses[keyof GetOrganisationsByIdStreamsLiveResponses];
+
+export type PutOrganisationsByIdStreamsPersonalByDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The kind of device you go live from.
+         */
+        device: 'phone' | 'computer';
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/personal/{device}';
+};
+
+export type PutOrganisationsByIdStreamsPersonalByDeviceErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The account may see the stream but not publish it: only members holding `streamPublisher` do, which administrators hold
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdStreamsPersonalByDeviceError = PutOrganisationsByIdStreamsPersonalByDeviceErrors[keyof PutOrganisationsByIdStreamsPersonalByDeviceErrors];
+
+export type PutOrganisationsByIdStreamsPersonalByDeviceResponses = {
+    /**
+     * The stream
+     */
+    200: Personal;
+};
+
+export type PutOrganisationsByIdStreamsPersonalByDeviceResponse = PutOrganisationsByIdStreamsPersonalByDeviceResponses[keyof PutOrganisationsByIdStreamsPersonalByDeviceResponses];
 
 export type DeleteOrganisationsByIdStreamsByStreamIdData = {
     body?: never;
@@ -4254,6 +4566,10 @@ export type PatchOrganisationsByIdStreamsByStreamIdData = {
          */
         name?: string;
         /**
+         * A short name for the stream, one to four letters and digits (kept in capitals), unique in the organisation: what chat and a show's controls may call it by. Null for none.
+         */
+        code?: string | null;
+        /**
          * The device the stream comes from, such as its camera, or null for none yet.
          */
         sourceDeviceId?: string | null;
@@ -4290,6 +4606,10 @@ export type PatchOrganisationsByIdStreamsByStreamIdErrors = {
      */
     404: Error;
     /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
      * The selected operation version is not served
      */
     412: Error;
@@ -4312,6 +4632,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdResponses = {
     200: {
         id: string;
         name: string;
+        code: string | null;
         sourceDeviceId: string | null;
         createdAt: string;
     };
@@ -4319,16 +4640,282 @@ export type PatchOrganisationsByIdStreamsByStreamIdResponses = {
 
 export type PatchOrganisationsByIdStreamsByStreamIdResponse = PatchOrganisationsByIdStreamsByStreamIdResponses[keyof PatchOrganisationsByIdStreamsByStreamIdResponses];
 
+export type PostOrganisationsByIdStreamsByStreamIdConnectionsData = {
+    body: {
+        /**
+         * The protocols the caller can play, in its order of preference, such as `moq` or `webrtc`.
+         */
+        protocols: Array<string>;
+        /**
+         * Whether to read the stream, or publish it: `read` when left out.
+         */
+        action?: 'read' | 'publish';
+        /**
+         * Publishing only: the organisation's network the publisher is on, such as a phone on a site's wifi, which reaches that network's gateways as well as the internet's; null (the default) for the internet alone. The API cannot tell for a browser or an encoder, so the publisher says. Ignored when reading.
+         */
+        networkId?: string | null;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/connections';
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdConnectionsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented, or the device signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The caller may not connect to the stream like this: an output's agent reads what its show places, or anything of its organisation under `external` control; a member publishes with the right to (`streamPublisher`, which administrators hold), or their browser's own device for them; no other device publishes
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The stream comes from a source of its own, such as a camera: only a stream with none is published to
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * Reading: nothing delivers the stream where the caller can read it, by any protocol it named (no exposure on a gateway it reaches, the internet or a device's own network, is read by one, or none on the gateway the caller's output reads from). Publishing: no gateway the publisher reaches, the internet or the network it says it is on, is published to by a protocol it named
+     */
+    422: Error;
+    /**
+     * The database is unavailable, or the gateway is not configured or cannot issue credentials right now
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdConnectionsError = PostOrganisationsByIdStreamsByStreamIdConnectionsErrors[keyof PostOrganisationsByIdStreamsByStreamIdConnectionsErrors];
+
+export type PostOrganisationsByIdStreamsByStreamIdConnectionsResponses = {
+    /**
+     * The exposure chosen, and how to connect to it
+     */
+    200: {
+        exposureId: string;
+        gatewayId: string;
+        connection: {
+            protocol: 'moq';
+            relay: string;
+            path: string;
+            broadcast: string;
+            token?: string;
+            expiresAt?: string;
+        } | {
+            protocol: string;
+            url: string;
+            token?: string;
+            expiresAt?: string;
+        };
+    };
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdConnectionsResponse = PostOrganisationsByIdStreamsByStreamIdConnectionsResponses[keyof PostOrganisationsByIdStreamsByStreamIdConnectionsResponses];
+
+export type PutOrganisationsByIdStreamsByStreamIdEncoderData = {
+    body: {
+        /**
+         * The organisation's network the encoder publishes from, such as OBS on a site's own network, which reaches that network's gateways as well as the internet's; null (the default) for the internet alone.
+         */
+        networkId?: string | null;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/encoder';
+};
+
+export type PutOrganisationsByIdStreamsByStreamIdEncoderErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The account may see the stream but not publish it: only members holding `streamPublisher` do, which administrators hold
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The stream comes from a source of its own, such as a camera: only a stream with none is published to
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * No gateway that takes an encoder by the stream key is where the encoder says it is (the internet, or the network named), or none of its servers is known
+     */
+    422: Error;
+    /**
+     * The database is unavailable, or the gateway is not configured or cannot issue credentials right now
+     */
+    503: Error;
+};
+
+export type PutOrganisationsByIdStreamsByStreamIdEncoderError = PutOrganisationsByIdStreamsByStreamIdEncoderErrors[keyof PutOrganisationsByIdStreamsByStreamIdEncoderErrors];
+
+export type PutOrganisationsByIdStreamsByStreamIdEncoderResponses = {
+    /**
+     * Where an encoder publishes, and the key
+     */
+    200: Encoder;
+};
+
+export type PutOrganisationsByIdStreamsByStreamIdEncoderResponse = PutOrganisationsByIdStreamsByStreamIdEncoderResponses[keyof PutOrganisationsByIdStreamsByStreamIdEncoderResponses];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdKeyData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/key';
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdKeyErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdKeyError = DeleteOrganisationsByIdStreamsByStreamIdKeyErrors[keyof DeleteOrganisationsByIdStreamsByStreamIdKeyErrors];
+
+export type DeleteOrganisationsByIdStreamsByStreamIdKeyResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdStreamsByStreamIdKeyResponse = DeleteOrganisationsByIdStreamsByStreamIdKeyResponses[keyof DeleteOrganisationsByIdStreamsByStreamIdKeyResponses];
+
+export type PostOrganisationsByIdStreamsByStreamIdKeyData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/streams/{streamId}/key';
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdKeyErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The account may see the stream but not publish it: only members holding `streamPublisher` do, which administrators hold
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The stream comes from a source of its own, such as a camera: only a stream with none is published to
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdKeyError = PostOrganisationsByIdStreamsByStreamIdKeyErrors[keyof PostOrganisationsByIdStreamsByStreamIdKeyErrors];
+
+export type PostOrganisationsByIdStreamsByStreamIdKeyResponses = {
+    /**
+     * The new key
+     */
+    200: Key;
+};
+
+export type PostOrganisationsByIdStreamsByStreamIdKeyResponse = PostOrganisationsByIdStreamsByStreamIdKeyResponses[keyof PostOrganisationsByIdStreamsByStreamIdKeyResponses];
+
 export type PostOrganisationsByIdStreamsByStreamIdExposuresData = {
     body: {
         /**
          * The gateway the stream is delivered to: built in, or the organisation's own.
          */
         gatewayId: 'conservationtv' | string;
-        /**
-         * The renditions the exposure offers.
-         */
-        renditions?: Array<Rendition>;
         /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */
@@ -4377,7 +4964,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresErrors = {
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
      */
     422: Error;
     /**
@@ -4466,10 +5053,6 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdData = {
          */
         gatewayId?: 'conservationtv' | string;
         /**
-         * The renditions the exposure offers.
-         */
-        renditions?: Array<Rendition>;
-        /**
          * The device that publishes the exposure to its gateway, or null for whichever the system chooses.
          */
         publisherDeviceId?: string | null;
@@ -4517,7 +5100,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors =
      */
     404: Error;
     /**
-     * The upstream exposure would lead back to this exposure, or it would stop offering a rendition an exposure downstream of it or a recorder uses
+     * The upstream exposure would lead back to this exposure
      */
     409: Error;
     /**
@@ -4525,7 +5108,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdExposuresByExposureIdErrors =
      */
     412: Error;
     /**
-     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation, or the exposure would offer a rendition its upstream does not
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
      */
     422: Error;
     /**
@@ -4555,7 +5138,6 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
          * One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.
          */
         protocol: string;
-        rendition?: Rendition;
     };
     path: {
         /**
@@ -4597,7 +5179,7 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
      */
     412: Error;
     /**
-     * Connections to the exposure's gateway are not made through this API, the gateway is not read or published by that protocol, or the exposure does not offer the rendition, or offers several and the protocol needs one chosen
+     * Connections to the exposure's gateway are not made through this API, or the gateway is not read or published by that protocol
      */
     422: Error;
     /**
@@ -4619,13 +5201,11 @@ export type PostOrganisationsByIdStreamsByStreamIdExposuresByExposureIdConnectio
         broadcast: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<Rendition>;
     } | {
         protocol: string;
         url: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<Rendition>;
     };
 };
 
@@ -4637,7 +5217,6 @@ export type PostOrganisationsByIdStreamsByStreamIdRecordersData = {
          * The exposure of this stream to record.
          */
         exposureId: string;
-        rendition?: Rendition;
         /**
          * The recording implementation.
          */
@@ -4685,7 +5264,7 @@ export type PostOrganisationsByIdStreamsByStreamIdRecordersErrors = {
      */
     412: Error;
     /**
-     * The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition
+     * The exposure does not exist, is not visible to this account, or belongs to another stream
      */
     422: Error;
     /**
@@ -4769,7 +5348,6 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdData = {
          * The exposure of this stream to record.
          */
         exposureId?: string;
-        rendition?: Rendition;
         /**
          * The recording implementation.
          */
@@ -4821,7 +5399,7 @@ export type PatchOrganisationsByIdStreamsByStreamIdRecordersByRecorderIdErrors =
      */
     412: Error;
     /**
-     * The exposure does not exist, is not visible to this account, or belongs to another stream, or does not offer the rendition
+     * The exposure does not exist, is not visible to this account, or belongs to another stream
      */
     422: Error;
     /**
@@ -5452,6 +6030,11 @@ export type GetOrganisationsByIdShowsResponses = {
             name: string;
             id: string;
             createdAt: string;
+            slots: number;
+            volumeDb: number;
+            muted: boolean;
+            takeoverStreamId: string | null;
+            takeoverLive: boolean;
             outputs: Array<{
                 name: string;
                 id: string;
@@ -5684,6 +6267,440 @@ export type PatchOrganisationsByIdShowsByShowIdResponses = {
 
 export type PatchOrganisationsByIdShowsByShowIdResponse = PatchOrganisationsByIdShowsByShowIdResponses[keyof PatchOrganisationsByIdShowsByShowIdResponses];
 
+export type PatchOrganisationsByIdShowsByShowIdControlsData = {
+    body: {
+        /**
+         * How many slots its layout has, from none to six; the lineup fills them in order.
+         */
+        slots?: number;
+        /**
+         * A level, in decibels: 0 is standard volume.
+         */
+        volumeDb?: number;
+        /**
+         * Whether it is muted.
+         */
+        muted?: boolean;
+        /**
+         * The stream armed to take over the screen, any of the organisation's: placed off air, so it is already playing when it goes live. Arming another, or null to disarm, ends a live takeover unless `takeoverLive` is given too.
+         */
+        takeoverStreamId?: string | null;
+        /**
+         * Whether the armed stream has taken over the screen. Only while one is armed.
+         */
+        takeoverLive?: boolean;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/controls';
+};
+
+export type PatchOrganisationsByIdShowsByShowIdControlsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdShowsByShowIdControlsError = PatchOrganisationsByIdShowsByShowIdControlsErrors[keyof PatchOrganisationsByIdShowsByShowIdControlsErrors];
+
+export type PatchOrganisationsByIdShowsByShowIdControlsResponses = {
+    /**
+     * The show, without its outputs and lineup
+     */
+    200: {
+        id: string;
+        name: string;
+        slots: number;
+        volumeDb: number;
+        muted: boolean;
+        takeoverStreamId: string | null;
+        takeoverLive: boolean;
+        createdAt: string;
+    };
+};
+
+export type PatchOrganisationsByIdShowsByShowIdControlsResponse = PatchOrganisationsByIdShowsByShowIdControlsResponses[keyof PatchOrganisationsByIdShowsByShowIdControlsResponses];
+
+export type PostOrganisationsByIdShowsByShowIdLineupSwapData = {
+    body: {
+        /**
+         * A stream in the lineup, by its ID or its position.
+         */
+        a: {
+            /**
+             * A stream in the lineup.
+             */
+            streamId: string;
+        } | {
+            /**
+             * A position in the lineup, from 1.
+             */
+            position: number;
+        };
+        /**
+         * A stream in the lineup, by its ID or its position.
+         */
+        b: {
+            /**
+             * A stream in the lineup.
+             */
+            streamId: string;
+        } | {
+            /**
+             * A position in the lineup, from 1.
+             */
+            position: number;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/lineup/swap';
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupSwapErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupSwapError = PostOrganisationsByIdShowsByShowIdLineupSwapErrors[keyof PostOrganisationsByIdShowsByShowIdLineupSwapErrors];
+
+export type PostOrganisationsByIdShowsByShowIdLineupSwapResponses = {
+    /**
+     * The lineup after the swap
+     */
+    200: Lineup;
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupSwapResponse = PostOrganisationsByIdShowsByShowIdLineupSwapResponses[keyof PostOrganisationsByIdShowsByShowIdLineupSwapResponses];
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddData = {
+    body: {
+        /**
+         * The stream to add.
+         */
+        streamId: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/lineup/add';
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddError = PostOrganisationsByIdShowsByShowIdLineupAddErrors[keyof PostOrganisationsByIdShowsByShowIdLineupAddErrors];
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddResponses = {
+    /**
+     * The lineup after the stream is added
+     */
+    200: {
+        lineup: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            position: number | null;
+            absence: 'locked' | null;
+            volumeDb: number;
+            muted: boolean;
+            syncOffsetMs: number;
+            audioStreamId: string | null;
+        }>;
+        addable: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            source: 'camera' | 'pushed';
+            state: 'locked' | 'disabled' | 'ready' | 'live' | 'undelivered';
+        }>;
+    };
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupAddResponse = PostOrganisationsByIdShowsByShowIdLineupAddResponses[keyof PostOrganisationsByIdShowsByShowIdLineupAddResponses];
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveData = {
+    body: {
+        /**
+         * A stream in the lineup, by its ID or its position.
+         */
+        stream: {
+            /**
+             * A stream in the lineup.
+             */
+            streamId: string;
+        } | {
+            /**
+             * A position in the lineup, from 1.
+             */
+            position: number;
+        };
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/lineup/remove';
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveError = PostOrganisationsByIdShowsByShowIdLineupRemoveErrors[keyof PostOrganisationsByIdShowsByShowIdLineupRemoveErrors];
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveResponses = {
+    /**
+     * The lineup after the stream is taken out
+     */
+    200: {
+        lineup: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            position: number | null;
+            absence: 'locked' | null;
+            volumeDb: number;
+            muted: boolean;
+            syncOffsetMs: number;
+            audioStreamId: string | null;
+        }>;
+        addable: Array<{
+            streamId: string;
+            name: string;
+            code: string | null;
+            source: 'camera' | 'pushed';
+            state: 'locked' | 'disabled' | 'ready' | 'live' | 'undelivered';
+        }>;
+    };
+};
+
+export type PostOrganisationsByIdShowsByShowIdLineupRemoveResponse = PostOrganisationsByIdShowsByShowIdLineupRemoveResponses[keyof PostOrganisationsByIdShowsByShowIdLineupRemoveResponses];
+
+export type PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdData = {
+    body: {
+        /**
+         * A level, in decibels: 0 is standard volume.
+         */
+        volumeDb?: number;
+        /**
+         * Whether it is muted.
+         */
+        muted?: boolean;
+        /**
+         * How far its sound is shifted against its picture, in milliseconds: later when positive, and when negative its picture is held back instead, by at most 950.
+         */
+        syncOffsetMs?: number;
+        /**
+         * The stream whose sound it brings, one of the organisation's: null for its own.
+         */
+        audioStreamId?: string | null;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The show.
+         */
+        showId: string;
+        /**
+         * The stream.
+         */
+        streamId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/shows/{showId}/streams/{streamId}';
+};
+
+export type PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdError = PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdErrors[keyof PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdErrors];
+
+export type PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdResponses = {
+    /**
+     * The stream's settings in the show
+     */
+    200: {
+        streamId: string;
+        volumeDb: number;
+        muted: boolean;
+        syncOffsetMs: number;
+        audioStreamId: string | null;
+    };
+};
+
+export type PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdResponse = PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdResponses[keyof PatchOrganisationsByIdShowsByShowIdStreamsByStreamIdResponses];
+
 export type GetOrganisationsByIdShowsByShowIdFollowData = {
     body?: never;
     path: {
@@ -5813,8 +6830,9 @@ export type GetOrganisationsByIdOutputsResponses = {
             name: string;
             id: string;
             createdAt: string;
-            control: 'external' | 'show';
             showId: string | null;
+            control: 'external' | 'show';
+            inputGatewayId: string | null;
             width: number;
             height: number;
             fps: number;
@@ -5863,6 +6881,10 @@ export type PostOrganisationsByIdOutputsData = {
          * The show the output follows: one of the organisation's, or null for none. Only under `show` control.
          */
         showId?: string | null;
+        /**
+         * The one gateway the output reads every stream from, built in or the organisation's own, whatever else delivers them; null lets each stream's read choose (`organisations.streams.connect`).
+         */
+        inputGatewayId?: 'conservationtv' | string | null;
         /**
          * The programme's width in pixels: even.
          */
@@ -5932,6 +6954,7 @@ export type PostOrganisationsByIdOutputsResponses = {
         name: string;
         control: 'external' | 'show';
         showId: string | null;
+        inputGatewayId: string | null;
         width: number;
         height: number;
         fps: number;
@@ -6062,6 +7085,10 @@ export type PatchOrganisationsByIdOutputsByOutputIdData = {
          */
         showId?: string | null;
         /**
+         * The one gateway the output reads every stream from, built in or the organisation's own, whatever else delivers them; null lets each stream's read choose (`organisations.streams.connect`).
+         */
+        inputGatewayId?: 'conservationtv' | string | null;
+        /**
          * The programme's width in pixels: even.
          */
         width?: number;
@@ -6142,6 +7169,7 @@ export type PatchOrganisationsByIdOutputsByOutputIdResponses = {
         name: string;
         control: 'external' | 'show';
         showId: string | null;
+        inputGatewayId: string | null;
         width: number;
         height: number;
         fps: number;
@@ -6397,7 +7425,7 @@ export type PutOrganisationsByIdOutputsByOutputIdControlData = {
          */
         sceneCollection: string;
         /**
-         * Where OBS, on its own machine, reads any exposure the output may read, with `{streamId}` and `{exposureId}` in place of the stream and the exposure: for a media source.
+         * Where OBS, on its own machine, reads any stream the output may read, whatever delivers it, with `{streamId}` in place of the stream: for a media source. Agents before streams were read by stream also have `{exposureId}`, in place of the delivery.
          */
         inputUrl: string;
     };
@@ -6776,7 +7804,6 @@ export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnections
          * One of the protocols the gateway is read by (to read), or published to (to publish), such as `webrtc`.
          */
         protocol: string;
-        rendition?: Rendition;
     };
     path: {
         /**
@@ -6818,7 +7845,7 @@ export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnections
      */
     412: Error;
     /**
-     * Connections to the preview's gateway are not made through this API, the gateway is not read or published by that protocol, or the rendition is not `default`, the one a preview offers
+     * Connections to the preview's gateway are not made through this API, or the gateway is not read or published by that protocol
      */
     422: Error;
     /**
@@ -6840,13 +7867,11 @@ export type PostOrganisationsByIdOutputsByOutputIdPreviewsByPreviewIdConnections
         broadcast: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<Rendition>;
     } | {
         protocol: string;
         url: string;
         token?: string;
         expiresAt?: string;
-        renditions: Array<Rendition>;
     };
 };
 
@@ -7559,6 +8584,10 @@ export type GetOrganisationsByIdChatCommandsResponses = {
                 kind: 'cameraPreset';
                 cameraId: string | null;
                 preset: string | null;
+            } | {
+                kind: 'showSwap';
+            } | {
+                kind: 'showTakeover';
             };
             audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
             cooldownSeconds: number;
@@ -7578,7 +8607,7 @@ export type PostOrganisationsByIdChatCommandsData = {
          */
         name: string;
         /**
-         * What the command does, by `kind`: `reply` with `text`, or `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first.
+         * What the command does, by `kind`: `reply` with `text`; `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first; `showSwap`, swapping two streams in the lineup of the show the output follows, each named by a word that follows it, a position or a name; or `showTakeover`, taking over that show with the stream the word that follows it names, or ending the takeover with `off`. A name is a stream's code or name, or its camera's name or one of its aliases.
          */
         action: {
             kind: 'reply';
@@ -7587,6 +8616,10 @@ export type PostOrganisationsByIdChatCommandsData = {
             kind: 'cameraPreset';
             cameraId: string | null;
             preset: string | null;
+        } | {
+            kind: 'showSwap';
+        } | {
+            kind: 'showTakeover';
         };
         /**
          * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.
@@ -7757,7 +8790,7 @@ export type PatchOrganisationsByIdChatCommandsByCommandIdData = {
          */
         name?: string;
         /**
-         * What the command does, by `kind`: `reply` with `text`, or `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first.
+         * What the command does, by `kind`: `reply` with `text`; `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first; `showSwap`, swapping two streams in the lineup of the show the output follows, each named by a word that follows it, a position or a name; or `showTakeover`, taking over that show with the stream the word that follows it names, or ending the takeover with `off`. A name is a stream's code or name, or its camera's name or one of its aliases.
          */
         action?: {
             kind: 'reply';
@@ -7766,6 +8799,10 @@ export type PatchOrganisationsByIdChatCommandsByCommandIdData = {
             kind: 'cameraPreset';
             cameraId: string | null;
             preset: string | null;
+        } | {
+            kind: 'showSwap';
+        } | {
+            kind: 'showTakeover';
         };
         /**
          * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.

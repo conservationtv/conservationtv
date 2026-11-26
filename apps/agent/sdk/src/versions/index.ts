@@ -10,3 +10,4 @@ export * from './cameras.list-v1/index.js';
 export * from './cameras.state.get-v1/index.js';
 export * from './cameras.commands.run-v1/index.js';
 export * from './cameras.events-v1/index.js';
+export * from './system.spec-v3/index.js';

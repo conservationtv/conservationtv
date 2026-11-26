@@ -17,6 +17,7 @@ import {
   StreamCardTitle,
   StreamGrid
 } from '@/components/streams/stream-card';
+import { StreamCode } from '@/components/streams/stream-code';
 import { streamPageOf, type PageStream } from '@/components/streams/stream-page';
 import { TopologyDiagram } from '@/components/streams/stream-topology';
 import { CTVMoQPreview } from '@/components/streams/ctv-moq-preview';
@@ -26,7 +27,9 @@ import { cameraListQueryOptions } from '@/queries/cameras';
 import { deviceListQueryOptions } from '@/queries/devices';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
-import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
+import { subjectStatusesOf } from '@/components/streams/topology';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
+import { streamListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Streams · conservation.tv studio' }];
 
@@ -70,14 +73,14 @@ const NewStreamAction: FC = () => {
 /** The streams, split by whether their source is feeding them: everything they show, but their charts, read at once. */
 const StreamTabs: FC = () => {
   const organisationId = useOrganisationId();
-  const [streamsQuery, camerasQuery, devicesQuery, gatewaysQuery, networksQuery, statesQuery] = useSuspenseQueries({
+  const [streamsQuery, camerasQuery, devicesQuery, gatewaysQuery, networksQuery, statusQuery] = useSuspenseQueries({
     queries: [
       streamListQueryOptions(organisationId),
       cameraListQueryOptions(organisationId),
       deviceListQueryOptions(organisationId),
       gatewayListQueryOptions(organisationId),
       networkListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId)
+      { ...organisationStatusQueryOptions(organisationId), select: subjectStatusesOf }
     ]
   });
   const { active, inactive } = streamPageOf({
@@ -86,7 +89,7 @@ const StreamTabs: FC = () => {
     devices: devicesQuery.data,
     gateways: gatewaysQuery.data,
     networks: networksQuery.data,
-    states: statesQuery.data
+    statuses: statusQuery.data
   });
   // Which of them the list shows, as `?status=`: those being fed, or the rest.
   const tabs = useTabsQuery('status', ['active', 'inactive']);
@@ -154,8 +157,9 @@ interface StreamItemProps {
 const StreamItem: FC<StreamItemProps> = ({ stream }) => {
   return (
     <StreamCard>
-      <StreamCardTitle>
-        <Link to={stream.id} className="hover:underline hover:underline-offset-4">
+      <StreamCardTitle className="flex min-w-0 items-center gap-2">
+        {stream.code && <StreamCode>{stream.code}</StreamCode>}
+        <Link to={stream.id} className="truncate hover:underline hover:underline-offset-4">
           {stream.name}
         </Link>
       </StreamCardTitle>

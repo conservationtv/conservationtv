@@ -29,10 +29,12 @@ import {
   syncBroadcasters,
   updateOutput,
   updateOutputForward,
-  updateOutputRecorder
+  updateOutputRecorder,
+  withoutInputGateway
 } from '../services/outputs.ts';
 import { OUTPUT_CONTROLS, OUTPUT_RECORDER_KINDS } from '../topology/output-recorder-kinds.ts';
-import { RenditionSchema, SettingsSchema } from '../topology/settings.ts';
+import { checkOffered, RenditionSchema, withRenditions } from '../topology/renditions.ts';
+import { SettingsSchema } from '../topology/settings.ts';
 import { GatewayIdSchema } from './gateways.ts';
 import {
   conflict,
@@ -50,6 +52,7 @@ import {
   unauthenticated,
   unavailable,
   unsupportedPreviewConnection,
+  unsupportedPreviewRendition,
   validator,
   versionMismatch
 } from './openapi.ts';
@@ -132,9 +135,14 @@ const InputUrlSchema = z
   .min(1)
   .max(500)
   .describe(
-    'Where OBS, on its own machine, reads any exposure the output may read, with `{streamId}` and `{exposureId}` in place of the stream and the exposure: for a media source.'
+    'Where OBS, on its own machine, reads any stream the output may read, whatever delivers it, with `{streamId}` in place of the stream: for a media source. Agents before streams were read by stream also have `{exposureId}`, in place of the delivery.'
   );
 export type InputUrl = z.output<typeof InputUrlSchema>;
+
+const InputGatewaySchema = GatewayIdSchema.nullable().describe(
+  "The one gateway the output reads every stream from, built in or the organisation's own, whatever else delivers them; null lets each stream's read choose (`organisations.streams.connect`)."
+);
+export type InputGateway = z.output<typeof InputGatewaySchema>;
 
 /** Every encoding field, each optional. */
 const EncodingFields = {
@@ -162,6 +170,9 @@ const noShowWhenExternal = (body: OutputDriving) =>
 // reach OBS from `organisations.outputs.control.get`, as the agent reported it. An output's agent is granted
 // `channelBroadcaster` while it is one (`syncBroadcasters`), to read its channels' ingests.
 
+const PREVIEW_CONNECT_DESCRIPTION =
+  "Where to read or publish the output's programme at the preview's gateway by one of its protocols, with the short-lived credential that admits the caller there, as `organisations.streams.exposures.connect` gives for an exposure: a MoQ relay, path and token, or a URL and a token. The programme is one encoding, so a preview carries that one picture. Ask again before `expiresAt`. Members read, signed in. The agent the output runs on publishes, signed as its device (an RFC 9421 HTTP Message Signature by its own identity, as for `reports.submit`).";
+
 export default new Hono()
   .get(
     '/',
@@ -171,6 +182,33 @@ export default new Hono()
       summary: "List an organisation's outputs",
       description:
         'Each with its device (null for none), forwards, previews and recorders, as `organisations.outputs.get` reads one. Empty for organisations you are not a member of.',
+      responses: {
+        200: { description: 'The outputs, oldest first, each with its forwards, previews and recorders, oldest first' },
+        400: invalidRequest,
+        401: unauthenticated,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OrganisationParamsSchema),
+    async c => {
+      const { id } = c.req.valid('param');
+      const rows = await transaction(() => listOutputs(id));
+      // As they were before outputs had an input gateway.
+      const listed = rows.map(withoutInputGateway);
+      c.header('Cache-Control', 'no-store');
+      return c.json({ outputs: listed }, 200);
+    }
+  )
+  .get(
+    '/',
+    describeRoute({
+      operationId: 'organisations.outputs.list',
+      ...operationVersion(2),
+      summary: "List an organisation's outputs",
+      description:
+        'Each with its input gateway, device (null for none), forwards, previews and recorders, as `organisations.outputs.get` reads one. Empty for organisations you are not a member of.',
       responses: {
         200: { description: 'The outputs, oldest first, each with its forwards, previews and recorders, oldest first' },
         400: invalidRequest,
@@ -225,6 +263,47 @@ export default new Hono()
       const body = c.req.valid('json');
       const row = await transaction(() => createOutput(id, body));
       c.header('Cache-Control', 'no-store');
+      return c.json(withoutInputGateway(row), 201);
+    }
+  )
+  .post(
+    '/',
+    describeRoute({
+      operationId: 'organisations.outputs.create',
+      ...operationVersion(2),
+      summary: 'Create an output',
+      description:
+        "Administrators only. Under `show` control (the default) it follows the show given, if any; under `external`, none. The programme's encoding defaults to 1920×1080 at 30 fps, 6000 kbps, with 2-second keyframes. It reads every stream from its `inputGatewayId` when that names one (built in, or the organisation's own: `invalid_reference` otherwise), and each from whichever suits it when null, the default. It goes out once it has a device.",
+      responses: {
+        201: { description: 'The new output' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', OrganisationParamsSchema),
+    validator(
+      'json',
+      z
+        .strictObject({
+          name: OutputNameSchema,
+          control: OutputControlSchema.optional(),
+          showId: OutputShowSchema.optional(),
+          inputGatewayId: InputGatewaySchema.optional(),
+          ...EncodingFields
+        })
+        .refine(noShowWhenExternal, 'An externally controlled output follows no show')
+    ),
+    async c => {
+      const { id } = c.req.valid('param');
+      const body = c.req.valid('json');
+      const row = await transaction(() => createOutput(id, body));
+      c.header('Cache-Control', 'no-store');
       return c.json(row, 201);
     }
   )
@@ -235,6 +314,33 @@ export default new Hono()
       ...operationVersion(1),
       summary: 'Read an output',
       description: 'With its device (null for none), forwards, previews and recorders.',
+      responses: {
+        200: { description: 'The output' },
+        400: invalidRequest,
+        401: unauthenticated,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', OutputParamsSchema),
+    async c => {
+      const { id, outputId } = c.req.valid('param');
+      const row = await transaction(() => getOutputWithTopology(id, outputId));
+      if (!row) throw new ApiFailure('not_found');
+      c.header('Cache-Control', 'no-store');
+      return c.json(withoutInputGateway(row), 200);
+    }
+  )
+  .get(
+    '/:outputId',
+    describeRoute({
+      operationId: 'organisations.outputs.get',
+      ...operationVersion(2),
+      summary: 'Read an output',
+      description:
+        'With its input gateway (`inputGatewayId`, null for none), its device (null for none), forwards, previews and recorders.',
       responses: {
         200: { description: 'The output' },
         400: invalidRequest,
@@ -284,6 +390,50 @@ export default new Hono()
           name: OutputNameSchema.optional(),
           control: OutputControlSchema.optional(),
           showId: OutputShowSchema.optional(),
+          ...EncodingFields
+        })
+        .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
+        .refine(noShowWhenExternal, 'An externally controlled output follows no show')
+    ),
+    async c => {
+      const { id, outputId } = c.req.valid('param');
+      const body = c.req.valid('json');
+      const row = await transaction(() => updateOutput(id, outputId, body));
+      c.header('Cache-Control', 'no-store');
+      return c.json(withoutInputGateway(row), 200);
+    }
+  )
+  .patch(
+    '/:outputId',
+    describeRoute({
+      operationId: 'organisations.outputs.update',
+      ...operationVersion(2),
+      summary: 'Update an output',
+      description:
+        "Administrators only: rename it, change its programme's encoding, the show it follows, who drives it, or the one gateway it reads every stream from (`inputGatewayId`: built in, or the organisation's own, else `invalid_reference`; null to let each stream's read choose). Changes only the fields given; `external` control leaves the show it followed, and a show under `external` control is a conflict.",
+      responses: {
+        200: { description: 'The updated output, without its device, forwards, previews and recorders' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        409: conflict,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', OutputParamsSchema),
+    validator(
+      'json',
+      z
+        .strictObject({
+          name: OutputNameSchema.optional(),
+          control: OutputControlSchema.optional(),
+          showId: OutputShowSchema.optional(),
+          inputGatewayId: InputGatewaySchema.optional(),
           ...EncodingFields
         })
         .refine(changes => Object.keys(changes).length > 0, 'Provide at least one field to change')
@@ -421,7 +571,7 @@ export default new Hono()
       ...operationVersion(1),
       summary: "Read how to drive an output's OBS",
       description:
-        "Administrators only: what its agent last reported. obs-websocket's port and password, on the agent's addresses (`organisations.devices.listAddresses`); the scene collection OBS runs; and `inputUrl`, where OBS reads an exposure as a media source, `{streamId}` and `{exposureId}` filled in. An externally controlled output reads any of the organisation's exposures; one following a show, only what the show places. `not_found` before the agent it runs on now has reported, and for anyone but an administrator.",
+        "Administrators only: what its agent last reported. obs-websocket's port and password, on the agent's addresses (`organisations.devices.listAddresses`); the scene collection OBS runs; and `inputUrl`, where OBS reads a stream as a media source (`inputs/{streamId}` on the program MediaMTX), with `{streamId}` in place of the stream, whatever delivers it (an agent from before streams were read by stream reports one with `{exposureId}` too). An externally controlled output reads any of the organisation's streams; one following a show, only what the show places. `not_found` before the agent it runs on now has reported, and for anyone but an administrator.",
       responses: {
         200: { description: 'How to drive it' },
         400: invalidRequest,
@@ -644,8 +794,7 @@ export default new Hono()
       operationId: 'organisations.outputs.previews.connect',
       ...operationVersion(1),
       summary: 'Connect to a preview',
-      description:
-        "Where to read or publish the output's programme at the preview's gateway by one of its protocols, with the short-lived credential that admits the caller there, as `organisations.streams.exposures.connect` gives for an exposure: a MoQ relay, path and token, or a URL and a token. A preview offers one rendition, `default`. Ask again before `expiresAt`. Members read, signed in. The agent the output runs on publishes, signed as its device (an RFC 9421 HTTP Message Signature by its own identity, as for `reports.submit`).",
+      description: `${PREVIEW_CONNECT_DESCRIPTION} A preview offers one rendition, \`default\`, and \`renditions\`, what the connection carries, says so.`,
       responses: {
         200: { description: 'The connection details' },
         400: invalidRequest,
@@ -653,7 +802,7 @@ export default new Hono()
         403: previewConnectionRefused,
         404: notFound,
         412: versionMismatch,
-        422: unsupportedPreviewConnection,
+        422: unsupportedPreviewRendition,
         503: gatewayUnavailable
       }
     }),
@@ -667,6 +816,37 @@ export default new Hono()
         rendition: PreviewRenditionSchema
       })
     ),
+    async c => {
+      const { id, outputId, previewId } = c.req.valid('param');
+      const { rendition, ...ask } = c.req.valid('json');
+      const connection = await connectPreview({ organisationId: id, outputId, previewId }, ask);
+      // After whatever refuses the connection otherwise, as when a preview listed what it offered.
+      checkOffered(rendition);
+      c.header('Cache-Control', 'no-store');
+      return c.json(withRenditions(connection), 200);
+    }
+  )
+  .post(
+    '/:outputId/previews/:previewId/connections',
+    describeRoute({
+      operationId: 'organisations.outputs.previews.connect',
+      ...operationVersion(2),
+      summary: 'Connect to a preview',
+      description: PREVIEW_CONNECT_DESCRIPTION,
+      responses: {
+        200: { description: 'The connection details' },
+        400: invalidRequest,
+        401: noCaller,
+        403: previewConnectionRefused,
+        404: notFound,
+        412: versionMismatch,
+        422: unsupportedPreviewConnection,
+        503: gatewayUnavailable
+      }
+    }),
+    requirePrincipal,
+    validator('param', PreviewParamsSchema),
+    validator('json', z.strictObject({ action: PreviewActionSchema, protocol: PreviewProtocolSchema })),
     async c => {
       const { id, outputId, previewId } = c.req.valid('param');
       const ask = c.req.valid('json');

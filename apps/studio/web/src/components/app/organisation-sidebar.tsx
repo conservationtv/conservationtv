@@ -15,6 +15,7 @@ import {
   MonitorPlayIcon,
   NetworkIcon,
   PlusIcon,
+  RecordIcon,
   ScreencastIcon,
   UploadSimpleIcon,
   VideoCameraIcon,
@@ -44,7 +45,7 @@ import {
 } from '@conservationtv/ui/components/sidebar';
 import { useSidebar } from '@conservationtv/ui/hooks/use-sidebar';
 
-import { useOrganisation, useOrganisationId } from '@/hooks/use-organisation';
+import { useMayPublish, useOrganisation, useOrganisationId } from '@/hooks/use-organisation';
 import { organisationListQueryOptions } from '@/queries/organisations';
 
 /**
@@ -64,6 +65,15 @@ export const OrganisationSidebar: FC = () => {
                 <HouseIcon />
                 <span>Overview</span>
               </SidebarNavItem>
+              {/* Only for those who may go live: it waits on the organisations list, alone. */}
+              <Suspense fallback={null}>
+                <PublishersOnly>
+                  <SidebarNavItem to="live">
+                    <RecordIcon />
+                    <span>Go live</span>
+                  </SidebarNavItem>
+                </PublishersOnly>
+              </Suspense>
               <SidebarNavItem to="controls">
                 <JoystickIcon />
                 <span>Controls</span>
@@ -139,6 +149,16 @@ export const OrganisationSidebar: FC = () => {
       </SidebarFooter>
     </Sidebar>
   );
+};
+
+interface PublishersOnlyProps {
+  children: ReactNode;
+}
+
+/** What only those who may go live see (`streamPublisher`, which administrators hold): nothing for anyone else. */
+export const PublishersOnly: FC<PublishersOnlyProps> = ({ children }) => {
+  const mayPublish = useMayPublish();
+  return mayPublish ? children : null;
 };
 
 interface SidebarNavItemProps {

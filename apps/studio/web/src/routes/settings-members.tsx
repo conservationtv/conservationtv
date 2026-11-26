@@ -30,7 +30,14 @@ import { Skeleton } from '@conservationtv/ui/components/skeleton';
 
 import { FormError } from '@/components/common/form-error';
 import { Section, SectionDescription, SectionHeader, SectionHeading, SectionTitle } from '@/components/common/page';
-import { badgeRoles, isAdministrator, memberName, type ListedMember } from '@/components/settings/roles';
+import {
+  badgeRoles,
+  holds,
+  isAdministrator,
+  memberName,
+  PUBLISHER_ROLE,
+  type ListedMember
+} from '@/components/settings/roles';
 import { useDialog } from '@/hooks/use-dialog';
 import { useIsAdministrator, useOrganisationId } from '@/hooks/use-organisation';
 import { formatDate, formatRelative } from '@/lib/format';
@@ -40,8 +47,10 @@ import {
   organisationInvitationListQueryOptions,
   useCancelInvitation,
   useGrantAdmin,
+  useGrantPublisher,
   useRemoveMember,
-  useRevokeAdmin
+  useRevokeAdmin,
+  useRevokePublisher
 } from '@/queries/members';
 
 /** One of the organisation's invitations, open or expired. */
@@ -118,18 +127,49 @@ const MemberRow: FC<MemberRowProps> = ({ member, own }) => {
 };
 
 /**
- * Making the member an administrator or no longer one, and removing them. The signed-in account leaves from the
- * General tab instead. The API refuses to lose the last administrator, and its reason shows under the row.
+ * Making the member an administrator or no longer one, letting a member who isn't one go live or no longer, and
+ * removing them. The signed-in account leaves from the General tab instead. The API refuses to lose the last
+ * administrator, and its reason shows under the row.
  */
 const MemberActions: FC<MemberRowProps> = ({ member, own }) => {
   const organisationId = useOrganisationId();
   const grant = useGrantAdmin(organisationId);
   const revoke = useRevokeAdmin(organisationId);
+  const grantPublisher = useGrantPublisher(organisationId);
+  const revokePublisher = useRevokePublisher(organisationId);
   const administers = isAdministrator(member);
-  const error = grant.error ?? revoke.error;
+  const publishes = holds(member, PUBLISHER_ROLE);
+  const error = grant.error ?? revoke.error ?? grantPublisher.error ?? revokePublisher.error;
   return (
     <>
       <ItemActions>
+        {/* An administrator goes live as part of their role, so only someone who isn't one is let or stopped. */}
+        {!administers &&
+          (publishes ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={revokePublisher.isPending}
+              onClick={() => {
+                grantPublisher.reset();
+                revokePublisher.mutate(member.userId);
+              }}
+            >
+              Stop going live
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={grantPublisher.isPending}
+              onClick={() => {
+                revokePublisher.reset();
+                grantPublisher.mutate(member.userId);
+              }}
+            >
+              Let go live
+            </Button>
+          ))}
         {administers ? (
           <Button
             variant="ghost"

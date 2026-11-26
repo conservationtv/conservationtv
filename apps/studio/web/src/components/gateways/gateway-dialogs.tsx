@@ -31,6 +31,7 @@ import { GatewaySchema } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
 import { useDialog } from '@/hooks/use-dialog';
+import { conflictAs } from '@/lib/conflict';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { useDeleteGateway, useUpdateGateway } from '@/queries/gateways';
 
@@ -117,7 +118,14 @@ export const EditGatewayDialog: FC<EditGatewayDialogProps> = ({ gateway, network
   );
 };
 
-/** Removes the gateway once confirmed. The API refuses while a stream is still delivered to it, and says so here. */
+/** Why the API refuses to delete a gateway (`in_use`), which it says only as a conflict. */
+const GATEWAY_IN_USE =
+  'It is still in use: a stream is delivered to it, an output is previewed at it, or an output reads its streams from it.';
+
+/**
+ * Removes the gateway once confirmed. The API refuses while a stream is still delivered to it, an output is previewed
+ * at it, or an output reads its streams from it, and says so here.
+ */
 export const DeleteGatewayDialog: FC<GatewayDialogProps> = ({ gateway }) => {
   const organisationId = useOrganisationId();
   const remove = useDeleteGateway(organisationId);
@@ -129,10 +137,11 @@ export const DeleteGatewayDialog: FC<GatewayDialogProps> = ({ gateway }) => {
         <AlertDialogHeader>
           <AlertDialogTitle className="truncate">Delete {gateway.name}?</AlertDialogTitle>
           <AlertDialogDescription>
-            A gateway can only be deleted once no stream is delivered to it.
+            A gateway can only be deleted once no stream is delivered to it, no output is previewed at it, and no output
+            reads its streams from it.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError error={remove.error} />
+        <FormError error={conflictAs(remove.error, GATEWAY_IN_USE)} />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction variant="destructive" loading={remove.isPending} onClick={() => dialog.mutate(gateway.id)}>

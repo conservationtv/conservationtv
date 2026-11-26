@@ -8,6 +8,8 @@
     "types": ["node"],
     "strict": true,
     "noEmit": true,
+    // The API's show resolver is imported from its source, and what it reaches includes components (packages/shows).
+    "jsx": "react-jsx",
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,

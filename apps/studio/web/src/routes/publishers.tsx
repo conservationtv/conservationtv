@@ -10,39 +10,38 @@ import { Page, PageDescription, PageHeader, PageHeading, PageTitle } from '@/com
 import { DEVICE_KINDS, DeviceKindIcon } from '@/components/devices/device-kind';
 import { devicePathOf, networkNameOf } from '@/components/devices/devices';
 import { publishersOf, type Publication, type Publisher } from '@/components/devices/publishers';
-import { Renditions } from '@/components/streams/delivery-list';
 import { SubjectHealth } from '@/components/devices/subject-health';
-import { statesBySubject } from '@/components/devices/subjects';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { counted } from '@/lib/format';
 import { deviceListQueryOptions } from '@/queries/devices';
 import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
-import { streamListQueryOptions, subjectStateListQueryOptions } from '@/queries/streams';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
+import { streamListQueryOptions } from '@/queries/streams';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Publishers · conservation.tv studio' }];
 
 /**
  * What is publishing what, to where: every device that publishes a stream to a gateway (an agent pushing it up to
- * conservation.tv, a member's browser), each with the streams it publishes, where to, in which renditions, and how
- * each delivery is doing. Read-only: a delivery's publisher is chosen on its stream's page.
+ * conservation.tv, a member's browser), each with the streams it publishes, where to, and how each delivery is
+ * doing. Read-only: a delivery's publisher is chosen on its stream's page.
  */
 const PublishersRoute: FC = () => {
   const organisationId = useOrganisationId();
-  const [streamsQuery, devicesQuery, gatewaysQuery, statesQuery, networksQuery] = useSuspenseQueries({
+  const [streamsQuery, devicesQuery, gatewaysQuery, networksQuery] = useSuspenseQueries({
     queries: [
       streamListQueryOptions(organisationId),
       deviceListQueryOptions(organisationId),
       gatewayListQueryOptions(organisationId),
-      subjectStateListQueryOptions(organisationId),
-      networkListQueryOptions(organisationId)
+      networkListQueryOptions(organisationId),
+      // What each delivery's health reads (SubjectHealth), loaded with the page.
+      organisationStatusQueryOptions(organisationId)
     ]
   });
   const publishers = publishersOf({
     streams: streamsQuery.data,
     devices: devicesQuery.data,
-    gateways: gatewaysQuery.data,
-    states: statesBySubject(statesQuery.data)
+    gateways: gatewaysQuery.data
   });
   return (
     <Page>
@@ -134,10 +133,10 @@ interface PublicationRowProps {
   publication: Publication;
 }
 
-/** One stream the device publishes: where to, in which renditions, and how that delivery is doing. */
+/** One stream the device publishes: where to, and how that delivery is doing. */
 const PublicationRow: FC<PublicationRowProps> = ({ publication }) => {
   const organisationId = useOrganisationId();
-  const { stream, exposure, gateway, state } = publication;
+  const { stream, gateway, subjectId } = publication;
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
       <span className="flex min-w-0 flex-1 items-center gap-2 text-custom-13">
@@ -151,8 +150,7 @@ const PublicationRow: FC<PublicationRowProps> = ({ publication }) => {
         <ArrowRightIcon aria-label="to" className="size-3 shrink-0 text-custom-text-secondary" />
         <span className="truncate text-custom-text-secondary">{gateway?.name ?? 'A removed gateway'}</span>
       </span>
-      <Renditions renditions={exposure.renditions} />
-      <SubjectHealth state={state} />
+      <SubjectHealth subjectId={subjectId} />
     </li>
   );
 };

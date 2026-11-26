@@ -1,7 +1,6 @@
-import { Suspense, useState, type FC, type ReactNode } from 'react';
+import { Suspense, type FC, type ReactNode } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { BroadcastIcon, CheckIcon, CopyIcon, LinkIcon } from '@phosphor-icons/react';
-import type { Rendition } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
 import { Skeleton } from '@conservationtv/ui/components/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@conservationtv/ui/components/tooltip';
@@ -12,45 +11,35 @@ import {
   ReadRowHeading,
   ReadRowNote,
   ReadRows,
-  ReadRowTitle,
-  RenditionTabs
+  ReadRowTitle
 } from '@/components/streams/read-parts';
-import { RENDITIONS } from '@/components/streams/renditions';
 import { useCopy } from '@/hooks/use-copy';
 import type { MoqReadQueryOptions } from '@/queries/streams';
 
 // How anyone reads something at conservation.tv, a stream's delivery or a show's preview: over MoQ, from its relay.
-// One connection carries its every rendition, each a track of one broadcast, so the renditions' tabs say what it offers and the way to read it is
-// the same under each: the relay's URL with a read token in it, and the broadcast to subscribe to.
+// One broadcast carries it, its catalog listing the pictures it has by their sizes, so a player picks the size it
+// needs itself: the way to read it is the relay's URL with a read token in it, and the broadcast to subscribe to.
 
 export interface MoqReadProps {
   /** Its connection: `moqReadQueryOptions` for a stream's delivery, `previewMoqReadQueryOptions` for a show's preview. */
   read: MoqReadQueryOptions;
-  /** The renditions it offers: every one a track of the same broadcast. */
-  renditions: Rendition[];
 }
 
-/** Its renditions as tabs, and beneath them how to read it over MoQ. */
-export const MoqRead: FC<MoqReadProps> = ({ read, renditions }) => {
-  const offered = RENDITIONS.filter(rendition => renditions.includes(rendition));
-  const [selected, setSelected] = useState<Rendition | undefined>(offered[0]);
-  if (selected === undefined) return null;
+/** How to read it over MoQ. */
+export const MoqRead: FC<MoqReadProps> = ({ read }) => {
   return (
-    <>
-      <RenditionTabs renditions={offered} value={selected} onValueChange={setSelected} />
-      <ReadRows>
-        <ReadRow>
-          <ReadRowHeading>
-            <ReadRowTitle>MoQ</ReadRowTitle>
-            <ReadRowNote>From anywhere: every rendition is a track of one broadcast</ReadRowNote>
-          </ReadRowHeading>
-          {/* The heading is known already; only the buttons wait, behind a placeholder their height. */}
-          <Suspense fallback={<Skeleton className="h-7 w-52" />}>
-            <MoqReadActions read={read} />
-          </Suspense>
-        </ReadRow>
-      </ReadRows>
-    </>
+    <ReadRows>
+      <ReadRow>
+        <ReadRowHeading>
+          <ReadRowTitle>MoQ</ReadRowTitle>
+          <ReadRowNote>From anywhere: a player picks the size it needs from one broadcast</ReadRowNote>
+        </ReadRowHeading>
+        {/* The heading is known already; only the buttons wait, behind a placeholder their height. */}
+        <Suspense fallback={<Skeleton className="h-7 w-52" />}>
+          <MoqReadActions read={read} />
+        </Suspense>
+      </ReadRow>
+    </ReadRows>
   );
 };
 
@@ -76,7 +65,7 @@ const MoqReadActions: FC<MoqReadActionsProps> = ({ read: query }) => {
       </CopyValueButton>
       <CopyValueButton value={read.broadcast} icon={<BroadcastIcon />} label="Broadcast">
         <span className="font-medium">Copies the broadcast’s name.</span>
-        <span>A MoQ player subscribes to it at the relay, and picks a rendition among its tracks.</span>
+        <span>A MoQ player subscribes to it at the relay, and picks the size it needs from its catalog.</span>
       </CopyValueButton>
     </ReadRowActions>
   );

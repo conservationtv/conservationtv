@@ -1,6 +1,6 @@
 import type { Client } from '@conservationtv/studio-sdk';
 import { getLogger } from '@logtape/logtape';
-import { type DeviceConfiguration, leased, withToken } from '../studio.ts';
+import { type DeviceConfiguration, keepLeases, leased, withToken } from '../studio.ts';
 import type { ChannelsSpec, ReportedChannel } from './channels/runtime.ts';
 import type { PreviewPublish } from './obs/program.ts';
 import type { ObsSpec } from './obs/runtime.ts';
@@ -30,7 +30,7 @@ export interface OutputSpecs {
 
 /** The connection details `organisations.outputs.previews.connect` returns, whichever protocol. */
 type PreviewConnection = Exclude<
-  Awaited<ReturnType<Client['organisations']['outputs']['previews']['connect']['v1']>>,
+  Awaited<ReturnType<Client['organisations']['outputs']['previews']['connect']['v2']>>,
   Error
 >;
 
@@ -64,6 +64,10 @@ function channelsSpec(obs: ObsSection): ChannelsSpec | undefined {
 
 /** The `obs` key's spec from the `obs` section: as it is, but for each preview, with where to publish it. */
 async function obsSpec(obs: ObsSection, studio: Client, leases: OutputLeases): Promise<ObsSpec> {
+  keepLeases(
+    leases.previews,
+    obs.previews.map(({ signer, connect }) => previewKey(connect.previewId, signer))
+  );
   const previews: ObsSpec['previews'] = [];
   for (const { previewId, signer, connect: ask } of obs.previews) {
     // One whose credentials cannot be had is left out, and tried again next time.
@@ -76,6 +80,11 @@ async function obsSpec(obs: ObsSection, studio: Client, leases: OutputLeases): P
   }
   const { output, encoding, forwards, recording, program } = obs;
   return { output, encoding, forwards, previews, recording, program };
+}
+
+/** What a preview's lease is kept under: the preview, and who signs it. */
+function previewKey(previewId: string, signer: string | null): string {
+  return `${previewId}@${signer ?? ''}`;
 }
 
 /** The `previews.connect` ask the configuration gives for where to publish a preview. */
@@ -94,12 +103,11 @@ async function previewTarget(
   ask: PreviewConnect,
   signer: string | null
 ): Promise<PreviewPublish> {
-  const renew = () => studio.organisations.outputs.previews.connect.v1(ask);
-  const key = `${ask.previewId}@${signer ?? ''}`;
-  // A lease kept for an earlier signer is no use now.
-  for (const kept of connections.keys()) {
-    if (kept.startsWith(`${ask.previewId}@`) && kept !== key) connections.delete(kept);
-  }
+  // Version 1 for an API from before a preview stopped naming its rendition, which answers the same but for that.
+  const { connect } = studio.organisations.outputs.previews;
+  const renew = () => (connect.version === 2 ? connect.v2(ask) : connect.v1(ask));
+  // A lease kept for an earlier signer is no use now, and was forgotten as the spec was made (`obsSpec`).
+  const key = previewKey(ask.previewId, signer);
   const connection = await leased(connections, key, renew);
   if ('relay' in connection) {
     const url = new URL(connection.path, connection.relay);

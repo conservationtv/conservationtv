@@ -26,7 +26,8 @@ import { gatewayListQueryOptions } from '@/queries/gateways';
 import { networkListQueryOptions } from '@/queries/networks';
 import { outputListQueryOptions } from '@/queries/outputs';
 import { showListQueryOptions } from '@/queries/shows';
-import { subjectStateListQueryOptions } from '@/queries/streams';
+import { subjectStatusesOf } from '@/components/streams/topology';
+import { organisationStatusQueryOptions } from '@/queries/organisations';
 
 export const meta: Route.MetaFunction = () => [{ title: 'Outputs · conservation.tv studio' }];
 
@@ -69,7 +70,7 @@ export default OutputsRoute;
 /** Every output, laid out from the organisation's lists, read once and together. */
 const OutputList: FC = () => {
   const organisationId = useOrganisationId();
-  const [outputsQuery, showsQuery, agentsQuery, channelsQuery, gatewaysQuery, networksQuery, statesQuery] =
+  const [outputsQuery, showsQuery, agentsQuery, channelsQuery, gatewaysQuery, networksQuery, statusQuery] =
     useSuspenseQueries({
       queries: [
         outputListQueryOptions(organisationId),
@@ -78,7 +79,7 @@ const OutputList: FC = () => {
         channelListQueryOptions(organisationId),
         gatewayListQueryOptions(organisationId),
         networkListQueryOptions(organisationId),
-        subjectStateListQueryOptions(organisationId)
+        { ...organisationStatusQueryOptions(organisationId), select: subjectStatusesOf }
       ]
     });
   if (outputsQuery.data.length === 0) {
@@ -108,7 +109,7 @@ const OutputList: FC = () => {
             channels: channelsQuery.data.channels,
             gateways: gatewaysQuery.data,
             networks: networksQuery.data,
-            states: statesQuery.data
+            statuses: statusQuery.data
           })}
         />
       ))}

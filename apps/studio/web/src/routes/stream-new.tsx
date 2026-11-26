@@ -3,7 +3,7 @@ import { useForm, useStore } from '@tanstack/react-form';
 import { useSuspenseQueries } from '@tanstack/react-query';
 import { CloudIcon, HardDrivesIcon, PlusIcon, VideoCameraIcon } from '@phosphor-icons/react';
 import { Link, Outlet, useNavigate } from 'react-router';
-import type { Camera, Device, Network, Rendition } from '@conservationtv/studio-sdk';
+import type { Camera, Device, Network } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
 import { Checkbox } from '@conservationtv/ui/components/checkbox';
 import {
@@ -34,19 +34,16 @@ import { cn } from '@conservationtv/ui/lib/utils';
 import type { Route } from './+types/stream-new';
 import { FormError } from '@/components/common/form-error';
 import { BackLink, Page, PageDescription, PageHeader, PageHeading, PageTitle } from '@/components/common/page';
-import { Renditions } from '@/components/streams/delivery-list';
 import {
   draftTopology,
   planDeliveries,
-  type DeliveryPlan,
   type PlannedDelivery,
   type SourceKind
 } from '@/components/streams/new-stream-plan';
 import { PublisherOptions } from '@/components/streams/publisher-options';
-import { RenditionsField } from '@/components/streams/renditions-field';
-import { sourceRenditions } from '@/components/streams/renditions';
 import type { ListedGateway } from '@/components/streams/stream-detail';
 import { TopologyDiagram } from '@/components/streams/stream-topology';
+import { CodeField } from '@/forms/code-field';
 import { NewStreamSchema, StreamSourceSchema, type NewStream, type NewStreamInput } from '@/forms/schemas';
 import { SelectField } from '@/forms/select-field';
 import { TextField } from '@/forms/text-field';
@@ -129,6 +126,7 @@ const NewStreamForm: FC = () => {
   const create = useCreateStreamWithDeliveries(organisationId);
   const defaultValues: NewStreamInput = {
     name: '',
+    code: '',
     source: 'camera',
     cameraId: '',
     publisherDeviceId: '',
@@ -154,9 +152,8 @@ const NewStreamForm: FC = () => {
     onSubmit: ({ value }) => {
       const stream: NewStream = NewStreamSchema.parse(value);
       const { camera, plan } = planOf(value);
-      if (plan.problems.size > 0) return;
       create.mutate(
-        { name: stream.name, sourceDeviceId: camera?.id ?? null, deliveries: plan.deliveries },
+        { name: stream.name, code: stream.code, sourceDeviceId: camera?.id ?? null, deliveries: plan.deliveries },
         {
           onSuccess: ({ stream: made, failure }) =>
             navigate(`../${made.id}`, { relative: 'path', state: failure ? { deliveryFailure: failure } : undefined })
@@ -188,6 +185,18 @@ const NewStreamForm: FC = () => {
         <FieldGroup className="max-w-md">
           <form.Field name="name">
             {field => <TextField field={field} label="Name" placeholder="Hide feeder" autoComplete="off" />}
+          </form.Field>
+          <form.Field name="code">
+            {field => (
+              <CodeField
+                field={field}
+                label="Short code"
+                placeholder="HIDE"
+                maxLength={4}
+                className="w-24"
+                description="Optional. Up to four letters and digits, unique among your streams: what a show’s controls and chat call it by."
+              />
+            )}
           </form.Field>
         </FieldGroup>
         <form.Field name="source">
@@ -257,11 +266,9 @@ const NewStreamForm: FC = () => {
               </FieldDescription>
               <div className="flex flex-col gap-2">
                 {candidates.map(gateway => {
-                  // A gateway is chosen while the form holds a delivery to it, at `index`; ticking adds one offering
-                  // the first rendition it can, unticking removes it. Once chosen, it shows its renditions, and why
-                  // the plan would be refused or leave it unsent.
+                  // A gateway is chosen while the form holds a delivery to it, at `index`; ticking adds one,
+                  // unticking removes it. Once chosen, it shows why the plan would leave it unsent.
                   const index = values.deliveries.findIndex(delivery => delivery.gatewayId === gateway.id);
-                  const choices = renditionsFor(gateway, plan, camera, values.source);
                   return (
                     <DeliveryCard key={gateway.id}>
                       <DeliveryCardHeader gateway={gateway} networks={networks}>
@@ -270,24 +277,11 @@ const NewStreamForm: FC = () => {
                           aria-label={`Deliver to ${gateway.name}`}
                           onCheckedChange={checked =>
                             checked
-                              ? deliveriesField.pushValue({ gatewayId: gateway.id, renditions: choices.slice(0, 1) })
+                              ? deliveriesField.pushValue({ gatewayId: gateway.id })
                               : deliveriesField.removeValue(index)
                           }
                         />
                       </DeliveryCardHeader>
-                      {index >= 0 && (
-                        <form.Field name={`deliveries[${index}].renditions`}>
-                          {field => (
-                            <RenditionsField
-                              field={field}
-                              label="Renditions"
-                              choices={choices}
-                              description={choices.length === 1 ? onlyRenditionNote(gateway, plan) : undefined}
-                            />
-                          )}
-                        </form.Field>
-                      )}
-                      {plan.problems.has(gateway.id) && <FieldError>{plan.problems.get(gateway.id)}</FieldError>}
                       {index >= 0 && plan.unsent.has(gateway.id) && (
                         <FieldDescription>{plan.unsent.get(gateway.id)}</FieldDescription>
                       )}
@@ -316,7 +310,7 @@ const NewStreamForm: FC = () => {
         </section>
         <div className="flex flex-col items-start gap-3">
           <FormError error={create.error} />
-          <Button type="submit" loading={create.isPending} disabled={plan.problems.size > 0}>
+          <Button type="submit" loading={create.isPending}>
             Create stream
           </Button>
         </div>
@@ -425,7 +419,7 @@ interface PlanSummaryProps {
   sourceName: string;
 }
 
-/** Each delivery to be made, in words: what feeds it, who sends it, and what it offers. */
+/** Each delivery to be made, in words: what feeds it, and who sends it. */
 const PlanSummary: FC<PlanSummaryProps> = ({ plan, devices, sourceName }) => {
   if (plan.length === 0) return null;
   return (
@@ -436,7 +430,6 @@ const PlanSummary: FC<PlanSummaryProps> = ({ plan, devices, sourceName }) => {
           <span>
             fed by {upstreamName(plan, delivery) ?? sourceName}, {publisherPhrase(devices, delivery.publisherDeviceId)}
           </span>
-          <Renditions renditions={delivery.renditions} />
         </li>
       ))}
     </ul>
@@ -463,26 +456,4 @@ function candidateGateways(gateways: ListedGateway[], camera: Camera | undefined
     gateway => gateway.networkId !== null && (networkId === undefined || gateway.networkId === networkId)
   );
   return [...onNetworks, ...gateways.filter(gateway => gateway.networkId === null)];
-}
-
-/** Why a delivery can offer only one rendition: what feeds it offers only that, or its camera gives only its source. */
-function onlyRenditionNote(gateway: ListedGateway, plan: DeliveryPlan): string {
-  if (gateway.networkId === null && plan.feeder) return `${plan.feeder.name} offers only this one.`;
-  return 'A plain RTSP camera gives only its source, as it is.';
-}
-
-/**
- * What a delivery to the gateway can offer: on the internet, fed by a delivery on a network, at most what that one
- * does; otherwise what the source produces.
- */
-function renditionsFor(
-  gateway: ListedGateway,
-  plan: DeliveryPlan,
-  camera: Camera | undefined,
-  source: SourceKind
-): Rendition[] {
-  const fromSource = sourceRenditions(source === 'camera' ? camera : undefined);
-  // Only an internet delivery is fed by another; until the one feeding it offers something, the source's choices stand.
-  if (gateway.networkId !== null || !plan.feeder || plan.feeder.renditions.length === 0) return fromSource;
-  return plan.feeder.renditions;
 }

@@ -1,7 +1,6 @@
-import { Suspense, startTransition, useState, type FC, type ReactNode } from 'react';
+import { Suspense, type FC, type ReactNode } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { ArrowSquareOutIcon, CheckIcon, CopyIcon, GlobeSimpleIcon, KeyIcon, WarningIcon } from '@phosphor-icons/react';
-import type { Rendition } from '@conservationtv/studio-sdk';
 import { Button } from '@conservationtv/ui/components/button';
 import { buttonVariants } from '@conservationtv/ui/lib/button-variants';
 import {
@@ -29,10 +28,8 @@ import {
   ReadRowHeading,
   ReadRowNote,
   ReadRows,
-  ReadRowTitle,
-  RenditionTabs
+  ReadRowTitle
 } from '@/components/streams/read-parts';
-import { RENDITIONS } from '@/components/streams/renditions';
 import { formatDateTime } from '@/lib/format';
 import { useCopy } from '@/hooks/use-copy';
 import type { ProtocolRead, ProtocolReadable, ProtocolReadQueryOptions } from '@/queries/streams';
@@ -50,16 +47,14 @@ export interface GatewayName {
 }
 
 /**
- * The query for how this account reads one rendition by one protocol: `exposureReadQueryOptions` for a stream's
- * delivery, `previewReadQueryOptions` for a show's preview.
+ * The query for how this account reads it by one protocol: `exposureReadQueryOptions` for a stream's delivery,
+ * `previewReadQueryOptions` for a show's preview. Each carries the one picture its source gives.
  */
-export type ProtocolReadOf = (protocol: string, rendition: Rendition) => ProtocolReadQueryOptions;
+export type ProtocolReadOf = (protocol: string) => ProtocolReadQueryOptions;
 
 export interface LocalReadProps {
-  /** How each protocol's connection is asked for, by rendition. */
+  /** How each protocol's connection is asked for. */
   read: ProtocolReadOf;
-  /** The renditions it offers, each read at its own address. */
-  renditions: Rendition[];
   /** The gateway's hostname, once it has one: each protocol is then offered there and at the IP it points at. */
   name: GatewayName | null;
   /** The protocols it is read by, of those the gateway serves: all of them unless said. */
@@ -68,29 +63,6 @@ export interface LocalReadProps {
 
 /** One of the protocols a MediaMTX gateway serves readers. */
 export type GatewayProtocolName = (typeof GATEWAY_PROTOCOLS)[number]['protocol'];
-
-/** Each rendition it offers as a compact tab, each listing the protocols a reader can use for it. */
-export const LocalRead: FC<LocalReadProps> = ({ read, renditions, name, protocols }) => {
-  const offered = RENDITIONS.filter(rendition => renditions.includes(rendition));
-  // The tab moves as soon as it is chosen; the rows change in a transition, so they keep showing the last rendition
-  // until the chosen one's connections are ready, rather than falling back to a placeholder.
-  const [selected, setSelected] = useState<Rendition | undefined>(offered[0]);
-  const [shown, setShown] = useState<Rendition | undefined>(offered[0]);
-  if (selected === undefined || shown === undefined) return null;
-  return (
-    <>
-      <RenditionTabs
-        renditions={offered}
-        value={selected}
-        onValueChange={chosen => {
-          setSelected(chosen);
-          startTransition(() => setShown(chosen));
-        }}
-      />
-      <ReadList read={read} rendition={shown} name={name} protocols={protocols} />
-    </>
-  );
-};
 
 /** How a reader uses each protocol's URL, in a sentence: what to paste it into. */
 const protocolHowTo = {
@@ -112,18 +84,12 @@ const protocolUses = {
   hls: 'Any browser or player, a few seconds behind'
 } satisfies Record<(typeof GATEWAY_PROTOCOLS)[number]['protocol'], string>;
 
-interface ReadListProps {
-  read: ProtocolReadOf;
-  rendition: Rendition;
-  name: GatewayName | null;
-  protocols: readonly GatewayProtocolName[] | undefined;
-}
-
 /**
- * One row per protocol the gateway serves readers. A row's name and use are known already, so they show at once; only
- * its buttons wait on its connection, behind a placeholder the buttons' height, so nothing moves when they arrive.
+ * One row per protocol the gateway serves readers, each listing how a reader uses it. A row's name and use are known
+ * already, so they show at once; only its buttons wait on its connection, behind a placeholder the buttons' height, so
+ * nothing moves when they arrive.
  */
-const ReadList: FC<ReadListProps> = ({ read, rendition, name, protocols }) => {
+export const LocalRead: FC<LocalReadProps> = ({ read, name, protocols }) => {
   const offered = GATEWAY_PROTOCOLS.filter(({ protocol }) => protocols?.includes(protocol) ?? true);
   return (
     <ReadRows>
@@ -134,7 +100,7 @@ const ReadList: FC<ReadListProps> = ({ read, rendition, name, protocols }) => {
             <ReadRowNote>{protocolUses[protocol]}</ReadRowNote>
           </ReadRowHeading>
           <Suspense fallback={<Skeleton className="h-7 w-56" />}>
-            <ProtocolReadActions query={read(protocol, rendition)} protocol={protocol} label={label} name={name} />
+            <ProtocolReadActions query={read(protocol)} protocol={protocol} label={label} name={name} />
           </Suspense>
         </ReadRow>
       ))}
@@ -143,14 +109,14 @@ const ReadList: FC<ReadListProps> = ({ read, rendition, name, protocols }) => {
 };
 
 interface ProtocolReadActionsProps {
-  /** The protocol's connection for the rendition. */
+  /** The protocol's connection. */
   query: ProtocolReadQueryOptions;
   protocol: ReadProtocol;
   label: string;
   name: GatewayName | null;
 }
 
-/** One protocol's connection for the rendition, as its buttons. */
+/** One protocol's connection, as its buttons. */
 const ProtocolReadActions: FC<ProtocolReadActionsProps> = ({ query, protocol, label, name }) => {
   const readQuery = useSuspenseQuery(query);
   return <ProtocolActions protocol={protocol} label={label} read={readQuery.data} name={name} />;

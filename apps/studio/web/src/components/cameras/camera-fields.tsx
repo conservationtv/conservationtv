@@ -78,7 +78,7 @@ export const AxisResolutionsField: FC<CameraFieldProps> = ({ field }) => {
       field={field}
       label="Resolutions"
       placeholder="1920x1080, 1280x720, 640x360"
-      description="Smaller renditions are sized from these."
+      description="Smaller pictures it makes itself are sized from these."
       autoComplete="off"
       spellCheck={false}
     />

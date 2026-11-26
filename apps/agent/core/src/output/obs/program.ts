@@ -3,20 +3,27 @@ import { join } from 'node:path';
 import { AttachedProcess, type ProcessStatus, STOPPED as PROCESS_STOPPED } from '@conservationtv/converge/process';
 import { type AlwaysAvailableTrack, MediamtxConfigBuilder, pipeline } from '@conservationtv/mediamtx';
 import { forwardSubject, previewSubject } from '@conservationtv/reports';
+import { getLogger } from '@logtape/logtape';
 import { BehaviorSubject } from 'rxjs';
 import { z } from 'zod';
 import { moqPublishCommand } from '../../binaries/moq.ts';
+import { choosePorts, type PortUse, type PortWanted } from '../../machine/ports.ts';
 import { common, renderYaml } from '../../mediamtx/config.ts';
+import { PortSchema } from '../../gateway/streams/ports.ts';
 import { listening } from './loopback.ts';
+
+const logger = getLogger(['agent', 'obs', 'program']);
 
 // The program MediaMTX: a MediaMTX of the obs runtime's own, between OBS and everything it sends or plays, so OBS can
 // come and go without anyone downstream noticing (docs/obs-agent.md):
 //
-//   inputs/<stream>/<exposure>
-//                  each exposure OBS plays, by whoever drives its scenes, pushed in by a `moq` relay the agent starts
-//                  when OBS first reads the path, and stops once nothing has for a while (inputs.ts). Any such path is
-//                  read on demand: its `runOnDemand` tells the agent it is wanted. No offline segment: the relay's
-//                  tracks pass through as the camera sends them, and while it is down OBS has nothing to play.
+//   inputs/<stream>
+//                  each stream OBS plays, by whoever drives its scenes, whatever delivers it, so an input never changes
+//                  when its delivery does: pushed in by a relay the agent starts when OBS first reads the path, and
+//                  stops once nothing has for a while (inputs.ts): `moq export` for MoQ, or a MediaMTX of the relay's
+//                  own pulling a gateway's RTSP or RTMP (relay.ts, pull.ts). Any such path is read on demand: its
+//                  `runOnDemand` tells the agent it is wanted. No offline segment: the relay's tracks pass through as
+//                  the camera sends them, and while it is down OBS has nothing to play.
 //   show/program   what OBS streams (its profile's custom server `rtmp://…/show`, key `program`), forwarded to each
 //                  channel's ingest. Always available, with the program's own tracks (H.264 and AAC-LC 48 kHz stereo), so
 //                  while OBS is gone the forwards carry the offline segment and Twitch never goes offline.
@@ -29,7 +36,9 @@ import { listening } from './loopback.ts';
 // publish URL its `connect` gave, carrying its token. Each forward's place in that list is how its metrics are told
 // apart (`destinations`, program-metrics.ts).
 //
-// Everything listens on loopback only, and only loopback may publish or read. The config is assembled by the common
+// Everything listens on loopback only, and only loopback may publish or read, on ports chosen before each start of it
+// as the gateway's are (gateway/streams/ports.ts): last time's if they are free, remembered in its directory, else the
+// defaults below, else any free. Only the agent and OBS reach them, and both read them as they do. The config is assembled by the common
 // step (mediamtx/config.ts) and the program's own below, and rewritten whenever a forward or a preview changes, which
 // a running MediaMTX reloads by itself. Inputs never change it: they are all read through the one pattern. Its log goes
 // to the process's log file, so every
@@ -61,6 +70,14 @@ export interface ProgramPorts {
 
 /** Defaults clear of the gateway MediaMTX's (gateway/streams/ports.ts), as both may run on one machine. */
 export const DEFAULT_PROGRAM_PORTS: ProgramPorts = { rtmp: 19_350, api: 19_997, metrics: 19_998 };
+
+/** How every one of the program MediaMTX's servers listens: on loopback. */
+const LOOPBACK_TCP: PortUse = { transport: 'tcp', scope: 'loopback' };
+
+/** Where the ports chosen last time are kept, in the program's directory. */
+const REMEMBERED_PORTS_FILE = 'ports.json';
+const RememberedPortsSchema = z.object({ rtmp: PortSchema, api: PortSchema, metrics: PortSchema }).partial().catch({});
+type RememberedPorts = z.output<typeof RememberedPortsSchema>;
 
 /**
  * A forward of the program: the forward (absent from an API that doesn't name it, and then not reported about) and its
@@ -133,30 +150,22 @@ const STOPPED: ProgramStatus = { ...PROCESS_STOPPED, forwards: [], previews: [],
 const PathOnlineSchema = z.object({ online: z.boolean().default(false) });
 export type PathOnline = z.output<typeof PathOnlineSchema>;
 
-/** Where an input's paths are: `inputs/<stream>/<exposure>`, each a UUID. */
+/** Where an input's paths are: `inputs/<stream>`, a UUID. */
 const INPUT_APP = 'inputs';
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-/** Every input's path, as a MediaMTX path pattern, whose groups are the stream and the exposure. */
-const INPUT_PATTERN = `~^${INPUT_APP}/(${UUID})/(${UUID})$`;
+/** Every input's path, as a MediaMTX path pattern, whose group is the stream. */
+const INPUT_PATTERN = `~^${INPUT_APP}/(${UUID})$`;
 const INPUT_PATH = new RegExp(INPUT_PATTERN.slice(1), 'u');
 
-/** An exposure OBS reads, by its stream. */
-export interface InputExposure {
-  streamId: string;
-  exposureId: string;
+/** The path OBS reads a stream at. */
+export function inputPath(streamId: string): string {
+  return `${INPUT_APP}/${streamId}`;
 }
 
-/** The path OBS reads an exposure at. */
-export function inputPath({ streamId, exposureId }: InputExposure): string {
-  return `${INPUT_APP}/${streamId}/${exposureId}`;
-}
-
-/** The exposure an input's path names, if it is one. */
-export function inputOf(path: string): InputExposure | undefined {
+/** The stream an input's path names, if it is one. */
+export function inputOf(path: string): string | undefined {
   const match = INPUT_PATH.exec(path);
-  if (match === null) return undefined;
-  const [, streamId, exposureId] = match;
-  return { streamId: streamId!, exposureId: exposureId! };
+  return match === null ? undefined : match[1];
 }
 
 /** The path a preview published by MoQ is read from by its moq CLI. */
@@ -180,15 +189,15 @@ interface ProgramServing {
   demand: string | undefined;
 }
 
-/** RTMP alone, on loopback, and only loopback may publish, read, or use the control API and metrics page. */
+/**
+ * RTMP alone, on loopback, and only loopback may publish, read, or use the control API and metrics page. Every other
+ * server is off (pprof, playback and MoQ by the common step).
+ */
 const programServer = new MediamtxConfigBuilder<ProgramServing>(({ ports }, config) => {
-  config.pprof = false;
-  config.playback = false;
   config.rtsp = false;
   config.hls = false;
   config.webrtc = false;
   config.srt = false;
-  config.moq = false;
   config.rtmp = true;
   config.rtmpAddress = `127.0.0.1:${String(ports.rtmp)}`;
   config.rtmpEncryption = 'no';
@@ -252,19 +261,30 @@ export class ProgramMediamtx {
   private demand: string | undefined = undefined;
   private writing: Promise<void> = Promise.resolve();
   private readonly watching;
+  /** Where it listens: chosen before each start of it, and the same while it runs. */
+  private current: ProgramPorts;
+  /** Whether the ports chosen last time have been read, for an orphaned MediaMTX to be found on. */
+  private recalled = false;
 
   constructor(
     private readonly directory: string,
-    readonly ports: ProgramPorts,
+    /** Where it listens unless they are taken. */
+    private readonly defaults: ProgramPorts,
     /** Variables MediaMTX runs with, on top of the agent's: what the Node its demand launcher runs by needs. */
     private readonly env: Record<string, string> = {}
   ) {
+    this.current = defaults;
     this.configFile = join(directory, 'mediamtx.yml');
     this.process = new AttachedProcess(directory, {
       name: 'mediamtx',
-      probe: signal => listening(ports.rtmp, signal)
+      probe: signal => listening(this.current.rtmp, signal)
     });
     this.watching = this.process.status$.subscribe(status => this.update(status));
+  }
+
+  /** Where it listens now. */
+  get ports(): ProgramPorts {
+    return this.current;
   }
 
   /** Where OBS streams the program to, as its custom server and key. */
@@ -282,9 +302,9 @@ export class ProgramMediamtx {
     return `rtmp://127.0.0.1:${String(this.ports.rtmp)}/${path}`;
   }
 
-  /** Where OBS reads any exposure, with `{streamId}` and `{exposureId}` in place of the stream and the exposure. */
+  /** Where OBS reads any stream, with `{streamId}` in place of the stream. */
   get inputTemplate(): string {
-    return this.pathUrl(inputPath({ streamId: '{streamId}', exposureId: '{exposureId}' }));
+    return this.pathUrl(inputPath('{streamId}'));
   }
 
   /**
@@ -309,11 +329,53 @@ export class ProgramMediamtx {
    */
   async ensure(binary: MediamtxInstall, moq: string, signal: AbortSignal): Promise<void> {
     this.moq = moq;
+    if (!this.recalled) {
+      this.recalled = true;
+      this.current = { ...this.current, ...(await this.remembered()) };
+    }
     await this.write();
+    const { directory, env } = this;
+    const prepare = () => this.prepare();
     await this.process.ensure(
-      { key: binary.id, binary: binary.path, args: [this.configFile], cwd: this.directory, env: this.env },
+      { key: binary.id, binary: binary.path, args: [this.configFile], cwd: directory, env, prepare },
       signal
     );
+  }
+
+  /**
+   * Chooses its ports before it starts, once the one before is gone (converge's `prepare`), and writes its config for
+   * them: last time's if free, else the defaults, else any free.
+   */
+  private async prepare(): Promise<void> {
+    const remembered = await this.remembered();
+    const wanted = (role: keyof ProgramPorts): PortWanted<keyof ProgramPorts> => {
+      const preferred = [...new Set([remembered[role], this.defaults[role]])].filter(port => port !== undefined);
+      return { role, use: LOOPBACK_TCP, wish: { preferred } };
+    };
+    const { port, moved } = await choosePorts([wanted('rtmp'), wanted('api'), wanted('metrics')], {});
+    const ports: ProgramPorts = { rtmp: port('rtmp'), api: port('api'), metrics: port('metrics') };
+    for (const { role, wanted, chosen } of moved) {
+      logger.warn('The program MediaMTX {role} port {wanted} is unavailable, so it is on {chosen}', {
+        role,
+        wanted,
+        chosen
+      });
+    }
+    this.current = ports;
+    await mkdir(this.directory, { recursive: true });
+    await writeFile(join(this.directory, REMEMBERED_PORTS_FILE), JSON.stringify(ports));
+    await this.write();
+  }
+
+  /** The ports chosen last time, as far as they can still be read. */
+  private async remembered(): Promise<RememberedPorts> {
+    const text = await readFile(join(this.directory, REMEMBERED_PORTS_FILE), 'utf8').catch(() => undefined);
+    if (text === undefined) return {};
+    try {
+      return RememberedPortsSchema.parse(JSON.parse(text));
+    } catch {
+      return {};
+    }
   }
 
   /** The ingests the program is forwarded to now. */

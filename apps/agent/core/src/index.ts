@@ -11,9 +11,11 @@ export {
 export { PeersSchema, type Peer, type Peers } from './iroh/admission.ts';
 export {
   MediamtxPathsSchema,
+  MediamtxPortPinsSchema,
   MediamtxPortsSchema,
   type MediamtxPath,
   type MediamtxPaths,
+  type MediamtxPortPins,
   type MediamtxPorts
 } from './gateway/index.ts';
 export type { AgentControllers, AgentSystem } from './system/system.ts';

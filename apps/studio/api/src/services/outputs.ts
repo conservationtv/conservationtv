@@ -36,12 +36,14 @@ export interface NewOutput extends Partial<OutputEncoding> {
   name: string;
   control?: OutputControl;
   showId?: string | null;
+  inputGatewayId?: string | null;
 }
 
 export interface OutputChanges extends Partial<OutputEncoding> {
   name?: string;
   control?: OutputControl;
   showId?: string | null;
+  inputGatewayId?: string | null;
 }
 
 export interface NewOutputForward {
@@ -79,6 +81,7 @@ const OUTPUT_COLUMNS = {
   name: true,
   control: true,
   showId: true,
+  inputGatewayId: true,
   width: true,
   height: true,
   fps: true,
@@ -101,6 +104,7 @@ const OUTPUT_RETURNING = {
   name: outputs.name,
   control: outputs.control,
   showId: outputs.showId,
+  inputGatewayId: outputs.inputGatewayId,
   width: outputs.width,
   height: outputs.height,
   fps: outputs.fps,
@@ -108,6 +112,17 @@ const OUTPUT_RETURNING = {
   keyframeSeconds: outputs.keyframeSeconds,
   createdAt: outputs.createdAt
 };
+
+/** What an output is read with from the versions that set its input gateway, which earlier versions leave out. */
+interface InputGatewayed {
+  inputGatewayId: string | null;
+}
+
+/** An output as the operations before outputs had an input gateway return it. */
+export function withoutInputGateway<Output extends InputGatewayed>(output: Output) {
+  const { inputGatewayId: _inputGatewayId, ...rest } = output;
+  return rest;
+}
 
 /** The organisation's outputs, oldest first, each with its device (or null) and its forwards, previews and recorders. */
 export function listOutputs(organisationId: string) {
@@ -142,7 +157,8 @@ export async function outputVisible(organisationId: string, outputId: string) {
 
 /**
  * Create an output, its encoding the defaults where not given: following the show given, under `show` control (the
- * default), and none when `external`. The show must be the organisation's (`invalid_reference`).
+ * default), and none when `external`; reading every stream from the input gateway given, or each from whichever suits
+ * it. The show and the gateway (unless built in) must be the organisation's (`invalid_reference`).
  */
 export async function createOutput(organisationId: string, payload: NewOutput) {
   const db = useDB();
@@ -150,12 +166,14 @@ export async function createOutput(organisationId: string, payload: NewOutput) {
     .insert(outputs)
     .values({ organisationId, ...payload, showId: payload.control === 'external' ? null : payload.showId })
     .returning(OUTPUT_RETURNING);
+  if (row!.inputGatewayId !== null) await checkGateway(organisationId, row!.inputGatewayId);
   return row!;
 }
 
 /**
- * Rename the output, change its encoding, or who drives it: `external` leaves the show it followed; a show given under
- * `external` control is a `conflict`. `forbidden` or `not_found` when the write reaches no row.
+ * Rename the output, change its encoding, who drives it, or its input gateway: `external` leaves the show it followed;
+ * a show given under `external` control is a `conflict`; an input gateway that is neither built in nor the
+ * organisation's is an `invalid_reference`. `forbidden` or `not_found` when the write reaches no row.
  */
 export async function updateOutput(organisationId: string, outputId: string, changes: OutputChanges) {
   const db = useDB();
@@ -166,6 +184,7 @@ export async function updateOutput(organisationId: string, outputId: string, cha
       name: changes.name,
       control: changes.control,
       showId,
+      inputGatewayId: changes.inputGatewayId,
       width: changes.width,
       height: changes.height,
       fps: changes.fps,
@@ -175,6 +194,7 @@ export async function updateOutput(organisationId: string, outputId: string, cha
     .where(and(eq(outputs.organisationId, organisationId), eq(outputs.id, outputId)))
     .returning(OUTPUT_RETURNING);
   if (!row) throw await unchanged(outputs.id, outputId);
+  if (changes.inputGatewayId != null) await checkGateway(organisationId, changes.inputGatewayId);
   return row;
 }
 

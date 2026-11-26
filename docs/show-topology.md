@@ -2,6 +2,19 @@
 
 > Superseded in part by [outputs.md](outputs.md): what this calls a show (output, encoding, forwards, previews,
 > recorders) is now an **output**, and a show is only what is on screen.
+>
+> Superseded in part by [shows.md](shows.md) too, where they disagree:
+>
+> - Each show is its own object, keyed by the show, and its state lives in the database: not the organisation's one
+>   broadcast, and nothing is composed by hand. **Compose is gone** (`organisations.shows.compose` and the studio's
+>   Compose), and so is `organisations.show.compose`.
+> - A show places **streams**, not exposures: each reader, an output's agent included, resolves its own delivery
+>   (`organisations.streams.connect`), and OBS reads every stream at `inputs/<streamId>` (outputs.md).
+> - There are no renditions: `previews.connect` v2 and the recorders' v2 name none, and a recorder records the
+>   largest picture.
+> - The signal and topology views judge each part as `organisations.status.get` does, not from the states directly.
+>
+> The rest (subjects, metrics, what an output's agent reports) stands.
 
 A stream is a picture delivered: a source, exposures carrying it to gateways, recorders. Each hop has an ID, reports
 are filed against it, and the studio draws, colours and charts the whole chain from one list read. A show going out had
@@ -26,7 +39,8 @@ Decided (2026-11-10):
   Durable Object, `src/shows/host.tsx`, keyed by the organisation): what goes out differs by show (output, encoding,
   forwards, previews, recording), what is on screen doesn't yet. That is sorted out later.
 - A forward's `enabled` belongs to the show, not the channel: a channel is on for one show and off for another.
-- **Inputs** (the streams the composition places) stay as they are: not a node yet.
+- **Inputs** (the streams the composition places) stay as they are: not a node yet. (Now relayed per stream:
+  outputs.md, Inputs.)
 - A **preview** has an exposure's shape, a place the programme is published to and read from (conservation.tv, or a
   MediaMTX gateway on a network), but a table of its own.
 - A **recorder** has OBS record the programme alongside streaming, as MediaMTX will record an exposure for a stream's
@@ -75,8 +89,8 @@ reads a stream's.
   the released v1 contract.
 - `organisations.shows.forwards.create` (`channelId`, `enabled`), `update` (`enabled`), `delete`.
 - `organisations.shows.previews.create` (`gatewayId`), `delete`, and `connect` (`action` read or publish,
-  `protocol`, `rendition`), as `organisations.streams.exposures.connect`: members read; the show's output device
-  publishes. Through the same gateway providers as exposures, not a second copy of them.
+  `protocol`; its first version also a `rendition`, only ever `default`), as `organisations.streams.exposures.connect`:
+  members read; the show's output device publishes. Through the same gateway providers as exposures, not a second copy of them.
 - `organisations.shows.recorders.create` (`kind`, `params`), `update`, `delete`.
 - `organisations.channels.stats.get`: what a channel's platform says of it now (`live`, and while it is, `viewers`,
   `startedAt`, `title`, `category`, `language`), for the show's output only, as `organisations.channels.ingest` is
@@ -116,4 +130,5 @@ An agent on `main` ignores what it doesn't know (`ObsSpecSchema` is a non-strict
 
 The Show section becomes Shows: a list, and a show's page laid out as a stream's, its tabs Configuration (the
 topology above, the output agent, encoding, forwards, previews), Outputs (each preview, read as a stream's outputs
-are), Recording and Traffic, with the broadcast's stage and Compose kept on it.
+are), Recording and Traffic, with the broadcast's stage and Compose kept on it. (Compose has gone since: a show is
+operated by its controls, shows.md.)

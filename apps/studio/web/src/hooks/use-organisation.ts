@@ -1,7 +1,7 @@
 import { createContext, use } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import { ADMINISTRATOR_ROLE } from '@/components/settings/roles';
+import { ADMINISTRATOR_ROLE, mayPublish } from '@/components/settings/roles';
 import { organisationListQueryOptions, organisationQueryOptions } from '@/queries/organisations';
 
 /**
@@ -41,4 +41,18 @@ export function useIsAdministrator(): boolean {
     select: organisations => organisations.find(organisation => organisation.id === organisationId)?.roles ?? []
   });
   return rolesQuery.data.some(role => role.id === ADMINISTRATOR_ROLE);
+}
+
+/**
+ * Whether the signed-in account may go live in the organisation this is rendered in (`streamPublisher`, which
+ * administrators hold), from the roles its organisation list carries. Pages use it to offer going live and stream keys
+ * only to those who may; the API decides regardless. Suspends until the list has loaded.
+ */
+export function useMayPublish(): boolean {
+  const organisationId = useOrganisationId();
+  const rolesQuery = useSuspenseQuery({
+    ...organisationListQueryOptions(),
+    select: organisations => organisations.find(organisation => organisation.id === organisationId)?.roles ?? []
+  });
+  return mayPublish(rolesQuery.data);
 }
