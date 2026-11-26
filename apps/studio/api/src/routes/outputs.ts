@@ -10,11 +10,13 @@ import { requirePrincipal } from '../middleware/principal.ts';
 import { audited } from '../audit/audit.ts';
 import {
   createOutput,
+  createOutputControlChannel,
   createOutputForward,
   createOutputPreview,
   createOutputRecorder,
   deleteOutput,
   deleteOutputDevice,
+  deleteOutputControlChannel,
   deleteOutputForward,
   deleteOutputPreview,
   deleteOutputRecorder,
@@ -63,6 +65,8 @@ const OutputParamsSchema = OrganisationParamsSchema.extend({ outputId: z.uuid().
 export type OutputParams = z.output<typeof OutputParamsSchema>;
 const ForwardParamsSchema = OutputParamsSchema.extend({ forwardId: z.uuid().describe('The forward.') });
 export type ForwardParams = z.output<typeof ForwardParamsSchema>;
+const ControlChannelParamsSchema = OutputParamsSchema.extend({ channelId: z.uuid().describe('The channel.') });
+export type ControlChannelParams = z.output<typeof ControlChannelParamsSchema>;
 const PreviewParamsSchema = OutputParamsSchema.extend({ previewId: z.uuid().describe('The preview.') });
 export type PreviewParams = z.output<typeof PreviewParamsSchema>;
 const RecorderParamsSchema = OutputParamsSchema.extend({ recorderId: z.uuid().describe('The recorder.') });
@@ -208,7 +212,7 @@ export default new Hono()
       ...operationVersion(2),
       summary: "List an organisation's outputs",
       description:
-        'Each with its input gateway, device (null for none), forwards, previews and recorders, as `organisations.outputs.get` reads one. Empty for organisations you are not a member of.',
+        'Each with its input gateway, device (null for none), forwards, control channels, previews and recorders, as `organisations.outputs.get` reads one. Empty for organisations you are not a member of.',
       responses: {
         200: { description: 'The outputs, oldest first, each with its forwards, previews and recorders, oldest first' },
         400: invalidRequest,
@@ -340,7 +344,7 @@ export default new Hono()
       ...operationVersion(2),
       summary: 'Read an output',
       description:
-        'With its input gateway (`inputGatewayId`, null for none), its device (null for none), forwards, previews and recorders.',
+        'With its input gateway (`inputGatewayId`, null for none), its device (null for none), forwards, previews and recorders, and its `controlChannels`: the channels whose chat controls it besides those it goes out to (`organisations.outputs.controlChannels.create`).',
       responses: {
         200: { description: 'The output' },
         400: invalidRequest,
@@ -724,6 +728,71 @@ export default new Hono()
     async c => {
       const { id, outputId, forwardId } = c.req.valid('param');
       await transaction(() => deleteOutputForward(id, outputId, forwardId));
+      return c.body(null, 204);
+    }
+  )
+  .post(
+    '/:outputId/control-channels',
+    describeRoute({
+      operationId: 'organisations.outputs.controlChannels.create',
+      ...operationVersion(1),
+      summary: "Let a channel's chat control an output",
+      description:
+        "Administrators only. The output's agent listens to the channel's chat for chat commands, and they act on its broadcast (its show and the organisation's cameras), whether or not the output goes out to the channel: as the Twitch channels it has an enabled forward to already do. A Twitch channel alone, connected with a login (`invalid_reference` otherwise). Replies are said there only when its connection may chat. Once per channel (`conflict`).",
+      responses: {
+        201: { description: 'The channel, controlling the output' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        409: conflict,
+        412: versionMismatch,
+        422: invalidReference,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', OutputParamsSchema),
+    validator(
+      'json',
+      z.strictObject({ channelId: z.uuid().describe("The channel: one of the organisation's Twitch channels.") })
+    ),
+    async c => {
+      const { id, outputId } = c.req.valid('param');
+      const { channelId } = c.req.valid('json');
+      const row = await transaction(async () => {
+        if (!(await outputVisible(id, outputId))) throw new ApiFailure('not_found');
+        return createOutputControlChannel(id, outputId, channelId);
+      });
+      c.header('Cache-Control', 'no-store');
+      return c.json(row, 201);
+    }
+  )
+  .delete(
+    '/:outputId/control-channels/:channelId',
+    describeRoute({
+      operationId: 'organisations.outputs.controlChannels.delete',
+      ...operationVersion(1),
+      summary: "Stop a channel's chat controlling an output",
+      description:
+        'Administrators only. A channel the output goes out to still controls it while its forward is enabled.',
+      responses: {
+        204: { description: 'Removed' },
+        400: invalidRequest,
+        401: unauthenticated,
+        403: forbidden,
+        404: notFound,
+        412: versionMismatch,
+        503: unavailable
+      }
+    }),
+    requirePrincipal,
+    audited('configuration'),
+    validator('param', ControlChannelParamsSchema),
+    async c => {
+      const { id, outputId, channelId } = c.req.valid('param');
+      await transaction(() => deleteOutputControlChannel(id, outputId, channelId));
       return c.body(null, 204);
     }
   )

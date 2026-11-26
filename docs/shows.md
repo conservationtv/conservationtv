@@ -412,25 +412,31 @@ deliveries.
 
 ## Chat
 
-Two action kinds, run by the studio API as the answer to the trigger (`ran`, with a reply), so the agent carries
-nothing (src/chat/shows.ts):
+The layout and audio commands of the standard chat commands act on the show the triggering agent's output follows
+([chat.md](chat.md)): `!swap`, `!slots`, `!scenecams`, `!takeover`, `!livecams`, `!mute`, `!unmute`,
+`!setvolume`, `!getvolume` and `!resetvolume`. The studio API runs them as the answer to the use (`ran`, with a
+reply), so the agent carries nothing (src/chat/shows.ts). With no show (or under `external` control) a use is
+`unavailable`.
 
-- `showSwap`: two words, each a position (a number) or a name. `!swap 1 2`, `!swap serval 2`, `!swap serval fox`. Both
-  must be in the lineup with a position: a locked camera is switched off, and a stream out of it is added from the
-  show's controls.
-- `showTakeover`: one word, a name or `off`. A name arms that stream and puts it on air at once; `off` ends the
-  takeover: not live, and disarmed. Any stream can take over but one whose camera is locked or disabled.
+- `!swap a b`: each a position (a number) or a name. Both must be in the lineup with a position: a locked camera is
+  switched off, and a stream out of it is added from the show's controls.
+- `!slots n`: the layout, from 0 to 6 slots (`show.slots`). The lineup is untouched: the first n positions are on
+  screen.
+- `!takeover x`: a name or `off`. A name arms that stream and puts it on air at once; `off` ends the takeover: not
+  live, and disarmed. Any stream can take over but one whose camera is locked or disabled. `!livecams` is
+  `!takeover off`.
+- `!mute`, `!unmute`, `!setvolume`, `!resetvolume` write `show_stream`'s `muted` and `volume_db`, making the row a
+  stream has none of; `!unmute all` clears the show's own `muted` too.
 
-The show is the one the triggering agent's output follows; with none (or under `external` control) the use is
-`unavailable`. A word of digits alone is a position, from 1. Any other word is a name: it matches a stream's code, its
-name, or its source camera's name and aliases, compared as chat compares names (`chatName`). The lineup's streams are
-matched first, so a camera with other streams is still found; then any of the organisation's, so a name off the
-lineup says why. No match, an ambiguous name, a position past the end, a stream out of the lineup and a missing word
-are `unresolved`, with a reply told only to a moderator or the broadcaster, as for cameras. Camera presets find their
-camera the same way (`calledIn`, `onlyOne` in src/chat/resolve.ts).
+A word of digits alone is a position, from 1. Any other word is a name: it matches a stream's code, its name, or its
+source camera's name and aliases, compared as chat compares names (`chatName`). The lineup's streams are matched
+first, so a camera with other streams is still found; then any of the organisation's, so a name off the lineup says
+why. No match, an ambiguous name, a position past the end, a stream out of the lineup and a missing word are
+`unresolved`, with a reply told only to a moderator or the broadcaster, as for cameras. Camera commands find their
+camera the same way (`calledIn`, `onlyOne` in src/chat/resolve.ts), and by position through the lineup.
 
 The decision is pure, from facts read first: the show is read holding its row, its lineup normalised in memory. Once
-the command's turn is taken, in the same transaction, the normalised ranks and the swap, or the takeover, are written;
+the command's turn on the show is taken, in the same transaction, the normalised ranks and the change are written;
 the show is poked after the transaction commits.
 
 ## Going live

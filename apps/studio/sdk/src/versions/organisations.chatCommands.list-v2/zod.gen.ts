@@ -11,23 +11,10 @@ export const ChatCommandSchema = z.object({
     commands: z.array(z.object({
         id: z.string(),
         name: z.string(),
-        action: z.union([
-            z.object({
-                kind: z.literal('reply'),
-                text: z.string()
-            }),
-            z.object({
-                kind: z.literal('cameraPreset'),
-                cameraId: z.string().nullable(),
-                preset: z.string().nullable()
-            }),
-            z.object({
-                kind: z.literal('showSwap')
-            }),
-            z.object({
-                kind: z.literal('showTakeover')
-            })
-        ]),
+        action: z.object({
+            kind: z.literal('reply'),
+            text: z.string()
+        }),
         audience: z.enum([
             'broadcaster',
             'everyone',

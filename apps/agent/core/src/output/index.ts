@@ -22,8 +22,8 @@ import { ShowRuntime, ShowSpecSchema } from './show/runtime.ts';
 //   channels  what the channels' platforms say of them, which needs no OBS (channels/);
 //   show      the show driving OBS's scenes, while the output follows one (show/). Without it, something outside the
 //             studio drives them, or nothing does;
-//   chat      the chat of the channels it goes out to, listened to for the organisation's commands (chat/), from the
-//             configuration's `chat` section as it is.
+//   chat      the chat of the channels it goes out to or is controlled from, listened to for the standard commands and
+//             the organisation's own (chat/), from the configuration's `chat` section as it is.
 //
 // In obs/: settings.ts says where OBS's configuration lives and what the agent writes there, program.ts the program
 // MediaMTX between OBS and everything up- and downstream, inputs.ts how the exposures OBS reads are relayed, watchdog.ts

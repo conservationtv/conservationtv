@@ -18,6 +18,7 @@ import cameras from './routes/cameras.ts';
 import channelCallbacks from './routes/channel-callbacks.ts';
 import channels from './routes/channels.ts';
 import chatCommands from './routes/chat-commands.ts';
+import chatUses from './routes/chat-uses.ts';
 import deviceAddresses from './routes/device-addresses.ts';
 import deviceConfiguration from './routes/device-configuration.ts';
 import devices from './routes/devices.ts';
@@ -31,6 +32,7 @@ import organisations from './routes/organisations.ts';
 import reports from './routes/reports.ts';
 import outputs from './routes/outputs.ts';
 import shows from './routes/shows.ts';
+import standardChatCommands from './routes/standard-chat-commands.ts';
 import streams from './routes/streams.ts';
 import status from './routes/status.ts';
 import subjects from './routes/subjects.ts';
@@ -110,6 +112,8 @@ const app = new Hono({ router: operationRouter })
   // Where the shows go out to, and Twitch's return from connecting one (a browser navigation).
   .route('/organisations/:id/channels', channels)
   .route('/organisations/:id/chat-commands', chatCommands)
+  .route('/organisations/:id/standard-chat-commands', standardChatCommands)
+  .route('/organisations/:id/chat-uses', chatUses)
   .route('/channels', channelCallbacks)
   .route('/invitations', invitations)
   // Signed by agents rather than signed in: no session.

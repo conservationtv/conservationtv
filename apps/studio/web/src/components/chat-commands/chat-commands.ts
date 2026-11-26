@@ -1,16 +1,13 @@
-import { chatName } from '@conservationtv/cameras';
-import type { Camera, ChatCommand } from '@conservationtv/studio-sdk';
-import { z } from 'zod';
+import type { StandardGroup } from '@conservationtv/chat';
+import type { ChatCommand } from '@conservationtv/studio-sdk';
 
-import { cameraChatNamesOf } from '@/components/cameras/cameras';
-import type { ChatAudience, ChatCommandSettingsInput } from '@/forms/schemas';
+import type { ChatAudience, ChatCommandSettingsInput, StandardChatCommandSettingsInput } from '@/forms/schemas';
+import type { StandardChatCommand } from '@/queries/chat-commands';
 import { formatDuration } from '@/lib/format';
 
-// What the studio knows about chat commands, in words: who may use one, what one does, and how it is typed in chat
-// (apps/studio/api/src/chat/). A command that points a camera at a preset names both itself, or leaves either to the
-// words that follow it in chat, the camera first: `!ptz pond feeder`. A command for the show the output follows takes
-// everything from chat: two cameras to swap, each a position or a name (`!swap 1 fox`), or a stream to take over with,
-// or `off` (`!takeover fox`).
+// What the studio knows about chat commands, in words (apps/studio/api/src/chat/): who may use one, how long one
+// rests, and the groups the standard commands are listed in. An organisation's own commands each say something; the
+// standard ones (@conservationtv/chat) point and move cameras, change the show's layout, and set its sound.
 
 /** An audience, and who is in it. Each takes in those above it: a moderator may use what a subscriber may. */
 interface ChatAudienceDetails {
@@ -27,30 +24,9 @@ export const CHAT_AUDIENCES = [
   { audience: 'broadcaster', label: 'The broadcaster only' }
 ] as const satisfies readonly ChatAudienceDetails[];
 
-/** What a command does, as a radio's value carries it, to be parsed back into one. */
-export const ChatActionChoiceSchema = z.enum(['reply', 'cameraPreset', 'showSwap', 'showTakeover']);
-export type ChatActionChoice = z.output<typeof ChatActionChoiceSchema>;
-
 /** Who is in an audience, in words. */
 export function chatAudienceLabelOf(audience: ChatAudience): string {
   return CHAT_AUDIENCES.find(candidate => candidate.audience === audience)?.label ?? audience;
-}
-
-/** What a camera is called on a page: its device's name. */
-function cameraNameOf(camera: Camera): string {
-  return camera.device?.name ?? 'Unnamed camera';
-}
-
-/** What a command does, in a line, with the camera it names by name. */
-export function chatActionWordsOf(action: ChatCommand['action'], cameras: Camera[]): string {
-  if (action.kind === 'reply') return `Says “${action.text}”`;
-  if (action.kind === 'showSwap') return 'Swaps the two cameras named in chat, in the show its output follows';
-  if (action.kind === 'showTakeover') return 'Takes over the show its output follows with the stream named in chat';
-  const camera = cameras.find(candidate => candidate.id === action.cameraId);
-  const cameraWords =
-    action.cameraId === null ? 'the camera named in chat' : camera ? cameraNameOf(camera) : 'a camera that is gone';
-  const presetWords = action.preset === null ? 'the preset named in chat' : `its preset “${action.preset}”`;
-  return `Points ${cameraWords} at ${presetWords}`;
 }
 
 /** How long a command rests after it runs, in words. */
@@ -58,67 +34,52 @@ export function chatCooldownWordsOf(seconds: number): string {
   return seconds === 0 ? 'No rest between uses' : `Rests ${formatDuration(seconds)} after each use`;
 }
 
-/** A new command's form: a camera command taking both its words from chat, for moderators, resting five seconds. */
+/** A group of standard commands, with its heading and what its commands act on. */
+interface StandardGroupDetails {
+  group: StandardGroup;
+  title: string;
+  description: string;
+}
+
+/** The groups the standard commands are listed in, in order. */
+export const STANDARD_CHAT_GROUPS = [
+  {
+    group: 'camera',
+    title: 'Camera',
+    description:
+      'Each names a camera first: its name, one of its aliases, or its position in the lineup of the show the output follows (1 is the largest slot). They rest per camera, so moving one camera never holds up another.'
+  },
+  {
+    group: 'layout',
+    title: 'Layout',
+    description: 'For the show the output follows: which cameras are where. They rest per show.'
+  },
+  {
+    group: 'audio',
+    title: 'Audio',
+    description: 'For the show the output follows: each camera’s sound, and the mix. They rest per show.'
+  }
+] as const satisfies readonly StandardGroupDetails[];
+
+/** A new command's form: for everyone, resting thirty seconds, so a reply can't flood chat. */
 export const NEW_CHAT_COMMAND: ChatCommandSettingsInput = {
   name: '',
-  audience: 'moderator',
-  cooldownSeconds: '5',
-  kind: 'cameraPreset',
-  text: '',
-  cameraId: '',
-  presetSource: 'chat',
-  preset: ''
+  audience: 'everyone',
+  cooldownSeconds: '30',
+  text: ''
 };
 
-/** A stored command as its form starts from it, both kinds' fields filled. */
+/** A stored command as its form starts from it. */
 export function chatCommandInputOf(command: ChatCommand): ChatCommandSettingsInput {
-  const details = {
+  return {
     name: command.name,
     audience: command.audience,
-    cooldownSeconds: String(command.cooldownSeconds)
-  };
-  const { action } = command;
-  if (action.kind === 'reply') {
-    return { ...details, kind: 'reply', text: action.text, cameraId: '', presetSource: 'chat', preset: '' };
-  }
-  if (action.kind === 'showSwap' || action.kind === 'showTakeover') {
-    return { ...details, kind: action.kind, text: '', cameraId: '', presetSource: 'chat', preset: '' };
-  }
-  return {
-    ...details,
-    kind: 'cameraPreset',
-    text: '',
-    cameraId: action.cameraId ?? '',
-    presetSource: action.preset === null ? 'chat' : 'named',
-    preset: action.preset ?? ''
+    cooldownSeconds: String(command.cooldownSeconds),
+    text: command.action.text
   };
 }
 
-/**
- * How a command is typed in chat, given what its form has so far: its word, then whatever it leaves to chat, the
- * camera first, shown with one of the organisation's own cameras and presets where it has them.
- */
-export function chatExampleOf(values: ChatCommandSettingsInput, cameras: Camera[]): string {
-  const word = values.name.trim().replace(/^!/u, '').toLowerCase() || 'command';
-  if (values.kind === 'reply') return `!${word}`;
-  if (values.kind === 'showSwap') return `!${word} 1 ${exampleCameraWordOf(cameras[0])}`;
-  if (values.kind === 'showTakeover') return `!${word} ${exampleCameraWordOf(cameras[0])}, or !${word} off`;
-  const chosen = cameras.find(camera => camera.id === values.cameraId);
-  // The camera the example goes on to name a preset of: the one chosen, or the one the example itself names.
-  const camera = chosen ?? cameras[0];
-  const words = [`!${word}`];
-  if (!chosen) words.push(exampleCameraWordOf(camera));
-  if (values.presetSource === 'chat') words.push(examplePresetWordOf(camera));
-  return words.join(' ');
-}
-
-/** A word chat would find the camera by, for an example; a stand-in where there is no camera to name. */
-function exampleCameraWordOf(camera: Camera | undefined): string {
-  if (!camera) return 'camera';
-  return cameraChatNamesOf(cameraNameOf(camera), camera.aliases)[0] ?? 'camera';
-}
-
-/** A word chat would find one of the camera's presets by, for an example; a stand-in where it has none. */
-function examplePresetWordOf(camera: Camera | undefined): string {
-  return chatName(camera?.presets[0]?.name ?? '') || 'preset';
+/** A standard command as its form starts from it: who may use it and how long it rests, as it is now. */
+export function standardChatCommandInputOf(command: StandardChatCommand): StandardChatCommandSettingsInput {
+  return { audience: command.audience, cooldownSeconds: String(command.cooldownSeconds) };
 }

@@ -18,6 +18,7 @@
     "@conservationtv/agent-sdk": "workspace:*",
     "@conservationtv/broadcast": "workspace:*",
     "@conservationtv/cameras": "workspace:*",
+    "@conservationtv/chat": "workspace:*",
     "@conservationtv/reports": "workspace:*",
     "@conservationtv/shows": "workspace:*",
     "@conservationtv/studio-sdk": "workspace:*",

@@ -936,6 +936,9 @@ importers:
 
   apps/studio/scenarios:
     dependencies:
+      '@conservationtv/chat':
+        specifier: workspace:*
+        version: link:../../../packages/chat
       '@conservationtv/reports':
         specifier: workspace:*
         version: link:../../../packages/reports
@@ -1022,6 +1025,9 @@ importers:
       '@conservationtv/cameras':
         specifier: workspace:*
         version: link:../../../packages/cameras
+      '@conservationtv/chat':
+        specifier: workspace:*
+        version: link:../../../packages/chat
       '@conservationtv/reports':
         specifier: workspace:*
         version: link:../../../packages/reports

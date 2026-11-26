@@ -95,6 +95,61 @@ export const DeviceConfigurationSchema = z.object({
         stats: z.array(StatsConnectSchema),
         watched: z.array(WatchedExposureSchema)
     }).optional(),
+    chat: z.object({
+        standard: z.array(z.object({
+            name: z.enum([
+                'slots',
+                'ptzhome',
+                'ptzload',
+                'ptzlist',
+                'ptzpan',
+                'ptztilt',
+                'ptzzoom',
+                'ptzset',
+                'ptzseta',
+                'ptzmove',
+                'ptzcenter',
+                'ptzfocusa',
+                'swap',
+                'scenecams',
+                'takeover',
+                'livecams',
+                'mute',
+                'unmute',
+                'setvolume',
+                'getvolume',
+                'resetvolume'
+            ]),
+            words: z.array(z.string()),
+            audience: z.enum([
+                'broadcaster',
+                'everyone',
+                'subscriber',
+                'vip',
+                'moderator'
+            ]),
+            cooldownSeconds: z.number(),
+            target: z.enum(['camera', 'show'])
+        })),
+        organisationId: z.string(),
+        channels: z.array(z.object({
+            channelId: z.string(),
+            platform: z.literal('twitch'),
+            login: z.string()
+        })),
+        commands: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            audience: z.enum([
+                'broadcaster',
+                'everyone',
+                'subscriber',
+                'vip',
+                'moderator'
+            ]),
+            cooldownSeconds: z.number()
+        }))
+    }).optional(),
     cameras: z.object({
         cameras: z.array(z.object({
             id: z.string(),
@@ -161,26 +216,6 @@ export const DeviceConfigurationSchema = z.object({
             kind: z.string(),
             params: z.record(z.string(), z.unknown())
         }).optional()
-    }).optional(),
-    chat: z.object({
-        organisationId: z.string(),
-        channels: z.array(z.object({
-            channelId: z.string(),
-            platform: z.literal('twitch'),
-            login: z.string()
-        })),
-        commands: z.array(z.object({
-            id: z.string(),
-            name: z.string(),
-            audience: z.enum([
-                'broadcaster',
-                'everyone',
-                'subscriber',
-                'vip',
-                'moderator'
-            ]),
-            cooldownSeconds: z.number()
-        }))
     }).optional(),
     peers: z.array(z.object({
         endpointId: z.string(),

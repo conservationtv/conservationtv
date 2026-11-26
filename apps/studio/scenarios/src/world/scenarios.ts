@@ -239,7 +239,7 @@ export const NAMED_SCENARIOS: Scenario[] = [
       gatewaysPerNetwork: [1, 1],
       slotsPerShow: [4, 4],
       pushedStreams: 1,
-      operating: { pushedLive: 1, takeoverArmed: 1, takeoverLive: 1, streamCodes: 1, showChatCommands: 0.6 },
+      operating: { pushedLive: 1, takeoverArmed: 1, takeoverLive: 1, streamCodes: 1 },
       chatCommands: 4,
       channels: 1
     }
@@ -370,8 +370,7 @@ function randomOperating(rng: Rng, scale: Scale): Pick<SpecOverrides, 'slotsPerS
       pushedLive: operate('pushedLive'),
       takeoverArmed: operate('takeoverArmed'),
       takeoverLive: operate('takeoverLive'),
-      outputInputGateways: operate('outputInputGateways') / 2,
-      showChatCommands: operate('showChatCommands')
+      outputInputGateways: operate('outputInputGateways') / 2
     }
   };
 }

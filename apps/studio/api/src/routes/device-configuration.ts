@@ -36,6 +36,10 @@ const CAMERAS_DESCRIPTION =
 const RELAYS_DESCRIPTION =
   "From this version each of `mediamtx`'s `publishers` names the one `path` it reads, and publishes it as one broadcast, whose catalog says what it carries; and `mediamtx` has no `stats`. `relays`, for an agent that covers some of the organisation's exposures on a gateway whose relays publish stats (each such exposure is covered by exactly one agent: the one that delivers it, otherwise the organisation's oldest active agent): the `stats` asks (`organisations.gateways.stats.connect`) for each such gateway, and the exposures it covers but does not publish (`watched`), each with the `connect` ask (`organisations.streams.exposures.connect`, `action: read`) to read its catalog back through the relay by. It reports what the relays carry of every exposure it covers, and whether they have it.";
 
+/** What version 4 says of chat. */
+const STANDARD_CHAT_DESCRIPTION =
+  "`chat` also lists the `standard` commands the organisation has on (`organisations.chatCommands.standard.list`), each by every word it is used by, with its `audience`, its `cooldownSeconds` and the `target` it rests per (a `camera`, or the `show`), and is there whenever the output listens to a Twitch channel's chat: the channels it goes out to and its control channels (`organisations.outputs.controlChannels.create`). A use of any command, its own or standard, is told by its word (`organisations.chatCommands.uses.create`).";
+
 const responses = {
   200: { description: 'The configuration' },
   401: invalidSignature,
@@ -105,7 +109,7 @@ export default new Hono()
       operationId: 'deviceConfiguration.get',
       ...operationVersion(4),
       summary: "Read the signing device's configuration",
-      description: `${DESCRIPTION} ${CAMERAS_DESCRIPTION} ${RELAYS_DESCRIPTION}`,
+      description: `${DESCRIPTION} ${CAMERAS_DESCRIPTION} ${RELAYS_DESCRIPTION} ${STANDARD_CHAT_DESCRIPTION}`,
       responses
     }),
     requireDevice,

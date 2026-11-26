@@ -1,13 +1,14 @@
 import { z } from 'zod';
 
 // What one use of a chat command comes to, in the words the studio API and the listening agent both speak. The agent
-// tells the studio API a command was used (`organisations.chatCommands.trigger`), and is told one of these statuses:
+// tells the studio API a command was used (`organisations.chatCommands.uses.create`), and is told one of these
+// statuses:
 //
 //   notRun    nothing ran, for one of the reasons below; the command's turn was not spent by this use
-//   ran       it ran, and finished in the studio API: a `reply` command, said in chat there
+//   ran       it ran, and finished in the studio API: a reply said in chat there, or a change to the show
 //   planned   it ran, and the agent has camera commands to carry out; the reply waits for what came of them
 //
-// A planned use is settled (`organisations.chatCommands.settle`) with what came of carrying it out, one of the
+// A planned use is settled (`organisations.chatCommands.uses.settle`) with what came of carrying it out, one of the
 // results below, and only then is chat told.
 
 /** What a use came to: see above. */

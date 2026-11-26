@@ -831,6 +831,10 @@ export type Output = {
         enabled: boolean;
         channelId: string;
     }>;
+    controlChannels: Array<{
+        createdAt: string;
+        channelId: string;
+    }>;
     previews: Array<{
         id: string;
         createdAt: string;
@@ -842,6 +846,11 @@ export type Forward = {
     id: string;
     channelId: string;
     enabled: boolean;
+    createdAt: string;
+};
+
+export type ControlChannel = {
+    channelId: string;
     createdAt: string;
 };
 
@@ -870,20 +879,32 @@ export type ChatCommand = {
     action: {
         kind: 'reply';
         text: string;
-    } | {
-        kind: 'cameraPreset';
-        cameraId: string | null;
-        preset: string | null;
-    } | {
-        kind: 'showSwap';
-    } | {
-        kind: 'showTakeover';
     };
     audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
     cooldownSeconds: number;
     enabled: boolean;
     triggeredAt: string | null;
     createdAt: string;
+};
+
+export type Standard = {
+    commands: Array<{
+        name: 'slots' | 'ptzhome' | 'ptzload' | 'ptzlist' | 'ptzpan' | 'ptztilt' | 'ptzzoom' | 'ptzset' | 'ptzseta' | 'ptzmove' | 'ptzcenter' | 'ptzfocusa' | 'swap' | 'scenecams' | 'takeover' | 'livecams' | 'mute' | 'unmute' | 'setvolume' | 'getvolume' | 'resetvolume';
+        aliases: Array<string>;
+        group: 'camera' | 'layout' | 'audio';
+        target: 'camera' | 'show';
+        usage: string;
+        description: string;
+        enabled: boolean;
+        audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+        cooldownSeconds: number;
+        changedAt: string | null;
+    }>;
+};
+
+export type Use = {
+    restsUntil: string | null;
+    replied: boolean;
 };
 
 export type Report = {
@@ -930,6 +951,27 @@ export type DeviceConfiguration = {
     relays?: {
         stats: Array<StatsConnect>;
         watched: Array<WatchedExposure>;
+    };
+    chat?: {
+        standard: Array<{
+            name: 'slots' | 'ptzhome' | 'ptzload' | 'ptzlist' | 'ptzpan' | 'ptztilt' | 'ptzzoom' | 'ptzset' | 'ptzseta' | 'ptzmove' | 'ptzcenter' | 'ptzfocusa' | 'swap' | 'scenecams' | 'takeover' | 'livecams' | 'mute' | 'unmute' | 'setvolume' | 'getvolume' | 'resetvolume';
+            words: Array<string>;
+            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+            cooldownSeconds: number;
+            target: 'camera' | 'show';
+        }>;
+        organisationId: string;
+        channels: Array<{
+            channelId: string;
+            platform: 'twitch';
+            login: string;
+        }>;
+        commands: Array<{
+            id: string;
+            name: string;
+            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+            cooldownSeconds: number;
+        }>;
     };
     cameras?: {
         cameras: Array<{
@@ -992,20 +1034,6 @@ export type DeviceConfiguration = {
                 [key: string]: unknown;
             };
         };
-    };
-    chat?: {
-        organisationId: string;
-        channels: Array<{
-            channelId: string;
-            platform: 'twitch';
-            login: string;
-        }>;
-        commands: Array<{
-            id: string;
-            name: string;
-            audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
-            cooldownSeconds: number;
-        }>;
     };
     peers: Array<{
         endpointId: string;
@@ -6856,6 +6884,10 @@ export type GetOrganisationsByIdOutputsResponses = {
                 enabled: boolean;
                 channelId: string;
             }>;
+            controlChannels: Array<{
+                createdAt: string;
+                channelId: string;
+            }>;
             previews: Array<{
                 id: string;
                 createdAt: string;
@@ -7668,6 +7700,131 @@ export type PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses 
 };
 
 export type PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponse = PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses[keyof PatchOrganisationsByIdOutputsByOutputIdForwardsByForwardIdResponses];
+
+export type PostOrganisationsByIdOutputsByOutputIdControlChannelsData = {
+    body: {
+        /**
+         * The channel: one of the organisation's Twitch channels.
+         */
+        channelId: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The output.
+         */
+        outputId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs/{outputId}/control-channels';
+};
+
+export type PostOrganisationsByIdOutputsByOutputIdControlChannelsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The change conflicts with the current state of the resource
+     */
+    409: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * A referenced resource does not exist, is not visible to this account, or belongs to another organisation
+     */
+    422: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdOutputsByOutputIdControlChannelsError = PostOrganisationsByIdOutputsByOutputIdControlChannelsErrors[keyof PostOrganisationsByIdOutputsByOutputIdControlChannelsErrors];
+
+export type PostOrganisationsByIdOutputsByOutputIdControlChannelsResponses = {
+    /**
+     * The channel, controlling the output
+     */
+    201: ControlChannel;
+};
+
+export type PostOrganisationsByIdOutputsByOutputIdControlChannelsResponse = PostOrganisationsByIdOutputsByOutputIdControlChannelsResponses[keyof PostOrganisationsByIdOutputsByOutputIdControlChannelsResponses];
+
+export type DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * The output.
+         */
+        outputId: string;
+        /**
+         * The channel.
+         */
+        channelId: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/outputs/{outputId}/control-channels/{channelId}';
+};
+
+export type DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdError = DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdErrors[keyof DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdErrors];
+
+export type DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdResponse = DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdResponses[keyof DeleteOrganisationsByIdOutputsByOutputIdControlChannelsByChannelIdResponses];
 
 export type PostOrganisationsByIdOutputsByOutputIdPreviewsData = {
     body: {
@@ -8580,14 +8737,6 @@ export type GetOrganisationsByIdChatCommandsResponses = {
             action: {
                 kind: 'reply';
                 text: string;
-            } | {
-                kind: 'cameraPreset';
-                cameraId: string | null;
-                preset: string | null;
-            } | {
-                kind: 'showSwap';
-            } | {
-                kind: 'showTakeover';
             };
             audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
             cooldownSeconds: number;
@@ -8603,23 +8752,15 @@ export type GetOrganisationsByIdChatCommandsResponse = GetOrganisationsByIdChatC
 export type PostOrganisationsByIdChatCommandsData = {
     body: {
         /**
-         * The word the command is used by, without its `!`.
+         * The word the command is used by, without its `!`: not one a standard command is used by.
          */
         name: string;
         /**
-         * What the command does, by `kind`: `reply` with `text`; `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first; `showSwap`, swapping two streams in the lineup of the show the output follows, each named by a word that follows it, a position or a name; or `showTakeover`, taking over that show with the stream the word that follows it names, or ending the takeover with `off`. A name is a stream's code or name, or its camera's name or one of its aliases.
+         * What the command does: `reply`, saying `text` in chat.
          */
         action: {
             kind: 'reply';
             text: string;
-        } | {
-            kind: 'cameraPreset';
-            cameraId: string | null;
-            preset: string | null;
-        } | {
-            kind: 'showSwap';
-        } | {
-            kind: 'showTakeover';
         };
         /**
          * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.
@@ -8786,23 +8927,15 @@ export type GetOrganisationsByIdChatCommandsByCommandIdResponse = GetOrganisatio
 export type PatchOrganisationsByIdChatCommandsByCommandIdData = {
     body: {
         /**
-         * The word the command is used by, without its `!`.
+         * The word the command is used by, without its `!`: not one a standard command is used by.
          */
         name?: string;
         /**
-         * What the command does, by `kind`: `reply` with `text`; `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first; `showSwap`, swapping two streams in the lineup of the show the output follows, each named by a word that follows it, a position or a name; or `showTakeover`, taking over that show with the stream the word that follows it names, or ending the takeover with `off`. A name is a stream's code or name, or its camera's name or one of its aliases.
+         * What the command does: `reply`, saying `text` in chat.
          */
         action?: {
             kind: 'reply';
             text: string;
-        } | {
-            kind: 'cameraPreset';
-            cameraId: string | null;
-            preset: string | null;
-        } | {
-            kind: 'showSwap';
-        } | {
-            kind: 'showTakeover';
         };
         /**
          * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.
@@ -9066,6 +9199,377 @@ export type PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponses = {
 };
 
 export type PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponse = PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponses[keyof PostOrganisationsByIdChatCommandsByCommandIdSettlementsResponses];
+
+export type GetOrganisationsByIdStandardChatCommandsData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/standard-chat-commands';
+};
+
+export type GetOrganisationsByIdStandardChatCommandsErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type GetOrganisationsByIdStandardChatCommandsError = GetOrganisationsByIdStandardChatCommandsErrors[keyof GetOrganisationsByIdStandardChatCommandsErrors];
+
+export type GetOrganisationsByIdStandardChatCommandsResponses = {
+    /**
+     * The commands, camera commands first
+     */
+    200: Standard;
+};
+
+export type GetOrganisationsByIdStandardChatCommandsResponse = GetOrganisationsByIdStandardChatCommandsResponses[keyof GetOrganisationsByIdStandardChatCommandsResponses];
+
+export type DeleteOrganisationsByIdStandardChatCommandsByNameData = {
+    body?: never;
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * A standard command, by its name: `ptzload`, `swap`, `mute` and the rest.
+         */
+        name: 'ptzhome' | 'ptzload' | 'ptzlist' | 'ptzpan' | 'ptztilt' | 'ptzzoom' | 'ptzset' | 'ptzseta' | 'ptzmove' | 'ptzcenter' | 'ptzfocusa' | 'swap' | 'slots' | 'scenecams' | 'takeover' | 'livecams' | 'mute' | 'unmute' | 'setvolume' | 'getvolume' | 'resetvolume';
+    };
+    query?: never;
+    url: '/organisations/{id}/standard-chat-commands/{name}';
+};
+
+export type DeleteOrganisationsByIdStandardChatCommandsByNameErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to this account
+     */
+    404: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type DeleteOrganisationsByIdStandardChatCommandsByNameError = DeleteOrganisationsByIdStandardChatCommandsByNameErrors[keyof DeleteOrganisationsByIdStandardChatCommandsByNameErrors];
+
+export type DeleteOrganisationsByIdStandardChatCommandsByNameResponses = {
+    /**
+     * The command, as it comes
+     */
+    200: {
+        name: 'slots' | 'ptzhome' | 'ptzload' | 'ptzlist' | 'ptzpan' | 'ptztilt' | 'ptzzoom' | 'ptzset' | 'ptzseta' | 'ptzmove' | 'ptzcenter' | 'ptzfocusa' | 'swap' | 'scenecams' | 'takeover' | 'livecams' | 'mute' | 'unmute' | 'setvolume' | 'getvolume' | 'resetvolume';
+        aliases: Array<string>;
+        group: 'camera' | 'layout' | 'audio';
+        target: 'camera' | 'show';
+        usage: string;
+        description: string;
+        enabled: boolean;
+        audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+        cooldownSeconds: number;
+        changedAt: string | null;
+    };
+};
+
+export type DeleteOrganisationsByIdStandardChatCommandsByNameResponse = DeleteOrganisationsByIdStandardChatCommandsByNameResponses[keyof DeleteOrganisationsByIdStandardChatCommandsByNameResponses];
+
+export type PatchOrganisationsByIdStandardChatCommandsByNameData = {
+    body: {
+        /**
+         * Whether chat can use it.
+         */
+        enabled?: boolean;
+        /**
+         * Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.
+         */
+        audience?: 'everyone' | 'subscriber' | 'vip' | 'moderator' | 'broadcaster';
+        /**
+         * How many seconds it rests after it runs on a camera (a camera command) or the show (a layout or audio command).
+         */
+        cooldownSeconds?: number;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+        /**
+         * A standard command, by its name: `ptzload`, `swap`, `mute` and the rest.
+         */
+        name: 'ptzhome' | 'ptzload' | 'ptzlist' | 'ptzpan' | 'ptztilt' | 'ptzzoom' | 'ptzset' | 'ptzseta' | 'ptzmove' | 'ptzcenter' | 'ptzfocusa' | 'swap' | 'slots' | 'scenecams' | 'takeover' | 'livecams' | 'mute' | 'unmute' | 'setvolume' | 'getvolume' | 'resetvolume';
+    };
+    query?: never;
+    url: '/organisations/{id}/standard-chat-commands/{name}';
+};
+
+export type PatchOrganisationsByIdStandardChatCommandsByNameErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * No signed-in session was presented
+     */
+    401: Error;
+    /**
+     * The resource is visible, but this account may not do this to it
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PatchOrganisationsByIdStandardChatCommandsByNameError = PatchOrganisationsByIdStandardChatCommandsByNameErrors[keyof PatchOrganisationsByIdStandardChatCommandsByNameErrors];
+
+export type PatchOrganisationsByIdStandardChatCommandsByNameResponses = {
+    /**
+     * The command, as the organisation has it now
+     */
+    200: {
+        name: 'slots' | 'ptzhome' | 'ptzload' | 'ptzlist' | 'ptzpan' | 'ptztilt' | 'ptzzoom' | 'ptzset' | 'ptzseta' | 'ptzmove' | 'ptzcenter' | 'ptzfocusa' | 'swap' | 'scenecams' | 'takeover' | 'livecams' | 'mute' | 'unmute' | 'setvolume' | 'getvolume' | 'resetvolume';
+        aliases: Array<string>;
+        group: 'camera' | 'layout' | 'audio';
+        target: 'camera' | 'show';
+        usage: string;
+        description: string;
+        enabled: boolean;
+        audience: 'broadcaster' | 'everyone' | 'subscriber' | 'vip' | 'moderator';
+        cooldownSeconds: number;
+        changedAt: string | null;
+    };
+};
+
+export type PatchOrganisationsByIdStandardChatCommandsByNameResponse = PatchOrganisationsByIdStandardChatCommandsByNameResponses[keyof PatchOrganisationsByIdStandardChatCommandsByNameResponses];
+
+export type PostOrganisationsByIdChatUsesData = {
+    body: {
+        /**
+         * The channel it was used in.
+         */
+        channelId: string;
+        /**
+         * The chat message's ID on its platform, to answer it.
+         */
+        messageId: string;
+        /**
+         * Who used it.
+         */
+        user: {
+            id: string;
+            name: string;
+            /**
+             * What they are in the channel, as its platform says.
+             */
+            roles: Array<'everyone' | 'subscriber' | 'vip' | 'moderator' | 'broadcaster'>;
+        };
+        /**
+         * The words that followed the command, in order.
+         */
+        words: Array<string>;
+        /**
+         * The word the command was used by, after its `!`, lowercased: a standard command's name or alias, or one of the organisation's own.
+         */
+        command: string;
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-uses';
+};
+
+export type PostOrganisationsByIdChatUsesErrors = {
+    /**
+     * The request is malformed
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The signing device is not an agent an output runs on, or its output does not go out to the channel
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChatUsesError = PostOrganisationsByIdChatUsesErrors[keyof PostOrganisationsByIdChatUsesErrors];
+
+export type PostOrganisationsByIdChatUsesResponses = {
+    /**
+     * What came of it
+     */
+    200: {
+        status: 'planned';
+        restsUntil: string | null;
+        cameraCommands: Array<{
+            agent: {
+                id: string;
+                publicId: string;
+            };
+            cameraId: string;
+            command: {
+                kind: 'moveTo';
+                pan?: number;
+                tilt?: number;
+                zoom?: number;
+                focus?: number;
+            } | {
+                kind: 'moveBy';
+                pan?: number;
+                tilt?: number;
+                zoom?: number;
+            } | {
+                kind: 'moveToPoint';
+                x: number;
+                y: number;
+            } | {
+                kind: 'moveToRegion';
+                x: number;
+                y: number;
+                width: number;
+                height: number;
+            } | {
+                kind: 'drive';
+                pan?: number;
+                tilt?: number;
+                zoom?: number;
+                focus?: number;
+            } | {
+                kind: 'stop';
+            } | {
+                kind: 'configure';
+                key: string;
+                value: string;
+            } | {
+                kind: 'run';
+                action: string;
+            };
+            grant: string;
+            expiresAt: string;
+        }>;
+        receipt: string;
+    } | {
+        replied: boolean;
+        status: 'notRun';
+        reason: 'disabled' | 'audience' | 'resting' | 'unresolved' | 'unavailable';
+        reply: string | null;
+        restsUntil: string | null;
+    } | {
+        replied: boolean;
+        status: 'ran';
+        reply: string;
+        restsUntil: string | null;
+    };
+};
+
+export type PostOrganisationsByIdChatUsesResponse = PostOrganisationsByIdChatUsesResponses[keyof PostOrganisationsByIdChatUsesResponses];
+
+export type PostOrganisationsByIdChatUsesSettlementsData = {
+    body: {
+        /**
+         * The `receipt` the use was planned with.
+         */
+        receipt: string;
+        /**
+         * What came of carrying the camera commands out: `carried`, and the camera took them; or the camera was `held` by someone at its controls, the agent that reaches it was `unreachable`, it `refused` the grant, or the camera `failed` to take the command.
+         */
+        result: 'carried' | 'held' | 'unreachable' | 'refused' | 'failed';
+    };
+    path: {
+        /**
+         * The organisation.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/organisations/{id}/chat-uses/settlements';
+};
+
+export type PostOrganisationsByIdChatUsesSettlementsErrors = {
+    /**
+     * The request is malformed, or its receipt is forged, lapsed, or for another use or device
+     */
+    400: Error;
+    /**
+     * The signature is missing, wrong, stale or replayed, its device is unknown, or the body does not match its digest
+     */
+    401: Error;
+    /**
+     * The signing device is not an agent an output runs on, or its output does not go out to the channel
+     */
+    403: Error;
+    /**
+     * The selected operation version is not served
+     */
+    412: Error;
+    /**
+     * The database is unavailable
+     */
+    503: Error;
+};
+
+export type PostOrganisationsByIdChatUsesSettlementsError = PostOrganisationsByIdChatUsesSettlementsErrors[keyof PostOrganisationsByIdChatUsesSettlementsErrors];
+
+export type PostOrganisationsByIdChatUsesSettlementsResponses = {
+    /**
+     * Settled
+     */
+    200: Use;
+};
+
+export type PostOrganisationsByIdChatUsesSettlementsResponse = PostOrganisationsByIdChatUsesSettlementsResponses[keyof PostOrganisationsByIdChatUsesSettlementsResponses];
 
 export type GetInvitationsData = {
     body?: never;

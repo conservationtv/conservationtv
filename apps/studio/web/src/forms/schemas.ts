@@ -1,4 +1,5 @@
 import { chatName, MAX_ALIAS_LENGTH, MAX_ALIASES } from '@conservationtv/cameras';
+import { STANDARD_WORDS } from '@conservationtv/chat';
 import { z } from 'zod';
 
 // Form inputs, validated in the browser before anything is sent. Limits mirror the studio API's own validation.
@@ -449,117 +450,52 @@ export type InputGatewayInput = z.input<typeof InputGatewaySchema>;
 const ChatAudienceSchema = z.enum(['everyone', 'subscriber', 'vip', 'moderator', 'broadcaster']);
 export type ChatAudience = z.output<typeof ChatAudienceSchema>;
 
-/**
- * What a chat command does: says something, points a camera at one of its presets, swaps two cameras in the show its
- * output follows, or takes that show over with a stream.
- */
-const ChatActionKindSchema = z.enum(['reply', 'cameraPreset', 'showSwap', 'showTakeover']);
-export type ChatActionKind = z.output<typeof ChatActionKindSchema>;
-
-/** Whether a command's preset is the word that follows it in chat, or one the command names itself. */
-const ChatPresetSourceSchema = z.enum(['chat', 'named']);
-export type ChatPresetSource = z.output<typeof ChatPresetSourceSchema>;
-
-// A chat command's action is a choice of kind, each reading its own fields, as a camera's settings are a choice of
-// driver: the form keeps both kinds' fields as typed, and the chosen kind checks only its own.
-
-/** What every chat command has, whatever it does, as the form holds it. */
-const CHAT_COMMAND_DETAILS = {
-  name: z
-    .string()
-    .trim()
-    // Typed with its `!` or in capitals, it is still the same word.
-    .transform(name => name.replace(/^!/u, '').toLowerCase())
-    .pipe(
-      z
-        .string()
-        .regex(
-          /^[a-z0-9][a-z0-9_-]{0,39}$/u,
-          'Use up to 40 lowercase letters, digits, - and _, starting with a letter or digit.'
-        )
-    ),
-  audience: ChatAudienceSchema,
-  cooldownSeconds: z
-    .string()
-    .trim()
-    .regex(/^\d+$/u, 'Enter a whole number of seconds.')
-    .transform(Number)
-    .pipe(z.int().max(86_400, 'Use a day (86400 seconds) or less.'))
-};
-
-/** Every kind's fields, as the form holds them. */
-const ChatCommandFormFieldsSchema = z.object({
-  name: z.string(),
-  audience: ChatAudienceSchema,
-  cooldownSeconds: z.string(),
-  kind: ChatActionKindSchema,
-  text: z.string(),
-  cameraId: z.string(),
-  presetSource: ChatPresetSourceSchema,
-  preset: z.string()
-});
-export type ChatCommandFormFields = z.output<typeof ChatCommandFormFieldsSchema>;
-
-/** A command that says something in chat. */
-const ReplyCommandFieldsSchema = z.object({
-  ...CHAT_COMMAND_DETAILS,
-  kind: z.literal('reply'),
-  text: z.string().trim().min(1, 'Enter what it says.').max(400, 'Use 400 characters or fewer.'),
-  cameraId: z.string(),
-  presetSource: ChatPresetSourceSchema,
-  preset: z.string()
-});
-type ReplyCommandFields = z.output<typeof ReplyCommandFieldsSchema>;
+/** How long a chat command rests after it runs, typed in seconds. */
+const ChatCooldownSchema = z
+  .string()
+  .trim()
+  .regex(/^\d+$/u, 'Enter a whole number of seconds.')
+  .transform(Number)
+  .pipe(z.int().max(86_400, 'Use a day (86400 seconds) or less.'));
+export type ChatCooldown = z.output<typeof ChatCooldownSchema>;
 
 /**
- * A command that points a camera at a preset: the camera chosen, or the empty string for the word that follows the
- * command in chat; and the preset named, or likewise taken from chat.
+ * One of the organisation's own chat commands, as the API takes it: the word it is used by, who may use it, how long
+ * it rests, and what it says. Its word can't be one a standard command is used by, by its name or an alias.
  */
-const PresetCommandFieldsSchema = z
+export const ChatCommandSettingsSchema = z
   .object({
-    ...CHAT_COMMAND_DETAILS,
-    kind: z.literal('cameraPreset'),
-    text: z.string(),
-    cameraId: z.string(),
-    presetSource: ChatPresetSourceSchema,
-    preset: z.string().trim().max(60, 'Use 60 characters or fewer.')
+    name: z
+      .string()
+      .trim()
+      // Typed with its `!` or in capitals, it is still the same word.
+      .transform(name => name.replace(/^!/u, '').toLowerCase())
+      .pipe(
+        z
+          .string()
+          .regex(
+            /^[a-z0-9][a-z0-9_-]{0,39}$/u,
+            'Use up to 40 lowercase letters, digits, - and _, starting with a letter or digit.'
+          )
+          .refine(name => !STANDARD_WORDS.has(name), 'A standard command is already used by that word.')
+      ),
+    audience: ChatAudienceSchema,
+    cooldownSeconds: ChatCooldownSchema,
+    text: z.string().trim().min(1, 'Enter what it says.').max(400, 'Use 400 characters or fewer.')
   })
-  .refine(command => command.presetSource === 'chat' || command.preset !== '', {
-    path: ['preset'],
-    error: 'Name the preset, or take it from chat.'
-  });
-type PresetCommandFields = z.output<typeof PresetCommandFieldsSchema>;
-
-/** A command for the show its output follows: everything it acts on is named in chat, so it has no fields of its own. */
-const ShowCommandFieldsSchema = z.object({
-  ...CHAT_COMMAND_DETAILS,
-  kind: z.enum(['showSwap', 'showTakeover']),
-  text: z.string(),
-  cameraId: z.string(),
-  presetSource: ChatPresetSourceSchema,
-  preset: z.string()
-});
-type ShowCommandFields = z.output<typeof ShowCommandFieldsSchema>;
-
-/** The action the API keeps for a command, from its kind's fields: what chat supplies is null. */
-function chatActionOf(fields: ReplyCommandFields | PresetCommandFields | ShowCommandFields) {
-  if (fields.kind === 'reply') return { kind: fields.kind, text: fields.text };
-  if (fields.kind === 'showSwap' || fields.kind === 'showTakeover') return { kind: fields.kind };
-  return {
-    kind: fields.kind,
-    cameraId: fields.cameraId || null,
-    preset: fields.presetSource === 'chat' ? null : fields.preset
-  };
-}
-
-/** A chat command, as the API takes it: the word it is used by, who may use it, how long it rests, and what it does. */
-export const ChatCommandSettingsSchema = ChatCommandFormFieldsSchema.pipe(
-  z.discriminatedUnion('kind', [ReplyCommandFieldsSchema, PresetCommandFieldsSchema, ShowCommandFieldsSchema])
-).transform(command => ({
-  name: command.name,
-  audience: command.audience,
-  cooldownSeconds: command.cooldownSeconds,
-  action: chatActionOf(command)
-}));
+  .transform(command => ({
+    name: command.name,
+    audience: command.audience,
+    cooldownSeconds: command.cooldownSeconds,
+    action: { kind: 'reply' as const, text: command.text }
+  }));
 export type ChatCommandSettings = z.output<typeof ChatCommandSettingsSchema>;
 export type ChatCommandSettingsInput = z.input<typeof ChatCommandSettingsSchema>;
+
+/** What the organisation changes about a standard command: who may use it and how long it rests. */
+export const StandardChatCommandSettingsSchema = z.object({
+  audience: ChatAudienceSchema,
+  cooldownSeconds: ChatCooldownSchema
+});
+export type StandardChatCommandSettings = z.output<typeof StandardChatCommandSettingsSchema>;
+export type StandardChatCommandSettingsInput = z.input<typeof StandardChatCommandSettingsSchema>;

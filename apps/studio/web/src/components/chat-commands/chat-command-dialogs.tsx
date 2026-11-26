@@ -23,13 +23,24 @@ import {
 } from '@conservationtv/ui/components/dialog';
 import { Switch } from '@conservationtv/ui/components/switch';
 
-import { ChatCommandForm } from '@/components/chat-commands/chat-command-form';
-import { chatCommandInputOf, NEW_CHAT_COMMAND } from '@/components/chat-commands/chat-commands';
+import { ChatCommandForm, StandardChatCommandForm } from '@/components/chat-commands/chat-command-form';
+import {
+  chatCommandInputOf,
+  NEW_CHAT_COMMAND,
+  standardChatCommandInputOf
+} from '@/components/chat-commands/chat-commands';
 import { FormError } from '@/components/common/form-error';
 import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import { conflictAs } from '@/lib/conflict';
-import { useCreateChatCommand, useDeleteChatCommand, useUpdateChatCommand } from '@/queries/chat-commands';
+import {
+  useCreateChatCommand,
+  useDeleteChatCommand,
+  useResetStandardChatCommand,
+  useUpdateChatCommand,
+  useUpdateStandardChatCommand,
+  type StandardChatCommand
+} from '@/queries/chat-commands';
 
 /** What a failed save says when the organisation already has a command used by the word. */
 const COMMAND_NAME_TAKEN = 'Another command is already used by that word.';
@@ -48,8 +59,8 @@ export const AddChatCommandDialog: FC = () => {
         <DialogHeader>
           <DialogTitle>Add a chat command</DialogTitle>
           <DialogDescription>
-            Viewers use it in the chat of the channels your outputs go out to, from the next time those outputs’ agents
-            are configured.
+            Viewers use it in the chat of the channels that control your outputs, from the next time those outputs’
+            agents are configured.
           </DialogDescription>
         </DialogHeader>
         <ChatCommandForm defaultValues={NEW_CHAT_COMMAND} onSubmit={command => dialog.mutate(command)}>
@@ -139,6 +150,88 @@ export const DeleteChatCommandDialog: FC<ChatCommandDialogProps> = ({ command })
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction variant="destructive" loading={remove.isPending} onClick={() => dialog.mutate(command.id)}>
             Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+export interface StandardChatCommandDialogProps {
+  command: StandardChatCommand;
+}
+
+/** Turns a standard command on or off, showing the choice being saved until it is. Off, chat doesn't answer to it. */
+export const StandardChatCommandSwitch: FC<StandardChatCommandDialogProps> = ({ command }) => {
+  const organisationId = useOrganisationId();
+  const update = useUpdateStandardChatCommand(organisationId);
+  const checked = update.isPending ? (update.variables.enabled ?? command.enabled) : command.enabled;
+  return (
+    <div className="flex items-center gap-2">
+      <FormError error={update.error} />
+      <Switch
+        aria-label={`Answer to !${command.name} in chat`}
+        checked={checked}
+        disabled={update.isPending}
+        onCheckedChange={enabled => update.mutate({ name: command.name, enabled })}
+      />
+    </div>
+  );
+};
+
+/** Changes who may use a standard command and how long it rests. The form starts from what it is each time it opens. */
+export const EditStandardChatCommandDialog: FC<StandardChatCommandDialogProps> = ({ command }) => {
+  const organisationId = useOrganisationId();
+  const update = useUpdateStandardChatCommand(organisationId);
+  const dialog = useDialog(update);
+  return (
+    <Dialog {...dialog.props}>
+      <DialogTrigger render={<Button variant="ghost" size="sm" />}>Edit</DialogTrigger>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="truncate">Change !{command.name}</DialogTitle>
+          <DialogDescription>
+            What it does stays the standard’s. Chat picks the change up the next time the outputs’ agents are
+            configured.
+          </DialogDescription>
+        </DialogHeader>
+        {/* The dialog's contents are only there while it is open, so the form starts again from the command each time. */}
+        <StandardChatCommandForm
+          defaultValues={standardChatCommandInputOf(command)}
+          onSubmit={changes => dialog.mutate({ name: command.name, ...changes })}
+        >
+          <FormError error={update.error} />
+          <DialogFooter>
+            <Button type="submit" loading={update.isPending}>
+              Save
+            </Button>
+          </DialogFooter>
+        </StandardChatCommandForm>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/** Puts a changed standard command back as it comes, once confirmed. */
+export const ResetStandardChatCommandDialog: FC<StandardChatCommandDialogProps> = ({ command }) => {
+  const organisationId = useOrganisationId();
+  const reset = useResetStandardChatCommand(organisationId);
+  const dialog = useDialog(reset);
+  return (
+    <AlertDialog {...dialog.props}>
+      <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Reset</AlertDialogTrigger>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="truncate">Reset !{command.name}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            It goes back to how it comes: on, for its standard audience, resting its standard time.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <FormError error={reset.error} />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction loading={reset.isPending} onClick={() => dialog.mutate(command.name)}>
+            Reset
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

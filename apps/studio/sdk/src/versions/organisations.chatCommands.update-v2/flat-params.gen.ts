@@ -8,8 +8,8 @@ import { PatchOrganisationsByIdChatCommandsByCommandIdBodySchema, PatchOrganisat
 export const ChatCommandUpdateV2ParamsSchema = z.object({
     id: PatchOrganisationsByIdChatCommandsByCommandIdPathSchema.shape.id.nonoptional().describe('The organisation.'),
     commandId: PatchOrganisationsByIdChatCommandsByCommandIdPathSchema.shape.commandId.nonoptional().describe('The command.'),
-    name: PatchOrganisationsByIdChatCommandsByCommandIdBodySchema.shape.name.optional().describe('The word the command is used by, without its `!`.'),
-    action: PatchOrganisationsByIdChatCommandsByCommandIdBodySchema.shape.action.optional().describe('What the command does, by `kind`: `reply` with `text`; `cameraPreset`, pointing a camera at one of its presets, each named by the command or, when null, by the words that follow it in chat, the camera first; `showSwap`, swapping two streams in the lineup of the show the output follows, each named by a word that follows it, a position or a name; or `showTakeover`, taking over that show with the stream the word that follows it names, or ending the takeover with `off`. A name is a stream\'s code or name, or its camera\'s name or one of its aliases.'),
+    name: PatchOrganisationsByIdChatCommandsByCommandIdBodySchema.shape.name.optional().describe('The word the command is used by, without its `!`: not one a standard command is used by.'),
+    action: PatchOrganisationsByIdChatCommandsByCommandIdBodySchema.shape.action.optional().describe('What the command does: `reply`, saying `text` in chat.'),
     audience: PatchOrganisationsByIdChatCommandsByCommandIdBodySchema.shape.audience.optional().describe('Who may use the command: `everyone`, or only those who are at least a `subscriber`, a `vip`, a `moderator` or the `broadcaster`.'),
     cooldownSeconds: PatchOrganisationsByIdChatCommandsByCommandIdBodySchema.shape.cooldownSeconds.optional().describe('How many seconds the command rests after it runs, whoever used it.'),
     enabled: PatchOrganisationsByIdChatCommandsByCommandIdBodySchema.shape.enabled.optional()
@@ -24,14 +24,6 @@ export type ChatCommandUpdateV2Input = {
     action?: {
         kind: 'reply';
         text: string;
-    } | {
-        kind: 'cameraPreset';
-        cameraId: string | null;
-        preset: string | null;
-    } | {
-        kind: 'showSwap';
-    } | {
-        kind: 'showTakeover';
     };
     audience?: 'everyone' | 'subscriber' | 'vip' | 'moderator' | 'broadcaster';
     cooldownSeconds?: number;

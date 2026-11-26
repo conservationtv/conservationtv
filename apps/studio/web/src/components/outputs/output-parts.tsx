@@ -30,9 +30,11 @@ import type { ForwardPart, PreviewPart } from '@/components/outputs/output-detai
 import { useDialog } from '@/hooks/use-dialog';
 import { useOrganisationId } from '@/hooks/use-organisation';
 import {
+  useCreateControlChannel,
   useCreateForward,
   useCreateOutputRecorder,
   useCreatePreview,
+  useDeleteControlChannel,
   useDeleteForward,
   useDeleteOutputRecorder,
   useDeletePreview,
@@ -40,8 +42,8 @@ import {
 } from '@/queries/outputs';
 
 // What an administrator changes about where an output goes: the channels it is forwarded to, each on or off; the
-// gateways it is previewed at; and whether OBS records it. Each is a control to compose into a row where the page
-// lists them.
+// channels whose chat controls it; the gateways it is previewed at; and whether OBS records it. Each is a control to
+// compose into a row where the page lists them.
 
 export interface AddForwardMenuProps {
   output: Output;
@@ -135,6 +137,96 @@ export const RemoveForwardDialog: FC<ForwardControlProps> = ({ outputId, part })
             variant="destructive"
             loading={remove.isPending}
             onClick={() => dialog.mutate({ outputId, partId: part.forward.id })}
+          >
+            Remove
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+export interface AddControlChannelMenuProps {
+  output: Output;
+  channels: Channel[];
+}
+
+/**
+ * Has the chat of one of the organisation's Twitch channels control the output: those with a login (chat is found by
+ * it) that don't control it already. When there are none left, says where channels are added.
+ */
+export const AddControlChannelMenu: FC<AddControlChannelMenuProps> = ({ output, channels }) => {
+  const organisationId = useOrganisationId();
+  const create = useCreateControlChannel(organisationId);
+  const available = channels.filter(
+    channel =>
+      channel.kind === 'twitch' &&
+      channel.externalLogin !== null &&
+      !output.controlChannels.some(control => control.channelId === channel.id)
+  );
+  return (
+    <div className="flex items-center gap-3">
+      <FormError error={create.error} />
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="outline" size="sm" loading={create.isPending} />}>
+          <PlusIcon />
+          Add channel
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-56">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>
+              {available.length > 0 ? 'Take commands from the chat of' : 'Every Twitch channel controls it'}
+            </DropdownMenuLabel>
+            {available.map(channel => (
+              <DropdownMenuItem
+                key={channel.id}
+                onClick={() => create.mutate({ outputId: output.id, channelId: channel.id })}
+              >
+                <TwitchLogoIcon />
+                <span className="truncate">{channel.name}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuItem render={<Link to="../../channels" relative="path" />}>
+              <PlusIcon />
+              Add a channel to the organisation
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+};
+
+export interface RemoveControlChannelDialogProps {
+  outputId: string;
+  channelId: string;
+  /** The channel's name, or a note when it has gone. */
+  name: string;
+}
+
+/** Stops a channel's chat controlling the output, once confirmed. The channel stays, for other outputs. */
+export const RemoveControlChannelDialog: FC<RemoveControlChannelDialogProps> = ({ outputId, channelId, name }) => {
+  const organisationId = useOrganisationId();
+  const remove = useDeleteControlChannel(organisationId);
+  const dialog = useDialog(remove);
+  return (
+    <AlertDialog {...dialog.props}>
+      <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>Remove</AlertDialogTrigger>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Stop taking commands from {name}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Its chat stops controlling this output, unless the output is forwarded to it. The channel stays in the
+            organisation.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <FormError error={remove.error} />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            loading={remove.isPending}
+            onClick={() => dialog.mutate({ outputId, channelId })}
           >
             Remove
           </AlertDialogAction>

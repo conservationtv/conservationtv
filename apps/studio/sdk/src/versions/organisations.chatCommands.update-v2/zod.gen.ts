@@ -10,23 +10,10 @@ export const ErrorSchema = z.object({
 export const ChatCommandSchema = z.object({
     id: z.string(),
     name: z.string(),
-    action: z.union([
-        z.object({
-            kind: z.literal('reply'),
-            text: z.string()
-        }),
-        z.object({
-            kind: z.literal('cameraPreset'),
-            cameraId: z.string().nullable(),
-            preset: z.string().nullable()
-        }),
-        z.object({
-            kind: z.literal('showSwap')
-        }),
-        z.object({
-            kind: z.literal('showTakeover')
-        })
-    ]),
+    action: z.object({
+        kind: z.literal('reply'),
+        text: z.string()
+    }),
     audience: z.enum([
         'broadcaster',
         'everyone',
@@ -42,25 +29,14 @@ export const ChatCommandSchema = z.object({
 
 export const PatchOrganisationsByIdChatCommandsByCommandIdBodySchema = z.object({
     name: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/).register(z.globalRegistry, {
-        description: 'The word the command is used by, without its `!`.'
+        description: 'The word the command is used by, without its `!`: not one a standard command is used by.'
     }).optional(),
-    action: z.union([
-        z.object({
-            kind: z.literal('reply'),
-            text: z.string().min(1).max(400)
-        }),
-        z.object({
-            kind: z.literal('cameraPreset'),
-            cameraId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/).nullable(),
-            preset: z.string().min(1).max(60).nullable()
-        }),
-        z.object({
-            kind: z.literal('showSwap')
-        }),
-        z.object({
-            kind: z.literal('showTakeover')
-        })
-    ]).optional(),
+    action: z.object({
+        kind: z.literal('reply'),
+        text: z.string().min(1).max(400)
+    }).register(z.globalRegistry, {
+        description: 'What the command does: `reply`, saying `text` in chat.'
+    }).optional(),
     audience: z.enum([
         'everyone',
         'subscriber',

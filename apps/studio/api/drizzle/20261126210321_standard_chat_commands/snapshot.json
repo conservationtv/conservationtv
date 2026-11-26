@@ -1,0 +1,660 @@
+{
+  "type": "diff",
+  "version": "10",
+  "dialect": "postgres",
+  "id": "84482052-16e9-475e-bd7f-3ddd14f67d5b",
+  "prevIds": [
+    "53512957-e675-4918-907b-f56f08caccf0"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "output_control_channel"
+      ],
+      "writes": [
+        "s|tbl|public.output_control_channel",
+        "n|tbl|public.output_control_channel",
+        "e|tbl|public.output_control_channel",
+        "n|rel|public.output_control_channel",
+        "n|type|public.output_control_channel",
+        "n|rel|public.output_control_channel_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "chat_command_setting"
+      ],
+      "writes": [
+        "s|tbl|public.chat_command_setting",
+        "n|tbl|public.chat_command_setting",
+        "e|tbl|public.chat_command_setting",
+        "n|rel|public.chat_command_setting",
+        "n|type|public.chat_command_setting",
+        "n|rel|public.chat_command_setting_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "chat_command_turn"
+      ],
+      "writes": [
+        "s|tbl|public.chat_command_turn",
+        "n|tbl|public.chat_command_turn",
+        "e|tbl|public.chat_command_turn",
+        "n|rel|public.chat_command_turn",
+        "n|type|public.chat_command_turn",
+        "n|rel|public.chat_command_turn_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "output_control_channel",
+        "output_control_channel_channel_idx"
+      ],
+      "writes": [
+        "s|idx|public.output_control_channel_channel_idx",
+        "n|idx|public.output_control_channel_channel_idx",
+        "e|idx|public.output_control_channel_channel_idx",
+        "n|rel|public.output_control_channel_channel_idx"
+      ],
+      "reads": [
+        "n|tbl|public.output_control_channel",
+        "n|sch|public",
+        "n|col|public.output_control_channel.channel_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "output_control_channel"
+      ],
+      "writes": [
+        "s|fk|public.output_control_channel.output_control_channel_organisation_id_organisation_id_fkey",
+        "n|fk|public.output_control_channel.output_control_channel_organisation_id_organisation_id_fkey",
+        "e|fk|public.output_control_channel.output_control_channel_organisation_id_organisation_id_fkey",
+        "n|con|public.output_control_channel.output_control_channel_organisation_id_organisation_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.output_control_channel",
+        "n|sch|public",
+        "n|tbl|public.organisation",
+        "n|sch|public",
+        "n|col|public.output_control_channel.organisation_id",
+        "n|col|public.organisation.id",
+        "e|uniqueness|public.organisation.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "output_control_channel"
+      ],
+      "writes": [
+        "s|fk|public.output_control_channel.output_control_channel_output_fk",
+        "n|fk|public.output_control_channel.output_control_channel_output_fk",
+        "e|fk|public.output_control_channel.output_control_channel_output_fk",
+        "n|con|public.output_control_channel.output_control_channel_output_fk"
+      ],
+      "reads": [
+        "n|tbl|public.output_control_channel",
+        "n|sch|public",
+        "n|tbl|public.output",
+        "n|sch|public",
+        "n|col|public.output_control_channel.organisation_id",
+        "n|col|public.output_control_channel.output_id",
+        "n|col|public.output.organisation_id",
+        "n|col|public.output.id",
+        "e|uniqueness|public.output.id.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "output_control_channel"
+      ],
+      "writes": [
+        "s|fk|public.output_control_channel.output_control_channel_channel_fk",
+        "n|fk|public.output_control_channel.output_control_channel_channel_fk",
+        "e|fk|public.output_control_channel.output_control_channel_channel_fk",
+        "n|con|public.output_control_channel.output_control_channel_channel_fk"
+      ],
+      "reads": [
+        "n|tbl|public.output_control_channel",
+        "n|sch|public",
+        "n|tbl|public.channel",
+        "n|sch|public",
+        "n|col|public.output_control_channel.organisation_id",
+        "n|col|public.output_control_channel.channel_id",
+        "n|col|public.channel.organisation_id",
+        "n|col|public.channel.id",
+        "e|uniqueness|public.channel.id.organisation_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "chat_command_setting"
+      ],
+      "writes": [
+        "s|fk|public.chat_command_setting.chat_command_setting_organisation_id_organisation_id_fkey",
+        "n|fk|public.chat_command_setting.chat_command_setting_organisation_id_organisation_id_fkey",
+        "e|fk|public.chat_command_setting.chat_command_setting_organisation_id_organisation_id_fkey",
+        "n|con|public.chat_command_setting.chat_command_setting_organisation_id_organisation_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.chat_command_setting",
+        "n|sch|public",
+        "n|tbl|public.organisation",
+        "n|sch|public",
+        "n|col|public.chat_command_setting.organisation_id",
+        "n|col|public.organisation.id",
+        "e|uniqueness|public.organisation.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "chat_command_turn"
+      ],
+      "writes": [
+        "s|fk|public.chat_command_turn.chat_command_turn_organisation_id_organisation_id_fkey",
+        "n|fk|public.chat_command_turn.chat_command_turn_organisation_id_organisation_id_fkey",
+        "e|fk|public.chat_command_turn.chat_command_turn_organisation_id_organisation_id_fkey",
+        "n|con|public.chat_command_turn.chat_command_turn_organisation_id_organisation_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.chat_command_turn",
+        "n|sch|public",
+        "n|tbl|public.organisation",
+        "n|sch|public",
+        "n|col|public.chat_command_turn.organisation_id",
+        "n|col|public.organisation.id",
+        "e|uniqueness|public.organisation.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "output_control_channel",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "chat_command_setting",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "chat_command_turn",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "organisation_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "output_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "channel_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "organisation_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "command",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "enabled",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "audience",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "cooldown_seconds",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "updated_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_turn",
+        "name": "organisation_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_turn",
+        "name": "command",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_turn",
+        "name": "target_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_turn",
+        "name": "triggered_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "output_control_channel_channel_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "channel_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "output_control_channel_organisation_id_organisation_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "organisation_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "organisation",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "output_control_channel_output_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "output_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "output",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "output_control_channel_channel_fk",
+        "nameExplicit": true,
+        "columns": [
+          "organisation_id",
+          "channel_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "channel",
+        "columnsTo": [
+          "organisation_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "chat_command_setting_organisation_id_organisation_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "organisation_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "organisation",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_turn",
+        "name": "chat_command_turn_organisation_id_organisation_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "organisation_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "organisation",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "output_control_channel",
+        "name": "output_control_channel_pkey",
+        "columns": [
+          "output_id",
+          "channel_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "chat_command_setting_pkey",
+        "columns": [
+          "organisation_id",
+          "command"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_turn",
+        "name": "chat_command_turn_pkey",
+        "columns": [
+          "organisation_id",
+          "command",
+          "target_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "chat_command_setting_command",
+        "value": "command in ('ptzhome', 'ptzload', 'ptzlist', 'ptzpan', 'ptztilt', 'ptzzoom', 'ptzset', 'ptzseta', 'ptzmove', 'ptzcenter', 'ptzfocusa', 'swap', 'customcams', 'scenecams', 'takeover', 'livecams', 'mute', 'unmute', 'setvolume', 'getvolume', 'resetvolume')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "chat_command_setting_audience",
+        "value": "audience in ('everyone', 'subscriber', 'vip', 'moderator', 'broadcaster')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "chat_command_setting",
+        "name": "chat_command_setting_cooldown",
+        "value": "\"cooldown_seconds\" >= 0",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

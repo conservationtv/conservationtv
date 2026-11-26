@@ -202,9 +202,4 @@ export class Namer {
   command(index: number): string {
     return nth(COMMANDS, index);
   }
-
-  /** A command that operates a show, the `count`th of its kind: `!swap`, then `!swap2`. */
-  showCommand(kind: 'showSwap' | 'showTakeover', count: number): string {
-    return `${kind === 'showSwap' ? '!swap' : '!takeover'}${count ? count + 1 : ''}`;
-  }
 }

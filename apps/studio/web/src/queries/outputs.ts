@@ -12,9 +12,10 @@ import {
 } from '@/queries/streams';
 
 // An organisation's outputs (apps/studio/api/src/routes/outputs.ts): each one OBS on one agent, with that agent; its
-// programme's encoding; the forwards that send the programme to channels; the previews that publish it to gateways to
-// be read; and the recorder that has OBS record it. What is on screen is driven by the show it follows
-// (src/queries/shows.ts), or, under `external` control, by something outside the studio.
+// programme's encoding; the forwards that send the programme to channels; the channels whose chat controls it besides
+// the Twitch ones it is forwarded to; the previews that publish it to gateways to be read; and the recorder that has
+// OBS record it. What is on screen is driven by the show it follows (src/queries/shows.ts), or, under `external`
+// control, by something outside the studio.
 //
 // The shows list names the outputs following each show, so whatever changes which show an output follows reads the
 // shows again too; and a show's read says which streams each output's agent cannot reach (its network, and the gateway
@@ -251,6 +252,48 @@ export function useDeleteForward(organisationId: string) {
         id: organisationId,
         outputId,
         forwardId: partId
+      });
+      if (result instanceof Error) throw result;
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: ['outputs', organisationId] })
+  });
+}
+
+/** A channel whose chat is to control an output, or is to stop controlling it. */
+export interface OutputControlChannel {
+  outputId: string;
+  channelId: string;
+}
+
+/**
+ * Have a Twitch channel's chat control an output's broadcast without the output streaming there. Once per channel;
+ * refused for a channel that isn't Twitch or has no login.
+ */
+export function useCreateControlChannel(organisationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ outputId, channelId }: OutputControlChannel) => {
+      const result = await api.organisations.outputs.controlChannels.create.v1({
+        id: organisationId,
+        outputId,
+        channelId
+      });
+      if (result instanceof Error) throw result;
+      return result;
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: ['outputs', organisationId] })
+  });
+}
+
+/** Stop a channel's chat controlling an output. A channel the output is forwarded to still controls it. */
+export function useDeleteControlChannel(organisationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ outputId, channelId }: OutputControlChannel) => {
+      const result = await api.organisations.outputs.controlChannels.delete.v1({
+        id: organisationId,
+        outputId,
+        channelId
       });
       if (result instanceof Error) throw result;
     },

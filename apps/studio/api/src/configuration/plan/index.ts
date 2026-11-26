@@ -7,7 +7,7 @@ import { gatewayProvider } from '../../gateways/index.ts';
 import { mediamtxPath } from '../../gateways/mediamtx.ts';
 import { ONLY_RENDITION } from '../../topology/renditions.ts';
 import { useEnvironment } from '../../env/env.ts';
-import { selectListenedCommands } from '../../services/chat-commands.ts';
+import { selectListenedCommands, selectListenedStandardCommands } from '../../services/chat-commands.ts';
 import { selectDeviceOutput, selectOutputPlan } from '../../services/outputs.ts';
 import { selectStreamKeyDigests } from '../../services/publishing.ts';
 import {
@@ -31,6 +31,7 @@ import type {
   CameraProbe,
   CamerasConfiguration,
   ChatConfiguration,
+  StandardChatConfiguration,
   ControllingConfiguration,
   DeliveringConfiguration,
   ExposurePublisher,
@@ -115,7 +116,9 @@ export function withRelays(configuration: PlannedDeviceConfiguration): Deliverin
  */
 export function withPathRenditions(configuration: PlannedDeviceConfiguration): ControllingConfiguration {
   // Those agents follow the stats of the gateways they publish to, and watch nothing: `relays` is not theirs.
-  const { mediamtx, relays: _relays, ...rest } = configuration;
+  const { mediamtx, relays: _relays, chat: planned, ...withoutChat } = configuration;
+  const chat = planned && withoutStandard(planned);
+  const rest = chat === undefined ? withoutChat : { ...withoutChat, chat };
   if (mediamtx === undefined) return rest;
   // Those agents pull every path from somewhere: a pushed one, and whatever publishes from it, is left out.
   const pushed = new Set(mediamtx.paths.filter(path => 'push' in path.source).map(path => path.name));
@@ -130,6 +133,15 @@ export function withPathRenditions(configuration: PlannedDeviceConfiguration): C
     renditions: [{ rendition: ONLY_RENDITION, path }]
   }));
   return { ...rest, mediamtx: { ...mediamtx, paths, publishers } };
+}
+
+/**
+ * The `chat` runtime as version 3 says it: the organisation's own commands alone, and none without any, as it was
+ * before the standard commands.
+ */
+function withoutStandard(chat: StandardChatConfiguration): ChatConfiguration | undefined {
+  const { standard: _standard, ...own } = chat;
+  return own.commands.length === 0 ? undefined : own;
 }
 
 /**
@@ -289,7 +301,7 @@ async function planRelays(
 interface PlannedOutput {
   obs?: SignedObsConfiguration;
   show?: ShowConfiguration;
-  chat?: ChatConfiguration;
+  chat?: StandardChatConfiguration;
 }
 
 /**
@@ -304,15 +316,16 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
       const plan = await selectOutputPlan(output.outputId);
       const gatewayKinds = await selectGatewayKinds(output.organisationId);
       const commands = await selectListenedCommands(output.organisationId);
+      const standard = await selectListenedStandardCommands(output.organisationId);
       const signers = await selectGatewaySigners(output.organisationId);
-      return { output, plan: plan!, gatewayKinds, commands, signers };
+      return { output, plan: plan!, gatewayKinds, commands, standard, signers };
     },
     { name: 'configuration.output' }
   );
   if (planned === undefined) return {};
-  const { output, plan, gatewayKinds, commands, signers } = planned;
+  const { output, plan, gatewayKinds, commands, standard, signers } = planned;
   const { outputId, organisationId, control, showId } = output;
-  const { forwards, previews, recorders, ...encoding } = plan;
+  const { forwards, controlChannels, previews, recorders, ...encoding } = plan;
   const [recorder] = recorders;
   const obs: SignedObsConfiguration = {
     output: { id: outputId, organisationId, control },
@@ -338,32 +351,41 @@ async function planOutput(device: AuthenticatedDevice): Promise<PlannedOutput> {
     ...(recorder && { recording: { recorderId: recorder.id, kind: recorder.kind, params: recorder.params } }),
     program: { subjectId: programSubject(outputId) }
   };
-  const chat = planChat(organisationId, forwards, commands);
+  const chat = planChat(organisationId, [...forwards, ...controlChannels], commands, standard);
   if (control !== 'show' || showId === null) return { obs, chat };
   const environment = useEnvironment();
   const url = new URL(`/organisations/${organisationId}/shows/${showId}/follow`, environment.variables.APP_URL);
   return { obs, show: { id: showId, url: url.href }, chat };
 }
 
-/** An output's forwards, as planning reads them. */
-type ForwardInput = NonNullable<Awaited<ReturnType<typeof selectOutputPlan>>>['forwards'][number];
+/**
+ * A channel whose chat controls an output, as planning reads it: one it forwards to, or one of its control channels.
+ */
+type ChatChannelInput = Pick<
+  NonNullable<Awaited<ReturnType<typeof selectOutputPlan>>>['forwards'][number],
+  'channelId' | 'channel'
+>;
 
 /**
- * The `chat` runtime: the Twitch channels the output goes out to, whose chat is read by the channel's login, and the
- * commands to listen for there. None without both: there is nothing to listen to, or nothing to listen for.
+ * The `chat` runtime: the Twitch channels whose chat controls the output, the ones it goes out to and its control
+ * channels, each read by the channel's login once, and the commands to listen for there. None without a channel, or
+ * with nothing to listen for.
  */
 function planChat(
   organisationId: string,
-  forwards: ForwardInput[],
-  commands: ChatConfiguration['commands']
-): ChatConfiguration | undefined {
-  const channels: ChatConfiguration['channels'] = [];
-  for (const { channelId, channel } of forwards) {
+  inputs: ChatChannelInput[],
+  commands: StandardChatConfiguration['commands'],
+  standard: StandardChatConfiguration['standard']
+): StandardChatConfiguration | undefined {
+  const channels: StandardChatConfiguration['channels'] = [];
+  for (const { channelId, channel } of inputs) {
+    // Only Twitch chat is listened to, by the channel's login; a channel both forwarded to and controlling, once.
     if (channel?.kind !== 'twitch' || channel.externalLogin === null) continue;
+    if (channels.some(listened => listened.channelId === channelId)) continue;
     channels.push({ channelId, platform: 'twitch', login: channel.externalLogin });
   }
-  if (channels.length === 0 || commands.length === 0) return undefined;
-  return { organisationId, channels, commands };
+  if (channels.length === 0 || commands.length + standard.length === 0) return undefined;
+  return { organisationId, channels, commands, standard };
 }
 
 /** How an output publishes a preview: by MoQ to a gateway that takes it, otherwise RTMP. */

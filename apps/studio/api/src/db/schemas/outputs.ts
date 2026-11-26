@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -126,6 +127,47 @@ export const outputDevices = withAccess(
     name: 'outputDevices',
     scope: organisations.$access.scope.via(t.organisationId),
     immutable: [t.outputId, t.organisationId, t.createdAt],
+    actions: topologyActions,
+    roles: topologyRoles
+  })
+);
+
+/**
+ * A channel whose chat controls an output's broadcast, whether or not the output goes out to it: the output's agent
+ * listens to its chat for commands, as it does to the Twitch channels it forwards to, and this API takes a use heard
+ * there as one of the output's (src/routes/chat-uses.ts). A Twitch channel alone, since only Twitch chat is listened
+ * to.
+ */
+export const outputControlChannels = withAccess(
+  pgTable(
+    'output_control_channel',
+    {
+      organisationId: uuid('organisation_id')
+        .notNull()
+        .references(() => organisations.id, { onDelete: 'cascade' }),
+      outputId: uuid('output_id').notNull(),
+      channelId: uuid('channel_id').notNull(),
+      createdAt: timestamp('created_at').defaultNow().notNull()
+    },
+    t => [
+      primaryKey({ name: 'output_control_channel_pkey', columns: [t.outputId, t.channelId] }),
+      foreignKey({
+        name: 'output_control_channel_output_fk',
+        columns: [t.organisationId, t.outputId],
+        foreignColumns: [outputs.organisationId, outputs.id]
+      }).onDelete('cascade'),
+      foreignKey({
+        name: 'output_control_channel_channel_fk',
+        columns: [t.organisationId, t.channelId],
+        foreignColumns: [channels.organisationId, channels.id]
+      }).onDelete('cascade'),
+      index('output_control_channel_channel_idx').on(t.channelId)
+    ]
+  ),
+  t => ({
+    name: 'outputControlChannels',
+    scope: organisations.$access.scope.via(t.organisationId),
+    immutable: [t.outputId, t.channelId, t.createdAt],
     actions: topologyActions,
     roles: topologyRoles
   })

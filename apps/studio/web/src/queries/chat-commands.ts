@@ -1,12 +1,19 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ChatCommandCreateParams, ChatCommandUpdateParams } from '@conservationtv/studio-sdk';
+import type {
+  ChatCommandCreateParams,
+  ChatCommandUpdateParams,
+  Standard,
+  StandardUpdateParams
+} from '@conservationtv/studio-sdk';
 
 import { api } from '@/lib/api';
 
 // An organisation's chat commands (apps/studio/api/src/routes/chat-commands.ts): each the word viewers type after `!`
 // in the chat of the organisation's channels, who may use it, how long it rests after it runs, and the one thing it
-// does. Members read them and administrators manage them. The agents of outputs that go out to Twitch channels listen
-// for them; whether a command runs, and what comes of it, the studio API decides each time one is used.
+// does, which is to say something. Members read them and administrators manage them. Beside them are the standard
+// commands every organisation has for every camera (@conservationtv/chat), which administrators can switch off, or
+// change who may use and how long they rest. The agents of outputs whose chat controls them listen for both; whether
+// a command runs, and what comes of it, the studio API decides each time one is used.
 
 /** The organisation's chat commands, oldest first. */
 export const chatCommandListQueryOptions = (organisationId: string) =>
@@ -54,5 +61,48 @@ export function useDeleteChatCommand(organisationId: string) {
       if (result instanceof Error) throw result;
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ['chat-commands', organisationId] })
+  });
+}
+
+/** A standard command, as the organisation has it. */
+export type StandardChatCommand = Standard['commands'][number];
+
+/** The standard commands, in their groups' order, each as the organisation has it: changed, or as it comes. */
+export const standardChatCommandListQueryOptions = (organisationId: string) =>
+  queryOptions({
+    queryKey: ['chat-commands', organisationId, 'standard'] as const,
+    queryFn: async () => {
+      const result = await api.organisations.chatCommands.standard.list.v1({ id: organisationId });
+      if (result instanceof Error) throw result;
+      return result.commands;
+    }
+  });
+
+/** A change to a standard command, by its name. */
+export type StandardChatCommandChange = Omit<StandardUpdateParams, 'id'>;
+
+/** Change a standard command: whether it is on, who may use it, or how long it rests. */
+export function useUpdateStandardChatCommand(organisationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (change: StandardChatCommandChange) => {
+      const result = await api.organisations.chatCommands.standard.update.v1({ id: organisationId, ...change });
+      if (result instanceof Error) throw result;
+      return result;
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: ['chat-commands', organisationId, 'standard'] })
+  });
+}
+
+/** Put a standard command back as it comes: on, for its own audience, resting its own time. */
+export function useResetStandardChatCommand(organisationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: StandardChatCommand['name']) => {
+      const result = await api.organisations.chatCommands.standard.reset.v1({ id: organisationId, name });
+      if (result instanceof Error) throw result;
+      return result;
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: ['chat-commands', organisationId, 'standard'] })
   });
 }
